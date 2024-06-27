@@ -109,8 +109,8 @@ toGovAction TxSkelProposal {..} = do
 
 -- | Translates a skeleton proposal into a proposal procedure alongside a
 -- possible witness
-toProposalProcedureAndWitness :: TxSkelProposal -> ProposalGen (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
-toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} = do
+toProposalProcedureAndWitness :: TxSkelProposal -> AnchorResolution -> ProposalGen (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
+toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolution = do
   minDeposit <- asks (Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . fst)
   cred <- liftTxGen $ toRewardAccount $ toCredential txSkelProposalAddress
   govAction <- toGovAction txSkelProposal
@@ -118,10 +118,17 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} = do
         anchor <- txSkelProposalAnchor
         anchorUrl <- Cardano.textToUrl (length anchor) (Text.pack anchor)
         let anchorDataHash =
-              handle
-                (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
-                ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Cardano.hashAnchorData . Cardano.AnchorData . Network.getResponseBody)
-        return $ Cardano.Anchor anchorUrl <$> unsafePerformIO anchorDataHash
+              case anchorResolution of
+                AnchorResolutionHttp ->
+                  -- WARNING: very unsafe and unreproducible
+                  unsafePerformIO
+                    ( handle
+                        (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
+                        ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Network.getResponseBody)
+                    )
+                AnchorResolutionLocal urls ->
+                  throwOnLookup "Error when attempting to retrieve anchor url in the local anchor resolution map" anchor urls
+        return $ Cardano.Anchor anchorUrl . Cardano.hashAnchorData . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor
   let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
   (conwayProposalProcedure,) <$> case txSkelProposalWitness of
@@ -129,8 +136,8 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} = do
     Just (script, redeemer) -> Just <$> liftTxGen (toScriptWitness (toScript script) redeemer Cardano.NoScriptDatumForStake)
 
 -- | Translates a list of skeleton proposals into a proposal procedures
-toProposalProcedures :: [TxSkelProposal] -> ProposalGen (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
-toProposalProcedures props = do
+toProposalProcedures :: [TxSkelProposal] -> AnchorResolution -> ProposalGen (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
+toProposalProcedures props anchorResolution = do
   (OSet.fromSet -> ppSet, Cardano.BuildTxWith -> ppMap) <- go props
   return $
     if null ppSet
@@ -140,7 +147,7 @@ toProposalProcedures props = do
     go [] = return (Set.empty, Map.empty)
     go (h : t) = do
       (proposals, mapWitnesses) <- go t
-      (proposal, maybeWitness) <- toProposalProcedureAndWitness h
+      (proposal, maybeWitness) <- toProposalProcedureAndWitness h anchorResolution
       let outputMap = case maybeWitness of
             Nothing -> mapWitnesses
             Just newWitness -> Map.insert proposal newWitness mapWitnesses

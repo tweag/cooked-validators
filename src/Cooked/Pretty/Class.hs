@@ -54,6 +54,9 @@ instance PrettyCooked Api.TxOutRef where
 instance PrettyCooked (Script.Versioned Script.MintingPolicy) where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
+instance PrettyCooked (Script.Versioned Script.Script) where
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
+
 instance PrettyCooked Api.Address where
   prettyCookedOpt opts (Api.Address addrCr Nothing) = prettyCookedOpt opts addrCr
   prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingHash stakCr))) =

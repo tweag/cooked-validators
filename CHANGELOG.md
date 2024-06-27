@@ -43,7 +43,11 @@
   skeletons. If they contain parameter changes or treasury withdrawals, a
   witness script can be attached and will be run.
 - `TxSkelRedeemer` is now used for all kind of scripts.
-- Transaction generation has been rendered clearer. 
+- File [CONWAY](doc/CONWAY.md) to document which Conway features are currently
+  supported.
+- A new option `txOptAnchorResolution` to decide whether to resolved urls
+  locally or on the web (unsafe). The default is to resolve them locally with a
+  given map from urls to page content as bytestring.
 
 ### Removed
 - Extraneous dependencies in package.yaml

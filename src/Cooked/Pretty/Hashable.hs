@@ -3,6 +3,7 @@
 -- those elements.
 module Cooked.Pretty.Hashable where
 
+import Cooked.Conversion
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -22,6 +23,9 @@ instance Hashable Wallet where
 
 instance Hashable (Script.Versioned Script.MintingPolicy) where
   toHash = Script.getMintingPolicyHash . Script.mintingPolicyHash
+
+instance Hashable (Script.Versioned Script.Script) where
+  toHash = toHash . toScriptHash
 
 instance Hashable Script.ScriptHash where
   toHash = Script.getScriptHash

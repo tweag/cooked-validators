@@ -17,6 +17,7 @@ module Cooked.Skeleton
     RawModTx (..),
     EmulatorParamsModification (..),
     CollateralUtxos (..),
+    AnchorResolution (..),
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
@@ -29,6 +30,7 @@ module Cooked.Skeleton
     txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
+    txOptAnchorResolutionL,
     TxSkelMints,
     addToTxSkelMints,
     txSkelMintsToList,
@@ -96,6 +98,7 @@ import Cooked.Conversion
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Wallet
+import Data.ByteString (ByteString)
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
@@ -252,6 +255,19 @@ data CollateralUtxos
 instance Default CollateralUtxos where
   def = CollateralUtxosFromBalancingWallet
 
+-- | Describes how to resolve anchors in proposal procedures
+data AnchorResolution
+  = -- | Provide a map between urls and page content as Bytestring
+    AnchorResolutionLocal (Map String ByteString)
+  | -- | Allow online fetch of pages from a given URL. Important note: using
+    -- this option is unsafe, as it requires a web connection and inherently
+    -- prevents guarantees of reproducibily. Use at your own discretion.
+    AnchorResolutionHttp
+  deriving (Eq, Show)
+
+instance Default AnchorResolution where
+  def = AnchorResolutionLocal Map.empty
+
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
 data TxOpts = TxOpts
@@ -325,7 +341,11 @@ data TxOpts = TxOpts
     -- computed automatically from a given, or the balancing, wallet.
     --
     -- Default is 'CollateralUtxosFromBalancingWallet'
-    txOptCollateralUtxos :: CollateralUtxos
+    txOptCollateralUtxos :: CollateralUtxos,
+    -- | How to resolve anchor in proposal procedures
+    --
+    -- Default is 'AnchorResolutionLocal Map.Empty'
+    txOptAnchorResolution :: AnchorResolution
   }
   deriving (Eq, Show)
 
@@ -338,7 +358,8 @@ makeLensesFor
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
-    ("txOptCollateralUtxos", "txOptCollateralUtxosL")
+    ("txOptCollateralUtxos", "txOptCollateralUtxosL"),
+    ("txOptAnchorResolution", "txOptAnchorResolutionL")
   ]
   ''TxOpts
 
@@ -353,7 +374,8 @@ instance Default TxOpts where
         txOptFeePolicy = def,
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
-        txOptCollateralUtxos = def
+        txOptCollateralUtxos = def,
+        txOptAnchorResolution = def
       }
 
 -- * Redeemers for transaction inputs

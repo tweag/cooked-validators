@@ -246,7 +246,8 @@ txSkelTemplate
 
 ### Attach a Proposal Procedure to a transaction
 
-* Using the builtin constructor for proposals:
+* Using the builtin constructor for proposals.
+
 ```haskell
 txSkelTemplate
   { ...
@@ -267,7 +268,8 @@ txSkelTemplate
   }
 ```
 
-* Using smart constructors:
+* Using smart constructors and (optional) helpers.
+
 ```haskell 
 txSkelTemplate
   { ...
@@ -280,6 +282,24 @@ txSkelTemplate
       ]
     ...
   } 
+```
+
+### Anchor resolution policy
+
+* Auto resolution using Http (very unsafe, block reproducibility)
+
+```haskell 
+    txSkelOpts = def 
+	  { txOptAnchorResolution = AnchorResolutionHttp
+	  }
+```	
+
+* Auto resolution using a given map with resolved page content as bytestrings.
+
+```haskell 
+    txSkelOpts = def 
+	  { txOptAnchorResolution = AnchorResolutionLocal $ Map.singleton "https://www.tweag.io/" someByteString
+	  }
 ```
 
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt

@@ -80,7 +80,9 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
   txProtocolParams <- asks (Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
   txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . fee)
-  txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> liftTxGen (Proposal.toProposalProcedures txSkelProposals)
+  txProposalProcedures <-
+    Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
+      <$> liftTxGen (Proposal.toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts))
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well

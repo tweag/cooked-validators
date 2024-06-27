@@ -29,6 +29,7 @@ module Cooked.Pretty.Cooked
   )
 where
 
+import Cooked.Conversion
 import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -46,6 +47,7 @@ import Data.Function (on)
 import Data.List qualified as List
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes, mapMaybe)
+import Data.Ratio
 import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
@@ -184,13 +186,133 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
           prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
           prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs),
-          prettyItemizeNonEmpty "Proposals:" "-" (prettyTxSkelProposal opts skelContext <$> proposals)
+          prettyItemizeNonEmpty "Proposals:" "-" (prettyTxSkelProposal opts <$> proposals)
         ]
     )
 
--- TODO
-prettyTxSkelProposal :: PrettyCookedOpts -> SkelContext -> TxSkelProposal -> DocCooked
-prettyTxSkelProposal = undefined
+-- * Pretty printing of proposal procedures
+
+instance PP.Pretty Rational where
+  pretty q = "(" <+> PP.pretty (numerator q) <+> "/" <+> PP.pretty (denominator q) <+> ")"
+
+prettyTxParameterChange :: TxParameterChange -> DocCooked
+prettyTxParameterChange (FeePerByte n) = "Fee per byte:" <+> PP.pretty n
+prettyTxParameterChange (FeeFixed n) = "Fee fixed:" <+> PP.pretty n
+prettyTxParameterChange (MaxBlockBodySize n) = "Max block body size:" <+> PP.pretty n
+prettyTxParameterChange (MaxTxSize n) = "Max transaction size:" <+> PP.pretty n
+prettyTxParameterChange (MaxBlockHeaderSize n) = "Max block header size:" <+> PP.pretty n
+prettyTxParameterChange (KeyDeposit n) = "Key deposit:" <+> PP.pretty n
+prettyTxParameterChange (PoolDeposit n) = "Pool deposit:" <+> PP.pretty n
+prettyTxParameterChange (PoolRetirementMaxEpoch n) = "Pool retirement max epoch:" <+> PP.pretty n
+prettyTxParameterChange (PoolNumber n) = "Pool number:" <+> PP.pretty n
+prettyTxParameterChange (PoolInfluence q) = "Pool influence:" <+> PP.pretty q
+prettyTxParameterChange (MonetaryExpansion q) = "Monetary expansion:" <+> PP.pretty q
+prettyTxParameterChange (TreasuryCut q) = "Treasury cut:" <+> PP.pretty q
+prettyTxParameterChange (MinPoolCost n) = "Min pool cost:" <+> PP.pretty n
+prettyTxParameterChange (CoinsPerUTxOByte n) = "Lovelace per utxo byte:" <+> PP.pretty n
+prettyTxParameterChange (CostModels _pv1 _pv2 _pv3) = "Cost models (unsupported)"
+prettyTxParameterChange (Prices q r) =
+  prettyItemize
+    "Prices:"
+    "-"
+    [ "Memory cost:" <+> PP.pretty q,
+      "Step cost:" <+> PP.pretty r
+    ]
+prettyTxParameterChange (MaxTxExUnits n m) =
+  prettyItemize
+    "Max transaction execution units:"
+    "-"
+    [ "Max memory:" <+> PP.pretty n,
+      "Max steps:" <+> PP.pretty m
+    ]
+prettyTxParameterChange (MaxBlockExUnits n m) =
+  prettyItemize
+    "Max block execution units:"
+    "-"
+    [ "Max memory:" <+> PP.pretty n,
+      "Max steps:" <+> PP.pretty m
+    ]
+prettyTxParameterChange (MaxValSize n) = "Max value size:" <+> PP.pretty n
+prettyTxParameterChange (CollateralPercentage n) = "Collateral percentage:" <+> PP.pretty n
+prettyTxParameterChange (MaxCollateralInputs n) = "Max number of collateral inputs:" <+> PP.pretty n
+prettyTxParameterChange (PoolVotingThresholds a b c d e) =
+  prettyItemize
+    "Pool voting thresholds:"
+    "-"
+    [ "Motion no confidence:" <+> PP.pretty a,
+      "Committee normal:" <+> PP.pretty b,
+      "Committee no confidence:" <+> PP.pretty c,
+      "Hard fork:" <+> PP.pretty d,
+      "Security group:" <+> PP.pretty e
+    ]
+prettyTxParameterChange (DRepVotingThresholds a b c d e f g h i j) =
+  prettyItemize
+    "DRep voting thresholds:"
+    "-"
+    [ "Motion no confidence:" <+> PP.pretty a,
+      "Committee normal:" <+> PP.pretty b,
+      "Committee no confidence:" <+> PP.pretty c,
+      "Update constitution:" <+> PP.pretty d,
+      "Hard fork initialization:" <+> PP.pretty e,
+      "Network group:" <+> PP.pretty f,
+      "Economic group:" <+> PP.pretty g,
+      "Technical group:" <+> PP.pretty h,
+      "Governance group:" <+> PP.pretty i,
+      "Treasury withdrawal:" <+> PP.pretty j
+    ]
+prettyTxParameterChange (CommitteeMinSize n) = "Committee min size:" <+> PP.pretty n
+prettyTxParameterChange (CommitteeMaxTermLength n) = "Committee max term length:" <+> PP.pretty n
+prettyTxParameterChange (GovActionLifetime n) = "Governance action life time:" <+> PP.pretty n
+prettyTxParameterChange (GovActionDeposit n) = "Governance action deposit:" <+> PP.pretty n
+prettyTxParameterChange (DRepRegistrationDeposit n) = "DRep registration deposit:" <+> PP.pretty n
+prettyTxParameterChange (DRepActivity n) = "DRep activity:" <+> PP.pretty n
+
+prettyTxSkelProposal :: PrettyCookedOpts -> TxSkelProposal -> DocCooked
+prettyTxSkelProposal opts TxSkelProposal {..} =
+  prettyItemizeNoTitle "-" $
+    catMaybes
+      [ Just $ "Governance action:" <+> prettyTxSkelGovAction opts txSkelProposalAction,
+        Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
+        ( \(script, redeemer) ->
+            prettyItemize
+              "Witness:"
+              "-"
+              [ prettyCookedOpt opts script,
+                case redeemer of
+                  TxSkelNoRedeemer -> "No redeemer"
+                  TxSkelRedeemerForScript red -> "With the following redeemer:" <+> prettyCooked red
+                  TxSkelRedeemerForReferenceScript red txOutRef ->
+                    "With the following redeemer:"
+                      <+> prettyCooked red
+                      <+> "and reference script sitting at:"
+                      <+> prettyCookedOpt opts txOutRef
+              ]
+        )
+          <$> txSkelProposalWitness,
+        ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
+      ]
+
+prettyTxSkelGovAction :: PrettyCookedOpts -> TxGovAction -> DocCooked
+prettyTxSkelGovAction _ (TxGovActionParameterChange params) = prettyItemize "Parameter changes:" "-" $ prettyTxParameterChange <$> params
+prettyTxSkelGovAction _ (TxGovActionHardForkInitiation (Api.ProtocolVersion major minor)) =
+  "Protocol version:" <+> "(" <+> PP.pretty major <+> "," <+> PP.pretty minor <+> ")"
+prettyTxSkelGovAction opts (TxGovActionTreasuryWithdrawals withdrawals) =
+  prettyItemize "Withdrawals:" "-" $
+    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (toValue lv)) <$> Map.toList withdrawals
+prettyTxSkelGovAction _ TxGovActionNoConfidence = "No confidence"
+prettyTxSkelGovAction opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
+  prettyItemize
+    "Updates in committee:"
+    "-"
+    [ prettyItemize "Credentials to remove:" "-" $
+        (\(Api.ColdCommitteeCredential cred) -> prettyCookedOpt opts cred) <$> toRemoveCreds,
+      prettyItemize "Credentials to add:" "-" $
+        (\(Api.ColdCommitteeCredential cred, i) -> prettyCookedOpt opts cred <+> "->" <+> PP.pretty i) <$> Map.toList toAddCreds,
+      "Quorum:" <+> PP.pretty (Api.toGHC quorum)
+    ]
+prettyTxSkelGovAction opts (TxGovActionNewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
+  Nothing -> "Empty new constitution"
+  Just sHash -> "New constitution:" <+> prettyCookedOpt opts sHash
 
 -- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix mentioning
 -- this is the balancing wallet
@@ -347,7 +469,8 @@ mPrettyTxOpts
       txOptBalancingPolicy,
       txOptBalancingUtxos,
       txOptEmulatorParamsModification,
-      txOptCollateralUtxos
+      txOptCollateralUtxos,
+      txOptAnchorResolution
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
@@ -359,7 +482,8 @@ mPrettyTxOpts
           prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
           prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
-          prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos
+          prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos,
+          prettyIfNot def prettyAnchorResolution txOptAnchorResolution
         ]
     where
       prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
@@ -404,6 +528,9 @@ mPrettyTxOpts
       prettyBalanceFeePolicy :: FeePolicy -> DocCooked
       prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
       prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> PP.pretty fee
+      prettyAnchorResolution :: AnchorResolution -> DocCooked
+      prettyAnchorResolution AnchorResolutionHttp = "Resolve anchor url with an (unsafe) http connection"
+      prettyAnchorResolution (AnchorResolutionLocal urlMap) = prettyItemize "Resolve anchor url with the following table keys" "-" (PP.pretty <$> Map.keys urlMap)
 
 -- * Pretty-printing
 
