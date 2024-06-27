@@ -525,7 +525,7 @@ data TxParameterChange where
   deriving (Show, Eq)
 
 data TxGovAction where
-  -- If several parameter changes are of the same one, only the last
+  -- If several parameter changes are of the same kind, only the last
   -- one will take effect
   TxGovActionParameterChange :: [TxParameterChange] -> TxGovAction
   TxGovActionHardForkInitiation :: Api.ProtocolVersion -> TxGovAction
@@ -541,8 +541,10 @@ data TxSkelProposal where
       txSkelProposalAddress :: Api.Address,
       -- | The proposed action
       txSkelProposalAction :: TxGovAction,
-      -- | An optional script to witness the proposal and validate it. Only
-      -- relevant for parameter changes and treasury withdrawals
+      -- | An optional script (typically the constitution script) to witness the
+      -- proposal and validate it. Only parameter changes and treasury
+      -- withdrawals can be subject to such a validation and transactions will
+      -- not pass validation phase 1 if other actions are given a witness.
       txSkelProposalWitness :: Maybe (Script.Versioned Script.Script, TxSkelRedeemer),
       -- | An optional anchor to be given as additional data. It should
       -- correspond to the URL of a web page
