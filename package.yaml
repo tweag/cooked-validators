@@ -2,7 +2,7 @@ verbatim:
   cabal-version: 3.4
 
 name: cooked-validators
-version: 3.0.0
+version: 4.0.0
 
 dependencies:
   - QuickCheck
