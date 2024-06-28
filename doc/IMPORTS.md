@@ -51,11 +51,11 @@ modules instead.
 ## Names of qualifed modules unrelated to Cardano
 
 `cooked-validators` uses optics in various places of the codebase. These optics
-come from the package `Optics.Core` and are used unqualified in the code. Some
-of our dependencies however use optics coming from the `lens` or `microlens`
-packages. When using those, we should make very clear that they do not come from
-our default optics library, and thus prefix them with `Lens` or `Microlens`
-respectively.
+come from the module `Optics.Core` of the `optics` package and are used
+unqualified in the code. Some of our dependencies however use optics coming from
+the `lens` or `microlens` packages. When using those, we should make very clear
+that they do not come from our default optics library, and thus prefix them with
+`Lens` or `Microlens` respectively.
 
 ## Preferred import locations rules
 

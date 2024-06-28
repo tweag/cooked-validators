@@ -16,7 +16,7 @@ supported.
 ## Proposal procedures
 
 It is currently possible to describe proposal procedures and attach an arbitrary
-number of those in transaction skeleton. The balancing mechanism will take into
+number of those in transaction skeletons. The balancing mechanism will take into
 account the required deposit for each of these procedures.
 
 ### Parameter changes

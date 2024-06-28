@@ -39,7 +39,7 @@ toRewardAccount cred =
         throwOnToCardanoError
           "toRewardAccount: Unable to convert private key hash."
           -- TODO: we take the pubkeyHash, maybe we should take the stakehash if
-          -- any? I am confused about the nature of the stake address.
+          -- any exists. The nature of the stake address can be confusing.
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
       return $ Cardano.KeyHashObj pkHash
 

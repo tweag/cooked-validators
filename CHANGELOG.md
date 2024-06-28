@@ -42,10 +42,10 @@
 - Proposal procedures can now be issued and described in transaction
   skeletons. If they contain parameter changes or treasury withdrawals, a
   witness script can be attached and will be run.
-- `TxSkelRedeemer` is now used for all kind of scripts.
+- `TxSkelRedeemer` is now used for all kinds of scripts.
 - File [CONWAY](doc/CONWAY.md) to document which Conway features are currently
   supported.
-- A new option `txOptAnchorResolution` to decide whether to resolved urls
+- A new option `txOptAnchorResolution` to decide whether to resolve urls
   locally or on the web (unsafe). The default is to resolve them locally with a
   given map from urls to page content as bytestring.
 

@@ -395,6 +395,8 @@ data TxSkelRedeemer where
   -- script is stored.
   TxSkelRedeemerForReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
 
+deriving instance (Show TxSkelRedeemer)
+
 txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
 txSkelTypedRedeemer (TxSkelRedeemerForReferenceScript _ redeemer) = Api.fromData . Api.toData $ redeemer
@@ -403,8 +405,6 @@ txSkelTypedRedeemer _ = Nothing
 txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
 txSkelReferenceScript (TxSkelRedeemerForReferenceScript refScript _) = Just refScript
 txSkelReferenceScript _ = Nothing
-
-deriving instance (Show TxSkelRedeemer)
 
 instance Eq TxSkelRedeemer where
   TxSkelNoRedeemer == TxSkelNoRedeemer = True

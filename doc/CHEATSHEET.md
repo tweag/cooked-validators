@@ -243,65 +243,6 @@ txSkelTemplate
       ...
     }
 ```
-
-### Attach a Proposal Procedure to a transaction
-
-* Using the builtin constructor for proposals.
-
-```haskell
-txSkelTemplate
-  { ...
-    txSkelProposals =
-      [ TxSkelProposal
-          { txSkelProposalAddress = walletAddress (wallet 1),
-            txSkelProposalAction =
-              TxGovActionTreasuryWithdrawals $
-                Map.fromList
-                  [ (toCredential $ wallet 1, Api.Lovelace 100),
-                    (toCredential $ wallet 2, Api.Lovelace 10_000)
-                  ],
-            txSkelProposalWitness = (toScript myScript, myRedeemer),
-            txSkelProposalAnchor = Nothing
-          }
-      ]
-    ...
-  }
-```
-
-* Using smart constructors and (optional) helpers.
-
-```haskell 
-txSkelTemplate
-  { ...
-    txSkelProposals =
-      [ simpleTxSkelProposal
-          (wallet 1)
-          (TxGovActionParameterChange [FeePerByte 100, FeeFixed 1_000])
-          `withWitness` (myScript, myRedeemer)
-          `withAnchor` "https://www.tweag.io/"
-      ]
-    ...
-  } 
-```
-
-### Anchor resolution policy
-
-* Auto resolution using Http (very unsafe, block reproducibility)
-
-```haskell 
-    txSkelOpts = def 
-	  { txOptAnchorResolution = AnchorResolutionHttp
-	  }
-```	
-
-* Auto resolution using a given map with resolved page content as bytestrings.
-
-```haskell 
-    txSkelOpts = def 
-	  { txOptAnchorResolution = AnchorResolutionLocal $ Map.singleton "https://www.tweag.io/" someByteString
-	  }
-```
-
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 
 * `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`
@@ -533,3 +474,64 @@ foo = do
                           (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
                     )
 ```
+
+## Proposal procedures
+
+### Attach a Proposal Procedure to a transaction
+
+* Using the builtin constructor for proposals.
+
+```haskell
+txSkelTemplate
+  { ...
+    txSkelProposals =
+      [ TxSkelProposal
+          { txSkelProposalAddress = walletAddress (wallet 1),
+            txSkelProposalAction =
+              TxGovActionTreasuryWithdrawals $
+                Map.fromList
+                  [ (toCredential $ wallet 1, Api.Lovelace 100),
+                    (toCredential $ wallet 2, Api.Lovelace 10_000)
+                  ],
+            txSkelProposalWitness = (toScript myScript, myRedeemer),
+            txSkelProposalAnchor = Nothing
+          }
+      ]
+    ...
+  }
+```
+
+* Using smart constructors and (optional) helpers.
+
+```haskell 
+txSkelTemplate
+  { ...
+    txSkelProposals =
+      [ simpleTxSkelProposal
+          (wallet 1)
+          (TxGovActionParameterChange [FeePerByte 100, FeeFixed 1_000])
+          `withWitness` (myScript, myRedeemer)
+          `withAnchor` "https://www.tweag.io/"
+      ]
+    ...
+  } 
+```
+
+### Anchor resolution policy
+
+* Auto resolution using a given map with resolved page content as bytestrings
+  (default behavior)
+
+```haskell 
+    txSkelOpts = def 
+	  { txOptAnchorResolution = AnchorResolutionLocal $ Map.singleton "https://www.tweag.io/" someByteString
+	  }
+```
+
+* Auto resolution using web requests (very unsafe, prevents reproducibility)
+
+```haskell 
+    txSkelOpts = def 
+	  { txOptAnchorResolution = AnchorResolutionHttp
+	  }
+```	

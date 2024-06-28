@@ -17,6 +17,7 @@ import Cooked.Pretty.Common
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
+import Data.Ratio
 import Ledger.Index qualified as Ledger
 import Ledger.Scripts qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
@@ -161,3 +162,6 @@ instance PrettyCooked () where
 
 instance PrettyCooked Api.BuiltinData where
   prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Rational where
+  prettyCookedOpt opts q = "(" <+> prettyCookedOpt opts (numerator q) <+> "/" <+> prettyCookedOpt opts (denominator q) <+> ")"
