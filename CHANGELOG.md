@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
 ### Added
 - File [IMPORTS](doc/IMPORTS.md) to specify how modules should be imported and prefixed
@@ -22,7 +22,9 @@
   context within on-chain code
 - `validatorToTypedValidator` which does what its name indicates
 - Adding support for `PrettyCooked` for `TxLbl`
-- A set of modules (in `Conversion`) that each defines a typeclass of elements that can be converted to a certain type. For example `ToPubKeyHash` or `ToAddress`.
+- A set of modules (in `Conversion`) that each defines a typeclass of elements
+  that can be converted to a certain type. For example `ToPubKeyHash` or
+  `ToAddress`.
 - New utxos searches `vanillaOutputsAtSearch`, `scriptOutputsSearch`,
   `onlyValueOutputsAtSearch` and `referenceScriptOutputsSearch`
 - A test file `Cooked/BalancingSpec.hs` that covers the new balancing mechanism
