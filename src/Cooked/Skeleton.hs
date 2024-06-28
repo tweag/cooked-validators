@@ -17,6 +17,7 @@ module Cooked.Skeleton
     RawModTx (..),
     EmulatorParamsModification (..),
     CollateralUtxos (..),
+    AnchorResolution (..),
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
@@ -29,8 +30,7 @@ module Cooked.Skeleton
     txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
-    MintsConstrs,
-    MintsRedeemer (..),
+    txOptAnchorResolutionL,
     TxSkelMints,
     addToTxSkelMints,
     txSkelMintsToList,
@@ -57,6 +57,14 @@ module Cooked.Skeleton
     withStakingCredential,
     TxSkelRedeemer (..),
     txSkelTypedRedeemer,
+    TxParameterChange (..),
+    TxGovAction (..),
+    TxSkelProposal (..),
+    txSkelProposalsL,
+    txSkelProposalAddressL,
+    txSkelProposalActionL,
+    txSkelProposalWitnessL,
+    txSkelProposalAnchorL,
     TxSkel (..),
     txSkelLabelL,
     txSkelOptsL,
@@ -74,22 +82,23 @@ module Cooked.Skeleton
     SkelContext (..),
     txSkelReferenceScript,
     txSkelKnownTxOutRefs,
+    simpleTxSkelProposal,
+    withWitness,
+    withAnchor,
     txSkelValueInOutputs,
     txSkelReferenceScripts,
+    txSkelReferenceTxOutRefs,
   )
 where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Monad
-import Cooked.Conversion.ToCredential
-import Cooked.Conversion.ToOutputDatum
-import Cooked.Conversion.ToPubKeyHash
-import Cooked.Conversion.ToScript
-import Cooked.Conversion.ToScriptHash
+import Cooked.Conversion
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Wallet
+import Data.ByteString (ByteString)
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
@@ -246,6 +255,19 @@ data CollateralUtxos
 instance Default CollateralUtxos where
   def = CollateralUtxosFromBalancingWallet
 
+-- | Describes how to resolve anchors in proposal procedures
+data AnchorResolution
+  = -- | Provide a map between urls and page content as Bytestring
+    AnchorResolutionLocal (Map String ByteString)
+  | -- | Allow online fetch of pages from a given URL. Important note: using
+    -- this option is unsafe, as it requires a web connection and inherently
+    -- prevents guarantees of reproducibily. Use at your own discretion.
+    AnchorResolutionHttp
+  deriving (Eq, Show)
+
+instance Default AnchorResolution where
+  def = AnchorResolutionLocal Map.empty
+
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
 data TxOpts = TxOpts
@@ -319,7 +341,11 @@ data TxOpts = TxOpts
     -- computed automatically from a given, or the balancing, wallet.
     --
     -- Default is 'CollateralUtxosFromBalancingWallet'
-    txOptCollateralUtxos :: CollateralUtxos
+    txOptCollateralUtxos :: CollateralUtxos,
+    -- | How to resolve anchor in proposal procedures
+    --
+    -- Default is 'AnchorResolutionLocal Map.Empty'
+    txOptAnchorResolution :: AnchorResolution
   }
   deriving (Eq, Show)
 
@@ -332,7 +358,8 @@ makeLensesFor
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
-    ("txOptCollateralUtxos", "txOptCollateralUtxosL")
+    ("txOptCollateralUtxos", "txOptCollateralUtxosL"),
+    ("txOptAnchorResolution", "txOptAnchorResolutionL")
   ]
   ''TxOpts
 
@@ -347,52 +374,213 @@ instance Default TxOpts where
         txOptFeePolicy = def,
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
-        txOptCollateralUtxos = def
+        txOptCollateralUtxos = def,
+        txOptAnchorResolution = def
       }
 
--- * Description of the Minting
+-- * Redeemers for transaction inputs
 
-type MintsConstrs redeemer =
+type RedeemerConstrs redeemer =
   ( Api.ToData redeemer,
     Show redeemer,
     PrettyCooked redeemer,
+    PlutusTx.Eq redeemer,
     Typeable redeemer
   )
 
--- | Which redeemer to use for minting. Note that using 'NoMintsRedeemer'
--- corresponds to the redeemer @()@ on-chain.
-data MintsRedeemer where
-  NoMintsRedeemer :: MintsRedeemer
-  SomeMintsRedeemer :: (MintsConstrs redeemer) => redeemer -> MintsRedeemer
+data TxSkelRedeemer where
+  TxSkelNoRedeemer :: TxSkelRedeemer
+  TxSkelRedeemerForScript :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
+  -- | The first argument is a reference to the output where the reference
+  -- script is stored.
+  TxSkelRedeemerForReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
 
-instance Show MintsRedeemer where
-  show NoMintsRedeemer = "NoMintsRedeemer"
-  show (SomeMintsRedeemer x) = "(SomeMintsRedeemer " ++ show x ++ ")"
+deriving instance (Show TxSkelRedeemer)
 
-instance Eq MintsRedeemer where
-  a == b = compare a b == EQ
+txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
+txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
+txSkelTypedRedeemer (TxSkelRedeemerForReferenceScript _ redeemer) = Api.fromData . Api.toData $ redeemer
+txSkelTypedRedeemer _ = Nothing
 
-instance Ord MintsRedeemer where
-  compare NoMintsRedeemer NoMintsRedeemer = EQ
-  compare NoMintsRedeemer SomeMintsRedeemer {} = LT
-  compare SomeMintsRedeemer {} NoMintsRedeemer = GT
-  compare (SomeMintsRedeemer a) (SomeMintsRedeemer b) =
-    case compare (SomeTypeRep $ typeOf a) (SomeTypeRep $ typeOf b) of
-      LT -> LT
-      GT -> GT
-      EQ -> case typeOf a `eqTypeRep` typeOf b of
-        Just HRefl -> compare (Api.toData a) (Api.toData b)
-        Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
+txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
+txSkelReferenceScript (TxSkelRedeemerForReferenceScript refScript _) = Just refScript
+txSkelReferenceScript _ = Nothing
+
+instance Eq TxSkelRedeemer where
+  TxSkelNoRedeemer == TxSkelNoRedeemer = True
+  (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
+    case typeOf r1 `eqTypeRep` typeOf r2 of
+      Just HRefl -> r1 PlutusTx.== r2
+      Nothing -> False
+  (TxSkelRedeemerForReferenceScript o1 r1) == (TxSkelRedeemerForReferenceScript o2 r2) =
+    TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
+      && o1 == o2
+  _ == _ = False
+
+-- * Description of the Governance actions (or proposal procedures)
+
+-- These are all the protocol parameters. They are taken from
+-- https://github.com/IntersectMBO/cardano-ledger/blob/c4fbc05999866fea7c0cb1b211fd5288f286b95d/eras/conway/impl/cddl-files/conway.cddl#L381-L412
+-- and will most likely change in future eras.
+data TxParameterChange where
+  -- | The linear factor for the minimum fee calculation
+  FeePerByte :: Integer -> TxParameterChange
+  -- | The constant factor for the minimum fee calculation
+  FeeFixed :: Integer -> TxParameterChange
+  -- | Maximal block body size
+  MaxBlockBodySize :: Integer -> TxParameterChange
+  -- | Maximal transaction size
+  MaxTxSize :: Integer -> TxParameterChange
+  -- | Maximal block header size
+  MaxBlockHeaderSize :: Integer -> TxParameterChange
+  -- | The amount of a key registration deposit
+  KeyDeposit :: Integer -> TxParameterChange
+  -- | The amount of a pool registration deposit
+  PoolDeposit :: Integer -> TxParameterChange
+  -- | Maximum number of epochs in the future a pool retirement is allowed to
+  -- be scheduled future for.
+  PoolRetirementMaxEpoch :: Integer -> TxParameterChange
+  -- | Desired number of pools
+  PoolNumber :: Integer -> TxParameterChange
+  -- | Pool influence
+  PoolInfluence :: Rational -> TxParameterChange
+  -- | Monetary expansion
+  MonetaryExpansion :: Rational -> TxParameterChange
+  -- | Treasury expansion
+  TreasuryCut :: Rational -> TxParameterChange
+  -- | Minimum Stake Pool Cost
+  MinPoolCost :: Integer -> TxParameterChange
+  -- | Cost in lovelace per byte of UTxO storage
+  CoinsPerUTxOByte :: Integer -> TxParameterChange
+  -- | Cost models for non-native script languages
+  CostModels ::
+    { cmPlutusV1Costs :: [Integer],
+      cmPlutusV2Costs :: [Integer],
+      cmPlutusV3Costs :: [Integer]
+    } ->
+    TxParameterChange
+  -- | Prices of execution units
+  Prices ::
+    { pMemoryCost :: Rational,
+      pStepCost :: Rational
+    } ->
+    TxParameterChange
+  -- | Max total script execution resources units allowed per tx
+  MaxTxExUnits ::
+    { mteuMemory :: Integer,
+      mteuSteps :: Integer
+    } ->
+    TxParameterChange
+  -- | Max total script execution resources units allowed per block
+  MaxBlockExUnits ::
+    { mbeuMemory :: Integer,
+      mbeuSteps :: Integer
+    } ->
+    TxParameterChange
+  -- | Max size of a Value in an output
+  MaxValSize :: Integer -> TxParameterChange
+  -- | Percentage of the txfee which must be provided as collateral when
+  -- including non-native scripts.
+  CollateralPercentage :: Integer -> TxParameterChange
+  -- | Maximum number of collateral inputs allowed in a transaction
+  MaxCollateralInputs :: Integer -> TxParameterChange
+  -- | Thresholds for pool votes
+  PoolVotingThresholds ::
+    { pvtMotionNoConfidence :: Rational,
+      pvtCommitteeNormal :: Rational,
+      pvtCommitteeNoConfidence :: Rational,
+      pvtHardFork :: Rational,
+      pvtSecurityGroup :: Rational
+    } ->
+    TxParameterChange
+  -- | Thresholds for DRep votes
+  DRepVotingThresholds ::
+    { drvtMotionNoConfidence :: Rational,
+      drvtCommitteeNormal :: Rational,
+      drvtCommitteeNoConfidence :: Rational,
+      drvtUpdateConstitution :: Rational,
+      drvtHardForkInitialization :: Rational,
+      drvtNetworkGroup :: Rational,
+      drvtEconomicGroup :: Rational,
+      drvtTechnicalGroup :: Rational,
+      drvtGovernanceGroup :: Rational,
+      drvtTreasuryWithdrawal :: Rational
+    } ->
+    TxParameterChange
+  -- | Minimum size of the Constitutional Committee
+  CommitteeMinSize :: Integer -> TxParameterChange
+  -- | The Constitutional Committee Term limit in number of Slots
+  CommitteeMaxTermLength :: Integer -> TxParameterChange
+  -- | Gov action lifetime in number of Epochs
+  GovActionLifetime :: Integer -> TxParameterChange
+  -- | The amount of the Gov Action deposit
+  GovActionDeposit :: Integer -> TxParameterChange
+  -- | The amount of a DRep registration deposit
+  DRepRegistrationDeposit :: Integer -> TxParameterChange
+  -- | The number of Epochs that a DRep can perform no activity without losing
+  -- their @Active@ status.
+  DRepActivity :: Integer -> TxParameterChange
+  -- Reference scripts fee for the minimum fee calculation
+  -- will exist later on MinFeeRefScriptCostPerByte :: Integer -> TxParameterChange
+  deriving (Show, Eq)
+
+data TxGovAction where
+  -- If several parameter changes are of the same kind, only the last
+  -- one will take effect
+  TxGovActionParameterChange :: [TxParameterChange] -> TxGovAction
+  TxGovActionHardForkInitiation :: Api.ProtocolVersion -> TxGovAction
+  TxGovActionTreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> TxGovAction
+  TxGovActionNoConfidence :: TxGovAction
+  TxGovActionUpdateCommittee :: [Api.ColdCommitteeCredential] -> Map Api.ColdCommitteeCredential Integer -> PlutusTx.Rational -> TxGovAction
+  TxGovActionNewConstitution :: Api.Constitution -> TxGovAction
+  deriving (Show, Eq)
+
+data TxSkelProposal where
+  TxSkelProposal ::
+    { -- | Whatever credential will get back the deposit
+      txSkelProposalAddress :: Api.Address,
+      -- | The proposed action
+      txSkelProposalAction :: TxGovAction,
+      -- | An optional script (typically the constitution script) to witness the
+      -- proposal and validate it. Only parameter changes and treasury
+      -- withdrawals can be subject to such a validation and transactions will
+      -- not pass validation phase 1 if other actions are given a witness.
+      txSkelProposalWitness :: Maybe (Script.Versioned Script.Script, TxSkelRedeemer),
+      -- | An optional anchor to be given as additional data. It should
+      -- correspond to the URL of a web page
+      txSkelProposalAnchor :: Maybe String
+    } ->
+    TxSkelProposal
+  deriving (Show, Eq)
+
+makeLensesFor
+  [ ("txSkelProposalAddress", "txSkelProposalAddressL"),
+    ("txSkelProposalAction", "txSkelProposalActionL"),
+    ("txSkelProposalWitness", "txSkelProposalWitnessL"),
+    ("txSkelProposalAnchor", "txSkelProposalAnchorL")
+  ]
+  ''TxSkelProposal
+
+simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
+simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
+
+withWitness :: (ToScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toScript s, red)}
+
+withAnchor :: TxSkelProposal -> String -> TxSkelProposal
+withAnchor prop url = prop {txSkelProposalAnchor = Just url}
+
+-- * Description of the Minting
 
 -- | A description of what a transaction mints. For every policy, there can only
--- be one 'MintsRedeemer', and if there is, there must be some token names, each
+-- be one 'TxSkelRedeemer', and if there is, there must be some token names, each
 -- with a non-zero amount of tokens.
 --
 -- You'll probably not construct this by hand, but use 'txSkelMintsFromList'.
 type TxSkelMints =
   Map
     (Script.Versioned Script.MintingPolicy)
-    (MintsRedeemer, NEMap Api.TokenName (NonZero Integer))
+    (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
 
 -- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
 --
@@ -444,7 +632,7 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- redeemer per minting policy, and no conflicting mints of the same asset
 -- class, since they'll just cancel.
 addToTxSkelMints ::
-  (Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer) ->
+  (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) ->
   TxSkelMints ->
   TxSkelMints
 addToTxSkelMints (pol, red, tName, amount) mints
@@ -479,7 +667,7 @@ addToTxSkelMints (pol, red, tName, amount) mints
 
 -- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
 -- being minted.
-txSkelMintsToList :: TxSkelMints -> [(Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer)]
+txSkelMintsToList :: TxSkelMints -> [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer)]
 txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
@@ -492,7 +680,7 @@ txSkelMintsToList =
 -- 'addToTxSkelMints'. So, some non-empty lists (where all amounts for a given
 -- asset class an redeemer add up to zero) might be translated into the empty
 -- 'TxSkelMints'.
-txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer)] -> TxSkelMints
+txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer)] -> TxSkelMints
 txSkelMintsFromList = foldr addToTxSkelMints mempty
 
 -- | The value described by a 'TxSkelMints'
@@ -780,45 +968,6 @@ withReferenceScript (Pays output) script = Pays $ (fromAbstractOutput output) {c
 withStakingCredential :: TxSkelOut -> Api.StakingCredential -> TxSkelOut
 withStakingCredential (Pays output) stakingCredential = Pays $ (fromAbstractOutput output) {concreteOutputStakingCredential = Just stakingCredential}
 
--- * Redeemers for transaction inputs
-
-type SpendsScriptConstrs redeemer =
-  ( Api.ToData redeemer,
-    Show redeemer,
-    PrettyCooked redeemer,
-    PlutusTx.Eq redeemer,
-    Typeable redeemer
-  )
-
-data TxSkelRedeemer where
-  TxSkelNoRedeemerForPK :: TxSkelRedeemer
-  TxSkelRedeemerForScript :: (SpendsScriptConstrs redeemer) => redeemer -> TxSkelRedeemer
-  -- | The first argument is a reference to the output where the referenced
-  -- script is stored.
-  TxSkelRedeemerForReferencedScript :: (SpendsScriptConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
-
-txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
-txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer _ = Nothing
-
-txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
-txSkelReferenceScript (TxSkelRedeemerForReferencedScript refScript _) = Just refScript
-txSkelReferenceScript _ = Nothing
-
-deriving instance (Show TxSkelRedeemer)
-
-instance Eq TxSkelRedeemer where
-  TxSkelNoRedeemerForPK == TxSkelNoRedeemerForPK = True
-  (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
-    case typeOf r1 `eqTypeRep` typeOf r2 of
-      Just HRefl -> r1 PlutusTx.== r2
-      Nothing -> False
-  (TxSkelRedeemerForReferencedScript o1 r1) == (TxSkelRedeemerForReferencedScript o2 r2) =
-    TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
-      && o1 == o2
-  _ == _ = False
-
 -- * Transaction skeletons
 
 data TxSkel where
@@ -841,7 +990,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'TxSkelNoRedeemerForPK' constructor.
+      --   the 'TxSkelNoRedeemer' constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
@@ -850,7 +999,9 @@ data TxSkel where
       txSkelInsReference :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
-      txSkelOuts :: [TxSkelOut]
+      txSkelOuts :: [TxSkelOut],
+      -- | Possible proposals issued in this transaction to be voted on and possible enacted later on.
+      txSkelProposals :: [TxSkelProposal]
     } ->
     TxSkel
   deriving (Show, Eq)
@@ -863,7 +1014,8 @@ makeLensesFor
     ("txSkelSigners", "txSkelSignersL"),
     ("txSkelIns", "txSkelInsL"),
     ("txSkelInsReference", "txSkelInsReferenceL"),
-    ("txSkelOuts", "txSkelOutsL")
+    ("txSkelOuts", "txSkelOutsL"),
+    ("txSkelProposals", "txSkelProposalsL")
   ]
   ''TxSkel
 
@@ -878,7 +1030,8 @@ txSkelTemplate =
       txSkelSigners = [],
       txSkelIns = Map.empty,
       txSkelInsReference = Set.empty,
-      txSkelOuts = []
+      txSkelOuts = [],
+      txSkelProposals = []
     }
 
 -- | The missing information on a 'TxSkel' that can only be resolved by querying
@@ -929,16 +1082,17 @@ txSkelReferenceScripts =
       )
     . txSkelOuts
 
+-- | All `TxOutRefs` in reference inputs
+txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
+txSkelReferenceTxOutRefs TxSkel {..} = mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
+
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
 -- inputs of the skeleton.  This does not include additional possible
 -- `TxOutRef`s used for balancing and additional `TxOutRef`s used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
-txSkelKnownTxOutRefs TxSkel {..} =
-  Map.keys txSkelIns
-    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
-    <> Set.toList txSkelInsReference
+txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.keys txSkelIns
 
 -- * Various Optics on 'TxSkels' and all the other types defined here
 

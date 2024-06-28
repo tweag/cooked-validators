@@ -35,7 +35,7 @@ mintingQuickValue =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, NoMintsRedeemer, "banana", 10)],
+        { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, TxSkelNoRedeemer, "banana", 10)],
           txSkelOuts = [paysPK alice (quickValue "banana" 10)],
           txSkelSigners = [alice],
           txSkelOpts = def {txOptEnsureMinAda = True}

@@ -10,13 +10,21 @@ dependencies:
   - bytestring
   - cardano-api
   - cardano-crypto
+  - cardano-data
+  - cardano-ledger-core
   - cardano-ledger-shelley
+  - cardano-ledger-conway
   - cardano-node-emulator
+  - cardano-strict-containers
   - containers
   - data-default
   - either
+  - exceptions
   - flat
+  - http-conduit
+  - lens
   - list-t
+  - microlens
   - monad-control
   - mtl
   - nonempty-containers

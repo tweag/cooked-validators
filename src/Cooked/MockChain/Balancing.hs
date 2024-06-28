@@ -276,9 +276,9 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
   -- We return an accurate estimate of the resulting transaction fee
   return $ Emulator.unCoin $ Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0
 
--- | This creates a balanced skeleton from a given skeleton and fee
--- In other words, this ensures that the following equation holds:
--- input value + minted value = output value + burned value + fee
+-- | This creates a balanced skeleton from a given skeleton and fee. In other
+-- words, this ensures that the following equation holds: input value + minted
+-- value = output value + burned value + fee + deposits
 computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
@@ -286,8 +286,9 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelac
   let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
       outValue = txSkelValueInOutputs txSkel
   inValue <- txSkelInputValue txSkel
+  depositedValue <- toValue <$> txSkelProposalsDeposit txSkel
   -- We compute the values missing in the left and right side of the equation
-  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> PlutusTx.negate (inValue <> mintedValue)
+  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue)
   -- This gives us what we need to run our `reachValue` algorithm and append to
   -- the resulting values whatever payment was missing in the initial skeleton
   let candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
@@ -324,5 +325,5 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelac
       -- a new output at the end of the list, to keep the order intact.
       (txOutRefs, val) <- getOptimalCandidate candidatesRaw balancingWallet balancingError
       return (txOutRefs, txSkelOuts ++ [paysPK balancingWallet val])
-  let newTxSkelIns = txSkelIns <> Map.fromList ((,TxSkelNoRedeemerForPK) <$> additionalInsTxOutRefs)
+  let newTxSkelIns = txSkelIns <> Map.fromList ((,TxSkelNoRedeemer) <$> additionalInsTxOutRefs)
   return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns

@@ -39,7 +39,16 @@
 - Two filters in `Output.hs`, `isScriptOutput` and `isPKOutput`
 - A new helper function to get the full output value of a skeleton,
   `txSkelOutputsValue`
-  
+- Proposal procedures can now be issued and described in transaction
+  skeletons. If they contain parameter changes or treasury withdrawals, a
+  witness script can be attached and will be run.
+- `TxSkelRedeemer` is now used for all kinds of scripts.
+- File [CONWAY](doc/CONWAY.md) to document which Conway features are currently
+  supported.
+- A new option `txOptAnchorResolution` to decide whether to resolve urls
+  locally or on the web (unsafe). The default is to resolve them locally with a
+  given map from urls to page content as bytestring.
+
 ### Removed
 - Extraneous dependencies in package.yaml
 - File `Cooked.TestUtils`, its content has been added to `Cooked.MockChain.Testing`
@@ -49,6 +58,7 @@
 - Deprecated use of `*` instead of `Type`
 - Many unused pragmas
 - Orphan default instance for `Ledger.Slot`
+- `MintsRedeemer` (replaced by `TxSkelRedeemer`)
 
 ### Changed
 - Default era from Babbage to Conway

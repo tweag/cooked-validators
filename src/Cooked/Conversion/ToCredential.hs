@@ -13,6 +13,9 @@ class ToCredential a where
 instance ToCredential Api.Credential where
   toCredential = id
 
+instance ToCredential Api.Address where
+  toCredential (Api.Address cred _) = cred
+
 instance ToCredential Api.PubKeyHash where
   toCredential = Api.PubKeyCredential
 

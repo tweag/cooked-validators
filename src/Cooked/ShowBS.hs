@@ -341,7 +341,7 @@ instance ShowBS Api.GovernanceAction where
   showBS (Api.NoConfidence maybeActionId) = application1 "NoConfidence" maybeActionId
   showBS (Api.UpdateCommittee maybeActionId toRemoveCreds toAddCreds quorum) = application4 "Info action" maybeActionId toRemoveCreds toAddCreds quorum
   showBS (Api.NewConstitution maybeActionId constitution) = application2 "NewConstitution" maybeActionId constitution
-  showBS Api.InfoAction = "InfoAction" --
+  showBS Api.InfoAction = "InfoAction"
 
 instance ShowBS Api.ProposalProcedure where
   {-# INLINEABLE showBS #-}

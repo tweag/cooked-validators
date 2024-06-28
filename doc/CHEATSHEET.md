@@ -167,7 +167,7 @@ txSkelTemplate
 
 ### Spend some UTxOs
 
-* No redeemer: `TxSkelNoRedeemerForPK`
+* No redeemer: `TxSkelNoRedeemer`
 * With redeemer:
     * Regular script: `TxSkelRedeemerForScript typedRedeemer`
     * Reference script: `TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript typedRedeemer`
@@ -218,8 +218,9 @@ foo txOutRef = do
 
 ### Mint or burn tokens
 
-* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, NoMintsRedeemer, "fooName", 3)`
-* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, SomeMintsRedeemer typedRedeemer, "barName", 12)`
+* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, TxSkelNoRedeemer, "fooName", 3)`
+* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, TxSkelRedeemerForScript typedRedeemer, "barName", 12)`
+* With a reference script: `(Script.Versioned barPolicy Script.PlutusV3, TxSkelRedeemerForReferenceScript txOutRef typedRedeemer, "barName", 12)`
 * Burn tokens (negative amount): `(Script.Versioned bazPolicy Script.PlutusV3, ..., "bazName", -7)`
 
 ```haskell
@@ -242,7 +243,6 @@ txSkelTemplate
       ...
     }
 ```
-
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 
 * `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`
@@ -446,7 +446,7 @@ foo = do
     bar `withTweak` ( do
                         addOutputTweak $ paysScript bazValidator bazDatum bazValue
                         removeOutputTweak (\(Pays out) -> somePredicate out)
-                        addInputTweak somePkTxOutRef C.TxSkelNoRedeemerForPK
+                        addInputTweak somePkTxOutRef C.TxSkelNoRedeemer
                         removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
                     )
 ```
@@ -474,3 +474,64 @@ foo = do
                           (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
                     )
 ```
+
+## Proposal procedures
+
+### Attach a Proposal Procedure to a transaction
+
+* Using the builtin constructor for proposals.
+
+```haskell
+txSkelTemplate
+  { ...
+    txSkelProposals =
+      [ TxSkelProposal
+          { txSkelProposalAddress = walletAddress (wallet 1),
+            txSkelProposalAction =
+              TxGovActionTreasuryWithdrawals $
+                Map.fromList
+                  [ (toCredential $ wallet 1, Api.Lovelace 100),
+                    (toCredential $ wallet 2, Api.Lovelace 10_000)
+                  ],
+            txSkelProposalWitness = (toScript myScript, myRedeemer),
+            txSkelProposalAnchor = Nothing
+          }
+      ]
+    ...
+  }
+```
+
+* Using smart constructors and (optional) helpers.
+
+```haskell 
+txSkelTemplate
+  { ...
+    txSkelProposals =
+      [ simpleTxSkelProposal
+          (wallet 1)
+          (TxGovActionParameterChange [FeePerByte 100, FeeFixed 1_000])
+          `withWitness` (myScript, myRedeemer)
+          `withAnchor` "https://www.tweag.io/"
+      ]
+    ...
+  } 
+```
+
+### Anchor resolution policy
+
+* Auto resolution using a given map with resolved page content as bytestrings
+  (default behavior)
+
+```haskell 
+    txSkelOpts = def 
+	  { txOptAnchorResolution = AnchorResolutionLocal $ Map.singleton "https://www.tweag.io/" someByteString
+	  }
+```
+
+* Auto resolution using web requests (very unsafe, prevents reproducibility)
+
+```haskell 
+    txSkelOpts = def 
+	  { txOptAnchorResolution = AnchorResolutionHttp
+	  }
+```	

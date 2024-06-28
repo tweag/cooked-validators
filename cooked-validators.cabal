@@ -34,6 +34,14 @@ library
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
       Cooked.MockChain.GenerateTx
+      Cooked.MockChain.GenerateTx.Body
+      Cooked.MockChain.GenerateTx.Collateral
+      Cooked.MockChain.GenerateTx.Common
+      Cooked.MockChain.GenerateTx.Input
+      Cooked.MockChain.GenerateTx.Mint
+      Cooked.MockChain.GenerateTx.Output
+      Cooked.MockChain.GenerateTx.Proposal
+      Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
@@ -101,13 +109,21 @@ library
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-data
+    , cardano-ledger-conway
+    , cardano-ledger-core
     , cardano-ledger-shelley
     , cardano-node-emulator
+    , cardano-strict-containers
     , containers
     , data-default
     , either
+    , exceptions
     , flat
+    , http-conduit
+    , lens
     , list-t
+    , microlens
     , monad-control
     , mtl
     , nonempty-containers
@@ -146,6 +162,7 @@ test-suite spec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
+      Cooked.ProposingScriptSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.ShowBSSpec
@@ -185,14 +202,22 @@ test-suite spec
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-data
+    , cardano-ledger-conway
+    , cardano-ledger-core
     , cardano-ledger-shelley
     , cardano-node-emulator
+    , cardano-strict-containers
     , containers
     , cooked-validators
     , data-default
     , either
+    , exceptions
     , flat
+    , http-conduit
+    , lens
     , list-t
+    , microlens
     , monad-control
     , mtl
     , nonempty-containers

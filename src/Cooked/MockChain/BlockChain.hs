@@ -49,12 +49,17 @@ module Cooked.MockChain.BlockChain
     lookupUtxos,
     lookupUtxosPl,
     validateTxSkel',
+    txSkelProposalsDeposit,
+    govActionDeposit,
   )
 where
 
+import Cardano.Api.Ledger qualified as Cardano
+import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Arrow
+import Control.Lens qualified as Lens
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -316,6 +321,15 @@ txSkelReferenceInputUtxosPl = (Map.map txOutV2FromLedger <$>) . txSkelReferenceI
 txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
 txSkelReferenceInputUtxos TxSkel {..} =
   lookupUtxos $ mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
+
+-- | Retrieves the required deposit amount for issuing governance actions.
+govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
+govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
+
+-- | Retrieves the total amount of lovelace deposited in proposals in this
+-- skeleton (equal to `govActionDeposit` times the number of proposals).
+txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
+txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
 
 -- | Helper to convert Nothing to an error
 maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b
