@@ -24,9 +24,9 @@
 </span><span id="line-24"></span><span class="hs-comment">-- | This provides the minimum amount of ada required in a given `TxSkelOut`. As</span><span>
 </span><span id="line-25"></span><span class="hs-comment">-- we need to transform our output into a Cardano output to compute this value,</span><span>
 </span><span id="line-26"></span><span class="hs-comment">-- this function can fail.</span><span>
-</span><span id="line-27"></span><span class="annot"><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-type">getTxSkelOutMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-type">getTxSkelOutMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
 </span><span id="line-28"></span><span id="getTxSkelOutMinAda"><span class="annot"><span class="annottext">getTxSkelOutMinAda :: Params -&gt; TxSkelOut -&gt; Either GenerateTxError Integer
-</span><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var hs-var">getTxSkelOutMinAda</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679706252"><span id="local-6989586621679706253"><span id="local-6989586621679706254"><span id="local-6989586621679706255"><span id="local-6989586621679706256"><span class="annot"><span class="annottext">NetworkId
+</span><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var hs-var">getTxSkelOutMinAda</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679767528"><span id="local-6989586621679767529"><span id="local-6989586621679767530"><span id="local-6989586621679767531"><span id="local-6989586621679767532"><span class="annot"><span class="annottext">NetworkId
 PParams
 TransitionConfig
 EpochSize
@@ -41,8 +41,8 @@ pEmulatorPParams :: Params -&gt; PParams
 pNetworkId :: Params -&gt; NetworkId
 pEpochSize :: Params -&gt; EpochSize
 pConfig :: Params -&gt; TransitionConfig
-</span><a href="#local-6989586621679706252"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679706262"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706262"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679767528"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679767538"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679767538"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-29"></span><span>  </span><span class="annot"><span class="annottext">Coin -&gt; Integer
 </span><span class="hs-identifier hs-var">Cardano.unCoin</span></span><span>
 </span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">(Coin -&gt; Integer)
@@ -53,7 +53,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PParams -&gt; TxOut EmulatorEra -&gt; Coin
 forall era. EraTxOut era =&gt; PParams era -&gt; TxOut era -&gt; Coin
 </span><span class="hs-identifier hs-var">Shelley.getMinCoinTxOut</span></span><span> </span><span class="annot"><span class="annottext">PParams
-</span><a href="#local-6989586621679706253"><span class="hs-identifier hs-var">pEmulatorPParams</span></a></span><span>
+</span><a href="#local-6989586621679767529"><span class="hs-identifier hs-var">pEmulatorPParams</span></a></span><span>
 </span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">(BabbageTxOut EmulatorEra -&gt; Coin)
 -&gt; (TxOut CtxTx ConwayEra -&gt; BabbageTxOut EmulatorEra)
 -&gt; TxOut CtxTx ConwayEra
@@ -81,8 +81,8 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">NetworkId
 -&gt; TxSkelOut -&gt; Either GenerateTxError (TxOut CtxTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.html#generateTxOut"><span class="hs-identifier hs-var">generateTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679706254"><span class="hs-identifier hs-var">pNetworkId</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706262"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679767530"><span class="hs-identifier hs-var">pNetworkId</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679767538"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-34"></span><span>
 </span><span id="line-35"></span><span class="hs-comment">-- | This transforms an output into another output which necessarily contains at</span><span>
 </span><span id="line-36"></span><span class="hs-comment">-- least the minimal required ada. If the previous quantity of ada was</span><span>
@@ -91,14 +91,14 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span id="line-39"></span><span class="hs-comment">-- require more minimal ada (although this remains to be witnessed in practice).</span><span>
 </span><span id="line-40"></span><span class="hs-comment">-- This approach was inspired by</span><span>
 </span><span id="line-41"></span><span class="hs-comment">-- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124</span><span>
-</span><span id="line-42"></span><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-type">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
+</span><span id="line-42"></span><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-type">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
 </span><span id="line-43"></span><span id="toTxSkelOutWithMinAda"><span class="annot"><span class="annottext">toTxSkelOutWithMinAda :: Params -&gt; TxSkelOut -&gt; Either GenerateTxError TxSkelOut
-</span><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelOutWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679706271"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679706271"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679706272"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706272"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-44"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Lovelace</span></span><span> </span><span id="local-6989586621679706274"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679706274"><span class="hs-identifier hs-var">oldAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706272"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Ada -&gt; Ada
+</span><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelOutWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679767547"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679767547"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679767548"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679767548"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Lovelace</span></span><span> </span><span id="local-6989586621679767550"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679767550"><span class="hs-identifier hs-var">oldAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679767548"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Ada -&gt; Ada
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
@@ -112,23 +112,23 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx Value Value Ada Ada
 </span><a href="Cooked.ValueUtils.html#adaL"><span class="hs-identifier hs-var">adaL</span></a></span><span>
-</span><span id="line-45"></span><span>  </span><span id="local-6989586621679706279"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679706279"><span class="hs-identifier hs-var">requiredAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; TxSkelOut -&gt; Either GenerateTxError Integer
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679767555"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679767555"><span class="hs-identifier hs-var">requiredAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; TxSkelOut -&gt; Either GenerateTxError Integer
 </span><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var">getTxSkelOutMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679706271"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706272"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679767547"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679767548"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-46"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679706274"><span class="hs-identifier hs-var">oldAda</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679767550"><span class="hs-identifier hs-var">oldAda</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679706279"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
+</span><a href="#local-6989586621679767555"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
 </span><span id="line-47"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Params -&gt; TxSkelOut -&gt; Either GenerateTxError TxSkelOut
 </span><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679706271"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Either GenerateTxError TxSkelOut)
+</span><a href="#local-6989586621679767547"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Either GenerateTxError TxSkelOut)
 -&gt; TxSkelOut -&gt; Either GenerateTxError TxSkelOut
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706272"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
+</span><a href="#local-6989586621679767548"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
 </span><a href="Cooked.Skeleton.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
@@ -145,24 +145,24 @@ Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Ada
 </span><span class="hs-identifier hs-var">Script.Lovelace</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679706279"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
+</span><a href="#local-6989586621679767555"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
 </span><span id="line-48"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Either GenerateTxError TxSkelOut
 forall a. a -&gt; Either GenerateTxError a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679706272"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679767548"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-49"></span><span>
 </span><span id="line-50"></span><span class="hs-comment">-- | This transforms a skeleton by replacing all its `TxSkelOut` by their</span><span>
 </span><span id="line-51"></span><span class="hs-comment">-- updated variants with their minimal amount of required ada. Any error raised</span><span>
 </span><span id="line-52"></span><span class="hs-comment">-- in the transformation process is transformed into an `MCEGenerationError`</span><span>
-</span><span id="line-53"></span><span id="local-6989586621679706206"><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-type">toTxSkelWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679706206"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679706206"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
+</span><span id="line-53"></span><span id="local-6989586621679767482"><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-type">toTxSkelWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679767482"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679767482"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
 </span><span id="line-54"></span><span id="toTxSkelWithMinAda"><span class="annot"><span class="annottext">toTxSkelWithMinAda :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkel -&gt; m TxSkel
-</span><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679706300"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679706300"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-55"></span><span>  </span><span id="local-6989586621679706301"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679706301"><span class="hs-identifier hs-var">theParams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m Params
+</span><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679767576"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679767576"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679767577"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679767577"><span class="hs-identifier hs-var">theParams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m Params
 forall (m :: * -&gt; *). MonadBlockChainBalancing m =&gt; m Params
 </span><a href="Cooked.MockChain.BlockChain.html#getParams"><span class="hs-identifier hs-var">getParams</span></a></span><span>
 </span><span id="line-56"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Either GenerateTxError TxSkelOut)
@@ -173,33 +173,33 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params -&gt; TxSkelOut -&gt; Either GenerateTxError TxSkelOut
 </span><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679706301"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; Either GenerateTxError [TxSkelOut])
+</span><a href="#local-6989586621679767577"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; Either GenerateTxError [TxSkelOut])
 -&gt; [TxSkelOut] -&gt; Either GenerateTxError [TxSkelOut]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679706300"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679767576"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; [TxSkelOut]
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-57"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679706305"><span class="annot"><span class="annottext">GenerateTxError
-</span><a href="#local-6989586621679706305"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; m TxSkel
+</span><span id="line-57"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679767581"><span class="annot"><span class="annottext">GenerateTxError
+</span><a href="#local-6989586621679767581"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; m TxSkel
 forall a. MockChainError -&gt; m a
 forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
 </span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; m TxSkel) -&gt; MockChainError -&gt; m TxSkel
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GenerateTxError -&gt; MockChainError
 </span><a href="Cooked.MockChain.BlockChain.html#MCEGenerationError"><span class="hs-identifier hs-var">MCEGenerationError</span></a></span><span> </span><span class="annot"><span class="annottext">GenerateTxError
-</span><a href="#local-6989586621679706305"><span class="hs-identifier hs-var">err</span></a></span><span>
-</span><span id="line-58"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679706307"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679706307"><span class="hs-identifier hs-var">newTxSkelOuts</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; m TxSkel
+</span><a href="#local-6989586621679767581"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679767583"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679767583"><span class="hs-identifier hs-var">newTxSkelOuts</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; m TxSkel
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; m TxSkel) -&gt; TxSkel -&gt; m TxSkel
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679706300"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
+</span><a href="#local-6989586621679767576"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
@@ -208,5 +208,5 @@ forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679706307"><span class="hs-identifier hs-var">newTxSkelOuts</span></a></span><span>
+</span><a href="#local-6989586621679767583"><span class="hs-identifier hs-var">newTxSkelOuts</span></a></span><span>
 </span><span id="line-59"></span></pre></body></html>
