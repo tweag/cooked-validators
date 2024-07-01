@@ -121,6 +121,22 @@ useReferenceScript spendingSubmitter theScript = do
           txSkelSigners = [spendingSubmitter]
         }
 
+referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> m ()
+referenceMint mp1 mp2 n = do
+  ((!! n) -> mpOutRef) <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelOuts = [paysPK (wallet 1) (ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (ada 10)],
+          txSkelSigners = [wallet 1]
+        }
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelMints = txSkelMintsFromList [(mp2, TxSkelNoRedeemerForReferenceScript mpOutRef, "banana", 3)],
+          txSkelOuts = [paysPK (wallet 1) (ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
+          txSkelSigners = [wallet 1]
+        }
+
 tests :: TestTree
 tests =
   testGroup
@@ -284,22 +300,5 @@ tests =
                   _ -> testFailure
               )
             $ referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1
-        ],
-      testGroup "Reference proposal script" []
+        ]
     ]
-
-referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> m ()
-referenceMint mp1 mp2 n = do
-  ((!! n) -> mpOutRef) <-
-    validateTxSkel' $
-      txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (ada 10)],
-          txSkelSigners = [wallet 1]
-        }
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(mp2, TxSkelNoRedeemerForReferenceScript mpOutRef, "banana", 3)],
-          txSkelOuts = [paysPK (wallet 1) (ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
-          txSkelSigners = [wallet 1]
-        }

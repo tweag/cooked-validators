@@ -39,6 +39,21 @@ testProposingScript script govAction =
           txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, TxSkelNoRedeemer)]
         }
 
+testProposingRefScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
+testProposingRefScript script govAction = do
+  pOutRef : _ <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelOuts = [paysPK (wallet 1) (ada 2) `withReferenceScript` script, paysPK (wallet 1) (ada 10)],
+          txSkelSigners = [wallet 1]
+        }
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelSigners = [wallet 1],
+          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, TxSkelNoRedeemerForReferenceScript pOutRef)]
+        }
+
 tests :: TestTree
 tests =
   testGroup
@@ -46,12 +61,18 @@ tests =
     [ testCase "The always True proposing script succeeds" $
         testSucceeds def $
           testProposingScript alwaysTrueProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
+      testCase "The always True proposing script suceeds as a reference script" $
+        testSucceeds def $
+          testProposingRefScript alwaysTrueProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
       testCase "The always False proposing script fails" $
         testFails def (isCekEvaluationFailure def) $
           testProposingScript alwaysFalseProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
       testCase "A more advanced proposing script can succeed" $
         testSucceeds def $
           testProposingScript checkProposingScript (TxGovActionParameterChange [FeePerByte 100]),
+      testCase "A more advanced proposing script can succeed as a reference script" $
+        testSucceeds def $
+          testProposingRefScript checkProposingScript (TxGovActionParameterChange [FeePerByte 100]),
       testCase "Proposing scripts are restricted to parameter changes or treasury withdrawals" $
         testFails def (\case (MCEValidationError Ledger.Phase1 _) -> testBool True; _ -> testBool False) $
           testProposingScript alwaysFalseProposingValidator TxGovActionNoConfidence
