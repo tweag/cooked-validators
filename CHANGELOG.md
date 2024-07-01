@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- It is possible to give a reference script with an empty redeemer using
+  `TxSkelNoRedeemerForReferenceScript`.
+
+### Removed
+
+### Changed
+
+- Internal representation of redeemers. This should not affect API thanks to the
+  use of the PatternSynonyms language extension.
+
+### Fixed
+
+- All kinds of scripts can now be used as reference scripts.
+
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
 ### Added
