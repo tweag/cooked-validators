@@ -1094,7 +1094,15 @@ txSkelReferenceScripts =
 
 -- | All `TxOutRefs` in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
-txSkelReferenceTxOutRefs TxSkel {..} = mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
+txSkelReferenceTxOutRefs TxSkel {..} =
+  -- direct reference inputs
+  Set.toList txSkelInsReference
+    -- reference inputs in inputs redeemers
+    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
+    -- reference inputs in porposals redeemers
+    <> mapMaybe (txSkelReferenceScript . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
+    -- reference inputs in mints redeemers
+    <> mapMaybe (txSkelReferenceScript . fst . snd) (Map.toList txSkelMints)
 
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference

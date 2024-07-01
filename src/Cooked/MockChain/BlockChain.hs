@@ -77,7 +77,6 @@ import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
-import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -319,8 +318,7 @@ txSkelReferenceInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map 
 txSkelReferenceInputUtxosPl = (Map.map txOutV2FromLedger <$>) . txSkelReferenceInputUtxos
 
 txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
-txSkelReferenceInputUtxos TxSkel {..} =
-  lookupUtxos $ mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
+txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
