@@ -6,6 +6,7 @@
 
 - `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
   most commonly used.
+- `ensureMinAda` option for initial distributions, set to `True` by default.
 
 ### Removed
 
