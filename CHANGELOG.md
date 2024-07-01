@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `ensureMinAda` option for initial distributions, set to `True` by default.
+
+### Removed
+
+### Changed
+
+### Fixed
+
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
 ### Added
