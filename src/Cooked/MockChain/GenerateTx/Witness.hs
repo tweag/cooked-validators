@@ -43,44 +43,43 @@ toRewardAccount cred =
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
       return $ Cardano.KeyHashObj pkHash
 
--- | Translates a serialised script and a redeemer to their Cardano
--- counterparts. They cannot be uncoupled because of the possible presence of a
--- reference script utxo in the redeemer.
-toScriptAndRedeemerData :: Api.SerialisedScript -> TxSkelRedeemer -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang, Cardano.HashableScriptData)
-toScriptAndRedeemerData script TxSkelNoRedeemer =
-  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData ())
-toScriptAndRedeemerData script (TxSkelRedeemerForScript redeemer) =
-  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
-toScriptAndRedeemerData script (TxSkelRedeemerForReferenceScript validatorOref redeemer) = do
+-- | Translate a script and a reference script utxo into into either a plutus
+-- script or a reference input containing the right script
+toPlutusScriptOrReferenceInput :: Api.SerialisedScript -> Maybe Api.TxOutRef -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang)
+toPlutusScriptOrReferenceInput script Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
+toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
   referenceScriptsMap <- asks $ Map.mapMaybe (^. outputReferenceScriptL)
   refScriptHash <-
     throwOnLookup
-      "toScriptAndRedeemerData: Can't resolve reference script utxo."
-      validatorOref
+      "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
+      scriptOutRef
       referenceScriptsMap
   when (refScriptHash /= toScriptHash script) $
-    throwOnString "toScriptAndRedeemerData: Wrong reference script hash."
-  validatorTxIn <-
+    throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."
+  scriptTxIn <-
     throwOnToCardanoError
-      "toScriptAndRedeemerData: Unable to translate reference script utxo."
-      (Ledger.toCardanoTxIn validatorOref)
+      "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."
+      (Ledger.toCardanoTxIn scriptOutRef)
   scriptHash <-
     throwOnToCardanoError
-      "toScriptAndRedeemerData: Unable to translate script hash of reference script."
+      "toPlutusScriptOrReferenceInput: Unable to translate script hash of reference script."
       (Ledger.toCardanoScriptHash refScriptHash)
-  return (Cardano.PReferenceScript validatorTxIn (Just scriptHash), Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
+  return $ Cardano.PReferenceScript scriptTxIn (Just scriptHash)
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
 toScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) redeemer datum =
-  case version of
-    Script.PlutusV1 ->
-      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum y Ledger.zeroExecutionUnits)
-        <$> toScriptAndRedeemerData script redeemer
-    Script.PlutusV2 ->
-      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum y Ledger.zeroExecutionUnits)
-        <$> toScriptAndRedeemerData script redeemer
-    Script.PlutusV3 ->
-      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum y Ledger.zeroExecutionUnits)
-        <$> toScriptAndRedeemerData script redeemer
+toScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) (TxSkelRedeemer {..}) datum =
+  let scriptData = case txSkelRedeemer of
+        NoRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
+        SomeRedeemer s -> Ledger.toCardanoScriptData $ Api.toBuiltinData s
+   in case version of
+        Script.PlutusV1 ->
+          (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+        Script.PlutusV2 ->
+          (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+        Script.PlutusV3 ->
+          (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript

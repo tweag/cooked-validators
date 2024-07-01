@@ -23,8 +23,10 @@ module Cooked.Currencies
     permanentAssetClass,
     permanentValue,
     quickCurrencyPolicy,
+    quickCurrencyPolicyV3,
     quickCurrencySymbol,
     permanentCurrencyPolicy,
+    permanentCurrencyPolicyV3,
     permanentCurrencySymbol,
     currencySymbolFromLanguageAndMP,
   )
@@ -66,6 +68,9 @@ mkQuickCurrencyPolicy _ _ = True
 quickCurrencyPolicy :: Script.MintingPolicy
 quickCurrencyPolicy = Script.mkMintingPolicyScript $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
 
+quickCurrencyPolicyV3 :: Script.Versioned Script.MintingPolicy
+quickCurrencyPolicyV3 = Script.Versioned quickCurrencyPolicy Script.PlutusV3
+
 quickCurrencySymbol :: Script.CurrencySymbol
 quickCurrencySymbol = currencySymbolFromLanguageAndMP Script.PlutusV3 quickCurrencyPolicy
 
@@ -89,6 +94,9 @@ mkPermanentCurrencyPolicy _ _ = False
 
 permanentCurrencyPolicy :: Script.MintingPolicy
 permanentCurrencyPolicy = Script.mkMintingPolicyScript $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
+
+permanentCurrencyPolicyV3 :: Script.Versioned Script.MintingPolicy
+permanentCurrencyPolicyV3 = Script.Versioned permanentCurrencyPolicy Script.PlutusV3
 
 permanentCurrencySymbol :: Script.CurrencySymbol
 permanentCurrencySymbol = currencySymbolFromLanguageAndMP Script.PlutusV3 permanentCurrencyPolicy

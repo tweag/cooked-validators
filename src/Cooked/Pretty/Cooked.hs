@@ -260,6 +260,18 @@ prettyTxParameterChange opts (GovActionDeposit n) = "Governance action deposit:"
 prettyTxParameterChange opts (DRepRegistrationDeposit n) = "DRep registration deposit:" <+> prettyCookedOpt opts n
 prettyTxParameterChange opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
 
+prettyRedeemer :: PrettyCookedOpts -> TxSkelRedeemer -> DocCooked
+prettyRedeemer opts (TxSkelRedeemer red mRefScript) =
+  (<+>)
+    ( case red of
+        NoRedeemer -> "No redeemer"
+        SomeRedeemer s -> "With the following redeemer" <+> prettyCooked s
+    )
+    ( case mRefScript of
+        Nothing -> "and no reference script."
+        Just outRef -> "and reference script sitting at:" <+> prettyCookedOpt opts outRef
+    )
+
 prettyTxSkelProposal :: PrettyCookedOpts -> TxSkelProposal -> DocCooked
 prettyTxSkelProposal opts TxSkelProposal {..} =
   prettyItemizeNoTitle "-" $
@@ -271,14 +283,7 @@ prettyTxSkelProposal opts TxSkelProposal {..} =
               "Witness:"
               "-"
               [ prettyCookedOpt opts script,
-                case redeemer of
-                  TxSkelNoRedeemer -> "No redeemer"
-                  TxSkelRedeemerForScript red -> "With the following redeemer:" <+> prettyCooked red
-                  TxSkelRedeemerForReferenceScript red txOutRef ->
-                    "With the following redeemer:"
-                      <+> prettyCooked red
-                      <+> "and reference script sitting at:"
-                      <+> prettyCookedOpt opts txOutRef
+                prettyRedeemer opts redeemer
               ]
         )
           <$> txSkelProposalWitness,
@@ -335,26 +340,12 @@ prettySigners _ _ [] = []
 -- > #abcdef "Foo" -> 500
 -- > #123456 "Bar" | Redeemer -> 1000
 prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) -> DocCooked
-prettyMints opts (policy, TxSkelNoRedeemer, tokenName, amount) =
-  prettyCookedOpt opts policy
-    <+> PP.viaShow tokenName
-    <+> "->"
-    <+> PP.viaShow amount
-prettyMints opts (policy, TxSkelRedeemerForScript redeemer, tokenName, amount) =
+prettyMints opts (policy, redeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "|"
-    <+> prettyCookedOpt opts redeemer
+    <+> prettyRedeemer opts redeemer
     <+> "->"
-    <+> PP.viaShow amount
-prettyMints opts (policy, TxSkelRedeemerForReferenceScript oref redeemer, tokenName, amount) =
-  prettyCookedOpt opts policy
-    <+> PP.viaShow tokenName
-    <+> "|"
-    <+> prettyCookedOpt opts redeemer
-    <+> " (with reference script at "
-    <+> prettyCookedOpt opts oref
-    <+> ") ->"
     <+> PP.viaShow amount
 
 prettyTxSkelOut :: PrettyCookedOpts -> TxSkelOut -> DocCooked
@@ -396,28 +387,16 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
   case lookupOutput skelContext txOutRef of
     Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
     Just (output, txSkelOutDatum) ->
-      let (redeemerDoc, ownerDoc) =
-            case txSkelRedeemer of
-              TxSkelRedeemerForScript redeemer ->
-                ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
-                  prettyCookedOpt opts (outputAddress output)
-                )
-              TxSkelRedeemerForReferenceScript refScriptOref redeemer ->
-                ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
-                  prettyCookedOpt opts (outputAddress output)
-                    <+> PP.parens ("Reference Script at" <+> prettyCookedOpt opts refScriptOref)
-                )
-              TxSkelNoRedeemer -> (Nothing, prettyCookedOpt opts (outputAddress output))
-       in prettyItemize
-            ("Spends from" <+> ownerDoc)
-            "-"
-            ( prettyCookedOpt opts (outputValue output)
-                : catMaybes
-                  [ redeemerDoc,
-                    prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
-                    getReferenceScriptDoc opts output
-                  ]
-            )
+      prettyItemize
+        ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
+        "-"
+        ( prettyCookedOpt opts (outputValue output)
+            : catMaybes
+              [ Just $ prettyRedeemer opts txSkelRedeemer,
+                prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+                getReferenceScriptDoc opts output
+              ]
+        )
 
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do

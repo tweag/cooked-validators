@@ -10,6 +10,7 @@ import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -120,6 +121,22 @@ useReferenceScript spendingSubmitter theScript = do
           txSkelSigners = [spendingSubmitter]
         }
 
+referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> m ()
+referenceMint mp1 mp2 n = do
+  ((!! n) -> mpOutRef) <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelOuts = [paysPK (wallet 1) (ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (ada 10)],
+          txSkelSigners = [wallet 1]
+        }
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelMints = txSkelMintsFromList [(mp2, TxSkelNoRedeemerForReferenceScript mpOutRef, "banana", 3)],
+          txSkelOuts = [paysPK (wallet 1) (ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
+          txSkelSigners = [wallet 1]
+        }
+
 tests :: TestTree
 tests =
   testGroup
@@ -207,7 +224,7 @@ tests =
             $ testFailsFrom
               def
               ( \case
-                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toScriptAndRedeemerData: Wrong reference script hash."
+                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure
               )
               def
@@ -261,5 +278,27 @@ tests =
           testCase "succeed if reference script's requirement is met" $
             testSucceeds def $
               useReferenceScript (wallet 1) (requireSignerValidator $ walletPKHash $ wallet 1)
+        ],
+      testGroup
+        "referencing minting policies"
+        [ testCase "succeed if given a reference minting policy" $
+            testSucceeds def $
+              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0,
+          testCase "fail if given the wrong reference minting policy"
+            $ testFails
+              def
+              ( \case
+                  MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
+                  _ -> testFailure
+              )
+            $ referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0,
+          testCase "fail if referencing the wrong utxo"
+            $ testFails
+              def
+              ( \case
+                  MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
+                  _ -> testFailure
+              )
+            $ referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1
         ]
     ]
