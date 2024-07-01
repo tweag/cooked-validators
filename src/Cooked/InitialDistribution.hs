@@ -1,6 +1,6 @@
 -- | This module provides a convenient way to spread assets between wallets and
 -- scripts at the initialization of the mock chain. These initial assets can be
--- accompanied by datums and reference scripts.
+-- accompanied by datums, staking credentials and reference scripts.
 module Cooked.InitialDistribution
   ( InitialDistribution (..),
     distributionFromList,
@@ -32,18 +32,32 @@ import PlutusLedgerApi.V3 qualified as Api
 --  >        , (wallet 2 , [ ada 10 ])
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 --  >        ]
-newtype InitialDistribution = InitialDistribution {unInitialDistribution :: [TxSkelOut]}
+--
+-- When ran into a `MockChain`, the initial distribution will be adjusted, if
+-- applicable, so that all payments results in the creation of UTxOs with the
+-- right minimal amount of ada.
+data InitialDistribution = InitialDistribution
+  { outputs :: [TxSkelOut],
+    ensureMinAda :: Bool
+  }
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
 instance Default InitialDistribution where
-  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ ada 100
+  def =
+    InitialDistribution
+      { outputs = toPaysList . zip knownWallets . repeat . replicate 5 $ ada 100,
+        ensureMinAda = True
+      }
 
 instance Semigroup InitialDistribution where
-  i <> j = InitialDistribution $ unInitialDistribution i <> unInitialDistribution j
+  i <> j = InitialDistribution (outputs i <> outputs j) (ensureMinAda i || ensureMinAda j)
 
 instance Monoid InitialDistribution where
-  mempty = InitialDistribution mempty
+  mempty = InitialDistribution mempty True
+
+toPaysList :: [(Wallet, [Api.Value])] -> [TxSkelOut]
+toPaysList = foldl' (\x (user, values) -> x <> map (paysPK user) values) []
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution
-distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK user) values) []
+distributionFromList = (`InitialDistribution` True) . toPaysList

@@ -11,7 +11,7 @@ import Cardano.Ledger.Shelley.LedgerState qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Arrow
-import Control.Monad (when, (<=<))
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
@@ -224,7 +224,7 @@ instance Default MockChainSt where
 -- | Reference scripts from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
 referenceScriptMap0From :: InitialDistribution -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-referenceScriptMap0From (InitialDistribution initDist) =
+referenceScriptMap0From (InitialDistribution initDist _) =
   -- This builds a map of entries from the reference scripts contained in the
   -- initial distribution
   Map.fromList $ mapMaybe unitMaybeFrom initDist
@@ -241,7 +241,7 @@ referenceScriptMap0From (InitialDistribution initDist) =
 -- | Datums from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
 datumMap0From :: InitialDistribution -> Map Api.DatumHash (TxSkelOutDatum, Integer)
-datumMap0From (InitialDistribution initDist) =
+datumMap0From (InitialDistribution initDist _) =
   -- This concatenates singleton maps from inputs and accounts for the number of
   -- occurrences of similar datums
   foldl' (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . unitMapFrom) Map.empty initDist
@@ -261,7 +261,7 @@ datumMap0From (InitialDistribution initDist) =
 -- - all non-ada assets in outputs are considered minted
 --
 -- - outputs are translated from the `TxSkelOut` list in the initial
---   distribution
+--   distribution and adjusted to contain min ada
 --
 -- Two things to note:
 --
@@ -270,7 +270,7 @@ datumMap0From (InitialDistribution initDist) =
 -- - The genesis key hash has been taken from
 --   https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
-utxoIndex0From (InitialDistribution initDist) = case mkBody of
+utxoIndex0From (InitialDistribution initDist ensureMinAda) = case mkBody of
   Left err -> error $ show err
   -- TODO: There may be better ways to generate this initial state, see
   -- createGenesisTransaction for instance
@@ -278,12 +278,16 @@ utxoIndex0From (InitialDistribution initDist) = case mkBody of
   where
     mkBody :: Either GenerateTxError (Cardano.TxBody Cardano.ConwayEra)
     mkBody = do
-      value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
+      minAdaInitDist <-
+        if ensureMinAda
+          then forM initDist $ toTxSkelOutWithMinAda def
+          else return initDist
+      value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty minAdaInitDist)
       let mintValue = flip (Cardano.TxMintValue Cardano.MaryEraOnwardsConway) (Cardano.BuildTxWith mempty) . Cardano.filterValue (/= Cardano.AdaAssetId) $ value
           theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42
           genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(Cardano.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
-      outputs <- mapM (generateTxOut theNetworkId) initDist
+      outputs <- mapM (generateTxOut theNetworkId) minAdaInitDist
       left (TxBodyError "Body error") $
         Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway $
           Ledger.emptyTxBodyContent {Cardano.txMintValue = mintValue, Cardano.txOuts = outputs, Cardano.txIns = inputs}

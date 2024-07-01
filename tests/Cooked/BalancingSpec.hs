@@ -41,6 +41,7 @@ initialDistributionBalancing =
       paysPK alice (ada 1 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
       paysPK alice (ada 105 <> banana 2) `withDatumHash` ()
     ]
+    False
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Set Api.TxOutRef, [Api.TxOutRef])
 
