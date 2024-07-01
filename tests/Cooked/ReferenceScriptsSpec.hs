@@ -207,7 +207,7 @@ tests =
             $ testFailsFrom
               def
               ( \case
-                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toScriptAndRedeemerData: Wrong reference script hash."
+                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure
               )
               def

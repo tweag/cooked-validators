@@ -1,3 +1,6 @@
+{-# LANGUAGE PatternSynonyms #-}
+{-# OPTIONS_GHC -Wno-missing-pattern-synonym-signatures #-}
+
 -- | This module provides the description of a transaction skeleton. We have our
 -- own representation of a transaction for three main reasons:
 --
@@ -56,6 +59,7 @@ module Cooked.Skeleton
     withReferenceScript,
     withStakingCredential,
     TxSkelRedeemer (..),
+    Redeemer (..),
     txSkelTypedRedeemer,
     TxParameterChange (..),
     TxGovAction (..),
@@ -80,7 +84,6 @@ module Cooked.Skeleton
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
-    txSkelReferenceScript,
     txSkelKnownTxOutRefs,
     simpleTxSkelProposal,
     withWitness,
@@ -88,6 +91,10 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
+    pattern TxSkelRedeemerForScript,
+    pattern TxSkelNoRedeemer,
+    pattern TxSkelRedeemerForReferenceScript,
+    pattern TxSkelNoRedeemerForReferenceScript,
   )
 where
 
@@ -388,34 +395,37 @@ type RedeemerConstrs redeemer =
     Typeable redeemer
   )
 
-data TxSkelRedeemer where
-  TxSkelNoRedeemer :: TxSkelRedeemer
-  TxSkelRedeemerForScript :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-  -- | The first argument is a reference to the output where the reference
-  -- script is stored.
-  TxSkelRedeemerForReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
+data Redeemer where
+  NoRedeemer :: Redeemer
+  SomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> Redeemer
 
-deriving instance (Show TxSkelRedeemer)
+deriving instance (Show Redeemer)
 
-txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
-txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer (TxSkelRedeemerForReferenceScript _ redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer _ = Nothing
-
-txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
-txSkelReferenceScript (TxSkelRedeemerForReferenceScript refScript _) = Just refScript
-txSkelReferenceScript _ = Nothing
-
-instance Eq TxSkelRedeemer where
-  TxSkelNoRedeemer == TxSkelNoRedeemer = True
-  (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
+instance Eq Redeemer where
+  NoRedeemer == NoRedeemer = True
+  (SomeRedeemer r1) == (SomeRedeemer r2) =
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 PlutusTx.== r2
       Nothing -> False
-  (TxSkelRedeemerForReferenceScript o1 r1) == (TxSkelRedeemerForReferenceScript o2 r2) =
-    TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
-      && o1 == o2
   _ == _ = False
+
+data TxSkelRedeemer = TxSkelRedeemer
+  { txSkelRedeemer :: Redeemer,
+    txSkelReferenceScript :: Maybe Api.TxOutRef
+  }
+  deriving (Show, Eq)
+
+pattern TxSkelRedeemerForScript a = TxSkelRedeemer (SomeRedeemer a) Nothing
+
+pattern TxSkelNoRedeemer = TxSkelRedeemer NoRedeemer Nothing
+
+pattern TxSkelRedeemerForReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
+
+pattern TxSkelNoRedeemerForReferenceScript outRef = TxSkelRedeemer NoRedeemer (Just outRef)
+
+txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
+txSkelTypedRedeemer (TxSkelRedeemer (SomeRedeemer red) _) = Api.fromData . Api.toData $ red
+txSkelTypedRedeemer _ = Nothing
 
 -- * Description of the Governance actions (or proposal procedures)
 
