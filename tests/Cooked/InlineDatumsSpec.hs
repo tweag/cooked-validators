@@ -126,7 +126,7 @@ spendOutputTestTrace useInlineDatum validator = do
     validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelIns = Map.singleton theTxOutRef $ TxSkelRedeemerForScript (),
+          txSkelIns = Map.singleton theTxOutRef $ txSkelSomeRedeemer (),
           txSkelSigners = [wallet 1]
         }
 
@@ -151,7 +151,7 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
     validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelIns = Map.singleton theTxOutRef $ TxSkelRedeemerForScript (),
+          txSkelIns = Map.singleton theTxOutRef $ txSkelSomeRedeemer (),
           txSkelOuts =
             [ ( case datumKindOnSecondPayment of
                   OnlyHash -> paysScriptDatumHash validator SecondPaymentDatum

@@ -46,7 +46,7 @@ printTrace = do
       txSkelTemplate
         { txSkelOpts = def {txOptEmulatorParamsModification = Just $ EmulatorParamsModification Emulator.increaseTransactionLimits},
           txSkelSigners = [wallet 1],
-          txSkelIns = Map.singleton oref $ TxSkelRedeemerForScript True
+          txSkelIns = Map.singleton oref $ txSkelSomeRedeemer True
         }
 
 tests :: TestTree

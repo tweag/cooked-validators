@@ -4,15 +4,19 @@
 
 ### Added
 
-- It is possible to give a reference script with an empty redeemer using
-  `TxSkelNoRedeemerForReferenceScript`.
+- `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
+  most commonly used.
 
 ### Removed
 
 ### Changed
 
-- Internal representation of redeemers. This should not affect API thanks to the
-  use of the PatternSynonyms language extension.
+- Internal representation of redeemers have changed, and are similar for any
+  supported script purpose (minting, spending or proposing).
+- Redeemers should now be built using one of the four following smart
+  constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
+  `txSkelSomeRedeemerAndReferenceScript`,
+  `txSkelEmptyRedeemerAndReferenceScript`.
 
 ### Fixed
 

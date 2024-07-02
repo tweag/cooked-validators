@@ -137,9 +137,9 @@ tests =
           toAddress aValidator /= toAddress bValidator,
       testGroup "unit tests on a 'TxSkel'" $
         -- The following tests make sure that, depending on some
-        -- 'TxSkelRedeemerForScript' constraints for UTxOs
+        -- 'txSkelSomeRedeemer' constraints for UTxOs
         -- belonging to the 'aValidator' on the input 'TxSkel',
-        -- the correct additional 'TxSkelRedeemerForScript'
+        -- the correct additional 'txSkelSomeRedeemer'
         -- constraints for UTxOs of the 'bValidator' are on the
         -- output 'TxSkel's. Both 'DoubleSatSplitMode's are
         -- tested.
@@ -148,7 +148,7 @@ tests =
             skelIn :: [(ARedeemer, Api.TxOutRef)] -> TxSkel
             skelIn aInputs =
               txSkelTemplate
-                { txSkelIns = Map.fromList $ map (second TxSkelRedeemerForScript . swap) aInputs,
+                { txSkelIns = Map.fromList $ map (second txSkelSomeRedeemer . swap) aInputs,
                   txSkelOuts = [paysPK (wallet 2) (Script.lovelaceValueOf 2_500_000)],
                   txSkelSigners = [wallet 1]
                 }
@@ -171,13 +171,13 @@ tests =
                           if
                             | aOref == fst aUtxo1 ->
                                 return
-                                  [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                  [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)
                                     | (bOref, bOut) <- bUtxos,
                                       outputValue bOut == Script.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                   ]
                             | aOref == fst aUtxo2 ->
                                 return
-                                  [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                  [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)
                                     | (bOref, _) <- bUtxos,
                                       bOref == fst bUtxo1
                                   ]
@@ -187,10 +187,10 @@ tests =
                                     ( \(bOref, _) ->
                                         if
                                           | bOref == fst bUtxo1 ->
-                                              [(TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)]
+                                              [(txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)]
                                           | bOref == fst bUtxo2 ->
-                                              [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1),
-                                                (TxSkelRedeemerForScript ARedeemer3, toDelta bOref $ TxSkelRedeemerForScript BRedeemer2)
+                                              [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1),
+                                                (txSkelSomeRedeemer ARedeemer3, toDelta bOref $ txSkelSomeRedeemer BRedeemer2)
                                               ]
                                           | otherwise -> []
                                     )
@@ -216,13 +216,13 @@ tests =
                   txSkelIns =
                     Map.fromList
                       ( ( \(bRedeemer, (bOref, _)) ->
-                            (bOref, TxSkelRedeemerForScript bRedeemer)
+                            (bOref, txSkelSomeRedeemer bRedeemer)
                         )
                           <$> bInputs
                       )
                       <> Map.fromList
                         ( ( \(aRedeemer, aOref) ->
-                              (aOref, TxSkelRedeemerForScript aRedeemer)
+                              (aOref, txSkelSomeRedeemer aRedeemer)
                           )
                             <$> aInputs
                         ),

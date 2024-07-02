@@ -1,6 +1,3 @@
-{-# LANGUAGE PatternSynonyms #-}
-{-# OPTIONS_GHC -Wno-missing-pattern-synonym-signatures #-}
-
 -- | This module provides the description of a transaction skeleton. We have our
 -- own representation of a transaction for three main reasons:
 --
@@ -91,10 +88,10 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
-    pattern TxSkelRedeemerForScript,
-    pattern TxSkelNoRedeemer,
-    pattern TxSkelRedeemerForReferenceScript,
-    pattern TxSkelNoRedeemerForReferenceScript,
+    txSkelSomeRedeemer,
+    txSkelEmptyRedeemer,
+    txSkelSomeRedeemerAndReferenceScript,
+    txSkelEmptyRedeemerAndReferenceScript,
   )
 where
 
@@ -396,13 +393,13 @@ type RedeemerConstrs redeemer =
   )
 
 data Redeemer where
-  NoRedeemer :: Redeemer
+  EmptyRedeemer :: Redeemer
   SomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> Redeemer
 
 deriving instance (Show Redeemer)
 
 instance Eq Redeemer where
-  NoRedeemer == NoRedeemer = True
+  EmptyRedeemer == EmptyRedeemer = True
   (SomeRedeemer r1) == (SomeRedeemer r2) =
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 PlutusTx.== r2
@@ -415,13 +412,17 @@ data TxSkelRedeemer = TxSkelRedeemer
   }
   deriving (Show, Eq)
 
-pattern TxSkelRedeemerForScript a = TxSkelRedeemer (SomeRedeemer a) Nothing
+txSkelSomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
+txSkelSomeRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
 
-pattern TxSkelNoRedeemer = TxSkelRedeemer NoRedeemer Nothing
+txSkelEmptyRedeemer :: TxSkelRedeemer
+txSkelEmptyRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
 
-pattern TxSkelRedeemerForReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
+txSkelSomeRedeemerAndReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
+txSkelSomeRedeemerAndReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
 
-pattern TxSkelNoRedeemerForReferenceScript outRef = TxSkelRedeemer NoRedeemer (Just outRef)
+txSkelEmptyRedeemerAndReferenceScript :: Api.TxOutRef -> TxSkelRedeemer
+txSkelEmptyRedeemerAndReferenceScript outRef = TxSkelRedeemer EmptyRedeemer (Just outRef)
 
 txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemer (SomeRedeemer red) _) = Api.fromData . Api.toData $ red
@@ -1000,7 +1001,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'TxSkelNoRedeemer' constructor.
+      --   the 'TxSkelEmptyRedeemer' constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
