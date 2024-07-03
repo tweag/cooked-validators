@@ -115,8 +115,8 @@ bValidator =
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution (paysScript aValidator ADatum . ada <$> [2, 3, 4, 5]) True
-    <> InitialDistribution (paysScript bValidator BDatum . ada <$> [6, 7]) True
+    <> InitialDistribution (paysScript aValidator ADatum . ada <$> [2, 3, 4, 5])
+    <> InitialDistribution (paysScript bValidator BDatum . ada <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)

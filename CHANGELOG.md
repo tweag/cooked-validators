@@ -6,7 +6,8 @@
 
 - `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
   most commonly used.
-- `ensureMinAda` option for initial distributions, set to `True` by default.
+- `toInitDistWithMinAda` to ensure the initial distribution only provides
+  outputs with the required minimal ada based on default parameters.
 
 ### Removed
 

@@ -15,14 +15,14 @@ alice, bob :: Wallet
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum :: InitialDistribution
 initialDistributionWithDatum =
-  InitialDistribution ([withDatum, withInlineDatum, withDatumHash] <*> [paysPK alice (ada 2)] <*> [10 :: Integer]) True
+  InitialDistribution $ [withDatum, withInlineDatum, withDatumHash] <*> [paysPK alice (ada 2)] <*> [10 :: Integer]
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
 -- 2 UTxOs with 100 ada
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  InitialDistribution ((paysPK alice (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract) : replicate 2 (paysPK bob (ada 100))) True
+  InitialDistribution $ (paysPK alice (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract) : replicate 2 (paysPK bob (ada 100))
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
 getValueFromInitialDatum = do

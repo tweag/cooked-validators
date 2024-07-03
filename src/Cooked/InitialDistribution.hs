@@ -4,9 +4,12 @@
 module Cooked.InitialDistribution
   ( InitialDistribution (..),
     distributionFromList,
+    toInitDistWithMinAda,
   )
 where
 
+import Control.Monad
+import Cooked.MockChain.MinAda
 import Cooked.Skeleton
 import Cooked.ValueUtils
 import Cooked.Wallet
@@ -33,31 +36,35 @@ import PlutusLedgerApi.V3 qualified as Api
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 --  >        ]
 --
--- When ran into a `MockChain`, the initial distribution will be adjusted, if
--- applicable, so that all payments results in the creation of UTxOs with the
--- right minimal amount of ada.
-data InitialDistribution = InitialDistribution
-  { outputs :: [TxSkelOut],
-    ensureMinAda :: Bool
-  }
+-- Note that initial distribution can lead to payments that would not be
+-- accepted if part of an actual transaction, such as payment without enough ada
+-- to sustain themselves.
+data InitialDistribution where
+  InitialDistribution ::
+    {unInitialDistribution :: [TxSkelOut]} ->
+    InitialDistribution
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
 instance Default InitialDistribution where
-  def =
-    InitialDistribution
-      { outputs = toPaysList . zip knownWallets . repeat . replicate 5 $ ada 100,
-        ensureMinAda = True
-      }
+  def = InitialDistribution $ toPaysList . zip knownWallets . repeat . replicate 5 $ ada 100
 
 instance Semigroup InitialDistribution where
-  i <> j = InitialDistribution (outputs i <> outputs j) (ensureMinAda i || ensureMinAda j)
+  i <> j = InitialDistribution (unInitialDistribution i <> unInitialDistribution j)
 
 instance Monoid InitialDistribution where
-  mempty = InitialDistribution mempty True
+  mempty = InitialDistribution mempty
+
+-- | Transform a given initial distribution by ensuring each payment has enough
+-- ada so that the resulting outputs can sustain themselves.
+toInitDistWithMinAda :: InitialDistribution -> InitialDistribution
+toInitDistWithMinAda (InitialDistribution initDist) =
+  case forM initDist $ toTxSkelOutWithMinAda def of
+    Left err -> error $ show err
+    Right initDist' -> InitialDistribution initDist'
 
 toPaysList :: [(Wallet, [Api.Value])] -> [TxSkelOut]
 toPaysList = foldl' (\x (user, values) -> x <> map (paysPK user) values) []
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution
-distributionFromList = (`InitialDistribution` True) . toPaysList
+distributionFromList = InitialDistribution . toPaysList
