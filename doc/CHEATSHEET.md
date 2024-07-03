@@ -449,7 +449,7 @@ foo = do
     bar `withTweak` ( do
                         addOutputTweak $ paysScript bazValidator bazDatum bazValue
                         removeOutputTweak (\(Pays out) -> somePredicate out)
-                        addInputTweak somePkTxOutRef C.txSkelEmptyRedeemer
+                        addInputTweak somePkTxOutRef txSkelEmptyRedeemer
                         removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
                     )
 ```
