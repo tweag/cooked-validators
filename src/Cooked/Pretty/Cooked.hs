@@ -265,8 +265,8 @@ prettyTxSkelRedeemer opts (TxSkelRedeemer red mRefScript) =
   catMaybes
     [ case red of
         EmptyRedeemer -> Nothing
-        SomeRedeemer s -> Just $ "With the following redeemer" <+> prettyCookedOpt opts s,
-      ("With a reference script at:" <+>) . prettyCookedOpt opts <$> mRefScript
+        SomeRedeemer s -> Just $ "Redeemer" <+> prettyCookedOpt opts s,
+      ("Reference script at:" <+>) . prettyCookedOpt opts <$> mRefScript
     ]
 
 prettyTxSkelProposal :: PrettyCookedOpts -> TxSkelProposal -> DocCooked
@@ -332,20 +332,16 @@ prettySigners _ _ [] = []
 -- | Prints a minting specification
 --
 -- Examples without and with redeemer
--- > #abcdef
---     - "Foo"
---     - 500
--- > #123456
---     - "Bar"
---     - 1000
---     - "With the following redeemer: red"
---     - "With a reference at: txOutRef"
+-- > #abcdef "Foo": 500
+-- > #123456 "Bar": 1000
+--     - Redeemer: red
+--     - Reference script at: txOutRef
 prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) -> DocCooked
 prettyMints opts (policy, redeemer, tokenName, amount) =
-  prettyItemize
-    (prettyCookedOpt opts policy)
-    "-"
-    (PP.viaShow tokenName : PP.viaShow amount : prettyTxSkelRedeemer opts redeemer)
+  let docTitle = prettyCookedOpt opts policy <+> PP.viaShow tokenName <> ":" <+> PP.viaShow amount
+   in case prettyTxSkelRedeemer opts redeemer of
+        [] -> docTitle
+        l -> prettyItemize docTitle "-" l
 
 prettyTxSkelOut :: PrettyCookedOpts -> TxSkelOut -> DocCooked
 prettyTxSkelOut opts (Pays output) =
