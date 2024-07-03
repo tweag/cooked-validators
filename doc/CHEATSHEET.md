@@ -32,24 +32,17 @@
 * With arbitrary payments
   ```haskell
   initDist :: InitialDistribution
-  initDist = 
-    def 
-	  { outputs = 
-	    [ paysPK (wallet 3) (ada 6)
-        , paysScript fooTypedValidator FooTypedDatum (ada 6)
-	    , paysPK (wallet 2) (ada 2) `withDatum` fooDatum
-	    , paysPK (wallet 1) (ada 2) `withReferenceScript` fooValidator
-	    ]
-      }
+  initDist = InitialDistribution
+	[ paysPK (wallet 3) (ada 6)
+    , paysScript fooTypedValidator FooTypedDatum (ada 6)
+	, paysPK (wallet 2) (ada 2) `withDatum` fooDatum
+	, paysPK (wallet 1) (ada 2) `withReferenceScript` fooValidator
+	]
   ```
-* Disable min ada adjustment
+* Ensure each initial distribution payment has min ada
   ```haskell
   initDist :: InitialDistribution
-  initDist = 
-    def
-	  { outputs = ...,
-	    ensureMinAda = False
-	  }
+  initDist = toInitDistWithMinAda $ InitialDistribution ...
   ```
 #### Usage
 

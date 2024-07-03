@@ -46,7 +46,7 @@ data InitialDistribution where
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
 instance Default InitialDistribution where
-  def = InitialDistribution $ toPaysList . zip knownWallets . repeat . replicate 5 $ ada 100
+  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ ada 100
 
 instance Semigroup InitialDistribution where
   i <> j = InitialDistribution (unInitialDistribution i <> unInitialDistribution j)

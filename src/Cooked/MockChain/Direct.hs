@@ -261,7 +261,7 @@ datumMap0From (InitialDistribution initDist) =
 -- - all non-ada assets in outputs are considered minted
 --
 -- - outputs are translated from the `TxSkelOut` list in the initial
---   distribution and adjusted to contain min ada
+--   distribution
 --
 -- Two things to note:
 --
