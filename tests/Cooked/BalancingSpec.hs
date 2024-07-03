@@ -66,7 +66,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   let skel =
         txSkelTemplate
           { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [paysPK bob toBobValue, paysPK alice toAliceValue],
-            txSkelIns = Map.fromList $ (,TxSkelNoRedeemer) <$> toSpendUtxos,
+            txSkelIns = Map.fromList $ (,txSkelEmptyRedeemer) <$> toSpendUtxos,
             txSkelOpts =
               optionsMod
                 def
@@ -124,7 +124,7 @@ noBalanceMaxFee = do
     validateTxSkel $
       txSkelTemplate
         { txSkelOuts = [paysPK bob (lovelace (30_000_000 - maxFee))],
-          txSkelIns = Map.singleton txOutRef TxSkelNoRedeemer,
+          txSkelIns = Map.singleton txOutRef txSkelEmptyRedeemer,
           txSkelOpts =
             def
               { txOptBalancingPolicy = DoNotBalance,

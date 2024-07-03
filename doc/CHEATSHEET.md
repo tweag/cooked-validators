@@ -167,10 +167,10 @@ txSkelTemplate
 
 ### Spend some UTxOs
 
-* No redeemer: `TxSkelNoRedeemer`
-* With redeemer:
-    * Regular script: `TxSkelRedeemerForScript typedRedeemer`
-    * Reference script: `TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript typedRedeemer`
+* No redeemer: `txSkelEmptyRedeemer`
+* With a given redeemer: `txSkelSomeRedeemer`
+* A redeemer and a reference script: `txSkelSomeRedeemerAndReferenceScript`
+* No redeemer but a reference script: `txSkelEmptyRedeemerAndReferenceScript`
 
 ```haskell
 txSkelTemplate
@@ -218,10 +218,13 @@ foo txOutRef = do
 
 ### Mint or burn tokens
 
-* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, TxSkelNoRedeemer, "fooName", 3)`
-* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, TxSkelRedeemerForScript typedRedeemer, "barName", 12)`
-* With a reference script: `(Script.Versioned barPolicy Script.PlutusV3, TxSkelRedeemerForReferenceScript txOutRef typedRedeemer, "barName", 12)`
-* Burn tokens (negative amount): `(Script.Versioned bazPolicy Script.PlutusV3, ..., "bazName", -7)`
+* Mint tokens: positive amount
+* Burn tokens: negative amount
+
+* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, txSkelEmptyRedeemer, "fooName", 3)`
+* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, txSkelSomeRedeemer typedRedeemer, "barName", -3)`
+* With a redeemer and reference script: `(Script.Versioned barPolicy Script.PlutusV3, txSkelSomeRedeemerAndReferenceScript txOutRef typedRedeemer, "barName", 12)`
+* With no redeemer but a reference scrip: `(Script.Versioned barPolicy Script.PlutusV3, txSkelEmptyRedeemerAndReferenceScript txOutRef, "fooName", -6)`
 
 ```haskell
 txSkelTemplate
@@ -293,7 +296,7 @@ txSkelTemplate
 ```haskell
 txSkelTemplate
   { ...
-    txSkelIns = Map.fromList [(scriptTxOutRefToSpend, TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
+    txSkelIns = Map.fromList [(scriptTxOutRefToSpend, txSkelSomeRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
     ...
   }
 ```
@@ -446,7 +449,7 @@ foo = do
     bar `withTweak` ( do
                         addOutputTweak $ paysScript bazValidator bazDatum bazValue
                         removeOutputTweak (\(Pays out) -> somePredicate out)
-                        addInputTweak somePkTxOutRef C.TxSkelNoRedeemer
+                        addInputTweak somePkTxOutRef txSkelEmptyRedeemer
                         removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
                     )
 ```

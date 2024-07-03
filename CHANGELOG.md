@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
+  most commonly used.
+
+### Removed
+
+### Changed
+
+- Internal representation of redeemers have changed, and are similar for any
+  supported script purpose (minting, spending or proposing).
+- Redeemers should now be built using one of the four following smart
+  constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
+  `txSkelSomeRedeemerAndReferenceScript`,
+  `txSkelEmptyRedeemerAndReferenceScript`.
+
+### Fixed
+
+- All kinds of scripts can now be used as reference scripts.
+
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
 ### Added

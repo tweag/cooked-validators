@@ -325,5 +325,5 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelac
       -- a new output at the end of the list, to keep the order intact.
       (txOutRefs, val) <- getOptimalCandidate candidatesRaw balancingWallet balancingError
       return (txOutRefs, txSkelOuts ++ [paysPK balancingWallet val])
-  let newTxSkelIns = txSkelIns <> Map.fromList ((,TxSkelNoRedeemer) <$> additionalInsTxOutRefs)
+  let newTxSkelIns = txSkelIns <> Map.fromList ((,txSkelEmptyRedeemer) <$> additionalInsTxOutRefs)
   return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns

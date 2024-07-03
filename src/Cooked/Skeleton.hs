@@ -56,6 +56,7 @@ module Cooked.Skeleton
     withReferenceScript,
     withStakingCredential,
     TxSkelRedeemer (..),
+    Redeemer (..),
     txSkelTypedRedeemer,
     TxParameterChange (..),
     TxGovAction (..),
@@ -80,7 +81,6 @@ module Cooked.Skeleton
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
-    txSkelReferenceScript,
     txSkelKnownTxOutRefs,
     simpleTxSkelProposal,
     withWitness,
@@ -88,6 +88,10 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
+    txSkelSomeRedeemer,
+    txSkelEmptyRedeemer,
+    txSkelSomeRedeemerAndReferenceScript,
+    txSkelEmptyRedeemerAndReferenceScript,
   )
 where
 
@@ -388,34 +392,41 @@ type RedeemerConstrs redeemer =
     Typeable redeemer
   )
 
-data TxSkelRedeemer where
-  TxSkelNoRedeemer :: TxSkelRedeemer
-  TxSkelRedeemerForScript :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-  -- | The first argument is a reference to the output where the reference
-  -- script is stored.
-  TxSkelRedeemerForReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
+data Redeemer where
+  EmptyRedeemer :: Redeemer
+  SomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> Redeemer
 
-deriving instance (Show TxSkelRedeemer)
+deriving instance (Show Redeemer)
 
-txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
-txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer (TxSkelRedeemerForReferenceScript _ redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer _ = Nothing
-
-txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
-txSkelReferenceScript (TxSkelRedeemerForReferenceScript refScript _) = Just refScript
-txSkelReferenceScript _ = Nothing
-
-instance Eq TxSkelRedeemer where
-  TxSkelNoRedeemer == TxSkelNoRedeemer = True
-  (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
+instance Eq Redeemer where
+  EmptyRedeemer == EmptyRedeemer = True
+  (SomeRedeemer r1) == (SomeRedeemer r2) =
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 PlutusTx.== r2
       Nothing -> False
-  (TxSkelRedeemerForReferenceScript o1 r1) == (TxSkelRedeemerForReferenceScript o2 r2) =
-    TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
-      && o1 == o2
   _ == _ = False
+
+data TxSkelRedeemer = TxSkelRedeemer
+  { txSkelRedeemer :: Redeemer,
+    txSkelReferenceScript :: Maybe Api.TxOutRef
+  }
+  deriving (Show, Eq)
+
+txSkelSomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
+txSkelSomeRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
+
+txSkelEmptyRedeemer :: TxSkelRedeemer
+txSkelEmptyRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
+
+txSkelSomeRedeemerAndReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
+txSkelSomeRedeemerAndReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
+
+txSkelEmptyRedeemerAndReferenceScript :: Api.TxOutRef -> TxSkelRedeemer
+txSkelEmptyRedeemerAndReferenceScript outRef = TxSkelRedeemer EmptyRedeemer (Just outRef)
+
+txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
+txSkelTypedRedeemer (TxSkelRedeemer (SomeRedeemer red) _) = Api.fromData . Api.toData $ red
+txSkelTypedRedeemer _ = Nothing
 
 -- * Description of the Governance actions (or proposal procedures)
 
@@ -990,7 +1001,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'TxSkelNoRedeemer' constructor.
+      --   the 'TxSkelEmptyRedeemer' constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
@@ -1084,7 +1095,15 @@ txSkelReferenceScripts =
 
 -- | All `TxOutRefs` in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
-txSkelReferenceTxOutRefs TxSkel {..} = mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
+txSkelReferenceTxOutRefs TxSkel {..} =
+  -- direct reference inputs
+  Set.toList txSkelInsReference
+    -- reference inputs in inputs redeemers
+    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
+    -- reference inputs in porposals redeemers
+    <> mapMaybe (txSkelReferenceScript . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
+    -- reference inputs in mints redeemers
+    <> mapMaybe (txSkelReferenceScript . fst . snd) (Map.toList txSkelMints)
 
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference

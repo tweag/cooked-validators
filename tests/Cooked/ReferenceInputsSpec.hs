@@ -97,7 +97,7 @@ trace1 = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelIns = Map.singleton txOutRefBar $ TxSkelRedeemerForScript (),
+        { txSkelIns = Map.singleton txOutRefBar $ txSkelSomeRedeemer (),
           txSkelInsReference = Set.singleton txOutRefFoo,
           txSkelOuts = [paysPK (wallet 4) (ada 5)],
           txSkelSigners = [wallet 3]
