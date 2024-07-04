@@ -7,6 +7,7 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
+import Control.Monad
 import Control.Monad.Except
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
@@ -83,10 +84,23 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     Just bWallet -> do
       -- The balancing should be performed. We collect the balancing utxos and
       -- filter out those already used in the unbalanced skeleton.
-      (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
-        runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingWallet -> onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
-          BalancingUtxosFromSet utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
+      candidateBalancingUtxos <-
+        case txOptBalancingUtxos txSkelOpts of
+          BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
+          BalancingUtxosFromSet utxos -> do
+            bUtxos <- runUtxoSearch $ txOutByRefSearch (Set.toList utxos)
+            let (pkUtxos, length -> scriptUtxosNb) = partition (isJust . isPKOutput . snd) bUtxos
+            unless (scriptUtxosNb == 0) $
+              blockChainLog $
+                BCLogWarning $
+                  show scriptUtxosNb <> " utxos belonging to scripts have been provided for balancing and are ignored."
+            return pkUtxos
+      let (balancingUtxos, length -> knownUtxosNb) = partition ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) candidateBalancingUtxos
+      unless (knownUtxosNb == 0) $
+        blockChainLog $
+          BCLogWarning $
+            show knownUtxosNb <> " utxos already used in the skeleton have been provided for balancing and are ignored."
+
       case txOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
         -- is full auto mode, the most powerful but time-consuming.

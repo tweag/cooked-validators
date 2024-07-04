@@ -150,10 +150,10 @@ instance PrettyCooked BlockChainLogEntry where
     prettyItemize
       "Adjusted:"
       "-"
-      [ "Fee:" <+> prettyCookedOpt opts fee,
-        "Collaterals:" <+> prettyCookedOpt opts (Set.toList collaterals),
-        "Return collateral wallet:" <+> prettyCookedOpt opts (walletPKHash returnWallet),
-        prettyTxSkel opts skelContext skel
+      [ prettyTxSkel opts skelContext skel,
+        "Fee: Lovelace" <+> prettyCookedOpt opts fee,
+        "Collateral inputs:" <+> prettyCookedOpt opts (Set.toList collaterals),
+        "Return collateral wallet:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
       ]
   prettyCookedOpt opts (BCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
   prettyCookedOpt _ (BCLogError err) = "Fail:" <+> PP.pretty err
