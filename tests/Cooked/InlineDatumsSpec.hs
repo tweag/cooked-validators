@@ -177,7 +177,7 @@ tests =
         let theValidator = inputDatumValidator True
          in [ testCase "the datum is retrieved correctly" $
                 assertBool "... it's not" $
-                  case runMockChain (listUtxosTestTrace True theValidator >> allUtxos) of
+                  case fst $ runMockChain (listUtxosTestTrace True theValidator >> allUtxos) of
                     Right (utxos, _endState) ->
                       case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
                         [Api.OutputDatum _] -> True
@@ -185,7 +185,7 @@ tests =
                     _ -> False,
               testCase "the datum hash is retrieved correctly" $
                 assertBool "... it's not" $
-                  case runMockChain (listUtxosTestTrace False theValidator >> allUtxos) of
+                  case fst $ runMockChain (listUtxosTestTrace False theValidator >> allUtxos) of
                     Right (utxos, _endState) ->
                       case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
                         [Api.OutputDatumHash _] -> True

@@ -4,6 +4,7 @@ module Cooked.Pretty.Options
   ( PrettyCookedOpts (..),
     PrettyCookedHashOpts (..),
     PCOptTxOutRefs (..),
+    PCOptLog (..),
     hashNamesFromList,
     defaultHashNames,
   )
@@ -31,7 +32,9 @@ data PrettyCookedOpts = PrettyCookedOpts
     -- @53_000_000@ instead of @53000000@. By default: True
     pcOptNumericUnderscores :: Bool,
     -- | Options related to printing hashes
-    pcOptHashes :: PrettyCookedHashOpts
+    pcOptHashes :: PrettyCookedHashOpts,
+    -- | What kind of log to print
+    pcOptLog :: PCOptLog
   }
   deriving (Eq, Show)
 
@@ -42,8 +45,22 @@ instance Default PrettyCookedOpts where
         pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
         pcOptPrintDefaultTxOpts = False,
         pcOptNumericUnderscores = True,
-        pcOptHashes = def
+        pcOptHashes = def,
+        pcOptLog = def
       }
+
+-- | What log to display
+data PCOptLog
+  = -- | No logging at all
+    PCOptLogNone
+  | -- | All logging except for infos, default option
+    PCOptLogNoInfo
+  | -- | All logging, for debugging purpose
+    PCOptLogAll
+  deriving (Eq, Show)
+
+instance Default PCOptLog where
+  def = PCOptLogNoInfo
 
 -- | Whether to print transaction outputs references.
 data PCOptTxOutRefs

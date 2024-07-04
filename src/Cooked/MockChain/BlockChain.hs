@@ -15,6 +15,7 @@
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
+    BlockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
@@ -110,6 +111,12 @@ data MockChainError where
   FailWith :: String -> MockChainError
   deriving (Show, Eq)
 
+data BlockChainLogEntry where
+  BCLogSubmittedTxSkel :: SkelContext -> TxSkel -> BlockChainLogEntry
+  BCLogNewTx :: Api.TxId -> BlockChainLogEntry
+  BCLogInfo :: String -> BlockChainLogEntry
+  BCLogFail :: String -> BlockChainLogEntry
+
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
   -- | Returns the parameters of the chain.
@@ -127,6 +134,9 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
 
   -- | Returns an output given a reference to it
   txOutByRefLedger :: Api.TxOutRef -> m (Maybe Ledger.TxOut)
+
+  -- | Logs an event that occured during a BlockChain run
+  blockChainLog :: BlockChainLogEntry -> m ()
 
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
@@ -493,6 +503,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+  blockChainLog = lift . blockChainLog
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
@@ -536,6 +547,7 @@ instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) wher
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+  blockChainLog = lift . blockChainLog
 
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger

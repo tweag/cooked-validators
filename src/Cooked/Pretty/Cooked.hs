@@ -31,8 +31,8 @@ where
 
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Direct
 import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -124,51 +124,50 @@ instance (Show a) => PrettyCooked (a, UtxoState) where
       "-"
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
-instance (Show a) => PrettyCooked (Either MockChainError (a, UtxoState)) where
-  prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
-  prettyCookedOpt opts (Right endState) = "🟢" <+> prettyCookedOpt opts endState
+prettyBlockChainEntries :: PrettyCookedOpts -> [BlockChainLogEntry] -> DocCooked
+prettyBlockChainEntries opts entries =
+  prettyItemize
+    "MockChain run:"
+    "-"
+    (prettyCookedOpt opts <$> entries)
+
+instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
+  prettyCookedOpt opts (res, entries) = prettyLogWith $
+    case res of
+      Left err -> "🔴" <+> prettyCookedOpt opts err
+      Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
+    where
+      prettyLogWith :: DocCooked -> DocCooked
+      prettyLogWith inner =
+        case pcOptLog opts of
+          PCOptLogNone -> inner
+          PCOptLogNoInfo ->
+            prettyItemize
+              "End result:"
+              "-"
+              [prettyBlockChainEntries opts (filter (\case BCLogInfo _ -> False; _ -> True) entries), inner]
+          PCOptLogAll ->
+            prettyItemize
+              "End result:"
+              "-"
+              [prettyBlockChainEntries opts entries, inner]
 
 -- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
-instance PrettyCooked MockChainLog where
-  prettyCookedOpt opts =
-    prettyEnumerate "MockChain run:" "."
-      . go []
-      . unMockChainLog
-    where
-      -- In order to avoid printing 'MockChainLogValidateTxSkel' then
-      -- 'MockChainLogNewTx' as two different items, we combine them into one
-      -- single 'DocCooked'
-      go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
-      go
-        acc
-        ( MCLogSubmittedTxSkel skelContext skel
-            : MCLogNewTx txId
-            : entries
-          )
-          | pcOptPrintTxHashes opts =
-              go
-                ( "Validated"
-                    <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                    <+> prettyTxSkel opts skelContext skel
-                    : acc
-                )
-                entries
-          | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
-      go
-        acc
-        ( MCLogSubmittedTxSkel skelContext skel
-            : entries
-          ) =
-          go ("Submitted" <+> prettyTxSkel opts skelContext skel : acc) entries
-      go acc (MCLogFail msg : entries) =
-        go ("Fail:" <+> PP.pretty msg : acc) entries
-      -- This case is not supposed to occur because it should follow a
-      -- 'MCLogSubmittedTxSkel'
-      go acc (MCLogNewTx txId : entries) =
-        go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
-      go acc [] = reverse acc
+instance PrettyCooked BlockChainLogEntry where
+  prettyCookedOpt opts (BCLogSubmittedTxSkel skelContext skel) = "Submitted:" <+> prettyTxSkel opts skelContext skel
+  prettyCookedOpt _ (BCLogFail msg) = "Fail:" <+> PP.pretty msg
+  prettyCookedOpt opts (BCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
+  prettyCookedOpt _ (BCLogInfo info) = "Info:" <+> PP.pretty info
+
+-- go acc (MCLogFail msg : entries) =
+--   go ("Fail:" <+> PP.pretty msg : acc) entries
+-- -- This case is not supposed to occur because it should follow a
+-- -- 'MCLogSubmittedTxSkel'
+-- go acc (MCLogNewTx txId : entries) =
+--   go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
+-- go acc [] = reverse acc
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals) =

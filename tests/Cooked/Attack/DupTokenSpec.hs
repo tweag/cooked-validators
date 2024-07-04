@@ -105,11 +105,11 @@ tests =
                       )
                   ]
          in [ testCase "add one token in every asset class" $
-                skelExpected 6 8 @=? skelOut (\_ n -> n + 1),
+                skelExpected 6 8 @=? fst <$> skelOut (\_ n -> n + 1),
               testCase "no modified transaction if no increase in value specified" $
-                [] @=? skelOut (\_ n -> n),
+                [] @=? fst <$> skelOut (\_ n -> n),
               testCase "add tokens depending on the asset class" $
-                skelExpected 10 7 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)
+                skelExpected 10 7 @=? fst <$> skelOut (\ac n -> if ac == ac1 then n + 5 else n)
             ],
       testCase "careful minting policy" $
         let tName = Script.tokenName "MockToken"
@@ -155,5 +155,5 @@ tests =
                   )
               ]
             skelOut = runTweak (dupTokenAttack (\_ i -> i + 1) attacker) skelIn
-         in skelExpected @=? skelOut
+         in skelExpected @=? fst <$> skelOut
     ]
