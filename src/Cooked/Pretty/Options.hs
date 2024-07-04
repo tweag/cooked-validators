@@ -7,6 +7,7 @@ module Cooked.Pretty.Options
     PCOptLog (..),
     hashNamesFromList,
     defaultHashNames,
+    pcOptLogToInt,
   )
 where
 
@@ -53,14 +54,22 @@ instance Default PrettyCookedOpts where
 data PCOptLog
   = -- | No logging at all
     PCOptLogNone
-  | -- | All logging except for infos, default option
-    PCOptLogNoInfo
-  | -- | All logging, for debugging purpose
+  | -- | Log errors and special log entries
+    PCOptLogSpecial
+  | -- | Same as `PCOptLogSpecial`, but with warnings
+    PCOptLogWarning
+  | -- | Log everything
     PCOptLogAll
   deriving (Eq, Show)
 
 instance Default PCOptLog where
-  def = PCOptLogNoInfo
+  def = PCOptLogAll
+
+pcOptLogToInt :: PCOptLog -> Integer
+pcOptLogToInt PCOptLogNone = 4
+pcOptLogToInt PCOptLogSpecial = 3
+pcOptLogToInt PCOptLogWarning = 2
+pcOptLogToInt PCOptLogAll = 1
 
 -- | Whether to print transaction outputs references.
 data PCOptTxOutRefs

@@ -148,7 +148,7 @@ instance (Monad m) => Monad (MockChainT m) where
 
 instance (Monad m) => MonadFail (MockChainT m) where
   fail s = do
-    blockChainLog $ BCLogFail s
+    blockChainLog $ BCLogError s
     throwError $ FailWith s
 
 instance MonadTrans MockChainT where
@@ -351,6 +351,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
+    -- We log the adjusted skeleton
+    gets mcstToSkelContext >>= \ctx -> blockChainLog $ BCLogAdjustedTxSkel ctx skel fee collateralIns returnCollateralWallet
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.

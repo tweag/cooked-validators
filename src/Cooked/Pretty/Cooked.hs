@@ -132,33 +132,32 @@ prettyBlockChainEntries opts entries =
     (prettyCookedOpt opts <$> entries)
 
 instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
-  prettyCookedOpt opts (res, entries) = prettyLogWith $
-    case res of
-      Left err -> "🔴" <+> prettyCookedOpt opts err
-      Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
-    where
-      prettyLogWith :: DocCooked -> DocCooked
-      prettyLogWith inner =
-        case pcOptLog opts of
-          PCOptLogNone -> inner
-          PCOptLogNoInfo ->
-            prettyItemize
-              "End result:"
-              "-"
-              [prettyBlockChainEntries opts (filter (\case BCLogInfo _ -> False; _ -> True) entries), inner]
-          PCOptLogAll ->
-            prettyItemize
-              "End result:"
-              "-"
-              [prettyBlockChainEntries opts entries, inner]
+  prettyCookedOpt opts (res, entries) =
+    let inner = case res of
+          Left err -> "🔴" <+> prettyCookedOpt opts err
+          Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
+     in -- We only keep log entries above the required level
+        case filter ((pcOptLogToInt (pcOptLog opts) <=) . blockChainLogEntryToInt) entries of
+          [] -> inner
+          subEntries -> prettyItemize "End result:" "-" [prettyBlockChainEntries opts subEntries, inner]
 
 -- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked BlockChainLogEntry where
   prettyCookedOpt opts (BCLogSubmittedTxSkel skelContext skel) = "Submitted:" <+> prettyTxSkel opts skelContext skel
-  prettyCookedOpt _ (BCLogFail msg) = "Fail:" <+> PP.pretty msg
+  prettyCookedOpt opts (BCLogAdjustedTxSkel skelContext skel fee collaterals returnWallet) =
+    prettyItemize
+      "Adjusted:"
+      "-"
+      [ "Fee:" <+> prettyCookedOpt opts fee,
+        "Collaterals:" <+> prettyCookedOpt opts (Set.toList collaterals),
+        "Return collateral wallet:" <+> prettyCookedOpt opts (walletPKHash returnWallet),
+        prettyTxSkel opts skelContext skel
+      ]
   prettyCookedOpt opts (BCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
+  prettyCookedOpt _ (BCLogError err) = "Fail:" <+> PP.pretty err
+  prettyCookedOpt _ (BCLogWarning warn) = "Warning:" <+> PP.pretty warn
   prettyCookedOpt _ (BCLogInfo info) = "Info:" <+> PP.pretty info
 
 -- go acc (MCLogFail msg : entries) =

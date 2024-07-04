@@ -52,6 +52,7 @@ module Cooked.MockChain.BlockChain
     validateTxSkel',
     txSkelProposalsDeposit,
     govActionDeposit,
+    blockChainLogEntryToInt,
   )
 where
 
@@ -78,6 +79,7 @@ import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Set (Set)
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -99,6 +101,7 @@ data MockChainError where
   -- | Thrown when not enough collateral are provided. Built upon the fee, the
   -- percentage and the expected minimal collateral value.
   MCENoSuitableCollateral :: Integer -> Integer -> Api.Value -> MockChainError
+  -- | Thrown when an error occured during transaction generation
   MCEGenerationError :: GenerateTxError -> MockChainError
   -- | Thrown when an output reference should be in the state of the mockchain,
   -- but isn't.
@@ -113,9 +116,19 @@ data MockChainError where
 
 data BlockChainLogEntry where
   BCLogSubmittedTxSkel :: SkelContext -> TxSkel -> BlockChainLogEntry
+  BCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Set Api.TxOutRef -> Wallet -> BlockChainLogEntry
   BCLogNewTx :: Api.TxId -> BlockChainLogEntry
+  BCLogError :: String -> BlockChainLogEntry
+  BCLogWarning :: String -> BlockChainLogEntry
   BCLogInfo :: String -> BlockChainLogEntry
-  BCLogFail :: String -> BlockChainLogEntry
+
+blockChainLogEntryToInt :: BlockChainLogEntry -> Integer
+blockChainLogEntryToInt BCLogSubmittedTxSkel {} = 3
+blockChainLogEntryToInt BCLogAdjustedTxSkel {} = 3
+blockChainLogEntryToInt BCLogNewTx {} = 3
+blockChainLogEntryToInt BCLogError {} = 3
+blockChainLogEntryToInt BCLogWarning {} = 2
+blockChainLogEntryToInt BCLogInfo {} = 1
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
