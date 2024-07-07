@@ -80,7 +80,11 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
                         then CollateralUtxosFromBalancingWallet
                         else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
                   },
-            txSkelSigners = [alice]
+            txSkelSigners = [alice],
+            txSkelProposals =
+              [ simpleTxSkelProposal alice (TxGovActionTreasuryWithdrawals Map.empty)
+                  `withWitness` (alwaysTrueProposingValidator, TxSkelNoRedeemer)
+              ]
           }
   (skel', fee, cols, _) <- balanceTxSkel skel
   void $ validateTxSkel skel
@@ -132,6 +136,10 @@ noBalanceMaxFee = do
                 txOptFeePolicy = AutoFeeComputation,
                 txOptCollateralUtxos = CollateralUtxosFromSet (Set.singleton txOutRef) alice
               },
+          txSkelProposals =
+            [ simpleTxSkelProposal alice (TxGovActionTreasuryWithdrawals Map.empty)
+                `withWitness` (alwaysTrueProposingValidator, TxSkelNoRedeemer)
+            ],
           txSkelSigners = [alice]
         }
 
@@ -166,7 +174,11 @@ reachingMagic = do
           txSkelOpts =
             def
               { txOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
-              }
+              },
+          txSkelProposals =
+            [ simpleTxSkelProposal alice (TxGovActionTreasuryWithdrawals Map.empty)
+                `withWitness` (alwaysTrueProposingValidator, TxSkelNoRedeemer)
+            ]
         }
 
 type ResProp prop = TestBalancingOutcome -> prop
