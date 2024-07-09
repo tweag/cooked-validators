@@ -12,6 +12,8 @@
 
 ### Removed
 
+- `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
+
 ### Changed
 
 - Internal representation of redeemers have changed, and are similar for any
