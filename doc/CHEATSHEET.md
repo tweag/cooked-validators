@@ -42,7 +42,7 @@
 * Ensure each initial distribution payment has min ada
   ```haskell
   initDist :: InitialDistribution
-  initDist = toInitDistWithMinAda $ InitialDistribution ...
+  initDist = unsafeToInitDistWithMinAda $ InitialDistribution ...
   ```
 #### Usage
 
