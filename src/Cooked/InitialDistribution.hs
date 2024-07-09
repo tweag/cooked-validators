@@ -5,11 +5,12 @@ module Cooked.InitialDistribution
   ( InitialDistribution (..),
     distributionFromList,
     toInitDistWithMinAda,
-    toPaysList,
+    unsafeToInitDistWithMinAda,
   )
 where
 
 import Control.Monad
+import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.MinAda
 import Cooked.Skeleton
 import Cooked.ValueUtils
@@ -55,17 +56,19 @@ instance Semigroup InitialDistribution where
 instance Monoid InitialDistribution where
   mempty = InitialDistribution mempty
 
--- | Transform a given initial distribution by ensuring each payment has enough
--- ada so that the resulting outputs can sustain themselves.
-toInitDistWithMinAda :: InitialDistribution -> InitialDistribution
+-- | Transforms a given initial distribution by ensuring each payment has enough
+-- ada so that the resulting outputs can sustain themselves. This can fail if
+-- any of the payments cannot be translated to their Cardano counterpart.
+toInitDistWithMinAda :: InitialDistribution -> Either GenerateTxError InitialDistribution
 toInitDistWithMinAda (InitialDistribution initDist) =
-  case forM initDist $ toTxSkelOutWithMinAda def of
-    Left err -> error $ show err
-    Right initDist' -> InitialDistribution initDist'
+  InitialDistribution <$> forM initDist (toTxSkelOutWithMinAda def)
 
-toPaysList :: [(Wallet, [Api.Value])] -> [TxSkelOut]
-toPaysList = foldl' (\x (user, values) -> x <> map (paysPK user) values) []
+-- | Unsafe variant of `toInitDistWithMinAda`
+unsafeToInitDistWithMinAda :: InitialDistribution -> InitialDistribution
+unsafeToInitDistWithMinAda initDist = case toInitDistWithMinAda initDist of
+  Left err -> error $ show err
+  Right initDist' -> initDist'
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution
-distributionFromList = InitialDistribution . toPaysList
+distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK user) values) []
