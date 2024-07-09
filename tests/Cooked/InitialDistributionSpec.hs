@@ -22,9 +22,7 @@ initialDistributionWithDatum =
 -- 2 UTxOs with 100 ada
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  InitialDistribution $
-    (paysPK alice (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract)
-      : replicate 2 (paysPK bob (ada 100))
+  InitialDistribution $ (paysPK alice (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract) : replicate 2 (paysPK bob (ada 100))
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
 getValueFromInitialDatum = do

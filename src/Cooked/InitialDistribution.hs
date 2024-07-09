@@ -1,12 +1,17 @@
 -- | This module provides a convenient way to spread assets between wallets and
 -- scripts at the initialization of the mock chain. These initial assets can be
--- accompanied by datums and reference scripts.
+-- accompanied by datums, staking credentials and reference scripts.
 module Cooked.InitialDistribution
   ( InitialDistribution (..),
     distributionFromList,
+    toInitDistWithMinAda,
+    unsafeToInitDistWithMinAda,
   )
 where
 
+import Control.Monad
+import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.MinAda
 import Cooked.Skeleton
 import Cooked.ValueUtils
 import Cooked.Wallet
@@ -32,17 +37,37 @@ import PlutusLedgerApi.V3 qualified as Api
 --  >        , (wallet 2 , [ ada 10 ])
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 --  >        ]
-newtype InitialDistribution = InitialDistribution {unInitialDistribution :: [TxSkelOut]}
+--
+-- Note that initial distribution can lead to payments that would not be
+-- accepted if part of an actual transaction, such as payment without enough ada
+-- to sustain themselves.
+data InitialDistribution where
+  InitialDistribution ::
+    {unInitialDistribution :: [TxSkelOut]} ->
+    InitialDistribution
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
 instance Default InitialDistribution where
   def = distributionFromList . zip knownWallets . repeat . replicate 5 $ ada 100
 
 instance Semigroup InitialDistribution where
-  i <> j = InitialDistribution $ unInitialDistribution i <> unInitialDistribution j
+  i <> j = InitialDistribution (unInitialDistribution i <> unInitialDistribution j)
 
 instance Monoid InitialDistribution where
   mempty = InitialDistribution mempty
+
+-- | Transforms a given initial distribution by ensuring each payment has enough
+-- ada so that the resulting outputs can sustain themselves. This can fail if
+-- any of the payments cannot be translated to their Cardano counterpart.
+toInitDistWithMinAda :: InitialDistribution -> Either GenerateTxError InitialDistribution
+toInitDistWithMinAda (InitialDistribution initDist) =
+  InitialDistribution <$> forM initDist (toTxSkelOutWithMinAda def)
+
+-- | Unsafe variant of `toInitDistWithMinAda`
+unsafeToInitDistWithMinAda :: InitialDistribution -> InitialDistribution
+unsafeToInitDistWithMinAda initDist = case toInitDistWithMinAda initDist of
+  Left err -> error $ show err
+  Right initDist' -> initDist'
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution

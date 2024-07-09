@@ -11,7 +11,7 @@ import Cardano.Ledger.Shelley.LedgerState qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Arrow
-import Control.Monad (when, (<=<))
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader

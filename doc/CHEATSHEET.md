@@ -33,13 +33,17 @@
   ```haskell
   initDist :: InitialDistribution
   initDist = InitialDistribution
-	  [ paysPK (wallet 3) (ada 6)
-      , paysScript fooTypedValidator FooTypedDatum (ada 6)
-	  , paysPK (wallet 2) (ada 2) `withDatum` fooDatum
-	  , paysPK (wallet 1) (ada 2) `withReferenceScript` fooValidator
-	  ]
+	[ paysPK (wallet 3) (ada 6)
+        , paysScript fooTypedValidator FooTypedDatum (ada 6)
+	, paysPK (wallet 2) (ada 2) `withDatum` fooDatum
+	, paysPK (wallet 1) (ada 2) `withReferenceScript` fooValidator
+	]
   ```
-
+* Ensure each initial distribution payment has min ada
+  ```haskell
+  initDist :: InitialDistribution
+  initDist = unsafeToInitDistWithMinAda $ InitialDistribution ...
+  ```
 #### Usage
 
 * In a test `Tasty.testCase "foo" $ testSucceedsFrom def initDist foo`
