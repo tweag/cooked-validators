@@ -5,6 +5,7 @@ module Cooked.InitialDistribution
   ( InitialDistribution (..),
     distributionFromList,
     toInitDistWithMinAda,
+    toPaysList,
   )
 where
 
