@@ -4,10 +4,8 @@ module Cooked.Pretty.Options
   ( PrettyCookedOpts (..),
     PrettyCookedHashOpts (..),
     PCOptTxOutRefs (..),
-    PCOptLog (..),
     hashNamesFromList,
     defaultHashNames,
-    pcOptLogToInt,
   )
 where
 
@@ -34,8 +32,8 @@ data PrettyCookedOpts = PrettyCookedOpts
     pcOptNumericUnderscores :: Bool,
     -- | Options related to printing hashes
     pcOptHashes :: PrettyCookedHashOpts,
-    -- | What kind of log to print
-    pcOptLog :: PCOptLog
+    -- | Whether to display the log
+    pcOptLog :: Bool
   }
   deriving (Eq, Show)
 
@@ -47,29 +45,8 @@ instance Default PrettyCookedOpts where
         pcOptPrintDefaultTxOpts = False,
         pcOptNumericUnderscores = True,
         pcOptHashes = def,
-        pcOptLog = def
+        pcOptLog = True
       }
-
--- | What log to display
-data PCOptLog
-  = -- | No logging at all
-    PCOptLogNone
-  | -- | Log errors and special log entries
-    PCOptLogSpecial
-  | -- | Same as `PCOptLogSpecial`, but with warnings
-    PCOptLogWarning
-  | -- | Log everything
-    PCOptLogAll
-  deriving (Eq, Show)
-
-instance Default PCOptLog where
-  def = PCOptLogAll
-
-pcOptLogToInt :: PCOptLog -> Integer
-pcOptLogToInt PCOptLogNone = 4
-pcOptLogToInt PCOptLogSpecial = 3
-pcOptLogToInt PCOptLogWarning = 2
-pcOptLogToInt PCOptLogAll = 1
 
 -- | Whether to print transaction outputs references.
 data PCOptTxOutRefs

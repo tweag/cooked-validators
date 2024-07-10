@@ -136,8 +136,8 @@ instance Eq MockChainSt where
         ]
 
 newtype MockChainT m a = MockChainT
-  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT [BlockChainLogEntry] m))) a}
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadWriter [BlockChainLogEntry])
+  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT [MockChainLogEntry] m))) a}
+  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadWriter [MockChainLogEntry])
 
 type MockChain = MockChainT Identity
 
@@ -147,9 +147,7 @@ instance (Monad m) => Monad (MockChainT m) where
   MockChainT x >>= f = MockChainT $ x >>= unMockChain . f
 
 instance (Monad m) => MonadFail (MockChainT m) where
-  fail s = do
-    blockChainLog $ BCLogError s
-    throwError $ FailWith s
+  fail = throwError . FailWith
 
 instance MonadTrans MockChainT where
   lift = MockChainT . lift . lift . lift
@@ -170,7 +168,7 @@ combineMockChainT f ma mb = MockChainT $
         resB = runWriterT $ runExceptT $ runStateT (unMockChain mb) s
      in ExceptT $ WriterT $ f resA resB
 
-type MockChainReturn a b = (Either MockChainError (a, b), [BlockChainLogEntry])
+type MockChainReturn a b = (Either MockChainError (a, b), [MockChainLogEntry])
 
 mapMockChainT ::
   (m (MockChainReturn a MockChainSt) -> n (MockChainReturn b MockChainSt)) ->
@@ -327,7 +325,7 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
-  blockChainLog l = tell [l]
+  publish l = tell [l]
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
@@ -338,7 +336,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
     -- We log the submitted skeleton
-    gets mcstToSkelContext >>= blockChainLog . (`BCLogSubmittedTxSkel` skelUnbal)
+    gets mcstToSkelContext >>= publish . (`MCLogSubmittedTxSkel` skelUnbal)
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -352,7 +350,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
     -- We log the adjusted skeleton
-    gets mcstToSkelContext >>= \ctx -> blockChainLog $ BCLogAdjustedTxSkel ctx skel fee collateralIns returnCollateralWallet
+    gets mcstToSkelContext >>= \ctx -> publish $ MCLogAdjustedTxSkel ctx skel fee collateralIns returnCollateralWallet
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -403,7 +401,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction
-    blockChainLog $ BCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
+    publish $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
     -- We return the validated transaction
     return cardanoTx
     where

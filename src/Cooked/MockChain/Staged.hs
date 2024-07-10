@@ -79,7 +79,7 @@ data MockChainBuiltin a where
   AllUtxosLedger :: MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
   ValidatorFromHash :: Script.ValidatorHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Validator))
-  BlockChainLog :: BlockChainLogEntry -> MockChainBuiltin ()
+  Publish :: MockChainLogEntry -> MockChainBuiltin ()
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -136,7 +136,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (Fail msg) = fail msg
   interpBuiltin (ThrowError err) = throwError err
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
-  interpBuiltin (BlockChainLog entry) = blockChainLog entry
+  interpBuiltin (Publish entry) = publish entry
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -201,7 +201,7 @@ instance MonadBlockChainBalancing StagedMockChain where
   txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
   utxosAtLedger = singletonBuiltin . UtxosAtLedger
   validatorFromHash = singletonBuiltin . ValidatorFromHash
-  blockChainLog = singletonBuiltin . BlockChainLog
+  publish = singletonBuiltin . Publish
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxosLedger = singletonBuiltin AllUtxosLedger

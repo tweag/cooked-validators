@@ -90,15 +90,12 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
             runUtxoSearch (txOutByRefSearch (Set.toList utxos))
-              >>=
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              filterAndWarn (isJust . isPKOutput . snd) "utxos belonging to scripts have been provided for balancing and are discarded."
+              >>= filterAndWarn (isJust . isPKOutput . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarder
-          >>= filterAndWarn
-            ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst)
-            "utxos already used in the skeleton have been provided for balancing and are discarded."
+          >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
 
       case txOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
@@ -115,8 +112,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
   where
     filterAndWarn f s l
-      | (ok, length -> koLength) <- partition f l =
-          unless (koLength == 0) (blockChainLog $ BCLogWarning $ show koLength <> " " <> s) >> return ok
+      | (ok, toInteger . length -> koLength) <- partition f l =
+          unless (koLength == 0) (publish $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters
