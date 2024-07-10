@@ -143,7 +143,7 @@ instance PrettyCooked MockChainLogEntry where
       "-"
       [ prettyTxSkel opts skelContext skel,
         "Fee: Lovelace" <+> prettyCookedOpt opts fee,
-        prettyItemize "Collateral inputs:" "-" (prettyCookedOpt opts <$> Set.toList collaterals),
+        prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
         "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
       ]
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
@@ -348,29 +348,35 @@ prettyTxSkelOut opts (Pays output) =
 prettyTxSkelOutDatumMaybe :: PrettyCookedOpts -> TxSkelOutDatum -> Maybe DocCooked
 prettyTxSkelOutDatumMaybe _ TxSkelOutNoDatum = Nothing
 prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
-  Just $
-    "Datum (inlined):"
-      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+  Just $ "Datum (inlined):" <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
-  Just $
-    "Datum (hashed):"
-      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+  Just $ "Datum (hashed):" <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+
+prettyTxOutRefM :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe (DocCooked, DocCooked, [DocCooked])
+prettyTxOutRefM opts skelContext txOutRef =
+  ( \(output, txSkelOutDatum) ->
+      ( prettyCookedOpt opts (outputAddress output),
+        prettyCookedOpt opts (outputValue output),
+        catMaybes
+          [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+            getReferenceScriptDoc opts output
+          ]
+      )
+  )
+    <$> lookupOutput skelContext txOutRef
+
+prettyCollateralIn :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> DocCooked
+prettyCollateralIn opts skelContext txOutRef =
+  case prettyTxOutRefM opts skelContext txOutRef of
+    Nothing -> prettyCookedOpt opts txOutRef <+> "(non resolved)"
+    Just (addressDoc, valueDoc, otherDocs) -> prettyItemize ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
 
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked
-prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
-  case lookupOutput skelContext txOutRef of
+prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) =
+  case prettyTxOutRefM opts skelContext txOutRef of
     Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
-    Just (output, txSkelOutDatum) ->
-      prettyItemize
-        ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
-        "-"
-        ( prettyCookedOpt opts (outputValue output)
-            : prettyTxSkelRedeemer opts txSkelRedeemer
-              <> catMaybes
-                [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
-                  getReferenceScriptDoc opts output
-                ]
-        )
+    Just (addressDoc, valueDoc, otherDocs) ->
+      prettyItemize ("Spends from" <+> addressDoc) "-" (valueDoc : prettyTxSkelRedeemer opts txSkelRedeemer <> otherDocs)
 
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do
