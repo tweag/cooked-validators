@@ -111,10 +111,22 @@ data MockChainError where
   FailWith :: String -> MockChainError
   deriving (Show, Eq)
 
+-- * MockChain logs
+
+-- | This represents the specific events that should be logged when processing
+-- transactions. If a new kind of event arises, then a new constructor should be
+-- provided here.
 data MockChainLogEntry where
+  -- | Logging a Skeleton as it is submitted by the user.
   MCLogSubmittedTxSkel :: SkelContext -> TxSkel -> MockChainLogEntry
+  -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
+  -- alongside fee, collateral utxos and return collateral wallet.
   MCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Set Api.TxOutRef -> Wallet -> MockChainLogEntry
+  -- | Logging the appearance of a new transaction, after a skeleton has been
+  -- successfully sent for validation.
   MCLogNewTx :: Api.TxId -> MockChainLogEntry
+  -- | Logging the fact that utxos provided by the user for balancing have to be
+  -- discarded for a specific reason.
   MCLogDiscardedUtxos :: Integer -> String -> MockChainLogEntry
 
 -- | Contains methods needed for balancing.

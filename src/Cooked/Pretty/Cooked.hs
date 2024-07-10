@@ -126,41 +126,33 @@ instance (Show a) => PrettyCooked (a, UtxoState) where
 
 instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
   prettyCookedOpt opts (res, entries) =
-    let mcLog = prettyItemize "MockChain run log:" "-" (prettyCookedOpt opts <$> entries)
+    let mcLog = "📘" <+> prettyItemize "MockChain run log:" "⁍" (prettyCookedOpt opts <$> entries)
         mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err
           Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
-     in prettyItemizeNoTitle "*" $ if pcOptLog opts then [mcLog, mcEndResult] else [mcEndResult]
+     in PP.vsep $ if pcOptLog opts then [mcLog, mcEndResult] else [mcEndResult]
 
 -- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLogEntry where
-  prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = "Submitted:" <+> prettyTxSkel opts skelContext skel
+  prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee collaterals returnWallet) =
     prettyItemize
       "Adjusted:"
       "-"
       [ prettyTxSkel opts skelContext skel,
         "Fee: Lovelace" <+> prettyCookedOpt opts fee,
-        "Collateral inputs:" <+> prettyCookedOpt opts (Set.toList collaterals),
-        "Return collateral wallet:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
+        prettyItemize "Collateral inputs:" "-" (prettyCookedOpt opts <$> Set.toList collaterals),
+        "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
       ]
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
 
--- go acc (MCLogFail msg : entries) =
---   go ("Fail:" <+> PP.pretty msg : acc) entries
--- -- This case is not supposed to occur because it should follow a
--- -- 'MCLogSubmittedTxSkel'
--- go acc (MCLogNewTx txId : entries) =
---   go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
--- go acc [] = reverse acc
-
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals) =
   prettyItemize
-    "transaction skeleton:"
+    "Transaction skeleton:"
     "-"
     ( catMaybes
         [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
