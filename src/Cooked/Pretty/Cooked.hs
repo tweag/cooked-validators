@@ -130,7 +130,7 @@ instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
         mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err
           Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
-     in prettyItemizeNoTitle "-" $ if pcOptLog opts then [mcLog, mcEndResult] else [mcEndResult]
+     in prettyItemizeNoTitle "*" $ if pcOptLog opts then [mcLog, mcEndResult] else [mcEndResult]
 
 -- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
