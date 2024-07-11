@@ -330,7 +330,7 @@ tests =
                     (setDontBalance . setFixedFee 1_000_000)
                 ),
               testBalancingSucceedsWith
-                "... which will be ignored when no script is involved."
+                "... which will be ignored when no script is involved"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 0, retOutsNb 3]
                 ( testingBalancingTemplate
                     (Script.ada 7)
@@ -350,14 +350,36 @@ tests =
           testGroup
             "Auto balancing with auto fee"
             [ testBalancingSucceedsWith
-                "We can auto balance a transaction with auto fee"
+                "We can auto balance a transaction with auto fee, collaterals and no pk inputs"
                 [insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 ( simplePaymentToBob
                     20_000_000
                     0
                     0
                     0
+                    True
+                    id
+                ),
+              testBalancingSucceedsWith
+                "We can auto balance a transaction with auto fee, no collateral and no script inputs"
+                [insNb 1, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
+                ( simplePaymentToBob
+                    20_000_000
+                    0
+                    0
+                    0
                     False
+                    id
+                ),
+              testBalancingSucceedsWith
+                "We can auto balance a transaction with auto fee, collaterals, script and pk inputs"
+                [insNb 2, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                ( simplePaymentToBob
+                    60_000_000
+                    0
+                    0
+                    0
+                    True
                     id
                 ),
               testCase "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
@@ -374,7 +396,7 @@ tests =
                   def
                   initialDistributionBalancing
                   ( simplePaymentToBob
-                      103_500_000
+                      103_650_000
                       0
                       0
                       0
@@ -399,12 +421,12 @@ tests =
                   def
                   initialDistributionBalancing
                   ( testingBalancingTemplate
-                      (Script.ada 100)
+                      (Script.ada 142)
                       mempty
                       emptySearch
                       emptySearch
                       (aliceNAdaUtxos 2)
-                      False
+                      True
                       id
                   ),
               testCase "... but not always" $
@@ -413,12 +435,12 @@ tests =
                   failsAtCollaterals
                   initialDistributionBalancing
                   ( testingBalancingTemplate
-                      (Script.ada 100)
+                      (Script.ada 142)
                       mempty
                       (utxosAtSearch alice)
                       emptySearch
                       (aliceNAdaUtxos 1)
-                      False
+                      True
                       id
                   ),
               testCase "Reaching magical spot with the exact balance during auto fee computation" $
@@ -431,7 +453,7 @@ tests =
             "Auto balancing with manual fee"
             [ testBalancingSucceedsWith
                 "We can use a single utxo for balancing purpose"
-                [hasFee 1_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     20_000_000
                     0
@@ -442,7 +464,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "We can use several utxos for balancing with ridiculously high fee"
-                [hasFee 40_000_000, insNb 3, additionalOutsNb 1, colInsNb 3, retOutsNb 3]
+                [hasFee 40_000_000, insNb 3, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     20_000_000
                     0
@@ -477,16 +499,16 @@ tests =
                 "Collaterals are rightfully included in the balancing process, which fails when they are too high"
                 (failsAtCollateralsWith 80_000_000)
                 ( simplePaymentToBob
-                    6_000_000
+                    48_000_000
                     0
                     0
                     0
-                    False
+                    True
                     (setFixedFee 80_000_000)
                 ),
               testBalancingSucceedsWith
                 "Exactly the right amount leads to no output change"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     65_000_000
                     3
@@ -497,7 +519,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "It still leads to no output change when requesting a new output"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     65_000_000
                     3
@@ -508,7 +530,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "1 lovelace more than the exact right amount leads to an additional output"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     65_000_001
                     3
@@ -519,9 +541,9 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "1 lovelace less than the exact right amount leads to an additional output to account for minAda"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
-                    65_000_001
+                    64_999_999
                     3
                     6
                     0
@@ -530,7 +552,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "We can merge assets to an existing outputs at the balancing wallet address"
-                [hasFee 2_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                [hasFee 2_000_000, insNb 1, additionalOutsNb 0, colInsNb 0, retOutsNb 3]
                 ( bothPaymentsToBobAndAlice
                     6_000_000
                     False
@@ -538,15 +560,15 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "We can create a new output at the balancing wallet address even if one already exists"
-                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( bothPaymentsToBobAndAlice
                     6_000_000
                     False
                     (setFixedFee 2_000_000 . setDontAdjustOutput)
                 ),
               testBalancingSucceedsWith
-                "We can balance transactions with non-Script.ada assets"
-                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                "We can balance transactions with non-ada assets"
+                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     0
                     0
@@ -557,7 +579,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets"
-                [hasFee 1_000_000, insNb 2, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                [hasFee 1_000_000, insNb 2, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( simplePaymentToBob
                     0
                     2
@@ -579,7 +601,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets and explicit utxo set, reference script is lost"
-                [hasFee 1_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, retOutsNb 2]
+                [hasFee 1_000_000, insNb 3, additionalOutsNb 1, colInsNb 0, retOutsNb 2]
                 ( testingBalancingTemplate
                     (apple 2 <> orange 5 <> banana 4)
                     mempty
@@ -591,7 +613,7 @@ tests =
                 ),
               testBalancingSucceedsWith
                 "Successful balancing with excess initial consumption"
-                [hasFee 1_000_000, insNb 5, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                [hasFee 1_000_000, insNb 5, additionalOutsNb 1, colInsNb 0, retOutsNb 3]
                 ( testingBalancingTemplate
                     mempty
                     mempty
