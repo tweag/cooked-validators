@@ -11,16 +11,18 @@ is currently implemented, and which options affect this mechanism.
 ## Balancing: what this is about.
 
 ### Balancing requirements
+
 In Cardano, transactions must be balanced before they can be submitted for
 validation. This means the equation `input value + minted value = output value +
 burned value + fee` must be satisfied to proceed to phase 2 of the validation
-process. Additionally, collaterals must be provided to account for transaction
-failures in phase 2. These collaterals are related to the fee by the following
-inequation: `totalCollateral >= fee * feeToCollateralRatio`, and they must
-satisfy their own preservation equation: `collateralInputs = totalCollaterals +
-returnCollaterals`. Lastly, the actual required fee for a given transaction
-depends on the size of the transaction and the (not yet executed) resources used
-by the scripts during validation.
+process. Additionally, when a transaction involves scripts, and thus its
+validation can fail in phase 2, collaterals must be provided to account for such
+possible failures. These collaterals are related to the fee through the protocol
+parameter `feeToCollateralRatio` by the inequation `totalCollateral >= fee *
+feeToCollateralRatio`, and they must satisfy their own preservation equation:
+`collateralInputs = totalCollaterals + returnCollaterals`. Lastly, the actual
+required fee for a given transaction depends on the size of the transaction and
+the (not yet executed) resources used by the scripts during validation.
 
 ### Balancing mechanism
 
@@ -213,17 +215,19 @@ data CollateralUtxos
   | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
 ```
 
-In addition to the regular UTXOs consumed in a transaction, additional UTXOs
-must be provided to cover potential phase 2 validation failures. These UTXOs
-need to be sufficient to meet a specified total collateral requirement,
-typically 1.5 times the transaction fee based on protocol parameters. Any
-surplus can be returned to a designated wallet through an output known as return
-collateral. This setting determines which UTXOs the balancing mechanism should
-consider for inclusion in the transaction. Similar to
-[`BalancingUtxos`](#balancing-utxos), the final set of UTXOs included may not
-necessarily match the considered set, especially for collaterals, as protocol
-parameters also impose limits on the number of allowable collateral UTXOs
-(typically 3).
+When a transaction involves executing scripts, UTXOs must be provided as
+collaterals to cover potential phase 2 validation failures. These UTXOs need to
+be sufficient to meet a specified total collateral requirement, typically 1.5
+times the transaction fee based on protocol parameters. Any surplus can be
+returned to a designated wallet through an output known as return
+collateral.
+
+This setting is ignored when the transaction does not involve any
+scripts, but otherwise determines which UTXOs the balancing mechanism should
+consider for inclusion. Similar to [`BalancingUtxos`](#balancing-utxos), the
+final set of UTXOs included may not necessarily match the considered set,
+especially for collaterals, as protocol parameters also impose a limit on the
+number of allowable collateral UTXOs (typically 3).
 
 Here are the options available:
 
@@ -387,4 +391,3 @@ the estimated fee resulting from this balancing, we adjust our search interval:
   
 The recursion continues until an error is propagated or the interval is reduced
 to a single point.
-
