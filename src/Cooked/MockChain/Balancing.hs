@@ -79,15 +79,16 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     -- We retrieve the various kinds of scripts
     spendingScripts <- txSkelInputValidators skelUnbal
     -- The transaction will only require collaterals when involving scripts
-    if Map.null txSkelMints && null (mapMaybe txSkelProposalWitness txSkelProposals) && Map.null spendingScripts
-      then return Nothing
-      else
-        Just <$> case txOptCollateralUtxos txSkelOpts of
-          CollateralUtxosFromBalancingWallet -> case balancingWallet of
-            Nothing -> fail "Can't select collateral utxos from a balancing wallet because it does not exist."
-            Just bWallet -> (,bWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch bWallet)
-          CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
-          CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
+    let noScriptInvolved = Map.null txSkelMints && null (mapMaybe txSkelProposalWitness txSkelProposals) && Map.null spendingScripts
+    case (noScriptInvolved, txOptCollateralUtxos txSkelOpts) of
+      (True, CollateralUtxosFromSet utxos _) -> publish (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
+      (True, CollateralUtxosFromWallet cWallet) -> publish (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
+      (True, CollateralUtxosFromBalancingWallet) -> return Nothing
+      (False, CollateralUtxosFromSet utxos rWallet) -> return $ Just (utxos, rWallet)
+      (False, CollateralUtxosFromWallet cWallet) -> Just . (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
+      (False, CollateralUtxosFromBalancingWallet) -> case balancingWallet of
+        Nothing -> fail "Can't select collateral utxos from a balancing wallet because it does not exist."
+        Just bWallet -> Just . (,bWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch bWallet)
 
   -- At this point, the presence (or absence) of balancing wallet dictates
   -- whether the transaction should be automatically balanced or not.

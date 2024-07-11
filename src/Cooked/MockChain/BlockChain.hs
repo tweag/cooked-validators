@@ -126,8 +126,11 @@ data MockChainLogEntry where
   -- successfully sent for validation.
   MCLogNewTx :: Api.TxId -> MockChainLogEntry
   -- | Logging the fact that utxos provided by the user for balancing have to be
-  -- discarded for a specific reason.
+  -- discarded for a given reason.
   MCLogDiscardedUtxos :: Integer -> String -> MockChainLogEntry
+  -- | Logging the fact that utxos provided as collaterals will not be used
+  -- because the transaction does not need involve scripts.
+  MCLogUnusedCollaterals :: Either Wallet (Set Api.TxOutRef) -> MockChainLogEntry
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
