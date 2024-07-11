@@ -140,8 +140,7 @@ noBalanceMaxFee = do
           txSkelOpts =
             def
               { txOptBalancingPolicy = DoNotBalance,
-                txOptFeePolicy = AutoFeeComputation,
-                txOptCollateralUtxos = CollateralUtxosFromSet (Set.singleton txOutRef) alice
+                txOptFeePolicy = AutoFeeComputation
               },
           txSkelSigners = [alice]
         }
@@ -295,8 +294,20 @@ tests =
                     (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)
                 ),
               testBalancingFailsWith
-                "A collateral wallet needs to be provided when auto balancing is enabled"
+                "A collateral wallet needs to be provided when auto balancing is enabled and script are involved..."
                 failsLackOfCollateralWallet
+                ( testingBalancingTemplate
+                    (Script.ada 49)
+                    mempty
+                    (aliceNAdaUtxos 8)
+                    emptySearch
+                    emptySearch
+                    True
+                    (setDontBalance . setFixedFee 1_000_000)
+                ),
+              testBalancingSucceedsWith
+                "... but is not necessary otherwise."
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 0, retOutsNb 3]
                 ( testingBalancingTemplate
                     (Script.ada 7)
                     mempty
@@ -307,8 +318,20 @@ tests =
                     (setDontBalance . setFixedFee 1_000_000)
                 ),
               testBalancingSucceedsWith
-                "We can also directly give a set of collateral utxos"
-                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                "We can also directly give a set of collateral utxos..."
+                [hasFee 1_000_000, insNb 2, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                ( testingBalancingTemplate
+                    (ada 49)
+                    mempty
+                    (aliceNAdaUtxos 8)
+                    emptySearch
+                    (aliceNAdaUtxos 8)
+                    True
+                    (setDontBalance . setFixedFee 1_000_000)
+                ),
+              testBalancingSucceedsWith
+                "... which will be ignored when no script is involved."
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 0, retOutsNb 3]
                 ( testingBalancingTemplate
                     (Script.ada 7)
                     mempty
