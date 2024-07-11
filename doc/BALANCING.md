@@ -14,15 +14,16 @@ is currently implemented, and which options affect this mechanism.
 
 In Cardano, transactions must be balanced before they can be submitted for
 validation. This means the equation `input value + minted value = output value +
-burned value + fee` must be satisfied to proceed to phase 2 of the validation
-process. Additionally, when a transaction involves scripts, and thus its
-validation can fail in phase 2, collaterals must be provided to account for such
-possible failures. These collaterals are related to the fee through the protocol
-parameter `feeToCollateralRatio` by the inequation `totalCollateral >= fee *
-feeToCollateralRatio`, and they must satisfy their own preservation equation:
-`collateralInputs = totalCollaterals + returnCollaterals`. Lastly, the actual
-required fee for a given transaction depends on the size of the transaction and
-the (not yet executed) resources used by the scripts during validation.
+burned value + deposited value + fee` must be satisfied to proceed to phase 2 of
+the validation process. Additionally, when a transaction involves scripts, and
+thus its validation can fail in phase 2, collaterals must be provided to account
+for such possible failures. These collaterals are related to the fee through the
+protocol parameter `collateralPercentage` by the inequation `totalCollateral >=
+fee * collateralPercentage`, and they must satisfy their own preservation
+equation: `collateralInputs = totalCollaterals + returnCollaterals`. Lastly, the
+actual required fee for a given transaction depends on the size of the
+transaction and the (not yet executed) resources used by the scripts during
+validation.
 
 ### Balancing mechanism
 
