@@ -10,13 +10,11 @@ import Cooked.MockChain.GenerateTx.Input qualified as Input
 import Cooked.MockChain.GenerateTx.Mint qualified as Mint
 import Cooked.MockChain.GenerateTx.Output qualified as Output
 import Cooked.MockChain.GenerateTx.Proposal qualified as Proposal
-import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Bifunctor
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Set (Set)
 import Ledger.Address qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -27,8 +25,7 @@ import PlutusLedgerApi.V3 qualified as Api
 data TxContext where
   TxContext ::
     { fee :: Integer,
-      collateralIns :: Set Api.TxOutRef,
-      returnCollateralWallet :: Wallet,
+      mCollaterals :: Maybe (Set Api.TxOutRef, Wallet),
       params :: Emulator.Params,
       managedData :: Map Api.DatumHash Api.Datum,
       managedTxOuts :: Map Api.TxOutRef Api.TxOut,
@@ -65,15 +62,7 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
           "txSkelToBodyContent: Unable to translate reference inputs."
           (Cardano.TxInsReference Cardano.BabbageEraOnwardsConway)
           $ mapM Ledger.toCardanoTxIn txSkelReferenceInputs
-  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- do
-    refs <- asks managedTxOuts
-    txOuts <- forM (Map.keys txSkelIns) $ flip (throwOnLookup "txSkelToBodyContent: Unable to resolve input utxo.") refs
-    if not $
-      null (mapMaybe isScriptOutput txOuts)
-        && Map.null txSkelMints
-        && null (mapMaybe txSkelProposalWitness txSkelProposals)
-      then liftTxGen Collateral.toCollateralTriplet
-      else return (Cardano.TxInsCollateralNone, Cardano.TxTotalCollateralNone, Cardano.TxReturnCollateralNone)
+  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- liftTxGen Collateral.toCollateralTriplet
   txOuts <- mapM (liftTxGen . Output.toCardanoTxOut) txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
     throwOnToCardanoError
