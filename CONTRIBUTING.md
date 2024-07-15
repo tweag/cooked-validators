@@ -1,7 +1,7 @@
 # Contributing
 
-Thank you for investing your time in contributing to _Cooked Validators_.
-Bug reports, feature requests and pull requests are all most welcome!
+Thank you for considering contributing to _Cooked Validators_. Bug reports,
+feature requests and pull requests are all most welcome!
 
 ## Short links to important resources
 
@@ -24,31 +24,27 @@ Bug reports, feature requests and pull requests are all most welcome!
 We recommend using [Nix] to work on _Cooked Validators_.
 Our Nix integration provides everything one needs to contribute:
 
-- The environment `nix develop .#ci` contains the minimal software necessary to build and run it.
+- The environment `nix develop .#ci` contains the minimal software necessary to
+  build and run it.
 
-- The environment `nix develop .#default` contains that plus everything needed for development, including [Haskell Language Server], [Ormolu], etc.
+- The environment `nix develop .#default` contains that plus everything needed
+  for development, including [Haskell Language Server], [Ormolu], etc.
 
-Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC 8.10.7 and Cabal.
+Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC
+9.6.5 and Cabal.
 
-### Running and testing
+### Running tests
 
-Unit tests are defined in `/cooked-validators/tests`.
-The `/examples` directory contains more high-level tests under the form of full blown examples.
-Running tests consists in checking in both those directories that `cabal run tests` is happy.
-In a correct environment, this should only be a matter of doing the following:
+Unit tests are defined in `/cooked-validators/tests`. They can be run using:
 
 ```console
 $ cd cooked-validators
-$ cabal run tests
+$ cabal test all
 ...
-All 74 tests passed (2.22s)
-$ cd ../examples
-$ cabal run tests
-...
-All 16 tests passed (12.32s)
+All 132 tests passed (3.18s)
 ```
 
-Our continuous integration checks all of this automatically.
+Our continuous integration checks them automatically.
 
 ## How to submit changes
 
