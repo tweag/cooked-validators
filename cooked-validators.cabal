@@ -21,6 +21,7 @@ library
       Cooked.Conversion
       Cooked.Conversion.ToAddress
       Cooked.Conversion.ToCredential
+      Cooked.Conversion.ToHash
       Cooked.Conversion.ToOutputDatum
       Cooked.Conversion.ToPubKeyHash
       Cooked.Conversion.ToScript
@@ -52,7 +53,6 @@ library
       Cooked.Pretty.Class
       Cooked.Pretty.Common
       Cooked.Pretty.Cooked
-      Cooked.Pretty.Hashable
       Cooked.Pretty.Options
       Cooked.ShowBS
       Cooked.Skeleton

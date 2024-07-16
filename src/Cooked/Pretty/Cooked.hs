@@ -37,7 +37,6 @@ import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Pretty.Common
-import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Cooked.Skeleton
 import Cooked.Wallet

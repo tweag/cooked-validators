@@ -9,8 +9,8 @@ module Cooked.Pretty.Options
   )
 where
 
+import Cooked.Conversion.ToHash
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
-import Cooked.Pretty.Hashable
 import Cooked.Wallet (wallet)
 import Data.Bifunctor (first)
 import Data.Default
@@ -98,5 +98,5 @@ defaultHashNames =
 
 -- | Smart constructor for maps to be used in the "pcOptHashNames"
 -- pretty-printing option.
-hashNamesFromList :: (Hashable a) => [(a, String)] -> Map Api.BuiltinByteString String
+hashNamesFromList :: (ToHash a) => [(a, String)] -> Map Api.BuiltinByteString String
 hashNamesFromList = Map.fromList . map (first toHash)
