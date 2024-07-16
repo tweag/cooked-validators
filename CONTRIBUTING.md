@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for considering contributing to _Cooked Validators_. Bug reports,
+Thank you for considering to contribute to _Cooked Validators_. Bug reports,
 feature requests and pull requests are all most welcome!
 
 ## Short links to important resources
@@ -21,11 +21,11 @@ feature requests and pull requests are all most welcome!
 
 ### Environment
 
-We recommend using [Nix] to work on _Cooked Validators_.
-Our Nix integration provides everything one needs to contribute:
+We recommend using [Nix] to work on _Cooked Validators_. Our Nix integration
+provides everything one needs to contribute:
 
 - The environment `nix develop .#ci` contains the minimal software necessary to
-  build and run it.
+  build and run _Cooked Validators_.
 
 - The environment `nix develop .#default` contains that plus everything needed
   for development, including [Haskell Language Server], [Ormolu], etc.
@@ -38,7 +38,6 @@ Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC
 Unit tests are defined in `/cooked-validators/tests`. They can be run using:
 
 ```console
-$ cd cooked-validators
 $ cabal test all
 ...
 All 132 tests passed (3.18s)
@@ -48,62 +47,70 @@ Our continuous integration checks them automatically.
 
 ## How to submit changes
 
-Changes are submitted by means of [pull requests].
-The process of submitting pull requests has several goals:
+Contributions are submitted by means of [pull requests]. Please follow these steps to
+have your pull request considered by the maintainers:
 
-- Maintain _Cooked Validators_'s quality.
-
-- Fix problems that are important to users.
-
-- Engage the community in working toward the best possible _Cooked Validators_.
-
-- Enable a sustainable system for _Cooked Validators_'s maintainers to review contributions.
-
-Please follow these steps to have your contribution considered by the maintainers:
-
-- Follow all instructions in the template.
+- Describe in details why your contribution is relevant. Does it fix an existing
+  bug? Is it linked to an existing issue? Is it a new feature that is useful to
+  you?
+  
+- Make sure your pull request is of manageable size and complexity. For
+  significant changes, make sure to post an issue first or discuss it on the
+  [discussions board] with maintainers.
 
 - Follow the [style guides].
 
-- After you submit your pull request, verify that all [status checks] are passing.
-  If a status check is failing, and you believe that the failure is unrelated to your change, please leave a comment on the pull request explaining why you believe the failure is unrelated.
-  A maintainer will re-run the status check for you.
-  If we conclude that the failure was a false positive, then we will open an issue to track that problem with our status check suite.
+- Follow the [imports](doc/IMPORTS.md) guidelines.
 
-While the prerequisites above must be satisfied prior to having your pull request reviewed, the reviewer/s may ask you to complete additional design work, tests, or other changes before your pull request can be ultimately accepted.
+- Verify that all [status checks] are passing.
+
+- When applicable, provide tests to support your new feature.
+
+If a status check is failing, and you believe that the failure is unrelated to
+your change, please leave a comment on the pull request explaining why you
+believe the failure is unrelated. A maintainer will re-run the status check for
+you. If we conclude that the failure was a false positive, then we will open an
+issue to track that problem with our status check suite.
+
+While the prerequisites above must be satisfied prior to having your pull
+request reviewed, the reviewer/s may ask you to complete additional design work,
+tests, or other changes before your pull request can be ultimately accepted.
 
 ## How to report a bug
 
-Bugs are tracked using GitHub's [issue tracker].
-Explain the problem and include additional details to help maintainers reproduce the problem:
+Bugs are tracked using GitHub's [issue tracker]. Explain the problem and
+include additional details to help maintainers reproduce the issue:
 
-- Use a clear and descriptive title for the issue to identify the problem.
+- Use a clear and descriptive title for the issue.
 
-- Describe the exact steps which reproduce the problem in as many details as possible.
-  Ideally, provide a minimal example file accompanied by a set of Shell commands that trigger the problem.
-  Include links to files or GitHub projects, or copy/pasteable snippets, which you use in those examples.
-  If you're providing snippets in the issue, use Markdown code blocks.
+- Describe the exact steps which reproduce the problem. Ideally, provide a
+  minimal example file accompanied by a set of Shell commands that trigger the
+  problem. Include links to files or GitHub projects, or copy/pasteable
+  snippets, which you use in those examples. If you're providing snippets in
+  the issue, use Markdown code blocks.
 
-- Describe the behaviour you observed after following the steps and point out what exactly is the problem with that behavior.
-  Explain which behaviour you expected to see instead and why.
+- Describe the behaviour you observed after following the steps and point out
+  what exactly is the problem with that behavior.  Explain which behaviour you
+  expected to see instead and why.
 
-- If the problem is related to performance or memory, include a CPU profile capture with your report.
+- If the problem is related to performance or memory, include a CPU profile
+  capture with your report.
 
-- If the problem wasn't triggered by a specific action, describe what you were doing before the problem happened and share more information using the guidelines below.
+- If the problem wasn't triggered by a specific action, describe what you were
+  doing before the problem happened and share more information using the
+  guidelines below.
 
 Provide more context by answering these questions:
 
-- Which version of `cooked-validators` are you using?
-  Which version of `plutus-apps` are you using?
-  Can you reproduce the problem with the latest tagged version of _Cooked Validators_?
-  Can you reproduce the problem with the latest commit on `main`?
+- Which version of `cooked-validators` are you using? Can you reproduce the
+  problem with the latest tagged version of _Cooked Validators_? With the latest
+  commit on `main`?
 
-- Can you reliably reproduce the issue?
-  If not, provide details about how often the problem happens and under which conditions it normally happens.
+- Can you reliably reproduce the issue? If not, provide details about how often
+  the problem happens and under which conditions it normally happens.
 
-- Are you running Nix to provide the environment?
-  Which version of Nix are you using?
-  Can you reproduce using the `nix develop .#ci` environment?
+- Are you running Nix to provide the environment? Which version of Nix are you
+  using? Can you reproduce using the `nix develop .#ci` environment?
 
 - What are the name and version of the OS you are using?
 
@@ -111,23 +118,29 @@ Provide more context by answering these questions:
 
 Enhancement requests are tracked using GitHub's [issue tracker].
 
-Before creating enhancement suggestions, please check whether [there is already an issue tracking it][issue tracker].
-When you are creating an enhancement suggestion, please include as many details as possible.
-Fill in the template, including the steps that you imagine you would take if the feature you're requesting existed.
+Before creating enhancement suggestions, please check whether [there is already
+an issue tracking it][issue tracker]. Make sure that you are using the most
+recent version of the tool and that the [changelog](CHANGELOG.md) does not
+already feature your request in the unreleased section.
+
+When you are creating an enhancement request, follow these guidelines:
+
+- Include as many details as possible. Fill in the template and phrase any
+  reasons explaining why the proposed enhancement is relevant.
 
 - Use a clear and descriptive title for the issue to identify the suggestion.
 
-- Provide a step-by-step description of the suggested enhancement in as many details as possible.
+- Provide a step-by-step description of the suggested enhancement as you would
+  like to see it unfold.
 
-- Provide specific examples to demonstrate the steps.
-  Include copy/pasteable snippets which you use in those examples, as Markdown code blocks.
+- Provide specific examples to demonstrate the steps. Include copy/pasteable
+  snippets which you use in those examples, as Markdown code blocks.
 
-- Describe the current behavior and explain which behaviour you expected to see instead and why.
+- Describe the current behavior and explain which behaviour you expected to see
+  instead and why.
 
-- Explain why this enhancement would be useful to most _Cooked Validators_ users and is not something that can or should be implemented as a community package.
-
-- Specify which version of _Cooked Validators_ you are using.
-  Specify the name and version of the OS you are using.
+- Explain why this enhancement would be useful to most _Cooked Validators_ users
+  and is not something that can or should be implemented as a community package.
 
 ## Style guides / Coding conventions
 
@@ -136,8 +149,6 @@ Fill in the template, including the steps that you imagine you would take if the
 ### Haskell style guide
 
 - All Haskell code is formatted with [Ormolu].
-
-- Use explicit import lists.
 
 - Document all your functions using [Haddock]'s syntax.
 
@@ -151,8 +162,9 @@ Fill in the template, including the steps that you imagine you would take if the
 
 ### CI and pre-commit hooks
 
-Most of those coding conventions are enforced automatically by our continuous integration.
-The Nix environment provides pre-commit hooks that check those coding conventions in the exact same way the CI does.
+Most of those coding conventions are enforced automatically by our continuous
+integration. The Nix environment provides pre-commit hooks that check those
+coding conventions in the exact same way the CI does.
 
 [discussions board]: https://github.com/tweag/cooked-validators/discussions
 [issue tracker]: https://github.com/tweag/cooked-validators/issues
