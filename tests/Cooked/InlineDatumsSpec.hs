@@ -8,6 +8,7 @@ import Data.Maybe
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Contexts qualified as Api
 import PlutusTx qualified
@@ -104,7 +105,7 @@ listUtxosTestTrace useInlineDatum validator =
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [(if useInlineDatum then paysScriptInlineDatum validator else paysScript validator) FirstPaymentDatum (ada 3)],
+          txSkelOuts = [(if useInlineDatum then paysScriptInlineDatum validator else paysScript validator) FirstPaymentDatum (Script.ada 3)],
           txSkelSigners = [wallet 1]
         }
 

@@ -6,6 +6,7 @@ import Data.Default
 import Data.Map qualified as Map
 import Ledger.Index qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.AssocMap qualified as PlutusTx
 import PlutusTx.Builtins qualified as PlutusTx hiding (head)
@@ -44,7 +45,7 @@ testProposingRefScript script govAction = do
   pOutRef : _ <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (ada 2) `withReferenceScript` script, paysPK (wallet 1) (ada 10)],
+        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withReferenceScript` script, paysPK (wallet 1) (Script.ada 10)],
           txSkelSigners = [wallet 1]
         }
   void $

@@ -12,6 +12,7 @@ import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
@@ -115,8 +116,8 @@ bValidator =
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution (paysScript aValidator ADatum . ada <$> [2, 3, 4, 5])
-    <> InitialDistribution (paysScript bValidator BDatum . ada <$> [6, 7])
+    <> InitialDistribution (paysScript aValidator ADatum . Script.ada <$> [2, 3, 4, 5])
+    <> InitialDistribution (paysScript bValidator BDatum . Script.ada <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)

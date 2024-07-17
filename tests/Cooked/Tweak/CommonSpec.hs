@@ -90,7 +90,7 @@ tests =
                   ( runTweak
                       ( combineModsTweak
                           (tail . subsequences)
-                          (txSkelOutsL % itraversed % txSkelOutValueL % adaL)
+                          (txSkelOutsL % itraversed % txSkelOutValueL % Script.adaL)
                           (\i x -> return [(x + 1, i), (x + 2, i)])
                       )
                       skelIn
@@ -108,7 +108,7 @@ tests =
                   ( runTweak
                       ( combineModsTweak
                           (map (: []))
-                          (txSkelOutsL % itraversed % txSkelOutValueL % adaL)
+                          (txSkelOutsL % itraversed % txSkelOutValueL % Script.adaL)
                           (\i x -> return [(x + 1, i), (x + 2, i)])
                       )
                       skelIn

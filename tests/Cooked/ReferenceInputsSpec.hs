@@ -7,6 +7,7 @@ import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
@@ -89,8 +90,8 @@ trace1 = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
-            [ paysScriptInlineDatum fooTypedValidator (FooDatum (walletPKHash (wallet 3))) (ada 4),
-              paysScript barTypedValidator () (ada 5)
+            [ paysScriptInlineDatum fooTypedValidator (FooDatum (walletPKHash (wallet 3))) (Script.ada 4),
+              paysScript barTypedValidator () (Script.ada 5)
             ],
           txSkelSigners = [wallet 2]
         }
@@ -99,7 +100,7 @@ trace1 = do
       txSkelTemplate
         { txSkelIns = Map.singleton txOutRefBar $ txSkelSomeRedeemer (),
           txSkelInsReference = Set.singleton txOutRefFoo,
-          txSkelOuts = [paysPK (wallet 4) (ada 5)],
+          txSkelOuts = [paysPK (wallet 4) (Script.ada 5)],
           txSkelSigners = [wallet 3]
         }
 
