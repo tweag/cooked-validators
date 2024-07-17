@@ -10,8 +10,8 @@ package cardano-crypto-praos
 
 source-repository-package
   type: git
-  location: https://github.com/IntersectMBO/cardano-node-emulator
-  tag: f522eefd57a1bd08220b677e118dea48f5529866
+  location: https://github.com/tweag/cardano-node-emulator-forked
+  tag: 8a92af81d60b6a5565f8b9899c724198d697e427
   subdir:
     cardano-node-emulator
     plutus-ledger
