@@ -94,7 +94,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript (requireRefScriptValidator expectedScriptHash) () (ada 42)],
+        { txSkelOuts = [paysScript (requireRefScriptValidator expectedScriptHash) () (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -111,7 +111,7 @@ useReferenceScript spendingSubmitter theScript = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript theScript () (ada 42)],
+        { txSkelOuts = [paysScript theScript () (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -126,14 +126,14 @@ referenceMint mp1 mp2 n = do
   ((!! n) -> mpOutRef) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (ada 10)],
+        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (Script.ada 10)],
           txSkelSigners = [wallet 1]
         }
   void $
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(mp2, txSkelEmptyRedeemerAndReferenceScript mpOutRef, "banana", 3)],
-          txSkelOuts = [paysPK (wallet 1) (ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
+          txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
           txSkelSigners = [wallet 1]
         }
 
@@ -210,7 +210,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
                       txSkelIns = Map.singleton consumedOref txSkelEmptyRedeemer,
                       txSkelSigners = [wallet 1]
                     }
@@ -233,7 +233,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
                       txSkelSigners = [wallet 1]
                     }
               void $
@@ -255,7 +255,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
                       txSkelSigners = [wallet 1]
                     }
               void $

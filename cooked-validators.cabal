@@ -65,7 +65,6 @@ library
       Cooked.Tweak.TamperDatum
       Cooked.Tweak.ValidityRange
       Cooked.Validators
-      Cooked.ValueUtils
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators

@@ -16,6 +16,7 @@ import Ledger.Index qualified as Ledger
 import ListT
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -32,14 +33,14 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ paysPK alice (ada 2 <> apple 3),
-      paysPK alice (ada 25),
-      paysPK alice (ada 40 <> orange 6),
-      paysPK alice (ada 8),
-      paysPK alice (ada 30),
-      paysPK alice (lovelace 1280229 <> banana 3) `withDatum` (10 :: Integer),
-      paysPK alice (ada 1 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
-      paysPK alice (ada 105 <> banana 2) `withDatumHash` ()
+    [ paysPK alice (Script.ada 2 <> apple 3),
+      paysPK alice (Script.ada 25),
+      paysPK alice (Script.ada 40 <> orange 6),
+      paysPK alice (Script.ada 8),
+      paysPK alice (Script.ada 30),
+      paysPK alice (Script.lovelace 1280229 <> banana 3) `withDatum` (10 :: Integer),
+      paysPK alice (Script.ada 1 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
+      paysPK alice (Script.ada 105 <> banana 2) `withDatumHash` ()
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Set Api.TxOutRef, [Api.TxOutRef])
@@ -101,7 +102,7 @@ emptySearch = ListT.fromFoldable []
 simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> (TxOpts -> TxOpts) -> m TestBalancingOutcome
 simplePaymentToBob lv apples oranges bananas =
   testingBalancingTemplate
-    (lovelace lv <> apple apples <> orange oranges <> banana bananas)
+    (Script.lovelace lv <> apple apples <> orange oranges <> banana bananas)
     mempty
     emptySearch
     emptySearch
@@ -110,8 +111,8 @@ simplePaymentToBob lv apples oranges bananas =
 bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> (TxOpts -> TxOpts) -> m TestBalancingOutcome
 bothPaymentsToBobAndAlice val =
   testingBalancingTemplate
-    (lovelace val)
-    (lovelace val)
+    (Script.lovelace val)
+    (Script.lovelace val)
     emptySearch
     emptySearch
     emptySearch
@@ -119,11 +120,11 @@ bothPaymentsToBobAndAlice val =
 noBalanceMaxFee :: (MonadBlockChain m) => m ()
 noBalanceMaxFee = do
   maxFee <- snd <$> getMinAndMaxFee
-  ((txOutRef, _) : _) <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` ((== ada 30) . Api.txOutValue)
+  ((txOutRef, _) : _) <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` ((== Script.ada 30) . Api.txOutValue)
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK bob (lovelace (30_000_000 - maxFee))],
+        { txSkelOuts = [paysPK bob (Script.lovelace (30_000_000 - maxFee))],
           txSkelIns = Map.singleton txOutRef txSkelEmptyRedeemer,
           txSkelOpts =
             def
@@ -138,7 +139,7 @@ balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer
 balanceReduceFee = do
   let skelAutoFee =
         txSkelTemplate
-          { txSkelOuts = [paysPK bob (ada 50)],
+          { txSkelOuts = [paysPK bob (Script.ada 50)],
             txSkelSigners = [alice]
           }
   (skelBalanced, feeBalanced, cols, rColWal) <- balanceTxSkel skelAutoFee
@@ -160,7 +161,7 @@ reachingMagic = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK bob (ada 106 <> banana 12)],
+        { txSkelOuts = [paysPK bob (Script.ada 106 <> banana 12)],
           txSkelSigners = [alice],
           txSkelOpts =
             def
@@ -209,7 +210,7 @@ failsWithEmptyTxIns (MCEGenerationError (TxBodyError _ Cardano.TxBodyEmptyTxIns)
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: (IsProp prop) => Integer -> MockChainError -> prop
-failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == lovelace (1 + (fee * percentage) `div` 100)
+failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
 failsAtCollaterals :: (IsProp prop) => MockChainError -> prop
@@ -241,19 +242,19 @@ tests =
               testBalancingFailsWith
                 "Balancing does not occur when not requested, fails with too small inputs"
                 failsWithValueNotConserved
-                (testingBalancingTemplate (ada 50) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (Script.ada 50) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "It is still possible to balance the transaction by hand"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (Script.ada 7) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingFailsWith
                 "A collateral wallet needs to be provided when auto balancing is enabled"
                 failsLackOfCollateralWallet
-                (testingBalancingTemplate (ada 7) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (Script.ada 7) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setDontBalance . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "We can also directly give a set of collateral utxos"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty (aliceNAdaUtxos 8) emptySearch (aliceNAdaUtxos 8) (setDontBalance . setFixedFee 1_000_000))
+                (testingBalancingTemplate (Script.ada 7) mempty (aliceNAdaUtxos 8) emptySearch (aliceNAdaUtxos 8) (setDontBalance . setFixedFee 1_000_000))
             ],
           testGroup
             "Manual balancing with auto fee"
@@ -280,13 +281,13 @@ tests =
                 testSucceedsFrom
                   def
                   initialDistributionBalancing
-                  (testingBalancingTemplate (ada 100) mempty emptySearch emptySearch (aliceNAdaUtxos 2) id),
+                  (testingBalancingTemplate (Script.ada 100) mempty emptySearch emptySearch (aliceNAdaUtxos 2) id),
               testCase "... but not always" $
                 testFailsFrom
                   def
                   failsAtCollaterals
                   initialDistributionBalancing
-                  (testingBalancingTemplate (ada 100) mempty (utxosAtSearch alice) emptySearch (aliceNAdaUtxos 1) id),
+                  (testingBalancingTemplate (Script.ada 100) mempty (utxosAtSearch alice) emptySearch (aliceNAdaUtxos 1) id),
               testCase "Reaching magical spot with the exact balance during auto fee computation" $
                 testSucceedsFrom
                   def
@@ -309,7 +310,7 @@ tests =
                 (simplePaymentToBob 20_000_000 0 0 0 (setFixedFee 150_000)),
               testBalancingFailsWith
                 "Fee are rightfully included in the balancing process, which fails when they are too high"
-                (failsAtBalancingWith (ada 1) alice)
+                (failsAtBalancingWith (Script.ada 1) alice)
                 (simplePaymentToBob 100_000_000 0 0 0 (setFixedFee 6_000_000)),
               testBalancingFailsWith
                 "Collaterals are rightfully included in the balancing process, which fails when they are too high"
@@ -340,7 +341,7 @@ tests =
                 [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (bothPaymentsToBobAndAlice 6_000_000 (setFixedFee 2_000_000 . setDontAdjustOutput)),
               testBalancingSucceedsWith
-                "We can balance transactions with non-ada assets"
+                "We can balance transactions with non-Script.ada assets"
                 [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 0 0 5 0 (setFixedFee 2_000_000 . setEnsureMinAda)),
               testBalancingSucceedsWith

@@ -5,6 +5,7 @@ import Cooked
 import Data.Default
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -19,7 +20,7 @@ pkToPk sender recipient amount =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK recipient (ada amount)],
+        { txSkelOuts = [paysPK recipient (Script.ada amount)],
           txSkelSigners = [sender]
         }
 
@@ -46,7 +47,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 10)],
+              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 10)],
                 txSkelSigners = [alice]
               }
         )
@@ -58,7 +59,7 @@ consumeAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelIns = Map.fromList [(outref, txSkelSomeRedeemer ())],
-          txSkelOuts = [paysPK alice (ada 10)],
+          txSkelOuts = [paysPK alice (Script.ada 10)],
           txSkelSigners = [alice]
         }
 
@@ -67,7 +68,7 @@ tests =
   testGroup
     "Basic usage"
     [ testCase "Payment from alice to bob, with auto-balancing" $ testSucceedsFrom def def (pkToPk alice bob 10),
-      testCase "Circular payments of 10 ada between alice bob and carrie" $ testSucceedsFrom def def multiplePksToPks,
+      testCase "Circular payments of 10 Script.ada between alice bob and carrie" $ testSucceedsFrom def def multiplePksToPks,
       testCase "Minting quick tokens" $ testSucceedsFrom def def mintingQuickValue,
       testCase "Paying to the always true validator" $ testSucceedsFrom def def payToAlwaysTrueValidator,
       testCase "Consuming the always true validator" $ testSucceedsFrom def def consumeAlwaysTrueValidator

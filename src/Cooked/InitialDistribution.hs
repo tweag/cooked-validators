@@ -13,10 +13,10 @@ import Control.Monad
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.MinAda
 import Cooked.Skeleton
-import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.List
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Initial distribution of funds
@@ -48,7 +48,7 @@ data InitialDistribution where
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
 instance Default InitialDistribution where
-  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ ada 100
+  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ Script.ada 100
 
 instance Semigroup InitialDistribution where
   i <> j = InitialDistribution (unInitialDistribution i <> unInitialDistribution j)

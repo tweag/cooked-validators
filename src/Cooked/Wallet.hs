@@ -26,7 +26,6 @@ import Ledger.Address qualified as Ledger
 import Ledger.CardanoWallet qualified as Ledger
 import Ledger.Crypto qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
-import Unsafe.Coerce
 
 -- * MockChain Wallets
 
@@ -94,17 +93,6 @@ walletAddress w =
 walletSK :: Wallet -> PrivateKey
 walletSK = Ledger.unPaymentPrivateKey . Ledger.paymentPrivateKey
 
--- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is needed
--- because the constructor and accessors to 'MockPrivateKey' are private.
--- Hence, we make an isomorphic datatype, 'unsafeCoerce' to this datatype then
--- extract whatever we need from it.
-newtype HACK = HACK PrivateKey
-
 -- | Retrieves a wallet's private staking key (secret key SK), if any
 walletStakingSK :: Wallet -> Maybe PrivateKey
-walletStakingSK = fmap hackUnMockPrivateKey . Ledger.mwStakeKey
-  where
-    -- To only be applied to @MockPrivateKey@; the function is polymorphic
-    -- because @MockPrivateKey@ is not exported either
-    hackUnMockPrivateKey :: a -> PrivateKey
-    hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
+walletStakingSK = fmap Ledger.unStakePrivateKey . Ledger.stakePrivateKey

@@ -19,5 +19,4 @@ import Cooked.ShowBS as X
 import Cooked.Skeleton as X
 import Cooked.Tweak as X
 import Cooked.Validators as X
-import Cooked.ValueUtils as X
 import Cooked.Wallet as X
