@@ -6,6 +6,7 @@ import Data.Default
 import Ledger.Index qualified as Ledger
 import Optics.Core ((^.))
 import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -14,7 +15,7 @@ heavyDatum = take 100 [0 ..]
 
 paymentWithMinAda :: (MonadBlockChain m) => m Integer
 paymentWithMinAda = do
-  Script.getLovelace . (^. adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
+  Script.getLovelace . (^. Script.adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},

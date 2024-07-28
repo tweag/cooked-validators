@@ -8,6 +8,7 @@ import Data.Map qualified as Map
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Builtins qualified as PlutusTx
@@ -39,7 +40,7 @@ printTrace = do
     validateTxSkel'
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelOuts = [paysScriptInlineDatum printValidator () (ada 30)]
+          txSkelOuts = [paysScriptInlineDatum printValidator () (Script.ada 30)]
         }
   void $
     validateTxSkel

@@ -17,9 +17,9 @@ import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.Skeleton
-import Cooked.ValueUtils
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 
 -- | This provides the minimum amount of ada required in a given `TxSkelOut`. As
 -- we need to transform our output into a Cardano output to compute this value,
@@ -41,10 +41,10 @@ getTxSkelOutMinAda Emulator.Params {..} txSkelOut =
 -- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
 toTxSkelOutWithMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
 toTxSkelOutWithMinAda params txSkelOut = do
-  let Script.Lovelace oldAda = txSkelOut ^. txSkelOutValueL % adaL
+  let Script.Lovelace oldAda = txSkelOut ^. txSkelOutValueL % Script.adaL
   requiredAda <- getTxSkelOutMinAda params txSkelOut
   if oldAda < requiredAda
-    then toTxSkelOutWithMinAda params $ txSkelOut & txSkelOutValueL % adaL .~ Script.Lovelace requiredAda
+    then toTxSkelOutWithMinAda params $ txSkelOut & txSkelOutValueL % Script.adaL .~ Script.Lovelace requiredAda
     else return txSkelOut
 
 -- | This transforms a skeleton by replacing all its `TxSkelOut` by their

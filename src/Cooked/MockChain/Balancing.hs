@@ -16,7 +16,6 @@ import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoSearch
 import Cooked.Output
 import Cooked.Skeleton
-import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Bifunctor
 import Data.Function
@@ -28,6 +27,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
@@ -294,7 +294,7 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
 -- words, this ensures that the following equation holds: input value + minted
 -- value = output value + burned value + fee + deposits
 computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
-computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelace -> feeValue) = do
+computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
   let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
