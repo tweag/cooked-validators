@@ -321,7 +321,7 @@ tests =
                 "We can also directly give a set of collateral utxos..."
                 [hasFee 1_000_000, insNb 2, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
                 ( testingBalancingTemplate
-                    (ada 49)
+                    (Script.ada 49)
                     mempty
                     (aliceNAdaUtxos 8)
                     emptySearch
