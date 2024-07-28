@@ -1051,7 +1051,6 @@ data SkelContext = SkelContext
   { skelContextTxOuts :: Map Api.TxOutRef Api.TxOut,
     skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum
   }
-  deriving (Show, Eq)
 
 -- | Returns the full value contained in the skeleton outputs
 txSkelValueInOutputs :: TxSkel -> Api.Value
