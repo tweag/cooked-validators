@@ -28,8 +28,9 @@
 - Logging has been reworked: 
   * it is no longer limited to `StagedMockChain` runs
   * it is now a component of `MonadBlockChainBalancing`
-  * it can be turned on/off in skeleton options
+  * it can be turned on/off in pretty-printing options
   * it now displays the discarding of utxos during balancing.
+  * it is not visible from outside of `cooked-validators`
 
 ### Fixed
 

@@ -33,7 +33,7 @@ data PrettyCookedOpts = PrettyCookedOpts
     -- | Options related to printing hashes
     pcOptHashes :: PrettyCookedHashOpts,
     -- | Whether to display the log
-    pcOptLog :: Bool
+    pcOptPrintLog :: Bool
   }
   deriving (Eq, Show)
 
@@ -45,7 +45,7 @@ instance Default PrettyCookedOpts where
         pcOptPrintDefaultTxOpts = False,
         pcOptNumericUnderscores = True,
         pcOptHashes = def,
-        pcOptLog = True
+        pcOptPrintLog = True
       }
 
 -- | Whether to print transaction outputs references.

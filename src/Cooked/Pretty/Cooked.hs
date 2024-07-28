@@ -49,6 +49,7 @@ import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -129,7 +130,7 @@ instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
         mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err
           Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
-     in PP.vsep $ if pcOptLog opts then [mcLog, mcEndResult] else [mcEndResult]
+     in PP.vsep $ if pcOptPrintLog opts then [mcLog, mcEndResult] else [mcEndResult]
 
 -- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
@@ -141,7 +142,7 @@ instance PrettyCooked MockChainLogEntry where
       "Adjusted:"
       "-"
       [ prettyTxSkel opts skelContext skel,
-        "Fee: Lovelace" <+> prettyCookedOpt opts fee,
+        "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee),
         prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
         "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
       ]
@@ -351,8 +352,11 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
 prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
   Just $ "Datum (hashed):" <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
-prettyTxOutRefM :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe (DocCooked, DocCooked, [DocCooked])
-prettyTxOutRefM opts skelContext txOutRef =
+-- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
+-- address and value, and also builds a possibly empty list for its datum and
+-- reference script when they exist.
+utxoToPartsAsDocCooked :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe (DocCooked, DocCooked, [DocCooked])
+utxoToPartsAsDocCooked opts skelContext txOutRef =
   ( \(output, txSkelOutDatum) ->
       ( prettyCookedOpt opts (outputAddress output),
         prettyCookedOpt opts (outputValue output),
@@ -366,13 +370,13 @@ prettyTxOutRefM opts skelContext txOutRef =
 
 prettyCollateralIn :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> DocCooked
 prettyCollateralIn opts skelContext txOutRef =
-  case prettyTxOutRefM opts skelContext txOutRef of
+  case utxoToPartsAsDocCooked opts skelContext txOutRef of
     Nothing -> prettyCookedOpt opts txOutRef <+> "(non resolved)"
     Just (addressDoc, valueDoc, otherDocs) -> prettyItemize ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
 
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) =
-  case prettyTxOutRefM opts skelContext txOutRef of
+  case utxoToPartsAsDocCooked opts skelContext txOutRef of
     Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
     Just (addressDoc, valueDoc, otherDocs) ->
       prettyItemize ("Spends from" <+> addressDoc) "-" (valueDoc : prettyTxSkelRedeemer opts txSkelRedeemer <> otherDocs)
