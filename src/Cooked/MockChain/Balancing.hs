@@ -303,7 +303,7 @@ estimateTxSkelFee skel fee mCollaterals = do
   let collateralIns = case mCollaterals of
         Nothing -> []
         Just (s, _) -> Set.toList s
-  managedTxOuts <- lookupUtxosPl $ txSkelKnownTxOutRefs skel <> collateralIns
+  managedTxOuts <- lookupUtxos $ txSkelKnownTxOutRefs skel <> collateralIns
   managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime
   txBodyContent <- case generateBodyContent fee params managedData managedTxOuts managedValidators mCollaterals skel of
