@@ -9,10 +9,13 @@
 - `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
   distribution only provides outputs with the required minimal ada based on
   default parameters.
-
+- PrettyCooked option `pcOptLog`, which is a boolean, to turn on or off the log
+  display in the pretty printer. The default value is `True`.
+  
 ### Removed
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
+- Redundant logging of errors in mockchain runs.
 
 ### Changed
 
@@ -22,10 +25,19 @@
   constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
+- Logging has been reworked: 
+  * it is no longer limited to `StagedMockChain` runs
+  * it is now a component of `MonadBlockChainBalancing`
+  * it can be turned on/off in pretty-printing options
+  * it now displays the discarding of utxos during balancing.
+  * it now displays when the users specifies useless collateral utxos.
+  * it is not visible from outside of `cooked-validators`
 
 ### Fixed
 
 - All kinds of scripts can now be used as reference scripts.
+- Transactions that do not involve script are now properly generated without any
+  collateral.
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
