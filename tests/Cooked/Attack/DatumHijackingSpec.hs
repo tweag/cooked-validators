@@ -201,14 +201,14 @@ tests =
                     ],
                   txSkelSigners = [wallet 1]
                 }
-         in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
+         in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? fst <$> skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ Right
                     ( [ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x3 Nothing],
                       skelExpected thief val1
                     )
                 ]
-                  @=? skelOut x2 (0 ==),
+                  @=? fst <$> skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
                 [ Right
                     ( [ ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x3 Nothing,
@@ -217,14 +217,14 @@ tests =
                       skelExpected thief thief
                     )
                 ]
-                  @=? skelOut x2 (const True),
+                  @=? fst <$> skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
                 [ Right
                     ( [ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x2 Nothing],
                       skelExpected val1 thief
                     )
                 ]
-                  @=? skelOut x2 (1 ==)
+                  @=? fst <$> skelOut x2 (1 ==)
             ],
       testCase "careful validator" $
         testFails

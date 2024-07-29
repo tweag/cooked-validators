@@ -7,6 +7,7 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
+import Control.Monad
 import Control.Monad.Except
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
@@ -42,8 +43,8 @@ type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and returns a (possibly) balanced skeleton alongside the
 -- associated fee, collateral inputs and return collateral wallet. The options
--- from the skeleton control whether it should be balanced, and how to compute its
--- associated elements.
+-- from the skeleton control whether it should be balanced, and how to compute
+-- its associated elements.
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Collaterals, Wallet)
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
@@ -81,12 +82,21 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
             ManualFee fee' -> fee'
        in (skelUnbal,fee,) <$> collateralInsFromFees fee collateralIns returnCollateralWallet
     Just bWallet -> do
-      -- The balancing should be performed. We collect the balancing utxos and
-      -- filter out those already used in the unbalanced skeleton.
-      (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
-        runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingWallet -> onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
-          BalancingUtxosFromSet utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
+      -- The balancing should be performed. We collect the candidates balancing
+      -- utxos based on the associated policy
+      balancingUtxos <-
+        case txOptBalancingUtxos txSkelOpts of
+          BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
+          BalancingUtxosFromSet utxos ->
+            -- We resolve the given set of utxos
+            runUtxoSearch (txOutByRefSearch (Set.toList utxos))
+              -- We filter out those belonging to scripts, while throwing a
+              -- warning if any was actually discarded.
+              >>= filterAndWarn (isJust . isPKOutput . snd) "They belong to scripts."
+          -- We filter the candidate utxos by removing those already present in the
+          -- skeleton, throwing a warning if any was actually discarded
+          >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
+
       case txOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
         -- is full auto mode, the most powerful but time-consuming.
@@ -100,6 +110,10 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           return (attemptedSkel, fee, adjustedCollateralIns)
 
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
+  where
+    filterAndWarn f s l
+      | (ok, toInteger . length -> koLength) <- partition f l =
+          unless (koLength == 0) (publish $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters

@@ -62,7 +62,7 @@ tests :: TestTree
 tests =
   testGroup
     "Validity range tweaks"
-    [ testCase "Validity inclusion" $ fst . head . rights $ runTweak checkIsValidDuring txSkelTemplate,
-      testCase "Validity intersection" $ fst . head . rights $ runTweak checkAddToValidityRange txSkelTemplate,
-      testCase "Time shifting in validity range" $ fst . head . rights $ runTweak checkMoveCurrentSlot txSkelTemplate
+    [ testCase "Validity inclusion" $ fst . head . rights $ fst <$> runTweak checkIsValidDuring txSkelTemplate,
+      testCase "Validity intersection" $ fst . head . rights $ fst <$> runTweak checkAddToValidityRange txSkelTemplate,
+      testCase "Time shifting in validity range" $ fst . head . rights $ fst <$> runTweak checkMoveCurrentSlot txSkelTemplate
     ]
