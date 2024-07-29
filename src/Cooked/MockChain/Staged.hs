@@ -6,8 +6,6 @@
 module Cooked.MockChain.Staged
   ( interpretAndRunWith,
     interpretAndRun,
-    MockChainLogEntry (..),
-    MockChainLog (..),
     StagedMockChain,
     runTweakFrom,
     MonadModalBlockChain,
@@ -26,7 +24,6 @@ import Control.Monad (MonadPlus (..), msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Trans.Writer (WriterT (runWriterT), tell)
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
@@ -34,10 +31,8 @@ import Cooked.MockChain.UtxoState
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
-import Data.Map qualified as Map
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -49,30 +44,15 @@ import PlutusLedgerApi.V3 qualified as Api
 interpretAndRunWith ::
   (forall m. (Monad m) => MockChainT m a -> m res) ->
   StagedMockChain a ->
-  [(res, MockChainLog)]
-interpretAndRunWith f smc = runWriterT $ f $ interpret smc
+  [res]
+interpretAndRunWith f smc = f $ interpret smc
 
-interpretAndRun ::
-  StagedMockChain a ->
-  [(Either MockChainError (a, UtxoState), MockChainLog)]
+interpretAndRun :: StagedMockChain a -> [MockChainReturn a UtxoState]
 interpretAndRun = interpretAndRunWith runMockChainT
-
-data MockChainLogEntry
-  = MCLogSubmittedTxSkel SkelContext TxSkel
-  | MCLogNewTx Api.TxId
-  | MCLogFail String
-
-newtype MockChainLog = MockChainLog {unMockChainLog :: [MockChainLogEntry]}
-
-instance Semigroup MockChainLog where
-  MockChainLog x <> MockChainLog y = MockChainLog $ x <> y
-
-instance Monoid MockChainLog where
-  mempty = MockChainLog []
 
 -- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
 -- 'interpret' function for more.
-type InterpMockChain = MockChainT (WriterT MockChainLog [])
+type InterpMockChain = MockChainT []
 
 -- | The 'interpret' function gives semantics to our traces. One
 -- 'StagedMockChain' computation yields a potential list of 'MockChainT'
@@ -92,13 +72,14 @@ data MockChainBuiltin a where
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRefLedger :: Api.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
+  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe Api.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
   DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe Api.Datum)
-  AllUtxosLedger :: MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
-  UtxosAtLedger :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
+  AllUtxos :: MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
+  UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
   ValidatorFromHash :: Script.ValidatorHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Validator))
+  Publish :: MockChainLogEntry -> MockChainBuiltin ()
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -132,59 +113,38 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
-        . map (uncurry interpretAndTell)
+        . map (uncurry interpretNow)
         . nowLaterList
     where
-      interpretAndTell ::
+      interpretNow ::
         UntypedTweak InterpMockChain ->
         [Ltl (UntypedTweak InterpMockChain)] ->
         StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Ledger.CardanoTx
-      interpretAndTell (UntypedTweak now) later = do
-        mcst <- lift get
-        let managedTxOuts = getIndex . mcstIndex $ mcst
-            managedDatums = mcstDatums mcst
+      interpretNow (UntypedTweak now) later = do
         (_, skel') <- lift $ runTweakInChain now skel
-        lift $
-          lift $
-            tell $
-              MockChainLog
-                [ MCLogSubmittedTxSkel
-                    (SkelContext (txOutV2FromLedger <$> managedTxOuts) $ Map.map fst managedDatums)
-                    skel'
-                ]
-        tx <- validateTxSkel skel'
-        lift $
-          lift $
-            tell $
-              MockChainLog [MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId tx)]
         put later
-        return tx
-  interpBuiltin (TxOutByRefLedger o) = txOutByRefLedger o
+        validateTxSkel skel'
+  interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin (ValidatorFromHash h) = validatorFromHash h
-  interpBuiltin AllUtxosLedger = allUtxosLedger
-  interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
+  interpBuiltin AllUtxos = allUtxos
+  interpBuiltin (UtxosAt address) = utxosAt address
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
-  interpBuiltin (Fail msg) = do
-    lift $ lift $ tell $ MockChainLog [MCLogFail msg]
-    fail msg
+  interpBuiltin (Fail msg) = fail msg
   interpBuiltin (ThrowError err) = throwError err
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
+  interpBuiltin (Publish entry) = publish entry
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
-runTweak :: Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
+runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
 runTweak = runTweakFrom def
 
-runTweakFrom :: MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
-runTweakFrom mcst tweak skel =
-  map (right fst . fst)
-    . runWriterT
-    . runMockChainTRaw mcst
-    $ runTweakInChain tweak skel
+runTweakFrom :: MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
+runTweakFrom mcst tweak = map (first (right fst)) . runMockChainTRaw mcst . runTweakInChain tweak
 
 -- ** Modalities
 
@@ -238,12 +198,13 @@ instance MonadError MockChainError StagedMockChain where
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
   datumFromHash = singletonBuiltin . DatumFromHash
-  txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
-  utxosAtLedger = singletonBuiltin . UtxosAtLedger
+  txOutByRef = singletonBuiltin . TxOutByRef
+  utxosAt = singletonBuiltin . UtxosAt
   validatorFromHash = singletonBuiltin . ValidatorFromHash
+  publish = singletonBuiltin . Publish
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
-  allUtxosLedger = singletonBuiltin AllUtxosLedger
+  allUtxos = singletonBuiltin AllUtxos
   setParams = singletonBuiltin . SetParams
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot

@@ -15,17 +15,14 @@
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
+    MockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
     AsTrans (..),
-    allUtxos,
     currentTime,
     waitNSlots,
-    utxosAt,
-    txOutByRef,
     utxosFromCardanoTx,
-    txOutV2FromLedger,
     typedDatumFromTxOutRef,
     valueFromTxOutRef,
     outputDatumFromTxOutRef,
@@ -39,15 +36,12 @@ module Cooked.MockChain.BlockChain
     slotRangeBefore,
     slotRangeAfter,
     slotToTimeInterval,
-    txSkelInputUtxosPl,
     txSkelInputUtxos,
-    txSkelReferenceInputUtxosPl,
     txSkelReferenceInputUtxos,
     txSkelInputValidators,
     txSkelInputValue,
     txSkelInputData,
     lookupUtxos,
-    lookupUtxosPl,
     validateTxSkel',
     txSkelProposalsDeposit,
     govActionDeposit,
@@ -58,7 +52,6 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Control.Arrow
 import Control.Lens qualified as Lens
 import Control.Monad
 import Control.Monad.Except
@@ -77,6 +70,7 @@ import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Set (Set)
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -86,21 +80,20 @@ import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- * BlockChain monad
+-- * MockChain errors
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
-  -- FIXME, maybe the validation phase can be deduced from the nature of the
-  -- error
+  -- | Validation errors, either in Phase 1 or Phase 2
   MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
   -- | Thrown when the balancing wallet does not have enough funds
   MCEUnbalanceable :: Wallet -> Api.Value -> TxSkel -> MockChainError
   -- | Thrown when not enough collateral are provided. Built upon the fee, the
   -- percentage and the expected minimal collateral value.
   MCENoSuitableCollateral :: Integer -> Integer -> Api.Value -> MockChainError
+  -- | Thrown when an error occured during transaction generation
   MCEGenerationError :: GenerateTxError -> MockChainError
-  -- | Thrown when an output reference should be in the state of the mockchain,
-  -- but isn't.
+  -- | Thrown when an output reference is missing from the mockchain state
   MCEUnknownOutRefError :: String -> Api.TxOutRef -> MockChainError
   -- | Same as 'MCEUnknownOutRefError' for validators.
   MCEUnknownValidator :: String -> Script.ValidatorHash -> MockChainError
@@ -110,13 +103,34 @@ data MockChainError where
   FailWith :: String -> MockChainError
   deriving (Show, Eq)
 
+-- * MockChain logs
+
+-- | This represents the specific events that should be logged when processing
+-- transactions. If a new kind of event arises, then a new constructor should be
+-- provided here.
+data MockChainLogEntry where
+  -- | Logging a Skeleton as it is submitted by the user.
+  MCLogSubmittedTxSkel :: SkelContext -> TxSkel -> MockChainLogEntry
+  -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
+  -- alongside fee, collateral utxos and return collateral wallet.
+  MCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> MockChainLogEntry
+  -- | Logging the appearance of a new transaction, after a skeleton has been
+  -- successfully sent for validation.
+  MCLogNewTx :: Api.TxId -> MockChainLogEntry
+  -- | Logging the fact that utxos provided by the user for balancing have to be
+  -- discarded for a given reason.
+  MCLogDiscardedUtxos :: Integer -> String -> MockChainLogEntry
+  -- | Logging the fact that utxos provided as collaterals will not be used
+  -- because the transaction does not need involve scripts.
+  MCLogUnusedCollaterals :: Either Wallet (Set Api.TxOutRef) -> MockChainLogEntry
+
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
-  -- | Returns the parameters of the chain.
+  -- | Returns the emulator parameters, including protocol parameters
   getParams :: m Emulator.Params
 
   -- | Returns a list of all UTxOs at a certain address.
-  utxosAtLedger :: Api.Address -> m [(Api.TxOutRef, Ledger.TxOut)]
+  utxosAt :: Api.Address -> m [(Api.TxOutRef, Api.TxOut)]
 
   -- | Returns the datum with the given hash if present.
   datumFromHash :: Api.DatumHash -> m (Maybe Api.Datum)
@@ -126,11 +140,14 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   validatorFromHash :: Script.ValidatorHash -> m (Maybe (Script.Versioned Script.Validator))
 
   -- | Returns an output given a reference to it
-  txOutByRefLedger :: Api.TxOutRef -> m (Maybe Ledger.TxOut)
+  txOutByRef :: Api.TxOutRef -> m (Maybe Api.TxOut)
+
+  -- | Logs an event that occured during a BlockChain run
+  publish :: MockChainLogEntry -> m ()
 
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
-  allUtxosLedger :: m [(Api.TxOutRef, Ledger.TxOut)]
+  allUtxos :: m [(Api.TxOutRef, Api.TxOut)]
 
   -- | Updates parameters
   setParams :: Emulator.Params -> m ()
@@ -163,15 +180,6 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
 validateTxSkel' :: (MonadBlockChain m) => TxSkel -> m [Api.TxOutRef]
 validateTxSkel' = (map fst . utxosFromCardanoTx <$>) . validateTxSkel
 
-allUtxos :: (MonadBlockChainWithoutValidation m) => m [(Api.TxOutRef, Api.TxOut)]
-allUtxos = fmap (second txOutV2FromLedger) <$> allUtxosLedger
-
-utxosAt :: (MonadBlockChainBalancing m) => Api.Address -> m [(Api.TxOutRef, Api.TxOut)]
-utxosAt address = fmap (second txOutV2FromLedger) <$> utxosAtLedger address
-
-txOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.TxOut)
-txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
-
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
 --
 -- This is useful when writing endpoints and/or traces to fetch utxos of
@@ -179,10 +187,13 @@ txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx :: Ledger.CardanoTx -> [(Api.TxOutRef, Api.TxOut)]
 utxosFromCardanoTx =
-  map (\(txOut, txOutRef) -> (Ledger.fromCardanoTxIn txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
-
-txOutV2FromLedger :: Ledger.TxOut -> Api.TxOut
-txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
+  map
+    ( \(txOut, txOutRef) ->
+        ( Ledger.fromCardanoTxIn txOutRef,
+          Ledger.fromCardanoTxOutToPV2TxInfoTxOut $ Ledger.getTxOut txOut
+        )
+    )
+    . Ledger.getCardanoTxOutRefs
 
 -- | Try to resolve the datum on the output: If there's an inline datum, take
 -- that; if there's a datum hash, look the corresponding datum up (with
@@ -308,16 +319,10 @@ typedDatumFromTxOutRef = ((>>= (\(Api.Datum datum) -> Api.fromBuiltinData datum)
 valueFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Value)
 valueFromTxOutRef = ((outputValue <$>) <$>) . txOutByRef
 
-txSkelInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
-txSkelInputUtxosPl = lookupUtxosPl . Map.keys . txSkelIns
-
-txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
+txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
-txSkelReferenceInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
-txSkelReferenceInputUtxosPl = (Map.map txOutV2FromLedger <$>) . txSkelReferenceInputUtxos
-
-txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
+txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
 txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
@@ -336,7 +341,7 @@ maybeErrM err f = (maybe (throwError err) (return . f) =<<)
 -- | All validators which protect transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Script.ValidatorHash (Script.Versioned Script.Validator))
 txSkelInputValidators skel = do
-  utxos <- Map.toList <$> lookupUtxosPl (Map.keys . txSkelIns $ skel)
+  utxos <- Map.toList <$> lookupUtxos (Map.keys . txSkelIns $ skel)
   Map.fromList . catMaybes
     <$> mapM
       ( \(_oref, out) -> case outputAddress out of
@@ -355,17 +360,14 @@ txSkelInputValidators skel = do
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.
-lookupUtxosPl :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Api.TxOut)
-lookupUtxosPl outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
-
-lookupUtxos :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Ledger.TxOut)
+lookupUtxos :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Api.TxOut)
 lookupUtxos =
   (Map.fromList <$>)
-    . mapM (\oRef -> (oRef,) <$> maybeErrM (MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" oRef) id (txOutByRefLedger oRef))
+    . mapM (\oRef -> (oRef,) <$> maybeErrM (MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" oRef) id (txOutByRef oRef))
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
-txSkelInputValue = (foldMap (Api.txOutValue . txOutV2FromLedger) <$>) . txSkelInputUtxos
+txSkelInputValue = (foldMap Api.txOutValue <$>) . txSkelInputUtxos
 
 -- | Look up the data on UTxOs the transaction consumes.
 txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
@@ -379,7 +381,7 @@ txSkelInputData skel = do
             Api.OutputDatumHash dHash -> Just dHash
       )
       . Map.elems
-      <$> txSkelInputUtxosPl skel
+      <$> txSkelInputUtxos skel
   Map.fromList
     <$> mapM
       ( \dHash ->
@@ -490,12 +492,13 @@ instance (MonadTransControl t, MonadError MockChainError m, Monad (t m)) => Mona
 instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainBalancing (AsTrans t m) where
   getParams = lift getParams
   validatorFromHash = lift . validatorFromHash
-  utxosAtLedger = lift . utxosAtLedger
-  txOutByRefLedger = lift . txOutByRefLedger
+  utxosAt = lift . utxosAt
+  txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
+  publish = lift . publish
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
-  allUtxosLedger = lift allUtxosLedger
+  allUtxos = lift allUtxos
   setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
@@ -533,12 +536,13 @@ deriving via (AsTrans (StateT s) m) instance (MonadBlockChain m) => MonadBlockCh
 instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) where
   getParams = lift getParams
   validatorFromHash = lift . validatorFromHash
-  utxosAtLedger = lift . utxosAtLedger
-  txOutByRefLedger = lift . txOutByRefLedger
+  utxosAt = lift . utxosAt
+  txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
+  publish = lift . publish
 
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
-  allUtxosLedger = lift allUtxosLedger
+  allUtxos = lift allUtxos
   setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot

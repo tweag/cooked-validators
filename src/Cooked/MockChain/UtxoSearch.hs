@@ -5,9 +5,7 @@ module Cooked.MockChain.UtxoSearch
   ( UtxoSearch,
     runUtxoSearch,
     allUtxosSearch,
-    allUtxosLedgerSearch,
     utxosAtSearch,
-    utxosAtLedgerSearch,
     utxosFromCardanoTxSearch,
     txOutByRefSearch,
     filterWith,
@@ -54,20 +52,10 @@ runUtxoSearch = ListT.toList
 allUtxosSearch :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 allUtxosSearch = allUtxos >>= ListT.fromFoldable
 
--- | Like 'allUtxosSearch', but returns a Ledger-level representation of the
--- transaction outputs, which might contain more information.
-allUtxosLedgerSearch :: (MonadBlockChain m) => UtxoSearch m Ledger.TxOut
-allUtxosLedgerSearch = allUtxosLedger >>= ListT.fromFoldable
-
 -- | Search all 'TxOutRef's at a certain address, together with their
 -- 'TxInfo'-'TxOut'.
 utxosAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Api.TxOut
 utxosAtSearch = utxosAt . toAddress >=> ListT.fromFoldable
-
--- | Like 'utxosAtSearch', but returns a Ledger-level representation of the
--- transaction outputs, which might contain more information.
-utxosAtLedgerSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Ledger.TxOut
-utxosAtLedgerSearch = utxosAtLedger . toAddress >=> ListT.fromFoldable
 
 -- | Search all 'TxOutRef's of a transaction, together with their
 -- 'TxInfo'-'TxOut'.
