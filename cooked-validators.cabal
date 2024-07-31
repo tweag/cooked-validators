@@ -42,6 +42,7 @@ library
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output
       Cooked.MockChain.GenerateTx.Proposal
+      Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
       Cooked.MockChain.MockChainSt
@@ -172,6 +173,7 @@ test-suite spec
       Cooked.Tweak.TamperDatumSpec
       Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
+      Cooked.WithdrawalsSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators

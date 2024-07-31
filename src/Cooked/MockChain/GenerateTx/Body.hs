@@ -17,6 +17,7 @@ import Cooked.MockChain.GenerateTx.Input qualified as Input
 import Cooked.MockChain.GenerateTx.Mint qualified as Mint
 import Cooked.MockChain.GenerateTx.Output qualified as Output
 import Cooked.MockChain.GenerateTx.Proposal qualified as Proposal
+import Cooked.MockChain.GenerateTx.Withdrawals qualified as Withdrawals
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Either.Combinators
@@ -59,6 +60,11 @@ instance Transform TxContext Input.InputContext where
 instance Transform TxContext Collateral.CollateralContext where
   transform TxContext {..} = Collateral.CollateralContext {..}
 
+instance Transform TxContext Withdrawals.WithdrawalsContext where
+  transform TxContext {..} =
+    let networkId = Emulator.pNetworkId params
+     in Withdrawals.WithdrawalsContext {..}
+
 -- | Generates a body content from a skeleton
 txSkelToBodyContent :: TxSkel -> BodyGen (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceTxOutRefs skel = do
@@ -91,9 +97,9 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
   txProposalProcedures <-
     Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
       <$> liftTxGen (Proposal.toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts))
+  txWithdrawals <- liftTxGen (Withdrawals.toWithdrawals txSkelWithdrawals)
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
-      txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well
       txUpdateProposal = Cardano.TxUpdateProposalNone -- That's what plutus-apps does as well
       txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
@@ -104,6 +110,7 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
 -- sign it with the required signers.
 txSkelToCardanoTx :: TxSkel -> BodyGen (Cardano.Tx Cardano.ConwayEra)
 txSkelToCardanoTx txSkel = do
+  -- We begin by creating the body content of the transaction
   txBodyContent <- txSkelToBodyContent txSkel
 
   -- We create the associated Shelley TxBody

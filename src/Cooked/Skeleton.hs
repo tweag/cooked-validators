@@ -67,6 +67,8 @@ module Cooked.Skeleton
     txSkelProposalActionL,
     txSkelProposalWitnessL,
     txSkelProposalAnchorL,
+    TxSkelWithdrawals,
+    txSkelWithdrawnValue,
     TxSkel (..),
     txSkelLabelL,
     txSkelOptsL,
@@ -76,6 +78,7 @@ module Cooked.Skeleton
     txSkelInsL,
     txSkelInsReferenceL,
     txSkelOutsL,
+    txSkelWithdrawalsL,
     txSkelTemplate,
     txSkelDataInOutputs,
     txSkelValidatorsInOutputs,
@@ -119,6 +122,7 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
 import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
@@ -582,6 +586,16 @@ withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toScript s, red)
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}
 
+-- * Description of the Withdrawals
+
+type TxSkelWithdrawals =
+  Map
+    (Either (Script.Versioned Script.Script, TxSkelRedeemer) Api.PubKeyHash)
+    Script.Ada
+
+txSkelWithdrawnValue :: TxSkel -> Api.Value
+txSkelWithdrawnValue = mconcat . (toValue . snd <$>) . Map.toList . txSkelWithdrawals
+
 -- * Description of the Minting
 
 -- | A description of what a transaction mints. For every policy, there can only
@@ -1014,8 +1028,11 @@ data TxSkel where
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
       txSkelOuts :: [TxSkelOut],
-      -- | Possible proposals issued in this transaction to be voted on and possible enacted later on.
-      txSkelProposals :: [TxSkelProposal]
+      -- | Possible proposals issued in this transaction to be voted on and
+      -- possible enacted later on.
+      txSkelProposals :: [TxSkelProposal],
+      -- | Withdrawals performed by the transaction
+      txSkelWithdrawals :: TxSkelWithdrawals
     } ->
     TxSkel
   deriving (Show, Eq)
@@ -1029,7 +1046,8 @@ makeLensesFor
     ("txSkelIns", "txSkelInsL"),
     ("txSkelInsReference", "txSkelInsReferenceL"),
     ("txSkelOuts", "txSkelOutsL"),
-    ("txSkelProposals", "txSkelProposalsL")
+    ("txSkelProposals", "txSkelProposalsL"),
+    ("txSkelWithdrawals", "txSkelWithdrawalsL")
   ]
   ''TxSkel
 
@@ -1045,7 +1063,8 @@ txSkelTemplate =
       txSkelIns = Map.empty,
       txSkelInsReference = Set.empty,
       txSkelOuts = [],
-      txSkelProposals = []
+      txSkelProposals = [],
+      txSkelWithdrawals = Map.empty
     }
 
 -- | The missing information on a 'TxSkel' that can only be resolved by querying

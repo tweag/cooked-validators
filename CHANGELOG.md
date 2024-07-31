@@ -17,6 +17,9 @@
   present but somehow disapeared.
 - It is now possible to reference an output which has a hashed datum.
 - `txSkelHashedData` the gives all the datum hashes in inputs and reference inputs.
+- Partial support for withdrawals in txSkels. The rewarding scripts will be ran
+  and assets will be transferred. However, these withdrawals are not properly
+  constrainted yet.
 
 ### Removed
 
