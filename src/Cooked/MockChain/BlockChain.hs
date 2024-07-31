@@ -45,7 +45,8 @@ module Cooked.MockChain.BlockChain
     txSkelReferenceInputUtxos,
     txSkelInputValidators,
     txSkelInputValue,
-    txSkelInputData,
+    txSkelHashedData,
+    txSkelConsumedData,
     lookupUtxos,
     lookupUtxosPl,
     validateTxSkel',
@@ -340,28 +341,40 @@ lookupUtxos =
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
 txSkelInputValue = (foldMap (Api.txOutValue . txOutV2FromLedger) <$>) . txSkelInputUtxos
 
--- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
-txSkelInputData skel = do
-  mDatumHashes <-
-    mapMaybe
-      ( \output ->
-          case output ^. outputDatumL of
-            Api.NoOutputDatum -> Nothing
-            Api.OutputDatum datum -> Just $ Script.datumHash datum
-            Api.OutputDatumHash dHash -> Just dHash
-      )
-      . Map.elems
-      <$> txSkelInputUtxosPl skel
-  Map.fromList
-    <$> mapM
-      ( \dHash ->
+-- | Looks up and resolves the hashed datums on UTxOs the transaction consumes
+-- or references, which will be needed by the transaction body.
+txSkelHashedData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
+txSkelHashedData skel = do
+  let outputToDatumHashM output = case output ^. outputDatumL of
+        Api.OutputDatumHash dHash -> Just dHash
+        _ -> Nothing
+  (Map.elems -> inputTxOuts) <- txSkelInputUtxosPl skel
+  (Map.elems -> refInputTxOuts) <- txSkelReferenceInputUtxosPl skel
+  foldM
+    ( \dat dHash ->
+        maybeErrM
+          (MCEUnknownDatum "txSkelHashedData: Transaction input with unknown datum hash" dHash)
+          (\rDat -> Map.insert dHash rDat dat)
+          (datumFromHash dHash)
+    )
+    Map.empty
+    (mapMaybe outputToDatumHashM $ inputTxOuts <> refInputTxOuts)
+
+-- | Looks us the data on UTxOs the transaction consumes. This corresponds to
+-- the keys of what should be removed from the stored datums in our mockchain.
+-- There can be duplicates, which is expected.
+txSkelConsumedData :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
+txSkelConsumedData skel = do
+  let outputToDatumHashM output = case output ^. outputDatumL of
+        Api.OutputDatumHash dHash ->
           maybeErrM
-            (MCEUnknownDatum "txSkelInputData: Transaction input with un-resolvable datum hash" dHash)
-            (dHash,)
+            (MCEUnknownDatum "txSkelConsumedData: Transaction input with unknown datum hash" dHash)
+            (Just . const dHash)
             (datumFromHash dHash)
-      )
-      mDatumHashes
+        Api.OutputDatum datum -> return $ Just $ Script.datumHash datum
+        Api.NoOutputDatum -> return Nothing
+  (Map.elems -> inputTxOuts) <- txSkelInputUtxosPl skel
+  catMaybes <$> mapM outputToDatumHashM inputTxOuts
 
 -- ** Slot and Time Management
 

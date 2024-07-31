@@ -16,7 +16,7 @@ alice, bob :: Wallet
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum :: InitialDistribution
 initialDistributionWithDatum =
-  InitialDistribution $ [withDatum, withInlineDatum, withDatumHash] <*> [paysPK alice (Script.ada 2)] <*> [10 :: Integer]
+  InitialDistribution $ [withDatum, withInlineDatum] <*> [paysPK alice (Script.ada 2)] <*> [10 :: Integer]
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
@@ -51,8 +51,8 @@ tests :: TestTree
 tests =
   testGroup
     "Initial distributions"
-    [ testCase "Reading datums placed in the initial distribution, inlined, hashed or vanilla" $
-        testSucceedsFrom' def (\results _ -> testBool $ results == [10, 10, 10]) initialDistributionWithDatum getValueFromInitialDatum,
+    [ testCase "Reading datums placed in the initial distribution, inlined or hashed" $
+        testSucceedsFrom' def (\results _ -> testBool $ results == [10, 10]) initialDistributionWithDatum getValueFromInitialDatum,
       testCase "Spending a script placed as a reference script in the initial distribution" $
         testSucceedsFrom def initialDistributionWithReferenceScript spendReferenceAlwaysTrueValidator
     ]

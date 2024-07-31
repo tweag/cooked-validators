@@ -355,9 +355,12 @@ prettyTxSkelOut opts (Pays output) =
                   "Datum (inlined):"
                     <+> (PP.align . prettyCookedOpt opts)
                       (output ^. outputDatumL)
-              Api.OutputDatumHash _datum ->
+              Api.OutputDatumHash dHash ->
                 Just $
-                  "Datum (hashed):"
+                  "Datum (hashed)"
+                    <+> "("
+                    <> prettyHash (pcOptHashes opts) (toHash dHash)
+                    <> "):"
                     <+> (PP.align . prettyCookedOpt opts)
                       (output ^. outputDatumL)
               Api.NoOutputDatum -> Nothing,
@@ -371,9 +374,19 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
   Just $
     "Datum (inlined):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
-prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
+prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
   Just $
-    "Datum (hashed):"
+    "Datum (hashed)"
+      <+> "("
+      <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+      <> "):"
+      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatum dat) =
+  Just $
+    "Datum (hashed)"
+      <+> "("
+      <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+      <> "):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked

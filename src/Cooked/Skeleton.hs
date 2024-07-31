@@ -49,11 +49,11 @@ module Cooked.Skeleton
     paysPK,
     paysScript,
     paysScriptInlineDatum,
-    paysScriptDatumHash,
+    paysScriptUnresolvedDatumHash,
     paysScriptNoDatum,
     withDatum,
     withInlineDatum,
-    withDatumHash,
+    withUnresolvedDatumHash,
     withReferenceScript,
     withStakingCredential,
     TxSkelRedeemer (..),
@@ -870,8 +870,9 @@ paysPK pkh value =
         (Nothing @(Script.Versioned Script.Script))
     )
 
--- | Pays a script a certain value with a certain datum, using the
+-- | Pays a script a certain value with a certain datum hash, using the
 -- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
+-- The datum is resolved in the transaction.
 paysScript ::
   ( Api.ToData (Script.DatumType a),
     Show (Script.DatumType a),
@@ -917,9 +918,9 @@ paysScriptInlineDatum validator datum value =
         (Nothing @(Script.Versioned Script.Script))
     )
 
--- | Pays a script a certain value with a certain hashed (not resolved in
--- transaction) datum.
-paysScriptDatumHash ::
+-- | Pays a script a certain value with a certain hashed datum which is not
+-- resolved in the transaction (as opposed to "paysScript").
+paysScriptUnresolvedDatumHash ::
   ( Api.ToData (Script.DatumType a),
     Show (Script.DatumType a),
     Typeable (Script.DatumType a),
@@ -931,7 +932,7 @@ paysScriptDatumHash ::
   Script.DatumType a ->
   Api.Value ->
   TxSkelOut
-paysScriptDatumHash validator datum value =
+paysScriptUnresolvedDatumHash validator datum value =
   Pays
     ( ConcreteOutput
         validator
@@ -942,7 +943,7 @@ paysScriptDatumHash validator datum value =
     )
 
 -- | Pays a script a certain value without any datum. Intended to be used with
--- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
+-- 'withDatum', 'withUnresolvedDatumHash', or 'withInlineDatum' to try a datum whose type
 -- does not match the validator's.
 paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Api.Value -> TxSkelOut
 paysScriptNoDatum validator value =
@@ -968,8 +969,8 @@ withInlineDatum (Pays output) datum = Pays $ (fromAbstractOutput output) {concre
 -- | Set the datum in a payment to the given hashed (not resolved in the
 -- transaction) datum (whose type may not fit the typed validator in case of a
 -- script).
-withDatumHash :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
-withDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatumHash datum}
+withUnresolvedDatumHash :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
+withUnresolvedDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatumHash datum}
 
 -- | Add a reference script to a transaction output (or replace it if there is
 -- already one)
@@ -1058,18 +1059,19 @@ data SkelContext = SkelContext
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
--- | Return all data on transaction outputs.
-txSkelDataInOutputs :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
+-- | Return all data on transaction outputs. This can contain duplicates, which
+-- is intended.
+txSkelDataInOutputs :: TxSkel -> [(Api.DatumHash, TxSkelOutDatum)]
 txSkelDataInOutputs =
   foldMapOf
     ( txSkelOutsL
         % folded
         % txSkelOutDatumL
     )
-    ( \txSkelOutDatum -> do
+    ( \txSkelOutDatum ->
         maybe
-          Map.empty
-          (\datum -> Map.singleton (Script.datumHash datum) txSkelOutDatum)
+          []
+          (\datum -> [(Script.datumHash datum, txSkelOutDatum)])
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
 

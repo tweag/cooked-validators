@@ -260,7 +260,7 @@ estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collateral
 estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
-  managedData <- txSkelInputData skel
+  managedData <- txSkelHashedData skel
   managedTxOuts <- lookupUtxosPl $ txSkelKnownTxOutRefs skel <> Set.toList collateralIns
   managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime

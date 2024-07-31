@@ -110,6 +110,7 @@ library
     , cardano-api
     , cardano-crypto
     , cardano-data
+    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley
@@ -203,6 +204,7 @@ test-suite spec
     , cardano-api
     , cardano-crypto
     , cardano-data
+    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley

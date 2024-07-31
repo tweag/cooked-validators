@@ -1,7 +1,14 @@
 module Cooked.MockChain.GenerateTx.Body where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Ledger.Alonzo.Tx qualified as Alonzo
+import Cardano.Ledger.Alonzo.TxBody qualified as Alonzo
+import Cardano.Ledger.Alonzo.TxWits qualified as Alonzo
+import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Ledger.Plutus qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Control.Lens qualified as Lens
 import Control.Monad
 import Control.Monad.Reader
 import Cooked.MockChain.GenerateTx.Collateral qualified as Collateral
@@ -12,10 +19,11 @@ import Cooked.MockChain.GenerateTx.Output qualified as Output
 import Cooked.MockChain.GenerateTx.Proposal qualified as Proposal
 import Cooked.Skeleton
 import Cooked.Wallet
-import Data.Bifunctor
+import Data.Either.Combinators
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
+import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
@@ -86,8 +94,8 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well
-      txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txUpdateProposal = Cardano.TxUpdateProposalNone -- That's what plutus-apps does as well
+      txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
       txVotingProcedures = Nothing -- TODO, same as above
   return Cardano.TxBodyContent {..}
@@ -97,17 +105,50 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
 txSkelToCardanoTx :: TxSkel -> BodyGen (Cardano.Tx Cardano.ConwayEra)
 txSkelToCardanoTx txSkel = do
   txBodyContent <- txSkelToBodyContent txSkel
-  cardanoTxUnsigned <-
-    lift $
-      bimap
-        (TxBodyError "generateTx: ")
-        (`Cardano.Tx` [])
-        (Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent)
-  foldM
-    ( \tx wal ->
-        case Ledger.addCardanoTxWitness (Ledger.toWitness $ Ledger.PaymentPrivateKey $ walletSK wal) (Ledger.CardanoTx tx Cardano.ShelleyBasedEraConway) of
-          Ledger.CardanoTx tx' Cardano.ShelleyBasedEraConway -> return tx'
-          _ -> throwOnString "txSkelToCardanoTx: Wrong output era"
-    )
-    cardanoTxUnsigned
-    (txSkelSigners txSkel)
+
+  -- We create the associated Shelley TxBody
+  txBody@(Cardano.ShelleyTxBody a body c dats e f) <-
+    lift $ mapLeft (TxBodyError "generateTx :") $ Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent
+
+  -- There is a chance that the body is in need of additional data. This happens
+  -- when the set of reference inputs contains hashed datums that will need to
+  -- be resolved during phase 2 validation. All that follows until the
+  -- definition of "txBody'" aims at doing just that. In the process, we have to
+  -- reconstruct the body with the new data and the associated hash. Hopefully,
+  -- in the future, cardano-api provides a way to add those data in the body
+  -- directly without requiring this methods, which somewhat feels like a hack.
+  mData <- asks managedData
+  mTxOut <- asks managedTxOuts
+  refIns <- forM (txSkelReferenceTxOutRefs txSkel) $ \oRef ->
+    throwOnLookup ("txSkelToCardanoTx: Unable to resolve TxOutRef " <> show oRef) oRef mTxOut
+  let datumHashes = [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
+  additionalData <- forM datumHashes $ \dHash ->
+    throwOnLookup ("txSkelToCardanoTx: Unable to resolve datum hash " <> show dHash) dHash mData
+  let additionalDataMap = Map.fromList [(Cardano.hashData dat, dat) | Api.Datum (Cardano.Data . Api.toData -> dat) <- additionalData]
+  toLangDepViewParam <- asks (Conway.getLanguageView . Cardano.unLedgerProtocolParameters . Emulator.ledgerProtocolParameters . params)
+  let txDats' = Alonzo.TxDats additionalDataMap
+      (era, datums, redeemers) = case dats of
+        Cardano.TxBodyNoScriptData -> (Cardano.AlonzoEraOnwardsConway, txDats', Alonzo.Redeemers Map.empty)
+        Cardano.TxBodyScriptData era' txDats reds -> (era', txDats <> txDats', reds)
+      witnesses = Cardano.collectTxBodyScriptWitnesses Cardano.ShelleyBasedEraConway txBodyContent
+      languages = [toCardanoLanguage v | (_, Cardano.AnyScriptWitness (Cardano.PlutusScriptWitness _ v _ _ _ _)) <- witnesses]
+      scriptIntegrityHash =
+        Cardano.alonzoEraOnwardsConstraints era $
+          Alonzo.hashScriptIntegrity (Set.fromList $ toLangDepViewParam <$> languages) redeemers datums
+      body' = body Lens.& Alonzo.scriptIntegrityHashTxBodyL Lens..~ scriptIntegrityHash
+      txBody' = Cardano.ShelleyTxBody a body' c (Cardano.TxBodyScriptData era datums redeemers) e f
+
+  -- We return the transaction signed by all the required signers. The body is
+  -- chosen based on whether or not it required additional data.
+  return $
+    Ledger.getEmulatorEraTx $
+      foldl
+        (flip Ledger.addCardanoTxWitness)
+        (Ledger.CardanoEmulatorEraTx $ Cardano.Tx (if null additionalDataMap then txBody else txBody') [])
+        (Ledger.toWitness . Ledger.PaymentPrivateKey . walletSK <$> txSkelSigners txSkel)
+  where
+    toCardanoLanguage :: Cardano.PlutusScriptVersion lang -> Cardano.Language
+    toCardanoLanguage = \case
+      Cardano.PlutusScriptV1 -> Cardano.PlutusV1
+      Cardano.PlutusScriptV2 -> Cardano.PlutusV2
+      Cardano.PlutusScriptV3 -> Cardano.PlutusV3

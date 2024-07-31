@@ -170,7 +170,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
-    insData <- txSkelInputData skel
+    hashedData <- txSkelHashedData skel
+    insData <- txSkelConsumedData skel
     insValidators <- txSkelInputValidators skel
     insMap <- txSkelInputUtxosPl skel
     refInsMap <- txSkelReferenceInputUtxosPl skel
@@ -178,7 +179,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.
-    cardanoTx <- case generateTx fee returnCollateralWallet collateralIns newParams insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx <- case generateTx fee returnCollateralWallet collateralIns newParams hashedData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
       Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
@@ -210,8 +211,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       -- Otherwise, we update known validators and datums.
       Nothing ->
         modify'
-          ( removeDatums (Map.keys insData)
-              . addDatums (Map.toList $ txSkelDataInOutputs skel)
+          ( removeDatums insData
+              . addDatums (txSkelDataInOutputs skel)
               . addValidators (txSkelValidatorsInOutputs skel <> txSkelReferenceScripts skel)
           )
     -- We apply a change of slot when requested in the options

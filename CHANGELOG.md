@@ -15,6 +15,8 @@
 - `validatorToTypedValidatorV2`
 - `walletPKHashToWallet` that retrives a wallet from a pkh. It used to be
   present but somehow disapeared.
+- It is now possible to reference an output which has a hashed datum.
+- `txSkelHashedData` the gives all the datum hashes in inputs and reference inputs.
 
 ### Removed
 
@@ -29,6 +31,11 @@
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
 - `mkProposingScript` changed to `mkScript`
+- `withDatumHashed` changed to `withUnresolvedDatumHash`
+- `paysScriptDatumHashed` changed to `paysScriptUnresolvedDatumHash`
+- `txSkelInputData` changed to `txSkelConsumedData`
+- Pretty printing of hashed datum now includes the hash (and not only the
+  resolved datum).
 
 ### Fixed
 
