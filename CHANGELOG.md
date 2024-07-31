@@ -9,6 +9,7 @@
 - `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
   distribution only provides outputs with the required minimal ada based on
   default parameters.
+- All kinds of scripts can now be used as reference scripts.
 
 ### Removed
 
@@ -25,7 +26,8 @@
 
 ### Fixed
 
-- All kinds of scripts can now be used as reference scripts.
+- A bug where the script hashes would not be computed properly for early plutus
+  version (V1 and V2).
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 

@@ -45,8 +45,8 @@ toRewardAccount cred =
 
 -- | Translate a script and a reference script utxo into into either a plutus
 -- script or a reference input containing the right script
-toPlutusScriptOrReferenceInput :: Api.SerialisedScript -> Maybe Api.TxOutRef -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang)
-toPlutusScriptOrReferenceInput script Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
+toPlutusScriptOrReferenceInput :: Script.Versioned Script.Script -> Maybe Api.TxOutRef -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang)
+toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
   referenceScriptsMap <- asks $ Map.mapMaybe (^. outputReferenceScriptL)
   refScriptHash <-
@@ -69,7 +69,7 @@ toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
 toScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) (TxSkelRedeemer {..}) datum =
+toScriptWitness (toScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
   let scriptData = case txSkelRedeemer of
         EmptyRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
         SomeRedeemer s -> Ledger.toCardanoScriptData $ Api.toBuiltinData s
