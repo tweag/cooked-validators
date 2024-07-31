@@ -52,7 +52,7 @@ import PlutusLedgerApi.V3 qualified as Api
 -- complexity the 'Contract' monad introduces.
 --
 -- Running a 'MockChain' produces a 'UtxoState', a simplified view on
--- 'Api.UtxoIndex', which we also keep in our state.
+-- 'Ledger.UtxoIndex', which we also keep in our state.
 
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
@@ -309,6 +309,22 @@ getIndex =
             Cardano.TxOutDatumHash s h -> Cardano.TxOutDatumHash s h
             Cardano.TxOutDatumInline s sd -> Cardano.TxOutDatumInline s sd
        in Cardano.TxOut addr val dat refS
+
+toIndex :: Map Api.TxOutRef Ledger.TxOut -> Either Ledger.ToCardanoError Ledger.UtxoIndex
+toIndex innerMap = do
+  let (txOutRefL, txOutL) = unzip $ Map.toList innerMap
+  txInL <- forM txOutRefL Ledger.toCardanoTxIn
+  txOutL' <- forM (Ledger.getTxOut <$> txOutL) toCtxUTxOTxOut
+  return $ Cardano.UTxO $ Map.fromList $ zip txInL txOutL'
+  where
+    toCtxUTxOTxOut :: Cardano.TxOut Cardano.CtxTx era -> Either Ledger.ToCardanoError (Cardano.TxOut Cardano.CtxUTxO era)
+    toCtxUTxOTxOut (Cardano.TxOut addr val d refS) = do
+      dat <- case d of
+        Cardano.TxOutDatumNone -> return Cardano.TxOutDatumNone
+        Cardano.TxOutDatumInTx _ _ -> Left $ Ledger.TxBodyError "Wrong datum kind"
+        Cardano.TxOutDatumHash s h -> return $ Cardano.TxOutDatumHash s h
+        Cardano.TxOutDatumInline s sd -> return $ Cardano.TxOutDatumInline s sd
+      return $ Cardano.TxOut addr val dat refS
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
