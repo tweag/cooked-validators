@@ -44,6 +44,8 @@
 
 - A bug where the script hashes would not be computed properly for early plutus
   version (V1 and V2).
+- A bug where balancing would fail with excessive inputs and not enough min ada
+  in the excess.
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
