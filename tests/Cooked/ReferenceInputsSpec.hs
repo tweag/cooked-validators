@@ -129,8 +129,8 @@ trace2 = do
     validateTxSkel'
       ( txSkelTemplate
           { txSkelOuts =
-              [ paysPK (wallet 1) (ada 2) `withDatum` (10 :: Integer),
-                paysScript bazTypedValidator () (ada 10)
+              [ paysPK (wallet 1) (Script.ada 2) `withDatum` (10 :: Integer),
+                paysScript bazTypedValidator () (Script.ada 10)
               ],
             txSkelSigners = [wallet 2]
           }
