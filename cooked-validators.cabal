@@ -44,6 +44,7 @@ library
       Cooked.MockChain.GenerateTx.Proposal
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
+      Cooked.MockChain.MockChainSt
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch

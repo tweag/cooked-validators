@@ -30,6 +30,7 @@ import Control.Monad.Trans.Writer (WriterT (runWriterT), tell)
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
+import Cooked.MockChain.MockChainSt
 import Cooked.MockChain.UtxoState
 import Cooked.Skeleton
 import Cooked.Tweak.Common
