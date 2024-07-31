@@ -18,16 +18,13 @@ import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Bifunctor
-import Data.Either.Combinators
 import Data.Function
 import Data.List
-import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Ledger.Index qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
@@ -279,28 +276,13 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
     Right txBody -> return txBody
   -- We retrieve the estimate number of required witness in the transaction
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
-  index <- toIndex <$> lookupUtxos (txSkelKnownTxOutRefs skel <> Set.toList collateralIns)
-  case index of
-    Left err -> throwError $ MCEGenerationError err
-    -- We return an accurate estimate of the resulting transaction fee
-    Right index' ->
-      return . Emulator.unCoin $
-        Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index' txBody nkeys
-  where
-    toIndex :: Map Api.TxOutRef Ledger.TxOut -> Either GenerateTxError Ledger.UtxoIndex
-    toIndex innerMap = do
-      let (txOutRefL, txOutL) = unzip $ Map.toList innerMap
-      txInL <- mapLeft (ToCardanoError "toIndex: unable to generate TxOut") $ forM txOutRefL Ledger.toCardanoTxIn
-      txOutL' <- forM (Ledger.getTxOut <$> txOutL) toCtxUTxOTxOut
-      return $ Cardano.UTxO $ Map.fromList $ zip txInL txOutL'
-    toCtxUTxOTxOut :: Cardano.TxOut Cardano.CtxTx era -> Either GenerateTxError (Cardano.TxOut Cardano.CtxUTxO era)
-    toCtxUTxOTxOut (Cardano.TxOut addr val d refS) = do
-      dat <- case d of
-        Cardano.TxOutDatumNone -> return Cardano.TxOutDatumNone
-        Cardano.TxOutDatumInTx _ _ -> Left $ GenerateTxErrorGeneral "Wrong datum kind"
-        Cardano.TxOutDatumHash s h -> return $ Cardano.TxOutDatumHash s h
-        Cardano.TxOutDatumInline s sd -> return $ Cardano.TxOutDatumInline s sd
-      return $ Cardano.TxOut addr val dat refS
+  -- We need to reconstruct an index to pass to the fee estimate function
+  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> Set.toList collateralIns)
+  index <- case forM knownTxORefs Ledger.toCardanoTxIn of
+    Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: unable to generate TxIn" err
+    Right txInL -> return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut . Ledger.getTxOut <$> knownTxOuts
+  -- We finally can the fee estimate function
+  return . Emulator.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
