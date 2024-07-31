@@ -10,6 +10,11 @@
   distribution only provides outputs with the required minimal ada based on
   default parameters.
 - All kinds of scripts can now be used as reference scripts.
+- `validateTxSkel_` which validates a skeleton and ignores the output.
+- `txSkelMintsFromList'` which only allows one redeemer per minting policy.
+- `validatorToTypedValidatorV2`
+- `walletPKHashToWallet` that retrives a wallet from a pkh. It used to be
+  present but somehow disapeared.
 
 ### Removed
 
@@ -23,6 +28,7 @@
   constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
+- `mkProposingScript` changed to `mkScript`
 
 ### Fixed
 

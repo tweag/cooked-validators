@@ -35,6 +35,7 @@ module Cooked.Skeleton
     addToTxSkelMints,
     txSkelMintsToList,
     txSkelMintsFromList,
+    txSkelMintsFromList',
     txSkelMintsValue,
     txSkelOutValueL,
     txSkelOutDatumL,
@@ -608,11 +609,7 @@ type TxSkelMints =
 -- In every case, if you add mints with a different redeemer for the same
 -- policy, the redeemer used in the right argument takes precedence.
 instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
-  a <> b =
-    foldl
-      (flip addToTxSkelMints)
-      a
-      (txSkelMintsToList b)
+  a <> b = foldl (flip addToTxSkelMints) a (txSkelMintsToList b)
 
 instance {-# OVERLAPPING #-} Monoid TxSkelMints where
   mempty = Map.empty
@@ -693,6 +690,11 @@ txSkelMintsToList =
 -- 'TxSkelMints'.
 txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer)] -> TxSkelMints
 txSkelMintsFromList = foldr addToTxSkelMints mempty
+
+-- | Another smart constructor for 'TxSkelMints', where the redeemer and minting
+-- policies are not duplicated.
+txSkelMintsFromList' :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, [(Api.TokenName, Integer)])] -> TxSkelMints
+txSkelMintsFromList' = txSkelMintsFromList . concatMap (\(mp, r, m) -> (\(tn, i) -> (mp, r, tn, i)) <$> m)
 
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Api.Value
@@ -1001,7 +1003,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'TxSkelEmptyRedeemer' constructor.
+      --   the 'txSkelEmptyRedeemer' smart constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.

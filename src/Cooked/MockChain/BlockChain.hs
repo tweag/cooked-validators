@@ -49,6 +49,7 @@ module Cooked.MockChain.BlockChain
     lookupUtxos,
     lookupUtxosPl,
     validateTxSkel',
+    validateTxSkel_,
     txSkelProposalsDeposit,
     govActionDeposit,
   )
@@ -163,6 +164,10 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
 validateTxSkel' :: (MonadBlockChain m) => TxSkel -> m [Api.TxOutRef]
 validateTxSkel' = (map fst . utxosFromCardanoTx <$>) . validateTxSkel
 
+-- | Validates a skeleton, and erases the outputs
+validateTxSkel_ :: (MonadBlockChain m) => TxSkel -> m ()
+validateTxSkel_ = void . validateTxSkel
+
 allUtxos :: (MonadBlockChainWithoutValidation m) => m [(Api.TxOutRef, Api.TxOut)]
 allUtxos = fmap (second txOutV2FromLedger) <$> allUtxosLedger
 
@@ -200,16 +205,9 @@ resolveDatum out = do
     Api.OutputDatumHash datumHash -> datumFromHash datumHash
     Api.OutputDatum datum -> return $ Just datum
     Api.NoOutputDatum -> return Nothing
-  return $
-    ( \mDat ->
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (out ^. outputStakingCredentialL)
-          mDat
-          (out ^. outputValueL)
-          (out ^. outputReferenceScriptL)
-    )
-      <$> mDatum
+  return $ do
+    mDat <- mDatum
+    return $ (fromAbstractOutput out) {concreteOutputDatum = mDat}
 
 -- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
 -- datum of the suitable type.
@@ -223,19 +221,11 @@ resolveTypedDatum ::
   m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
 resolveTypedDatum out = do
   mOut <- resolveDatum out
-  return $
-    ( \out' -> do
-        let Api.Datum datum = out' ^. outputDatumL
-        dat <- Api.fromBuiltinData datum
-        return $
-          ConcreteOutput
-            (out' ^. outputOwnerL)
-            (out' ^. outputStakingCredentialL)
-            dat
-            (out' ^. outputValueL)
-            (out' ^. outputReferenceScriptL)
-    )
-      =<< mOut
+  return $ do
+    out' <- mOut
+    let Api.Datum datum = out' ^. outputDatumL
+    dat <- Api.fromBuiltinData datum
+    return $ (fromAbstractOutput out) {concreteOutputDatum = dat}
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
@@ -252,16 +242,9 @@ resolveValidator out =
     Api.PubKeyCredential _ -> return Nothing
     Api.ScriptCredential (Api.ScriptHash hash) -> do
       mVal <- validatorFromHash (Script.ValidatorHash hash)
-      return $
-        ( \val ->
-            ConcreteOutput
-              val
-              (out ^. outputStakingCredentialL)
-              (out ^. outputDatumL)
-              (out ^. outputValueL)
-              (out ^. outputReferenceScriptL)
-        )
-          <$> mVal
+      return $ do
+        val <- mVal
+        return $ (fromAbstractOutput out) {concreteOutputOwner = val}
 
 -- | Try to resolve the reference script on an output: If the output has no
 -- reference script, or if the reference script's hash is not known (i.e. if
@@ -273,22 +256,12 @@ resolveReferenceScript ::
   ) =>
   out ->
   m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Script.Versioned Script.Validator)))
-resolveReferenceScript out =
-  maybe
-    (return Nothing)
-    ( \(Api.ScriptHash hash) ->
-        ( \mVal ->
-            ConcreteOutput
-              (out ^. outputOwnerL)
-              (out ^. outputStakingCredentialL)
-              (out ^. outputDatumL)
-              (out ^. outputValueL)
-              . Just
-              <$> mVal
-        )
-          <$> validatorFromHash (Script.ValidatorHash hash)
-    )
-    $ outputReferenceScriptHash out
+resolveReferenceScript out | Just (Api.ScriptHash hash) <- outputReferenceScriptHash out = do
+  mVal <- validatorFromHash (Script.ValidatorHash hash)
+  return $ do
+    val <- mVal
+    return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just val}
+resolveReferenceScript _ = return Nothing
 
 outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
