@@ -305,7 +305,7 @@ estimateTxSkelFee skel fee mCollaterals = do
   params <- getParams
   managedData <- txSkelHashedData skel
   let collateralIns = maybe [] (Set.toList . fst) mCollaterals
-  managedTxOuts <- lookupUtxosPl $ txSkelKnownTxOutRefs skel <> collateralIns
+  managedTxOuts <- lookupUtxos $ txSkelKnownTxOutRefs skel <> collateralIns
   managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime
   txBodyContent <- case generateBodyContent fee params managedData managedTxOuts managedValidators mCollaterals skel of

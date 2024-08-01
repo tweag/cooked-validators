@@ -73,12 +73,12 @@ data MockChainBuiltin a where
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRefLedger :: Api.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
+  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe Api.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
   DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe Api.Datum)
-  AllUtxosLedger :: MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
-  UtxosAtLedger :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
+  AllUtxos :: MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
+  UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
   ValidatorFromHash :: Script.ValidatorHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Validator))
   Publish :: MockChainLogEntry -> MockChainBuiltin ()
   -- | The empty set of traces
@@ -125,13 +125,13 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         (_, skel') <- lift $ runTweakInChain now skel
         put later
         validateTxSkel skel'
-  interpBuiltin (TxOutByRefLedger o) = txOutByRefLedger o
+  interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin (ValidatorFromHash h) = validatorFromHash h
-  interpBuiltin AllUtxosLedger = allUtxosLedger
-  interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
+  interpBuiltin AllUtxos = allUtxos
+  interpBuiltin (UtxosAt address) = utxosAt address
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = fail msg
@@ -199,13 +199,13 @@ instance MonadError MockChainError StagedMockChain where
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
   datumFromHash = singletonBuiltin . DatumFromHash
-  txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
-  utxosAtLedger = singletonBuiltin . UtxosAtLedger
+  txOutByRef = singletonBuiltin . TxOutByRef
+  utxosAt = singletonBuiltin . UtxosAt
   validatorFromHash = singletonBuiltin . ValidatorFromHash
   publish = singletonBuiltin . Publish
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
-  allUtxosLedger = singletonBuiltin AllUtxosLedger
+  allUtxos = singletonBuiltin AllUtxos
   setParams = singletonBuiltin . SetParams
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot

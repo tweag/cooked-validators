@@ -125,13 +125,13 @@ runMockChain = runIdentity . runMockChainT
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
-  txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
+  txOutByRef outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
-  utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
+  utxosAt addr = filter ((addr ==) . outputAddress . snd) <$> allUtxos
   publish l = tell [l]
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
-  allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
+  allUtxos = gets $ Map.toList . getIndex . mcstIndex
   setParams newParams = modify (\st -> st {mcstParams = newParams})
   currentSlot = gets mcstCurrentSlot
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
@@ -160,9 +160,9 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     hashedData <- txSkelHashedData skel
     insData <- txSkelConsumedData skel
     insValidators <- txSkelInputValidators skel
-    insMap <- txSkelInputUtxosPl skel
-    refInsMap <- txSkelReferenceInputUtxosPl skel
-    collateralInsMap <- maybe (return Map.empty) (lookupUtxosPl . Set.toList . fst) mCollaterals
+    insMap <- txSkelInputUtxos skel
+    refInsMap <- txSkelReferenceInputUtxos skel
+    collateralInsMap <- maybe (return Map.empty) (lookupUtxos . Set.toList . fst) mCollaterals
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.

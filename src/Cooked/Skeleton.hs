@@ -1128,7 +1128,7 @@ txSkelReferenceTxOutRefs TxSkel {..} =
   Set.toList txSkelInsReference
     -- reference inputs in inputs redeemers
     <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
-    -- reference inputs in porposals redeemers
+    -- reference inputs in proposals redeemers
     <> mapMaybe (txSkelReferenceScript . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
     -- reference inputs in mints redeemers
     <> mapMaybe (txSkelReferenceScript . fst . snd) (Map.toList txSkelMints)

@@ -49,10 +49,10 @@ instance Default MockChainSt where
 
 -- | Converts a builtin UtxoIndex into our own usable map between utxos and
 -- associated outputs.
-getIndex :: Ledger.UtxoIndex -> Map Api.TxOutRef Ledger.TxOut
+getIndex :: Ledger.UtxoIndex -> Map Api.TxOutRef Api.TxOut
 getIndex =
   Map.fromList
-    . map (bimap Ledger.fromCardanoTxIn (Ledger.TxOut . toCtxTxTxOut))
+    . map (bimap Ledger.fromCardanoTxIn (Ledger.fromCardanoTxOutToPV2TxInfoTxOut . toCtxTxTxOut))
     . Map.toList
     . Cardano.unUTxO
   where
@@ -99,7 +99,7 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
 mcstToSkelContext :: MockChainSt -> SkelContext
 mcstToSkelContext MockChainSt {..} =
   SkelContext
-    (Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut <$> getIndex mcstIndex)
+    (getIndex mcstIndex)
     (Map.map fst mcstDatums)
 
 -- | Generating an emulated state for the emulator from a mockchain state and
