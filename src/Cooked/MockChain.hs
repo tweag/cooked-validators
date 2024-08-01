@@ -6,6 +6,7 @@ import Cooked.MockChain.Balancing as X
 import Cooked.MockChain.BlockChain as X
 import Cooked.MockChain.Direct as X
 import Cooked.MockChain.MinAda as X
+import Cooked.MockChain.MockChainSt as X (MockChainSt (..), mockChainSt0From)
 import Cooked.MockChain.Staged as X hiding
   ( MockChainLog,
     MockChainLogEntry,

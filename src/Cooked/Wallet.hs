@@ -7,6 +7,7 @@ module Cooked.Wallet
   ( knownWallets,
     wallet,
     walletPKHashToId,
+    walletPKHashToWallet,
     walletPK,
     walletStakingPK,
     walletPKHash,
@@ -65,6 +66,10 @@ wallet j
 -- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@
 walletPKHashToId :: Api.PubKeyHash -> Maybe Int
 walletPKHashToId = (succ <$>) . flip elemIndex (walletPKHash <$> knownWallets)
+
+-- | Retrieves the known wallet that corresponds to a public key hash
+walletPKHashToWallet :: Api.PubKeyHash -> Maybe Wallet
+walletPKHashToWallet pkh = wallet . fromIntegral <$> walletPKHashToId pkh
 
 -- | Retrieves a wallet public key (PK)
 walletPK :: Wallet -> Ledger.PubKey

@@ -155,7 +155,7 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
           txSkelIns = Map.singleton theTxOutRef $ txSkelSomeRedeemer (),
           txSkelOuts =
             [ ( case datumKindOnSecondPayment of
-                  OnlyHash -> paysScriptDatumHash validator SecondPaymentDatum
+                  OnlyHash -> paysScriptUnresolvedDatumHash validator SecondPaymentDatum
                   Datum -> paysScript validator SecondPaymentDatum
                   Inline -> paysScriptInlineDatum validator SecondPaymentDatum
               )

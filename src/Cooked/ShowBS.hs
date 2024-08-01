@@ -370,7 +370,7 @@ instance ShowBS Api.TxInfo where
       <> showBS txInfoMint
       <> "certificates:"
       <> showBS txInfoTxCerts
-      <> "wdrl:" -- TODO: what is wdrl? Explain better here
+      <> "wdrl:"
       <> showBS txInfoWdrl
       <> "valid range:"
       <> showBS txInfoValidRange

@@ -260,7 +260,7 @@ estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collateral
 estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
-  managedData <- txSkelInputData skel
+  managedData <- txSkelHashedData skel
   managedTxOuts <- lookupUtxosPl $ txSkelKnownTxOutRefs skel <> Set.toList collateralIns
   managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime
@@ -278,24 +278,40 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
--- value = output value + burned value + fee + deposits
+-- value + withdrawn value = output value + burned value + fee + deposits
 computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
+  params <- getParams
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
   let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
       outValue = txSkelValueInOutputs txSkel
+      withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
   depositedValue <- toValue <$> txSkelProposalsDeposit txSkel
   -- We compute the values missing in the left and right side of the equation
-  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue)
+  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
+  -- We compute the minimal ada requirement of the missing payment
+  rightMinAda <- case getTxSkelOutMinAda params $ paysPK balancingWallet missingRight of
+    Left err -> throwError $ MCEGenerationError err
+    Right a -> return a
+  -- We compute the current ada of the missing payment. If the missing payment
+  -- is not empty and the minimal ada is not present, some value is missing.
+  let Script.Lovelace rightAda = missingRight ^. Script.adaL
+      missingAda = rightMinAda - rightAda
+      missingAdaValue = if missingRight /= mempty && missingAda > 0 then Script.lovelace missingAda else mempty
+  -- The actual missing value on the left might needs to account for any missing
+  -- min ada on the missing payment of the transaction skeleton. This also has
+  -- to be repercuted on the missing value on the right.
+  let missingLeft' = missingLeft <> missingAdaValue
+      missingRight' = missingRight <> missingAdaValue
   -- This gives us what we need to run our `reachValue` algorithm and append to
   -- the resulting values whatever payment was missing in the initial skeleton
-  let candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
+  let candidatesRaw = second (<> missingRight') <$> reachValue balancingUtxos missingLeft' (toInteger $ length balancingUtxos)
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing wallet
   let totalValue = mconcat $ Api.txOutValue . snd <$> balancingUtxos
-      difference = snd $ Api.split $ missingLeft <> PlutusTx.negate totalValue
+      difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
       balancingError = MCEUnbalanceable balancingWallet difference txSkel
   -- Which one of our candidates should be picked depends on three factors
   -- - Whether there exists a perfect candidate set with empty surplus value

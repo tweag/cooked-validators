@@ -6,7 +6,9 @@ module Cooked.Validators
     alwaysFalseValidator,
     alwaysFalseProposingValidator,
     alwaysTrueProposingValidator,
-    mkProposingScript,
+    mkScript,
+    validatorToTypedValidator,
+    validatorToTypedValidatorV2,
     MockContract,
   )
 where
@@ -34,6 +36,20 @@ validatorToTypedValidator val =
     forwardingPolicy = Script.mkForwardingMintingPolicy vValidatorHash
     vMintingPolicy = Script.Versioned forwardingPolicy Script.PlutusV3
 
+validatorToTypedValidatorV2 :: Script.Validator -> Script.TypedValidator a
+validatorToTypedValidatorV2 val =
+  Script.TypedValidator
+    { Script.tvValidator = vValidator,
+      Script.tvValidatorHash = vValidatorHash,
+      Script.tvForwardingMPS = vMintingPolicy,
+      Script.tvForwardingMPSHash = Script.mintingPolicyHash vMintingPolicy
+    }
+  where
+    vValidator = Script.Versioned val Script.PlutusV2
+    vValidatorHash = Script.validatorHash vValidator
+    forwardingPolicy = Script.mkForwardingMintingPolicy vValidatorHash
+    vMintingPolicy = Script.Versioned forwardingPolicy Script.PlutusV2
+
 -- | The trivial validator that always succeds; this is in particular a
 -- sufficient target for the datum hijacking attack since we only want to show
 -- feasibility of the attack.
@@ -54,14 +70,14 @@ instance Script.ValidatorTypes MockContract where
 -- | A dummy false proposing validator
 alwaysFalseProposingValidator :: Script.Versioned Script.Script
 alwaysFalseProposingValidator =
-  mkProposingScript $$(PlutusTx.compile [||PlutusTx.traceError "False proposing validator"||])
+  mkScript $$(PlutusTx.compile [||PlutusTx.traceError "False proposing validator"||])
 
 -- | A dummy true proposing validator
 alwaysTrueProposingValidator :: Script.Versioned Script.Script
 alwaysTrueProposingValidator =
-  mkProposingScript $$(PlutusTx.compile [||\_ _ -> ()||])
+  mkScript $$(PlutusTx.compile [||\_ _ -> ()||])
 
--- | Helper to build a proposing script. This should come from
--- plutus-script-utils at some point.
-mkProposingScript :: PlutusTx.CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> ()) -> Script.Versioned Script.Script
-mkProposingScript code = Script.Versioned (Script.Script $ Api.serialiseCompiledCode code) Script.PlutusV3
+-- | Helper to build a script. This should come from plutus-script-utils at some
+-- point.
+mkScript :: PlutusTx.CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> ()) -> Script.Versioned Script.Script
+mkScript code = Script.Versioned (Script.Script $ Api.serialiseCompiledCode code) Script.PlutusV3

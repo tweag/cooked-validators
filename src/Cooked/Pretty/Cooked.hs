@@ -170,7 +170,7 @@ instance PrettyCooked MockChainLog where
       go acc [] = reverse acc
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
-prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals) =
+prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =
   prettyItemize
     "transaction skeleton:"
     "-"
@@ -183,9 +183,23 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
           prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
           prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs),
-          prettyItemizeNonEmpty "Proposals:" "-" (prettyTxSkelProposal opts <$> proposals)
+          prettyItemizeNonEmpty "Proposals:" "-" (prettyTxSkelProposal opts <$> proposals),
+          prettyWithdrawals opts withdrawals
         ]
     )
+
+prettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
+prettyWithdrawals pcOpts withdrawals =
+  prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
+  where
+    prettyWithdrawal :: (Either (Script.Versioned Script.Script, TxSkelRedeemer) Api.PubKeyHash, Script.Ada) -> DocCooked
+    prettyWithdrawal (cred, ada) =
+      prettyItemizeNoTitle "-" $
+        ( case cred of
+            Left (script, red) -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
+            Right pkh -> [prettyCookedOpt pcOpts pkh]
+        )
+          ++ [prettyCookedOpt pcOpts (toValue ada)]
 
 prettyTxParameterChange :: PrettyCookedOpts -> TxParameterChange -> DocCooked
 prettyTxParameterChange opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
@@ -355,9 +369,12 @@ prettyTxSkelOut opts (Pays output) =
                   "Datum (inlined):"
                     <+> (PP.align . prettyCookedOpt opts)
                       (output ^. outputDatumL)
-              Api.OutputDatumHash _datum ->
+              Api.OutputDatumHash dHash ->
                 Just $
-                  "Datum (hashed):"
+                  "Datum (hashed)"
+                    <+> "("
+                    <> prettyHash (pcOptHashes opts) (toHash dHash)
+                    <> "):"
                     <+> (PP.align . prettyCookedOpt opts)
                       (output ^. outputDatumL)
               Api.NoOutputDatum -> Nothing,
@@ -371,9 +388,19 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
   Just $
     "Datum (inlined):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
-prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
+prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
   Just $
-    "Datum (hashed):"
+    "Datum (hashed)"
+      <+> "("
+      <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+      <> "):"
+      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatum dat) =
+  Just $
+    "Datum (hashed)"
+      <+> "("
+      <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+      <> "):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked

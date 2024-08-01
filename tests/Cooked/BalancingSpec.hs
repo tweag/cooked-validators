@@ -40,7 +40,7 @@ initialDistributionBalancing =
       paysPK alice (Script.ada 30),
       paysPK alice (Script.lovelace 1280229 <> banana 3) `withDatum` (10 :: Integer),
       paysPK alice (Script.ada 1 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
-      paysPK alice (Script.ada 105 <> banana 2) `withDatumHash` ()
+      paysPK alice (Script.ada 105 <> banana 2) `withUnresolvedDatumHash` ()
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Set Api.TxOutRef, [Api.TxOutRef])

@@ -9,6 +9,17 @@
 - `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
   distribution only provides outputs with the required minimal ada based on
   default parameters.
+- All kinds of scripts can now be used as reference scripts.
+- `validateTxSkel_` which validates a skeleton and ignores the output.
+- `txSkelMintsFromList'` which only allows one redeemer per minting policy.
+- `validatorToTypedValidatorV2`
+- `walletPKHashToWallet` that retrives a wallet from a pkh. It used to be
+  present but somehow disapeared.
+- It is now possible to reference an output which has a hashed datum.
+- `txSkelHashedData` the gives all the datum hashes in inputs and reference inputs.
+- Partial support for withdrawals in txSkels. The rewarding scripts will be ran
+  and assets will be transferred. However, these withdrawals are not properly
+  constrainted yet.
 
 ### Removed
 
@@ -22,10 +33,19 @@
   constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
+- `mkProposingScript` changed to `mkScript`
+- `withDatumHashed` changed to `withUnresolvedDatumHash`
+- `paysScriptDatumHashed` changed to `paysScriptUnresolvedDatumHash`
+- `txSkelInputData` changed to `txSkelConsumedData`
+- Pretty printing of hashed datum now includes the hash (and not only the
+  resolved datum).
 
 ### Fixed
 
-- All kinds of scripts can now be used as reference scripts.
+- A bug where the script hashes would not be computed properly for early plutus
+  version (V1 and V2).
+- A bug where balancing would fail with excessive inputs and not enough min ada
+  in the excess.
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
