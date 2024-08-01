@@ -69,6 +69,7 @@ module Cooked.Skeleton
     txSkelProposalAnchorL,
     TxSkelWithdrawals,
     txSkelWithdrawnValue,
+    txSkelWithdrawalsScripts,
     TxSkel (..),
     txSkelLabelL,
     txSkelOptsL,
@@ -108,6 +109,7 @@ import Cooked.Pretty.Class
 import Cooked.Wallet
 import Data.ByteString (ByteString)
 import Data.Default
+import Data.Either
 import Data.Either.Combinators
 import Data.Function
 import Data.List (foldl')
@@ -595,6 +597,9 @@ type TxSkelWithdrawals =
 
 txSkelWithdrawnValue :: TxSkel -> Api.Value
 txSkelWithdrawnValue = mconcat . (toValue . snd <$>) . Map.toList . txSkelWithdrawals
+
+txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelWithdrawalsScripts = (fst <$>) . fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
 
 -- * Description of the Minting
 

@@ -123,13 +123,16 @@ data MockChainLogEntry where
   MCLogSubmittedTxSkel :: SkelContext -> TxSkel -> MockChainLogEntry
   -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
   -- alongside fee, collateral utxos and return collateral wallet.
-  MCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Set Api.TxOutRef -> Wallet -> MockChainLogEntry
+  MCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> MockChainLogEntry
   -- | Logging the appearance of a new transaction, after a skeleton has been
   -- successfully sent for validation.
   MCLogNewTx :: Api.TxId -> MockChainLogEntry
   -- | Logging the fact that utxos provided by the user for balancing have to be
-  -- discarded for a specific reason.
+  -- discarded for a given reason.
   MCLogDiscardedUtxos :: Integer -> String -> MockChainLogEntry
+  -- | Logging the fact that utxos provided as collaterals will not be used
+  -- because the transaction does not need involve scripts.
+  MCLogUnusedCollaterals :: Either Wallet (Set Api.TxOutRef) -> MockChainLogEntry
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where

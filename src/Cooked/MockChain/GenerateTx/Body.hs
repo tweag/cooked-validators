@@ -34,8 +34,7 @@ import PlutusLedgerApi.V3 qualified as Api
 data TxContext where
   TxContext ::
     { fee :: Integer,
-      collateralIns :: Set Api.TxOutRef,
-      returnCollateralWallet :: Wallet,
+      mCollaterals :: Maybe (Set Api.TxOutRef, Wallet),
       params :: Emulator.Params,
       managedData :: Map Api.DatumHash Api.Datum,
       managedTxOuts :: Map Api.TxOutRef Api.TxOut,
@@ -81,7 +80,7 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
   txOuts <- mapM (liftTxGen . Output.toCardanoTxOut) txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
     throwOnToCardanoError
-      "txSkelToBodyContent: Unable to translate transaction validity range"
+      "txSkelToBodyContent: Unable to translate transaction validity range."
       $ Ledger.toCardanoValidityRange txSkelValidityRange
   txMintValue <- liftTxGen $ Mint.toMintValue txSkelMints
   txExtraKeyWits <-
@@ -103,7 +102,7 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
       txUpdateProposal = Cardano.TxUpdateProposalNone -- That's what plutus-apps does as well
       txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
-      txVotingProcedures = Nothing -- TODO, same as above
+      txVotingProcedures = Nothing
   return Cardano.TxBodyContent {..}
 
 -- | Generates a transaction for a skeleton. We first generate a body and we

@@ -44,7 +44,7 @@ import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
@@ -137,17 +137,31 @@ instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLogEntry where
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
-  prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee collaterals returnWallet) =
-    prettyItemize
-      "Adjusted:"
-      "-"
-      [ prettyTxSkel opts skelContext skel,
-        "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee),
-        prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
-        "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
-      ]
+  prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
+    let mCollateralsDoc =
+          ( \(collaterals, returnWallet) ->
+              [ prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
+                "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
+              ]
+          )
+            <$> mCollaterals
+     in prettyItemize
+          "Adjusted:"
+          "-"
+          $ [ prettyTxSkel opts skelContext skel,
+              "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)
+            ]
+            ++ fromMaybe [] mCollateralsDoc
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
+  prettyCookedOpt opts (MCLogUnusedCollaterals (Left cWallet)) =
+    "Specific request to fetch collateral utxos from"
+      <+> prettyCookedOpt opts (walletPKHash cWallet)
+      <+> "has been disregarded because the transaction does not require collaterals"
+  prettyCookedOpt opts (MCLogUnusedCollaterals (Right (length -> n))) =
+    "Specific request to fetch collateral utxos from the given set of"
+      <+> prettyCookedOpt opts n
+      <+> "elements has been disregarded because the transaction does not require collaterals"
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =

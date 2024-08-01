@@ -151,9 +151,9 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     minAdaSkelUnbal <- if txOptEnsureMinAda . txSkelOpts $ skelUnbal then toTxSkelWithMinAda skelUnbal else return skelUnbal
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
-    (skel, fee, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
+    (skel, fee, mCollaterals) <- balanceTxSkel minAdaSkelUnbal
     -- We log the adjusted skeleton
-    gets mcstToSkelContext >>= \ctx -> publish $ MCLogAdjustedTxSkel ctx skel fee collateralIns returnCollateralWallet
+    gets mcstToSkelContext >>= \ctx -> publish $ MCLogAdjustedTxSkel ctx skel fee mCollaterals
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -162,11 +162,11 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     insValidators <- txSkelInputValidators skel
     insMap <- txSkelInputUtxosPl skel
     refInsMap <- txSkelReferenceInputUtxosPl skel
-    collateralInsMap <- lookupUtxosPl $ Set.toList collateralIns
+    collateralInsMap <- maybe (return Map.empty) (lookupUtxosPl . Set.toList . fst) mCollaterals
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.
-    cardanoTx <- case generateTx fee returnCollateralWallet collateralIns newParams hashedData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx <- case generateTx fee newParams hashedData (insMap <> refInsMap <> collateralInsMap) insValidators mCollaterals skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
       Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
