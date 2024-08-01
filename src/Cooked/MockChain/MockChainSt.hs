@@ -47,6 +47,25 @@ data MockChainSt = MockChainSt
 instance Default MockChainSt where
   def = mockChainSt0
 
+-- | Converts a builtin UtxoIndex into our own usable map between utxos and
+-- associated outputs.
+getIndex :: Ledger.UtxoIndex -> Map Api.TxOutRef Ledger.TxOut
+getIndex =
+  Map.fromList
+    . map (bimap Ledger.fromCardanoTxIn (Ledger.TxOut . toCtxTxTxOut))
+    . Map.toList
+    . Cardano.unUTxO
+  where
+    -- We need to convert a UTxO context TxOut to a Transaction context Tx out.
+    -- It's complicated because the datum type is indexed by the context.
+    toCtxTxTxOut :: Cardano.TxOut Cardano.CtxUTxO era -> Cardano.TxOut Cardano.CtxTx era
+    toCtxTxTxOut (Cardano.TxOut addr val d refS) =
+      let dat = case d of
+            Cardano.TxOutDatumNone -> Cardano.TxOutDatumNone
+            Cardano.TxOutDatumHash s h -> Cardano.TxOutDatumHash s h
+            Cardano.TxOutDatumInline s sd -> Cardano.TxOutDatumInline s sd
+       in Cardano.TxOut addr val dat refS
+
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
@@ -74,6 +93,14 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
           ( txOutAddress,
             UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
+
+-- | Generating a skeleton context from a mockchain state. This is dedicated to
+-- allowing the pretty printer to resolve skeleton parts.
+mcstToSkelContext :: MockChainSt -> SkelContext
+mcstToSkelContext MockChainSt {..} =
+  SkelContext
+    (Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut <$> getIndex mcstIndex)
+    (Map.map fst mcstDatums)
 
 -- | Generating an emulated state for the emulator from a mockchain state and
 -- some parameters, based on a standard initial state

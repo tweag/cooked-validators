@@ -31,7 +31,9 @@ data PrettyCookedOpts = PrettyCookedOpts
     -- @53_000_000@ instead of @53000000@. By default: True
     pcOptNumericUnderscores :: Bool,
     -- | Options related to printing hashes
-    pcOptHashes :: PrettyCookedHashOpts
+    pcOptHashes :: PrettyCookedHashOpts,
+    -- | Whether to display the log
+    pcOptPrintLog :: Bool
   }
   deriving (Eq, Show)
 
@@ -42,7 +44,8 @@ instance Default PrettyCookedOpts where
         pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
         pcOptPrintDefaultTxOpts = False,
         pcOptNumericUnderscores = True,
-        pcOptHashes = def
+        pcOptHashes = def,
+        pcOptPrintLog = True
       }
 
 -- | Whether to print transaction outputs references.

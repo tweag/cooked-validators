@@ -31,8 +31,8 @@ where
 
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Direct
 import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -49,6 +49,7 @@ import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -123,56 +124,35 @@ instance (Show a) => PrettyCooked (a, UtxoState) where
       "-"
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
-instance (Show a) => PrettyCooked (Either MockChainError (a, UtxoState)) where
-  prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
-  prettyCookedOpt opts (Right endState) = "🟢" <+> prettyCookedOpt opts endState
+instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
+  prettyCookedOpt opts (res, entries) =
+    let mcLog = "📘" <+> prettyItemize "MockChain run log:" "⁍" (prettyCookedOpt opts <$> entries)
+        mcEndResult = case res of
+          Left err -> "🔴" <+> prettyCookedOpt opts err
+          Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
+     in PP.vsep $ if pcOptPrintLog opts then [mcLog, mcEndResult] else [mcEndResult]
 
 -- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
-instance PrettyCooked MockChainLog where
-  prettyCookedOpt opts =
-    prettyEnumerate "MockChain run:" "."
-      . go []
-      . unMockChainLog
-    where
-      -- In order to avoid printing 'MockChainLogValidateTxSkel' then
-      -- 'MockChainLogNewTx' as two different items, we combine them into one
-      -- single 'DocCooked'
-      go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
-      go
-        acc
-        ( MCLogSubmittedTxSkel skelContext skel
-            : MCLogNewTx txId
-            : entries
-          )
-          | pcOptPrintTxHashes opts =
-              go
-                ( "Validated"
-                    <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                    <+> prettyTxSkel opts skelContext skel
-                    : acc
-                )
-                entries
-          | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
-      go
-        acc
-        ( MCLogSubmittedTxSkel skelContext skel
-            : entries
-          ) =
-          go ("Submitted" <+> prettyTxSkel opts skelContext skel : acc) entries
-      go acc (MCLogFail msg : entries) =
-        go ("Fail:" <+> PP.pretty msg : acc) entries
-      -- This case is not supposed to occur because it should follow a
-      -- 'MCLogSubmittedTxSkel'
-      go acc (MCLogNewTx txId : entries) =
-        go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
-      go acc [] = reverse acc
+instance PrettyCooked MockChainLogEntry where
+  prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
+  prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee collaterals returnWallet) =
+    prettyItemize
+      "Adjusted:"
+      "-"
+      [ prettyTxSkel opts skelContext skel,
+        "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee),
+        prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
+        "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
+      ]
+  prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
+  prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =
   prettyItemize
-    "transaction skeleton:"
+    "Transaction skeleton:"
     "-"
     ( catMaybes
         [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
@@ -403,21 +383,34 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatum dat) =
       <> "):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
+-- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
+-- address and value, and also builds a possibly empty list for its datum and
+-- reference script when they exist.
+utxoToPartsAsDocCooked :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe (DocCooked, DocCooked, [DocCooked])
+utxoToPartsAsDocCooked opts skelContext txOutRef =
+  ( \(output, txSkelOutDatum) ->
+      ( prettyCookedOpt opts (outputAddress output),
+        prettyCookedOpt opts (outputValue output),
+        catMaybes
+          [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+            getReferenceScriptDoc opts output
+          ]
+      )
+  )
+    <$> lookupOutput skelContext txOutRef
+
+prettyCollateralIn :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> DocCooked
+prettyCollateralIn opts skelContext txOutRef =
+  case utxoToPartsAsDocCooked opts skelContext txOutRef of
+    Nothing -> prettyCookedOpt opts txOutRef <+> "(non resolved)"
+    Just (addressDoc, valueDoc, otherDocs) -> prettyItemize ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
+
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked
-prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
-  case lookupOutput skelContext txOutRef of
+prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) =
+  case utxoToPartsAsDocCooked opts skelContext txOutRef of
     Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
-    Just (output, txSkelOutDatum) ->
-      prettyItemize
-        ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
-        "-"
-        ( prettyCookedOpt opts (outputValue output)
-            : prettyTxSkelRedeemer opts txSkelRedeemer
-              <> catMaybes
-                [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
-                  getReferenceScriptDoc opts output
-                ]
-        )
+    Just (addressDoc, valueDoc, otherDocs) ->
+      prettyItemize ("Spends from" <+> addressDoc) "-" (valueDoc : prettyTxSkelRedeemer opts txSkelRedeemer <> otherDocs)
 
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do

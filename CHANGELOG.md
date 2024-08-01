@@ -20,10 +20,13 @@
 - Partial support for withdrawals in txSkels. The rewarding scripts will be ran
   and assets will be transferred. However, these withdrawals are not properly
   constrainted yet.
+- PrettyCooked option `pcOptLog`, which is a boolean, to turn on or off the log
+  display in the pretty printer. The default value is `True`.
 
 ### Removed
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
+- Redundant logging of errors in mockchain runs.
 
 ### Changed
 
@@ -39,6 +42,12 @@
 - `txSkelInputData` changed to `txSkelConsumedData`
 - Pretty printing of hashed datum now includes the hash (and not only the
   resolved datum).
+- Logging has been reworked: 
+  * it is no longer limited to `StagedMockChain` runs
+  * it is now a component of `MonadBlockChainBalancing`
+  * it can be turned on/off in pretty-printing options
+  * it now displays the discarding of utxos during balancing.
+  * it is not visible from outside of `cooked-validators`
 
 ### Fixed
 

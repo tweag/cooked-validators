@@ -15,6 +15,7 @@
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
+    MockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
@@ -79,6 +80,7 @@ import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Set (Set)
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -88,21 +90,20 @@ import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- * BlockChain monad
+-- * MockChain errors
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
-  -- FIXME, maybe the validation phase can be deduced from the nature of the
-  -- error
+  -- | Validation errors, either in Phase 1 or Phase 2
   MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
   -- | Thrown when the balancing wallet does not have enough funds
   MCEUnbalanceable :: Wallet -> Api.Value -> TxSkel -> MockChainError
   -- | Thrown when not enough collateral are provided. Built upon the fee, the
   -- percentage and the expected minimal collateral value.
   MCENoSuitableCollateral :: Integer -> Integer -> Api.Value -> MockChainError
+  -- | Thrown when an error occured during transaction generation
   MCEGenerationError :: GenerateTxError -> MockChainError
-  -- | Thrown when an output reference should be in the state of the mockchain,
-  -- but isn't.
+  -- | Thrown when an output reference is missing from the mockchain state
   MCEUnknownOutRefError :: String -> Api.TxOutRef -> MockChainError
   -- | Same as 'MCEUnknownOutRefError' for validators.
   MCEUnknownValidator :: String -> Script.ValidatorHash -> MockChainError
@@ -112,9 +113,27 @@ data MockChainError where
   FailWith :: String -> MockChainError
   deriving (Show, Eq)
 
+-- * MockChain logs
+
+-- | This represents the specific events that should be logged when processing
+-- transactions. If a new kind of event arises, then a new constructor should be
+-- provided here.
+data MockChainLogEntry where
+  -- | Logging a Skeleton as it is submitted by the user.
+  MCLogSubmittedTxSkel :: SkelContext -> TxSkel -> MockChainLogEntry
+  -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
+  -- alongside fee, collateral utxos and return collateral wallet.
+  MCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Set Api.TxOutRef -> Wallet -> MockChainLogEntry
+  -- | Logging the appearance of a new transaction, after a skeleton has been
+  -- successfully sent for validation.
+  MCLogNewTx :: Api.TxId -> MockChainLogEntry
+  -- | Logging the fact that utxos provided by the user for balancing have to be
+  -- discarded for a specific reason.
+  MCLogDiscardedUtxos :: Integer -> String -> MockChainLogEntry
+
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
-  -- | Returns the parameters of the chain.
+  -- | Returns the emulator parameters, including protocol parameters
   getParams :: m Emulator.Params
 
   -- | Returns a list of all UTxOs at a certain address.
@@ -129,6 +148,9 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
 
   -- | Returns an output given a reference to it
   txOutByRefLedger :: Api.TxOutRef -> m (Maybe Ledger.TxOut)
+
+  -- | Logs an event that occured during a BlockChain run
+  publish :: MockChainLogEntry -> m ()
 
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
@@ -479,6 +501,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+  publish = lift . publish
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
@@ -522,6 +545,7 @@ instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) wher
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+  publish = lift . publish
 
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger

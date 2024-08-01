@@ -32,18 +32,19 @@ tamperDatumTweakTest =
             }
         )
     ]
-      @=? runTweak
-        ( tamperDatumTweak @(Integer, Integer)
-            (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
-        )
-        ( txSkelTemplate
-            { txSkelOuts =
-                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                  paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
-                ]
-            }
-        )
+      @=? fst
+        <$> runTweak
+          ( tamperDatumTweak @(Integer, Integer)
+              (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
+          )
+          ( txSkelTemplate
+              { txSkelOuts =
+                  [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                    paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
+                    paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                  ]
+              }
+          )
 
 malformDatumTweakTest :: TestTree
 malformDatumTweakTest =
@@ -72,26 +73,27 @@ malformDatumTweakTest =
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) (84 :: Integer, ()), -- datum1 untouched, datum4 changed
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) False -- datum1 untouched, datum4 changed
           ]
-          ( runTweak
-              ( malformDatumTweak @(Integer, Integer)
-                  ( \(x, y) ->
-                      if y == 77
-                        then []
-                        else
-                          [ PlutusTx.toBuiltinData (x, ()),
-                            PlutusTx.toBuiltinData False
-                          ]
-                  )
-              )
-              ( txSkelTemplate
-                  { txSkelOuts =
-                      [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                        paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                        paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                        paysPK alice (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
-                      ]
-                  }
-              )
+          ( fst
+              <$> runTweak
+                ( malformDatumTweak @(Integer, Integer)
+                    ( \(x, y) ->
+                        if y == 77
+                          then []
+                          else
+                            [ PlutusTx.toBuiltinData (x, ()),
+                              PlutusTx.toBuiltinData False
+                            ]
+                    )
+                )
+                ( txSkelTemplate
+                    { txSkelOuts =
+                        [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                          paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
+                          paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                          paysPK alice (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
+                        ]
+                    }
+                )
           )
 
 tests :: TestTree
