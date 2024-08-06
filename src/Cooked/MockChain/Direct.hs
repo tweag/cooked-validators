@@ -39,7 +39,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 -- complexity the 'Contract' monad introduces.
 --
 -- Running a 'MockChain' produces a 'UtxoState', a simplified view on
--- 'Api.UtxoIndex', which we also keep in our state.
+-- 'Ledger.UtxoIndex', which we also keep in our state.
 
 newtype MockChainT m a = MockChainT
   {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT [MockChainLogEntry] m))) a}

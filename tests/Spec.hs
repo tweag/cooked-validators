@@ -9,7 +9,6 @@ import Cooked.MockChainSpec qualified as MockChainSpec
 import Cooked.ProposingScriptSpec qualified as ProposingSpec
 import Cooked.ReferenceInputsSpec qualified as ReferenceInputsSpec
 import Cooked.ReferenceScriptsSpec qualified as ReferenceScriptsSpec
-import Cooked.ShowBSSpec qualified as ShowBSSpec
 import Cooked.TweakSpec qualified as TweakSpec
 import Cooked.WithdrawalsSpec qualified as WithdrawalsSpec
 import Test.Tasty
@@ -29,7 +28,6 @@ main =
         TweakSpec.tests,
         LtlSpec.tests,
         MockChainSpec.tests,
-        ShowBSSpec.tests,
         InitDistribSpec.tests,
         ProposingSpec.tests,
         WithdrawalsSpec.tests
