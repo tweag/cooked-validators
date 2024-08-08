@@ -49,6 +49,7 @@
   * it now displays the discarding of utxos during balancing.
   * it now displays when the users specifies useless collateral utxos.
   * it is not visible from outside of `cooked-validators`
+- Dependency to cardano-api bumped to 8.46.
 
 ### Fixed
 
