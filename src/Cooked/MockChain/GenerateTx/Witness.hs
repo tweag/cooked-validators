@@ -25,9 +25,9 @@ import PlutusLedgerApi.V3 qualified as Api
 type WitnessGen a = TxGen (Map Api.TxOutRef Api.TxOut) a
 
 -- | Translates a given credential to a reward account.
-toRewardAccount :: Api.Credential -> WitnessGen (Cardano.RewardAcnt Crypto.StandardCrypto)
+toRewardAccount :: Api.Credential -> WitnessGen (Cardano.RewardAccount Crypto.StandardCrypto)
 toRewardAccount cred =
-  Cardano.RewardAcnt Cardano.Testnet <$> case cred of
+  Cardano.RewardAccount Cardano.Testnet <$> case cred of
     Api.ScriptCredential scriptHash -> do
       Cardano.ScriptHash cHash <-
         throwOnToCardanoError
@@ -38,8 +38,6 @@ toRewardAccount cred =
       Cardano.StakeKeyHash pkHash <-
         throwOnToCardanoError
           "toRewardAccount: Unable to convert private key hash."
-          -- TODO: we take the pubkeyHash, maybe we should take the stakehash if
-          -- any exists. The nature of the stake address can be confusing.
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
       return $ Cardano.KeyHashObj pkHash
 
