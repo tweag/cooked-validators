@@ -22,6 +22,7 @@
   constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
+- Dependency to cardano-api bumped to 8.46.
 
 ### Fixed
 
