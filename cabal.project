@@ -10,8 +10,8 @@ package cardano-crypto-praos
 
 source-repository-package
   type: git
-  location: https://github.com/tweag/cardano-node-emulator-forked/
-  tag: 3087d61fc26929dc29b97bf4d25a519907174324
+  location: https://github.com/IntersectMBO/cardano-node-emulator/
+  tag: 3bdb1f2a578226c1aa39fe09b8fb13e3a0be6d6a
   subdir:
     cardano-node-emulator
     plutus-ledger
@@ -41,10 +41,6 @@ index-state:
 -- We never, ever, want this.
 write-ghc-environment-files: never
 
--- Always build tests and benchmarks.
-tests: true
-benchmarks: true
-
 -- The only sensible test display option, since it allows us to have colourized
 -- 'tasty' output.
 test-show-details: direct
@@ -61,13 +57,7 @@ package cardano-api
   optimization: False
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
-
--- Haddock needs this to be able to build the documentation
-package plutus-script-utils
-  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"
-package plutus-ledger
-  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"        
-  
+      
 constraints:
   cardano-api ^>= 8.46
 
