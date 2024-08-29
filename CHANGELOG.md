@@ -25,6 +25,7 @@
   constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
+- Dependency to cardano-api bumped to 8.46.
 - Logging has been reworked: 
   * it is no longer limited to `StagedMockChain` runs
   * it is now a component of `MonadBlockChainBalancing`

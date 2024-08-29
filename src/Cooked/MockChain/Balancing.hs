@@ -25,6 +25,8 @@ import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Ledger.Tx qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -287,8 +289,13 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
     Right txBody -> return txBody
   -- We retrieve the estimate number of required witness in the transaction
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
-  -- We return an accurate estimate of the resulting transaction fee
-  return $ Emulator.unCoin $ Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0
+  -- We need to reconstruct an index to pass to the fee estimate function
+  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> Set.toList collateralIns)
+  index <- case forM knownTxORefs Ledger.toCardanoTxIn of
+    Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: unable to generate TxIn" err
+    Right txInL -> return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut . Ledger.getTxOut <$> knownTxOuts
+  -- We finally can the fee estimate function
+  return . Emulator.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted

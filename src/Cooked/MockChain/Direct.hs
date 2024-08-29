@@ -53,7 +53,7 @@ import PlutusLedgerApi.V3 qualified as Api
 -- complexity the 'Contract' monad introduces.
 --
 -- Running a 'MockChain' produces a 'UtxoState', a simplified view on
--- 'Api.UtxoIndex', which we also keep in our state.
+-- 'Ledger.UtxoIndex', which we also keep in our state.
 
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
