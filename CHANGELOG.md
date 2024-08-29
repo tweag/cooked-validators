@@ -9,10 +9,13 @@
 - `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
   distribution only provides outputs with the required minimal ada based on
   default parameters.
-
+- PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
+  display in the pretty printer. The default value is `True`.
+  
 ### Removed
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
+- Redundant logging of errors in mockchain runs.
 
 ### Changed
 
@@ -23,6 +26,12 @@
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
 - Dependency to cardano-api bumped to 8.46.
+- Logging has been reworked: 
+  * it is no longer limited to `StagedMockChain` runs
+  * it is now a component of `MonadBlockChainBalancing`
+  * it can be turned on/off in pretty-printing options
+  * it now displays the discarding of utxos during balancing.
+  * it is not visible from outside of `cooked-validators`
 
 ### Fixed
 

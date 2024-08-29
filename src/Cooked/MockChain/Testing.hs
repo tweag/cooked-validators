@@ -148,7 +148,7 @@ testAllSatisfiesFrom ::
   prop
 testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
   where
-    go :: (Either MockChainError (a, UtxoState), MockChainLog) -> prop
+    go :: MockChainReturn a UtxoState -> prop
     go (prop, mcLog) = testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f prop)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes,
@@ -227,7 +227,7 @@ testOneEquivClass pcOpts rel = testSatisfiesFrom' $ \case
 -- predicates. Check 'testAllSatisfiesFrom' or 'testBinaryRelatedBy' for
 -- examples on using this.
 testSatisfiesFrom' ::
-  ([(Either MockChainError (a, UtxoState), MockChainLog)] -> prop) ->
+  ([MockChainReturn a UtxoState] -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
