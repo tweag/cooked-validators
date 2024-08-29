@@ -33,6 +33,8 @@ module Cooked.MockChain.BlockChain
     resolveReferenceScript,
     getEnclosingSlot,
     awaitEnclosingSlot,
+    awaitDurationFromLowerBound,
+    awaitDurationFromUpperBound,
     slotRangeBefore,
     slotRangeAfter,
     slotToTimeInterval,
@@ -436,6 +438,16 @@ getEnclosingSlot t = (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotCon
 --  anything if the current slot is large enough.
 awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
+
+-- | Wait a given number of ms from the lower bound of the current slot and
+-- returns the current slot after waiting.
+awaitDurationFromLowerBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
+awaitDurationFromLowerBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
+
+-- | Wait a given number of ms from the upper bound of the current slot and
+-- returns the current slot after waiting.
+awaitDurationFromUpperBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
+awaitDurationFromUpperBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | The infinite range of slots ending before or at the given time
 slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange
