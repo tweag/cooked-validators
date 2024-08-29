@@ -30,6 +30,7 @@ import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -81,8 +82,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     -- The transaction will only require collaterals when involving scripts
     let noScriptInvolved = Map.null txSkelMints && null (mapMaybe txSkelProposalWitness txSkelProposals) && Map.null spendingScripts
     case (noScriptInvolved, txOptCollateralUtxos txSkelOpts) of
-      (True, CollateralUtxosFromSet utxos _) -> publish (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
-      (True, CollateralUtxosFromWallet cWallet) -> publish (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
+      (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
+      (True, CollateralUtxosFromWallet cWallet) -> logEvent (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
       (True, CollateralUtxosFromBalancingWallet) -> return Nothing
       (False, CollateralUtxosFromSet utxos rWallet) -> return $ Just (utxos, rWallet)
       (False, CollateralUtxosFromWallet cWallet) -> Just . (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
@@ -132,7 +133,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   where
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- partition f l =
-          unless (koLength == 0) (publish $ MCLogDiscardedUtxos koLength s) >> return ok
+          unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters
@@ -315,8 +316,21 @@ estimateTxSkelFee skel fee mCollaterals = do
     Right txBody -> return txBody
   -- We retrieve the estimate number of required witness in the transaction
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
-  -- We return an accurate estimate of the resulting transaction fee
-  return $ Emulator.unCoin $ Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0
+
+  -- We need to reconstruct an index to pass to the fee estimate function
+  -- We begin by retrieving the relevant utxos used in the skeleton
+  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> collateralIns)
+  -- We then compute their Cardano counterparts
+  let indexOrError = do
+        txInL <- forM knownTxORefs Ledger.toCardanoTxIn
+        txOutL <- forM knownTxOuts $ Ledger.toCardanoTxOut $ Emulator.pNetworkId params
+        return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
+  -- We retrieve the index when it was successfully created
+  index <- case indexOrError of
+    Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: toCardanoError" err
+    Right index' -> return index'
+  -- We finally can the fee estimate function
+  return . Emulator.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted

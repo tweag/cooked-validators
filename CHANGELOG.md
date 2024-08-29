@@ -9,7 +9,7 @@
 - `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
   distribution only provides outputs with the required minimal ada based on
   default parameters.
-- PrettyCooked option `pcOptLog`, which is a boolean, to turn on or off the log
+- PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
   
 ### Removed
@@ -25,6 +25,7 @@
   constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
   `txSkelSomeRedeemerAndReferenceScript`,
   `txSkelEmptyRedeemerAndReferenceScript`.
+- Dependency to cardano-api bumped to 8.46.
 - Logging has been reworked: 
   * it is no longer limited to `StagedMockChain` runs
   * it is now a component of `MonadBlockChainBalancing`
