@@ -318,7 +318,7 @@ estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the estimate number of required witness in the transaction
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
   -- We need to reconstruct an index to pass to the fee estimate function
-  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> Set.toList collateralIns)
+  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> collateralIns)
   index <- case forM knownTxORefs Ledger.toCardanoTxIn of
     Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: unable to generate TxIn" err
     Right txInL -> return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut . Ledger.getTxOut <$> knownTxOuts
