@@ -32,17 +32,17 @@
 </span><span id="line-32"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxOut</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.CtxTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span>
 </span><span id="line-33"></span><span id="generateTxOut"><span class="annot"><span class="annottext">generateTxOut :: NetworkId
 -&gt; TxSkelOut -&gt; Either GenerateTxError (TxOut CtxTx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.html#generateTxOut"><span class="hs-identifier hs-var hs-var">generateTxOut</span></a></span></span><span> </span><span id="local-6989586621679762792"><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679762792"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span id="local-6989586621679762793"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679762793"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ReaderT NetworkId (Either GenerateTxError) (TxOut CtxTx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.html#generateTxOut"><span class="hs-identifier hs-var hs-var">generateTxOut</span></a></span></span><span> </span><span id="local-6989586621679766809"><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679766809"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span id="local-6989586621679766810"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679766810"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ReaderT NetworkId (Either GenerateTxError) (TxOut CtxTx ConwayEra)
 -&gt; NetworkId -&gt; Either GenerateTxError (TxOut CtxTx ConwayEra)
 forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
 </span><span class="hs-identifier hs-var">runReaderT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
 -&gt; ReaderT
      NetworkId (Either GenerateTxError) (TxOut CtxTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Output.html#toCardanoTxOut"><span class="hs-identifier hs-var">toCardanoTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679762793"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679762792"><span class="hs-identifier hs-var">networkId</span></a></span><span>
+</span><a href="#local-6989586621679766810"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679766809"><span class="hs-identifier hs-var">networkId</span></a></span><span>
 </span><span id="line-34"></span><span>
 </span><span id="line-35"></span><span class="annot"><span class="hs-comment">-- | Generates a transaction body for a skeleton</span></span><span>
 </span><span id="line-36"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#generateBodyContent"><span class="hs-identifier hs-type">generateBodyContent</span></a></span><span> </span><span class="hs-glyph">::</span><span>
@@ -72,14 +72,14 @@ forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
 -&gt; Map ValidatorHash (Versioned Validator)
 -&gt; TxSkel
 -&gt; Either GenerateTxError (TxBodyContent BuildTx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.html#generateBodyContent"><span class="hs-identifier hs-var hs-var">generateBodyContent</span></a></span></span><span> </span><span id="local-6989586621679762796"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679762796"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span id="local-6989586621679762797"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679762797"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span></span><span> </span><span id="local-6989586621679762798"><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679762798"><span class="hs-identifier hs-var">collateralIns</span></a></span></span><span> </span><span id="local-6989586621679762799"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679762799"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679762800"><span class="annot"><span class="annottext">Map DatumHash Datum
-</span><a href="#local-6989586621679762800"><span class="hs-identifier hs-var">managedData</span></a></span></span><span> </span><span id="local-6989586621679762801"><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679762801"><span class="hs-identifier hs-var">managedTxOuts</span></a></span></span><span> </span><span id="local-6989586621679762802"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679762802"><span class="hs-identifier hs-var">managedValidators</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.html#generateBodyContent"><span class="hs-identifier hs-var hs-var">generateBodyContent</span></a></span></span><span> </span><span id="local-6989586621679766813"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679766813"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span id="local-6989586621679766814"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679766814"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span></span><span> </span><span id="local-6989586621679766815"><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="#local-6989586621679766815"><span class="hs-identifier hs-var">collateralIns</span></a></span></span><span> </span><span id="local-6989586621679766816"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679766816"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679766817"><span class="annot"><span class="annottext">Map DatumHash Datum
+</span><a href="#local-6989586621679766817"><span class="hs-identifier hs-var">managedData</span></a></span></span><span> </span><span id="local-6989586621679766818"><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679766818"><span class="hs-identifier hs-var">managedTxOuts</span></a></span></span><span> </span><span id="local-6989586621679766819"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679766819"><span class="hs-identifier hs-var">managedValidators</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-55"></span><span>  </span><span class="annot"><span class="annottext">(ReaderT
    TxContext
    (Either GenerateTxError)
@@ -121,7 +121,7 @@ params :: Params
 managedData :: Map DatumHash Datum
 managedTxOuts :: Map TxOutRef TxOut
 managedValidators :: Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679762796"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span> </span><span class="annot"><span class="annottext">(ReaderT
+</span><a href="#local-6989586621679766813"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span> </span><span class="annot"><span class="annottext">(ReaderT
    TxContext
    (Either GenerateTxError)
    (TxBodyContent BuildTx ConwayEra)
@@ -170,14 +170,14 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 -&gt; Map ValidatorHash (Versioned Validator)
 -&gt; TxSkel
 -&gt; Either GenerateTxError (Tx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.html#generateTx"><span class="hs-identifier hs-var hs-var">generateTx</span></a></span></span><span> </span><span id="local-6989586621679762814"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679762814"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span id="local-6989586621679762815"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679762815"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span></span><span> </span><span id="local-6989586621679762816"><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679762816"><span class="hs-identifier hs-var">collateralIns</span></a></span></span><span> </span><span id="local-6989586621679762817"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679762817"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679762818"><span class="annot"><span class="annottext">Map DatumHash Datum
-</span><a href="#local-6989586621679762818"><span class="hs-identifier hs-var">managedData</span></a></span></span><span> </span><span id="local-6989586621679762819"><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679762819"><span class="hs-identifier hs-var">managedTxOuts</span></a></span></span><span> </span><span id="local-6989586621679762820"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679762820"><span class="hs-identifier hs-var">managedValidators</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.html#generateTx"><span class="hs-identifier hs-var hs-var">generateTx</span></a></span></span><span> </span><span id="local-6989586621679766831"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679766831"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span id="local-6989586621679766832"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679766832"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span></span><span> </span><span id="local-6989586621679766833"><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="#local-6989586621679766833"><span class="hs-identifier hs-var">collateralIns</span></a></span></span><span> </span><span id="local-6989586621679766834"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679766834"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679766835"><span class="annot"><span class="annottext">Map DatumHash Datum
+</span><a href="#local-6989586621679766835"><span class="hs-identifier hs-var">managedData</span></a></span></span><span> </span><span id="local-6989586621679766836"><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679766836"><span class="hs-identifier hs-var">managedTxOuts</span></a></span></span><span> </span><span id="local-6989586621679766837"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679766837"><span class="hs-identifier hs-var">managedValidators</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-78"></span><span>  </span><span class="annot"><span class="annottext">(ReaderT TxContext (Either GenerateTxError) (Tx ConwayEra)
  -&gt; TxContext -&gt; Either GenerateTxError (Tx ConwayEra))
 -&gt; TxContext
