@@ -148,7 +148,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   txOutByRefLedger :: Api.TxOutRef -> m (Maybe Ledger.TxOut)
 
   -- | Logs an event that occured during a BlockChain run
-  publish :: MockChainLogEntry -> m ()
+  logEvent :: MockChainLogEntry -> m ()
 
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
@@ -515,7 +515,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
-  publish = lift . publish
+  logEvent = lift . logEvent
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
@@ -559,7 +559,7 @@ instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) wher
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
-  publish = lift . publish
+  logEvent = lift . logEvent
 
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger

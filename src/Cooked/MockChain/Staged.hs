@@ -136,7 +136,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (Fail msg) = fail msg
   interpBuiltin (ThrowError err) = throwError err
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
-  interpBuiltin (Publish entry) = publish entry
+  interpBuiltin (Publish entry) = logEvent entry
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -201,7 +201,7 @@ instance MonadBlockChainBalancing StagedMockChain where
   txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
   utxosAtLedger = singletonBuiltin . UtxosAtLedger
   validatorFromHash = singletonBuiltin . ValidatorFromHash
-  publish = singletonBuiltin . Publish
+  logEvent = singletonBuiltin . Publish
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxosLedger = singletonBuiltin AllUtxosLedger

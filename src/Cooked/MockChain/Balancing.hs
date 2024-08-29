@@ -113,7 +113,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   where
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- partition f l =
-          unless (koLength == 0) (publish $ MCLogDiscardedUtxos koLength s) >> return ok
+          unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters
