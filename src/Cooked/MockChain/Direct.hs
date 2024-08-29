@@ -16,6 +16,7 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Control.Monad.Writer
 import Cooked.Conversion.ToScript
 import Cooked.Conversion.ToScriptHash
 import Cooked.InitialDistribution
@@ -97,6 +98,12 @@ data MockChainSt = MockChainSt
   }
   deriving (Show)
 
+mcstToSkelContext :: MockChainSt -> SkelContext
+mcstToSkelContext MockChainSt {..} =
+  SkelContext
+    (txOutV2FromLedger <$> getIndex mcstIndex)
+    (Map.map fst mcstDatums)
+
 -- | Generating an emulated state for the emulator from a mockchain state and
 -- some parameters, based on a standard initial state
 mcstToEmulatedLedgerState :: MockChainSt -> Emulator.EmulatedLedgerState
@@ -129,8 +136,8 @@ instance Eq MockChainSt where
         ]
 
 newtype MockChainT m a = MockChainT
-  {unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a}
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError)
+  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT [MockChainLogEntry] m))) a}
+  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadWriter [MockChainLogEntry])
 
 type MockChain = MockChainT Identity
 
@@ -143,10 +150,10 @@ instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
 
 instance MonadTrans MockChainT where
-  lift = MockChainT . lift . lift
+  lift = MockChainT . lift . lift . lift
 
 instance (Monad m, Alternative m) => Alternative (MockChainT m) where
-  empty = MockChainT $ StateT $ const $ ExceptT empty
+  empty = MockChainT $ StateT $ const $ ExceptT $ WriterT empty
   (<|>) = combineMockChainT (<|>)
 
 combineMockChainT ::
@@ -157,15 +164,17 @@ combineMockChainT ::
   MockChainT m x
 combineMockChainT f ma mb = MockChainT $
   StateT $ \s ->
-    let resA = runExceptT $ runStateT (unMockChain ma) s
-        resB = runExceptT $ runStateT (unMockChain mb) s
-     in ExceptT $ f resA resB
+    let resA = runWriterT $ runExceptT $ runStateT (unMockChain ma) s
+        resB = runWriterT $ runExceptT $ runStateT (unMockChain mb) s
+     in ExceptT $ WriterT $ f resA resB
+
+type MockChainReturn a b = (Either MockChainError (a, b), [MockChainLogEntry])
 
 mapMockChainT ::
-  (m (Either MockChainError (a, MockChainSt)) -> n (Either MockChainError (b, MockChainSt))) ->
+  (m (MockChainReturn a MockChainSt) -> n (MockChainReturn b MockChainSt)) ->
   MockChainT m a ->
   MockChainT n b
-mapMockChainT f = MockChainT . mapStateT (mapExceptT f) . unMockChain
+mapMockChainT f = MockChainT . mapStateT (mapExceptT (mapWriterT f)) . unMockChain
 
 -- | Executes a 'MockChainT' from some initial state; does /not/ convert the
 -- 'MockChainSt' into a 'UtxoState'.
@@ -173,8 +182,8 @@ runMockChainTRaw ::
   (Monad m) =>
   MockChainSt ->
   MockChainT m a ->
-  m (Either MockChainError (a, MockChainSt))
-runMockChainTRaw i0 = runExceptT . flip runStateT i0 . unMockChain
+  m (MockChainReturn a MockChainSt)
+runMockChainTRaw i0 = runWriterT . runExceptT . flip runStateT i0 . unMockChain
 
 -- | Executes a 'MockChainT' from an initial state set up with the given initial
 -- value distribution. Similar to 'runMockChainT', uses the default
@@ -184,25 +193,25 @@ runMockChainTFrom ::
   (Monad m) =>
   InitialDistribution ->
   MockChainT m a ->
-  m (Either MockChainError (a, UtxoState))
-runMockChainTFrom i0 = fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw (mockChainSt0From i0)
+  m (MockChainReturn a UtxoState)
+runMockChainTFrom i0 s = first (right (second mcstToUtxoState)) <$> runMockChainTRaw (mockChainSt0From i0) s
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
 -- The canonical environment uses the default 'SlotConfig' and
 -- @Cooked.Wallet.wallet 1@ as the sole wallet signing transactions.
-runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
+runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a UtxoState)
 runMockChainT = runMockChainTFrom def
 
 -- | See 'runMockChainTRaw'
-runMockChainRaw :: MockChain a -> Either MockChainError (a, MockChainSt)
+runMockChainRaw :: MockChain a -> MockChainReturn a MockChainSt
 runMockChainRaw = runIdentity . runMockChainTRaw def
 
 -- | See 'runMockChainTFrom'
-runMockChainFrom :: InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainFrom :: InitialDistribution -> MockChain a -> MockChainReturn a UtxoState
 runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
 
 -- | See 'runMockChainT'
-runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
+runMockChain :: MockChain a -> MockChainReturn a UtxoState
 runMockChain = runIdentity . runMockChainT
 
 -- * Canonical initial values
@@ -316,6 +325,7 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
+  logEvent l = tell [l]
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
@@ -325,6 +335,8 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
+    -- We log the submitted skeleton
+    gets mcstToSkelContext >>= logEvent . (`MCLogSubmittedTxSkel` skelUnbal)
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -337,6 +349,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
+    -- We log the adjusted skeleton
+    gets mcstToSkelContext >>= \ctx -> logEvent $ MCLogAdjustedTxSkel ctx skel fee collateralIns returnCollateralWallet
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -386,6 +400,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     -- We return the parameters to their original state
     setParams oldParams
+    -- We log the validated transaction
+    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
     -- We return the validated transaction
     return cardanoTx
     where

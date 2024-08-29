@@ -122,7 +122,7 @@ customInitDist =
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
-  case runMockChainFrom customInitDist $ do
+  case fst $ runMockChainFrom customInitDist $ do
     [a1, a2, a3, a4] <- runUtxoSearch $ utxosAtSearch aValidator
     [b1, b2] <- runUtxoSearch $ utxosAtSearch bValidator
     return (a1, a2, a3, a4, b1, b2) of
@@ -161,46 +161,48 @@ tests =
             -- on the focused input 'aValidator' UTxO.
             skelsOut :: ([Api.TxOutRef] -> [[Api.TxOutRef]]) -> [(ARedeemer, Api.TxOutRef)] -> [TxSkel]
             skelsOut splitMode aInputs =
-              mapMaybe (\case Right (_, skel') -> Just skel'; _ -> Nothing) $
-                runTweakFrom
-                  (mockChainSt0From customInitDist)
-                  ( doubleSatAttack
-                      splitMode
-                      (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
-                      ( \aOref _aRedeemer -> do
-                          bUtxos <- runUtxoSearch $ scriptOutputsSearch bValidator
-                          if
-                            | aOref == fst aUtxo1 ->
-                                return
-                                  [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)
-                                    | (bOref, bOut) <- bUtxos,
-                                      outputValue bOut == Script.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                  ]
-                            | aOref == fst aUtxo2 ->
-                                return
-                                  [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)
-                                    | (bOref, _) <- bUtxos,
-                                      bOref == fst bUtxo1
-                                  ]
-                            | aOref == fst aUtxo3 ->
-                                return $
-                                  concatMap
-                                    ( \(bOref, _) ->
-                                        if
-                                          | bOref == fst bUtxo1 ->
-                                              [(txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)]
-                                          | bOref == fst bUtxo2 ->
-                                              [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1),
-                                                (txSkelSomeRedeemer ARedeemer3, toDelta bOref $ txSkelSomeRedeemer BRedeemer2)
-                                              ]
-                                          | otherwise -> []
-                                    )
-                                    bUtxos
-                            | otherwise -> return []
-                      )
-                      (wallet 6)
-                  )
-                  (skelIn aInputs)
+              mapMaybe
+                ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . fst)
+                ( runTweakFrom
+                    (mockChainSt0From customInitDist)
+                    ( doubleSatAttack
+                        splitMode
+                        (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
+                        ( \aOref _aRedeemer -> do
+                            bUtxos <- runUtxoSearch $ scriptOutputsSearch bValidator
+                            if
+                              | aOref == fst aUtxo1 ->
+                                  return
+                                    [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)
+                                      | (bOref, bOut) <- bUtxos,
+                                        outputValue bOut == Script.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                    ]
+                              | aOref == fst aUtxo2 ->
+                                  return
+                                    [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)
+                                      | (bOref, _) <- bUtxos,
+                                        bOref == fst bUtxo1
+                                    ]
+                              | aOref == fst aUtxo3 ->
+                                  return $
+                                    concatMap
+                                      ( \(bOref, _) ->
+                                          if
+                                            | bOref == fst bUtxo1 ->
+                                                [(txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1)]
+                                            | bOref == fst bUtxo2 ->
+                                                [ (txSkelSomeRedeemer ARedeemer2, toDelta bOref $ txSkelSomeRedeemer BRedeemer1),
+                                                  (txSkelSomeRedeemer ARedeemer3, toDelta bOref $ txSkelSomeRedeemer BRedeemer2)
+                                                ]
+                                            | otherwise -> []
+                                      )
+                                      bUtxos
+                              | otherwise -> return []
+                        )
+                        (wallet 6)
+                    )
+                    (skelIn aInputs)
+                )
               where
                 toDelta :: Api.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
                 toDelta oref howSpent = (Map.singleton oref howSpent, [], mempty)
