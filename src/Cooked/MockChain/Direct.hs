@@ -325,7 +325,7 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
-  publish l = tell [l]
+  logEvent l = tell [l]
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
@@ -336,7 +336,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
     -- We log the submitted skeleton
-    gets mcstToSkelContext >>= publish . (`MCLogSubmittedTxSkel` skelUnbal)
+    gets mcstToSkelContext >>= logEvent . (`MCLogSubmittedTxSkel` skelUnbal)
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -350,7 +350,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaSkelUnbal
     -- We log the adjusted skeleton
-    gets mcstToSkelContext >>= \ctx -> publish $ MCLogAdjustedTxSkel ctx skel fee mCollaterals
+    gets mcstToSkelContext >>= \ctx -> logEvent $ MCLogAdjustedTxSkel ctx skel fee mCollaterals
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -403,7 +403,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction
-    publish $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
+    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
     -- We return the validated transaction
     return cardanoTx
     where

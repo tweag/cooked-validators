@@ -81,8 +81,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     -- The transaction will only require collaterals when involving scripts
     let noScriptInvolved = Map.null txSkelMints && null (mapMaybe txSkelProposalWitness txSkelProposals) && Map.null spendingScripts
     case (noScriptInvolved, txOptCollateralUtxos txSkelOpts) of
-      (True, CollateralUtxosFromSet utxos _) -> publish (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
-      (True, CollateralUtxosFromWallet cWallet) -> publish (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
+      (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
+      (True, CollateralUtxosFromWallet cWallet) -> logEvent (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
       (True, CollateralUtxosFromBalancingWallet) -> return Nothing
       (False, CollateralUtxosFromSet utxos rWallet) -> return $ Just (utxos, rWallet)
       (False, CollateralUtxosFromWallet cWallet) -> Just . (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
@@ -132,7 +132,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   where
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- partition f l =
-          unless (koLength == 0) (publish $ MCLogDiscardedUtxos koLength s) >> return ok
+          unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters

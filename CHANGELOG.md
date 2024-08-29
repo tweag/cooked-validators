@@ -9,7 +9,7 @@
 - `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
   distribution only provides outputs with the required minimal ada based on
   default parameters.
-- PrettyCooked option `pcOptLog`, which is a boolean, to turn on or off the log
+- PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
   
 ### Removed
