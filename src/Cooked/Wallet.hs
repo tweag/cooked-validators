@@ -15,6 +15,8 @@ module Cooked.Wallet
     walletAddress,
     walletSK,
     walletStakingSK,
+    walletStakingCredential,
+    walletCredential,
     Wallet,
     PrivateKey,
   )
@@ -86,6 +88,13 @@ walletPKHash = Ledger.pubKeyHash . walletPK
 -- | Retrieves a wallet's public staking key hash, if any
 walletStakingPKHash :: Wallet -> Maybe Api.PubKeyHash
 walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
+
+-- | Retrieves a wallet credential
+walletCredential :: Wallet -> Api.Credential
+walletCredential = Api.PubKeyCredential . walletPKHash
+
+walletStakingCredential :: Wallet -> Maybe Api.StakingCredential
+walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
 
 -- | Retrieves a wallet's address
 walletAddress :: Wallet -> Api.Address
