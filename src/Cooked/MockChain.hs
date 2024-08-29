@@ -3,7 +3,7 @@
 module Cooked.MockChain (module X) where
 
 import Cooked.MockChain.Balancing as X
-import Cooked.MockChain.BlockChain as X hiding (MockChainLogEntry, publish)
+import Cooked.MockChain.BlockChain as X hiding (MockChainLogEntry, logEvent)
 import Cooked.MockChain.Direct as X hiding (MockChainReturn)
 import Cooked.MockChain.MinAda as X
 import Cooked.MockChain.MockChainSt as X (MockChainSt (..), mockChainSt0From)

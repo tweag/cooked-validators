@@ -20,7 +20,7 @@
 - Partial support for withdrawals in txSkels. The rewarding scripts will be ran
   and assets will be transferred. However, these withdrawals are not properly
   constrainted yet.
-- PrettyCooked option `pcOptLog`, which is a boolean, to turn on or off the log
+- PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
 
 ### Removed
@@ -42,6 +42,7 @@
 - `txSkelInputData` changed to `txSkelConsumedData`
 - Pretty printing of hashed datum now includes the hash (and not only the
   resolved datum).
+- Dependency to cardano-api bumped to 8.46.
 - Logging has been reworked: 
   * it is no longer limited to `StagedMockChain` runs
   * it is now a component of `MonadBlockChainBalancing`

@@ -87,24 +87,24 @@ import PlutusLedgerApi.V3 qualified as Api
 -- * MockChain errors
 
 -- | The errors that can be produced by the 'MockChainT' monad
-data MockChainError where
-  -- | Validation errors, either in Phase 1 or Phase 2
-  MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
-  -- | Thrown when the balancing wallet does not have enough funds
-  MCEUnbalanceable :: Wallet -> Api.Value -> TxSkel -> MockChainError
-  -- | Thrown when not enough collateral are provided. Built upon the fee, the
-  -- percentage and the expected minimal collateral value.
-  MCENoSuitableCollateral :: Integer -> Integer -> Api.Value -> MockChainError
-  -- | Thrown when an error occured during transaction generation
-  MCEGenerationError :: GenerateTxError -> MockChainError
-  -- | Thrown when an output reference is missing from the mockchain state
-  MCEUnknownOutRefError :: String -> Api.TxOutRef -> MockChainError
-  -- | Same as 'MCEUnknownOutRefError' for validators.
-  MCEUnknownValidator :: String -> Script.ValidatorHash -> MockChainError
-  -- | Same as 'MCEUnknownOutRefError' for datums.
-  MCEUnknownDatum :: String -> Api.DatumHash -> MockChainError
-  -- | Used to provide 'MonadFail' instances.
-  FailWith :: String -> MockChainError
+data MockChainError
+  = -- | Validation errors, either in Phase 1 or Phase 2
+    MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
+  | -- | Thrown when the balancing wallet does not have enough funds
+    MCEUnbalanceable Wallet Api.Value TxSkel
+  | -- | Thrown when not enough collateral are provided. Built upon the fee, the
+    -- percentage and the expected minimal collateral value.
+    MCENoSuitableCollateral Integer Integer Api.Value
+  | -- | Thrown when an error occured during transaction generation
+    MCEGenerationError GenerateTxError
+  | -- | Thrown when an output reference is missing from the mockchain state
+    MCEUnknownOutRefError String Api.TxOutRef
+  | -- | Same as 'MCEUnknownOutRefError' for validators.
+    MCEUnknownValidator String Script.ValidatorHash
+  | -- | Same as 'MCEUnknownOutRefError' for datums.
+    MCEUnknownDatum String Api.DatumHash
+  | -- | Used to provide 'MonadFail' instances.
+    FailWith String
   deriving (Show, Eq)
 
 -- * MockChain logs
@@ -112,21 +112,21 @@ data MockChainError where
 -- | This represents the specific events that should be logged when processing
 -- transactions. If a new kind of event arises, then a new constructor should be
 -- provided here.
-data MockChainLogEntry where
-  -- | Logging a Skeleton as it is submitted by the user.
-  MCLogSubmittedTxSkel :: SkelContext -> TxSkel -> MockChainLogEntry
-  -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
-  -- alongside fee, collateral utxos and return collateral wallet.
-  MCLogAdjustedTxSkel :: SkelContext -> TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> MockChainLogEntry
-  -- | Logging the appearance of a new transaction, after a skeleton has been
-  -- successfully sent for validation.
-  MCLogNewTx :: Api.TxId -> MockChainLogEntry
-  -- | Logging the fact that utxos provided by the user for balancing have to be
-  -- discarded for a given reason.
-  MCLogDiscardedUtxos :: Integer -> String -> MockChainLogEntry
-  -- | Logging the fact that utxos provided as collaterals will not be used
-  -- because the transaction does not need involve scripts.
-  MCLogUnusedCollaterals :: Either Wallet (Set Api.TxOutRef) -> MockChainLogEntry
+data MockChainLogEntry
+  = -- | Logging a Skeleton as it is submitted by the user.
+    MCLogSubmittedTxSkel SkelContext TxSkel
+  | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
+    -- alongside fee, and posisble collateral utxos and return collateral wallet.
+    MCLogAdjustedTxSkel SkelContext TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
+  | -- | Logging the appearance of a new transaction, after a skeleton has been
+    -- successfully sent for validation.
+    MCLogNewTx Api.TxId
+  | -- | Logging the fact that utxos provided by the user for balancing have to be
+    -- discarded for a specific reason.
+    MCLogDiscardedUtxos Integer String
+  | -- | Logging the fact that utxos provided as collaterals will not be used
+    -- because the transaction does not need involve scripts.
+    MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
@@ -147,7 +147,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   txOutByRef :: Api.TxOutRef -> m (Maybe Api.TxOut)
 
   -- | Logs an event that occured during a BlockChain run
-  publish :: MockChainLogEntry -> m ()
+  logEvent :: MockChainLogEntry -> m ()
 
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
@@ -493,7 +493,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
   utxosAt = lift . utxosAt
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
-  publish = lift . publish
+  logEvent = lift . logEvent
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxos = lift allUtxos
@@ -537,7 +537,7 @@ instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) wher
   utxosAt = lift . utxosAt
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
-  publish = lift . publish
+  logEvent = lift . logEvent
 
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxos = lift allUtxos
