@@ -27,7 +27,7 @@ updateRedeemer script txSkelRed@(TxSkelRedeemer red Nothing) = do
   case oRefM of
     Nothing -> return txSkelRed
     Just oRef -> do
-      logEvent $ MCLogAddedReferenceScript red oRef
+      logEvent $ MCLogAddedReferenceScript red oRef (toScriptHash script)
       return $ TxSkelRedeemer red $ Just oRef
 updateRedeemer _ redeemer = return redeemer
 

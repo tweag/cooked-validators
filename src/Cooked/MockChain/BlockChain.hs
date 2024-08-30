@@ -130,7 +130,7 @@ data MockChainLogEntry
     -- utxos to be used as collaterals.
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
   | -- | Logging the automatic addition of a reference script
-    MCLogAddedReferenceScript Redeemer Api.TxOutRef
+    MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where

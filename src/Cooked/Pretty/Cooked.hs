@@ -155,21 +155,23 @@ instance PrettyCooked MockChainLogEntry where
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
   prettyCookedOpt opts (MCLogUnusedCollaterals (Left cWallet)) =
-    "Specific request to fetch collateral utxos from"
-      <+> prettyCookedOpt opts (walletPKHash cWallet)
-      <+> "has been disregarded because the transaction does not require collaterals"
+    "Specific request to fetch collateral utxos from "
+      <> prettyCookedOpt opts (walletPKHash cWallet)
+      <> " has been disregarded because the transaction does not require collaterals"
   prettyCookedOpt opts (MCLogUnusedCollaterals (Right (length -> n))) =
-    "Specific request to fetch collateral utxos from the given set of"
-      <+> prettyCookedOpt opts n
-      <+> "elements has been disregarded because the transaction does not require collaterals"
-  prettyCookedOpt opts (MCLogAddedReferenceScript red oRef) =
+    "Specific request to fetch collateral utxos from the given set of "
+      <> prettyCookedOpt opts n
+      <> " elements has been disregarded because the transaction does not require collaterals"
+  prettyCookedOpt opts (MCLogAddedReferenceScript red oRef sHash) =
     "A reference script sitting at "
       <> prettyCookedOpt opts oRef
-      <> "has been automatically associated to redeemer "
+      <> " has been automatically associated to redeemer "
       <> ( case red of
              EmptyRedeemer -> "Empty"
              SomeRedeemer s -> prettyCookedOpt opts s
          )
+      <> " for script "
+      <> prettyCookedOpt opts sHash
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =
