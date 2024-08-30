@@ -31,6 +31,7 @@ library
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.AutoReferenceScripts
       Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct

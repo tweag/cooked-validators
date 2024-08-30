@@ -31,6 +31,7 @@ module Cooked.Skeleton
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
     txOptAnchorResolutionL,
+    txOptAutoReferenceScriptsL,
     TxSkelMints,
     addToTxSkelMints,
     txSkelMintsToList,
@@ -358,7 +359,14 @@ data TxOpts = TxOpts
     -- | How to resolve anchor in proposal procedures
     --
     -- Default is 'AnchorResolutionLocal Map.Empty'
-    txOptAnchorResolution :: AnchorResolution
+    txOptAnchorResolution :: AnchorResolution,
+    -- | Whether to automatically fill up reference scripts in redeemers when
+    -- possible. This will imply going through all the known utxos with
+    -- reference scripts and compare their hashes, thus will slightly reduce
+    -- performance, especially when handling a lot of utxos.
+    --
+    -- Defaut is 'True'.
+    txOptAutoReferenceScripts :: Bool
   }
   deriving (Eq, Show)
 
@@ -372,7 +380,8 @@ makeLensesFor
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
     ("txOptCollateralUtxos", "txOptCollateralUtxosL"),
-    ("txOptAnchorResolution", "txOptAnchorResolutionL")
+    ("txOptAnchorResolution", "txOptAnchorResolutionL"),
+    ("txOptAutoReferenceScripts", "txOptAutoReferenceScriptsL")
   ]
   ''TxOpts
 
@@ -388,7 +397,8 @@ instance Default TxOpts where
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def,
-        txOptAnchorResolution = def
+        txOptAnchorResolution = def,
+        txOptAutoReferenceScripts = True
       }
 
 -- * Redeemers for transaction inputs
