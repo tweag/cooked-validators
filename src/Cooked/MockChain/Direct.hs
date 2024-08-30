@@ -138,27 +138,21 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal = do
+  validateTxSkel skelUnbal@TxSkel {..} | TxOpts {..} <- txSkelOpts = do
     -- We log the submitted skeleton
     gets mcstToSkelContext >>= logEvent . (`MCLogSubmittedTxSkel` skelUnbal)
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
-    let newParams = applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skelUnbal) oldParams
+    let newParams = applyEmulatorParamsModification txOptEmulatorParamsModification oldParams
     -- We change the parameters for the duration of the validation process
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
-    minAdaSkelUnbal <-
-      if txOptEnsureMinAda . txSkelOpts $ skelUnbal
-        then toTxSkelWithMinAda skelUnbal
-        else return skelUnbal
+    minAdaSkelUnbal <- if txOptEnsureMinAda then toTxSkelWithMinAda skelUnbal else return skelUnbal
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are requested in the skeleton options
-    minAdaRefScriptsSkelUnbal <-
-      if txOptAutoReferenceScripts . txSkelOpts $ minAdaSkelUnbal
-        then toTxSkelWithReferenceScripts minAdaSkelUnbal
-        else return minAdaSkelUnbal
+    minAdaRefScriptsSkelUnbal <- if txOptAutoReferenceScripts then toTxSkelWithReferenceScripts minAdaSkelUnbal else return minAdaSkelUnbal
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
@@ -179,7 +173,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     cardanoTx <- case generateTx fee newParams hashedData (insMap <> refInsMap <> collateralInsMap) insValidators mCollaterals skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
-      Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
+      Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx txOptUnsafeModTx tx
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstToEmulatedLedgerState
     -- We finally run the emulated validation, and we only care about the
@@ -213,8 +207,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
               . addValidators (txSkelValidatorsInOutputs skel <> txSkelReferenceScripts skel)
           )
     -- We apply a change of slot when requested in the options
-    when (txOptAutoSlotIncrease $ txSkelOpts skel) $
-      modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction
