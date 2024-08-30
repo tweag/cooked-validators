@@ -42,9 +42,9 @@ setAllReferenceScripts txSkel = do
     case prop ^. txSkelProposalWitnessL of
       Nothing -> return prop
       Just (script, red) -> flip (set txSkelProposalWitnessL) prop . Just . (script,) <$> updateRedeemer script red
-  newWithdrawals <- forM (Map.toList $ txSkel ^. txSkelWithdrawalsL) $ \(wit, quantity) -> case wit of
-    Right _ -> return (wit, quantity)
-    Left (script, red) -> (,quantity) . Left . (script,) <$> updateRedeemer script red
+  newWithdrawals <- forM (Map.toList $ txSkel ^. txSkelWithdrawalsL) $ \(wit, (red, quantity)) -> case wit of
+    Right _ -> return (wit, (red, quantity))
+    Left script -> (Left script,) . (,quantity) <$> updateRedeemer script red
   return $
     txSkel
       & txSkelMintsL

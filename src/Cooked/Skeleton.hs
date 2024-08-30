@@ -619,8 +619,8 @@ txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txS
 pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
 pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (txSkelEmptyRedeemer, amount)
 
-scriptWithdrawal :: (ToScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
-scriptWithdrawal script red amount = Map.singleton (Left $ toScript script) (red, amount)
+scriptWithdrawal :: (ToVersionedScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ toVersionedScript script) (red, amount)
 
 -- * Description of the Minting
 
