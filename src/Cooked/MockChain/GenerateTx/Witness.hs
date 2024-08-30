@@ -41,8 +41,8 @@ toRewardAccount cred =
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
       return $ Cardano.KeyHashObj pkHash
 
--- | Translate a script and a reference script utxo into into either a plutus
--- script or a reference input containing the right script
+-- | Translates a script and a reference script utxo into either a plutus script
+-- or a reference input containing the right script
 toPlutusScriptOrReferenceInput :: Script.Versioned Script.Script -> Maybe Api.TxOutRef -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
