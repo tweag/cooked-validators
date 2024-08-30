@@ -149,10 +149,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
-    minAdaSkelUnbal <- if txOptEnsureMinAda then toTxSkelWithMinAda skelUnbal else return skelUnbal
+    minAdaSkelUnbal <- (if txOptEnsureMinAda then toTxSkelWithMinAda else return) skelUnbal
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are requested in the skeleton options
-    minAdaRefScriptsSkelUnbal <- if txOptAutoReferenceScripts then toTxSkelWithReferenceScripts minAdaSkelUnbal else return minAdaSkelUnbal
+    minAdaRefScriptsSkelUnbal <- (if txOptAutoReferenceScripts then toTxSkelWithReferenceScripts else return) minAdaSkelUnbal
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
