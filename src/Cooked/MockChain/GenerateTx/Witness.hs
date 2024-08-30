@@ -66,8 +66,8 @@ toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
-toScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (toScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
+toScriptWitness :: (ToVersionedScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
+toScriptWitness (toVersionedScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
   let scriptData = case txSkelRedeemer of
         EmptyRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
         SomeRedeemer s -> Ledger.toCardanoScriptData $ Api.toBuiltinData s

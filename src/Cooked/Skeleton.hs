@@ -584,8 +584,8 @@ makeLensesFor
 simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
 simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
 
-withWitness :: (ToScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toScript s, red)}
+withWitness :: (ToVersionedScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toVersionedScript s, red)}
 
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}
@@ -765,7 +765,7 @@ data TxSkelOut where
       ToCredential (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
-      ToScript (ReferenceScriptType o),
+      ToVersionedScript (ReferenceScriptType o),
       Show (OwnerType o),
       Show (ReferenceScriptType o),
       Typeable (ReferenceScriptType o)
@@ -1005,7 +1005,7 @@ withUnresolvedDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output)
 
 -- | Add a reference script to a transaction output (or replace it if there is
 -- already one)
-withReferenceScript :: (Show script, ToScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
+withReferenceScript :: (Show script, ToVersionedScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
 withReferenceScript (Pays output) script = Pays $ (fromAbstractOutput output) {concreteOutputReferenceScript = Just script}
 
 -- | Add a staking credential to a transaction output (or replace it if there is
@@ -1127,7 +1127,7 @@ txSkelReferenceScripts =
           case output ^. outputReferenceScriptL of
             Nothing -> Map.empty
             Just x ->
-              let vScript@(Script.Versioned script version) = toScript x
+              let vScript@(Script.Versioned script version) = toVersionedScript x
                   Script.ScriptHash hash = toScriptHash vScript
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
@@ -1171,7 +1171,7 @@ txSkelOutOwnerTypeP =
         case typeOf (output ^. outputOwnerL) `eqTypeRep` typeRep @ownerType of
           Just HRefl ->
             let cOut = fromAbstractOutput output
-             in Just $ cOut {concreteOutputReferenceScript = toScript <$> concreteOutputReferenceScript cOut}
+             in Just $ cOut {concreteOutputReferenceScript = toVersionedScript <$> concreteOutputReferenceScript cOut}
           Nothing -> Nothing
     )
 

@@ -1,7 +1,7 @@
 -- | Objects from which a script hash can be extracted
 module Cooked.Conversion.ToScriptHash where
 
-import Cooked.Conversion.ToScript
+import Cooked.Conversion.ToVersionedScript
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -22,10 +22,10 @@ instance ToScriptHash (Script.Versioned Script.Script) where
   toScriptHash = Script.scriptHash
 
 instance ToScriptHash (Script.Versioned Script.Validator) where
-  toScriptHash = toScriptHash . toScript
+  toScriptHash = toScriptHash . toVersionedScript
 
 instance ToScriptHash (Script.TypedValidator a) where
-  toScriptHash = toScriptHash . toScript
+  toScriptHash = toScriptHash . toVersionedScript
 
 instance ToScriptHash (Script.Versioned Script.MintingPolicy) where
-  toScriptHash = toScriptHash . Script.mintingPolicyHash
+  toScriptHash = toScriptHash . toVersionedScript

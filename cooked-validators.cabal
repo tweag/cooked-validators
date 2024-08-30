@@ -24,9 +24,9 @@ library
       Cooked.Conversion.ToHash
       Cooked.Conversion.ToOutputDatum
       Cooked.Conversion.ToPubKeyHash
-      Cooked.Conversion.ToScript
       Cooked.Conversion.ToScriptHash
       Cooked.Conversion.ToValue
+      Cooked.Conversion.ToVersionedScript
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl
