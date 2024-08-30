@@ -19,9 +19,16 @@ retrieveReferenceScript :: (MonadBlockChain m, ToScriptHash s) => s -> m (Maybe 
 retrieveReferenceScript script = listToMaybe . (fst <$>) <$> runUtxoSearch (referenceScriptOutputsSearch script)
 
 -- | Attempts to attach a reference script to a redeemer when it can be found in
--- the context. Will not override any existing reference script.
+-- the context. Will not override any existing reference script. If this results
+-- in the addition of a reference script, will log the event.
 updateRedeemer :: (MonadBlockChain m, ToScriptHash s) => s -> TxSkelRedeemer -> m TxSkelRedeemer
-updateRedeemer script (TxSkelRedeemer red Nothing) = TxSkelRedeemer red <$> retrieveReferenceScript script
+updateRedeemer script txSkelRed@(TxSkelRedeemer red Nothing) = do
+  oRefM <- retrieveReferenceScript script
+  case oRefM of
+    Nothing -> return txSkelRed
+    Just oRef -> do
+      logEvent $ MCLogAddedReferenceScript red oRef
+      return $ TxSkelRedeemer red $ Just oRef
 updateRedeemer _ redeemer = return redeemer
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,

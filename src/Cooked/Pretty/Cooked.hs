@@ -162,6 +162,14 @@ instance PrettyCooked MockChainLogEntry where
     "Specific request to fetch collateral utxos from the given set of"
       <+> prettyCookedOpt opts n
       <+> "elements has been disregarded because the transaction does not require collaterals"
+  prettyCookedOpt opts (MCLogAddedReferenceScript red oRef) =
+    "A reference script sitting at "
+      <> prettyCookedOpt opts oRef
+      <> "has been automatically associated to redeemer "
+      <> ( case red of
+             EmptyRedeemer -> "Empty"
+             SomeRedeemer s -> prettyCookedOpt opts s
+         )
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =
