@@ -30,6 +30,7 @@
 
 ### Changed
 
+- GHC bumped to 9.6.6
 - Internal representation of redeemers have changed, and are similar for any
   supported script purpose (minting, spending or proposing).
 - Redeemers should now be built using one of the four following smart
