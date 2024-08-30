@@ -37,7 +37,7 @@ toWithdrawals (Map.toList -> withdrawals) =
   fmap
     (Cardano.TxWithdrawals Cardano.ShelleyBasedEraConway)
     $ forM withdrawals
-    $ \(staker, Script.Lovelace n) ->
+    $ \(staker, (red, Script.Lovelace n)) ->
       do
         (witness, sCred) <-
           case staker of
@@ -46,7 +46,7 @@ toWithdrawals (Map.toList -> withdrawals) =
                 throwOnToCardanoError "toWithdrawals: unable to translate pkh stake credential" $
                   Cardano.StakeCredentialByKey <$> Ledger.toCardanoStakeKeyHash pkh
               return (Cardano.KeyWitness Cardano.KeyWitnessForStakeAddr, sCred)
-            Left (script, red) -> do
+            Left script -> do
               witness <-
                 Cardano.ScriptWitness Cardano.ScriptWitnessForStakeAddr
                   <$> liftTxGen (toScriptWitness script red Cardano.NoScriptDatumForStake)

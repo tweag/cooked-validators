@@ -70,6 +70,8 @@ module Cooked.Skeleton
     TxSkelWithdrawals,
     txSkelWithdrawnValue,
     txSkelWithdrawalsScripts,
+    pkWithdrawal,
+    scriptWithdrawal,
     TxSkel (..),
     txSkelLabelL,
     txSkelOptsL,
@@ -590,16 +592,25 @@ withAnchor prop url = prop {txSkelProposalAnchor = Just url}
 
 -- * Description of the Withdrawals
 
+-- | Withdrawals associate either a script or a private key with a redeemer and
+-- a certain amount of ada. Note that the redeemer will be ignored in the case
+-- of a private key.
 type TxSkelWithdrawals =
   Map
-    (Either (Script.Versioned Script.Script, TxSkelRedeemer) Api.PubKeyHash)
-    Script.Ada
+    (Either (Script.Versioned Script.Script) Api.PubKeyHash)
+    (TxSkelRedeemer, Script.Ada)
 
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = mconcat . (toValue . snd <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawnValue = mconcat . (toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
 
 txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawalsScripts = (fst <$>) . fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+
+pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
+pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (txSkelEmptyRedeemer, amount)
+
+scriptWithdrawal :: (ToScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ toScript script) (red, amount)
 
 -- * Description of the Minting
 

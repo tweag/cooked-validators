@@ -186,11 +186,11 @@ prettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
 prettyWithdrawals pcOpts withdrawals =
   prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
   where
-    prettyWithdrawal :: (Either (Script.Versioned Script.Script, TxSkelRedeemer) Api.PubKeyHash, Script.Ada) -> DocCooked
-    prettyWithdrawal (cred, ada) =
+    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Script.Ada)) -> DocCooked
+    prettyWithdrawal (cred, (red, ada)) =
       prettyItemizeNoTitle "-" $
         ( case cred of
-            Left (script, red) -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
+            Left script -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
             Right pkh -> [prettyCookedOpt pcOpts pkh]
         )
           ++ [prettyCookedOpt pcOpts (toValue ada)]

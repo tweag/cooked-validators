@@ -3,7 +3,6 @@ module Cooked.WithdrawalsSpec where
 import Control.Monad
 import Cooked
 import Data.Default
-import Data.Map qualified as Map
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -40,10 +39,7 @@ testWithdrawingScript n1 n2 =
     validateTxSkel $
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelWithdrawals =
-            Map.singleton
-              (Left (checkWithdrawalVersionedScript, txSkelSomeRedeemer (n1 * 1_000 :: Integer)))
-              (Script.Lovelace $ n2 * 1_000)
+          txSkelWithdrawals = scriptWithdrawal checkWithdrawalVersionedScript (txSkelSomeRedeemer (n1 * 1_000 :: Integer)) $ Script.Lovelace $ n2 * 1_000
         }
 
 tests :: TestTree
