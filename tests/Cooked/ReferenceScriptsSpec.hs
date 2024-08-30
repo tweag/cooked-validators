@@ -120,8 +120,8 @@ useReferenceScript spendingSubmitter theScript = do
           txSkelSigners = [spendingSubmitter]
         }
 
-referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> m ()
-referenceMint mp1 mp2 n = do
+referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
+referenceMint mp1 mp2 n autoRefScript = do
   ((!! n) -> mpOutRef) <-
     validateTxSkel' $
       txSkelTemplate
@@ -131,7 +131,7 @@ referenceMint mp1 mp2 n = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(mp2, txSkelEmptyRedeemerAndReferenceScript mpOutRef, "banana", 3)],
+        { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then txSkelEmptyRedeemer else txSkelEmptyRedeemerAndReferenceScript mpOutRef, "banana", 3)],
           txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
           txSkelSigners = [wallet 1]
         }
@@ -256,19 +256,26 @@ tests =
       testGroup
         "referencing minting policies"
         [ testCase "succeed if given a reference minting policy" $
-            testSucceeds $
-              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0,
-          testCase "fail if given the wrong reference minting policy" $
-            testToProp $
-              mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0)
-                `withErrorPred` \case
+            testSucceeds def $
+              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 False,
+          testCase "succeed if relying on automated finding of reference minting policy" $
+            testSucceeds def $
+              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 True,
+          testCase "fail if given the wrong reference minting policy"
+            $ testFails
+              def
+              ( \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
-                  _ -> testFailure,
-          testCase "fail if referencing the wrong utxo" $
-            testToProp $
-              mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1)
-                `withErrorPred` \case
+                  _ -> testFailure
+              )
+            $ referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0 False,
+          testCase "fail if referencing the wrong utxo"
+            $ testFails
+              def
+              ( \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
                   _ -> testFailure
+              )
+            $ referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1 False
         ]
     ]
