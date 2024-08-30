@@ -1,6 +1,6 @@
 -- | This module provides a function to ensure that each redeemer used in a
 -- skeleton is attached a reference scripts when a known utxos contains it.
-module Cooked.MockChain.AutoReferenceScripts (setAllReferenceScripts) where
+module Cooked.MockChain.AutoReferenceScripts (toTxSkelWithReferenceScripts) where
 
 import Control.Monad
 import Cooked.Conversion
@@ -27,8 +27,8 @@ updateRedeemer _ redeemer = return redeemer
 -- | Goes through the various parts of the skeleton where a redeemer can appear,
 -- and attempt to attach a reference script to each of them, following the rules
 -- from `updateRedeemer`
-setAllReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
-setAllReferenceScripts txSkel = do
+toTxSkelWithReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
+toTxSkelWithReferenceScripts txSkel = do
   newMints <- forM (txSkelMintsToList $ txSkel ^. txSkelMintsL) $ \(mPol, red, tk, nb) ->
     (mPol,,tk,nb) <$> updateRedeemer mPol red
   newInputs <- forM (Map.toList $ txSkel ^. txSkelInsL) $ \(oRef, red) -> do

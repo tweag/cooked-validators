@@ -14,6 +14,7 @@ import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Control.Monad.Writer
 import Cooked.InitialDistribution
+import Cooked.MockChain.AutoReferenceScripts
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -148,10 +149,19 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
-    minAdaSkelUnbal <- if txOptEnsureMinAda . txSkelOpts $ skelUnbal then toTxSkelWithMinAda skelUnbal else return skelUnbal
+    minAdaSkelUnbal <-
+      if txOptEnsureMinAda . txSkelOpts $ skelUnbal
+        then toTxSkelWithMinAda skelUnbal
+        else return skelUnbal
+    -- We add reference scripts in the various redeemers of the skeleton, when
+    -- they can be found in the index and are requested in the skeleton options
+    minAdaRefScriptsSkelUnbal <-
+      if txOptAutoReferenceScripts . txSkelOpts $ minAdaSkelUnbal
+        then toTxSkelWithReferenceScripts minAdaSkelUnbal
+        else return minAdaSkelUnbal
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
-    (skel, fee, mCollaterals) <- balanceTxSkel minAdaSkelUnbal
+    (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
     -- We log the adjusted skeleton
     gets mcstToSkelContext >>= \ctx -> logEvent $ MCLogAdjustedTxSkel ctx skel fee mCollaterals
     -- We retrieve data that will be used in the transaction generation process:

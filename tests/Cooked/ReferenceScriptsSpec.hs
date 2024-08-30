@@ -242,7 +242,8 @@ tests =
                   txSkelTemplate
                     { txSkelIns = Map.singleton oref (txSkelSomeRedeemer ()),
                       txSkelInsReference = Set.singleton scriptOref,
-                      txSkelSigners = [wallet 1]
+                      txSkelSigners = [wallet 1],
+                      txSkelOpts = def {txOptAutoReferenceScripts = False}
                     },
           testCase
             "fail if reference script's requirement is violated"
