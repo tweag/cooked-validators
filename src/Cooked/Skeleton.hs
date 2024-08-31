@@ -59,7 +59,7 @@ module Cooked.Skeleton
     withStakingCredential,
     TxSkelRedeemer (..),
     Redeemer (..),
-    txSkelTypedRedeemer,
+    withReferenceInput,
     TxParameterChange (..),
     TxGovAction (..),
     TxSkelProposal (..),
@@ -96,10 +96,8 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
-    someRedeemer,
-    emptyRedeemer,
-    someRedeemerAndReferenceScript,
-    emptyRedeemerAndReferenceScript,
+    someTxSkelRedeemer,
+    emptyTxSkelRedeemer,
   )
 where
 
@@ -427,25 +425,27 @@ instance Eq Redeemer where
 
 data TxSkelRedeemer = TxSkelRedeemer
   { txSkelRedeemer :: Redeemer,
-    txSkelReferenceScript :: Maybe Api.TxOutRef
+    -- An optional input containing a reference script
+    txSkelReferenceInput :: Maybe Api.TxOutRef
   }
   deriving (Show, Eq)
 
-someRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-someRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
+-- Two helpers to create skeleton redeemers
+someTxSkelRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
+someTxSkelRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
 
-emptyRedeemer :: TxSkelRedeemer
-emptyRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
+emptyTxSkelRedeemer :: TxSkelRedeemer
+emptyTxSkelRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
 
-someRedeemerAndReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
-someRedeemerAndReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
+-- Additional helper to specify a given reference script. As reference scripts
+-- are automatically attached during transaction generation by default, there
+-- are only 2 cases where this can be useful:
+-- - A wrong reference script somehow needs to be attached
+-- - The automated attachement of reference has been disabled using the
+-- `txOptAutoReferenceScripts` option
 
-emptyRedeemerAndReferenceScript :: Api.TxOutRef -> TxSkelRedeemer
-emptyRedeemerAndReferenceScript outRef = TxSkelRedeemer EmptyRedeemer (Just outRef)
-
-txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
-txSkelTypedRedeemer (TxSkelRedeemer (SomeRedeemer red) _) = Api.fromData . Api.toData $ red
-txSkelTypedRedeemer _ = Nothing
+withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
+withReferenceInput red ref = red {txSkelReferenceInput = Just ref}
 
 -- * Description of the Governance actions (or proposal procedures)
 
@@ -617,7 +617,7 @@ txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
 txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
 
 pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
-pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyRedeemer, amount)
+pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
 
 scriptWithdrawal :: (ToVersionedScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
 scriptWithdrawal script red amount = Map.singleton (Left $ toVersionedScript script) (red, amount)
@@ -1045,7 +1045,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'emptyRedeemer' smart constructor.
+      --   the 'emptyTxSkelRedeemer' smart constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
@@ -1149,11 +1149,11 @@ txSkelReferenceTxOutRefs TxSkel {..} =
   -- direct reference inputs
   Set.toList txSkelInsReference
     -- reference inputs in inputs redeemers
-    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
+    <> mapMaybe txSkelReferenceInput (Map.elems txSkelIns)
     -- reference inputs in proposals redeemers
-    <> mapMaybe (txSkelReferenceScript . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
+    <> mapMaybe (txSkelReferenceInput . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
     -- reference inputs in mints redeemers
-    <> mapMaybe (txSkelReferenceScript . fst . snd) (Map.toList txSkelMints)
+    <> mapMaybe (txSkelReferenceInput . fst . snd) (Map.toList txSkelMints)
 
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference

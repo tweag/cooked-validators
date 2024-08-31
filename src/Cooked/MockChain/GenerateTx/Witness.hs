@@ -74,10 +74,10 @@ toScriptWitness (toVersionedScript -> script@(Script.Versioned _ version)) (TxSk
    in case version of
         Script.PlutusV1 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
         Script.PlutusV2 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
         Script.PlutusV3 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
