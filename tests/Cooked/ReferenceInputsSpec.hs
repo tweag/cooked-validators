@@ -116,7 +116,7 @@ trace1 = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelIns = Map.singleton txOutRefBar $ someRedeemer (),
+        { txSkelIns = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
           txSkelInsReference = Set.singleton txOutRefFoo,
           txSkelOuts = [paysPK (wallet 4) (Script.ada 5)],
           txSkelSigners = [wallet 3]
@@ -138,7 +138,7 @@ trace2 = do
     validateTxSkel $
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelIns = Map.singleton scriptORef (someRedeemer ()),
+          txSkelIns = Map.singleton scriptORef (someTxSkelRedeemer ()),
           txSkelInsReference = Set.singleton refORef
         }
 

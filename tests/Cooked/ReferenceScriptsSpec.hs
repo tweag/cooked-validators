@@ -99,7 +99,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelIns = Map.singleton oref $ someRedeemer (),
+        { txSkelIns = Map.singleton oref $ someTxSkelRedeemer (),
           txSkelInsReference = Set.singleton refScriptOref,
           txSkelSigners = [wallet 1]
         }
@@ -116,7 +116,7 @@ useReferenceScript spendingSubmitter theScript = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelIns = Map.singleton oref $ someRedeemerAndReferenceScript scriptOref (),
+        { txSkelIns = Map.singleton oref $ someTxSkelRedeemer () `withReferenceInput` scriptOref,
           txSkelSigners = [spendingSubmitter]
         }
 
@@ -131,7 +131,7 @@ referenceMint mp1 mp2 n autoRefScript = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyRedeemer else emptyRedeemerAndReferenceScript mpOutRef, "banana", 3)],
+        { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef, "banana", 3)],
           txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
           txSkelSigners = [wallet 1]
         }
@@ -218,13 +218,13 @@ tests =
                 validateTxSkel'
                   txSkelTemplate
                     { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
-                      txSkelIns = Map.singleton consumedOref emptyRedeemer,
+                      txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                       txSkelSigners = [wallet 1]
                     }
               void $
                 validateTxSkel
                   txSkelTemplate
-                    { txSkelIns = Map.singleton oref (someRedeemerAndReferenceScript consumedOref ()),
+                    { txSkelIns = Map.singleton oref (someTxSkelRedeemer () `withReferenceInput` consumedOref),
                       txSkelSigners = [wallet 1]
                     },
           testCase "fail from transaction generation for mismatching reference scripts"
@@ -246,7 +246,7 @@ tests =
               void $
                 validateTxSkel
                   txSkelTemplate
-                    { txSkelIns = Map.singleton oref (someRedeemerAndReferenceScript scriptOref ()),
+                    { txSkelIns = Map.singleton oref (someTxSkelRedeemer () `withReferenceInput` scriptOref),
                       txSkelSigners = [wallet 1]
                     },
           testCase "phase 1 - fail if using a reference script with 'someRedeemer'"
@@ -268,7 +268,7 @@ tests =
               void $
                 validateTxSkel
                   txSkelTemplate
-                    { txSkelIns = Map.singleton oref (someRedeemer ()),
+                    { txSkelIns = Map.singleton oref (someTxSkelRedeemer ()),
                       txSkelInsReference = Set.singleton scriptOref,
                       txSkelSigners = [wallet 1],
                       txSkelOpts = def {txOptAutoReferenceScripts = False}

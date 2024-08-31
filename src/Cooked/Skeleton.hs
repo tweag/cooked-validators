@@ -439,7 +439,8 @@ emptyTxSkelRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
 
 -- Additional helper to specify a given reference script. As reference scripts
 -- are automatically attached during transaction generation by default, there
--- are only 2 cases where this can be useful:
+-- are 3 cases where this can be useful:
+-- - The reliance on a reference script needs to be made explicit
 -- - A wrong reference script somehow needs to be attached
 -- - The automated attachement of reference has been disabled using the
 -- `txOptAutoReferenceScripts` option

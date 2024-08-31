@@ -149,7 +149,7 @@ tests =
             skelIn :: [(ARedeemer, Api.TxOutRef)] -> TxSkel
             skelIn aInputs =
               txSkelTemplate
-                { txSkelIns = Map.fromList $ map (second someRedeemer . swap) aInputs,
+                { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
                   txSkelOuts = [paysPK (wallet 2) (Script.lovelaceValueOf 2_500_000)],
                   txSkelSigners = [wallet 1]
                 }
@@ -173,13 +173,13 @@ tests =
                             if
                               | aOref == fst aUtxo1 ->
                                   return
-                                    [ (someRedeemer ARedeemer2, toDelta bOref $ someRedeemer BRedeemer1)
+                                    [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
                                       | (bOref, bOut) <- bUtxos,
                                         outputValue bOut == Script.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
-                                    [ (someRedeemer ARedeemer2, toDelta bOref $ someRedeemer BRedeemer1)
+                                    [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
                                       | (bOref, _) <- bUtxos,
                                         bOref == fst bUtxo1
                                     ]
@@ -189,10 +189,10 @@ tests =
                                       ( \(bOref, _) ->
                                           if
                                             | bOref == fst bUtxo1 ->
-                                                [(someRedeemer ARedeemer2, toDelta bOref $ someRedeemer BRedeemer1)]
+                                                [(someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)]
                                             | bOref == fst bUtxo2 ->
-                                                [ (someRedeemer ARedeemer2, toDelta bOref $ someRedeemer BRedeemer1),
-                                                  (someRedeemer ARedeemer3, toDelta bOref $ someRedeemer BRedeemer2)
+                                                [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1),
+                                                  (someTxSkelRedeemer ARedeemer3, toDelta bOref $ someTxSkelRedeemer BRedeemer2)
                                                 ]
                                             | otherwise -> []
                                       )
@@ -219,13 +219,13 @@ tests =
                   txSkelIns =
                     Map.fromList
                       ( ( \(bRedeemer, (bOref, _)) ->
-                            (bOref, someRedeemer bRedeemer)
+                            (bOref, someTxSkelRedeemer bRedeemer)
                         )
                           <$> bInputs
                       )
                       <> Map.fromList
                         ( ( \(aRedeemer, aOref) ->
-                              (aOref, someRedeemer aRedeemer)
+                              (aOref, someTxSkelRedeemer aRedeemer)
                           )
                             <$> aInputs
                         ),

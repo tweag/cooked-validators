@@ -35,7 +35,7 @@ testProposingScript script govAction =
     validateTxSkel
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyRedeemer)]
+          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyTxSkelRedeemer)]
         }
 
 testProposingRefScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
@@ -50,7 +50,7 @@ testProposingRefScript script govAction = do
     validateTxSkel $
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyRedeemerAndReferenceScript pOutRef)]
+          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyTxSkelRedeemer `withReferenceInput` pOutRef)]
         }
 
 tests :: TestTree
