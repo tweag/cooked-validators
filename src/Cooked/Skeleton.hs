@@ -96,10 +96,10 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
-    txSkelSomeRedeemer,
-    txSkelEmptyRedeemer,
-    txSkelSomeRedeemerAndReferenceScript,
-    txSkelEmptyRedeemerAndReferenceScript,
+    someRedeemer,
+    emptyRedeemer,
+    someRedeemerAndReferenceScript,
+    emptyRedeemerAndReferenceScript,
   )
 where
 
@@ -431,17 +431,17 @@ data TxSkelRedeemer = TxSkelRedeemer
   }
   deriving (Show, Eq)
 
-txSkelSomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-txSkelSomeRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
+someRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
+someRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
 
-txSkelEmptyRedeemer :: TxSkelRedeemer
-txSkelEmptyRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
+emptyRedeemer :: TxSkelRedeemer
+emptyRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
 
-txSkelSomeRedeemerAndReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
-txSkelSomeRedeemerAndReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
+someRedeemerAndReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
+someRedeemerAndReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
 
-txSkelEmptyRedeemerAndReferenceScript :: Api.TxOutRef -> TxSkelRedeemer
-txSkelEmptyRedeemerAndReferenceScript outRef = TxSkelRedeemer EmptyRedeemer (Just outRef)
+emptyRedeemerAndReferenceScript :: Api.TxOutRef -> TxSkelRedeemer
+emptyRedeemerAndReferenceScript outRef = TxSkelRedeemer EmptyRedeemer (Just outRef)
 
 txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemer (SomeRedeemer red) _) = Api.fromData . Api.toData $ red
@@ -617,7 +617,7 @@ txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
 txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
 
 pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
-pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (txSkelEmptyRedeemer, amount)
+pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyRedeemer, amount)
 
 scriptWithdrawal :: (ToVersionedScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
 scriptWithdrawal script red amount = Map.singleton (Left $ toVersionedScript script) (red, amount)
@@ -1045,7 +1045,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'txSkelEmptyRedeemer' smart constructor.
+      --   the 'emptyRedeemer' smart constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
