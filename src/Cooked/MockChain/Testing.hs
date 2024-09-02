@@ -70,17 +70,13 @@ a .||. b = testDisjoin [a, b]
 testSucceeds :: (IsProp prop) => PrettyCookedOpts -> StagedMockChain a -> prop
 testSucceeds pcOpts = testSucceedsFrom pcOpts def
 
--- | Ensure that all results produced by the staged mockchain /fail/ and that a
--- predicate holds over the error.
---
--- To test that validation fails, use
--- > testFails def (isCekEvaluationFailure def) e
+-- | Ensure that all results produced by the staged mockchain /fail/
 testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> StagedMockChain a -> prop
 testFails pcOpts = testFailsFrom pcOpts def
 
 -- | Ensure that all results produced by the staged mockchain succeed starting
 -- from some initial distribution but doesn't impose any additional condition on
--- success.  Use 'testSucceedsFrom'' for that.
+-- success. Use 'testSucceedsFrom'' for that.
 testSucceedsFrom ::
   (IsProp prop) =>
   PrettyCookedOpts ->
@@ -105,6 +101,9 @@ testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts $ \(res, entries) ->
     (\(a, state) -> prop a state entries)
     res
 
+-- | Ensure that all results produced by the staged mockchain fail starting
+-- from some initial distribution but doesn't impose any additional condition on
+-- failure. Use 'testFailssFrom'' for that.
 testFailsFrom ::
   (IsProp prop, Show a) =>
   PrettyCookedOpts ->
@@ -160,10 +159,11 @@ testAllSatisfiesFrom ::
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
-  where
-    go :: MockChainReturn a UtxoState -> prop
-    go ret@(_, mcLog) = testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f ret)
+testAllSatisfiesFrom pcOpts f =
+  testSatisfiesFrom' $
+    testAll $
+      \ret@(_, mcLog) ->
+        testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f ret)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes,
 -- both of which are successful and have their resulting states related by a
