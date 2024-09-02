@@ -75,8 +75,8 @@ testSucceeds pcOpts = testSucceedsFrom pcOpts def
 --
 -- To test that validation fails, use
 -- > testFails def (isCekEvaluationFailure def) e
-testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> (MockChainError -> prop) -> StagedMockChain a -> prop
-testFails pcOpts predi = testFailsFrom pcOpts predi def
+testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> StagedMockChain a -> prop
+testFails pcOpts = testFailsFrom pcOpts def
 
 -- | Ensure that all results produced by the staged mockchain succeed starting
 -- from some initial distribution but doesn't impose any additional condition on
@@ -87,33 +87,47 @@ testSucceedsFrom ::
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testSucceedsFrom pcOpts = testSucceedsFrom' pcOpts (\_ _ -> testSuccess)
+testSucceedsFrom pcOpts = testSucceedsFrom' pcOpts (\_ _ _ -> testSuccess)
 
 -- | Ensure that all results produced by the staged mockchain succeed starting
 -- from some initial distribution. Additionally impose a condition over the
--- resulting state and value.
+-- resulting state, value and log.
 testSucceedsFrom' ::
   (IsProp prop) =>
   PrettyCookedOpts ->
-  (a -> UtxoState -> prop) ->
+  (a -> UtxoState -> [MockChainLogEntry] -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts (either (testFailureMsg . renderString (prettyCookedOpt pcOpts)) (uncurry prop))
+testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts $ \(res, entries) ->
+  either
+    (testFailureMsg . renderString (prettyCookedOpt pcOpts))
+    (\(a, state) -> prop a state entries)
+    res
 
--- | Ensure that all results produced by the staged mockchain /fail/ starting
--- from some initial distribution.
 testFailsFrom ::
   (IsProp prop, Show a) =>
   PrettyCookedOpts ->
-  (MockChainError -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom pcOpts predi =
-  testAllSatisfiesFrom
-    pcOpts
-    (either predi (testFailureMsg . renderString (prettyCookedOpt pcOpts)))
+testFailsFrom pcOpts = testFailsFrom' pcOpts (\_ _ -> testSuccess)
+
+-- | Ensure that all results produced by the staged mockchain /fail/ starting
+-- from some initial distribution. Additionally impose a condition over the
+-- resuting error and log.
+testFailsFrom' ::
+  (IsProp prop, Show a) =>
+  PrettyCookedOpts ->
+  (MockChainError -> [MockChainLogEntry] -> prop) ->
+  InitialDistribution ->
+  StagedMockChain a ->
+  prop
+testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts $ \(res, entries) ->
+  either
+    (`predi` entries)
+    (testFailureMsg . renderString (prettyCookedOpt pcOpts))
+    res
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a
 -- @CekEvaluationFailure@.  This is particularly important when writing negative
@@ -142,14 +156,14 @@ testAllSatisfiesFrom ::
   forall prop a.
   (IsProp prop) =>
   PrettyCookedOpts ->
-  (Either MockChainError (a, UtxoState) -> prop) ->
+  (MockChainReturn a UtxoState -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
 testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
   where
     go :: MockChainReturn a UtxoState -> prop
-    go (prop, mcLog) = testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f prop)
+    go ret@(_, mcLog) = testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f ret)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes,
 -- both of which are successful and have their resulting states related by a
