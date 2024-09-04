@@ -32,7 +32,7 @@
   * it is now a component of `MonadBlockChainBalancing`
   * it can be turned on/off in pretty-printing options
   * it now displays the discarding of utxos during balancing.
-  * it now displays when the users specifies useless collateral utxos.
+  * it now displays when the user specifies useless collateral utxos.
   * it is not visible from outside of `cooked-validators`
 
 ### Fixed
