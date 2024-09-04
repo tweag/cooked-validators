@@ -129,7 +129,9 @@ data MockChainLogEntry
     -- discarded for a specific reason.
     MCLogDiscardedUtxos Integer String
   | -- | Logging the fact that utxos provided as collaterals will not be used
-    -- because the transaction does not involve scripts.
+    -- because the transaction does not involve scripts. There are 2 cases,
+    -- depending on whether the user has provided an explicit wallet or a set of
+    -- utxos to be used as collaterals.
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
 
 -- | Contains methods needed for balancing.
