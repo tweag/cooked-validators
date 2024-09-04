@@ -36,10 +36,6 @@ generateTxOut networkId txSkelOut = runReaderT (toCardanoTxOut txSkelOut) networ
 generateBodyContent ::
   -- | fee to apply to body generation
   Integer ->
-  -- | wallet to return collaterals to
-  Wallet ->
-  -- | collaterals to add to body generation
-  Set Api.TxOutRef ->
   -- | parameters of the emulator
   Emulator.Params ->
   -- | datums present in our environment
@@ -48,10 +44,12 @@ generateBodyContent ::
   Map Api.TxOutRef Api.TxOut ->
   -- | validators present in our environment
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
+  -- | Possible collaterals to use
+  Maybe (Set Api.TxOutRef, Wallet) ->
   -- | The skeleton to translate
   TxSkel ->
   Either GenerateTxError (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
-generateBodyContent fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
+generateBodyContent fee params managedData managedTxOuts managedValidators mCollaterals =
   flip runReaderT TxContext {..} . txSkelToBodyContent
 
 -- | Generates a transaction from a skeleton. Shares the same parameters as
@@ -59,10 +57,6 @@ generateBodyContent fee returnCollateralWallet collateralIns params managedData 
 generateTx ::
   -- | fee to apply to body generation
   Integer ->
-  -- | wallet to return collaterals to
-  Wallet ->
-  -- | collaterals to add to body generation
-  Set Api.TxOutRef ->
   -- | parameters of the emulator
   Emulator.Params ->
   -- | datums present in our environment
@@ -71,8 +65,10 @@ generateTx ::
   Map Api.TxOutRef Api.TxOut ->
   -- | validators present in our environment
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
+  -- | The collateral inputs and associated collateral wallet
+  Maybe (Set Api.TxOutRef, Wallet) ->
   -- | The skeleton to translate
   TxSkel ->
   Either GenerateTxError (Cardano.Tx Cardano.ConwayEra)
-generateTx fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
+generateTx fee params managedData managedTxOuts managedValidators mCollaterals =
   flip runReaderT TxContext {..} . txSkelToCardanoTx
