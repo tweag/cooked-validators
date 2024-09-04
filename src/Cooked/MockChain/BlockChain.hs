@@ -120,7 +120,7 @@ data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
     MCLogSubmittedTxSkel SkelContext TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
-    -- alongside fee, and posisble collateral utxos and return collateral wallet.
+    -- alongside fee, and possible collateral utxos and return collateral wallet.
     MCLogAdjustedTxSkel SkelContext TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
   | -- | Logging the appearance of a new transaction, after a skeleton has been
     -- successfully sent for validation.
@@ -129,7 +129,7 @@ data MockChainLogEntry
     -- discarded for a specific reason.
     MCLogDiscardedUtxos Integer String
   | -- | Logging the fact that utxos provided as collaterals will not be used
-    -- because the transaction does not need involve scripts.
+    -- because the transaction does not involve scripts.
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
 
 -- | Contains methods needed for balancing.
