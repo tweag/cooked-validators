@@ -38,7 +38,7 @@
 ### Fixed
 
 - All kinds of scripts can now be used as reference scripts.
-- Transactions that do not involve script are now properly generated without any
+- Transactions that do not involve scripts are now properly generated without any
   collateral.
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
