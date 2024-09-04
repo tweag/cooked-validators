@@ -30,7 +30,6 @@ import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
@@ -303,7 +302,7 @@ estimateTxSkelFee skel fee mCollaterals = do
   let collateralIns = case mCollaterals of
         Nothing -> []
         Just (s, _) -> Set.toList s
-  managedTxOuts <- lookupUtxosPl $ txSkelKnownTxOutRefs skel <> collateralIns
+  managedTxOuts <- lookupUtxos $ txSkelKnownTxOutRefs skel <> collateralIns
   managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime
   txBodyContent <- case generateBodyContent fee params managedData managedTxOuts managedValidators mCollaterals skel of
@@ -316,10 +315,17 @@ estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the estimate number of required witness in the transaction
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
   -- We need to reconstruct an index to pass to the fee estimate function
+  -- We begin by retrieving the relevant utxos used in the skeleton
   (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> collateralIns)
-  index <- case forM knownTxORefs Ledger.toCardanoTxIn of
-    Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: unable to generate TxIn" err
-    Right txInL -> return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut . Ledger.getTxOut <$> knownTxOuts
+  -- We then compute their Cardano counterparts
+  let indexOrError = do
+        txInL <- forM knownTxORefs Ledger.toCardanoTxIn
+        txOutL <- forM knownTxOuts $ Ledger.toCardanoTxOut $ Emulator.pNetworkId params
+        return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
+  -- We retrieve the index when it was successfully created
+  index <- case indexOrError of
+    Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: toCardanoError" err
+    Right index' -> return index'
   -- We finally can the fee estimate function
   return . Emulator.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
 

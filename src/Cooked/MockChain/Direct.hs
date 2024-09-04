@@ -101,7 +101,7 @@ data MockChainSt = MockChainSt
 mcstToSkelContext :: MockChainSt -> SkelContext
 mcstToSkelContext MockChainSt {..} =
   SkelContext
-    (txOutV2FromLedger <$> getIndex mcstIndex)
+    (getIndex mcstIndex)
     (Map.map fst mcstDatums)
 
 -- | Generating an emulated state for the emulator from a mockchain state and
@@ -302,10 +302,10 @@ utxoIndex0 = utxoIndex0From def
 
 -- * Direct Interpretation of Operations
 
-getIndex :: Ledger.UtxoIndex -> Map Api.TxOutRef Ledger.TxOut
+getIndex :: Ledger.UtxoIndex -> Map Api.TxOutRef Api.TxOut
 getIndex =
   Map.fromList
-    . map (bimap Ledger.fromCardanoTxIn (Ledger.TxOut . toCtxTxTxOut))
+    . map (bimap Ledger.fromCardanoTxIn (Ledger.fromCardanoTxOutToPV2TxInfoTxOut . toCtxTxTxOut))
     . Map.toList
     . Cardano.unUTxO
   where
@@ -322,13 +322,13 @@ getIndex =
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
-  txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
+  txOutByRef outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
-  utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
+  utxosAt addr = filter ((addr ==) . outputAddress . snd) <$> allUtxos
   logEvent l = tell [l]
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
-  allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
+  allUtxos = gets $ Map.toList . getIndex . mcstIndex
   setParams newParams = modify (\st -> st {mcstParams = newParams})
   currentSlot = gets mcstCurrentSlot
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
@@ -356,11 +356,11 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- rich-enough context for the transaction generation to succeed.
     insData <- txSkelInputData skel
     insValidators <- txSkelInputValidators skel
-    insMap <- txSkelInputUtxosPl skel
-    refInsMap <- txSkelReferenceInputUtxosPl skel
+    insMap <- txSkelInputUtxos skel
+    refInsMap <- txSkelReferenceInputUtxos skel
     collateralInsMap <- case mCollaterals of
       Nothing -> return Map.empty
-      Just (collateralIns, _) -> lookupUtxosPl $ Set.toList collateralIns
+      Just (collateralIns, _) -> lookupUtxos $ Set.toList collateralIns
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.
