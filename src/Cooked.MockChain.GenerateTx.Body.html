@@ -26,74 +26,69 @@
 </span><span id="line-26"></span><span>  </span><span id="TxContext"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-var">TxContext</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-27"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="fee"><span class="annot"><span class="annottext">TxContext -&gt; Integer
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#fee"><span class="hs-identifier hs-var hs-var">fee</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">,</span><span>
-</span><span id="line-28"></span><span>      </span><span id="collateralIns"><span class="annot"><span class="annottext">TxContext -&gt; Set TxOutRef
-</span><a href="Cooked.MockChain.GenerateTx.Body.html#collateralIns"><span class="hs-identifier hs-var hs-var">collateralIns</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span>
-</span><span id="line-29"></span><span>      </span><span id="returnCollateralWallet"><span class="annot"><span class="annottext">TxContext -&gt; Wallet
-</span><a href="Cooked.MockChain.GenerateTx.Body.html#returnCollateralWallet"><span class="hs-identifier hs-var hs-var">returnCollateralWallet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-30"></span><span>      </span><span id="params"><span class="annot"><span class="annottext">TxContext -&gt; Params
+</span><span id="line-28"></span><span>      </span><span id="mCollaterals"><span class="annot"><span class="annottext">TxContext -&gt; Maybe (Set TxOutRef, Wallet)
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#mCollaterals"><span class="hs-identifier hs-var hs-var">mCollaterals</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-29"></span><span>      </span><span id="params"><span class="annot"><span class="annottext">TxContext -&gt; Params
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#params"><span class="hs-identifier hs-var hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span class="hs-special">,</span><span>
-</span><span id="line-31"></span><span>      </span><span id="managedData"><span class="annot"><span class="annottext">TxContext -&gt; Map DatumHash Datum
+</span><span id="line-30"></span><span>      </span><span id="managedData"><span class="annot"><span class="annottext">TxContext -&gt; Map DatumHash Datum
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#managedData"><span class="hs-identifier hs-var hs-var">managedData</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.DatumHash</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Datum</span></span><span class="hs-special">,</span><span>
-</span><span id="line-32"></span><span>      </span><span id="managedTxOuts"><span class="annot"><span class="annottext">TxContext -&gt; Map TxOutRef TxOut
+</span><span id="line-31"></span><span>      </span><span id="managedTxOuts"><span class="annot"><span class="annottext">TxContext -&gt; Map TxOutRef TxOut
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#managedTxOuts"><span class="hs-identifier hs-var hs-var">managedTxOuts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">,</span><span>
-</span><span id="line-33"></span><span>      </span><span id="managedValidators"><span class="annot"><span class="annottext">TxContext -&gt; Map ValidatorHash (Versioned Validator)
+</span><span id="line-32"></span><span>      </span><span id="managedValidators"><span class="annot"><span class="annottext">TxContext -&gt; Map ValidatorHash (Versioned Validator)
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#managedValidators"><span class="hs-identifier hs-var hs-var">managedValidators</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ValidatorHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-35"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span>
-</span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-keyword">type</span><span> </span><span id="BodyGen"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#BodyGen"><span class="hs-identifier hs-var">BodyGen</span></a></span></span><span> </span><span id="local-6989586621679777318"><span class="annot"><a href="#local-6989586621679777318"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679777318"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-38"></span><span>
-</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.NetworkId</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-40"></span><span>  </span><span id="local-6989586621679777321"><span class="annot"><span class="annottext">transform :: TxContext -&gt; NetworkId
-</span><a href="#local-6989586621679777321"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params -&gt; NetworkId
+</span><span id="line-33"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-34"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">type</span><span> </span><span id="BodyGen"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#BodyGen"><span class="hs-identifier hs-var">BodyGen</span></a></span></span><span> </span><span id="local-6989586621679779065"><span class="annot"><a href="#local-6989586621679779065"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679779065"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.NetworkId</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679779068"><span class="annot"><span class="annottext">transform :: TxContext -&gt; NetworkId
+</span><a href="#local-6989586621679779068"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params -&gt; NetworkId
 </span><span class="hs-identifier hs-var">Emulator.pNetworkId</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; NetworkId)
 -&gt; (TxContext -&gt; Params) -&gt; TxContext -&gt; NetworkId
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Params
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#params"><span class="hs-identifier hs-var">params</span></a></span><span>
-</span><span id="line-41"></span><span>
-</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-43"></span><span>  </span><span id="local-6989586621679777326"><span class="annot"><span class="annottext">transform :: TxContext -&gt; Map TxOutRef TxOut
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679779073"><span class="annot"><span class="annottext">transform :: TxContext -&gt; Map TxOutRef TxOut
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Map TxOutRef TxOut
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#managedTxOuts"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span>
-</span><span id="line-44"></span><span>
-</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Emulator.PParams</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-46"></span><span>  </span><span id="local-6989586621679777329"><span class="annot"><span class="annottext">transform :: TxContext -&gt; (PParams, Map TxOutRef TxOut)
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span id="local-6989586621679777330"><span class="annot"><span class="annottext">TxContext
-</span><a href="#local-6989586621679777330"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params -&gt; PParams
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Emulator.PParams</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679779076"><span class="annot"><span class="annottext">transform :: TxContext -&gt; (PParams, Map TxOutRef TxOut)
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span id="local-6989586621679779077"><span class="annot"><span class="annottext">TxContext
+</span><a href="#local-6989586621679779077"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params -&gt; PParams
 </span><span class="hs-identifier hs-var">Emulator.pEmulatorPParams</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; PParams) -&gt; Params -&gt; PParams
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Params
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#params"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">TxContext
-</span><a href="#local-6989586621679777330"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Map TxOutRef TxOut
+</span><a href="#local-6989586621679779077"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Map TxOutRef TxOut
 forall a b. Transform a b =&gt; a -&gt; b
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var">transform</span></a></span><span> </span><span class="annot"><span class="annottext">TxContext
-</span><a href="#local-6989586621679777330"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-47"></span><span>
-</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">Input.InputContext</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-49"></span><span>  </span><span id="local-6989586621679777333"><span class="annot"><span class="annottext">transform :: TxContext -&gt; InputContext
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679777334"><span id="local-6989586621679777335"><span id="local-6989586621679777336"><span id="local-6989586621679777337"><span id="local-6989586621679777338"><span id="local-6989586621679777339"><span id="local-6989586621679777340"><span class="annot"><span class="annottext">Integer
-Set TxOutRef
+</span><a href="#local-6989586621679779077"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">Input.InputContext</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span id="local-6989586621679779080"><span class="annot"><span class="annottext">transform :: TxContext -&gt; InputContext
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679779081"><span id="local-6989586621679779082"><span id="local-6989586621679779083"><span id="local-6989586621679779084"><span id="local-6989586621679779085"><span id="local-6989586621679779086"><span class="annot"><span class="annottext">Integer
+Maybe (Set TxOutRef, Wallet)
 Map TxOutRef TxOut
 Map DatumHash Datum
 Map ValidatorHash (Versioned Validator)
 Params
-Wallet
 fee :: TxContext -&gt; Integer
-collateralIns :: TxContext -&gt; Set TxOutRef
-returnCollateralWallet :: TxContext -&gt; Wallet
+mCollaterals :: TxContext -&gt; Maybe (Set TxOutRef, Wallet)
 params :: TxContext -&gt; Params
 managedData :: TxContext -&gt; Map DatumHash Datum
 managedTxOuts :: TxContext -&gt; Map TxOutRef TxOut
 managedValidators :: TxContext -&gt; Map ValidatorHash (Versioned Validator)
 fee :: Integer
-collateralIns :: Set TxOutRef
-returnCollateralWallet :: Wallet
+mCollaterals :: Maybe (Set TxOutRef, Wallet)
 params :: Params
 managedData :: Map DatumHash Datum
 managedTxOuts :: Map TxOutRef TxOut
 managedValidators :: Map ValidatorHash (Versioned Validator)
-</span><a href="Cooked.MockChain.GenerateTx.Body.html#fee"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">Input.InputContext</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#fee"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">Input.InputContext</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">Map TxOutRef TxOut
 Map DatumHash Datum
 Map ValidatorHash (Versioned Validator)
 managedData :: Map DatumHash Datum
@@ -102,53 +97,47 @@ managedValidators :: Map ValidatorHash (Versioned Validator)
 managedData :: Map DatumHash Datum
 managedTxOuts :: Map TxOutRef TxOut
 managedValidators :: Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679777338"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
-</span><span id="line-50"></span><span>
-</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#CollateralContext"><span class="hs-identifier hs-type">Collateral.CollateralContext</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-52"></span><span>  </span><span id="local-6989586621679777346"><span class="annot"><span class="annottext">transform :: TxContext -&gt; CollateralContext
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679777347"><span id="local-6989586621679777348"><span id="local-6989586621679777349"><span id="local-6989586621679777350"><span id="local-6989586621679777351"><span id="local-6989586621679777352"><span id="local-6989586621679777353"><span class="annot"><span class="annottext">Integer
-Set TxOutRef
+</span><a href="#local-6989586621679779084"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#CollateralContext"><span class="hs-identifier hs-type">Collateral.CollateralContext</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679779092"><span class="annot"><span class="annottext">transform :: TxContext -&gt; CollateralContext
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#TxContext"><span class="hs-identifier hs-type">TxContext</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679779093"><span id="local-6989586621679779094"><span id="local-6989586621679779095"><span id="local-6989586621679779096"><span id="local-6989586621679779097"><span id="local-6989586621679779098"><span class="annot"><span class="annottext">Integer
+Maybe (Set TxOutRef, Wallet)
 Map TxOutRef TxOut
 Map DatumHash Datum
 Map ValidatorHash (Versioned Validator)
 Params
-Wallet
 fee :: TxContext -&gt; Integer
-collateralIns :: TxContext -&gt; Set TxOutRef
-returnCollateralWallet :: TxContext -&gt; Wallet
+mCollaterals :: TxContext -&gt; Maybe (Set TxOutRef, Wallet)
 params :: TxContext -&gt; Params
 managedData :: TxContext -&gt; Map DatumHash Datum
 managedTxOuts :: TxContext -&gt; Map TxOutRef TxOut
 managedValidators :: TxContext -&gt; Map ValidatorHash (Versioned Validator)
 fee :: Integer
-collateralIns :: Set TxOutRef
-returnCollateralWallet :: Wallet
+mCollaterals :: Maybe (Set TxOutRef, Wallet)
 params :: Params
 managedData :: Map DatumHash Datum
 managedTxOuts :: Map TxOutRef TxOut
 managedValidators :: Map ValidatorHash (Versioned Validator)
-</span><a href="Cooked.MockChain.GenerateTx.Body.html#fee"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#CollateralContext"><span class="hs-identifier hs-type">Collateral.CollateralContext</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">Integer
-Set TxOutRef
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#fee"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#CollateralContext"><span class="hs-identifier hs-type">Collateral.CollateralContext</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">Integer
+Maybe (Set TxOutRef, Wallet)
 Map TxOutRef TxOut
 Params
-Wallet
 fee :: Integer
-collateralIns :: Set TxOutRef
-returnCollateralWallet :: Wallet
+mCollaterals :: Maybe (Set TxOutRef, Wallet)
 params :: Params
 managedTxOuts :: Map TxOutRef TxOut
 managedTxOuts :: Map TxOutRef TxOut
-collateralIns :: Set TxOutRef
 fee :: Integer
-returnCollateralWallet :: Wallet
+mCollaterals :: Maybe (Set TxOutRef, Wallet)
 params :: Params
-</span><a href="#local-6989586621679777347"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
-</span><span id="line-53"></span><span>
-</span><span id="line-54"></span><span class="annot"><span class="hs-comment">-- | Generates a body content from a skeleton</span></span><span>
-</span><span id="line-55"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToBodyContent"><span class="hs-identifier hs-type">txSkelToBodyContent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#BodyGen"><span class="hs-identifier hs-type">BodyGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxBodyContent</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-56"></span><span id="txSkelToBodyContent"><span class="annot"><span class="annottext">txSkelToBodyContent :: TxSkel -&gt; BodyGen (TxBodyContent BuildTx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToBodyContent"><span class="hs-identifier hs-var hs-var">txSkelToBodyContent</span></a></span></span><span> </span><span id="local-6989586621679777361"><span class="annot"><span class="annottext">skel :: TxSkel
-</span><a href="#local-6989586621679777361"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679777363"><span id="local-6989586621679777364"><span id="local-6989586621679777365"><span id="local-6989586621679777366"><span id="local-6989586621679777367"><span id="local-6989586621679777368"><span id="local-6989586621679777369"><span id="local-6989586621679777370"><span id="local-6989586621679777371"><span class="annot"><span class="annottext">[Wallet]
+</span><a href="#local-6989586621679779093"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="annot"><span class="hs-comment">-- | Generates a body content from a skeleton</span></span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToBodyContent"><span class="hs-identifier hs-type">txSkelToBodyContent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#BodyGen"><span class="hs-identifier hs-type">BodyGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxBodyContent</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span id="txSkelToBodyContent"><span class="annot"><span class="annottext">txSkelToBodyContent :: TxSkel -&gt; BodyGen (TxBodyContent BuildTx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToBodyContent"><span class="hs-identifier hs-var hs-var">txSkelToBodyContent</span></a></span></span><span> </span><span id="local-6989586621679779105"><span class="annot"><span class="annottext">skel :: TxSkel
+</span><a href="#local-6989586621679779105"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679779107"><span id="local-6989586621679779108"><span id="local-6989586621679779109"><span id="local-6989586621679779110"><span id="local-6989586621679779111"><span id="local-6989586621679779112"><span id="local-6989586621679779113"><span id="local-6989586621679779114"><span id="local-6989586621679779115"><span class="annot"><span class="annottext">[Wallet]
 [TxSkelProposal]
 [TxSkelOut]
 Set TxOutRef
@@ -175,12 +164,12 @@ txSkelIns :: TxSkel -&gt; Map TxOutRef TxSkelRedeemer
 txSkelInsReference :: TxSkel -&gt; Set TxOutRef
 txSkelOuts :: TxSkel -&gt; [TxSkelOut]
 txSkelProposals :: TxSkel -&gt; [TxSkelProposal]
-</span><a href="#local-6989586621679777363"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679777381"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679777381"><span class="hs-identifier hs-var">txSkelReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [TxOutRef]
+</span><a href="#local-6989586621679779107"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679779125"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679779125"><span class="hs-identifier hs-var">txSkelReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [TxOutRef]
 </span><a href="Cooked.Skeleton.html#txSkelReferenceTxOutRefs"><span class="hs-identifier hs-var">txSkelReferenceTxOutRefs</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679777361"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-57"></span><span>  </span><span id="local-6989586621679777383"><span class="annot"><span class="annottext">[(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra))]
-</span><a href="#local-6989586621679777383"><span class="hs-identifier hs-var">txIns</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((TxOutRef, TxSkelRedeemer)
+</span><a href="#local-6989586621679779105"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679779127"><span class="annot"><span class="annottext">[(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra))]
+</span><a href="#local-6989586621679779127"><span class="hs-identifier hs-var">txIns</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((TxOutRef, TxSkelRedeemer)
  -&gt; ReaderT
       TxContext
       (Either GenerateTxError)
@@ -239,15 +228,15 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679777368"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
-</span><span id="line-58"></span><span>  </span><span id="local-6989586621679777388"><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
-</span><a href="#local-6989586621679777388"><span class="hs-identifier hs-var">txInsReference</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-59"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Bool
+</span><a href="#local-6989586621679779112"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679779132"><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
+</span><a href="#local-6989586621679779132"><span class="hs-identifier hs-var">txInsReference</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Bool
 forall a. [a] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679777381"><span class="hs-identifier hs-var">txSkelReferenceInputs</span></a></span><span>
-</span><span id="line-60"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
+</span><a href="#local-6989586621679779125"><span class="hs-identifier hs-var">txSkelReferenceInputs</span></a></span><span>
+</span><span id="line-59"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
 -&gt; ReaderT
      TxContext
      (Either GenerateTxError)
@@ -257,8 +246,8 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
 forall build era. TxInsReference build era
 </span><span class="hs-identifier hs-var">Cardano.TxInsReferenceNone</span></span><span>
-</span><span id="line-61"></span><span>      </span><span class="hs-keyword">else</span><span>
-</span><span id="line-62"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span id="line-60"></span><span>      </span><span class="hs-keyword">else</span><span>
+</span><span id="line-61"></span><span>        </span><span class="annot"><span class="annottext">String
 -&gt; ([TxIn] -&gt; TxInsReference BuildTx ConwayEra)
 -&gt; Either ToCardanoError [TxIn]
 -&gt; ReaderT
@@ -268,15 +257,15 @@ forall build era. TxInsReference build era
 forall a b context.
 String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; TxGen context b
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-var">throwOnToCardanoErrorOrApply</span></a></span><span>
-</span><span id="line-63"></span><span>          </span><span class="annot"><span class="annottext">String
+</span><span id="line-62"></span><span>          </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelToBodyContent: Unable to translate reference inputs.&quot;</span></span><span>
-</span><span id="line-64"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
+</span><span id="line-63"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
 -&gt; [TxIn] -&gt; TxInsReference BuildTx ConwayEra
 forall era build.
 BabbageEraOnwards era -&gt; [TxIn] -&gt; TxInsReference build era
 </span><span class="hs-identifier hs-var">Cardano.TxInsReference</span></span><span> </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.BabbageEraOnwardsConway</span></span><span class="hs-special">)</span><span>
-</span><span id="line-65"></span><span>          </span><span class="annot"><span class="annottext">(Either ToCardanoError [TxIn]
+</span><span id="line-64"></span><span>          </span><span class="annot"><span class="annottext">(Either ToCardanoError [TxIn]
  -&gt; ReaderT
       TxContext
       (Either GenerateTxError)
@@ -295,11 +284,11 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Ledger.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679777381"><span class="hs-identifier hs-var">txSkelReferenceInputs</span></a></span><span>
-</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679777395"><span class="annot"><span class="annottext">TxInsCollateral ConwayEra
-</span><a href="#local-6989586621679777395"><span class="hs-identifier hs-var">txInsCollateral</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679777396"><span class="annot"><span class="annottext">TxTotalCollateral ConwayEra
-</span><a href="#local-6989586621679777396"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679777397"><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
-</span><a href="#local-6989586621679777397"><span class="hs-identifier hs-var">txReturnCollateral</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxGen
+</span><a href="#local-6989586621679779125"><span class="hs-identifier hs-var">txSkelReferenceInputs</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679779139"><span class="annot"><span class="annottext">TxInsCollateral ConwayEra
+</span><a href="#local-6989586621679779139"><span class="hs-identifier hs-var">txInsCollateral</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679779140"><span class="annot"><span class="annottext">TxTotalCollateral ConwayEra
+</span><a href="#local-6989586621679779140"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679779141"><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
+</span><a href="#local-6989586621679779141"><span class="hs-identifier hs-var">txReturnCollateral</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxGen
   CollateralContext
   (TxInsCollateral ConwayEra, TxTotalCollateral ConwayEra,
    TxReturnCollateral CtxTx ConwayEra)
@@ -315,8 +304,8 @@ TxGen context a -&gt; TxGen context' a
   (TxInsCollateral ConwayEra, TxTotalCollateral ConwayEra,
    TxReturnCollateral CtxTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Collateral.html#toCollateralTriplet"><span class="hs-identifier hs-var">Collateral.toCollateralTriplet</span></a></span><span>
-</span><span id="line-67"></span><span>  </span><span id="local-6989586621679777399"><span class="annot"><span class="annottext">[TxOut CtxTx ConwayEra]
-</span><a href="#local-6989586621679777399"><span class="hs-identifier hs-var">txOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679779143"><span class="annot"><span class="annottext">[TxOut CtxTx ConwayEra]
+</span><a href="#local-6989586621679779143"><span class="hs-identifier hs-var">txOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut
  -&gt; ReaderT
       TxContext (Either GenerateTxError) (TxOut CtxTx ConwayEra))
 -&gt; [TxSkelOut]
@@ -342,11 +331,11 @@ TxGen context a -&gt; TxGen context' a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; TxGen NetworkId (TxOut CtxTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Output.html#toCardanoTxOut"><span class="hs-identifier hs-var">Output.toCardanoTxOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679777370"><span class="hs-identifier hs-var">txSkelOuts</span></a></span><span>
-</span><span id="line-68"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679777401"><span class="annot"><span class="annottext">TxValidityLowerBound ConwayEra
-</span><a href="#local-6989586621679777401"><span class="hs-identifier hs-var">txValidityLowerBound</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679777402"><span class="annot"><span class="annottext">TxValidityUpperBound ConwayEra
-</span><a href="#local-6989586621679777402"><span class="hs-identifier hs-var">txValidityUpperBound</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-69"></span><span>    </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679779114"><span class="hs-identifier hs-var">txSkelOuts</span></a></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679779145"><span class="annot"><span class="annottext">TxValidityLowerBound ConwayEra
+</span><a href="#local-6989586621679779145"><span class="hs-identifier hs-var">txValidityLowerBound</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679779146"><span class="annot"><span class="annottext">TxValidityUpperBound ConwayEra
+</span><a href="#local-6989586621679779146"><span class="hs-identifier hs-var">txValidityUpperBound</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="annottext">String
 -&gt; Either
      ToCardanoError
      (TxValidityLowerBound ConwayEra, TxValidityUpperBound ConwayEra)
@@ -356,9 +345,9 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a context.
 String -&gt; Either ToCardanoError a -&gt; TxGen context a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var">throwOnToCardanoError</span></a></span><span>
-</span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">String
-</span><span class="hs-string">&quot;txSkelToBodyContent: Unable to translate transaction validity range&quot;</span></span><span>
-</span><span id="line-71"></span><span>      </span><span class="annot"><span class="annottext">(Either
+</span><span id="line-69"></span><span>      </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;txSkelToBodyContent: Unable to translate transaction validity range.&quot;</span></span><span>
+</span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">(Either
    ToCardanoError
    (TxValidityLowerBound ConwayEra, TxValidityUpperBound ConwayEra)
  -&gt; TxGen
@@ -376,9 +365,9 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
      ToCardanoError
      (TxValidityLowerBound ConwayEra, TxValidityUpperBound ConwayEra)
 </span><span class="hs-identifier hs-var">Ledger.toCardanoValidityRange</span></span><span> </span><span class="annot"><span class="annottext">SlotRange
-</span><a href="#local-6989586621679777367"><span class="hs-identifier hs-var">txSkelValidityRange</span></a></span><span>
-</span><span id="line-72"></span><span>  </span><span id="local-6989586621679777405"><span class="annot"><span class="annottext">TxMintValue BuildTx ConwayEra
-</span><a href="#local-6989586621679777405"><span class="hs-identifier hs-var">txMintValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxGen (Map TxOutRef TxOut) (TxMintValue BuildTx ConwayEra)
+</span><a href="#local-6989586621679779111"><span class="hs-identifier hs-var">txSkelValidityRange</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span id="local-6989586621679779149"><span class="annot"><span class="annottext">TxMintValue BuildTx ConwayEra
+</span><a href="#local-6989586621679779149"><span class="hs-identifier hs-var">txMintValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxGen (Map TxOutRef TxOut) (TxMintValue BuildTx ConwayEra)
 -&gt; TxGen TxContext (TxMintValue BuildTx ConwayEra)
 forall context' context a.
 Transform context' context =&gt;
@@ -391,15 +380,15 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 -&gt; TxGen (Map TxOutRef TxOut) (TxMintValue BuildTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-var">Mint.toMintValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679777365"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
-</span><span id="line-73"></span><span>  </span><span id="local-6989586621679777407"><span class="annot"><span class="annottext">TxExtraKeyWitnesses ConwayEra
-</span><a href="#local-6989586621679777407"><span class="hs-identifier hs-var">txExtraKeyWits</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-74"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Bool
+</span><a href="#local-6989586621679779109"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span id="local-6989586621679779151"><span class="annot"><span class="annottext">TxExtraKeyWitnesses ConwayEra
+</span><a href="#local-6989586621679779151"><span class="hs-identifier hs-var">txExtraKeyWits</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-73"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Bool
 forall a. [a] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[Wallet]
-</span><a href="#local-6989586621679777366"><span class="hs-identifier hs-var">txSkelSigners</span></a></span><span>
-</span><span id="line-75"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxExtraKeyWitnesses ConwayEra
+</span><a href="#local-6989586621679779110"><span class="hs-identifier hs-var">txSkelSigners</span></a></span><span>
+</span><span id="line-74"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxExtraKeyWitnesses ConwayEra
 -&gt; ReaderT
      TxContext (Either GenerateTxError) (TxExtraKeyWitnesses ConwayEra)
 forall a. a -&gt; ReaderT TxContext (Either GenerateTxError) a
@@ -407,8 +396,8 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxExtraKeyWitnesses ConwayEra
 forall era. TxExtraKeyWitnesses era
 </span><span class="hs-identifier hs-var">Cardano.TxExtraKeyWitnessesNone</span></span><span>
-</span><span id="line-76"></span><span>      </span><span class="hs-keyword">else</span><span>
-</span><span id="line-77"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span id="line-75"></span><span>      </span><span class="hs-keyword">else</span><span>
+</span><span id="line-76"></span><span>        </span><span class="annot"><span class="annottext">String
 -&gt; ([Hash PaymentKey] -&gt; TxExtraKeyWitnesses ConwayEra)
 -&gt; Either ToCardanoError [Hash PaymentKey]
 -&gt; ReaderT
@@ -416,16 +405,16 @@ forall era. TxExtraKeyWitnesses era
 forall a b context.
 String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; TxGen context b
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-var">throwOnToCardanoErrorOrApply</span></a></span><span>
-</span><span id="line-78"></span><span>          </span><span class="annot"><span class="annottext">String
+</span><span id="line-77"></span><span>          </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelToBodyContent: Unable to translate the required signers&quot;</span></span><span>
-</span><span id="line-79"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AlonzoEraOnwards ConwayEra
+</span><span id="line-78"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AlonzoEraOnwards ConwayEra
 -&gt; [Hash PaymentKey] -&gt; TxExtraKeyWitnesses ConwayEra
 forall era.
 AlonzoEraOnwards era
 -&gt; [Hash PaymentKey] -&gt; TxExtraKeyWitnesses era
 </span><span class="hs-identifier hs-var">Cardano.TxExtraKeyWitnesses</span></span><span> </span><span class="annot"><span class="annottext">AlonzoEraOnwards ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.AlonzoEraOnwardsConway</span></span><span class="hs-special">)</span><span>
-</span><span id="line-80"></span><span>          </span><span class="annot"><span class="annottext">(Either ToCardanoError [Hash PaymentKey]
+</span><span id="line-79"></span><span>          </span><span class="annot"><span class="annottext">(Either ToCardanoError [Hash PaymentKey]
  -&gt; ReaderT
       TxContext (Either GenerateTxError) (TxExtraKeyWitnesses ConwayEra))
 -&gt; Either ToCardanoError [Hash PaymentKey]
@@ -450,9 +439,9 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Wallet]
-</span><a href="#local-6989586621679777366"><span class="hs-identifier hs-var">txSkelSigners</span></a></span><span>
-</span><span id="line-81"></span><span>  </span><span id="local-6989586621679777414"><span class="annot"><span class="annottext">BuildTxWith BuildTx (Maybe (LedgerProtocolParameters ConwayEra))
-</span><a href="#local-6989586621679777414"><span class="hs-identifier hs-var">txProtocolParams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxContext
+</span><a href="#local-6989586621679779110"><span class="hs-identifier hs-var">txSkelSigners</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679779158"><span class="annot"><span class="annottext">BuildTxWith BuildTx (Maybe (LedgerProtocolParameters ConwayEra))
+</span><a href="#local-6989586621679779158"><span class="hs-identifier hs-var">txProtocolParams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxContext
  -&gt; BuildTxWith
       BuildTx (Maybe (LedgerProtocolParameters ConwayEra)))
 -&gt; ReaderT
@@ -487,8 +476,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Params
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#params"><span class="hs-identifier hs-var">params</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-82"></span><span>  </span><span id="local-6989586621679777418"><span class="annot"><span class="annottext">TxFee ConwayEra
-</span><a href="#local-6989586621679777418"><span class="hs-identifier hs-var">txFee</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxContext -&gt; TxFee ConwayEra)
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679779162"><span class="annot"><span class="annottext">TxFee ConwayEra
+</span><a href="#local-6989586621679779162"><span class="hs-identifier hs-var">txFee</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxContext -&gt; TxFee ConwayEra)
 -&gt; ReaderT TxContext (Either GenerateTxError) (TxFee ConwayEra)
 forall r (m :: * -&gt; *) a. MonadReader r m =&gt; (r -&gt; a) -&gt; m a
 </span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra -&gt; Coin -&gt; TxFee ConwayEra
@@ -502,13 +491,13 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxContext -&gt; Integer
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#fee"><span class="hs-identifier hs-var">fee</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-83"></span><span>  </span><span id="local-6989586621679777422"><span class="annot"><span class="annottext">Maybe
+</span><span id="line-82"></span><span>  </span><span id="local-6989586621679779166"><span class="annot"><span class="annottext">Maybe
   (Featured
      ConwayEraOnwards
      ConwayEra
      (TxProposalProcedures BuildTx ConwayEra))
-</span><a href="#local-6989586621679777422"><span class="hs-identifier hs-var">txProposalProcedures</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-84"></span><span>    </span><span class="annot"><span class="annottext">Featured
+</span><a href="#local-6989586621679779166"><span class="hs-identifier hs-var">txProposalProcedures</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-83"></span><span>    </span><span class="annot"><span class="annottext">Featured
   ConwayEraOnwards ConwayEra (TxProposalProcedures BuildTx ConwayEra)
 -&gt; Maybe
      (Featured
@@ -542,7 +531,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (eon :: * -&gt; *) era a. eon era -&gt; a -&gt; Featured eon era a
 </span><span class="hs-identifier hs-var">Cardano.Featured</span></span><span> </span><span class="annot"><span class="annottext">ConwayEraOnwards ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.ConwayEraOnwardsConway</span></span><span>
-</span><span id="line-85"></span><span>      </span><span class="annot"><span class="annottext">(TxProposalProcedures BuildTx ConwayEra
+</span><span id="line-84"></span><span>      </span><span class="annot"><span class="annottext">(TxProposalProcedures BuildTx ConwayEra
  -&gt; Maybe
       (Featured
          ConwayEraOnwards
@@ -577,38 +566,38 @@ TxGen context a -&gt; TxGen context' a
      (PParams, Map TxOutRef TxOut)
      (TxProposalProcedures BuildTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-var">Proposal.toProposalProcedures</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679777371"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOpts -&gt; AnchorResolution
+</span><a href="#local-6989586621679779115"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOpts -&gt; AnchorResolution
 </span><a href="Cooked.Skeleton.html#txOptAnchorResolution"><span class="hs-identifier hs-var">txOptAnchorResolution</span></a></span><span> </span><span class="annot"><span class="annottext">TxOpts
-</span><a href="#local-6989586621679777364"><span class="hs-identifier hs-var">txSkelOpts</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-86"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679777428"><span class="annot"><span class="annottext">txMetadata :: TxMetadataInEra era
-</span><a href="#local-6989586621679777428"><span class="hs-identifier hs-var hs-var">txMetadata</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMetadataInEra era
+</span><a href="#local-6989586621679779108"><span class="hs-identifier hs-var">txSkelOpts</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679779172"><span class="annot"><span class="annottext">txMetadata :: TxMetadataInEra era
+</span><a href="#local-6989586621679779172"><span class="hs-identifier hs-var hs-var">txMetadata</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMetadataInEra era
 forall era. TxMetadataInEra era
 </span><span class="hs-identifier hs-var">Cardano.TxMetadataNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
-</span><span id="line-87"></span><span>      </span><span id="local-6989586621679777430"><span class="annot"><span class="annottext">txAuxScripts :: TxAuxScripts era
-</span><a href="#local-6989586621679777430"><span class="hs-identifier hs-var hs-var">txAuxScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxAuxScripts era
+</span><span id="line-86"></span><span>      </span><span id="local-6989586621679779174"><span class="annot"><span class="annottext">txAuxScripts :: TxAuxScripts era
+</span><a href="#local-6989586621679779174"><span class="hs-identifier hs-var hs-var">txAuxScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxAuxScripts era
 forall era. TxAuxScripts era
 </span><span class="hs-identifier hs-var">Cardano.TxAuxScriptsNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
-</span><span id="line-88"></span><span>      </span><span id="local-6989586621679777432"><span class="annot"><span class="annottext">txWithdrawals :: TxWithdrawals build era
-</span><a href="#local-6989586621679777432"><span class="hs-identifier hs-var hs-var">txWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxWithdrawals build era
+</span><span id="line-87"></span><span>      </span><span id="local-6989586621679779176"><span class="annot"><span class="annottext">txWithdrawals :: TxWithdrawals build era
+</span><a href="#local-6989586621679779176"><span class="hs-identifier hs-var hs-var">txWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxWithdrawals build era
 forall build era. TxWithdrawals build era
 </span><span class="hs-identifier hs-var">Cardano.TxWithdrawalsNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
-</span><span id="line-89"></span><span>      </span><span id="local-6989586621679777434"><span class="annot"><span class="annottext">txCertificates :: TxCertificates build era
-</span><a href="#local-6989586621679777434"><span class="hs-identifier hs-var hs-var">txCertificates</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxCertificates build era
+</span><span id="line-88"></span><span>      </span><span id="local-6989586621679779178"><span class="annot"><span class="annottext">txCertificates :: TxCertificates build era
+</span><a href="#local-6989586621679779178"><span class="hs-identifier hs-var hs-var">txCertificates</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxCertificates build era
 forall build era. TxCertificates build era
 </span><span class="hs-identifier hs-var">Cardano.TxCertificatesNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
-</span><span id="line-90"></span><span>      </span><span id="local-6989586621679777436"><span class="annot"><span class="annottext">txUpdateProposal :: TxUpdateProposal era
-</span><a href="#local-6989586621679777436"><span class="hs-identifier hs-var hs-var">txUpdateProposal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxUpdateProposal era
+</span><span id="line-89"></span><span>      </span><span id="local-6989586621679779180"><span class="annot"><span class="annottext">txUpdateProposal :: TxUpdateProposal era
+</span><a href="#local-6989586621679779180"><span class="hs-identifier hs-var hs-var">txUpdateProposal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxUpdateProposal era
 forall era. TxUpdateProposal era
 </span><span class="hs-identifier hs-var">Cardano.TxUpdateProposalNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
-</span><span id="line-91"></span><span>      </span><span id="local-6989586621679777438"><span class="annot"><span class="annottext">txScriptValidity :: TxScriptValidity era
-</span><a href="#local-6989586621679777438"><span class="hs-identifier hs-var hs-var">txScriptValidity</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxScriptValidity era
+</span><span id="line-90"></span><span>      </span><span id="local-6989586621679779182"><span class="annot"><span class="annottext">txScriptValidity :: TxScriptValidity era
+</span><a href="#local-6989586621679779182"><span class="hs-identifier hs-var hs-var">txScriptValidity</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxScriptValidity era
 forall era. TxScriptValidity era
 </span><span class="hs-identifier hs-var">Cardano.TxScriptValidityNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
-</span><span id="line-92"></span><span>      </span><span id="local-6989586621679777440"><span class="annot"><span class="annottext">txVotingProcedures :: Maybe a
-</span><a href="#local-6989586621679777440"><span class="hs-identifier hs-var hs-var">txVotingProcedures</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><span id="line-91"></span><span>      </span><span id="local-6989586621679779184"><span class="annot"><span class="annottext">txVotingProcedures :: Maybe a
+</span><a href="#local-6989586621679779184"><span class="hs-identifier hs-var hs-var">txVotingProcedures</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
 forall a. Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-comment">-- TODO, same as above</span><span>
-</span><span id="line-93"></span><span>  </span><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-92"></span><span>  </span><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra
 -&gt; BodyGen (TxBodyContent BuildTx ConwayEra)
 forall a. a -&gt; ReaderT TxContext (Either GenerateTxError) a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -695,21 +684,21 @@ txProposalProcedures :: Maybe
 txVotingProcedures :: Maybe
   (Featured
      ConwayEraOnwards ConwayEra (TxVotingProcedures BuildTx ConwayEra))
-</span><a href="#local-6989586621679777383"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
-</span><span id="line-94"></span><span>
-</span><span id="line-95"></span><span class="hs-comment">-- | Generates a transaction for a skeleton. We first generate a body and we</span><span>
-</span><span id="line-96"></span><span class="hs-comment">-- sign it with the required signers.</span><span>
-</span><span id="line-97"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToCardanoTx"><span class="hs-identifier hs-type">txSkelToCardanoTx</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#BodyGen"><span class="hs-identifier hs-type">BodyGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-98"></span><span id="txSkelToCardanoTx"><span class="annot"><span class="annottext">txSkelToCardanoTx :: TxSkel -&gt; BodyGen (Tx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToCardanoTx"><span class="hs-identifier hs-var hs-var">txSkelToCardanoTx</span></a></span></span><span> </span><span id="local-6989586621679777463"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679777463"><span class="hs-identifier hs-var">txSkel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-99"></span><span>  </span><span id="local-6989586621679777464"><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra
-</span><a href="#local-6989586621679777464"><span class="hs-identifier hs-var">txBodyContent</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; BodyGen (TxBodyContent BuildTx ConwayEra)
+</span><a href="#local-6989586621679779127"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- | Generates a transaction for a skeleton. We first generate a body and we</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- sign it with the required signers.</span><span>
+</span><span id="line-96"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToCardanoTx"><span class="hs-identifier hs-type">txSkelToCardanoTx</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html#BodyGen"><span class="hs-identifier hs-type">BodyGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span id="txSkelToCardanoTx"><span class="annot"><span class="annottext">txSkelToCardanoTx :: TxSkel -&gt; BodyGen (Tx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToCardanoTx"><span class="hs-identifier hs-var hs-var">txSkelToCardanoTx</span></a></span></span><span> </span><span id="local-6989586621679779207"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679779207"><span class="hs-identifier hs-var">txSkel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679779208"><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra
+</span><a href="#local-6989586621679779208"><span class="hs-identifier hs-var">txBodyContent</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; BodyGen (TxBodyContent BuildTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToBodyContent"><span class="hs-identifier hs-var">txSkelToBodyContent</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679777463"><span class="hs-identifier hs-var">txSkel</span></a></span><span>
-</span><span id="line-100"></span><span>  </span><span id="local-6989586621679777465"><span class="annot"><span class="annottext">Tx ConwayEra
-</span><a href="#local-6989586621679777465"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">Either GenerateTxError (Tx ConwayEra) -&gt; BodyGen (Tx ConwayEra)
+</span><a href="#local-6989586621679779207"><span class="hs-identifier hs-var">txSkel</span></a></span><span>
+</span><span id="line-99"></span><span>  </span><span id="local-6989586621679779209"><span class="annot"><span class="annottext">Tx ConwayEra
+</span><a href="#local-6989586621679779209"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><span class="annottext">Either GenerateTxError (Tx ConwayEra) -&gt; BodyGen (Tx ConwayEra)
 forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ReaderT TxContext m a
 forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
 (MonadTrans t, Monad m) =&gt;
@@ -718,7 +707,7 @@ m a -&gt; t m a
 -&gt; Either GenerateTxError (Tx ConwayEra) -&gt; BodyGen (Tx ConwayEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-102"></span><span>      </span><span class="annot"><span class="annottext">(TxBodyError -&gt; GenerateTxError)
+</span><span id="line-101"></span><span>      </span><span class="annot"><span class="annottext">(TxBodyError -&gt; GenerateTxError)
 -&gt; (TxBody ConwayEra -&gt; Tx ConwayEra)
 -&gt; Either TxBodyError (TxBody ConwayEra)
 -&gt; Either GenerateTxError (Tx ConwayEra)
@@ -727,13 +716,13 @@ forall (p :: * -&gt; * -&gt; *) a b c d.
 Bifunctor p =&gt;
 (a -&gt; b) -&gt; (c -&gt; d) -&gt; p a c -&gt; p b d
 </span><span class="hs-identifier hs-var">bimap</span></span><span>
-</span><span id="line-103"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; TxBodyError -&gt; GenerateTxError
+</span><span id="line-102"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; TxBodyError -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#TxBodyError"><span class="hs-identifier hs-var">TxBodyError</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;generateTx: &quot;</span></span><span class="hs-special">)</span><span>
-</span><span id="line-104"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody ConwayEra -&gt; [KeyWitness ConwayEra] -&gt; Tx ConwayEra
+</span><span id="line-103"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody ConwayEra -&gt; [KeyWitness ConwayEra] -&gt; Tx ConwayEra
 forall era. TxBody era -&gt; [KeyWitness era] -&gt; Tx era
 </span><span class="hs-operator hs-var">`Cardano.Tx`</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
-</span><span id="line-105"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
+</span><span id="line-104"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
 -&gt; TxBodyContent BuildTx ConwayEra
 -&gt; Either TxBodyError (TxBody ConwayEra)
 forall era.
@@ -741,17 +730,17 @@ ShelleyBasedEra era
 -&gt; TxBodyContent BuildTx era -&gt; Either TxBodyError (TxBody era)
 </span><span class="hs-identifier hs-var">Cardano.createAndValidateTransactionBody</span></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.ShelleyBasedEraConway</span></span><span> </span><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra
-</span><a href="#local-6989586621679777464"><span class="hs-identifier hs-var">txBodyContent</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-106"></span><span>  </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; Wallet -&gt; BodyGen (Tx ConwayEra))
+</span><a href="#local-6989586621679779208"><span class="hs-identifier hs-var">txBodyContent</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; Wallet -&gt; BodyGen (Tx ConwayEra))
 -&gt; Tx ConwayEra -&gt; [Wallet] -&gt; BodyGen (Tx ConwayEra)
 forall (t :: * -&gt; *) (m :: * -&gt; *) b a.
 (Foldable t, Monad m) =&gt;
 (b -&gt; a -&gt; m b) -&gt; b -&gt; t a -&gt; m b
 </span><span class="hs-identifier hs-var">foldM</span></span><span>
-</span><span id="line-107"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679777472"><span class="annot"><span class="annottext">Tx ConwayEra
-</span><a href="#local-6989586621679777472"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span id="local-6989586621679777473"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679777473"><span class="hs-identifier hs-var">wal</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-108"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ShelleyWitnessSigningKey -&gt; CardanoTx -&gt; CardanoTx
+</span><span id="line-106"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679779216"><span class="annot"><span class="annottext">Tx ConwayEra
+</span><a href="#local-6989586621679779216"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span id="local-6989586621679779217"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679779217"><span class="hs-identifier hs-var">wal</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-107"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ShelleyWitnessSigningKey -&gt; CardanoTx -&gt; CardanoTx
 </span><span class="hs-identifier hs-var">Ledger.addCardanoTxWitness</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PaymentPrivateKey -&gt; ShelleyWitnessSigningKey
 forall a. ToWitness a =&gt; a -&gt; ShelleyWitnessSigningKey
 </span><span class="hs-identifier hs-var">Ledger.toWitness</span></span><span> </span><span class="annot"><span class="annottext">(PaymentPrivateKey -&gt; ShelleyWitnessSigningKey)
@@ -762,28 +751,28 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; XPrv
 </span><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679777473"><span class="hs-identifier hs-var">wal</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; ShelleyBasedEra ConwayEra -&gt; CardanoTx
+</span><a href="#local-6989586621679779217"><span class="hs-identifier hs-var">wal</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; ShelleyBasedEra ConwayEra -&gt; CardanoTx
 forall era. Tx era -&gt; ShelleyBasedEra era -&gt; CardanoTx
 </span><span class="hs-identifier hs-var">Ledger.CardanoTx</span></span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra
-</span><a href="#local-6989586621679777472"><span class="hs-identifier hs-var">tx</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
+</span><a href="#local-6989586621679779216"><span class="hs-identifier hs-var">tx</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.ShelleyBasedEraConway</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-109"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span> </span><span id="local-6989586621679777479"><span class="annot"><span class="annottext">Tx era
-</span><a href="#local-6989586621679777479"><span class="hs-identifier hs-var">tx'</span></a></span></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><span id="line-108"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span> </span><span id="local-6989586621679779223"><span class="annot"><span class="annottext">Tx era
+</span><a href="#local-6989586621679779223"><span class="hs-identifier hs-var">tx'</span></a></span></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
 </span><span class="hs-identifier hs-var">Cardano.ShelleyBasedEraConway</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; BodyGen (Tx ConwayEra)
 forall a. a -&gt; ReaderT TxContext (Either GenerateTxError) a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Tx era
 Tx ConwayEra
-</span><a href="#local-6989586621679777479"><span class="hs-identifier hs-var">tx'</span></a></span><span>
-</span><span id="line-110"></span><span>          </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679779223"><span class="hs-identifier hs-var">tx'</span></a></span><span>
+</span><span id="line-109"></span><span>          </span><span class="annot"><span class="annottext">CardanoTx
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; BodyGen (Tx ConwayEra)
 forall context a. String -&gt; TxGen context a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var">throwOnString</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelToCardanoTx: Wrong output era&quot;</span></span><span>
-</span><span id="line-111"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-112"></span><span>    </span><span class="annot"><span class="annottext">Tx ConwayEra
-</span><a href="#local-6989586621679777465"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span><span>
-</span><span id="line-113"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
+</span><span id="line-110"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>    </span><span class="annot"><span class="annottext">Tx ConwayEra
+</span><a href="#local-6989586621679779209"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span><span>
+</span><span id="line-112"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
 </span><a href="Cooked.Skeleton.html#txSkelSigners"><span class="hs-identifier hs-var">txSkelSigners</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679777463"><span class="hs-identifier hs-var">txSkel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-114"></span></pre></body></html>
+</span><a href="#local-6989586621679779207"><span class="hs-identifier hs-var">txSkel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-113"></span></pre></body></html>

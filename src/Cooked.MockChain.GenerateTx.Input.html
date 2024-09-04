@@ -26,11 +26,11 @@
 </span><span id="line-23"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">InputContext</span></a></span><span>
 </span><span id="line-24"></span><span>
 </span><span id="line-25"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">InputContext</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-26"></span><span>  </span><span id="local-6989586621679775879"><span class="annot"><span class="annottext">transform :: InputContext -&gt; Map TxOutRef TxOut
-</span><a href="#local-6989586621679775879"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InputContext -&gt; Map TxOutRef TxOut
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679777627"><span class="annot"><span class="annottext">transform :: InputContext -&gt; Map TxOutRef TxOut
+</span><a href="#local-6989586621679777627"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InputContext -&gt; Map TxOutRef TxOut
 </span><a href="Cooked.MockChain.GenerateTx.Input.html#managedTxOuts"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span>
 </span><span id="line-27"></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">type</span><span> </span><span id="InputGen"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputGen"><span class="hs-identifier hs-var">InputGen</span></a></span></span><span> </span><span id="local-6989586621679775881"><span class="annot"><a href="#local-6989586621679775881"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">InputContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679775881"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">type</span><span> </span><span id="InputGen"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputGen"><span class="hs-identifier hs-var">InputGen</span></a></span></span><span> </span><span id="local-6989586621679777629"><span class="annot"><a href="#local-6989586621679777629"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Input.html#InputContext"><span class="hs-identifier hs-type">InputContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679777629"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-29"></span><span>
 </span><span id="line-30"></span><span class="hs-comment">-- | Converts a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a</span><span>
 </span><span id="line-31"></span><span class="hs-comment">-- 'TxSkelIn', into a 'Cardano.TxIn', together with the appropriate witness.</span><span>
@@ -40,14 +40,14 @@
 </span><span id="line-35"></span><span id="toTxInAndWitness"><span class="annot"><span class="annottext">toTxInAndWitness :: (TxOutRef, TxSkelRedeemer)
 -&gt; InputGen
      (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra))
-</span><a href="Cooked.MockChain.GenerateTx.Input.html#toTxInAndWitness"><span class="hs-identifier hs-var hs-var">toTxInAndWitness</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679775886"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679775886"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679775887"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679775887"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-36"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679775890"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679775890"><span class="hs-identifier hs-var">cred</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="Cooked.MockChain.GenerateTx.Input.html#toTxInAndWitness"><span class="hs-identifier hs-var hs-var">toTxInAndWitness</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679777634"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679777634"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679777635"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679777635"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679777638"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679777638"><span class="hs-identifier hs-var">cred</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679775891"><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679775891"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679777639"><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679777639"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String
 -&gt; TxOutRef -&gt; Map TxOutRef TxOut -&gt; TxGen InputContext TxOut
 forall k a context.
@@ -55,7 +55,7 @@ Ord k =&gt;
 String -&gt; k -&gt; Map k a -&gt; TxGen context a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnLookup"><span class="hs-identifier hs-var">throwOnLookup</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;toTxInAndWitness: Unknown txOutRef&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679775886"><span class="hs-identifier hs-var">txOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef TxOut -&gt; TxGen InputContext TxOut)
+</span><a href="#local-6989586621679777634"><span class="hs-identifier hs-var">txOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef TxOut -&gt; TxGen InputContext TxOut)
 -&gt; ReaderT
      InputContext (Either GenerateTxError) (Map TxOutRef TxOut)
 -&gt; TxGen InputContext TxOut
@@ -66,9 +66,9 @@ forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
 forall r (m :: * -&gt; *) a. MonadReader r m =&gt; (r -&gt; a) -&gt; m a
 </span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">InputContext -&gt; Map TxOutRef TxOut
 </span><a href="Cooked.MockChain.GenerateTx.Input.html#managedTxOuts"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span>
-</span><span id="line-37"></span><span>  </span><span id="local-6989586621679775895"><span class="annot"><span class="annottext">Witness WitCtxTxIn ConwayEra
-</span><a href="#local-6989586621679775895"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679775890"><span class="hs-identifier hs-var">cred</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679777643"><span class="annot"><span class="annottext">Witness WitCtxTxIn ConwayEra
+</span><a href="#local-6989586621679777643"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679777638"><span class="hs-identifier hs-var">cred</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-38"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyCredential</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Witness WitCtxTxIn ConwayEra
 -&gt; ReaderT
@@ -92,10 +92,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall witctx era. KeyWitnessInCtx witctx -&gt; Witness witctx era
 </span><span class="hs-identifier hs-var">Cardano.KeyWitness</span></span><span> </span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxTxIn
 </span><span class="hs-identifier hs-var">Cardano.KeyWitnessForSpending</span></span><span>
-</span><span id="line-39"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptCredential</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span> </span><span id="local-6989586621679775901"><span class="annot"><span class="annottext">BuiltinByteString
-</span><a href="#local-6989586621679775901"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-40"></span><span>      </span><span id="local-6989586621679775902"><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679775902"><span class="hs-identifier hs-var">validator</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptCredential</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span> </span><span id="local-6989586621679777649"><span class="annot"><span class="annottext">BuiltinByteString
+</span><a href="#local-6989586621679777649"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-40"></span><span>      </span><span id="local-6989586621679777650"><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679777650"><span class="hs-identifier hs-var">validator</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String
 -&gt; ValidatorHash
 -&gt; Map ValidatorHash (Versioned Validator)
 -&gt; TxGen InputContext (Versioned Validator)
@@ -105,7 +105,7 @@ String -&gt; k -&gt; Map k a -&gt; TxGen context a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnLookup"><span class="hs-identifier hs-var">throwOnLookup</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;toTxInAndWitness: Unknown validator&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinByteString -&gt; ValidatorHash
 </span><span class="hs-identifier hs-var">Script.ValidatorHash</span></span><span> </span><span class="annot"><span class="annottext">BuiltinByteString
-</span><a href="#local-6989586621679775901"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679777649"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map ValidatorHash (Versioned Validator)
  -&gt; TxGen InputContext (Versioned Validator))
 -&gt; ReaderT
      InputContext
@@ -121,9 +121,9 @@ forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
 forall r (m :: * -&gt; *) a. MonadReader r m =&gt; (r -&gt; a) -&gt; m a
 </span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">InputContext -&gt; Map ValidatorHash (Versioned Validator)
 </span><a href="Cooked.MockChain.GenerateTx.Input.html#managedValidators"><span class="hs-identifier hs-var">managedValidators</span></a></span><span>
-</span><span id="line-41"></span><span>      </span><span id="local-6989586621679775904"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679775904"><span class="hs-identifier hs-var">scriptDatum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679775891"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-41"></span><span>      </span><span id="local-6989586621679777652"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679777652"><span class="hs-identifier hs-var">scriptDatum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679777639"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-42"></span><span>        </span><span class="annot"><span class="annottext">OutputDatum
 </span><span class="hs-identifier hs-var">Api.NoOutputDatum</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String
 -&gt; ReaderT
@@ -139,17 +139,17 @@ forall a. a -&gt; ReaderT InputContext (Either GenerateTxError) a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
 </span><span class="hs-identifier hs-var">Cardano.InlineScriptDatum</span></span><span>
-</span><span id="line-44"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Api.OutputDatumHash</span></span><span> </span><span id="local-6989586621679775910"><span class="annot"><span class="annottext">DatumHash
-</span><a href="#local-6989586621679775910"><span class="hs-identifier hs-var">datumHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-45"></span><span>          </span><span id="local-6989586621679775911"><span class="annot"><span class="annottext">Datum
-</span><a href="#local-6989586621679775911"><span class="hs-identifier hs-var">sDatum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String
+</span><span id="line-44"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Api.OutputDatumHash</span></span><span> </span><span id="local-6989586621679777658"><span class="annot"><span class="annottext">DatumHash
+</span><a href="#local-6989586621679777658"><span class="hs-identifier hs-var">datumHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-45"></span><span>          </span><span id="local-6989586621679777659"><span class="annot"><span class="annottext">Datum
+</span><a href="#local-6989586621679777659"><span class="hs-identifier hs-var">sDatum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String
 -&gt; DatumHash -&gt; Map DatumHash Datum -&gt; TxGen InputContext Datum
 forall k a context.
 Ord k =&gt;
 String -&gt; k -&gt; Map k a -&gt; TxGen context a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnLookup"><span class="hs-identifier hs-var">throwOnLookup</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;toTxInAndWitness: Unknown datum hash&quot;</span></span><span> </span><span class="annot"><span class="annottext">DatumHash
-</span><a href="#local-6989586621679775910"><span class="hs-identifier hs-var">datumHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Map DatumHash Datum -&gt; TxGen InputContext Datum)
+</span><a href="#local-6989586621679777658"><span class="hs-identifier hs-var">datumHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Map DatumHash Datum -&gt; TxGen InputContext Datum)
 -&gt; ReaderT
      InputContext (Either GenerateTxError) (Map DatumHash Datum)
 -&gt; TxGen InputContext Datum
@@ -182,7 +182,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Datum -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.getDatum</span></span><span> </span><span class="annot"><span class="annottext">Datum
-</span><a href="#local-6989586621679775911"><span class="hs-identifier hs-var">sDatum</span></a></span><span>
+</span><a href="#local-6989586621679777659"><span class="hs-identifier hs-var">sDatum</span></a></span><span>
 </span><span id="line-47"></span><span>      </span><span class="annot"><span class="annottext">ScriptWitnessInCtx WitCtxTxIn
 -&gt; ScriptWitness WitCtxTxIn ConwayEra
 -&gt; Witness WitCtxTxIn ConwayEra
@@ -220,9 +220,9 @@ a
 -&gt; ScriptDatum b
 -&gt; WitnessGen (ScriptWitness b ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679775902"><span class="hs-identifier hs-var">validator</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679775887"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679775904"><span class="hs-identifier hs-var">scriptDatum</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679777650"><span class="hs-identifier hs-var">validator</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679777635"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679777652"><span class="hs-identifier hs-var">scriptDatum</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-48"></span><span>  </span><span class="annot"><span class="annottext">String
 -&gt; (TxIn
     -&gt; (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra)))
@@ -238,7 +238,7 @@ String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; TxGen context b
 -&gt; BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra)
 forall a. a -&gt; BuildTxWith BuildTx a
 </span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">Witness WitCtxTxIn ConwayEra
-</span><a href="#local-6989586621679775895"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679777643"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-51"></span><span>    </span><span class="annot"><span class="annottext">(Either ToCardanoError TxIn
  -&gt; InputGen
       (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra)))
@@ -248,5 +248,5 @@ forall a. a -&gt; BuildTxWith BuildTx a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Ledger.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679775886"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
+</span><a href="#local-6989586621679777634"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
 </span><span id="line-52"></span></pre></body></html>
