@@ -50,6 +50,6 @@ tests =
         testSucceeds def $
           testWithdrawingScript 2 2,
       testCase "But the script might fail" $
-        testFailsFrom def (isCekEvaluationFailure def) def $
+        testFailsFrom' def (isCekEvaluationFailure def) def $
           testWithdrawingScript 2 1
     ]
