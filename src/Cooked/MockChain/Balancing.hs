@@ -44,8 +44,6 @@ type Fee = Integer
 
 type Collaterals = Set Api.TxOutRef
 
-type MCollaterals = Maybe (Collaterals, Wallet)
-
 type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 
 -- | This is the main entry point of our balancing mechanism. This function
@@ -54,7 +52,7 @@ type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 -- be empty when no script is involved in the transaction. The options from the
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
-balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, MCollaterals)
+balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Maybe (Collaterals, Wallet))
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
   -- redirected to them, and utxos will be taken from their wallet if associated
@@ -97,7 +95,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 
   -- At this point, the presence (or absence) of balancing wallet dictates
   -- whether the transaction should be automatically balanced or not.
-  (txSkelBal, fee, adjustedMCollaterals) <- case balancingWallet of
+  (txSkelBal, fee, adjustedColsAndWallet) <- case balancingWallet of
     Nothing ->
       -- The balancing should not be performed. We still adjust the collaterals
       -- though around a provided fee, or the maximum fee.
@@ -129,11 +127,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
         -- If fee are provided manually, we adjust the collaterals and the
         -- skeleton around them directly.
         ManualFee fee -> do
-          adjustedMCollaterals <- collateralsFromFees fee mCollaterals
+          adjustedColsAndWallet <- collateralsFromFees fee mCollaterals
           attemptedSkel <- computeBalancedTxSkel bWallet balancingUtxos skelUnbal fee
-          return (attemptedSkel, fee, adjustedMCollaterals)
+          return (attemptedSkel, fee, adjustedColsAndWallet)
 
-  return (txSkelBal, fee, adjustedMCollaterals)
+  return (txSkelBal, fee, adjustedColsAndWallet)
   where
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- partition f l =
@@ -166,15 +164,15 @@ getMinAndMaxFee = do
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
-computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> BalancingOutputs -> MCollaterals -> TxSkel -> m (TxSkel, Fee, MCollaterals)
+computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> BalancingOutputs -> Maybe (Collaterals, Wallet) -> TxSkel -> m (TxSkel, Fee, Maybe (Collaterals, Wallet))
 computeFeeAndBalance _ minFee maxFee _ _ _
   | minFee > maxFee =
       throwError $ FailWith "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
 computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals skel
   | minFee == maxFee = do
       -- The fee interval is reduced to a single element, we balance around it
-      (adjustedMCollaterals, attemptedSkel) <- attemptBalancingAndCollaterals balancingWallet balancingUtxos minFee mCollaterals skel
-      return (attemptedSkel, minFee, adjustedMCollaterals)
+      (adjustedColsAndWallet, attemptedSkel) <- attemptBalancingAndCollaterals balancingWallet balancingUtxos minFee mCollaterals skel
+      return (attemptedSkel, minFee, adjustedColsAndWallet)
 computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals skel
   | fee <- (minFee + maxFee) `div` 2 = do
       -- The fee interval is larger than a single element. We attempt to balance
@@ -196,8 +194,8 @@ computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals s
         Nothing -> return (minFee, fee - 1)
         -- The skeleton was balanceable, we compute and analyse the resulting
         -- fee to seach upwards or downwards for an optimal solution
-        Just (adjustedMCollaterals, attemptedSkel) -> do
-          newFee <- estimateTxSkelFee attemptedSkel fee adjustedMCollaterals
+        Just (adjustedColsAndWallet, attemptedSkel) -> do
+          newFee <- estimateTxSkelFee attemptedSkel fee adjustedColsAndWallet
           return $ case fee - newFee of
             -- Current fee is insufficient, we look on the right (strictly)
             n | n < 0 -> (fee + 1, maxFee)
@@ -220,7 +218,7 @@ computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals s
 
 -- | Helper function to group the two real steps of the balancing: balance a
 -- skeleton around a given fee, and compute the associated collateral inputs
-attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> Fee -> MCollaterals -> TxSkel -> m (MCollaterals, TxSkel)
+attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> Fee -> Maybe (Collaterals, Wallet) -> TxSkel -> m (Maybe (Collaterals, Wallet), TxSkel)
 attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals skel = do
   adjustedCollateralIns <- collateralsFromFees fee mCollaterals
   attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skel fee
@@ -251,7 +249,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   Set.fromList . fst <$> getOptimalCandidate candidatesRaw returnCollateralWallet noSuitableCollateralError
 
 -- | This adjusts collateral inputs when necessary
-collateralsFromFees :: (MonadBlockChainBalancing m) => Fee -> MCollaterals -> m MCollaterals
+collateralsFromFees :: (MonadBlockChainBalancing m) => Fee -> Maybe (Collaterals, Wallet) -> m (Maybe (Collaterals, Wallet))
 collateralsFromFees _ Nothing = return Nothing
 collateralsFromFees fee (Just (collateralIns, returnCollateralWallet)) =
   Just . (,returnCollateralWallet) <$> collateralInsFromFees fee collateralIns returnCollateralWallet
@@ -300,12 +298,14 @@ getOptimalCandidate candidates paymentTarget mceError = do
 
 -- | This function is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> MCollaterals -> m Fee
+estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Maybe (Collaterals, Wallet) -> m Fee
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
   managedData <- txSkelHashedData skel
-  let collateralIns = maybe [] (Set.toList . fst) mCollaterals
+  let collateralIns = case mCollaterals of
+        Nothing -> []
+        Just (s, _) -> Set.toList s
   managedTxOuts <- lookupUtxos $ txSkelKnownTxOutRefs skel <> collateralIns
   managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime
