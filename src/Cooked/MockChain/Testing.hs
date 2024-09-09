@@ -116,9 +116,6 @@ instance AddToTest a prop InitialDistribution where
 instance AddToTest a prop PrettyCookedOpts where
   test ==> opts = test {testPrettyOpts = opts}
 
-instance (IsProp prop) => AddToTest a prop (MockChainError -> prop) where
-  test ==> errorProp = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorProp err}
-
 instance (IsProp prop) => AddToTest a prop ([MockChainLogEntry] -> prop) where
   test ==> journalProp =
     test
@@ -128,6 +125,12 @@ instance (IsProp prop) => AddToTest a prop ([MockChainLogEntry] -> prop) where
 
 instance (IsProp prop) => AddToTest a prop (a -> UtxoState -> prop) where
   test ==> resultProp = test {testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. resultProp val state}
+
+instance (IsProp prop) => AddToTest a prop (PrettyCookedOpts -> MockChainError -> prop) where
+  test ==> errorProp = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorProp opts err}
+
+instance (IsProp prop) => AddToTest a prop (MockChainError -> prop) where
+  test ==> errorProp = test ==> \(_ :: PrettyCookedOpts) -> errorProp
 
 testProp :: (IsProp prop) => Test a prop -> prop
 testProp Test {..} =
@@ -148,24 +151,33 @@ testSucceeds = testProp . mustSucceedTest
 testFails :: (IsProp prop, Show a) => StagedMockChain a -> prop
 testFails = testProp . mustFailTest
 
--- | Is satisfied when the given 'MockChainError' is wrapping a
--- @CekEvaluationFailure@.  This is particularly important when writing negative
--- tests. For example, if we are simulating an attack and writing a test with
--- 'testFailsFrom', we might have made a mistake in the attack, yielding a test
--- that fails for reasons such as @ValueLessThanMinAda@ or @ValueNotPreserved@,
--- which does not rule out the attack being caught by the validator script. For
--- these scenarios it is paramount to rely on @testFailsFrom'
--- isCekEvaluationFailure@ instead.
-isCekEvaluationFailure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
-isCekEvaluationFailure _ (MCEValidationError _ (Ledger.ScriptFailure _)) = testSuccess
-isCekEvaluationFailure pcOpts e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase1Failure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
+isPhase1Failure _ (MCEValidationError Ledger.Phase1 _) = testSuccess
+isPhase1Failure pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
--- | Similar to 'isCekEvaluationFailure', but enables us to check for a specific
--- error message in the error.
-isCekEvaluationFailureWithMsg :: (IsProp prop) => PrettyCookedOpts -> (String -> Bool) -> MockChainError -> prop
-isCekEvaluationFailureWithMsg _ f (MCEValidationError _ (Ledger.ScriptFailure (Ledger.EvaluationError msgs _)))
-  | any (f . T.unpack) msgs = testSuccess
-isCekEvaluationFailureWithMsg pcOpts _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+testFailsInPhase1 :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> prop
+testFailsInPhase1 run = testProp $ mustFailTest run ==> isPhase1Failure @prop
+
+isPhase2Failure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
+isPhase2Failure _ (MCEValidationError Ledger.Phase2 _) = testSuccess
+isPhase2Failure pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
+
+testFailsInPhase2 :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> prop
+testFailsInPhase2 run = testProp $ mustFailTest run ==> isPhase2Failure @prop
+
+isPhase1FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
+isPhase1FailureWithMsg f _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) | f $ T.unpack text = testSuccess
+isPhase1FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+
+testFailsInPhase1WithMsg :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> (String -> Bool) -> prop
+testFailsInPhase1WithMsg run f = testProp $ mustFailTest run ==> isPhase1FailureWithMsg @prop f
+
+isPhase2FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
+isPhase2FailureWithMsg f _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) | any (f . T.unpack) texts = testSuccess
+isPhase2FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+
+testFailsInPhase2WithMsg :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> (String -> Bool) -> prop
+testFailsInPhase2WithMsg run f = testProp $ mustFailTest run ==> isPhase2FailureWithMsg @prop f
 
 -- * 'TestResult' instances
 
