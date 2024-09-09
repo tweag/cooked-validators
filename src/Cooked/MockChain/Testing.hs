@@ -105,32 +105,32 @@ emptyTest run =
       testPrettyOpts = def
     }
 
-infixl 5 ==>
+infixl 5 <==
 
 class AddToTest a prop b where
-  (==>) :: Test a prop -> b -> Test a prop
+  (<==) :: b -> Test a prop -> Test a prop
 
 instance AddToTest a prop InitialDistribution where
-  test ==> initDist = test {testInitDist = initDist}
+  initDist <== test = test {testInitDist = initDist}
 
 instance AddToTest a prop PrettyCookedOpts where
-  test ==> opts = test {testPrettyOpts = opts}
+  opts <== test = test {testPrettyOpts = opts}
 
 instance (IsProp prop) => AddToTest a prop ([MockChainLogEntry] -> prop) where
-  test ==> journalProp =
+  journalProp <== test =
     test
       { testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. journalProp journal,
         testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. journalProp journal
       }
 
 instance (IsProp prop) => AddToTest a prop (a -> UtxoState -> prop) where
-  test ==> resultProp = test {testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. resultProp val state}
+  resultProp <== test = test {testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. resultProp val state}
 
 instance (IsProp prop) => AddToTest a prop (PrettyCookedOpts -> MockChainError -> prop) where
-  test ==> errorProp = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorProp opts err}
+  errorProp <== test = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorProp opts err}
 
 instance (IsProp prop) => AddToTest a prop (MockChainError -> prop) where
-  test ==> errorProp = test ==> \(_ :: PrettyCookedOpts) -> errorProp
+  errorProp <== test = (\(_ :: PrettyCookedOpts) -> errorProp) <== test
 
 testProp :: (IsProp prop) => Test a prop -> prop
 testProp Test {..} =
@@ -156,28 +156,28 @@ isPhase1Failure _ (MCEValidationError Ledger.Phase1 _) = testSuccess
 isPhase1Failure pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 testFailsInPhase1 :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> prop
-testFailsInPhase1 run = testProp $ mustFailTest run ==> isPhase1Failure @prop
+testFailsInPhase1 = testProp . (isPhase1Failure @prop <==) . mustFailTest
 
 isPhase2Failure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
 isPhase2Failure _ (MCEValidationError Ledger.Phase2 _) = testSuccess
 isPhase2Failure pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 testFailsInPhase2 :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> prop
-testFailsInPhase2 run = testProp $ mustFailTest run ==> isPhase2Failure @prop
+testFailsInPhase2 = testProp . (isPhase2Failure @prop <==) . mustFailTest
 
 isPhase1FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
 isPhase1FailureWithMsg f _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) | f $ T.unpack text = testSuccess
 isPhase1FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
-testFailsInPhase1WithMsg :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> (String -> Bool) -> prop
-testFailsInPhase1WithMsg run f = testProp $ mustFailTest run ==> isPhase1FailureWithMsg @prop f
+testFailsInPhase1WithMsg :: forall prop a. (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
+testFailsInPhase1WithMsg f = testProp . (isPhase1FailureWithMsg @prop f <==) . mustFailTest
 
 isPhase2FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
 isPhase2FailureWithMsg f _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) | any (f . T.unpack) texts = testSuccess
 isPhase2FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
-testFailsInPhase2WithMsg :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> (String -> Bool) -> prop
-testFailsInPhase2WithMsg run f = testProp $ mustFailTest run ==> isPhase2FailureWithMsg @prop f
+testFailsInPhase2WithMsg :: forall prop a. (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
+testFailsInPhase2WithMsg f = testProp . (isPhase2FailureWithMsg @prop f <==) . mustFailTest
 
 -- * 'TestResult' instances
 
