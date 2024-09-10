@@ -1,0 +1,289 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.GenerateTx.Withdrawals</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsContext"><span class="hs-identifier">WithdrawalsContext</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-3"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#toWithdrawals"><span class="hs-identifier">toWithdrawals</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Ledger</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Shelley</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Reader</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Conversion.html"><span class="hs-identifier">Cooked.Conversion</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Common</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Witness</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Ada</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="WithdrawalsContext"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsContext"><span class="hs-identifier hs-var">WithdrawalsContext</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>  </span><span id="WithdrawalsContext"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsContext"><span class="hs-identifier hs-var">WithdrawalsContext</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="managedTxOuts"><span class="annot"><span class="annottext">WithdrawalsContext -&gt; Map TxOutRef TxOut
+</span><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#managedTxOuts"><span class="hs-identifier hs-var hs-var">managedTxOuts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">,</span><span>
+</span><span id="line-25"></span><span>      </span><span id="networkId"><span class="annot"><span class="annottext">WithdrawalsContext -&gt; NetworkId
+</span><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#networkId"><span class="hs-identifier hs-var hs-var">networkId</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.NetworkId</span></span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-27"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsContext"><span class="hs-identifier hs-type">WithdrawalsContext</span></a></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsContext"><span class="hs-identifier hs-type">WithdrawalsContext</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679816951"><span class="annot"><span class="annottext">transform :: WithdrawalsContext -&gt; Map TxOutRef TxOut
+</span><a href="#local-6989586621679816951"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WithdrawalsContext -&gt; Map TxOutRef TxOut
+</span><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#managedTxOuts"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">type</span><span> </span><span id="WithdrawalsGen"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsGen"><span class="hs-identifier hs-var">WithdrawalsGen</span></a></span></span><span> </span><span id="local-6989586621679816953"><span class="annot"><a href="#local-6989586621679816953"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsContext"><span class="hs-identifier hs-type">WithdrawalsContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679816953"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#toWithdrawals"><span class="hs-identifier hs-type">toWithdrawals</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#WithdrawalsGen"><span class="hs-identifier hs-type">WithdrawalsGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxWithdrawals</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span id="toWithdrawals"><span class="annot"><span class="annottext">toWithdrawals :: TxSkelWithdrawals
+-&gt; WithdrawalsGen (TxWithdrawals BuildTx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#toWithdrawals"><span class="hs-identifier hs-var hs-var">toWithdrawals</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelWithdrawals
+-&gt; [(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxWithdrawals BuildTx ConwayEra
+-&gt; WithdrawalsGen (TxWithdrawals BuildTx ConwayEra)
+forall a.
+a -&gt; ReaderT WithdrawalsContext (Either GenerateTxError) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxWithdrawals BuildTx ConwayEra
+forall build era. TxWithdrawals build era
+</span><span class="hs-identifier hs-var">Cardano.TxWithdrawalsNone</span></span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#toWithdrawals"><span class="hs-identifier hs-var">toWithdrawals</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelWithdrawals
+-&gt; [(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679816956"><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))]
+</span><a href="#local-6989586621679816956"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><span class="annottext">([(StakeAddress, Coin,
+   BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+ -&gt; TxWithdrawals BuildTx ConwayEra)
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     [(StakeAddress, Coin,
+       BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+-&gt; WithdrawalsGen (TxWithdrawals BuildTx ConwayEra)
+forall a b.
+(a -&gt; b)
+-&gt; ReaderT WithdrawalsContext (Either GenerateTxError) a
+-&gt; ReaderT WithdrawalsContext (Either GenerateTxError) b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
+-&gt; [(StakeAddress, Coin,
+     BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+-&gt; TxWithdrawals BuildTx ConwayEra
+forall era build.
+ShelleyBasedEra era
+-&gt; [(StakeAddress, Coin,
+     BuildTxWith build (Witness WitCtxStake era))]
+-&gt; TxWithdrawals build era
+</span><span class="hs-identifier hs-var">Cardano.TxWithdrawals</span></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
+</span><span class="hs-identifier hs-var">Cardano.ShelleyBasedEraConway</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">(ReaderT
+   WithdrawalsContext
+   (Either GenerateTxError)
+   [(StakeAddress, Coin,
+     BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+ -&gt; WithdrawalsGen (TxWithdrawals BuildTx ConwayEra))
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     [(StakeAddress, Coin,
+       BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+-&gt; WithdrawalsGen (TxWithdrawals BuildTx ConwayEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))]
+-&gt; ((Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))
+    -&gt; ReaderT
+         WithdrawalsContext
+         (Either GenerateTxError)
+         (StakeAddress, Coin,
+          BuildTxWith BuildTx (Witness WitCtxStake ConwayEra)))
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     [(StakeAddress, Coin,
+       BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m (t b)
+</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))]
+</span><a href="#local-6989586621679816956"><span class="hs-identifier hs-var">withdrawals</span></a></span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="annottext">(((Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))
+  -&gt; ReaderT
+       WithdrawalsContext
+       (Either GenerateTxError)
+       (StakeAddress, Coin,
+        BuildTxWith BuildTx (Witness WitCtxStake ConwayEra)))
+ -&gt; ReaderT
+      WithdrawalsContext
+      (Either GenerateTxError)
+      [(StakeAddress, Coin,
+        BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))])
+-&gt; ((Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Ada))
+    -&gt; ReaderT
+         WithdrawalsContext
+         (Either GenerateTxError)
+         (StakeAddress, Coin,
+          BuildTxWith BuildTx (Witness WitCtxStake ConwayEra)))
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     [(StakeAddress, Coin,
+       BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679816960"><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
+</span><a href="#local-6989586621679816960"><span class="hs-identifier hs-var">staker</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679816961"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679816961"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Lovelace</span></span><span> </span><span id="local-6989586621679816963"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679816963"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-41"></span><span>      </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679816964"><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679816964"><span class="hs-identifier hs-var">witness</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816965"><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679816965"><span class="hs-identifier hs-var">sCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-43"></span><span>          </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
+</span><a href="#local-6989586621679816960"><span class="hs-identifier hs-var">staker</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-44"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679816966"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679816966"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-45"></span><span>              </span><span id="local-6989586621679816967"><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679816967"><span class="hs-identifier hs-var">sCred</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-46"></span><span>                </span><span class="annot"><span class="annottext">String
+-&gt; Either ToCardanoError StakeCredential
+-&gt; TxGen WithdrawalsContext StakeCredential
+forall a context.
+String -&gt; Either ToCardanoError a -&gt; TxGen context a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var">throwOnToCardanoError</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;toWithdrawals: unable to translate pkh stake credential&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Either ToCardanoError StakeCredential
+ -&gt; TxGen WithdrawalsContext StakeCredential)
+-&gt; Either ToCardanoError StakeCredential
+-&gt; TxGen WithdrawalsContext StakeCredential
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-47"></span><span>                  </span><span class="annot"><span class="annottext">Hash StakeKey -&gt; StakeCredential
+</span><span class="hs-identifier hs-var">Cardano.StakeCredentialByKey</span></span><span> </span><span class="annot"><span class="annottext">(Hash StakeKey -&gt; StakeCredential)
+-&gt; Either ToCardanoError (Hash StakeKey)
+-&gt; Either ToCardanoError StakeCredential
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Either ToCardanoError (Hash StakeKey)
+</span><span class="hs-identifier hs-var">Ledger.toCardanoStakeKeyHash</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679816966"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><span id="line-48"></span><span>              </span><span class="annot"><span class="annottext">(Witness WitCtxStake ConwayEra, StakeCredential)
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     (Witness WitCtxStake ConwayEra, StakeCredential)
+forall a.
+a -&gt; ReaderT WithdrawalsContext (Either GenerateTxError) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxStake -&gt; Witness WitCtxStake ConwayEra
+forall witctx era. KeyWitnessInCtx witctx -&gt; Witness witctx era
+</span><span class="hs-identifier hs-var">Cardano.KeyWitness</span></span><span> </span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxStake
+</span><span class="hs-identifier hs-var">Cardano.KeyWitnessForStakeAddr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679816967"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679816974"><span class="annot"><span class="annottext">Versioned Script
+</span><a href="#local-6989586621679816974"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-50"></span><span>              </span><span id="local-6989586621679816975"><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679816975"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-51"></span><span>                </span><span class="annot"><span class="annottext">ScriptWitnessInCtx WitCtxStake
+-&gt; ScriptWitness WitCtxStake ConwayEra
+-&gt; Witness WitCtxStake ConwayEra
+forall witctx era.
+ScriptWitnessInCtx witctx
+-&gt; ScriptWitness witctx era -&gt; Witness witctx era
+</span><span class="hs-identifier hs-var">Cardano.ScriptWitness</span></span><span> </span><span class="annot"><span class="annottext">ScriptWitnessInCtx WitCtxStake
+</span><span class="hs-identifier hs-var">Cardano.ScriptWitnessForStakeAddr</span></span><span>
+</span><span id="line-52"></span><span>                  </span><span class="annot"><span class="annottext">(ScriptWitness WitCtxStake ConwayEra
+ -&gt; Witness WitCtxStake ConwayEra)
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     (ScriptWitness WitCtxStake ConwayEra)
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     (Witness WitCtxStake ConwayEra)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxGen (Map TxOutRef TxOut) (ScriptWitness WitCtxStake ConwayEra)
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     (ScriptWitness WitCtxStake ConwayEra)
+forall context' context a.
+Transform context' context =&gt;
+TxGen context a -&gt; TxGen context' a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#liftTxGen"><span class="hs-identifier hs-var">liftTxGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script
+-&gt; TxSkelRedeemer
+-&gt; ScriptDatum WitCtxStake
+-&gt; TxGen (Map TxOutRef TxOut) (ScriptWitness WitCtxStake ConwayEra)
+forall a b.
+ToScript a =&gt;
+a
+-&gt; TxSkelRedeemer
+-&gt; ScriptDatum b
+-&gt; WitnessGen (ScriptWitness b ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
+</span><a href="#local-6989586621679816974"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679816961"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
+</span><span class="hs-identifier hs-var">Cardano.NoScriptDatumForStake</span></span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>              </span><span id="local-6989586621679816981"><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679816981"><span class="hs-identifier hs-var">sCred</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-54"></span><span>                </span><span class="annot"><span class="annottext">String
+-&gt; Either ToCardanoError StakeCredential
+-&gt; TxGen WithdrawalsContext StakeCredential
+forall a context.
+String -&gt; Either ToCardanoError a -&gt; TxGen context a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var">throwOnToCardanoError</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;toWithdrawals: unable to translate script stake credential&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Either ToCardanoError StakeCredential
+ -&gt; TxGen WithdrawalsContext StakeCredential)
+-&gt; Either ToCardanoError StakeCredential
+-&gt; TxGen WithdrawalsContext StakeCredential
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-55"></span><span>                  </span><span class="annot"><span class="annottext">ScriptHash -&gt; StakeCredential
+</span><span class="hs-identifier hs-var">Cardano.StakeCredentialByScript</span></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; StakeCredential)
+-&gt; Either ToCardanoError ScriptHash
+-&gt; Either ToCardanoError StakeCredential
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; Either ToCardanoError ScriptHash
+</span><span class="hs-identifier hs-var">Ledger.toCardanoScriptHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script -&gt; ScriptHash
+forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
+</span><a href="Cooked.Conversion.ToScriptHash.html#toScriptHash"><span class="hs-identifier hs-var">toScriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
+</span><a href="#local-6989586621679816974"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>              </span><span class="annot"><span class="annottext">(Witness WitCtxStake ConwayEra, StakeCredential)
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     (Witness WitCtxStake ConwayEra, StakeCredential)
+forall a.
+a -&gt; ReaderT WithdrawalsContext (Either GenerateTxError) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679816975"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679816981"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>        </span><span id="local-6989586621679816985"><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679816985"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(WithdrawalsContext -&gt; NetworkId)
+-&gt; ReaderT WithdrawalsContext (Either GenerateTxError) NetworkId
+forall r (m :: * -&gt; *) a. MonadReader r m =&gt; (r -&gt; a) -&gt; m a
+</span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">WithdrawalsContext -&gt; NetworkId
+</span><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#networkId"><span class="hs-identifier hs-var">networkId</span></a></span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><span class="annottext">(StakeAddress, Coin,
+ BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))
+-&gt; ReaderT
+     WithdrawalsContext
+     (Either GenerateTxError)
+     (StakeAddress, Coin,
+      BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))
+forall a.
+a -&gt; ReaderT WithdrawalsContext (Either GenerateTxError) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NetworkId -&gt; StakeCredential -&gt; StakeAddress
+</span><span class="hs-identifier hs-var">Cardano.makeStakeAddress</span></span><span> </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679816985"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679816965"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><span class="hs-identifier hs-var">Cardano.Coin</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679816963"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+-&gt; BuildTxWith BuildTx (Witness WitCtxStake ConwayEra)
+forall a. a -&gt; BuildTxWith BuildTx a
+</span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679816964"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span></pre></body></html>
