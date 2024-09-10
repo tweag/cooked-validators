@@ -10,6 +10,7 @@ import Cooked.ProposingScriptSpec qualified as ProposingSpec
 import Cooked.ReferenceInputsSpec qualified as ReferenceInputsSpec
 import Cooked.ReferenceScriptsSpec qualified as ReferenceScriptsSpec
 import Cooked.TweakSpec qualified as TweakSpec
+import Cooked.WithdrawalsSpec qualified as WithdrawalsSpec
 import Test.Tasty
 
 main :: IO ()
@@ -28,5 +29,6 @@ main =
         LtlSpec.tests,
         MockChainSpec.tests,
         InitDistribSpec.tests,
-        ProposingSpec.tests
+        ProposingSpec.tests,
+        WithdrawalsSpec.tests
       ]

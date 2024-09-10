@@ -27,6 +27,7 @@ import Control.Monad.State
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
+import Cooked.MockChain.MockChainSt
 import Cooked.MockChain.UtxoState
 import Cooked.Skeleton
 import Cooked.Tweak.Common

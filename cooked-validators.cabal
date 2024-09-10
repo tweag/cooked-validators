@@ -42,8 +42,10 @@ library
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output
       Cooked.MockChain.GenerateTx.Proposal
+      Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
+      Cooked.MockChain.MockChainSt
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch
@@ -109,6 +111,7 @@ library
     , cardano-api
     , cardano-crypto
     , cardano-data
+    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley
@@ -169,6 +172,7 @@ test-suite spec
       Cooked.Tweak.TamperDatumSpec
       Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
+      Cooked.WithdrawalsSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
@@ -201,6 +205,7 @@ test-suite spec
     , cardano-api
     , cardano-crypto
     , cardano-data
+    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley

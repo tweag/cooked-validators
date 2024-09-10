@@ -36,7 +36,7 @@ tamperDatumTweak ::
   ) =>
   -- | Use this function to return 'Just' the changed datum, if you want to
   -- perform a change, and 'Nothing', if you want to leave it as-is. All datums
-  -- on outputs not paying to a validator of type @a@ are never touched.
+  -- on outputs that are not of type @a@ are never touched.
   (a -> Maybe a) ->
   m [a]
 tamperDatumTweak change = do

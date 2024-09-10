@@ -35,6 +35,7 @@ module Cooked.Skeleton
     addToTxSkelMints,
     txSkelMintsToList,
     txSkelMintsFromList,
+    txSkelMintsFromList',
     txSkelMintsValue,
     txSkelOutValueL,
     txSkelOutDatumL,
@@ -48,11 +49,11 @@ module Cooked.Skeleton
     paysPK,
     paysScript,
     paysScriptInlineDatum,
-    paysScriptDatumHash,
+    paysScriptUnresolvedDatumHash,
     paysScriptNoDatum,
     withDatum,
     withInlineDatum,
-    withDatumHash,
+    withUnresolvedDatumHash,
     withReferenceScript,
     withStakingCredential,
     TxSkelRedeemer (..),
@@ -66,6 +67,11 @@ module Cooked.Skeleton
     txSkelProposalActionL,
     txSkelProposalWitnessL,
     txSkelProposalAnchorL,
+    TxSkelWithdrawals,
+    txSkelWithdrawnValue,
+    txSkelWithdrawalsScripts,
+    pkWithdrawal,
+    scriptWithdrawal,
     TxSkel (..),
     txSkelLabelL,
     txSkelOptsL,
@@ -75,6 +81,7 @@ module Cooked.Skeleton
     txSkelInsL,
     txSkelInsReferenceL,
     txSkelOutsL,
+    txSkelWithdrawalsL,
     txSkelTemplate,
     txSkelDataInOutputs,
     txSkelValidatorsInOutputs,
@@ -104,6 +111,7 @@ import Cooked.Pretty.Class
 import Cooked.Wallet
 import Data.ByteString (ByteString)
 import Data.Default
+import Data.Either
 import Data.Either.Combinators
 import Data.Function
 import Data.List (foldl')
@@ -118,6 +126,7 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
 import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
@@ -581,6 +590,28 @@ withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toScript s, red)
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}
 
+-- * Description of the Withdrawals
+
+-- | Withdrawals associate either a script or a private key with a redeemer and
+-- a certain amount of ada. Note that the redeemer will be ignored in the case
+-- of a private key.
+type TxSkelWithdrawals =
+  Map
+    (Either (Script.Versioned Script.Script) Api.PubKeyHash)
+    (TxSkelRedeemer, Script.Ada)
+
+txSkelWithdrawnValue :: TxSkel -> Api.Value
+txSkelWithdrawnValue = mconcat . (toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
+
+txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+
+pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
+pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (txSkelEmptyRedeemer, amount)
+
+scriptWithdrawal :: (ToScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ toScript script) (red, amount)
+
 -- * Description of the Minting
 
 -- | A description of what a transaction mints. For every policy, there can only
@@ -608,11 +639,7 @@ type TxSkelMints =
 -- In every case, if you add mints with a different redeemer for the same
 -- policy, the redeemer used in the right argument takes precedence.
 instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
-  a <> b =
-    foldl
-      (flip addToTxSkelMints)
-      a
-      (txSkelMintsToList b)
+  a <> b = foldl (flip addToTxSkelMints) a (txSkelMintsToList b)
 
 instance {-# OVERLAPPING #-} Monoid TxSkelMints where
   mempty = Map.empty
@@ -693,6 +720,11 @@ txSkelMintsToList =
 -- 'TxSkelMints'.
 txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer)] -> TxSkelMints
 txSkelMintsFromList = foldr addToTxSkelMints mempty
+
+-- | Another smart constructor for 'TxSkelMints', where the redeemer and minting
+-- policies are not duplicated.
+txSkelMintsFromList' :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, [(Api.TokenName, Integer)])] -> TxSkelMints
+txSkelMintsFromList' = txSkelMintsFromList . concatMap (\(mp, r, m) -> (\(tn, i) -> (mp, r, tn, i)) <$> m)
 
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Api.Value
@@ -868,8 +900,9 @@ paysPK pkh value =
         (Nothing @(Script.Versioned Script.Script))
     )
 
--- | Pays a script a certain value with a certain datum, using the
--- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
+-- | Pays a script a certain value with a certain datum hash, using the
+-- 'TxSkelOutDatum' constructor. The resolved datum is provided in the body of
+-- the transaction that issues the payment.
 paysScript ::
   ( Api.ToData (Script.DatumType a),
     Show (Script.DatumType a),
@@ -915,9 +948,10 @@ paysScriptInlineDatum validator datum value =
         (Nothing @(Script.Versioned Script.Script))
     )
 
--- | Pays a script a certain value with a certain hashed (not resolved in
--- transaction) datum.
-paysScriptDatumHash ::
+-- | Pays a script a certain value with a certain hashed datum, whose resolved
+-- datum is not provided in the transaction body that issues the payment (as
+-- opposed to "paysScript").
+paysScriptUnresolvedDatumHash ::
   ( Api.ToData (Script.DatumType a),
     Show (Script.DatumType a),
     Typeable (Script.DatumType a),
@@ -929,7 +963,7 @@ paysScriptDatumHash ::
   Script.DatumType a ->
   Api.Value ->
   TxSkelOut
-paysScriptDatumHash validator datum value =
+paysScriptUnresolvedDatumHash validator datum value =
   Pays
     ( ConcreteOutput
         validator
@@ -940,7 +974,7 @@ paysScriptDatumHash validator datum value =
     )
 
 -- | Pays a script a certain value without any datum. Intended to be used with
--- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
+-- 'withDatum', 'withUnresolvedDatumHash', or 'withInlineDatum' to try a datum whose type
 -- does not match the validator's.
 paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Api.Value -> TxSkelOut
 paysScriptNoDatum validator value =
@@ -966,8 +1000,8 @@ withInlineDatum (Pays output) datum = Pays $ (fromAbstractOutput output) {concre
 -- | Set the datum in a payment to the given hashed (not resolved in the
 -- transaction) datum (whose type may not fit the typed validator in case of a
 -- script).
-withDatumHash :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
-withDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatumHash datum}
+withUnresolvedDatumHash :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
+withUnresolvedDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatumHash datum}
 
 -- | Add a reference script to a transaction output (or replace it if there is
 -- already one)
@@ -1001,7 +1035,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'TxSkelEmptyRedeemer' constructor.
+      --   the 'txSkelEmptyRedeemer' smart constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
@@ -1011,8 +1045,11 @@ data TxSkel where
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
       txSkelOuts :: [TxSkelOut],
-      -- | Possible proposals issued in this transaction to be voted on and possible enacted later on.
-      txSkelProposals :: [TxSkelProposal]
+      -- | Possible proposals issued in this transaction to be voted on and
+      -- possible enacted later on.
+      txSkelProposals :: [TxSkelProposal],
+      -- | Withdrawals performed by the transaction
+      txSkelWithdrawals :: TxSkelWithdrawals
     } ->
     TxSkel
   deriving (Show, Eq)
@@ -1026,7 +1063,8 @@ makeLensesFor
     ("txSkelIns", "txSkelInsL"),
     ("txSkelInsReference", "txSkelInsReferenceL"),
     ("txSkelOuts", "txSkelOutsL"),
-    ("txSkelProposals", "txSkelProposalsL")
+    ("txSkelProposals", "txSkelProposalsL"),
+    ("txSkelWithdrawals", "txSkelWithdrawalsL")
   ]
   ''TxSkel
 
@@ -1042,7 +1080,8 @@ txSkelTemplate =
       txSkelIns = Map.empty,
       txSkelInsReference = Set.empty,
       txSkelOuts = [],
-      txSkelProposals = []
+      txSkelProposals = [],
+      txSkelWithdrawals = Map.empty
     }
 
 -- | The missing information on a 'TxSkel' that can only be resolved by querying
@@ -1056,18 +1095,19 @@ data SkelContext = SkelContext
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
--- | Return all data on transaction outputs.
-txSkelDataInOutputs :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
+-- | Return all data on transaction outputs. This can contain duplicates, which
+-- is intended.
+txSkelDataInOutputs :: TxSkel -> [(Api.DatumHash, TxSkelOutDatum)]
 txSkelDataInOutputs =
   foldMapOf
     ( txSkelOutsL
         % folded
         % txSkelOutDatumL
     )
-    ( \txSkelOutDatum -> do
+    ( \txSkelOutDatum ->
         maybe
-          Map.empty
-          (\datum -> Map.singleton (Script.datumHash datum) txSkelOutDatum)
+          []
+          (\datum -> [(Script.datumHash datum, txSkelOutDatum)])
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
 

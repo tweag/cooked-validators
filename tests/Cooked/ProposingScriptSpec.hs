@@ -29,7 +29,7 @@ checkParameterChangeScript _ ctx =
         _ -> PlutusTx.traceError "Wrong proposal procedure"
 
 checkProposingScript :: Script.Versioned Script.Script
-checkProposingScript = mkProposingScript $$(PlutusTx.compile [||checkParameterChangeScript||])
+checkProposingScript = mkScript $$(PlutusTx.compile [||checkParameterChangeScript||])
 
 testProposingScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
 testProposingScript script govAction =

@@ -33,6 +33,8 @@ module Cooked.MockChain.BlockChain
     resolveReferenceScript,
     getEnclosingSlot,
     awaitEnclosingSlot,
+    awaitDurationFromLowerBound,
+    awaitDurationFromUpperBound,
     slotRangeBefore,
     slotRangeAfter,
     slotToTimeInterval,
@@ -40,9 +42,11 @@ module Cooked.MockChain.BlockChain
     txSkelReferenceInputUtxos,
     txSkelInputValidators,
     txSkelInputValue,
-    txSkelInputData,
+    txSkelHashedData,
+    txSkelInputDataAsHashes,
     lookupUtxos,
     validateTxSkel',
+    validateTxSkel_,
     txSkelProposalsDeposit,
     govActionDeposit,
   )
@@ -182,6 +186,10 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
 validateTxSkel' :: (MonadBlockChain m) => TxSkel -> m [Api.TxOutRef]
 validateTxSkel' = (map fst . utxosFromCardanoTx <$>) . validateTxSkel
 
+-- | Validates a skeleton, and erases the outputs
+validateTxSkel_ :: (MonadBlockChain m) => TxSkel -> m ()
+validateTxSkel_ = void . validateTxSkel
+
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
 --
 -- This is useful when writing endpoints and/or traces to fetch utxos of
@@ -213,16 +221,9 @@ resolveDatum out = do
     Api.OutputDatumHash datumHash -> datumFromHash datumHash
     Api.OutputDatum datum -> return $ Just datum
     Api.NoOutputDatum -> return Nothing
-  return $
-    ( \mDat ->
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (out ^. outputStakingCredentialL)
-          mDat
-          (out ^. outputValueL)
-          (out ^. outputReferenceScriptL)
-    )
-      <$> mDatum
+  return $ do
+    mDat <- mDatum
+    return $ (fromAbstractOutput out) {concreteOutputDatum = mDat}
 
 -- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
 -- datum of the suitable type.
@@ -236,19 +237,11 @@ resolveTypedDatum ::
   m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
 resolveTypedDatum out = do
   mOut <- resolveDatum out
-  return $
-    ( \out' -> do
-        let Api.Datum datum = out' ^. outputDatumL
-        dat <- Api.fromBuiltinData datum
-        return $
-          ConcreteOutput
-            (out' ^. outputOwnerL)
-            (out' ^. outputStakingCredentialL)
-            dat
-            (out' ^. outputValueL)
-            (out' ^. outputReferenceScriptL)
-    )
-      =<< mOut
+  return $ do
+    out' <- mOut
+    let Api.Datum datum = out' ^. outputDatumL
+    dat <- Api.fromBuiltinData datum
+    return $ (fromAbstractOutput out) {concreteOutputDatum = dat}
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
@@ -265,16 +258,9 @@ resolveValidator out =
     Api.PubKeyCredential _ -> return Nothing
     Api.ScriptCredential (Api.ScriptHash hash) -> do
       mVal <- validatorFromHash (Script.ValidatorHash hash)
-      return $
-        ( \val ->
-            ConcreteOutput
-              val
-              (out ^. outputStakingCredentialL)
-              (out ^. outputDatumL)
-              (out ^. outputValueL)
-              (out ^. outputReferenceScriptL)
-        )
-          <$> mVal
+      return $ do
+        val <- mVal
+        return $ (fromAbstractOutput out) {concreteOutputOwner = val}
 
 -- | Try to resolve the reference script on an output: If the output has no
 -- reference script, or if the reference script's hash is not known (i.e. if
@@ -286,22 +272,12 @@ resolveReferenceScript ::
   ) =>
   out ->
   m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Script.Versioned Script.Validator)))
-resolveReferenceScript out =
-  maybe
-    (return Nothing)
-    ( \(Api.ScriptHash hash) ->
-        ( \mVal ->
-            ConcreteOutput
-              (out ^. outputOwnerL)
-              (out ^. outputStakingCredentialL)
-              (out ^. outputDatumL)
-              (out ^. outputValueL)
-              . Just
-              <$> mVal
-        )
-          <$> validatorFromHash (Script.ValidatorHash hash)
-    )
-    $ outputReferenceScriptHash out
+resolveReferenceScript out | Just (Api.ScriptHash hash) <- outputReferenceScriptHash out = do
+  mVal <- validatorFromHash (Script.ValidatorHash hash)
+  return $ do
+    val <- mVal
+    return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just val}
+resolveReferenceScript _ = return Nothing
 
 outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
@@ -371,28 +347,37 @@ lookupUtxos =
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
 txSkelInputValue = (foldMap Api.txOutValue <$>) . txSkelInputUtxos
 
--- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
-txSkelInputData skel = do
-  mDatumHashes <-
-    mapMaybe
-      ( \output ->
-          case output ^. outputDatumL of
-            Api.NoOutputDatum -> Nothing
-            Api.OutputDatum datum -> Just $ Script.datumHash datum
-            Api.OutputDatumHash dHash -> Just dHash
-      )
-      . Map.elems
-      <$> txSkelInputUtxos skel
-  Map.fromList
-    <$> mapM
-      ( \dHash ->
+-- | Looks up and resolves the hashed datums on UTxOs the transaction consumes
+-- or references, which will be needed by the transaction body.
+txSkelHashedData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
+txSkelHashedData skel = do
+  (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
+  (Map.elems -> refInputTxOuts) <- txSkelReferenceInputUtxos skel
+  foldM
+    ( \dat dHash ->
+        maybeErrM
+          (MCEUnknownDatum "txSkelHashedData: Transaction input with unknown datum hash" dHash)
+          (\rDat -> Map.insert dHash rDat dat)
+          (datumFromHash dHash)
+    )
+    Map.empty
+    (mapMaybe (fmap (^. outputDatumL) . isOutputWithDatumHash) $ inputTxOuts <> refInputTxOuts)
+
+-- | Looks up the data on UTxOs the transaction consumes and returns their
+-- hashes. This corresponds to the keys of what should be removed from the
+-- stored datums in our mockchain.  There can be duplicates, which is expected.
+txSkelInputDataAsHashes :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
+txSkelInputDataAsHashes skel = do
+  let outputToDatumHashM output = case output ^. outputDatumL of
+        Api.OutputDatumHash dHash ->
           maybeErrM
-            (MCEUnknownDatum "txSkelInputData: Transaction input with un-resolvable datum hash" dHash)
-            (dHash,)
+            (MCEUnknownDatum "txSkelInputDataAsHashes: Transaction input with unknown datum hash" dHash)
+            (Just . const dHash)
             (datumFromHash dHash)
-      )
-      mDatumHashes
+        Api.OutputDatum datum -> return $ Just $ Script.datumHash datum
+        Api.NoOutputDatum -> return Nothing
+  (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
+  catMaybes <$> mapM outputToDatumHashM inputTxOuts
 
 -- ** Slot and Time Management
 
@@ -452,6 +437,16 @@ getEnclosingSlot t = (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotCon
 --  anything if the current slot is large enough.
 awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
+
+-- | Wait a given number of ms from the lower bound of the current slot and
+-- returns the current slot after waiting.
+awaitDurationFromLowerBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
+awaitDurationFromLowerBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
+
+-- | Wait a given number of ms from the upper bound of the current slot and
+-- returns the current slot after waiting.
+awaitDurationFromUpperBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
+awaitDurationFromUpperBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | The infinite range of slots ending before or at the given time
 slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange

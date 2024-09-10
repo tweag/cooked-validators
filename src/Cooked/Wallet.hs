@@ -7,6 +7,7 @@ module Cooked.Wallet
   ( knownWallets,
     wallet,
     walletPKHashToId,
+    walletPKHashToWallet,
     walletPK,
     walletStakingPK,
     walletPKHash,
@@ -14,6 +15,8 @@ module Cooked.Wallet
     walletAddress,
     walletSK,
     walletStakingSK,
+    walletStakingCredential,
+    walletCredential,
     Wallet,
     PrivateKey,
   )
@@ -66,6 +69,10 @@ wallet j
 walletPKHashToId :: Api.PubKeyHash -> Maybe Int
 walletPKHashToId = (succ <$>) . flip elemIndex (walletPKHash <$> knownWallets)
 
+-- | Retrieves the known wallet that corresponds to a public key hash
+walletPKHashToWallet :: Api.PubKeyHash -> Maybe Wallet
+walletPKHashToWallet pkh = wallet . fromIntegral <$> walletPKHashToId pkh
+
 -- | Retrieves a wallet public key (PK)
 walletPK :: Wallet -> Ledger.PubKey
 walletPK = Ledger.unPaymentPubKey . Ledger.paymentPubKey
@@ -81,6 +88,13 @@ walletPKHash = Ledger.pubKeyHash . walletPK
 -- | Retrieves a wallet's public staking key hash, if any
 walletStakingPKHash :: Wallet -> Maybe Api.PubKeyHash
 walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
+
+-- | Retrieves a wallet credential
+walletCredential :: Wallet -> Api.Credential
+walletCredential = Api.PubKeyCredential . walletPKHash
+
+walletStakingCredential :: Wallet -> Maybe Api.StakingCredential
+walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
 
 -- | Retrieves a wallet's address
 walletAddress :: Wallet -> Api.Address
