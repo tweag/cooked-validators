@@ -144,7 +144,7 @@ tests =
         let theRefScript = alwaysFalseValidator
             theRefScriptHash = toScriptHash theRefScript
          in [ testCase "on a public key output" $
-                testProp $
+                testToProp $
                   mustSucceedTest
                     ( putRefScriptOnWalletOutput (wallet 3) theRefScript
                         >>= retrieveRefScriptHash
@@ -152,7 +152,7 @@ tests =
                     `withValuePred` testCounterexample "the script hash on the retrieved output is wrong"
                     . (Just theRefScriptHash .==.),
               testCase "on a script output" $
-                testProp $
+                testToProp $
                   mustSucceedTest
                     ( putRefScriptOnScriptOutput alwaysTrueValidator theRefScript
                         >>= retrieveRefScriptHash
@@ -160,7 +160,7 @@ tests =
                     `withValuePred` testCounterexample "the script hash on the retrieved output is wrong"
                     . (Just theRefScriptHash .==.),
               testCase "retrieving the complete script from its hash" $
-                testProp $
+                testToProp $
                   mustSucceedTest
                     ( putRefScriptOnWalletOutput (wallet 3) theRefScript
                         >>= fmap fromJust . txOutByRef
@@ -183,7 +183,7 @@ tests =
       testGroup
         "using reference scripts"
         [ testCase "fail from transaction generation for missing reference scripts" $
-            testProp $
+            testToProp $
               mustFailTest
                 ( do
                     (consumedOref, _) : _ <-
@@ -208,7 +208,7 @@ tests =
                   MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" _ -> testSuccess
                   _ -> testFailure,
           testCase "fail from transaction generation for mismatching reference scripts" $
-            testProp $
+            testToProp $
               mustFailTest
                 ( do
                     scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
@@ -258,13 +258,13 @@ tests =
             testSucceeds $
               referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0,
           testCase "fail if given the wrong reference minting policy" $
-            testProp $
+            testToProp $
               mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure,
           testCase "fail if referencing the wrong utxo" $
-            testProp $
+            testToProp $
               mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."

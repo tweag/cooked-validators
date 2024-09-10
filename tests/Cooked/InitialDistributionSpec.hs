@@ -51,13 +51,13 @@ tests =
   testGroup
     "Initial distributions"
     [ testCase "Reading datums placed in the initial distribution, inlined or hashed" $
-        testProp $
+        testToProp $
           mustSucceedTest getValueFromInitialDatum
             `withInitDist` initialDistributionWithDatum
             `withValuePred` testBool
             . (== [10, 10]),
       testCase "Spending a script placed as a reference script in the initial distribution" $
-        testProp $
+        testToProp $
           mustSucceedTest spendReferenceAlwaysTrueValidator
             `withInitDist` initialDistributionWithReferenceScript
     ]

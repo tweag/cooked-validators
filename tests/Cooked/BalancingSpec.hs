@@ -200,7 +200,7 @@ retOutsNb ros (_, _, _, _, refs) = testBool $ ros == length refs
 testBalancingSucceedsWith :: String -> [ResProp] -> StagedMockChain TestBalancingOutcome -> TestTree
 testBalancingSucceedsWith msg props run =
   testCase msg $
-    testProp $
+    testToProp $
       mustSucceedTest run
         `withInitDist` initialDistributionBalancing
         `withValuePred` \res -> testConjoin (($ res) <$> props)
@@ -240,7 +240,7 @@ failsLackOfCollateralWallet _ = testBool False
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree
 testBalancingFailsWith msg p smc =
   testCase msg $
-    testProp $
+    testToProp $
       mustFailTest smc
         `withInitDist` initialDistributionBalancing
         `withErrorPred` p
@@ -355,7 +355,7 @@ tests =
           testGroup
             "Manual balancing with auto fee"
             [ testCase "Auto fee with manual balancing yields maximum fee" $
-                testProp $
+                testToProp $
                   mustSucceedTest noBalanceMaxFee `withInitDist` initialDistributionBalancing
             ],
           testGroup
@@ -394,13 +394,13 @@ tests =
                     id
                 ),
               testCase "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
-                testProp $
+                testToProp $
                   mustSucceedTest balanceReduceFee
                     `withInitDist` initialDistributionBalancing
                     `withValuePred` \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') ->
                       testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual,
               testCase "The auto-fee process can sometimes recover from a temporary balancing error..." $
-                testProp $
+                testToProp $
                   mustSucceedTest
                     ( simplePaymentToBob
                         103_650_000
@@ -412,7 +412,7 @@ tests =
                     )
                     `withInitDist` initialDistributionBalancing,
               testCase "... but not always" $
-                testProp $
+                testToProp $
                   mustFailTest
                     ( simplePaymentToBob
                         104_000_000
@@ -425,7 +425,7 @@ tests =
                     `withInitDist` initialDistributionBalancing
                     `withErrorPred` failsAtBalancing,
               testCase "The auto-fee process can recover from a temporary collateral error..." $
-                testProp $
+                testToProp $
                   mustSucceedTest
                     ( testingBalancingTemplate
                         (Script.ada 142)
@@ -438,7 +438,7 @@ tests =
                     )
                     `withInitDist` initialDistributionBalancing,
               testCase "... but not always" $
-                testProp $
+                testToProp $
                   mustFailTest
                     ( testingBalancingTemplate
                         (Script.ada 142)
@@ -452,7 +452,7 @@ tests =
                     `withInitDist` initialDistributionBalancing
                     `withErrorPred` failsAtCollaterals,
               testCase "Reaching magical spot with the exact balance during auto fee computation" $
-                testProp $
+                testToProp $
                   mustSucceedTest reachingMagic
                     `withInitDist` initialDistributionBalancing
             ],

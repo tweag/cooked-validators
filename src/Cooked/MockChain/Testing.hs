@@ -251,8 +251,8 @@ withErrorPred :: (IsProp prop) => Test a prop -> (MockChainError -> prop) -> Tes
 withErrorPred test errorPred = withPrettyAndErrorPred test $ \_ err -> errorPred err
 
 -- | This takes a test and transforms it into an actual test case in prop.
-testProp :: (IsProp prop) => Test a prop -> prop
-testProp Test {..} =
+testToProp :: (IsProp prop) => Test a prop -> prop
+testToProp Test {..} =
   let innerProp (res, mcLog) =
         case res of
           Left err -> testErrorProp testPrettyOpts err mcLog
@@ -264,11 +264,11 @@ testProp Test {..} =
 -- | Ensure that all results produced by the staged mockchain /succeed/,
 -- starting from the default initial distribution
 testSucceeds :: (IsProp prop) => StagedMockChain a -> prop
-testSucceeds = testProp . mustSucceedTest
+testSucceeds = testToProp . mustSucceedTest
 
 -- | Ensure that all results produced by the staged mockchain /fail/
 testFails :: (IsProp prop, Show a) => StagedMockChain a -> prop
-testFails = testProp . mustFailTest
+testFails = testToProp . mustFailTest
 
 -- | A property to ensure a phase 1 failure
 isPhase1Failure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
@@ -277,7 +277,7 @@ isPhase1Failure pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure
 
 -- | A test that succeeds when the run result in a phase 1 failure
 testFailsInPhase1 :: (IsProp prop, Show a) => StagedMockChain a -> prop
-testFailsInPhase1 = testProp . (`withPrettyAndErrorPred` isPhase1Failure) . mustFailTest
+testFailsInPhase1 = testToProp . (`withPrettyAndErrorPred` isPhase1Failure) . mustFailTest
 
 -- | A property to ensure a phase 2 failure
 isPhase2Failure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
@@ -286,7 +286,7 @@ isPhase2Failure pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure
 
 -- | A test that succeeds when the run result in a phase 2 failure
 testFailsInPhase2 :: (IsProp prop, Show a) => StagedMockChain a -> prop
-testFailsInPhase2 = testProp . (`withPrettyAndErrorPred` isPhase2Failure) . mustFailTest
+testFailsInPhase2 = testToProp . (`withPrettyAndErrorPred` isPhase2Failure) . mustFailTest
 
 -- | Same as 'isPhaseIFailure' with an added predicate on the text error
 isPhase1FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
@@ -295,7 +295,7 @@ isPhase1FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 1 evaluatio
 
 -- | Same as 'testFailsInPhase1' with an added predicate on the text error
 testFailsInPhase1WithMsg :: (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
-testFailsInPhase1WithMsg f = testProp . (`withPrettyAndErrorPred` isPhase1FailureWithMsg f) . mustFailTest
+testFailsInPhase1WithMsg f = testToProp . (`withPrettyAndErrorPred` isPhase1FailureWithMsg f) . mustFailTest
 
 -- | Same as 'isPhase2Failure' with an added predicate over the text error
 isPhase2FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
@@ -304,4 +304,4 @@ isPhase2FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 2 evaluatio
 
 -- | Same as 'testFailsInPhase2' with an added predicate over the text error
 testFailsInPhase2WithMsg :: (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
-testFailsInPhase2WithMsg f = testProp . (`withPrettyAndErrorPred` isPhase2FailureWithMsg f) . mustFailTest
+testFailsInPhase2WithMsg f = testToProp . (`withPrettyAndErrorPred` isPhase2FailureWithMsg f) . mustFailTest
