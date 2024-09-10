@@ -227,30 +227,25 @@ tests =
                   @=? fst <$> skelOut x2 (1 ==)
             ],
       testCase "careful validator" $
-        testFails
-          def
-          (isCekEvaluationFailure def)
-          ( somewhere
-              ( datumHijackingAttack @DHContract
-                  ( \(ConcreteOutput v _ d _ _) ->
-                      Script.validatorHash v == Script.validatorHash carefulValidator
-                        && d == TxSkelOutInlineDatum SecondLock
-                  )
-                  (const True)
-              )
-              (datumHijackingTrace carefulValidator)
-          ),
+        testFailsInPhase2 $
+          somewhere
+            ( datumHijackingAttack @DHContract
+                ( \(ConcreteOutput v _ d _ _) ->
+                    Script.validatorHash v == Script.validatorHash carefulValidator
+                      && d == TxSkelOutInlineDatum SecondLock
+                )
+                (const True)
+            )
+            (datumHijackingTrace carefulValidator),
       testCase "careless validator" $
-        testSucceeds
-          def
-          ( somewhere
-              ( datumHijackingAttack @DHContract
-                  ( \(ConcreteOutput v _ d _ _) ->
-                      Script.validatorHash v == Script.validatorHash carelessValidator
-                        && d == TxSkelOutInlineDatum SecondLock
-                  )
-                  (const True)
-              )
-              (datumHijackingTrace carelessValidator)
-          )
+        testSucceeds $
+          somewhere
+            ( datumHijackingAttack @DHContract
+                ( \(ConcreteOutput v _ d _ _) ->
+                    Script.validatorHash v == Script.validatorHash carelessValidator
+                      && d == TxSkelOutInlineDatum SecondLock
+                )
+                (const True)
+            )
+            (datumHijackingTrace carelessValidator)
     ]

@@ -2,7 +2,6 @@ module Cooked.WithdrawalsSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -47,9 +46,9 @@ tests =
   testGroup
     "Withdrawing scripts"
     [ testCase "We can use a withdrawing script" $
-        testSucceeds def $
+        testSucceeds $
           testWithdrawingScript 2 2,
       testCase "But the script might fail" $
-        testFailsFrom' def (isCekEvaluationFailure def) def $
+        testFailsInPhase2 $
           testWithdrawingScript 2 1
     ]

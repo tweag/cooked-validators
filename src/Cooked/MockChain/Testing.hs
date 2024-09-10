@@ -191,46 +191,64 @@ emptyTest run =
       testPrettyOpts = def
     }
 
-infixl 5 <==
+infixl 5 `withInitDist`
 
--- | The represents anything that can be added to a test
-class AddToTest a prop b where
-  (<==) :: b -> Test a prop -> Test a prop
+infixl 5 `withPrettyOpts`
+
+infixl 5 `withJournalPred`
+
+infixl 5 `withValueAndStatePred`
+
+infixl 5 `withValuePred`
+
+infixl 5 `withStatePred`
+
+infixl 5 `withPrettyAndErrorPred`
+
+infixl 5 `withErrorPred`
 
 -- | Appending an initial distribution to a test
-instance AddToTest a prop InitialDistribution where
-  initDist <== test = test {testInitDist = initDist}
+withInitDist :: (IsProp prop) => Test a prop -> InitialDistribution -> Test a prop
+withInitDist test initDist = test {testInitDist = initDist}
 
 -- | Appending printing options to a test
-instance AddToTest a prop PrettyCookedOpts where
-  opts <== test = test {testPrettyOpts = opts}
+withPrettyOpts :: (IsProp prop) => Test a prop -> PrettyCookedOpts -> Test a prop
+withPrettyOpts test opts = test {testPrettyOpts = opts}
 
 -- | Appending a predicate over the log to a test. This will be used both in
 -- case of success or failure of the run.
-instance (IsProp prop) => AddToTest a prop ([MockChainLogEntry] -> prop) where
-  journalProp <== test =
-    test
-      { testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. journalProp journal,
-        testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. journalProp journal
-      }
+withJournalPred :: (IsProp prop) => Test a prop -> ([MockChainLogEntry] -> prop) -> Test a prop
+withJournalPred test journalPred =
+  test
+    { testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. journalPred journal,
+      testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. journalPred journal
+    }
 
--- | Appending a predicate over the resulting mockchain state and value, which
--- will be used in case of success of the run.
-instance (IsProp prop) => AddToTest a prop (a -> UtxoState -> prop) where
-  resultProp <== test =
-    test
-      { testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. resultProp val state
-      }
+-- | Appending a predicate over the return value and state, which will be used
+-- in case of success of the run.
+withValueAndStatePred :: (IsProp prop) => Test a prop -> (a -> UtxoState -> prop) -> Test a prop
+withValueAndStatePred test resultPred =
+  test
+    { testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. resultPred val state
+    }
+
+-- | Appending a predicate over the return value, which will be used in case of
+-- success of the run.
+withValuePred :: (IsProp prop) => Test a prop -> (a -> prop) -> Test a prop
+withValuePred test valuePred = withValueAndStatePred test $ \val _ -> valuePred val
+
+-- | Appending a predicate over the return state, which will be used in case of
+-- success of the run.
+withStatePred :: (IsProp prop) => Test a prop -> (UtxoState -> prop) -> Test a prop
+withStatePred test statePred = withValueAndStatePred test $ \_ st -> statePred st
 
 -- | Appending a predicate over an error which uses the printing options, which
 -- will be used in case of failure of the run.
-instance (IsProp prop) => AddToTest a prop (PrettyCookedOpts -> MockChainError -> prop) where
-  errorProp <== test = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorProp opts err}
+withPrettyAndErrorPred :: (IsProp prop) => Test a prop -> (PrettyCookedOpts -> MockChainError -> prop) -> Test a prop
+withPrettyAndErrorPred test errorPred = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorPred opts err}
 
--- | Appending a predicate over and error, which will be used in case of
--- failure of the run.
-instance (IsProp prop) => AddToTest a prop (MockChainError -> prop) where
-  errorProp <== test = (\(_ :: PrettyCookedOpts) -> errorProp) <== test
+withErrorPred :: (IsProp prop) => Test a prop -> (MockChainError -> prop) -> Test a prop
+withErrorPred test errorPred = withPrettyAndErrorPred test $ \_ err -> errorPred err
 
 -- | This takes a test and transforms it into an actual test case in prop.
 testProp :: (IsProp prop) => Test a prop -> prop
@@ -258,8 +276,8 @@ isPhase1Failure _ (MCEValidationError Ledger.Phase1 _) = testSuccess
 isPhase1Failure pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | A test that succeeds when the run result in a phase 1 failure
-testFailsInPhase1 :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> prop
-testFailsInPhase1 = testProp . (isPhase1Failure @prop <==) . mustFailTest
+testFailsInPhase1 :: (IsProp prop, Show a) => StagedMockChain a -> prop
+testFailsInPhase1 = testProp . (`withPrettyAndErrorPred` isPhase1Failure) . mustFailTest
 
 -- | A property to ensure a phase 2 failure
 isPhase2Failure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
@@ -267,8 +285,8 @@ isPhase2Failure _ (MCEValidationError Ledger.Phase2 _) = testSuccess
 isPhase2Failure pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | A test that succeeds when the run result in a phase 2 failure
-testFailsInPhase2 :: forall prop a. (IsProp prop, Show a) => StagedMockChain a -> prop
-testFailsInPhase2 = testProp . (isPhase2Failure @prop <==) . mustFailTest
+testFailsInPhase2 :: (IsProp prop, Show a) => StagedMockChain a -> prop
+testFailsInPhase2 = testProp . (`withPrettyAndErrorPred` isPhase2Failure) . mustFailTest
 
 -- | Same as 'isPhaseIFailure' with an added predicate on the text error
 isPhase1FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
@@ -276,8 +294,8 @@ isPhase1FailureWithMsg f _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedg
 isPhase1FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'testFailsInPhase1' with an added predicate on the text error
-testFailsInPhase1WithMsg :: forall prop a. (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
-testFailsInPhase1WithMsg f = testProp . (isPhase1FailureWithMsg @prop f <==) . mustFailTest
+testFailsInPhase1WithMsg :: (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
+testFailsInPhase1WithMsg f = testProp . (`withPrettyAndErrorPred` isPhase1FailureWithMsg f) . mustFailTest
 
 -- | Same as 'isPhase2Failure' with an added predicate over the text error
 isPhase2FailureWithMsg :: (IsProp prop) => (String -> Bool) -> PrettyCookedOpts -> MockChainError -> prop
@@ -285,5 +303,5 @@ isPhase2FailureWithMsg f _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailu
 isPhase2FailureWithMsg _ pcOpts e = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'testFailsInPhase2' with an added predicate over the text error
-testFailsInPhase2WithMsg :: forall prop a. (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
-testFailsInPhase2WithMsg f = testProp . (isPhase2FailureWithMsg @prop f <==) . mustFailTest
+testFailsInPhase2WithMsg :: (IsProp prop, Show a) => (String -> Bool) -> StagedMockChain a -> prop
+testFailsInPhase2WithMsg f = testProp . (`withPrettyAndErrorPred` isPhase2FailureWithMsg f) . mustFailTest

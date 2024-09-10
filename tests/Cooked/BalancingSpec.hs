@@ -179,61 +179,71 @@ reachingMagic = do
               }
         }
 
-type ResProp prop = TestBalancingOutcome -> prop
+type ResProp = TestBalancingOutcome -> Assertion
 
-hasFee :: (IsProp prop) => Integer -> ResProp prop
+hasFee :: Integer -> ResProp
 hasFee fee (_, _, fee', _, _) = testBool $ fee == fee'
 
-additionalOutsNb :: (IsProp prop) => Int -> ResProp prop
+additionalOutsNb :: Int -> ResProp
 additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
 
-insNb :: (IsProp prop) => Int -> ResProp prop
+insNb :: Int -> ResProp
 insNb is (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == is
 
-colInsNb :: (IsProp prop) => Int -> ResProp prop
+colInsNb :: Int -> ResProp
 colInsNb cis (_, _, _, Nothing, _) = testBool $ cis == 0
 colInsNb cis (_, _, _, Just (refs, _), _) = testBool $ cis == length refs
 
-retOutsNb :: (IsProp prop) => Int -> ResProp prop
+retOutsNb :: Int -> ResProp
 retOutsNb ros (_, _, _, _, refs) = testBool $ ros == length refs
 
-testBalancingSucceedsWith :: String -> [ResProp Assertion] -> StagedMockChain TestBalancingOutcome -> TestTree
-testBalancingSucceedsWith msg props smc = testCase msg $ testSucceedsFrom' def (\res _ -> testConjoin $ ($ res) <$> props) initialDistributionBalancing smc
+testBalancingSucceedsWith :: String -> [ResProp] -> StagedMockChain TestBalancingOutcome -> TestTree
+testBalancingSucceedsWith msg props run =
+  testCase msg $
+    testProp $
+      mustSucceedTest run
+        `withInitDist` initialDistributionBalancing
+        `withValuePred` \res -> testConjoin (($ res) <$> props)
 
-failsAtBalancingWith :: (IsProp prop) => Api.Value -> Wallet -> MockChainError -> prop
+failsAtBalancingWith :: Api.Value -> Wallet -> MockChainError -> Assertion
 failsAtBalancingWith val' wal' (MCEUnbalanceable wal val _) = testBool $ val' == val && wal' == wal
 failsAtBalancingWith _ _ _ = testBool False
 
-failsAtBalancing :: (IsProp prop) => MockChainError -> prop
+failsAtBalancing :: MockChainError -> Assertion
 failsAtBalancing MCEUnbalanceable {} = testBool True
 failsAtBalancing _ = testBool False
 
-failsWithTooLittleFee :: (IsProp prop) => MockChainError -> prop
+failsWithTooLittleFee :: MockChainError -> Assertion
 failsWithTooLittleFee (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
 failsWithTooLittleFee _ = testBool False
 
-failsWithValueNotConserved :: (IsProp prop) => MockChainError -> prop
+failsWithValueNotConserved :: MockChainError -> Assertion
 failsWithValueNotConserved (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "ValueNotConserved" text
 failsWithValueNotConserved _ = testBool False
 
-failsWithEmptyTxIns :: (IsProp prop) => MockChainError -> prop
+failsWithEmptyTxIns :: MockChainError -> Assertion
 failsWithEmptyTxIns (MCEGenerationError (TxBodyError _ Cardano.TxBodyEmptyTxIns)) = testBool True
 failsWithEmptyTxIns _ = testBool False
 
-failsAtCollateralsWith :: (IsProp prop) => Integer -> MockChainError -> prop
+failsAtCollateralsWith :: Integer -> MockChainError -> Assertion
 failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
-failsAtCollaterals :: (IsProp prop) => MockChainError -> prop
+failsAtCollaterals :: MockChainError -> Assertion
 failsAtCollaterals MCENoSuitableCollateral {} = testBool True
 failsAtCollaterals _ = testBool False
 
-failsLackOfCollateralWallet :: (IsProp prop) => MockChainError -> prop
+failsLackOfCollateralWallet :: MockChainError -> Assertion
 failsLackOfCollateralWallet (FailWith msg) = testBool $ "Can't select collateral utxos from a balancing wallet because it does not exist." == msg
 failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree
-testBalancingFailsWith msg p smc = testCase msg $ testFailsFrom def p initialDistributionBalancing smc
+testBalancingFailsWith msg p smc =
+  testCase msg $
+    testProp $
+      mustFailTest smc
+        `withInitDist` initialDistributionBalancing
+        `withErrorPred` p
 
 tests :: TestTree
 tests =
@@ -345,7 +355,8 @@ tests =
           testGroup
             "Manual balancing with auto fee"
             [ testCase "Auto fee with manual balancing yields maximum fee" $
-                testSucceedsFrom def initialDistributionBalancing noBalanceMaxFee
+                testProp $
+                  mustSucceedTest noBalanceMaxFee `withInitDist` initialDistributionBalancing
             ],
           testGroup
             "Auto balancing with auto fee"
@@ -383,71 +394,67 @@ tests =
                     id
                 ),
               testCase "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
-                testSucceedsFrom'
-                  def
-                  ( \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') _ ->
-                      testBool $
-                        feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual
-                  )
-                  initialDistributionBalancing
-                  balanceReduceFee,
+                testProp $
+                  mustSucceedTest balanceReduceFee
+                    `withInitDist` initialDistributionBalancing
+                    `withValuePred` \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') ->
+                      testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual,
               testCase "The auto-fee process can sometimes recover from a temporary balancing error..." $
-                testSucceedsFrom
-                  def
-                  initialDistributionBalancing
-                  ( simplePaymentToBob
-                      103_650_000
-                      0
-                      0
-                      0
-                      False
-                      id
-                  ),
+                testProp $
+                  mustSucceedTest
+                    ( simplePaymentToBob
+                        103_650_000
+                        0
+                        0
+                        0
+                        False
+                        id
+                    )
+                    `withInitDist` initialDistributionBalancing,
               testCase "... but not always" $
-                testFailsFrom
-                  def
-                  failsAtBalancing
-                  initialDistributionBalancing
-                  ( simplePaymentToBob
-                      104_000_000
-                      0
-                      0
-                      0
-                      False
-                      id
-                  ),
+                testProp $
+                  mustFailTest
+                    ( simplePaymentToBob
+                        104_000_000
+                        0
+                        0
+                        0
+                        False
+                        id
+                    )
+                    `withInitDist` initialDistributionBalancing
+                    `withErrorPred` failsAtBalancing,
               testCase "The auto-fee process can recover from a temporary collateral error..." $
-                testSucceedsFrom
-                  def
-                  initialDistributionBalancing
-                  ( testingBalancingTemplate
-                      (Script.ada 142)
-                      mempty
-                      emptySearch
-                      emptySearch
-                      (aliceNAdaUtxos 2)
-                      True
-                      id
-                  ),
+                testProp $
+                  mustSucceedTest
+                    ( testingBalancingTemplate
+                        (Script.ada 142)
+                        mempty
+                        emptySearch
+                        emptySearch
+                        (aliceNAdaUtxos 2)
+                        True
+                        id
+                    )
+                    `withInitDist` initialDistributionBalancing,
               testCase "... but not always" $
-                testFailsFrom
-                  def
-                  failsAtCollaterals
-                  initialDistributionBalancing
-                  ( testingBalancingTemplate
-                      (Script.ada 142)
-                      mempty
-                      (utxosAtSearch alice)
-                      emptySearch
-                      (aliceNAdaUtxos 1)
-                      True
-                      id
-                  ),
+                testProp $
+                  mustFailTest
+                    ( testingBalancingTemplate
+                        (Script.ada 142)
+                        mempty
+                        (utxosAtSearch alice)
+                        emptySearch
+                        (aliceNAdaUtxos 1)
+                        True
+                        id
+                    )
+                    `withInitDist` initialDistributionBalancing
+                    `withErrorPred` failsAtCollaterals,
               testCase "Reaching magical spot with the exact balance during auto fee computation" $
-                testSucceedsFrom
-                  def
-                  initialDistributionBalancing
-                  reachingMagic
+                testProp $
+                  mustSucceedTest reachingMagic
+                    `withInitDist` initialDistributionBalancing
             ],
           testGroup
             "Auto balancing with manual fee"

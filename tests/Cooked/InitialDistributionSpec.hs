@@ -2,7 +2,6 @@ module Cooked.InitialDistributionSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Plutus.Script.Utils.Value qualified as Script
@@ -52,7 +51,13 @@ tests =
   testGroup
     "Initial distributions"
     [ testCase "Reading datums placed in the initial distribution, inlined or hashed" $
-        testSucceedsFrom' def (\results _ -> testBool $ results == [10, 10]) initialDistributionWithDatum getValueFromInitialDatum,
+        testProp $
+          mustSucceedTest getValueFromInitialDatum
+            `withInitDist` initialDistributionWithDatum
+            `withValuePred` testBool
+            . (== [10, 10]),
       testCase "Spending a script placed as a reference script in the initial distribution" $
-        testSucceedsFrom def initialDistributionWithReferenceScript spendReferenceAlwaysTrueValidator
+        testProp $
+          mustSucceedTest spendReferenceAlwaysTrueValidator
+            `withInitDist` initialDistributionWithReferenceScript
     ]

@@ -200,19 +200,19 @@ tests =
             [ testGroup
                 "validator expects an inline datum..."
                 [ testCase "...and gets an inline datum, expecting success" $
-                    testSucceeds def $
+                    testSucceeds $
                       spendOutputTestTrace True (inputDatumValidator True),
                   testCase "...and gets a datum hash, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       spendOutputTestTrace False (inputDatumValidator True)
                 ],
               testGroup
                 "validator expects a datum hash..."
                 [ testCase "...and gets an inline datum, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       spendOutputTestTrace True (inputDatumValidator False),
                   testCase "...and gets a datum hash, expecting success" $
-                    testSucceeds def $
+                    testSucceeds $
                       spendOutputTestTrace False (inputDatumValidator False)
                 ]
             ],
@@ -221,37 +221,37 @@ tests =
             [ testGroup
                 "validator expects a regular datum..."
                 [ testCase "...and gets a regular datum, expecting success" $
-                    testSucceeds def $
+                    testSucceeds $
                       continuingOutputTestTrace Datum (outputDatumValidator Datum),
                   testCase "...and gets an inline datum, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       continuingOutputTestTrace Inline (outputDatumValidator Datum),
                   testCase "...and gets a datum hash, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       continuingOutputTestTrace OnlyHash (outputDatumValidator Datum)
                 ],
               testGroup
                 "validator expects an inline datum..."
                 [ testCase "...and gets a regular datum, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       continuingOutputTestTrace Datum (outputDatumValidator Inline),
                   testCase "...and gets an inline datum, expecting success" $
-                    testSucceeds def $
+                    testSucceeds $
                       continuingOutputTestTrace Inline (outputDatumValidator Inline),
                   testCase "...and gets a datum hash, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       continuingOutputTestTrace OnlyHash (outputDatumValidator Inline)
                 ],
               testGroup
                 "validator expects a datum hash..."
                 [ testCase "...and gets a regular datum, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       continuingOutputTestTrace Datum (outputDatumValidator OnlyHash),
                   testCase "...and gets an inline datum, expecting script failure" $
-                    testFails def (isCekEvaluationFailure def) $
+                    testFailsInPhase2 $
                       continuingOutputTestTrace Inline (outputDatumValidator OnlyHash),
                   testCase "...and gets a datum hash, expecting success" $
-                    testSucceeds def $
+                    testSucceeds $
                       continuingOutputTestTrace OnlyHash (outputDatumValidator OnlyHash)
                 ]
             ]
