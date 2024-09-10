@@ -122,25 +122,40 @@ txSkelToCardanoTx txSkel = do
   -- definition of "txBody'" aims at doing just that. In the process, we have to
   -- reconstruct the body with the new data and the associated hash. Hopefully,
   -- in the future, cardano-api provides a way to add those data in the body
-  -- directly without requiring this methods, which somewhat feels like a hack.
+  -- directly without requiring this method, which somewhat feels like a hack.
+
+  -- We retrieve the data available in the context
   mData <- asks managedData
+  -- We retrieve the outputs available in the context
   mTxOut <- asks managedTxOuts
+  -- We attempt to resolve the reference inputs used by the skeleton
   refIns <- forM (txSkelReferenceTxOutRefs txSkel) $ \oRef ->
     throwOnLookup ("txSkelToCardanoTx: Unable to resolve TxOutRef " <> show oRef) oRef mTxOut
+  -- We collect the datum hashes present at these outputs
   let datumHashes = [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
+  -- We resolve those datum hashes from the context
   additionalData <- forM datumHashes $ \dHash ->
     throwOnLookup ("txSkelToCardanoTx: Unable to resolve datum hash " <> show dHash) dHash mData
+  -- We compute the map from datum hash to datum of these additional required data
   let additionalDataMap = Map.fromList [(Cardano.hashData dat, dat) | Api.Datum (Cardano.Data . Api.toData -> dat) <- additionalData]
+  -- We retrieve a needed parameter to process difference plutus languages
   toLangDepViewParam <- asks (Conway.getLanguageView . Cardano.unLedgerProtocolParameters . Emulator.ledgerProtocolParameters . params)
+  -- We convert our data map into a 'TxDats'
   let txDats' = Alonzo.TxDats additionalDataMap
+      -- We compute the new era, datums and redeemers based on the current dats
+      -- in the body and the additional data to include in the body.
       (era, datums, redeemers) = case dats of
         Cardano.TxBodyNoScriptData -> (Cardano.AlonzoEraOnwardsConway, txDats', Alonzo.Redeemers Map.empty)
         Cardano.TxBodyScriptData era' txDats reds -> (era', txDats <> txDats', reds)
+      -- We collect the various witnesses in the body
       witnesses = Cardano.collectTxBodyScriptWitnesses Cardano.ShelleyBasedEraConway txBodyContent
+      -- We collect their associated languages
       languages = [toCardanoLanguage v | (_, Cardano.AnyScriptWitness (Cardano.PlutusScriptWitness _ v _ _ _ _)) <- witnesses]
+      -- We compute the new script integrity hash with the added data
       scriptIntegrityHash =
         Cardano.alonzoEraOnwardsConstraints era $
           Alonzo.hashScriptIntegrity (Set.fromList $ toLangDepViewParam <$> languages) redeemers datums
+      -- We wrap all of this in the new body
       body' = body Lens.& Alonzo.scriptIntegrityHashTxBodyL Lens..~ scriptIntegrityHash
       txBody' = Cardano.ShelleyTxBody a body' c (Cardano.TxBodyScriptData era datums redeemers) e f
 

@@ -43,7 +43,7 @@ module Cooked.MockChain.BlockChain
     txSkelInputValidators,
     txSkelInputValue,
     txSkelHashedData,
-    txSkelConsumedData,
+    txSkelInputDataAsHashes,
     lookupUtxos,
     validateTxSkel',
     validateTxSkel_,
@@ -351,9 +351,6 @@ txSkelInputValue = (foldMap Api.txOutValue <$>) . txSkelInputUtxos
 -- or references, which will be needed by the transaction body.
 txSkelHashedData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
 txSkelHashedData skel = do
-  let outputToDatumHashM output = case output ^. outputDatumL of
-        Api.OutputDatumHash dHash -> Just dHash
-        _ -> Nothing
   (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
   (Map.elems -> refInputTxOuts) <- txSkelReferenceInputUtxos skel
   foldM
@@ -364,17 +361,17 @@ txSkelHashedData skel = do
           (datumFromHash dHash)
     )
     Map.empty
-    (mapMaybe outputToDatumHashM $ inputTxOuts <> refInputTxOuts)
+    (mapMaybe (fmap (^. outputDatumL) . isOutputWithDatumHash) $ inputTxOuts <> refInputTxOuts)
 
--- | Looks us the data on UTxOs the transaction consumes. This corresponds to
--- the keys of what should be removed from the stored datums in our mockchain.
--- There can be duplicates, which is expected.
-txSkelConsumedData :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
-txSkelConsumedData skel = do
+-- | Looks up the data on UTxOs the transaction consumes and returns their
+-- hashes. This corresponds to the keys of what should be removed from the
+-- stored datums in our mockchain.  There can be duplicates, which is expected.
+txSkelInputDataAsHashes :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
+txSkelInputDataAsHashes skel = do
   let outputToDatumHashM output = case output ^. outputDatumL of
         Api.OutputDatumHash dHash ->
           maybeErrM
-            (MCEUnknownDatum "txSkelConsumedData: Transaction input with unknown datum hash" dHash)
+            (MCEUnknownDatum "txSkelInputDataAsHashes: Transaction input with unknown datum hash" dHash)
             (Just . const dHash)
             (datumFromHash dHash)
         Api.OutputDatum datum -> return $ Just $ Script.datumHash datum
