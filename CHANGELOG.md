@@ -26,7 +26,8 @@
   to redeemers. This can be turned off using `txOptAutoReferenceScripts`, in
   which case the helper `withReferenceInput` can be used on a redeemer to
   automatically attach a reference input.
-  
+- Capability to test the result of a mockchain run based on the log entries.
+
 ### Removed
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
@@ -54,6 +55,7 @@
   * it now displays when the user specifies useless collateral utxos.
   * it is not visible from outside of `cooked-validators`
 - Dependency to cardano-api bumped to 8.46.
+- The whole testing API has been revamped
 
 ### Fixed
 
