@@ -17,9 +17,9 @@
   present but somehow disapeared.
 - It is now possible to reference an output which has a hashed datum.
 - `txSkelHashedData` the gives all the datum hashes in inputs and reference inputs.
-- Partial support for withdrawals in txSkels. The rewarding scripts will be ran
+- Partial support for withdrawals in txSkels. The rewarding scripts will be run
   and assets will be transferred. However, these withdrawals are not properly
-  constrainted yet.
+  constrained yet.
 - PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
 
@@ -40,7 +40,7 @@
 - `mkProposingScript` changed to `mkScript`
 - `withDatumHashed` changed to `withUnresolvedDatumHash`
 - `paysScriptDatumHashed` changed to `paysScriptUnresolvedDatumHash`
-- `txSkelInputData` changed to `txSkelConsumedData`
+- `txSkelInputData` changed to `txSkelInputDataAsHashes`
 - Pretty printing of hashed datum now includes the hash (and not only the
   resolved datum).
 - Dependency to cardano-api bumped to 8.46.

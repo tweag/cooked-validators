@@ -158,7 +158,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
     hashedData <- txSkelHashedData skel
-    insData <- txSkelConsumedData skel
+    insData <- txSkelInputDataAsHashes skel
     insValidators <- txSkelInputValidators skel
     insMap <- txSkelInputUtxos skel
     refInsMap <- txSkelReferenceInputUtxos skel

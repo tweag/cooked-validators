@@ -901,8 +901,8 @@ paysPK pkh value =
     )
 
 -- | Pays a script a certain value with a certain datum hash, using the
--- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
--- The datum is resolved in the transaction.
+-- 'TxSkelOutDatum' constructor. The resolved datum is provided in the body of
+-- the transaction that issues the payment.
 paysScript ::
   ( Api.ToData (Script.DatumType a),
     Show (Script.DatumType a),
@@ -948,8 +948,9 @@ paysScriptInlineDatum validator datum value =
         (Nothing @(Script.Versioned Script.Script))
     )
 
--- | Pays a script a certain value with a certain hashed datum which is not
--- resolved in the transaction (as opposed to "paysScript").
+-- | Pays a script a certain value with a certain hashed datum, whose resolved
+-- datum is not provided in the transaction body that issues the payment (as
+-- opposed to "paysScript").
 paysScriptUnresolvedDatumHash ::
   ( Api.ToData (Script.DatumType a),
     Show (Script.DatumType a),
