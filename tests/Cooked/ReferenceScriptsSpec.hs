@@ -149,16 +149,18 @@ tests =
                     ( putRefScriptOnWalletOutput (wallet 3) theRefScript
                         >>= retrieveRefScriptHash
                     )
-                    `withValuePred` testCounterexample "the script hash on the retrieved output is wrong"
-                    . (Just theRefScriptHash .==.),
+                    `withValuePred` ( testCounterexample "the script hash on the retrieved output is wrong"
+                                        . (Just theRefScriptHash .==.)
+                                    ),
               testCase "on a script output" $
                 testToProp $
                   mustSucceedTest
                     ( putRefScriptOnScriptOutput alwaysTrueValidator theRefScript
                         >>= retrieveRefScriptHash
                     )
-                    `withValuePred` testCounterexample "the script hash on the retrieved output is wrong"
-                    . (Just theRefScriptHash .==.),
+                    `withValuePred` ( testCounterexample "the script hash on the retrieved output is wrong"
+                                        . (Just theRefScriptHash .==.)
+                                    ),
               testCase "retrieving the complete script from its hash" $
                 testToProp $
                   mustSucceedTest

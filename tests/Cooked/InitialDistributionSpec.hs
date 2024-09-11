@@ -54,8 +54,7 @@ tests =
         testToProp $
           mustSucceedTest getValueFromInitialDatum
             `withInitDist` initialDistributionWithDatum
-            `withValuePred` testBool
-            . (== [10, 10]),
+            `withValuePred` (testBool . (== [10, 10])),
       testCase "Spending a script placed as a reference script in the initial distribution" $
         testToProp $
           mustSucceedTest spendReferenceAlwaysTrueValidator
