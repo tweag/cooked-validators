@@ -14,7 +14,7 @@ import Data.Function (on)
 import Data.List qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A description of who owns what in a blockchain. Owners are addresses and
@@ -51,7 +51,7 @@ data UtxoPayload = UtxoPayload
 instance Eq UtxoPayloadSet where
   (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
     where
-      k (UtxoPayload ref val dat rs) = (ref, Script.flattenValue val, dat, rs)
+      k (UtxoPayload ref val dat rs) = (ref, Api.flattenValue val, dat, rs)
       xs' = List.sortBy (compare `on` k) xs
       ys' = List.sortBy (compare `on` k) ys
 

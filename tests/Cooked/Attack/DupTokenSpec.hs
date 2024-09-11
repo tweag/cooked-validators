@@ -114,17 +114,14 @@ tests =
       testCase "careful minting policy" $
         let tName = Script.tokenName "MockToken"
             pol = carefulPolicy tName 1
-         in testFails
-              def
-              (isCekEvaluationFailure def)
-              ( somewhere
-                  (dupTokenAttack (\_ n -> n + 1) (wallet 6))
-                  (dupTokenTrace pol tName 1 (wallet 1))
-              ),
+         in testFailsInPhase2 $
+              somewhere
+                (dupTokenAttack (\_ n -> n + 1) (wallet 6))
+                (dupTokenTrace pol tName 1 (wallet 1)),
       testCase "careless minting policy" $
         let tName = Script.tokenName "MockToken"
             pol = carelessPolicy
-         in testSucceeds def $
+         in testSucceeds $
               somewhere
                 (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),

@@ -22,6 +22,7 @@
   constrained yet.
 - PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
+- Capability to test the result of a mockchain run based on the log entries.
 
 ### Removed
 
@@ -52,6 +53,7 @@
   * it now displays when the user specifies useless collateral utxos.
   * it is not visible from outside of `cooked-validators`
 - Dependency to cardano-api bumped to 8.46.
+- The whole testing API has been revamped
 
 ### Fixed
 

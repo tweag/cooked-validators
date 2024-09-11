@@ -2,7 +2,6 @@ module Cooked.ReferenceInputsSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Typed qualified as Script
@@ -147,6 +146,6 @@ tests :: Tasty.TestTree
 tests =
   Tasty.testGroup
     "Reference inputs"
-    [ Tasty.testCase "We can reference an input that can't be spent" (testSucceeds def trace1),
-      Tasty.testCase "We can decode the datum hash from a reference input" (testSucceeds def trace2)
+    [ Tasty.testCase "We can reference an input that can't be spent" $ testSucceeds trace1,
+      Tasty.testCase "We can decode the datum hash from a reference input" $ testSucceeds trace2
     ]

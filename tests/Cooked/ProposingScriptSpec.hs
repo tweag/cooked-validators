@@ -2,9 +2,7 @@ module Cooked.ProposingScriptSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
-import Ledger.Index qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -60,21 +58,21 @@ tests =
   testGroup
     "Proposing scripts"
     [ testCase "The always True proposing script succeeds" $
-        testSucceeds def $
+        testSucceeds $
           testProposingScript alwaysTrueProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
       testCase "The always True proposing script suceeds as a reference script" $
-        testSucceeds def $
+        testSucceeds $
           testProposingRefScript alwaysTrueProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
       testCase "The always False proposing script fails" $
-        testFails def (isCekEvaluationFailure def) $
+        testFailsInPhase2 $
           testProposingScript alwaysFalseProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
       testCase "A more advanced proposing script can succeed" $
-        testSucceeds def $
+        testSucceeds $
           testProposingScript checkProposingScript (TxGovActionParameterChange [FeePerByte 100]),
       testCase "A more advanced proposing script can succeed as a reference script" $
-        testSucceeds def $
+        testSucceeds $
           testProposingRefScript checkProposingScript (TxGovActionParameterChange [FeePerByte 100]),
       testCase "Proposing scripts are restricted to parameter changes or treasury withdrawals" $
-        testFails def (\case (MCEValidationError Ledger.Phase1 _) -> testBool True; _ -> testBool False) $
+        testFailsInPhase1 $
           testProposingScript alwaysFalseProposingValidator TxGovActionNoConfidence
     ]
