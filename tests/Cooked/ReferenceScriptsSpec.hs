@@ -263,8 +263,7 @@ tests =
           testCase "succeed if relying on automated finding of reference minting policy" $
             testToProp $
               mustSucceedTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 True)
-                `withJournalPred` testBool
-                . any (\case MCLogAddedReferenceScript {} -> True; _ -> False),
+                `withJournalPred` (testBool . any (\case MCLogAddedReferenceScript {} -> True; _ -> False)),
           testCase "fail if given the wrong reference minting policy" $
             testToProp $
               mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0 False)
