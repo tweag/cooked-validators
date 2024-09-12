@@ -41,8 +41,8 @@
 </span><span id="line-41"></span><span>
 </span><span id="line-42"></span><span class="hs-keyword">type</span><span> </span><span id="PrivateKey"><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-var">PrivateKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Crypto.XPrv</span></span><span>
 </span><span id="line-43"></span><span>
-</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813056"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-45"></span><span>  </span><span id="local-6989586621679813062"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
+</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679817963"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679817969"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool)
@@ -51,9 +51,9 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><span class="hs-identifier hs-var">Ledger.mwWalletId</span></span><span>
 </span><span id="line-46"></span><span>
-</span><span id="line-47"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813068"><span id="local-6989586621679813072"><span id="local-6989586621679813075"><span id="local-6989586621679813078"><span id="local-6989586621679813081"><span id="local-6989586621679813084"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-48"></span><span>  </span><span id="local-6989586621679813089"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
-</span><a href="#local-6989586621679813089"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
+</span><span id="line-47"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679817975"><span id="local-6989586621679817979"><span id="local-6989586621679817982"><span id="local-6989586621679817985"><span id="local-6989586621679817988"><span id="local-6989586621679817991"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span id="local-6989586621679817996"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
+</span><a href="#local-6989586621679817996"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering)
 -&gt; (Wallet -&gt; Digest Blake2b_160) -&gt; Wallet -&gt; Wallet -&gt; Ordering
@@ -76,27 +76,27 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span id="line-60"></span><span class="hs-comment">-- of 1 to start at 1 instead of 0</span><span>
 </span><span id="line-61"></span><span class="annot"><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-62"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Integer -&gt; Wallet
-</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679813092"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813092"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679817999"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679817999"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-63"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813092"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679817999"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813092"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679817999"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Wallet
 </span><span class="hs-identifier hs-var">Ledger.knownMockWallet</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813092"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><a href="#local-6989586621679817999"><span class="hs-identifier hs-var">j</span></a></span><span>
 </span><span id="line-64"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WalletNumber -&gt; Wallet
 </span><span class="hs-identifier hs-var">Ledger.fromWalletNumber</span></span><span> </span><span class="annot"><span class="annottext">(WalletNumber -&gt; Wallet) -&gt; WalletNumber -&gt; Wallet
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; WalletNumber
 </span><span class="hs-identifier hs-var">Ledger.WalletNumber</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813092"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><a href="#local-6989586621679817999"><span class="hs-identifier hs-var">j</span></a></span><span>
 </span><span id="line-65"></span><span>
 </span><span id="line-66"></span><span class="hs-comment">-- | Retrieves the id of the known wallet that corresponds to a public key hash</span><span>
 </span><span id="line-67"></span><span class="hs-comment">--</span><span>
@@ -124,8 +124,8 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span id="line-72"></span><span class="annot"><span class="hs-comment">-- | Retrieves the known wallet that corresponds to a public key hash</span></span><span>
 </span><span id="line-73"></span><span class="annot"><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-type">walletPKHashToWallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-74"></span><span id="walletPKHashToWallet"><span class="annot"><span class="annottext">walletPKHashToWallet :: PubKeyHash -&gt; Maybe Wallet
-</span><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-var hs-var">walletPKHashToWallet</span></a></span></span><span> </span><span id="local-6989586621679813103"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679813103"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Wallet
+</span><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-var hs-var">walletPKHashToWallet</span></a></span></span><span> </span><span id="local-6989586621679818010"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679818010"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Wallet
 </span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var">wallet</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Wallet) -&gt; (Int -&gt; Integer) -&gt; Int -&gt; Wallet
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
@@ -134,7 +134,7 @@ forall a b. (Integral a, Num b) =&gt; a -&gt; b
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Maybe Int
 </span><a href="Cooked.Wallet.html#walletPKHashToId"><span class="hs-identifier hs-var">walletPKHashToId</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679813103"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><a href="#local-6989586621679818010"><span class="hs-identifier hs-var">pkh</span></a></span><span>
 </span><span id="line-75"></span><span>
 </span><span id="line-76"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet public key (PK)</span></span><span>
 </span><span id="line-77"></span><span class="annot"><a href="Cooked.Wallet.html#walletPK"><span class="hs-identifier hs-type">walletPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.PubKey</span></span><span>
@@ -213,8 +213,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-99"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's address</span></span><span>
 </span><span id="line-100"></span><span class="annot"><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-type">walletAddress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span>
 </span><span id="line-101"></span><span id="walletAddress"><span class="annot"><span class="annottext">walletAddress :: Wallet -&gt; Address
-</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679813110"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679813110"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679818017"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679818017"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-102"></span><span>  </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><span class="hs-identifier hs-var">Api.Address</span></span><span>
 </span><span id="line-103"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
@@ -222,7 +222,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679813110"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679818017"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-104"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><span class="hs-identifier hs-var">Api.StakingHash</span></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (PubKeyHash -&gt; Credential) -&gt; PubKeyHash -&gt; StakingCredential
@@ -233,7 +233,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var">walletStakingPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679813110"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679818017"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-105"></span><span>
 </span><span id="line-106"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet private key (secret key SK)</span></span><span>
 </span><span id="line-107"></span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span><span>
