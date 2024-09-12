@@ -6,8 +6,8 @@ import Cardano.Ledger.Shelley.API qualified as Shelley
 import Cardano.Ledger.Shelley.LedgerState qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Arrow
-import Cooked.Conversion.ToScript
 import Cooked.Conversion.ToScriptHash
+import Cooked.Conversion.ToVersionedScript
 import Cooked.InitialDistribution
 import Cooked.MockChain.GenerateTx (GenerateTxError (..), generateTxOut)
 import Cooked.MockChain.UtxoState
@@ -178,7 +178,7 @@ referenceScriptMap0From (InitialDistribution initDist) =
     unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
     unitMaybeFrom (Pays output) = do
       refScript <- view outputReferenceScriptL output
-      let vScript@(Script.Versioned script version) = toScript refScript
+      let vScript@(Script.Versioned script version) = toVersionedScript refScript
           Api.ScriptHash scriptHash = toScriptHash vScript
       return (Script.ValidatorHash scriptHash, Script.Versioned (Script.Validator script) version)
 

@@ -24,13 +24,14 @@ library
       Cooked.Conversion.ToHash
       Cooked.Conversion.ToOutputDatum
       Cooked.Conversion.ToPubKeyHash
-      Cooked.Conversion.ToScript
       Cooked.Conversion.ToScriptHash
       Cooked.Conversion.ToValue
+      Cooked.Conversion.ToVersionedScript
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.AutoReferenceScripts
       Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct

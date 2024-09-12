@@ -41,8 +41,8 @@ toRewardAccount cred =
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
       return $ Cardano.KeyHashObj pkHash
 
--- | Translate a script and a reference script utxo into into either a plutus
--- script or a reference input containing the right script
+-- | Translates a script and a reference script utxo into either a plutus script
+-- or a reference input containing the right script
 toPlutusScriptOrReferenceInput :: Script.Versioned Script.Script -> Maybe Api.TxOutRef -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
@@ -66,18 +66,18 @@ toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
-toScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (toScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
+toScriptWitness :: (ToVersionedScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
+toScriptWitness (toVersionedScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
   let scriptData = case txSkelRedeemer of
         EmptyRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
         SomeRedeemer s -> Ledger.toCardanoScriptData $ Api.toBuiltinData s
    in case version of
         Script.PlutusV1 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
         Script.PlutusV2 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
         Script.PlutusV3 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceScript
+            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput

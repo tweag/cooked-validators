@@ -22,6 +22,11 @@
   constrained yet.
 - PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
+- Reference inputs with the right reference scripts are now automatically
+  attached to redeemers when such input exists. This can be turned on using
+  `txOptAutoReferenceScripts`. If disabled, the helper `withReferenceInput` can
+  be used on a redeemer to manually attach a reference input (which does not
+  necessarily have to contain the right reference script).
 - Capability to test the result of a mockchain run based on the log entries.
 
 ### Removed
@@ -34,10 +39,8 @@
 - GHC bumped to 9.6.6
 - Internal representation of redeemers have changed, and are similar for any
   supported script purpose (minting, spending or proposing).
-- Redeemers should now be built using one of the four following smart
-  constructors: `txSkelSomeRedeemer`, `txSkelEmptyRedeemer`,
-  `txSkelSomeRedeemerAndReferenceScript`,
-  `txSkelEmptyRedeemerAndReferenceScript`.
+- Redeemers should now be built using one of the two following smart
+  constructors: `someTxSkelRedeemer`, `emptyTxSkelRedeemer`
 - `mkProposingScript` changed to `mkScript`
 - `withDatumHashed` changed to `withUnresolvedDatumHash`
 - `paysScriptDatumHashed` changed to `paysScriptUnresolvedDatumHash`

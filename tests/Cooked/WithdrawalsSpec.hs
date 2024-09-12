@@ -38,7 +38,7 @@ testWithdrawingScript n1 n2 =
     validateTxSkel $
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelWithdrawals = scriptWithdrawal checkWithdrawalVersionedScript (txSkelSomeRedeemer (n1 * 1_000 :: Integer)) $ Script.Lovelace $ n2 * 1_000
+          txSkelWithdrawals = scriptWithdrawal checkWithdrawalVersionedScript (someTxSkelRedeemer (n1 * 1_000 :: Integer)) $ Script.Lovelace $ n2 * 1_000
         }
 
 tests :: TestTree

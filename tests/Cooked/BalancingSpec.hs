@@ -51,7 +51,7 @@ spendsScriptUtxo :: (MonadBlockChain m) => Bool -> m (Map Api.TxOutRef TxSkelRed
 spendsScriptUtxo False = return Map.empty
 spendsScriptUtxo True = do
   (scriptOutRef, _) : _ <- runUtxoSearch $ utxosAtSearch $ alwaysTrueValidator @MockContract
-  return $ Map.singleton scriptOutRef txSkelEmptyRedeemer
+  return $ Map.singleton scriptOutRef emptyTxSkelRedeemer
 
 testingBalancingTemplate ::
   (MonadBlockChain m) =>
@@ -78,7 +78,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   let skel =
         txSkelTemplate
           { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [paysPK bob toBobValue, paysPK alice toAliceValue],
-            txSkelIns = additionalSpend <> Map.fromList ((,txSkelEmptyRedeemer) <$> toSpendUtxos),
+            txSkelIns = additionalSpend <> Map.fromList ((,emptyTxSkelRedeemer) <$> toSpendUtxos),
             txSkelOpts =
               optionsMod
                 def
@@ -136,7 +136,7 @@ noBalanceMaxFee = do
     validateTxSkel $
       txSkelTemplate
         { txSkelOuts = [paysPK bob (Script.lovelace (30_000_000 - maxFee))],
-          txSkelIns = Map.singleton txOutRef txSkelEmptyRedeemer,
+          txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
           txSkelOpts =
             def
               { txOptBalancingPolicy = DoNotBalance,

@@ -36,7 +36,7 @@ mintingQuickValue =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, txSkelEmptyRedeemer, "banana", 10)],
+        { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, emptyTxSkelRedeemer, "banana", 10)],
           txSkelOuts = [paysPK alice (quickValue "banana" 10)],
           txSkelSigners = [alice],
           txSkelOpts = def {txOptEnsureMinAda = True}
@@ -58,7 +58,7 @@ consumeAlwaysTrueValidator = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelIns = Map.fromList [(outref, txSkelSomeRedeemer ())],
+        { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
           txSkelOuts = [paysPK alice (Script.ada 10)],
           txSkelSigners = [alice]
         }

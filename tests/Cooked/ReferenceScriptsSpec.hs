@@ -99,7 +99,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelIns = Map.singleton oref $ txSkelSomeRedeemer (),
+        { txSkelIns = Map.singleton oref $ someTxSkelRedeemer (),
           txSkelInsReference = Set.singleton refScriptOref,
           txSkelSigners = [wallet 1]
         }
@@ -116,12 +116,12 @@ useReferenceScript spendingSubmitter theScript = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelIns = Map.singleton oref $ txSkelSomeRedeemerAndReferenceScript scriptOref (),
+        { txSkelIns = Map.singleton oref $ someTxSkelRedeemer () `withReferenceInput` scriptOref,
           txSkelSigners = [spendingSubmitter]
         }
 
-referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> m ()
-referenceMint mp1 mp2 n = do
+referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
+referenceMint mp1 mp2 n autoRefScript = do
   ((!! n) -> mpOutRef) <-
     validateTxSkel' $
       txSkelTemplate
@@ -131,9 +131,10 @@ referenceMint mp1 mp2 n = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(mp2, txSkelEmptyRedeemerAndReferenceScript mpOutRef, "banana", 3)],
+        { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef, "banana", 3)],
           txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
-          txSkelSigners = [wallet 1]
+          txSkelSigners = [wallet 1],
+          txSkelOpts = def {txOptAutoReferenceScripts = autoRefScript}
         }
 
 tests :: TestTree
@@ -196,13 +197,13 @@ tests =
                       validateTxSkel'
                         txSkelTemplate
                           { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
-                            txSkelIns = Map.singleton consumedOref txSkelEmptyRedeemer,
+                            txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
                     void $
                       validateTxSkel
                         txSkelTemplate
-                          { txSkelIns = Map.singleton oref (txSkelSomeRedeemerAndReferenceScript consumedOref ()),
+                          { txSkelIns = Map.singleton oref (someTxSkelRedeemer () `withReferenceInput` consumedOref),
                             txSkelSigners = [wallet 1]
                           }
                 )
@@ -223,14 +224,14 @@ tests =
                     void $
                       validateTxSkel
                         txSkelTemplate
-                          { txSkelIns = Map.singleton oref (txSkelSomeRedeemerAndReferenceScript scriptOref ()),
+                          { txSkelIns = Map.singleton oref (someTxSkelRedeemer () `withReferenceInput` scriptOref),
                             txSkelSigners = [wallet 1]
                           }
                 )
                 `withErrorPred` \case
                   MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure,
-          testCase "phase 1 - fail if using a reference script with 'txSkelSomeRedeemer'" $
+          testCase "phase 1 - fail if using a reference script with 'someRedeemer'" $
             testFailsInPhase1 $ do
               scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
               oref : _ <-
@@ -242,9 +243,10 @@ tests =
               void $
                 validateTxSkel
                   txSkelTemplate
-                    { txSkelIns = Map.singleton oref (txSkelSomeRedeemer ()),
+                    { txSkelIns = Map.singleton oref (someTxSkelRedeemer ()),
                       txSkelInsReference = Set.singleton scriptOref,
-                      txSkelSigners = [wallet 1]
+                      txSkelSigners = [wallet 1],
+                      txSkelOpts = def {txOptAutoReferenceScripts = False}
                     },
           testCase
             "fail if reference script's requirement is violated"
@@ -258,16 +260,20 @@ tests =
         "referencing minting policies"
         [ testCase "succeed if given a reference minting policy" $
             testSucceeds $
-              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0,
+              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 False,
+          testCase "succeed if relying on automated finding of reference minting policy" $
+            testToProp $
+              mustSucceedTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 True)
+                `withJournalPred` (testBool . any (\case MCLogAddedReferenceScript {} -> True; _ -> False)),
           testCase "fail if given the wrong reference minting policy" $
             testToProp $
-              mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0)
+              mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure,
           testCase "fail if referencing the wrong utxo" $
             testToProp $
-              mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1)
+              mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
                   _ -> testFailure

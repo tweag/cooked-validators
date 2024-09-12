@@ -31,6 +31,7 @@ module Cooked.Skeleton
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
     txOptAnchorResolutionL,
+    txOptAutoReferenceScriptsL,
     TxSkelMints,
     addToTxSkelMints,
     txSkelMintsToList,
@@ -58,7 +59,7 @@ module Cooked.Skeleton
     withStakingCredential,
     TxSkelRedeemer (..),
     Redeemer (..),
-    txSkelTypedRedeemer,
+    withReferenceInput,
     TxParameterChange (..),
     TxGovAction (..),
     TxSkelProposal (..),
@@ -95,10 +96,8 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
-    txSkelSomeRedeemer,
-    txSkelEmptyRedeemer,
-    txSkelSomeRedeemerAndReferenceScript,
-    txSkelEmptyRedeemerAndReferenceScript,
+    someTxSkelRedeemer,
+    emptyTxSkelRedeemer,
   )
 where
 
@@ -358,7 +357,14 @@ data TxOpts = TxOpts
     -- | How to resolve anchor in proposal procedures
     --
     -- Default is 'AnchorResolutionLocal Map.Empty'
-    txOptAnchorResolution :: AnchorResolution
+    txOptAnchorResolution :: AnchorResolution,
+    -- | Whether to automatically fill up reference inputs in redeemers when
+    -- they contain the right reference script. This will imply going through
+    -- all the known utxos with reference scripts and compare their hashes, thus
+    -- will slightly reduce performance.
+    --
+    -- Defaut is 'False'.
+    txOptAutoReferenceScripts :: Bool
   }
   deriving (Eq, Show)
 
@@ -372,7 +378,8 @@ makeLensesFor
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
     ("txOptCollateralUtxos", "txOptCollateralUtxosL"),
-    ("txOptAnchorResolution", "txOptAnchorResolutionL")
+    ("txOptAnchorResolution", "txOptAnchorResolutionL"),
+    ("txOptAutoReferenceScripts", "txOptAutoReferenceScriptsL")
   ]
   ''TxOpts
 
@@ -388,7 +395,8 @@ instance Default TxOpts where
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def,
-        txOptAnchorResolution = def
+        txOptAnchorResolution = def,
+        txOptAutoReferenceScripts = False
       }
 
 -- * Redeemers for transaction inputs
@@ -417,25 +425,28 @@ instance Eq Redeemer where
 
 data TxSkelRedeemer = TxSkelRedeemer
   { txSkelRedeemer :: Redeemer,
-    txSkelReferenceScript :: Maybe Api.TxOutRef
+    -- An optional input containing a reference script
+    txSkelReferenceInput :: Maybe Api.TxOutRef
   }
   deriving (Show, Eq)
 
-txSkelSomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-txSkelSomeRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
+-- Two helpers to create skeleton redeemers
+someTxSkelRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
+someTxSkelRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
 
-txSkelEmptyRedeemer :: TxSkelRedeemer
-txSkelEmptyRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
+emptyTxSkelRedeemer :: TxSkelRedeemer
+emptyTxSkelRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
 
-txSkelSomeRedeemerAndReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
-txSkelSomeRedeemerAndReferenceScript outRef a = TxSkelRedeemer (SomeRedeemer a) (Just outRef)
+-- Additional helper to specify a given reference input. As reference inputs are
+-- automatically attached during transaction generation when they contain the
+-- right scripts by default, there are only 3 cases where this can be useful:
+-- - The reliance on a reference script needs to be made explicit
+-- - A wrong reference script somehow needs to be attached
+-- - The automated attachement of reference inputs has been disabled using the
+-- `txOptAutoReferenceScripts` option
 
-txSkelEmptyRedeemerAndReferenceScript :: Api.TxOutRef -> TxSkelRedeemer
-txSkelEmptyRedeemerAndReferenceScript outRef = TxSkelRedeemer EmptyRedeemer (Just outRef)
-
-txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
-txSkelTypedRedeemer (TxSkelRedeemer (SomeRedeemer red) _) = Api.fromData . Api.toData $ red
-txSkelTypedRedeemer _ = Nothing
+withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
+withReferenceInput red ref = red {txSkelReferenceInput = Just ref}
 
 -- * Description of the Governance actions (or proposal procedures)
 
@@ -584,8 +595,8 @@ makeLensesFor
 simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
 simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
 
-withWitness :: (ToScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toScript s, red)}
+withWitness :: (ToVersionedScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toVersionedScript s, red)}
 
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}
@@ -607,10 +618,10 @@ txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
 txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
 
 pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
-pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (txSkelEmptyRedeemer, amount)
+pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
 
-scriptWithdrawal :: (ToScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
-scriptWithdrawal script red amount = Map.singleton (Left $ toScript script) (red, amount)
+scriptWithdrawal :: (ToVersionedScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ toVersionedScript script) (red, amount)
 
 -- * Description of the Minting
 
@@ -765,7 +776,7 @@ data TxSkelOut where
       ToCredential (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
-      ToScript (ReferenceScriptType o),
+      ToVersionedScript (ReferenceScriptType o),
       Show (OwnerType o),
       Show (ReferenceScriptType o),
       Typeable (ReferenceScriptType o)
@@ -1005,7 +1016,7 @@ withUnresolvedDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output)
 
 -- | Add a reference script to a transaction output (or replace it if there is
 -- already one)
-withReferenceScript :: (Show script, ToScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
+withReferenceScript :: (Show script, ToVersionedScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
 withReferenceScript (Pays output) script = Pays $ (fromAbstractOutput output) {concreteOutputReferenceScript = Just script}
 
 -- | Add a staking credential to a transaction output (or replace it if there is
@@ -1035,7 +1046,7 @@ data TxSkel where
       -- specifying how to spend it. You must make sure that
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'txSkelEmptyRedeemer' smart constructor.
+      --   the 'emptyTxSkelRedeemer' smart constructor.
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
@@ -1127,7 +1138,7 @@ txSkelReferenceScripts =
           case output ^. outputReferenceScriptL of
             Nothing -> Map.empty
             Just x ->
-              let vScript@(Script.Versioned script version) = toScript x
+              let vScript@(Script.Versioned script version) = toVersionedScript x
                   Script.ScriptHash hash = toScriptHash vScript
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
@@ -1139,11 +1150,11 @@ txSkelReferenceTxOutRefs TxSkel {..} =
   -- direct reference inputs
   Set.toList txSkelInsReference
     -- reference inputs in inputs redeemers
-    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
+    <> mapMaybe txSkelReferenceInput (Map.elems txSkelIns)
     -- reference inputs in proposals redeemers
-    <> mapMaybe (txSkelReferenceScript . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
+    <> mapMaybe (txSkelReferenceInput . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
     -- reference inputs in mints redeemers
-    <> mapMaybe (txSkelReferenceScript . fst . snd) (Map.toList txSkelMints)
+    <> mapMaybe (txSkelReferenceInput . fst . snd) (Map.toList txSkelMints)
 
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
@@ -1171,7 +1182,7 @@ txSkelOutOwnerTypeP =
         case typeOf (output ^. outputOwnerL) `eqTypeRep` typeRep @ownerType of
           Just HRefl ->
             let cOut = fromAbstractOutput output
-             in Just $ cOut {concreteOutputReferenceScript = toScript <$> concreteOutputReferenceScript cOut}
+             in Just $ cOut {concreteOutputReferenceScript = toVersionedScript <$> concreteOutputReferenceScript cOut}
           Nothing -> Nothing
     )
 
