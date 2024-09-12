@@ -163,7 +163,7 @@ instance PrettyCooked MockChainLogEntry where
       <> prettyCookedOpt opts n
       <> " elements has been disregarded because the transaction does not require collaterals"
   prettyCookedOpt opts (MCLogAddedReferenceScript red oRef sHash) =
-    "A reference script sitting at "
+    "A reference script located in "
       <> prettyCookedOpt opts oRef
       <> " has been automatically associated to redeemer "
       <> ( case red of

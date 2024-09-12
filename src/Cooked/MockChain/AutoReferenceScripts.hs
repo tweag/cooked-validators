@@ -1,5 +1,6 @@
 -- | This module provides a function to ensure that each redeemer used in a
--- skeleton is attached a reference scripts when a known utxos contains it.
+-- skeleton is attached a reference input with the right reference script when
+-- it exists in the index.
 module Cooked.MockChain.AutoReferenceScripts (toTxSkelWithReferenceScripts) where
 
 import Control.Monad
@@ -16,11 +17,11 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | Searches through the known utxos for a utxo containing a reference script
 -- with a given script hash, and returns the first such utxo found, if any.
 retrieveReferenceScript :: (MonadBlockChain m, ToScriptHash s) => s -> m (Maybe Api.TxOutRef)
-retrieveReferenceScript script = listToMaybe . (fst <$>) <$> runUtxoSearch (referenceScriptOutputsSearch script)
+retrieveReferenceScript = (listToMaybe . (fst <$>) <$>) . runUtxoSearch . referenceScriptOutputsSearch
 
--- | Attempts to attach a reference script to a redeemer when it can be found in
--- the context. Will not override any existing reference script. If this results
--- in the addition of a reference script, will log the event.
+-- | Attempts to find in the index a utxo containing a reference script with the
+-- given script hash, and attaches it to a redeemer when it does not yet have a
+-- reference input, in which case an event is logged.
 updateRedeemer :: (MonadBlockChain m, ToScriptHash s) => s -> TxSkelRedeemer -> m TxSkelRedeemer
 updateRedeemer script txSkelRed@(TxSkelRedeemer red Nothing) = do
   oRefM <- retrieveReferenceScript script
@@ -32,7 +33,7 @@ updateRedeemer script txSkelRed@(TxSkelRedeemer red Nothing) = do
 updateRedeemer _ redeemer = return redeemer
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,
--- and attempt to attach a reference script to each of them, following the rules
+-- and attempt to attach a reference input to each of them, following the rules
 -- from `updateRedeemer`
 toTxSkelWithReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
 toTxSkelWithReferenceScripts txSkel = do

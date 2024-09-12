@@ -358,10 +358,10 @@ data TxOpts = TxOpts
     --
     -- Default is 'AnchorResolutionLocal Map.Empty'
     txOptAnchorResolution :: AnchorResolution,
-    -- | Whether to automatically fill up reference scripts in redeemers when
-    -- possible. This will imply going through all the known utxos with
-    -- reference scripts and compare their hashes, thus will slightly reduce
-    -- performance, especially when handling a lot of utxos.
+    -- | Whether to automatically fill up reference inputs in redeemers when
+    -- they contain the right reference script. This will imply going through
+    -- all the known utxos with reference scripts and compare their hashes, thus
+    -- will slightly reduce performance.
     --
     -- Defaut is 'True'.
     txOptAutoReferenceScripts :: Bool
@@ -437,12 +437,12 @@ someTxSkelRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
 emptyTxSkelRedeemer :: TxSkelRedeemer
 emptyTxSkelRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
 
--- Additional helper to specify a given reference script. As reference scripts
--- are automatically attached during transaction generation by default, there
--- are 3 cases where this can be useful:
+-- Additional helper to specify a given reference input. As reference inputs are
+-- automatically attached during transaction generation when they contain the
+-- right scripts by default, there are only 3 cases where this can be useful:
 -- - The reliance on a reference script needs to be made explicit
 -- - A wrong reference script somehow needs to be attached
--- - The automated attachement of reference has been disabled using the
+-- - The automated attachement of reference inputs has been disabled using the
 -- `txOptAutoReferenceScripts` option
 
 withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer

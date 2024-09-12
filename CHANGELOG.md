@@ -22,10 +22,11 @@
   constrained yet.
 - PrettyCooked option `pcOptPrintLog`, which is a boolean, to turn on or off the log
   display in the pretty printer. The default value is `True`.
-- Reference inputs with proper reference scripts are now automatically attached
-  to redeemers. This can be turned off using `txOptAutoReferenceScripts`, in
-  which case the helper `withReferenceInput` can be used on a redeemer to
-  automatically attach a reference input.
+- Reference inputs with the right reference scripts are now automatically
+  attached to redeemers when such input exists.. This can be turned off using
+  `txOptAutoReferenceScripts`, in which case the helper `withReferenceInput` can
+  be used on a redeemer to manually attach a reference input (which does not
+  necessarily) have to contain the right reference script).
 - Capability to test the result of a mockchain run based on the log entries.
 
 ### Removed
