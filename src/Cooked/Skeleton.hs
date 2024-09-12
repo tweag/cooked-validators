@@ -363,7 +363,7 @@ data TxOpts = TxOpts
     -- all the known utxos with reference scripts and compare their hashes, thus
     -- will slightly reduce performance.
     --
-    -- Defaut is 'True'.
+    -- Defaut is 'False'.
     txOptAutoReferenceScripts :: Bool
   }
   deriving (Eq, Show)
@@ -396,7 +396,7 @@ instance Default TxOpts where
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def,
         txOptAnchorResolution = def,
-        txOptAutoReferenceScripts = True
+        txOptAutoReferenceScripts = False
       }
 
 -- * Redeemers for transaction inputs

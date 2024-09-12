@@ -133,7 +133,8 @@ referenceMint mp1 mp2 n autoRefScript = do
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef, "banana", 3)],
           txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
-          txSkelSigners = [wallet 1]
+          txSkelSigners = [wallet 1],
+          txSkelOpts = def {txOptAutoReferenceScripts = autoRefScript}
         }
 
 tests :: TestTree
