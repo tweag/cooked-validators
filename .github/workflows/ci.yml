@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@V28
+        uses: cachix/install-nix-action@v29
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@V28
+        uses: cachix/install-nix-action@v29
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -84,7 +84,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@V28
+        uses: cachix/install-nix-action@v29
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -211,7 +211,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@V28
+        uses: cachix/install-nix-action@v29
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -277,7 +277,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@V28
+        uses: cachix/install-nix-action@v29
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
