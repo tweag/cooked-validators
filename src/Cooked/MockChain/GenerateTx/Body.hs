@@ -129,10 +129,14 @@ txSkelToCardanoTx txSkel = do
   -- We retrieve the outputs available in the context
   mTxOut <- asks managedTxOuts
   -- We attempt to resolve the reference inputs used by the skeleton
-  refIns <- forM (txSkelReferenceTxOutRefs txSkel) $ \oRef ->
+  refIns <- forM (txSkelKnownTxOutRefs txSkel) $ \oRef ->
+    throwOnLookup ("txSkelToCardanoTx: Unable to resolve TxOutRef " <> show oRef) oRef mTxOut
+  inputs <- forM (Map.keys $ txSkelIns txSkel) $ \oRef ->
     throwOnLookup ("txSkelToCardanoTx: Unable to resolve TxOutRef " <> show oRef) oRef mTxOut
   -- We collect the datum hashes present at these outputs
-  let datumHashes = [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
+  let datumHashes =
+        [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
+          ++ [hash | (Api.TxOut (Api.Address (Api.PubKeyCredential _) _) _ (Api.OutputDatumHash hash) _) <- inputs]
   -- We resolve those datum hashes from the context
   additionalData <- forM datumHashes $ \dHash ->
     throwOnLookup ("txSkelToCardanoTx: Unable to resolve datum hash " <> show dHash) dHash mData

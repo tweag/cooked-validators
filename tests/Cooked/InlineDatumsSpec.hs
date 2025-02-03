@@ -12,6 +12,7 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Contexts qualified as Api
 import PlutusTx qualified
+import PlutusTx.AssocMap qualified as PlutusTx
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
@@ -35,6 +36,53 @@ PlutusTx.unstableMakeIsData ''SimpleContractDatum
 instance Script.ValidatorTypes SimpleContract where
   type RedeemerType SimpleContract = ()
   type DatumType SimpleContract = SimpleContractDatum
+
+hashInPKValidator :: Api.TxOutRef -> Script.TypedValidator MockContract
+hashInPKValidator =
+  Script.mkTypedValidatorParam @MockContract
+    $$(PlutusTx.compile [||val||])
+    $$(PlutusTx.compile [||wrap||])
+  where
+    go :: Api.TxOutRef -> [Api.TxInInfo] -> Maybe Api.TxOut
+    go _ [] = Nothing
+    go oRef (Api.TxInInfo oRef' txOut : tl) =
+      if oRef PlutusTx.== oRef'
+        then Just txOut
+        else go oRef tl
+
+    val :: Api.TxOutRef -> () -> () -> Api.ScriptContext -> Bool
+    val oRef () () ctx =
+      let inputs = Api.txInfoInputs $ Api.scriptContextTxInfo ctx
+       in case go oRef inputs of
+            Nothing -> False
+            Just (Api.TxOut _ _ (Api.OutputDatumHash hash) _) ->
+              let hashes = Api.txInfoData $ Api.scriptContextTxInfo ctx
+               in case PlutusTx.lookup hash hashes of
+                    Nothing -> PlutusTx.traceError "NO DATUM IN MAP"
+                    Just (Api.Datum dat) -> 10 PlutusTx.== PlutusTx.unsafeFromBuiltinData @Integer dat
+            _ -> False
+
+    wrap = Script.mkUntypedValidator
+
+hm :: (MonadBlockChain m) => m ()
+hm = do
+  (oRef : _) <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withDatum` (10 :: Integer)],
+          txSkelSigners = [wallet 1]
+        }
+  (scriptORef : _) <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelOuts = [paysScript (hashInPKValidator oRef) () (Script.ada 2)],
+          txSkelSigners = [wallet 1]
+        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelIns = Map.fromList [(oRef, emptyTxSkelRedeemer), (scriptORef, emptyTxSkelRedeemer)],
+        txSkelSigners = [wallet 1]
+      }
 
 -- | This defines two validators: @inputDatumValidator True@ is a validator that
 -- only returns true if the UTxO it is asked to spend has an inline datum,
