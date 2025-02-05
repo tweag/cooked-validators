@@ -2,6 +2,7 @@ module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Reader
@@ -14,6 +15,7 @@ import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -65,7 +67,7 @@ toCollateralTriplet = do
       -- We retrieve the collateral percentage compared to fees. By default, we use
       -- 150% which is the current value in the parameters, although the default
       -- value should never be used here, as the call is supposed to always succeed.
-      collateralPercentage <- asks (toInteger . fromMaybe 150 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
+      collateralPercentage <- asks (toInteger . MicroLens.view Conway.ppCollateralPercentageL . Emulator.pEmulatorPParams . params)
       -- The total collateral corresponds to the fees multiplied by the collateral
       -- percentage. We add 1 because the ledger apparently rounds up this value.
       coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . fee)

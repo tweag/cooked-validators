@@ -103,6 +103,8 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
       txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
       txVotingProcedures = Nothing
+      txCurrentTreasuryValue = Nothing
+      txTreasuryDonation = Nothing
   return Cardano.TxBodyContent {..}
 
 -- | Generates a transaction for a skeleton. We first generate a body and we
@@ -114,7 +116,7 @@ txSkelToCardanoTx txSkel = do
 
   -- We create the associated Shelley TxBody
   txBody@(Cardano.ShelleyTxBody a body c dats e f) <-
-    lift $ mapLeft (TxBodyError "generateTx :") $ Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent
+    lift $ mapLeft (TxBodyError "generateTx :") $ Cardano.createTransactionBody Cardano.ShelleyBasedEraConway txBodyContent
 
   -- There is a chance that the body is in need of additional data. This happens
   -- when the set of reference inputs contains hashed datums that will need to

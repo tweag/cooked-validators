@@ -37,9 +37,7 @@ import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
-import PlutusTx.Builtins.Class qualified as PlutusTx
 import PlutusTx.Prelude
-import Prelude qualified as Haskell
 
 -- | Takes a minting policy and a language version and returns the associated
 -- currency symbol
@@ -48,17 +46,17 @@ currencySymbolFromLanguageAndMP lang = Script.scriptCurrencySymbol . flip Script
 
 -- * Quick Values
 
--- | Token name of a /quick/ asset class; prefixes the name with a @'q'@ to make
+-- | Token name of a /quick/ asset class; prefixes the name with a @'Quick'@ to make
 -- it easy to distinguish between quick and permanent tokens.
-quickTokenName :: Haskell.String -> Script.TokenName
-quickTokenName = Script.TokenName . PlutusTx.stringToBuiltinByteString
+quickTokenName :: BuiltinByteString -> Script.TokenName
+quickTokenName = Script.TokenName . ("Quick" <>)
 
 -- | /Quick/ asset class from a token name
-quickAssetClass :: Haskell.String -> Script.AssetClass
+quickAssetClass :: BuiltinByteString -> Script.AssetClass
 quickAssetClass = Script.assetClass quickCurrencySymbol . quickTokenName
 
 -- | Constructor for /quick/ values from token name and amount
-quickValue :: Haskell.String -> Integer -> Api.Value
+quickValue :: BuiltinByteString -> Integer -> Api.Value
 quickValue = Script.assetClassValue . quickAssetClass
 
 {-# INLINEABLE mkQuickCurrencyPolicy #-}
@@ -77,15 +75,15 @@ quickCurrencySymbol = currencySymbolFromLanguageAndMP Script.PlutusV3 quickCurre
 -- * Permanent values
 
 -- | Token name of a /permanent/ asset class
-permanentTokenName :: Haskell.String -> Script.TokenName
-permanentTokenName = Script.TokenName . PlutusTx.stringToBuiltinByteString
+permanentTokenName :: BuiltinByteString -> Script.TokenName
+permanentTokenName = Script.TokenName . ("Perma" <>)
 
 -- | /Permanent/ asset class from a token name
-permanentAssetClass :: Haskell.String -> Script.AssetClass
+permanentAssetClass :: BuiltinByteString -> Script.AssetClass
 permanentAssetClass = Script.assetClass permanentCurrencySymbol . permanentTokenName
 
 -- | Constructor for /Permanent/ values from token name and amount
-permanentValue :: Haskell.String -> Integer -> Api.Value
+permanentValue :: BuiltinByteString -> Integer -> Api.Value
 permanentValue = Script.assetClassValue . permanentAssetClass
 
 {-# INLINEABLE mkPermanentCurrencyPolicy #-}

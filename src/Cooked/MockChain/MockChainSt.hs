@@ -15,7 +15,7 @@ import Cooked.Output
 import Cooked.Skeleton
 import Data.Bifunctor (bimap)
 import Data.Default
-import Data.Either.Combinators (mapLeft)
+-- import Data.Either.Combinators (mapLeft)
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -222,15 +222,15 @@ utxoIndex0From (InitialDistribution initDist) = case mkBody of
   where
     mkBody :: Either GenerateTxError (Cardano.TxBody Cardano.ConwayEra)
     mkBody = do
-      value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
-      let mintValue = flip (Cardano.TxMintValue Cardano.MaryEraOnwardsConway) (Cardano.BuildTxWith mempty) . Cardano.filterValue (/= Cardano.AdaAssetId) $ value
+      -- value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
+      let -- mintValue = (Cardano.TxMintValue Cardano.MaryEraOnwardsConway) (Cardano.filterValue (/= Cardano.AdaAssetId) $ value) (Cardano.BuildTxWith mempty)
           theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42
           genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(Cardano.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
       outputs <- mapM (generateTxOut theNetworkId) initDist
       left (TxBodyError "Body error") $
-        Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway $
-          Ledger.emptyTxBodyContent {Cardano.txMintValue = mintValue, Cardano.txOuts = outputs, Cardano.txIns = inputs}
+        Cardano.createTransactionBody Cardano.ShelleyBasedEraConway $
+          Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs}
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def

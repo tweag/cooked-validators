@@ -58,11 +58,7 @@ toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
     throwOnToCardanoError
       "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."
       (Ledger.toCardanoTxIn scriptOutRef)
-  scriptHash <-
-    throwOnToCardanoError
-      "toPlutusScriptOrReferenceInput: Unable to translate script hash of reference script."
-      (Ledger.toCardanoScriptHash refScriptHash)
-  return $ Cardano.PReferenceScript scriptTxIn (Just scriptHash)
+  return $ Cardano.PReferenceScript scriptTxIn
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
