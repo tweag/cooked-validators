@@ -28,7 +28,7 @@ requireSignerValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     val :: Api.PubKeyHash -> () -> () -> Api.ScriptContext -> Bool
-    val pkh _ _ (Api.ScriptContext txInfo _) =
+    val pkh _ _ (Api.ScriptContext txInfo _ _) =
       PlutusTx.traceIfFalse "the required signer is missing"
         PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
 
@@ -43,7 +43,7 @@ requireRefScriptValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     val :: Api.ScriptHash -> () -> () -> Api.ScriptContext -> Bool
-    val expectedScriptHash _ _ (Api.ScriptContext txInfo _) =
+    val expectedScriptHash _ _ (Api.ScriptContext txInfo _ _) =
       PlutusTx.traceIfFalse "there is no reference input with the correct script hash"
         PlutusTx.$ PlutusTx.any
           ( \(Api.TxInInfo _ (Api.TxOut _ _ _ mRefScriptHash)) ->

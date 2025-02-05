@@ -16,9 +16,9 @@ checkWithdrawalScript red ctx =
   let scriptContext = PlutusTx.unsafeFromBuiltinData @Api.ScriptContext ctx
       withdrawals = Api.txInfoWdrl PlutusTx.$ Api.scriptContextTxInfo scriptContext
       quantity = PlutusTx.unsafeFromBuiltinData @Integer red
-      purpose = Api.scriptContextPurpose scriptContext
+      purpose = Api.scriptContextScriptInfo scriptContext
    in case purpose of
-        Api.Rewarding cred -> case PMap.toList withdrawals of
+        Api.RewardingScript cred -> case PMap.toList withdrawals of
           [(cred', Api.Lovelace n)] ->
             if cred PlutusTx.== cred'
               then

@@ -23,7 +23,7 @@ checkParameterChangeScript _ ctx =
    in case Api.ppGovernanceAction proposalProcedure of
         Api.ParameterChange _ (Api.ChangedParameters dat) _ ->
           let innerMap = PlutusTx.unsafeFromBuiltinData @(PlutusTx.Map PlutusTx.Integer PlutusTx.Integer) dat
-           in if innerMap PlutusTx.== PlutusTx.safeFromList [(0, 100)] then () else PlutusTx.traceError "wrong map"
+           in if PlutusTx.toList innerMap PlutusTx.== [(0, 100)] then () else PlutusTx.traceError "wrong map"
         _ -> PlutusTx.traceError "Wrong proposal procedure"
 
 checkProposingScript :: Script.Versioned Script.Script

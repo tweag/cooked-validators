@@ -50,7 +50,7 @@ instance Script.ValidatorTypes Foo where
 -- | Outputs can only be spent by pks whose hash is not the one in the
 -- datum.
 fooValidator :: FooDatum -> () -> Api.ScriptContext -> Bool
-fooValidator (FooDatum pkh) _ (Api.ScriptContext txInfo _) =
+fooValidator (FooDatum pkh) _ (Api.ScriptContext txInfo _ _) =
   PlutusTx.not PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
 
 fooTypedValidator :: Script.TypedValidator Foo
@@ -63,7 +63,7 @@ fooTypedValidator =
 -- | Outputs can only be spent by pks who provide a reference input to
 -- a Foo in which they are mentioned (in an inlined datum).
 barValidator :: () -> () -> Api.ScriptContext -> Bool
-barValidator _ _ (Api.ScriptContext txInfo _) =
+barValidator _ _ (Api.ScriptContext txInfo _ _) =
   (PlutusTx.not . PlutusTx.null) (PlutusTx.filter f (Api.txInfoReferenceInputs txInfo))
   where
     f :: Api.TxInInfo -> Bool
