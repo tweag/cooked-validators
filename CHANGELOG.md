@@ -33,6 +33,9 @@
   to pay back an existing output with a slight modification.
 - A new tweak `modifySpendRedeemersOfTypeTweak` to apply an optional
   modification of all redeemers of a certain type within the skeleton inputs.
+- Two new helpers `paysScriptNoValue` and `paysScriptOnlyAddress` to allow
+  payments to script with 0-ADA value, to be used alongside `txOptEnsureMinAda =
+  True` to avoid specifying an explicit amount of ADA.
 
 ### Removed
 
