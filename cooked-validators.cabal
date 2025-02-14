@@ -60,10 +60,12 @@ library
       Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Tweak
-      Cooked.Tweak.AddInputsAndOutputs
       Cooked.Tweak.Common
+      Cooked.Tweak.Inputs
       Cooked.Tweak.Labels
+      Cooked.Tweak.Mint
       Cooked.Tweak.OutPermutations
+      Cooked.Tweak.Outputs
       Cooked.Tweak.Signers
       Cooked.Tweak.TamperDatum
       Cooked.Tweak.ValidityRange

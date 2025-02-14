@@ -59,6 +59,7 @@ module Cooked.Skeleton
     withStakingCredential,
     TxSkelRedeemer (..),
     Redeemer (..),
+    RedeemerConstrs,
     withReferenceInput,
     TxParameterChange (..),
     TxGovAction (..),
@@ -98,6 +99,7 @@ module Cooked.Skeleton
     txSkelReferenceTxOutRefs,
     someTxSkelRedeemer,
     emptyTxSkelRedeemer,
+    toTypedRedeemer,
   )
 where
 
@@ -122,6 +124,7 @@ import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.Typeable (cast)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
@@ -429,6 +432,11 @@ data TxSkelRedeemer = TxSkelRedeemer
     txSkelReferenceInput :: Maybe Api.TxOutRef
   }
   deriving (Show, Eq)
+
+-- Attempts to case a redeemer to a certain type
+toTypedRedeemer :: (Typeable a) => Redeemer -> Maybe a
+toTypedRedeemer (SomeRedeemer red) = cast red
+toTypedRedeemer EmptyRedeemer = Nothing
 
 -- Two helpers to create skeleton redeemers
 someTxSkelRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
