@@ -33,6 +33,7 @@
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
 - Redundant logging of errors in mockchain runs.
+- Useless minting of non-ADA value in the dummy initial transaction.
 
 ### Changed
 
@@ -66,6 +67,8 @@
   in the excess.
 - Transactions that do not involve script are now properly generated without any
 - All kinds of scripts can now be used as reference scripts.
+- A bug where scripts being paid to in the initial distribution would not be
+  stored in the MockChain.
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 
