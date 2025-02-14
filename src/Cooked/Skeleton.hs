@@ -762,6 +762,9 @@ instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
 instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
   toPKHOrValidator = Right . Script.tvValidator
 
+instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
+  toPKHOrValidator = id
+
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use one of the smart constructors like 'paysScript' or
 -- 'paysPK' in most cases.
