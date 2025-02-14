@@ -28,6 +28,9 @@
   be used on a redeemer to manually attach a reference input (which does not
   necessarily have to contain the right reference script).
 - Capability to test the result of a mockchain run based on the log entries.
+- `txOutRefToTxSkelOut` helper to query the mock chain for recreating a
+  `TxSkelOut` from a `TxOutRef`. This is very useful when using Tweaks that need
+  to pay back an existing output with a slight modification.
 
 ### Removed
 
