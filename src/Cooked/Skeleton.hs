@@ -100,6 +100,8 @@ module Cooked.Skeleton
     someTxSkelRedeemer,
     emptyTxSkelRedeemer,
     toTypedRedeemer,
+    paysScriptNoValue,
+    paysScriptOnlyAddress,
   )
 where
 
@@ -910,7 +912,7 @@ txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDat
 
 -- ** Smart constructors for transaction outputs
 
--- | Pay a certain value to a public key.
+-- | Pays a certain value to a public key.
 paysPK :: (ToPubKeyHash a) => a -> Api.Value -> TxSkelOut
 paysPK pkh value =
   Pays
@@ -944,6 +946,51 @@ paysScript validator datum value =
         Nothing
         (TxSkelOutDatum datum)
         value
+        (Nothing @(Script.Versioned Script.Script))
+    )
+
+-- | Pays a script with a certain datum and a 0-ADA value. To be used with the
+-- automated minimal ADA adjustment 'txOptEnsureMinAda = True'.
+paysScriptNoValue ::
+  ( Api.ToData (Script.DatumType a),
+    Show (Script.DatumType a),
+    Typeable (Script.DatumType a),
+    PlutusTx.Eq (Script.DatumType a),
+    PrettyCooked (Script.DatumType a),
+    Typeable a
+  ) =>
+  Script.TypedValidator a ->
+  Script.DatumType a ->
+  TxSkelOut
+paysScriptNoValue validator datum =
+  Pays
+    ( ConcreteOutput
+        validator
+        Nothing
+        (TxSkelOutDatum datum)
+        (Script.ada 0)
+        (Nothing @(Script.Versioned Script.Script))
+    )
+
+-- | Pays a script with no datum and a 0-ADA value. To be used with the
+-- automated minimal ADA adjustment 'txOptEnsureMinAda = True'.
+paysScriptOnlyAddress ::
+  ( Api.ToData (Script.DatumType a),
+    Show (Script.DatumType a),
+    Typeable (Script.DatumType a),
+    PlutusTx.Eq (Script.DatumType a),
+    PrettyCooked (Script.DatumType a),
+    Typeable a
+  ) =>
+  Script.TypedValidator a ->
+  TxSkelOut
+paysScriptOnlyAddress validator =
+  Pays
+    ( ConcreteOutput
+        validator
+        Nothing
+        TxSkelOutNoDatum
+        (Script.ada 0)
         (Nothing @(Script.Versioned Script.Script))
     )
 
