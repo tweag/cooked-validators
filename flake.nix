@@ -41,6 +41,7 @@
             zlib
             xz
             glibcLocales
+            openssl_3_3
             postgresql # For pg_config
             ## We change the way 'blst' is built so that it takes into
             ## account the current architecture of the processor. This
@@ -65,6 +66,7 @@
               libsodium
               zlib
               xz
+              openssl_3_3
               postgresql # For cardano-node-emulator
               openldap # For freer-extras‽
             ];
