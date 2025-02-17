@@ -260,20 +260,20 @@ tests =
         "referencing minting policies"
         [ testCase "succeed if given a reference minting policy" $
             testSucceeds $
-              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 False,
+              referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 0 False,
           testCase "succeed if relying on automated finding of reference minting policy" $
             testToProp $
-              mustSucceedTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 True)
+              mustSucceedTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 0 True)
                 `withJournalPred` (testBool . any (\case MCLogAddedReferenceScript {} -> True; _ -> False)),
           testCase "fail if given the wrong reference minting policy" $
             testToProp $
-              mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0 False)
+              mustFailTest (referenceMint permanentCurrencyPolicyV2 quickCurrencyPolicyV2 0 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure,
           testCase "fail if referencing the wrong utxo" $
             testToProp $
-              mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1 False)
+              mustFailTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 1 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
                   _ -> testFailure
