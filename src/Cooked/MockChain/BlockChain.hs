@@ -382,10 +382,15 @@ txSkelInputDataAsHashes skel = do
   (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
   catMaybes <$> mapM outputToDatumHashM inputTxOuts
 
--- | This creates a payment from an existing TxOut. This is not trivial because
--- we need to reconstruct a bunch of information using data withing the blockchain
-txOutRefToTxSkelOut :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
-txOutRefToTxSkelOut oRef = do
+-- | This creates a payment from an existing UTXO
+txOutRefToTxSkelOut ::
+  (MonadBlockChainBalancing m) =>
+  -- | The UTXO to translate
+  Api.TxOutRef ->
+  -- | Whether to include the datum in the transaction
+  Bool ->
+  m TxSkelOut
+txOutRefToTxSkelOut oRef includeInTransactionBody = do
   Just txOut@(Api.TxOut (Api.Address cred _) _ dat refS) <- txOutByRef oRef
   target <- case cred of
     Api.PubKeyCredential pkh -> return $ Left pkh
@@ -396,7 +401,7 @@ txOutRefToTxSkelOut oRef = do
     Api.NoOutputDatum -> return TxSkelOutNoDatum
     Api.OutputDatumHash hash -> do
       Just (Api.Datum dat') <- datumFromHash hash
-      return $ TxSkelOutDatum dat' -- TODO: investigate between this and TxSkelOutDatumHash
+      return $ (if includeInTransactionBody then TxSkelOutDatum else TxSkelOutDatumHash) dat'
     Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutInlineDatum dat'
   refScript <- case refS of
     Nothing -> return Nothing
