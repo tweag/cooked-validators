@@ -1,6 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 -- | This module provides the description of a transaction skeleton. We have our
 -- own representation of a transaction for three main reasons:
 --
@@ -780,11 +777,6 @@ instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
 instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
   toPKHOrValidator = id
 
-instance {-# OVERLAPPABLE #-} (IsTxSkelOutAllowedOwner a) => ToCredential a where
-  toCredential a = case toPKHOrValidator a of
-    Left pkh -> toCredential pkh
-    Right val -> toCredential val
-
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use one of the smart constructors like 'paysScript' or
 -- 'paysPK' in most cases.
@@ -795,6 +787,7 @@ data TxSkelOut where
       Typeable o,
       IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
+      ToCredential (OwnerType o),
       Typeable (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
@@ -847,7 +840,11 @@ instance IsPayable Api.Value where
 instance IsPayable Payable where
   toPayable = id
 
-receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, IsPayable payment) => owner -> payment -> TxSkelOut
+receives ::
+  (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner, IsPayable payment) =>
+  owner ->
+  payment ->
+  TxSkelOut
 receives owner (toPayable -> Payable {..}) =
   Pays $
     ConcreteOutput
