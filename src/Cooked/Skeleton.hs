@@ -47,18 +47,8 @@ module Cooked.Skeleton
     TxSkelOut (..),
     txSkelOutTypedDatum,
     txSkelOutUntypedDatum,
-    paysPK,
-    paysScript,
-    paysScriptInlineDatum,
-    paysScriptUnresolvedDatumHash,
-    paysScriptNoDatum,
     receives,
     (&>),
-    withDatum,
-    withInlineDatum,
-    withUnresolvedDatumHash,
-    withReferenceScript,
-    withStakingCredential,
     TxSkelRedeemer (..),
     Redeemer (..),
     RedeemerConstrs,
@@ -102,8 +92,6 @@ module Cooked.Skeleton
     someTxSkelRedeemer,
     emptyTxSkelRedeemer,
     toTypedRedeemer,
-    paysScriptNoValue,
-    paysScriptOnlyAddress,
   )
 where
 
@@ -771,6 +759,9 @@ class IsTxSkelOutAllowedOwner a where
 instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrValidator = Left
 
+instance IsTxSkelOutAllowedOwner Wallet where
+  toPKHOrValidator = toPKHOrValidator . toPubKeyHash
+
 instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
   toPKHOrValidator = Right . Script.tvValidator
 
@@ -817,7 +808,15 @@ data Payable where
 
 instance Semigroup Payable where
   Payable pd1 psc1 prs1 pv1 <> Payable pd2 psc2 prs2 pv2 =
-    Payable (pd2 <|> pd1) (psc2 <|> psc1) (prs2 <|> prs1) (pv2 <|> pv1)
+    Payable
+      (pd2 <|> pd1)
+      (psc2 <|> psc1)
+      (prs2 <|> prs1)
+      ( case (pv1, pv2) of
+          (Nothing, _) -> pv2
+          (_, Nothing) -> pv1
+          (Just val1, Just val2) -> Just (val1 <> val2)
+      )
 
 instance Monoid Payable where
   mempty = Payable Nothing Nothing Nothing Nothing
@@ -830,6 +829,12 @@ instance IsPayable TxSkelOutDatum where
 
 instance IsPayable Api.StakingCredential where
   toPayable stCred = mempty {payableStakingCred = Just stCred}
+
+instance IsPayable (Script.TypedValidator a) where
+  toPayable = toPayable . toVersionedScript
+
+instance IsPayable (Script.Versioned Script.MintingPolicy) where
+  toPayable = toPayable . toVersionedScript
 
 instance IsPayable (Script.Versioned Script.Script) where
   toPayable script = mempty {payableReferenceScript = Just script}
@@ -970,138 +975,6 @@ txSkelOutTypedDatum = \case
   TxSkelOutDatumHash x -> cast x
   TxSkelOutDatum x -> cast x
   TxSkelOutInlineDatum x -> cast x
-
--- ** Smart constructors for transaction outputs
-
--- | Pays a certain value to a public key.
-paysPK :: (ToPubKeyHash a) => a -> Api.Value -> TxSkelOut
-paysPK pkh value = toPubKeyHash pkh `receives` value
-
--- | Pays a script a certain value with a certain datum hash, using the
--- 'TxSkelOutDatum' constructor. The resolved datum is provided in the body of
--- the transaction that issues the payment.
-paysScript ::
-  ( Api.ToData (Script.DatumType a),
-    Show (Script.DatumType a),
-    Typeable (Script.DatumType a),
-    PlutusTx.Eq (Script.DatumType a),
-    PrettyCooked (Script.DatumType a),
-    Typeable a
-  ) =>
-  Script.TypedValidator a ->
-  Script.DatumType a ->
-  Api.Value ->
-  TxSkelOut
-paysScript validator datum value = validator `receives` value &> TxSkelOutDatum datum
-
--- | Pays a script with a certain datum and a 0-ADA value. To be used with the
--- automated minimal ADA adjustment 'txOptEnsureMinAda = True'.
-paysScriptNoValue ::
-  ( Api.ToData (Script.DatumType a),
-    Show (Script.DatumType a),
-    Typeable (Script.DatumType a),
-    PlutusTx.Eq (Script.DatumType a),
-    PrettyCooked (Script.DatumType a),
-    Typeable a
-  ) =>
-  Script.TypedValidator a ->
-  Script.DatumType a ->
-  TxSkelOut
-paysScriptNoValue validator datum =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        (TxSkelOutDatum datum)
-        (Script.ada 0)
-        (Nothing @(Script.Versioned Script.Script))
-    )
-
--- | Pays a script with no datum and a 0-ADA value. To be used with the
--- automated minimal ADA adjustment 'txOptEnsureMinAda = True'.
-paysScriptOnlyAddress ::
-  ( Api.ToData (Script.DatumType a),
-    Show (Script.DatumType a),
-    Typeable (Script.DatumType a),
-    PlutusTx.Eq (Script.DatumType a),
-    PrettyCooked (Script.DatumType a),
-    Typeable a
-  ) =>
-  Script.TypedValidator a ->
-  TxSkelOut
-paysScriptOnlyAddress validator =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        TxSkelOutNoDatum
-        (Script.ada 0)
-        (Nothing @(Script.Versioned Script.Script))
-    )
-
--- | Pays a script a certain value with a certain inlined datum.
-paysScriptInlineDatum ::
-  ( Api.ToData (Script.DatumType a),
-    Show (Script.DatumType a),
-    Typeable (Script.DatumType a),
-    PlutusTx.Eq (Script.DatumType a),
-    PrettyCooked (Script.DatumType a),
-    Typeable a
-  ) =>
-  Script.TypedValidator a ->
-  Script.DatumType a ->
-  Api.Value ->
-  TxSkelOut
-paysScriptInlineDatum validator datum value = validator `receives` value &> TxSkelOutInlineDatum datum
-
--- | Pays a script a certain value with a certain hashed datum, whose resolved
--- datum is not provided in the transaction body that issues the payment (as
--- opposed to "paysScript").
-paysScriptUnresolvedDatumHash ::
-  ( Api.ToData (Script.DatumType a),
-    Show (Script.DatumType a),
-    Typeable (Script.DatumType a),
-    PlutusTx.Eq (Script.DatumType a),
-    PrettyCooked (Script.DatumType a),
-    Typeable a
-  ) =>
-  Script.TypedValidator a ->
-  Script.DatumType a ->
-  Api.Value ->
-  TxSkelOut
-paysScriptUnresolvedDatumHash validator datum value = validator `receives` value &> TxSkelOutDatumHash datum
-
--- | Pays a script a certain value without any datum. Intended to be used with
--- 'withDatum', 'withUnresolvedDatumHash', or 'withInlineDatum' to try a datum whose type
--- does not match the validator's.
-paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Api.Value -> TxSkelOut
-paysScriptNoDatum = receives
-
--- | Set the datum in a payment to the given datum (whose type may not fit the
--- typed validator in case of a script).
-withDatum :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
-withDatum (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatum datum}
-
--- | Set the datum in a payment to the given inlined datum (whose type may not
--- fit the typed validator in case of a script).
-withInlineDatum :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
-withInlineDatum (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutInlineDatum datum}
-
--- | Set the datum in a payment to the given hashed (not resolved in the
--- transaction) datum (whose type may not fit the typed validator in case of a
--- script).
-withUnresolvedDatumHash :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
-withUnresolvedDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatumHash datum}
-
--- | Add a reference script to a transaction output (or replace it if there is
--- already one)
-withReferenceScript :: (Show script, ToVersionedScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
-withReferenceScript (Pays output) script = Pays $ (fromAbstractOutput output) {concreteOutputReferenceScript = Just script}
-
--- | Add a staking credential to a transaction output (or replace it if there is
--- already one)
-withStakingCredential :: TxSkelOut -> Api.StakingCredential -> TxSkelOut
-withStakingCredential (Pays output) stakingCredential = Pays $ (fromAbstractOutput output) {concreteOutputStakingCredential = Just stakingCredential}
 
 -- * Transaction skeletons
 

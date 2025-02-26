@@ -63,7 +63,7 @@ putRefScriptOnWalletOutput recipient referenceScript =
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysPK recipient (Script.lovelaceValueOf 1) `withReferenceScript` referenceScript],
+          txSkelOuts = [recipient `receives` referenceScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -77,7 +77,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysScript recipient () (Script.lovelaceValueOf 1) `withReferenceScript` referenceScript],
+          txSkelOuts = [recipient `receives` TxSkelOutDatum () &> referenceScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -93,7 +93,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript (requireRefScriptValidator expectedScriptHash) () (Script.ada 42)],
+        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` TxSkelOutDatum () &> Script.ada 42],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -110,7 +110,7 @@ useReferenceScript spendingSubmitter theScript = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript theScript () (Script.ada 42)],
+        { txSkelOuts = [theScript `receives` TxSkelOutDatum () &> Script.ada 42],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -125,14 +125,17 @@ referenceMint mp1 mp2 n autoRefScript = do
   ((!! n) -> mpOutRef) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (Script.ada 10)],
+        { txSkelOuts =
+            [ wallet 1 `receives` Script.ada 2 &> mp1,
+              wallet 1 `receives` Script.ada 10
+            ],
           txSkelSigners = [wallet 1]
         }
   void $
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef, "banana", 3)],
-          txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
+          txSkelOuts = [wallet 1 `receives` Script.ada 2 &> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3],
           txSkelSigners = [wallet 1],
           txSkelOpts = def {txOptAutoReferenceScripts = autoRefScript}
         }
@@ -196,7 +199,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42],
                             txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
@@ -218,7 +221,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42],
                             txSkelSigners = [wallet 1]
                           }
                     void $
@@ -237,7 +240,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
+                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42],
                       txSkelSigners = [wallet 1]
                     }
               void $

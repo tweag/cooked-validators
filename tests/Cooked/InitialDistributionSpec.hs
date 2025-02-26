@@ -15,14 +15,14 @@ alice, bob :: Wallet
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum :: InitialDistribution
 initialDistributionWithDatum =
-  InitialDistribution $ [withDatum, withInlineDatum] <*> [paysPK alice (Script.ada 2)] <*> [10 :: Integer]
+  InitialDistribution $ [receives alice . (Script.ada 2 &>)] <*> ([TxSkelOutDatum, TxSkelOutInlineDatum] <*> [10 :: Integer])
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
 -- 2 UTxOs with 100 Script.ada
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  InitialDistribution $ (paysPK alice (Script.ada 2) `withReferenceScript` alwaysTrueValidator @MockContract) : replicate 2 (paysPK bob (Script.ada 100))
+  InitialDistribution $ (alice `receives` Script.ada 2 &> alwaysTrueValidator @MockContract) : replicate 2 (bob `receives` Script.ada 100)
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
 getValueFromInitialDatum = do
@@ -35,13 +35,13 @@ spendReferenceAlwaysTrueValidator = do
   (scriptTxOutRef : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 2)],
+        { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 2],
           txSkelSigners = [bob]
         }
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK alice (Script.ada 2)],
+        { txSkelOuts = [alice `receives` Script.ada 2],
           txSkelIns = Map.singleton scriptTxOutRef $ someTxSkelRedeemer () `withReferenceInput` referenceScriptTxOutRef,
           txSkelSigners = [bob]
         }

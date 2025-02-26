@@ -71,4 +71,4 @@ unsafeToInitDistWithMinAda initDist = case toInitDistWithMinAda initDist of
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution
-distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK user) values) []
+distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (receives user) values) []

@@ -5,7 +5,7 @@ module Cooked.Tweak.TamperDatumSpec where
 
 import Cooked
 import Data.Set qualified as Set
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
 import Prettyprinter (viaShow)
 import Test.Tasty (TestTree, testGroup)
@@ -25,9 +25,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 54 :: Integer),
-                  paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                [ alice `receives` Script.lovelace 789 &> TxSkelOutDatum (52 :: Integer, 54 :: Integer),
+                  alice `receives` Script.lovelace 234 &> TxSkelOutDatum (),
+                  alice `receives` Script.lovelace 567 &> TxSkelOutDatum (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -39,9 +39,9 @@ tamperDatumTweakTest =
           )
           ( txSkelTemplate
               { txSkelOuts =
-                  [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                    paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                    paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                  [ alice `receives` Script.lovelace 789 &> TxSkelOutDatum (52 :: Integer, 53 :: Integer),
+                    alice `receives` Script.lovelace 234 &> TxSkelOutDatum (),
+                    alice `receives` Script.lovelace 567 &> TxSkelOutDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
           )
@@ -56,10 +56,10 @@ malformDatumTweakTest =
               txSkelTemplate
                 { txSkelLabel = Set.singleton $ TxLabel MalformDatumLbl,
                   txSkelOuts =
-                    [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` PlutusTx.toBuiltinData datum1,
-                      paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                      paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                      paysPK alice (Script.lovelaceValueOf 567) `withDatum` PlutusTx.toBuiltinData datum4
+                    [ alice `receives` Script.lovelace 789 &> TxSkelOutDatum (PlutusTx.toBuiltinData datum1),
+                      alice `receives` Script.lovelace 234 &> TxSkelOutDatum (),
+                      alice `receives` Script.lovelace 567 &> TxSkelOutDatum (76 :: Integer, 77 :: Integer),
+                      alice `receives` Script.lovelace 567 &> TxSkelOutDatum (PlutusTx.toBuiltinData datum4)
                     ]
                 }
             )
@@ -87,10 +87,10 @@ malformDatumTweakTest =
                 )
                 ( txSkelTemplate
                     { txSkelOuts =
-                        [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                          paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                          paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                          paysPK alice (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
+                        [ alice `receives` Script.lovelace 789 &> TxSkelOutDatum (52 :: Integer, 53 :: Integer),
+                          alice `receives` Script.lovelace 234 &> TxSkelOutDatum (),
+                          alice `receives` Script.lovelace 567 &> TxSkelOutDatum (76 :: Integer, 77 :: Integer),
+                          alice `receives` Script.lovelace 567 &> TxSkelOutDatum (84 :: Integer, 85 :: Integer)
                         ]
                     }
                 )
