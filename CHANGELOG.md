@@ -31,6 +31,9 @@
 - `txOutRefToTxSkelOut` helper to query the mock chain for recreating a
   `TxSkelOut` from a `TxOutRef`. This is very useful when using `Tweaks` that
   need to pay back an existing output with a slight modification.
+- A new tweak `modifySpendRedeemersOfTypeTweak` to apply an optional
+  modification of all redeemers of a certain type within the skeleton inputs.
+- New setters for the various outputs fields.
 
 ### Removed
 
@@ -61,6 +64,9 @@
   * it is not visible from outside of `cooked-validators`
 - Dependency to cardano-api bumped to 8.46.
 - The whole testing API has been revamped
+- File `AddInputsAndOutputs.hs` has been split into `Inputs.hs`, `Outputs.hs`
+  and `Mint.hs`. File `TamperDatum.hs` has been updated and integrated into
+  `Output.hs`.
 
 ### Fixed
 

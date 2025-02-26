@@ -59,6 +59,7 @@ module Cooked.Skeleton
     withStakingCredential,
     TxSkelRedeemer (..),
     Redeemer (..),
+    RedeemerConstrs,
     withReferenceInput,
     TxParameterChange (..),
     TxGovAction (..),
@@ -98,12 +99,12 @@ module Cooked.Skeleton
     txSkelReferenceTxOutRefs,
     someTxSkelRedeemer,
     emptyTxSkelRedeemer,
+    toTypedRedeemer,
   )
 where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
-import Control.Monad
 import Cooked.Conversion
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -122,6 +123,7 @@ import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.Typeable (cast)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
@@ -429,6 +431,11 @@ data TxSkelRedeemer = TxSkelRedeemer
     txSkelReferenceInput :: Maybe Api.TxOutRef
   }
   deriving (Show, Eq)
+
+-- Attempts to cast a redeemer to a certain type
+toTypedRedeemer :: (Typeable a) => Redeemer -> Maybe a
+toTypedRedeemer (SomeRedeemer red) = cast red
+toTypedRedeemer EmptyRedeemer = Nothing
 
 -- Two helpers to create skeleton redeemers
 someTxSkelRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
@@ -897,8 +904,12 @@ txSkelOutUntypedDatum = \case
   TxSkelOutDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
   TxSkelOutInlineDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
 
-txSkelOutTypedDatum :: (Api.FromData a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDatum
+txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
+txSkelOutTypedDatum = \case
+  TxSkelOutNoDatum -> Nothing
+  TxSkelOutDatumHash x -> cast x
+  TxSkelOutDatum x -> cast x
+  TxSkelOutInlineDatum x -> cast x
 
 -- ** Smart constructors for transaction outputs
 
