@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="annot"><span class="hs-comment">-- | Tweaks working on the minting part of a skeleton</span></span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Tweak.Mint</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Mint.html#addMintTweak"><span class="hs-identifier">addMintTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier">removeMintTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html"><span class="hs-identifier">Cooked.Tweak.Common</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- | Add a new entry to the 'TxSkelMints' of the transaction skeleton under</span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- modification. As this is implemented in terms of 'addToTxSkelMints', the same</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- caveats apply as do to that function!</span><span>
+</span><span id="line-18"></span><span id="local-6989586621679828455"><span class="annot"><a href="Cooked.Tweak.Mint.html#addMintTweak"><span class="hs-identifier hs-type">addMintTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679828455"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679828455"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-19"></span><span id="addMintTweak"><span class="annot"><span class="annottext">addMintTweak :: forall (m :: * -&gt; *).
+MonadTweak m =&gt;
+(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; m ()
+</span><a href="Cooked.Tweak.Mint.html#addMintTweak"><span class="hs-identifier hs-var hs-var">addMintTweak</span></a></span></span><span> </span><span id="local-6989586621679828526"><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+</span><a href="#local-6989586621679828526"><span class="hs-identifier hs-var">mint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
+-&gt; (TxSkelMints -&gt; TxSkelMints) -&gt; m ()
+forall (m :: * -&gt; *) k (is :: IxList) a.
+(MonadTweak m, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
+</span><a href="Cooked.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">((TxSkelMints -&gt; TxSkelMints) -&gt; m ())
+-&gt; (TxSkelMints -&gt; TxSkelMints) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; TxSkelMints -&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.html#addToTxSkelMints"><span class="hs-identifier hs-var">addToTxSkelMints</span></a></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+</span><a href="#local-6989586621679828526"><span class="hs-identifier hs-var">mint</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Remove some entries from the 'TxSkelMints' of a transaction, according to</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- some predicate. The returned list holds the removed entries.</span><span>
+</span><span id="line-23"></span><span id="local-6989586621679828477"><span class="annot"><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier hs-type">removeMintTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679828477"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><a href="#local-6989586621679828477"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-27"></span><span id="removeMintTweak"><span class="annot"><span class="annottext">removeMintTweak :: forall (m :: * -&gt; *).
+MonadTweak m =&gt;
+((Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+ -&gt; Bool)
+-&gt; m [(Versioned MintingPolicy, TxSkelRedeemer, TokenName,
+       Integer)]
+</span><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier hs-var hs-var">removeMintTweak</span></a></span></span><span> </span><span id="local-6989586621679828548"><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; Bool
+</span><a href="#local-6989586621679828548"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-28"></span><span>  </span><span id="local-6989586621679828549"><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679828549"><span class="hs-identifier hs-var">presentMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic'
+  A_Getter
+  NoIx
+  TxSkel
+  [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; m [(Versioned MintingPolicy, TxSkelRedeemer, TokenName,
+       Integer)]
+forall (m :: * -&gt; *) k (is :: IxList) a.
+(MonadTweak m, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; m a
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic'
+   A_Getter
+   NoIx
+   TxSkel
+   [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+ -&gt; m [(Versioned MintingPolicy, TxSkelRedeemer, TokenName,
+        Integer)])
+-&gt; Optic'
+     A_Getter
+     NoIx
+     TxSkel
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; m [(Versioned MintingPolicy, TxSkelRedeemer, TokenName,
+       Integer)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
+-&gt; Optic
+     A_Getter
+     NoIx
+     TxSkelMints
+     TxSkelMints
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; Optic'
+     A_Getter
+     NoIx
+     TxSkel
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints
+ -&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+-&gt; Optic
+     A_Getter
+     NoIx
+     TxSkelMints
+     TxSkelMints
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall s a. (s -&gt; a) -&gt; Getter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="Cooked.Skeleton.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679828554"><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679828554"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679828555"><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679828555"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+ -&gt; Bool)
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; ([(Versioned MintingPolicy, TxSkelRedeemer, TokenName,
+      Integer)],
+    [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
+</span><span class="hs-identifier hs-var">partition</span></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; Bool
+</span><a href="#local-6989586621679828548"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679828549"><span class="hs-identifier hs-var">presentMints</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints -&gt; TxSkelMints -&gt; m ()
+forall (m :: * -&gt; *) k (is :: IxList) a.
+(MonadTweak m, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; a -&gt; m ()
+</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints -&gt; m ()) -&gt; TxSkelMints -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsFromList"><span class="hs-identifier hs-var">txSkelMintsFromList</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679828555"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; m [(Versioned MintingPolicy, TxSkelRedeemer, TokenName,
+       Integer)]
+forall a. a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679828554"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><span id="line-32"></span></pre></body></html>
