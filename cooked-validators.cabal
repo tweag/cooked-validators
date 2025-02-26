@@ -67,7 +67,6 @@ library
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.Outputs
       Cooked.Tweak.Signers
-      Cooked.Tweak.TamperDatum
       Cooked.Tweak.ValidityRange
       Cooked.Validators
       Cooked.Wallet

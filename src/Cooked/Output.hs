@@ -34,6 +34,11 @@ module Cooked.Output
     isEmptyStakingCredentialOutput,
     isPKOutput,
     isScriptOutput,
+    setDatum,
+    setOwner,
+    setReferenceScript,
+    setValue,
+    setStakingCredential,
   )
 where
 
@@ -152,36 +157,53 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
 fromAbstractOutput :: (IsAbstractOutput out) => out -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out)
 fromAbstractOutput o = ConcreteOutput (o ^. outputOwnerL) (o ^. outputStakingCredentialL) (o ^. outputDatumL) (o ^. outputValueL) (o ^. outputReferenceScriptL)
 
+-- * Setters for outputs
+
+setDatum :: (IsAbstractOutput out) => out -> dat -> ConcreteOutput (OwnerType out) dat (ValueType out) (ReferenceScriptType out)
+setDatum o dat = (fromAbstractOutput o) {concreteOutputDatum = dat}
+
+setOwner :: (IsAbstractOutput out) => out -> owner -> ConcreteOutput owner (DatumType out) (ValueType out) (ReferenceScriptType out)
+setOwner o own = (fromAbstractOutput o) {concreteOutputOwner = own}
+
+setStakingCredential :: (IsAbstractOutput out) => out -> Api.StakingCredential -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out)
+setStakingCredential o cred = (fromAbstractOutput o) {concreteOutputStakingCredential = Just cred}
+
+setValue :: (IsAbstractOutput out) => out -> val -> ConcreteOutput (OwnerType out) (DatumType out) val (ReferenceScriptType out)
+setValue o val = (fromAbstractOutput o) {concreteOutputValue = val}
+
+setReferenceScript :: (IsAbstractOutput out) => out -> ref -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) ref
+setReferenceScript o refScript = (fromAbstractOutput o) {concreteOutputReferenceScript = Just refScript}
+
 -- * Functions to translate between different output types
 
 -- ** Filtering on the datum
 
 -- | Test if there is no datum on an output.
 isOutputWithoutDatum :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) () (ValueType out) (ReferenceScriptType out))
-isOutputWithoutDatum out | Api.NoOutputDatum <- outputOutputDatum out = Just $ (fromAbstractOutput out) {concreteOutputDatum = ()}
+isOutputWithoutDatum out | Api.NoOutputDatum <- outputOutputDatum out = Just $ setDatum out ()
 isOutputWithoutDatum _ = Nothing
 
 -- | Test if the output carries some inlined datum.
 isOutputWithInlineDatum :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) Api.Datum (ValueType out) (ReferenceScriptType out))
-isOutputWithInlineDatum out | Api.OutputDatum datum@(Api.Datum _) <- outputOutputDatum out = Just $ (fromAbstractOutput out) {concreteOutputDatum = datum}
+isOutputWithInlineDatum out | Api.OutputDatum datum@(Api.Datum _) <- outputOutputDatum out = Just $ setDatum out datum
 isOutputWithInlineDatum _ = Nothing
 
 -- | Test if the output carries some inlined datum that can be parsed from
 -- builtin data on to something of a specific type.
 isOutputWithInlineDatumOfType :: (Api.FromData a, IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out))
-isOutputWithInlineDatumOfType out | Api.OutputDatum (Api.Datum datum) <- outputOutputDatum out = (\x -> (fromAbstractOutput out) {concreteOutputDatum = x}) <$> Api.fromBuiltinData datum
+isOutputWithInlineDatumOfType out | Api.OutputDatum (Api.Datum datum) <- outputOutputDatum out = setDatum out <$> Api.fromBuiltinData datum
 isOutputWithInlineDatumOfType _ = Nothing
 
 -- | Test if the output carries some datum hash.
 isOutputWithDatumHash :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) Api.DatumHash (ValueType out) (ReferenceScriptType out))
-isOutputWithDatumHash out | Api.OutputDatumHash hash <- outputOutputDatum out = Just $ (fromAbstractOutput out) {concreteOutputDatum = hash}
+isOutputWithDatumHash out | Api.OutputDatumHash hash <- outputOutputDatum out = Just $ setDatum out hash
 isOutputWithDatumHash _ = Nothing
 
 -- ** Filtering on the owner
 
 -- | Test if the owner of an output is a script
 isScriptOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.ScriptHash (DatumType out) (ValueType out) (ReferenceScriptType out))
-isScriptOutput out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out = Just $ (fromAbstractOutput out) {concreteOutputOwner = scriptHash}
+isScriptOutput out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out = Just $ setOwner out scriptHash
 isScriptOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific script
@@ -189,12 +211,12 @@ isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe 
 isScriptOutputFrom validator out = do
   x <- isScriptOutput out
   if toScriptHash validator == x ^. outputOwnerL
-    then Just (x {concreteOutputOwner = validator})
+    then Just $ setOwner x validator
     else Nothing
 
 -- Test if the owner of an output is a public key
 isPKOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
-isPKOutput out | Api.Address (Api.PubKeyCredential pkh) _ <- outputAddress out = Just $ (fromAbstractOutput out) {concreteOutputOwner = pkh}
+isPKOutput out | Api.Address (Api.PubKeyCredential pkh) _ <- outputAddress out = Just $ setOwner out pkh
 isPKOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific public key
@@ -221,7 +243,7 @@ isEmptyStakingCredentialOutput _ = Nothing
 
 -- | Test if the value on an output contains only Ada.
 isOnlyAdaOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) Script.Ada (ReferenceScriptType out))
-isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ (fromAbstractOutput out) {concreteOutputValue = Script.fromValue $ outputValue out}
+isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ setValue out $ Script.fromValue $ outputValue out
 isOnlyAdaOutput _ = Nothing
 
 -- ** Filtering on the reference script

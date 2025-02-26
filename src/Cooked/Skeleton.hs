@@ -105,7 +105,6 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
-import Control.Monad
 import Cooked.Conversion
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -433,7 +432,7 @@ data TxSkelRedeemer = TxSkelRedeemer
   }
   deriving (Show, Eq)
 
--- Attempts to case a redeemer to a certain type
+-- Attempts to cast a redeemer to a certain type
 toTypedRedeemer :: (Typeable a) => Redeemer -> Maybe a
 toTypedRedeemer (SomeRedeemer red) = cast red
 toTypedRedeemer EmptyRedeemer = Nothing
@@ -905,8 +904,12 @@ txSkelOutUntypedDatum = \case
   TxSkelOutDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
   TxSkelOutInlineDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
 
-txSkelOutTypedDatum :: (Api.FromData a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDatum
+txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
+txSkelOutTypedDatum = \case
+  TxSkelOutNoDatum -> Nothing
+  TxSkelOutDatumHash x -> cast x
+  TxSkelOutDatum x -> cast x
+  TxSkelOutInlineDatum x -> cast x
 
 -- ** Smart constructors for transaction outputs
 
