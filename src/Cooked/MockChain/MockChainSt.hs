@@ -15,7 +15,6 @@ import Cooked.Output
 import Cooked.Skeleton
 import Data.Bifunctor (bimap)
 import Data.Default
-import Data.Either.Combinators (mapLeft)
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -163,15 +162,15 @@ mockChainSt0 = MockChainSt def utxoIndex0 Map.empty Map.empty 0
 -- * Initial `MockChainSt` from an initial distribution
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt def (utxoIndex0From i0) (datumMap0From i0) (referenceScriptMap0From i0) 0
+mockChainSt0From i0 = MockChainSt def (utxoIndex0From i0) (datumMap0From i0) (referenceScriptMap0From i0 <> scriptMap0From i0) 0
 
 -- | Reference scripts from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
 referenceScriptMap0From :: InitialDistribution -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-referenceScriptMap0From (InitialDistribution initDist) =
+referenceScriptMap0From =
   -- This builds a map of entries from the reference scripts contained in the
   -- initial distribution
-  Map.fromList $ mapMaybe unitMaybeFrom initDist
+  Map.fromList . mapMaybe unitMaybeFrom . unInitialDistribution
   where
     -- This takes a single output and returns a possible map entry when it
     -- contains a reference script
@@ -179,8 +178,22 @@ referenceScriptMap0From (InitialDistribution initDist) =
     unitMaybeFrom (Pays output) = do
       refScript <- view outputReferenceScriptL output
       let vScript@(Script.Versioned script version) = toVersionedScript refScript
-          Api.ScriptHash scriptHash = toScriptHash vScript
-      return (Script.ValidatorHash scriptHash, Script.Versioned (Script.Validator script) version)
+      return (Script.ValidatorHash $ Api.getScriptHash $ toScriptHash vScript, Script.Versioned (Script.Validator script) version)
+
+-- | Scripts from initial distributions should be accounted for in the
+-- `MockChainSt` which is done using this function.
+scriptMap0From :: InitialDistribution -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+scriptMap0From =
+  -- This builds a map of entries from the scripts contained in the initial
+  -- distribution
+  Map.fromList . mapMaybe unitMaybeFrom . unInitialDistribution
+  where
+    -- This takes a single output and returns a possible map entry when it
+    -- contains a script
+    unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
+    unitMaybeFrom txSkelOut = do
+      val <- txSkelOutValidator txSkelOut
+      return (Script.ValidatorHash $ Api.getScriptHash $ toScriptHash val, val)
 
 -- | Datums from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
@@ -222,15 +235,13 @@ utxoIndex0From (InitialDistribution initDist) = case mkBody of
   where
     mkBody :: Either GenerateTxError (Cardano.TxBody Cardano.ConwayEra)
     mkBody = do
-      value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
-      let mintValue = flip (Cardano.TxMintValue Cardano.MaryEraOnwardsConway) (Cardano.BuildTxWith mempty) . Cardano.filterValue (/= Cardano.AdaAssetId) $ value
-          theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42
+      let theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42
           genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(Cardano.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
       outputs <- mapM (generateTxOut theNetworkId) initDist
       left (TxBodyError "Body error") $
         Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway $
-          Ledger.emptyTxBodyContent {Cardano.txMintValue = mintValue, Cardano.txOuts = outputs, Cardano.txIns = inputs}
+          Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs}
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
