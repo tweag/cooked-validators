@@ -80,7 +80,7 @@ import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import ListT hiding (null)
+import ListT
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -396,7 +396,7 @@ txOutRefToTxSkelOut oRef = do
     Api.NoOutputDatum -> return TxSkelOutNoDatum
     Api.OutputDatumHash hash -> do
       Just (Api.Datum dat') <- datumFromHash hash
-      return $ TxSkelOutDatum dat' -- TODO: investigate between this and TxSkelOutDatum
+      return $ TxSkelOutDatum dat' -- TODO: investigate between this and TxSkelOutDatumHash
     Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutInlineDatum dat'
   refScript <- case refS of
     Nothing -> return Nothing
