@@ -10,6 +10,22 @@
         pkgs = nixpkgs.legacyPackages.${system};
         hpkgs = pkgs.haskell.packages.ghc966;
 
+        ## We change the way 'blst' is built so that it takes into
+        ## account the current architecture of the processor. This
+        ## is due to a bug where older processors (>= 10 years)
+        ## would not be supported. This should not change anything
+        ## on newer machines. This could be revised in the future.
+        blst-portable = pkgs.blst.overrideAttrs (_: _: {
+          buildPhase = ''
+            runHook preBuild
+            ./build.sh -shared -D__BLST_PORTABLE__ ${
+              pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isWindows
+              "flavour=mingw64"
+            }
+            runHook postBuild
+          '';
+        });
+
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
@@ -34,42 +50,31 @@
 
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
-          buildInputs = (with hpkgs; [ ghc cabal-install ]) ++ (with pkgs; [
-            libsodium
-            secp256k1
-            pkg-config
-            zlib
-            xz
-            glibcLocales
-            openssl_3_3
-            postgresql # For pg_config
-            ## We change the way 'blst' is built so that it takes into
-            ## account the current architecture of the processor. This
-            ## is due to a bug where older processors (>= 10 years)
-            ## would not be supported. This should not change anything
-            ## on newer machines. This could be revised in the future.
-            (blst.overrideAttrs (_: _: {
-              buildPhase = ''
-                runHook preBuild
-                ./build.sh -shared -D__BLST_PORTABLE__ ${
-                  lib.optionalString stdenv.hostPlatform.isWindows
-                  "flavour=mingw64"
-                }
-                runHook postBuild
-              '';
-            }))
-          ]);
+          buildInputs = [
+            blst-portable
+            pkgs.libsodium
+            pkgs.secp256k1
+            pkgs.pkg-config
+            pkgs.zlib
+            pkgs.xz
+            pkgs.glibcLocales
+            pkgs.openssl_3_3
+            pkgs.postgresql # For pg_config
+            hpkgs.ghc
+            hpkgs.cabal-install
+          ];
 
-          ## Needed by `pirouette-plutusir` and `cooked`
-          LD_LIBRARY_PATH = with pkgs;
-            lib.strings.makeLibraryPath [
-              libsodium
-              zlib
-              xz
-              openssl_3_3
-              postgresql # For cardano-node-emulator
-              openldap # For freer-extras‽
-            ];
+          ## Folders in which to find ".so" files
+          LD_LIBRARY_PATH = pkgs.lib.strings.makeLibraryPath [
+            blst-portable
+            pkgs.libsodium
+            pkgs.secp256k1
+            pkgs.zlib
+            pkgs.xz
+            pkgs.openssl_3_3
+            pkgs.postgresql # For cardano-node-emulator
+            pkgs.openldap # For freer-extras‽
+          ];
           LANG = "C.UTF-8";
         in {
           ci = pkgs.mkShell {
@@ -83,8 +88,12 @@
             ## in the `buildInputs`, so as to take precedence. This ensures that the
             ## version of Ormolu available in the path is that of nixpkgs and not the
             ## one pinned by HLS.
-            buildInputs = buildInputs ++ (with pkgs; [ hpack hlint ])
-              ++ (with hpkgs; [ ormolu haskell-language-server ]);
+            buildInputs = buildInputs ++ [
+              pkgs.hpack
+              pkgs.hlint
+              hpkgs.ormolu
+              hpkgs.haskell-language-server
+            ];
 
             inherit LD_LIBRARY_PATH;
             inherit LANG;
