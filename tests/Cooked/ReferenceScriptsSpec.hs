@@ -77,7 +77,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [recipient `receives` TxSkelOutDatum () &> referenceScript],
+          txSkelOuts = [recipient `receives` paymentTemplate {paymentReferenceScript = Just referenceScript, paymentDatum = Just ()}],
           txSkelSigners = [wallet 1]
         }
 
@@ -93,7 +93,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` TxSkelOutDatum () &> Script.ada 42],
+        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()}],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -110,7 +110,7 @@ useReferenceScript spendingSubmitter theScript = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [theScript `receives` TxSkelOutDatum () &> Script.ada 42],
+        { txSkelOuts = [theScript `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()}],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -126,7 +126,7 @@ referenceMint mp1 mp2 n autoRefScript = do
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts =
-            [ wallet 1 `receives` Script.ada 2 &> mp1,
+            [ wallet 1 `receives` paymentTemplate {paymentValue = Script.ada 2, paymentReferenceScript = Just mp1},
               wallet 1 `receives` Script.ada 10
             ],
           txSkelSigners = [wallet 1]
@@ -135,7 +135,7 @@ referenceMint mp1 mp2 n autoRefScript = do
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef, "banana", 3)],
-          txSkelOuts = [wallet 1 `receives` Script.ada 2 &> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3],
+          txSkelOuts = [wallet 1 `receives` (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
           txSkelSigners = [wallet 1],
           txSkelOpts = def {txOptAutoReferenceScripts = autoRefScript}
         }
@@ -199,7 +199,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()}],
                             txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
@@ -221,7 +221,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()}],
                             txSkelSigners = [wallet 1]
                           }
                     void $
@@ -240,7 +240,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42],
+                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()}],
                       txSkelSigners = [wallet 1]
                     }
               void $

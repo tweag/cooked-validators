@@ -116,8 +116,8 @@ bValidator =
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution (receives aValidator . (TxSkelOutDatum ADatum &>) . Script.ada <$> [2, 3, 4, 5])
-    <> InitialDistribution (receives bValidator . (TxSkelOutDatum BDatum &>) . Script.ada <$> [6, 7])
+    <> InitialDistribution ((\n -> aValidator `receives` paymentTemplate {paymentDatum = Just ADatum, paymentValue = Script.ada n}) <$> [2, 3, 4, 5])
+    <> InitialDistribution ((\n -> bValidator `receives` paymentTemplate {paymentDatum = Just BDatum, paymentValue = Script.ada n}) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)

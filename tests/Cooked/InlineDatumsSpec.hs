@@ -8,7 +8,6 @@ import Data.Maybe
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Contexts qualified as Api
 import PlutusTx qualified
@@ -105,7 +104,7 @@ listUtxosTestTrace useInlineDatum validator =
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [validator `receives` Script.ada 3 &> (if useInlineDatum then TxSkelOutInlineDatum else TxSkelOutDatum) FirstPaymentDatum],
+          txSkelOuts = [validator `receives` (if useInlineDatum then TxSkelOutInlineDatum else TxSkelOutDatum) FirstPaymentDatum],
           txSkelSigners = [wallet 1]
         }
 
@@ -155,13 +154,15 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
           txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
           txSkelOuts =
             [ validator
-                `receives` outputValue theOutput
-                &> ( case datumKindOnSecondPayment of
-                       OnlyHash -> TxSkelOutDatumHash
-                       Datum -> TxSkelOutDatum
-                       Inline -> TxSkelOutInlineDatum
-                   )
-                  SecondPaymentDatum
+                `receives` paymentTemplate
+                  { paymentValue = outputValue theOutput,
+                    paymentDatum = Just SecondPaymentDatum,
+                    paymentDatumKind =
+                      case datumKindOnSecondPayment of
+                        OnlyHash -> HashedDatum DoNotIncludeDatumInTransactionBody
+                        Datum -> HashedDatum IncludeDatumInTransactionBody
+                        Inline -> InlineDatum
+                  }
             ],
           txSkelSigners = [wallet 1]
         }

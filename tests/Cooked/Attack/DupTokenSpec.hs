@@ -77,7 +77,7 @@ tests =
                         (pol2, emptyTxSkelRedeemer, tName2, 7)
                       ],
                   txSkelOuts =
-                    [ wallet 1 `receives` Script.assetClassValue ac1 1 &> Script.lovelace 1234,
+                    [ wallet 1 `receives` (Script.assetClassValue ac1 1 <> Script.lovelace 1234),
                       wallet 2 `receives` Script.assetClassValue ac2 2
                     ],
                   txSkelSigners = [wallet 3]
@@ -95,7 +95,7 @@ tests =
                                   (pol2, emptyTxSkelRedeemer, tName2, v2)
                                 ],
                             txSkelOuts =
-                              [ wallet 1 `receives` Script.assetClassValue ac1 1 &> Script.lovelace 1234,
+                              [ wallet 1 `receives` (Script.assetClassValue ac1 1 <> Script.lovelace 1234),
                                 wallet 2 `receives` Script.assetClassValue ac2 2,
                                 attacker `receives` increment
                               ],
@@ -133,7 +133,7 @@ tests =
             skelIn =
               txSkelTemplate
                 { txSkelMints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName1, 1)],
-                  txSkelOuts = [wallet 1 `receives` Script.assetClassValue ac1 1 &> Script.assetClassValue ac2 2],
+                  txSkelOuts = [wallet 1 `receives` (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)],
                   txSkelSigners = [wallet 2]
                 }
             skelExpected =
@@ -143,7 +143,7 @@ tests =
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName1, 2)],
                         txSkelOuts =
-                          [ wallet 1 `receives` Script.assetClassValue ac1 1 &> Script.assetClassValue ac2 2,
+                          [ wallet 1 `receives` (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
                             attacker `receives` Script.assetClassValue ac1 1
                           ],
                         txSkelSigners = [wallet 2]

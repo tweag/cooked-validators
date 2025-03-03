@@ -108,8 +108,17 @@ trace1 = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
-            [ fooTypedValidator `receives` TxSkelOutInlineDatum (FooDatum (walletPKHash (wallet 3))) &> Script.ada 4,
-              barTypedValidator `receives` TxSkelOutDatum () &> Script.ada 5
+            [ fooTypedValidator
+                `receives` paymentTemplate
+                  { paymentValue = Script.ada 4,
+                    paymentDatum = Just $ FooDatum $ walletPKHash $ wallet 3,
+                    paymentDatumKind = InlineDatum
+                  },
+              barTypedValidator
+                `receives` paymentTemplate
+                  { paymentValue = Script.ada 5,
+                    paymentDatum = Just ()
+                  }
             ],
           txSkelSigners = [wallet 2]
         }
@@ -128,8 +137,8 @@ trace2 = do
     validateTxSkel'
       ( txSkelTemplate
           { txSkelOuts =
-              [ wallet 1 `receives` Script.ada 2 &> TxSkelOutDatum (10 :: Integer),
-                bazTypedValidator `receives` TxSkelOutDatum () &> Script.ada 10
+              [ wallet 1 `receives` paymentTemplate {paymentValue = Script.ada 2, paymentDatum = Just (10 :: Integer)},
+                bazTypedValidator `receives` paymentTemplate {paymentValue = Script.ada 10, paymentDatum = Just ()}
               ],
             txSkelSigners = [wallet 2]
           }

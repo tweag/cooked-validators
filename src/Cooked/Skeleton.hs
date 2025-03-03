@@ -48,7 +48,10 @@ module Cooked.Skeleton
     txSkelOutTypedDatum,
     txSkelOutUntypedDatum,
     receives,
-    (&>),
+    Payment (..),
+    PaymentDatumKind (..),
+    DatumInTransactionBody (..),
+    paymentTemplate,
     TxSkelRedeemer (..),
     Redeemer (..),
     RedeemerConstrs,
@@ -97,7 +100,6 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
-import Control.Applicative
 import Cooked.Conversion
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -797,74 +799,122 @@ instance Eq TxSkelOut where
 
 deriving instance Show TxSkelOut
 
-data Payable where
-  Payable ::
-    { payableDatum :: Maybe TxSkelOutDatum,
-      payableStakingCred :: Maybe Api.StakingCredential,
-      payableReferenceScript :: Maybe (Script.Versioned Script.Script),
-      payableValue :: Maybe Api.Value
+data DatumInTransactionBody where
+  -- | The transaction will see the datum associated the datum hash
+  IncludeDatumInTransactionBody :: DatumInTransactionBody
+  -- | The transaction will not see the datum associated to the datum hash
+  DoNotIncludeDatumInTransactionBody :: DatumInTransactionBody
+
+data PaymentDatumKind where
+  -- | Pay an inline datum
+  InlineDatum :: PaymentDatumKind
+  -- | Pay a hashed datum. The boolean parameters states whether or not the full
+  -- datum should be included in the generated transaction body.
+  HashedDatum :: DatumInTransactionBody -> PaymentDatumKind
+
+-- | A payment represents what the users wants to give to a specific party. The
+-- party itself is not part of the payment and payments are meants to be
+-- instantiated from @paymentTemplate@
+data Payment where
+  Payment ::
+    ( TxSkelOutDatumConstrs a,
+      ToVersionedScript s,
+      Show s,
+      Typeable s,
+      ToScriptHash s,
+      ToMaybeStakingCredential sCred,
+      ToValue v
+    ) =>
+    { -- | An optional datum in this payment
+      paymentDatum :: Maybe a,
+      -- | How the datum should be treated during transaction
+      -- generation. Ignored if there is no datum.
+      paymentDatumKind :: PaymentDatumKind,
+      -- | An optional staking credential in this payment
+      paymentStakingCred :: sCred,
+      -- | An optional reference script in this payment
+      paymentReferenceScript :: Maybe s,
+      -- | The value in this payment
+      paymentValue :: v
     } ->
-    Payable
+    Payment
 
-instance Semigroup Payable where
-  Payable pd1 psc1 prs1 pv1 <> Payable pd2 psc2 prs2 pv2 =
-    Payable
-      (pd2 <|> pd1)
-      (psc2 <|> psc1)
-      (prs2 <|> prs1)
-      ( case (pv1, pv2) of
-          (Nothing, _) -> pv2
-          (_, Nothing) -> pv1
-          (Just val1, Just val2) -> Just (val1 <> val2)
-      )
+-- | A payment template is meant to be the basics bricks from whichs payments
+-- are built and given to parties using @receives@
+paymentTemplate :: Payment
+paymentTemplate =
+  Payment
+    { -- \| By default no datum is provided
+      paymentDatum = Nothing @(),
+      -- \| By default, the datum is provided as a hash in the UTXO and is given
+      -- in full to the transaction body.
+      paymentDatumKind = HashedDatum IncludeDatumInTransactionBody,
+      -- \| By default, no staking credential is provided
+      paymentStakingCred = Nothing @Api.StakingCredential,
+      -- \| By default, no reference script is provided
+      paymentReferenceScript = Nothing @(Script.Versioned Script.Script),
+      -- \| The default value is empty. This makes sense when combined with the
+      -- option @txOptEnsureMinAda@
+      paymentValue = mempty @Api.Value
+    }
 
-instance Monoid Payable where
-  mempty = Payable Nothing Nothing Nothing Nothing
+-- | Overloading fields of @PaymentTemplate@ is the preferred way of building
+-- payment when at least 2 fields must be overriden. When a single field needs
+-- overridance, this proves cumbersome, and we provide the following type class
+-- instead which allows convenient payments of single elements using `receives`.
+class IsPayment a where
+  toPayment :: a -> Payment
 
-class IsPayable a where
-  toPayable :: a -> Payable
+instance IsPayment Payment where
+  toPayment = id
 
-instance IsPayable TxSkelOutDatum where
-  toPayable dat = mempty {payableDatum = Just dat}
+instance IsPayment Api.Value where
+  toPayment val = paymentTemplate {paymentValue = val}
 
-instance IsPayable Api.StakingCredential where
-  toPayable stCred = mempty {payableStakingCred = Just stCred}
+instance IsPayment Script.Ada where
+  toPayment = toPayment . toValue
 
-instance IsPayable (Script.TypedValidator a) where
-  toPayable = toPayable . toVersionedScript
+instance IsPayment TxSkelOutDatum where
+  toPayment TxSkelOutNoDatum = paymentTemplate
+  toPayment (TxSkelOutDatum dat) = paymentTemplate {paymentDatum = Just dat}
+  toPayment (TxSkelOutDatumHash dat) = paymentTemplate {paymentDatum = Just dat, paymentDatumKind = HashedDatum DoNotIncludeDatumInTransactionBody}
+  toPayment (TxSkelOutInlineDatum dat) = paymentTemplate {paymentDatum = Just dat, paymentDatumKind = InlineDatum}
 
-instance IsPayable (Script.Versioned Script.MintingPolicy) where
-  toPayable = toPayable . toVersionedScript
+instance IsPayment (Script.Versioned Script.Script) where
+  toPayment script = paymentTemplate {paymentReferenceScript = Just script}
 
-instance IsPayable (Script.Versioned Script.Script) where
-  toPayable script = mempty {payableReferenceScript = Just script}
+instance IsPayment (Script.TypedValidator a) where
+  toPayment = toPayment . toVersionedScript
 
-instance IsPayable Api.Value where
-  toPayable value = mempty {payableValue = Just value}
+instance IsPayment (Script.Versioned Script.MintingPolicy) where
+  toPayment = toPayment . toVersionedScript
 
-instance IsPayable Payable where
-  toPayable = id
+instance IsPayment Api.StakingCredential where
+  toPayment sCred = paymentTemplate {paymentStakingCred = Just sCred}
 
+-- | Smart constructor to build @TxSkelOut@ from some kind of owner and
+-- payment. This should be the main way of building outputs.
 receives ::
-  (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner, IsPayable payment) =>
+  (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner, IsPayment payment) =>
   owner ->
   payment ->
   TxSkelOut
-receives owner (toPayable -> Payable {..}) =
+receives owner (toPayment -> Payment {..}) =
   Pays $
     ConcreteOutput
       owner
-      payableStakingCred
-      (fromMaybe TxSkelOutNoDatum payableDatum)
-      (fromMaybe mempty payableValue)
-      payableReferenceScript
-
-infix 8 `receives`
-
-infixl 9 &>
-
-(&>) :: (IsPayable a, IsPayable b) => a -> b -> Payable
-pa &> pb = toPayable pa <> toPayable pb
+      (toMaybeStakingCredential paymentStakingCred)
+      ( maybe
+          TxSkelOutNoDatum
+          ( case paymentDatumKind of
+              InlineDatum -> TxSkelOutInlineDatum
+              HashedDatum IncludeDatumInTransactionBody -> TxSkelOutDatum
+              _ -> TxSkelOutDatumHash
+          )
+          paymentDatum
+      )
+      (toValue paymentValue)
+      paymentReferenceScript
 
 txSkelOutDatumL :: Lens' TxSkelOut TxSkelOutDatum
 txSkelOutDatumL =

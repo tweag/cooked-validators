@@ -34,15 +34,15 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 42,
-      alice `receives` Script.ada 2 &> apple 3,
+    [ alwaysTrueValidator @MockContract `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()},
+      alice `receives` (Script.ada 2 <> apple 3),
       alice `receives` Script.ada 25,
-      alice `receives` Script.ada 40 &> orange 6,
+      alice `receives` (Script.ada 40 <> orange 6),
       alice `receives` Script.ada 8,
       alice `receives` Script.ada 30,
-      alice `receives` Script.lovelace 1280229 &> banana 3 &> TxSkelOutDatum (10 :: Integer),
-      alice `receives` Script.ada 1 &> banana 7 &> alwaysTrueValidator @MockContract,
-      alice `receives` Script.ada 105 &> banana 2 &> TxSkelOutDatumHash ()
+      alice `receives` paymentTemplate {paymentValue = Script.lovelace 1280229 <> banana 3, paymentDatum = Just (10 :: Integer)},
+      alice `receives` paymentTemplate {paymentValue = Script.ada 1 <> banana 7, paymentReferenceScript = Just (alwaysTrueValidator @MockContract)},
+      alice `receives` paymentTemplate {paymentValue = Script.ada 105 <> banana 2, paymentDatum = Just ()}
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet), [Api.TxOutRef])
@@ -171,7 +171,7 @@ reachingMagic = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [bob `receives` Script.ada 106 &> banana 12],
+        { txSkelOuts = [bob `receives` (Script.ada 106 <> banana 12)],
           txSkelSigners = [alice],
           txSkelOpts =
             def

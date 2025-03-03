@@ -47,7 +47,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [alwaysTrueValidator @MockContract `receives` TxSkelOutDatum () &> Script.ada 10],
+              { txSkelOuts = [alwaysTrueValidator @MockContract `receives` paymentTemplate {paymentValue = Script.ada 10, paymentDatum = Just ()}],
                 txSkelSigners = [alice]
               }
         )

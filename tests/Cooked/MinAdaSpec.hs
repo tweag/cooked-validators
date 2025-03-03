@@ -27,7 +27,7 @@ paymentWithoutMinAda paidLovelaces = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelOuts = [wallet 2 `receives` Script.lovelace paidLovelaces &> TxSkelOutDatum heavyDatum],
+        { txSkelOuts = [wallet 2 `receives` paymentTemplate {paymentValue = Script.lovelace paidLovelaces, paymentDatum = Just heavyDatum}],
           txSkelSigners = [wallet 1]
         }
 
