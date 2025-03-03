@@ -34,6 +34,9 @@
 - A new tweak `modifySpendRedeemersOfTypeTweak` to apply an optional
   modification of all redeemers of a certain type within the skeleton inputs.
 - New setters for the various outputs fields.
+- The `receive` smart constructor for payments that allows to compose payable
+  elements (datums, values, staking credential and reference scripts) and
+  associate them to a recipient.
 
 ### Removed
 

@@ -5,8 +5,10 @@ module Cooked.Tweak.TamperDatumSpec where
 
 import Cooked
 import Data.Set qualified as Set
-import Plutus.Script.Utils.Ada qualified as Script
+import Data.Typeable
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
+import PlutusTx.Eq qualified as PlutusTx
 import Prettyprinter (viaShow)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@=?))
@@ -17,6 +19,9 @@ instance PrettyCooked (Integer, Integer) where
 alice :: Wallet
 alice = wallet 1
 
+mkPayment :: (Show a, PrettyCooked a, PlutusTx.ToData a, PlutusTx.Eq a, Typeable a) => Integer -> a -> Payment
+mkPayment n dat = paymentTemplate {paymentValue = Script.lovelace n, paymentDatum = Just dat}
+
 tamperDatumTweakTest :: TestTree
 tamperDatumTweakTest =
   testCase "tamperDatumTweak" $
@@ -25,9 +30,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 54 :: Integer),
-                  paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                [ alice `receives` mkPayment 789 (52 :: Integer, 54 :: Integer),
+                  alice `receives` mkPayment 234 (),
+                  alice `receives` mkPayment 567 (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -39,9 +44,9 @@ tamperDatumTweakTest =
           )
           ( txSkelTemplate
               { txSkelOuts =
-                  [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                    paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                    paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                  [ alice `receives` mkPayment 789 (52 :: Integer, 53 :: Integer),
+                    alice `receives` mkPayment 234 (),
+                    alice `receives` mkPayment 567 (76 :: Integer, 77 :: Integer)
                   ]
               }
           )
@@ -56,10 +61,10 @@ malformDatumTweakTest =
               txSkelTemplate
                 { txSkelLabel = Set.singleton $ TxLabel MalformDatumLbl,
                   txSkelOuts =
-                    [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` PlutusTx.toBuiltinData datum1,
-                      paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                      paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                      paysPK alice (Script.lovelaceValueOf 567) `withDatum` PlutusTx.toBuiltinData datum4
+                    [ alice `receives` mkPayment 789 (PlutusTx.toBuiltinData datum1),
+                      alice `receives` mkPayment 234 (),
+                      alice `receives` mkPayment 567 (76 :: Integer, 77 :: Integer),
+                      alice `receives` mkPayment 567 (PlutusTx.toBuiltinData datum4)
                     ]
                 }
             )
@@ -87,10 +92,10 @@ malformDatumTweakTest =
                 )
                 ( txSkelTemplate
                     { txSkelOuts =
-                        [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                          paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                          paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                          paysPK alice (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
+                        [ alice `receives` mkPayment 789 (52 :: Integer, 53 :: Integer),
+                          alice `receives` mkPayment 234 (),
+                          alice `receives` mkPayment 567 (76 :: Integer, 77 :: Integer),
+                          alice `receives` mkPayment 567 (84 :: Integer, 85 :: Integer)
                         ]
                     }
                 )

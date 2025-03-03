@@ -119,7 +119,7 @@ doubleSatAttack groupings optic change attacker = do
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta
   if addedValue `Script.gt` mempty
-    then addOutputTweak $ paysPK attacker addedValue
+    then addOutputTweak $ attacker `receives` addedValue
     else failingTweak
   addLabelTweak DoubleSatLbl
   where

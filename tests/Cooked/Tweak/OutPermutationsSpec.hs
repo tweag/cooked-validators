@@ -4,7 +4,7 @@ import Cooked
 import Cooked.Tweak.OutPermutations
 import Data.Either (rights)
 import Data.List (group)
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -60,9 +60,9 @@ tests =
                     )
                   ],
       testGroup "tests for PermutOutTweakMode:" $
-        let a = paysPK (wallet 1) $ Script.lovelaceValueOf 123
-            b = paysPK (wallet 2) $ Script.lovelaceValueOf 123
-            c = paysPK (wallet 3) $ Script.lovelaceValueOf 123
+        let a = wallet 1 `receives` Script.lovelace 123
+            b = wallet 2 `receives` Script.lovelace 123
+            c = wallet 3 `receives` Script.lovelace 123
             skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
@@ -82,7 +82,7 @@ tests =
                   (fst <$> runTweak (allOutPermutsTweak $ OmitIdentity Nothing) (skel a b c))
             ],
       testGroup "tests for a single random outputs permutation:" $
-        let l = (\i -> paysPK (wallet i) $ Script.lovelaceValueOf 123) <$> [1 .. 5]
+        let l = (\i -> wallet i `receives` Script.lovelace 123) <$> [1 .. 5]
             runs = txSkelOuts . snd <$> rights (fst <$> ((\i -> runTweak (singleOutPermutTweak i) txSkelTemplate {txSkelOuts = l}) =<< [1 .. 5]))
          in [ testCase "All permutations contain the correct elements" $
                 mapM_ (assertSameSets l) runs,

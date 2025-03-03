@@ -25,6 +25,7 @@ library
       Cooked.Conversion.ToOutputDatum
       Cooked.Conversion.ToPubKeyHash
       Cooked.Conversion.ToScriptHash
+      Cooked.Conversion.ToStakingCredential
       Cooked.Conversion.ToValue
       Cooked.Conversion.ToVersionedScript
       Cooked.Currencies

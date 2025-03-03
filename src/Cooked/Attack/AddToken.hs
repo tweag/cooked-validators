@@ -48,7 +48,7 @@ addTokenAttack extraTokens attacker = do
                    in if increment `Script.geq` mempty
                         then do
                           setTweak txSkelMintsL newMints
-                          addOutputTweak $ paysPK attacker increment
+                          addOutputTweak $ attacker `receives` increment
                           return increment
                         else failingTweak
               )
