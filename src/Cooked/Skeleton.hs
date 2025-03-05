@@ -1019,7 +1019,7 @@ withUnresolvedDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output)
 
 -- | Add a reference script to a transaction output (or replace it if there is
 -- already one)
-withReferenceScript :: (Show script, ToVersionedScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
+withReferenceScript :: (Show script, ToVersionedScript script, Typeable script, Script.ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
 withReferenceScript (Pays output) script = Pays $ (fromAbstractOutput output) {concreteOutputReferenceScript = Just script}
 
 -- | Add a staking credential to a transaction output (or replace it if there is
@@ -1129,7 +1129,7 @@ txSkelDataInOutputs =
 txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
 txSkelValidatorsInOutputs =
   Map.fromList
-    . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
+    . mapMaybe (fmap (\val -> (Script.toValidatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs
@@ -1142,7 +1142,7 @@ txSkelReferenceScripts =
             Nothing -> Map.empty
             Just x ->
               let vScript@(Script.Versioned script version) = toVersionedScript x
-                  Script.ScriptHash hash = toScriptHash vScript
+                  Script.ScriptHash hash = Script.toScriptHash vScript
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
     . txSkelOuts

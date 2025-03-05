@@ -189,7 +189,7 @@ addSpendingConstraint ts ss =
 
 -- | Getting the minted value from a TxInfo
 {-# INLINEABLE txInfoMintValueG #-}
-txInfoMintValueG :: Optics.Getter Api.TxInfo Api.Value
+txInfoMintValueG :: Optics.Getter Api.TxInfo Api.MintValue
 txInfoMintValueG = Optics.to Api.txInfoMint
 
 -- | Spending purpose that ensures a given minting script is invoked in the transaction
@@ -197,10 +197,10 @@ txInfoMintValueG = Optics.to Api.txInfoMint
 withForwardSpendingScript ::
   TypedMultiPurposeScript a ->
   PSU.MintingPolicyHash ->
-  Optics.Getter (SpendingTxInfo a) Api.Value ->
+  Optics.Getter (SpendingTxInfo a) Api.MintValue ->
   TypedMultiPurposeScript a
 withForwardSpendingScript ts (PSU.MintingPolicyHash hash) getter =
-  ts `withSpendingPurpose` \_ _ _ txInfo -> Api.CurrencySymbol hash `Map.member` Api.getValue (Optics.view getter txInfo)
+  ts `withSpendingPurpose` \_ _ _ txInfo -> Api.CurrencySymbol hash `Map.member` Api.mintValueToMap (Optics.view getter txInfo)
 
 -- | Spending purpose that ensures the own minting purpose is invoked in the transaction
 {-# INLINEABLE withOwnForwardSpendingScript #-}

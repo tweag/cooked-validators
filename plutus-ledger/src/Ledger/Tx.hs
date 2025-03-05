@@ -91,11 +91,11 @@ where
 
 import Cardano.Api (TxBodyContent (txValidityUpperBound))
 import Cardano.Api qualified as C
-import Cardano.Api.ReexposeLedger qualified as C.Ledger
 import Cardano.Api.Shelley qualified as C.Api
 import Cardano.Ledger.Alonzo.Tx (AlonzoTx (..))
 import Cardano.Ledger.Alonzo.TxWits (txwitsVKey)
 import Cardano.Ledger.Coin (Coin)
+import Cardano.Ledger.Shelley.TxCert qualified as C.Api
 import Codec.Serialise (Serialise)
 import Control.Lens
   ( Getter,
@@ -115,6 +115,7 @@ import Data.Coerce (coerce)
 import Data.List (genericLength)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Map.Ordered.Strict qualified as OMap
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Tuple (swap)
@@ -130,7 +131,7 @@ import Ledger.Tx.CardanoAPI
   )
 import Ledger.Tx.CardanoAPI qualified as CardanoAPI
 import Ledger.Tx.Internal as Export
-import Plutus.Script.Utils.Scripts (Script, Validator, ValidatorHash (..), scriptHash)
+import Plutus.Script.Utils.Scripts (Script, Validator, ValidatorHash (..), toScriptHash)
 import PlutusLedgerApi.V1 qualified as V1 hiding (TxOutRef (..))
 import PlutusLedgerApi.V1.Tx as Export hiding
   ( TxId (..),
@@ -280,7 +281,7 @@ toTxOut networkId p =
     <$> ( C.TxOut
             <$> CardanoAPI.toCardanoAddressInEra networkId (p ^. decoratedTxOutAddress)
             <*> pure (CardanoAPI.toCardanoTxOutValue (p ^. decoratedTxOutValue))
-            <*> (toTxOutDatum $ p ^? decoratedTxOutDatum)
+            <*> toTxOutDatum (p ^? decoratedTxOutDatum)
             <*> pure (CardanoAPI.toCardanoReferenceScript (p ^. decoratedTxOutReferenceScript))
         )
 
@@ -300,7 +301,7 @@ toTxInfoTxOut p =
     (p ^. decoratedTxOutAddress)
     (CardanoAPI.fromCardanoValue $ p ^. decoratedTxOutValue)
     (toPlutusOutputDatum $ p ^? decoratedTxOutDatum)
-    (views decoratedTxOutReferenceScript (fmap scriptHash) p)
+    (views decoratedTxOutReferenceScript (fmap toScriptHash) p)
 
 toPlutusOutputDatum :: Maybe (V2.DatumHash, DatumFromQuery) -> V2.Tx.OutputDatum
 toPlutusOutputDatum Nothing = V2.Tx.NoOutputDatum
@@ -366,7 +367,7 @@ instance Pretty CardanoAPI.CardanoBuildTx where
     _ -> viaShow txBodyContent
 
 getTxBodyContent :: CardanoTx -> C.TxBodyContent C.ViewTx C.ConwayEra
-getTxBodyContent (CardanoEmulatorEraTx (C.Tx (C.TxBody bodyContent) _)) = bodyContent
+getTxBodyContent (CardanoEmulatorEraTx tx) = C.getTxBodyContent $ C.getTxBody tx
 
 getCardanoTxId :: CardanoTx -> C.TxId
 getCardanoTxId = getCardanoApiTxId
@@ -388,17 +389,16 @@ getTxBodyContentCollateralInputs :: C.TxBodyContent ctx era -> [C.TxIn]
 getTxBodyContentCollateralInputs C.TxBodyContent {..} = CardanoAPI.fromCardanoTxInsCollateral txInsCollateral
 
 getCardanoTxReferenceInputs :: CardanoTx -> [C.TxIn]
-getCardanoTxReferenceInputs (CardanoTx (C.Tx (C.TxBody C.TxBodyContent {..}) _) _) =
-  txInsReferenceToTxIns txInsReference
+getCardanoTxReferenceInputs (CardanoTx tx _) = txInsReferenceToTxIns $ C.txInsReference $ C.getTxBodyContent $ C.getTxBody tx
   where
     txInsReferenceToTxIns C.TxInsReferenceNone = []
     txInsReferenceToTxIns (C.TxInsReference _ txIns') = txIns'
 
 getCardanoTxOutRefs :: CardanoTx -> [(TxOut, C.TxIn)]
-getCardanoTxOutRefs (CardanoEmulatorEraTx (C.Tx txBody@(C.TxBody C.TxBodyContent {..}) _)) =
-  mkOut <$> zip [0 ..] (coerce txOuts)
+getCardanoTxOutRefs (CardanoEmulatorEraTx tx) =
+  mkOut <$> zip [0 ..] (coerce $ C.txOuts $ C.getTxBodyContent $ C.getTxBody tx)
   where
-    mkOut (i, o) = (o, C.TxIn (C.getTxId txBody) (C.TxIx i))
+    mkOut (i, o) = (o, C.TxIn (C.getTxId $ C.getTxBody tx) (C.TxIx i))
 
 getCardanoTxOutputs :: CardanoTx -> [TxOut]
 getCardanoTxOutputs = fmap fst . getCardanoTxOutRefs
@@ -419,16 +419,16 @@ getTxBodyContentReturnCollateral C.TxBodyContent {..} =
     C.TxReturnCollateral _ txOut -> Just $ TxOut txOut
 
 getCardanoTxProducedReturnCollateral :: CardanoTx -> Map C.TxIn TxOut
-getCardanoTxProducedReturnCollateral tx@(CardanoEmulatorEraTx (C.Tx (C.TxBody C.TxBodyContent {..}) _)) =
-  maybe Map.empty (Map.singleton (C.TxIn (getCardanoTxId tx) (C.TxIx (genericLength txOuts)))) $
+getCardanoTxProducedReturnCollateral tx@(CardanoEmulatorEraTx tx') =
+  maybe Map.empty (Map.singleton (C.TxIn (getCardanoTxId tx) (C.TxIx (genericLength $ C.txOuts $ C.getTxBodyContent $ C.getTxBody tx')))) $
     getCardanoTxReturnCollateral tx
 
 getCardanoTxTotalCollateral :: CardanoTx -> Maybe Coin
-getCardanoTxTotalCollateral (CardanoEmulatorEraTx (C.Tx (C.TxBody C.TxBodyContent {..}) _)) =
-  CardanoAPI.fromCardanoTotalCollateral txTotalCollateral
+getCardanoTxTotalCollateral (CardanoEmulatorEraTx tx) =
+  CardanoAPI.fromCardanoTotalCollateral $ C.txTotalCollateral $ C.getTxBodyContent $ C.getTxBody tx
 
 getCardanoTxFee :: CardanoTx -> Coin
-getCardanoTxFee (CardanoTx (C.Tx (C.TxBody C.TxBodyContent {..}) _) _) = CardanoAPI.fromCardanoFee txFee
+getCardanoTxFee (CardanoTx tx _) = CardanoAPI.fromCardanoFee $ C.txFee $ C.getTxBodyContent $ C.getTxBody tx
 
 getCardanoTxMint :: CardanoTx -> C.Value
 getCardanoTxMint = getTxBodyContentMint . getTxBodyContent
@@ -437,15 +437,17 @@ getTxBodyContentMint :: C.TxBodyContent ctx era -> C.Value
 getTxBodyContentMint C.TxBodyContent {..} = C.txMintValueToValue txMintValue
 
 getCardanoTxValidityRange :: CardanoTx -> SlotRange
-getCardanoTxValidityRange (CardanoTx (C.Tx (C.TxBody C.TxBodyContent {..}) _) _) = CardanoAPI.fromCardanoValidityRange txValidityLowerBound txValidityUpperBound
+getCardanoTxValidityRange (CardanoTx tx _) =
+  let bodyContent = C.getTxBodyContent $ C.getTxBody tx
+   in CardanoAPI.fromCardanoValidityRange (C.txValidityLowerBound bodyContent) (C.txValidityUpperBound bodyContent)
 
 getCardanoTxData :: CardanoTx -> Map V1.DatumHash V1.Datum
 getCardanoTxData (CardanoEmulatorEraTx (C.Tx txBody _)) = fst $ CardanoAPI.scriptDataFromCardanoTxBody txBody
 
-getTxBodyContentCerts :: C.TxBodyContent ctx era -> [C.Ledger.TxCert (C.Api.ShelleyLedgerEra era)]
+getTxBodyContentCerts :: C.TxBodyContent ctx era -> [C.Api.TxCert (C.Api.ShelleyLedgerEra era)]
 getTxBodyContentCerts C.TxBodyContent {..} = case txCertificates of
   C.TxCertificatesNone -> mempty
-  C.TxCertificates _ certs _ -> C.Api.toShelleyCertificate <$> certs
+  C.TxCertificates _ certs -> C.Api.toShelleyCertificate . fst <$> OMap.toAscList certs
 
 -- TODO: add txMetaData
 
@@ -475,7 +477,7 @@ getCardanoTxRedeemers :: CardanoTx -> V2.Tx.Redeemers
 getCardanoTxRedeemers (CardanoEmulatorEraTx (C.Tx txBody _)) = snd $ CardanoAPI.scriptDataFromCardanoTxBody txBody
 
 getCardanoTxExtraKeyWitnesses :: CardanoTx -> [C.Hash C.PaymentKey]
-getCardanoTxExtraKeyWitnesses (CardanoEmulatorEraTx (C.Tx (C.TxBody C.TxBodyContent {..}) _)) = case txExtraKeyWits of
+getCardanoTxExtraKeyWitnesses (CardanoEmulatorEraTx tx) = case C.txExtraKeyWits $ C.getTxBodyContent $ C.getTxBody tx of
   C.Api.TxExtraKeyWitnessesNone -> mempty
   C.Api.TxExtraKeyWitnesses _ txwits -> txwits
 

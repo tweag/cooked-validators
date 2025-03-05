@@ -39,10 +39,10 @@ where
 
 import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
-import Cooked.Conversion.ToScriptHash
 import Cooked.Conversion.ToValue
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2.Tx qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -79,7 +79,7 @@ type IsTxInfoOutput o =
     ToCredential (OwnerType o),
     ToOutputDatum (DatumType o),
     ToValue (ValueType o),
-    ToScriptHash (ReferenceScriptType o)
+    Script.ToScriptHash (ReferenceScriptType o)
   )
 
 outputAddress :: (IsAbstractOutput o, ToCredential (OwnerType o)) => o -> Api.Address
@@ -91,8 +91,8 @@ outputOutputDatum = toOutputDatum . (^. outputDatumL)
 outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Api.Value
 outputValue = toValue . (^. outputValueL)
 
-outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Api.ScriptHash
-outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
+outputReferenceScriptHash :: (IsAbstractOutput o, Script.ToScriptHash (ReferenceScriptType o)) => o -> Maybe Api.ScriptHash
+outputReferenceScriptHash = (Script.toScriptHash <$>) . (^. outputReferenceScriptL)
 
 -- | Return the output as it is seen by a validator on the 'TxInfo'.
 outputTxOut :: (IsTxInfoOutput o) => o -> Api.TxOut
@@ -185,10 +185,10 @@ isScriptOutput out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAd
 isScriptOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific script
-isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
+isScriptOutputFrom :: (IsTxInfoOutput out, Script.ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
 isScriptOutputFrom validator out = do
   x <- isScriptOutput out
-  if toScriptHash validator == x ^. outputOwnerL
+  if Script.toScriptHash validator == x ^. outputOwnerL
     then Just (x {concreteOutputOwner = validator})
     else Nothing
 
@@ -228,9 +228,9 @@ isOnlyAdaOutput _ = Nothing
 
 -- | Convert the reference script type on the output to 'Api.ScriptHash'.
 toOutputWithReferenceScriptHash :: (IsTxInfoOutput out) => out -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash
-toOutputWithReferenceScriptHash out = (fromAbstractOutput out) {concreteOutputReferenceScript = toScriptHash <$> out ^. outputReferenceScriptL}
+toOutputWithReferenceScriptHash out = (fromAbstractOutput out) {concreteOutputReferenceScript = Script.toScriptHash <$> out ^. outputReferenceScriptL}
 
 -- | Test if the reference script in an output is a specific script
-isReferenceScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash)
-isReferenceScriptOutputFrom script out | Just x <- out ^. outputReferenceScriptL, toScriptHash x == toScriptHash script = Just $ toOutputWithReferenceScriptHash out
+isReferenceScriptOutputFrom :: (IsTxInfoOutput out, Script.ToScriptHash s) => s -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash)
+isReferenceScriptOutputFrom script out | Just x <- out ^. outputReferenceScriptL, Script.toScriptHash x == Script.toScriptHash script = Just $ toOutputWithReferenceScriptHash out
 isReferenceScriptOutputFrom _ _ = Nothing

@@ -28,7 +28,7 @@ toMintValue mints = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMa
     policyId <-
       throwOnToCardanoError
         "toMintValue: Unable to translate minting policy hash"
-        (Ledger.toCardanoPolicyId $ Script.mintingPolicyHash policy)
+        (Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash policy)
     assetsMinted <- forM (Map.toList $ NEMap.toMap assets) $ \(Api.TokenName (PlutusTx.BuiltinByteString name), NonZero quantity) -> do
       mintWitness <- toScriptWitness policy red Cardano.NoScriptDatumForMint
       return (Cardano.AssetName name, Cardano.Quantity quantity, Cardano.BuildTxWith mintWitness)

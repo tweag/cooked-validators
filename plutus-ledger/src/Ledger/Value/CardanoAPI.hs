@@ -44,7 +44,7 @@ import Data.Maybe (isJust)
 import Data.Monoid (All (All, getAll))
 import Data.Ratio (denominator, numerator)
 import GHC.Exts
-import Ledger.Scripts (MintingPolicy (..), Versioned (..), withCardanoApiScript)
+import Ledger.Scripts (MintingPolicy (..), Versioned (..), toCardanoScriptHash)
 import Ledger.Tx.CardanoAPI.Internal
   ( adaToCardanoValue,
     fromCardanoAssetId,
@@ -94,7 +94,7 @@ split :: C.Value -> (C.Value, C.Value)
 split = bimap (C.negateValue . fromList) fromList . partition ((< 0) . snd) . toList
 
 policyId :: Versioned MintingPolicy -> C.PolicyId
-policyId = withCardanoApiScript C.scriptPolicyId . fmap getMintingPolicy
+policyId = C.PolicyId . toCardanoScriptHash
 
 combine :: (Monoid m) => (C.AssetId -> C.Quantity -> C.Quantity -> m) -> C.Value -> C.Value -> m
 combine f v1 v2 = merge (toList v1) (toList v2)

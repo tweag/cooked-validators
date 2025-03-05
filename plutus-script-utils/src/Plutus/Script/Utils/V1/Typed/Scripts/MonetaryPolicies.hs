@@ -38,12 +38,7 @@ import PlutusTx.Prelude (Bool (False), any, ($), (.), (==))
 mkForwardingMintingPolicy :: ValidatorHash -> MintingPolicy
 mkForwardingMintingPolicy vshsh =
   toMintingPolicy
-    $ $$( PlutusTx.compile
-            [||
-            \(hsh :: ValidatorHash) ->
-              mkUntypedMintingPolicy (forwardToValidator hsh)
-            ||]
-        )
+    $ $$(PlutusTx.compile [||\(hsh :: ValidatorHash) -> mkUntypedMintingPolicy (forwardToValidator hsh)||])
     `PlutusTx.unsafeApplyCode` PlutusTx.liftCode plcVersion100 vshsh
 
 {-# INLINEABLE forwardToValidator #-}

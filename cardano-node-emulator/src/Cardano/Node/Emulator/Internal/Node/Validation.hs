@@ -40,7 +40,7 @@ module Cardano.Node.Emulator.Internal.Node.Validation
   )
 where
 
-import Cardano.Api.Error qualified as C
+import Cardano.Api.Internal.Error qualified as C
 import Cardano.Api.Shelley qualified as C
 import Cardano.Ledger.Alonzo.Plutus.Evaluate
   ( collectPlutusScriptsWithContext,
@@ -180,7 +180,8 @@ initialState params =
             C.Ledger.ledgerIx = minBound,
             C.Ledger.ledgerPp = emulatorPParams params,
             C.Ledger.ledgerAccount = C.Ledger.AccountState (Coin 0) (Coin 0),
-            C.Ledger.ledgerMempool = True -- TODO, what does it mean?
+            C.Ledger.ledgerMempool = True, -- TODO, what does it mean?
+            C.Ledger.ledgerEpochNo = Nothing
           },
       _memPoolState = esLState (nesEs (createInitialState (pConfig params)))
     }
@@ -286,8 +287,8 @@ validateCardanoTx ::
   EmulatedLedgerState ->
   CardanoTx ->
   (Maybe EmulatedLedgerState, P.ValidationResult)
-validateCardanoTx params ls ctx@(CardanoEmulatorEraTx tx@(C.Tx (C.TxBody bodyContent) _)) =
-  if map fst (C.txIns bodyContent) == [genesisTxIn]
+validateCardanoTx params ls ctx@(CardanoEmulatorEraTx tx) =
+  if map fst (C.txIns $ C.getTxBodyContent $ C.getTxBody tx) == [genesisTxIn]
     then (Just ls, P.Success (unsafeMakeValid ctx) Map.empty)
     else hasValidationErrors params ls tx
 

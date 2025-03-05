@@ -41,7 +41,6 @@ module Cardano.Node.Emulator.Internal.Node.Params
 where
 
 import Cardano.Api qualified as C
-import Cardano.Api.NetworkId qualified as C
 import Cardano.Api.Shelley qualified as C
 import Cardano.Ledger.Alonzo.Genesis qualified as C
 import Cardano.Ledger.Alonzo.PParams qualified as C
@@ -202,7 +201,7 @@ paramsFromConfig tc =
               getPOSIXTime $ nominalDiffTimeToPOSIXTime $ C.Ledger.fromNominalDiffTimeMicro $ C.sgSlotLength sg
           },
       pEmulatorPParams = tc ^. C.tcInitialPParamsG,
-      pNetworkId = C.fromShelleyNetwork (C.sgNetworkId sg) (C.NetworkMagic $ C.sgNetworkMagic sg),
+      pNetworkId = C.Testnet (C.NetworkMagic $ C.sgNetworkMagic sg),
       pEpochSize = C.sgEpochLength sg,
       pConfig = tc
     }

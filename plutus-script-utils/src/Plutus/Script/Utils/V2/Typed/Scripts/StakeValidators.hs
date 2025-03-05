@@ -33,19 +33,12 @@ import PlutusLedgerApi.V2.Tx (TxOut (TxOut, txOutAddress))
 import PlutusTx qualified
 import PlutusTx.Prelude (Bool (False), any, ($), (.), (==))
 
--- TODO: we should add a TypedStakeValidator interface here
-
 -- | A stake validator that checks whether the validator script was run
 --  in the right transaction.
 mkForwardingStakeValidator :: ValidatorHash -> StakeValidator
 mkForwardingStakeValidator vshsh =
   toStakeValidator
-    $ $$( PlutusTx.compile
-            [||
-            \(hsh :: ValidatorHash) ->
-              mkUntypedStakeValidator (forwardToValidator hsh)
-            ||]
-        )
+    $ $$(PlutusTx.compile [||\(hsh :: ValidatorHash) -> mkUntypedStakeValidator (forwardToValidator hsh)||])
     `PlutusTx.unsafeApplyCode` PlutusTx.liftCode plcVersion100 vshsh
 
 {-# INLINEABLE forwardToValidator #-}

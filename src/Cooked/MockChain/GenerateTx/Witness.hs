@@ -52,7 +52,7 @@ toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
       "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
       scriptOutRef
       referenceScriptsMap
-  when (refScriptHash /= toScriptHash script) $
+  when (refScriptHash /= Script.toScriptHash script) $
     throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."
   scriptTxIn <-
     throwOnToCardanoError

@@ -31,7 +31,7 @@ module Ledger.Address
     xprvToStakingCredential,
     xprvToStakePubKey,
     xprvToStakePubKeyHash,
-    mkValidatorCardanoAddress,
+    toCardanoAddressInConway,
   )
 where
 
@@ -50,9 +50,9 @@ import Ledger.Scripts
   ( ScriptHash (..),
     StakeValidatorHash (..),
     ValidatorHash (..),
-    mkValidatorCardanoAddress,
+    toCardanoAddressInConway,
   )
-import PlutusLedgerApi.V1.Address as Export hiding (pubKeyHashAddress)
+import PlutusLedgerApi.V1.Address as Export hiding (pubKeyHashAddress, toScriptHash)
 import PlutusLedgerApi.V1.Credential
   ( Credential (PubKeyCredential, ScriptCredential),
     StakingCredential (StakingHash),

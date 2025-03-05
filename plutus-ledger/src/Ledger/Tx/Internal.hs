@@ -96,9 +96,7 @@ instance C.ToCBOR TxOut where
   toCBOR = C.toCBOR . C.toShelleyTxOut C.ShelleyBasedEraConway . toCtxUTxOTxOut
 
 instance C.FromCBOR TxOut where
-  fromCBOR = do
-    txout <- C.fromCBOR
-    pure $ TxOut $ C.fromShelleyTxOut C.ShelleyBasedEraConway txout
+  fromCBOR = TxOut . C.fromShelleyTxOut C.ShelleyBasedEraConway <$> C.fromCBOR
 
 instance Serialise TxOut where
   encode = C.toCBOR
@@ -178,18 +176,12 @@ lookupScript txScripts hash = Map.lookup hash txScripts
 
 lookupValidator :: ScriptsMap -> ValidatorHash -> Maybe (Versioned Validator)
 lookupValidator txScripts = (fmap . fmap) Validator . lookupScript txScripts . toScriptHash
-  where
-    toScriptHash (ValidatorHash b) = ScriptHash b
 
 lookupMintingPolicy :: ScriptsMap -> MintingPolicyHash -> Maybe (Versioned MintingPolicy)
 lookupMintingPolicy txScripts = (fmap . fmap) MintingPolicy . lookupScript txScripts . toScriptHash
-  where
-    toScriptHash (MintingPolicyHash b) = ScriptHash b
 
 lookupStakeValidator :: ScriptsMap -> StakeValidatorHash -> Maybe (Versioned StakeValidator)
 lookupStakeValidator txScripts = (fmap . fmap) StakeValidator . lookupScript txScripts . toScriptHash
-  where
-    toScriptHash (StakeValidatorHash b) = ScriptHash b
 
 emptyTxBodyContent :: C.TxBodyContent C.BuildTx C.ConwayEra
 emptyTxBodyContent =

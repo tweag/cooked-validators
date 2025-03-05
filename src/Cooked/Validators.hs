@@ -29,11 +29,11 @@ validatorToTypedValidator val =
     { Script.tvValidator = vValidator,
       Script.tvValidatorHash = vValidatorHash,
       Script.tvForwardingMPS = vMintingPolicy,
-      Script.tvForwardingMPSHash = Script.mintingPolicyHash vMintingPolicy
+      Script.tvForwardingMPSHash = Script.toMintingPolicyHash vMintingPolicy
     }
   where
     vValidator = Script.Versioned val Script.PlutusV2
-    vValidatorHash = Script.validatorHash vValidator
+    vValidatorHash = Script.toValidatorHash vValidator
     forwardingPolicy = Script.mkForwardingMintingPolicy vValidatorHash
     vMintingPolicy = Script.Versioned forwardingPolicy Script.PlutusV2
 
@@ -41,11 +41,25 @@ validatorToTypedValidator val =
 -- sufficient target for the datum hijacking attack since we only want to show
 -- feasibility of the attack.
 alwaysTrueValidator :: forall a. Script.TypedValidator a
-alwaysTrueValidator = validatorToTypedValidator @a $ Script.mkValidatorScript $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.unitval||])
+alwaysTrueValidator =
+  validatorToTypedValidator @a $
+    Script.toValidator
+      $$( PlutusTx.compile
+            [||
+            \(_ :: PlutusTx.BuiltinData) (_ :: PlutusTx.BuiltinData) (_ :: PlutusTx.BuiltinData) -> PlutusTx.unitval
+            ||]
+        )
 
 -- | The trivial validator that always fails
 alwaysFalseValidator :: forall a. Script.TypedValidator a
-alwaysFalseValidator = validatorToTypedValidator @a $ Script.mkValidatorScript $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.error PlutusTx.unitval||])
+alwaysFalseValidator =
+  validatorToTypedValidator @a $
+    Script.toValidator
+      $$( PlutusTx.compile
+            [||
+            \(_ :: PlutusTx.BuiltinData) (_ :: PlutusTx.BuiltinData) (_ :: PlutusTx.BuiltinData) -> PlutusTx.error @PlutusTx.BuiltinUnit PlutusTx.unitval
+            ||]
+        )
 
 -- | A Mock contract type to instantiate validators with
 data MockContract

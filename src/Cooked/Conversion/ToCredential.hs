@@ -1,7 +1,6 @@
 -- | Objects from which a credential can be extracted
 module Cooked.Conversion.ToCredential where
 
-import Cooked.Conversion.ToScriptHash
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -26,16 +25,16 @@ instance ToCredential Api.ScriptHash where
   toCredential = Api.ScriptCredential
 
 instance ToCredential Script.ValidatorHash where
-  toCredential = toCredential . toScriptHash
+  toCredential = toCredential . Script.toScriptHash
 
 instance ToCredential (Script.Versioned Script.Script) where
-  toCredential = toCredential . toScriptHash
+  toCredential = toCredential . Script.toScriptHash
 
 instance ToCredential (Script.Versioned Script.Validator) where
-  toCredential = toCredential . toScriptHash
+  toCredential = toCredential . Script.toScriptHash
 
 instance ToCredential (Script.TypedValidator a) where
-  toCredential = toCredential . toScriptHash
+  toCredential = toCredential . Script.toScriptHash
 
 instance ToCredential (Script.Versioned Script.MintingPolicy) where
-  toCredential = toCredential . toScriptHash
+  toCredential = toCredential . Script.toScriptHash

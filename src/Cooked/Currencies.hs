@@ -65,7 +65,7 @@ mkQuickCurrencyPolicy :: () -> Api.ScriptContext -> Bool
 mkQuickCurrencyPolicy _ _ = True
 
 quickCurrencyPolicy :: Script.MintingPolicy
-quickCurrencyPolicy = Script.mkMintingPolicyScript $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
+quickCurrencyPolicy = Script.toMintingPolicy $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
 
 quickCurrencyPolicyV2 :: Script.Versioned Script.MintingPolicy
 quickCurrencyPolicyV2 = Script.Versioned quickCurrencyPolicy Script.PlutusV2
@@ -92,7 +92,7 @@ mkPermanentCurrencyPolicy :: () -> Api.ScriptContext -> Bool
 mkPermanentCurrencyPolicy _ _ = False
 
 permanentCurrencyPolicy :: Script.MintingPolicy
-permanentCurrencyPolicy = Script.mkMintingPolicyScript $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
+permanentCurrencyPolicy = Script.toMintingPolicy $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
 
 permanentCurrencyPolicyV2 :: Script.Versioned Script.MintingPolicy
 permanentCurrencyPolicyV2 = Script.Versioned permanentCurrencyPolicy Script.PlutusV2

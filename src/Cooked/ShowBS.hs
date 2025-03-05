@@ -148,6 +148,10 @@ instance ShowBS Api.Value where
   {-# INLINEABLE showBS #-}
   showBS (Api.Value m) = application1 "Value" m
 
+instance ShowBS Api.MintValue where
+  {-# INLINEABLE showBS #-}
+  showBS mVal = showBS $ Api.mintValueMinted mVal <> negate (Api.mintValueBurned mVal)
+
 instance ShowBS Api.TxId where
   {-# INLINEABLE showBS #-}
   showBS (Api.TxId x) = application1 "TxId" x

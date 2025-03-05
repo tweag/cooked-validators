@@ -65,7 +65,6 @@ import Control.Monad.Trans.Control
 import Control.Monad.Writer
 import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
-import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.GenerateTx
 import Cooked.Output
 import Cooked.Skeleton
@@ -269,7 +268,7 @@ resolveValidator out =
 -- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
 resolveReferenceScript ::
   ( IsAbstractOutput out,
-    ToScriptHash (ReferenceScriptType out),
+    Script.ToScriptHash (ReferenceScriptType out),
     MonadBlockChainBalancing m
   ) =>
   out ->

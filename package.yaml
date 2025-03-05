@@ -31,6 +31,7 @@ dependencies:
   - nonempty-containers
   - optics-core
   - optics-th
+  - ordered-containers
   - plutus-core
   - plutus-ledger
   - plutus-ledger-api

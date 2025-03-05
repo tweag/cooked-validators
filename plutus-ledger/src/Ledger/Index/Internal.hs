@@ -56,10 +56,6 @@ unOnChain = eitherTx id id
 -- | The UTxOs of a blockchain indexed by their references.
 type UtxoIndex = C.UTxO C.ConwayEra
 
-deriving newtype instance Semigroup (C.UTxO era)
-
-deriving newtype instance Monoid (C.UTxO era)
-
 -- | A reason why a transaction is invalid.
 data ValidationError
   = -- | The transaction output consumed by a transaction input could not be found (either because it was already spent, or because

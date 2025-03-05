@@ -232,6 +232,9 @@ instance ToValidatorHash PV1.ScriptHash where
 instance ToValidatorHash (Versioned Validator) where
   toValidatorHash = toValidatorHash . toScriptHash . fmap toScript
 
+instance ToScriptHash ValidatorHash where
+  toScriptHash = coerce
+
 -- | CurrencySymbol and MintingPolicyHash are isomorphic, so anything that can be
 -- translated to a MintingPolicyHash can be seen as a CurrencySymbol
 {-# INLINEABLE scriptCredential #-}
@@ -290,6 +293,9 @@ instance ToMintingPolicyHash PV1.ScriptHash where
 instance ToMintingPolicyHash (Versioned MintingPolicy) where
   toMintingPolicyHash = toMintingPolicyHash . toScriptHash . fmap toScript
 
+instance ToScriptHash MintingPolicyHash where
+  toScriptHash = coerce
+
 -- | CurrencySymbol and MintingPolicyHash are isomorphic, so anything that can be
 -- translated to a MintingPolicyHash can be seen as a CurrencySymbol
 {-# INLINEABLE scriptCurrencySymbol #-}
@@ -347,6 +353,9 @@ instance ToStakeValidatorHash PV1.ScriptHash where
 
 instance ToStakeValidatorHash (Versioned StakeValidator) where
   toStakeValidatorHash = toStakeValidatorHash . toScriptHash . fmap toScript
+
+instance ToScriptHash StakeValidatorHash where
+  toScriptHash = coerce
 
 -- * Hashing data
 

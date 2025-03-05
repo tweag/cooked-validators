@@ -41,6 +41,7 @@ import GHC.Generics (Generic)
 import Plutus.Script.Utils.Scripts
   ( Language (PlutusV1, PlutusV2, PlutusV3),
     Script,
+    ToScriptHash (toScriptHash),
     ToVersioned (toVersioned),
     Versioned (Versioned, unversioned, version),
     getValidator,
@@ -48,7 +49,6 @@ import Plutus.Script.Utils.Scripts
   )
 import Plutus.Script.Utils.Scripts qualified as PV1
 import PlutusLedgerApi.V1 qualified as PV1
-import PlutusLedgerApi.V1.Address qualified as PV1
 import PlutusLedgerApi.V2 qualified as PV2
 import PlutusLedgerApi.V3 qualified as PV3
 import PlutusTx.Prelude (BuiltinData, BuiltinString, BuiltinUnit, check, trace)
@@ -99,6 +99,9 @@ data TypedValidator (a :: Type) = TypedValidator
 
 instance ToVersioned Script (TypedValidator a) where
   toVersioned = fmap getValidator . tvValidator
+
+instance ToScriptHash (TypedValidator a) where
+  toScriptHash = toScriptHash . tvValidator
 
 -- | The hash of the validator.
 validatorHash :: TypedValidator a -> PV1.ValidatorHash

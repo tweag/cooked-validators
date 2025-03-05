@@ -7,7 +7,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -91,7 +90,7 @@ module Ledger.Tx.CardanoAPI.Internal
 where
 
 import Cardano.Api qualified as C
-import Cardano.Api.Error qualified as C
+import Cardano.Api.Internal.Error qualified as C
 import Cardano.Api.Shelley qualified as C
 import Cardano.BM.Data.Tracer (ToObject)
 import Cardano.Chain.Common (addrToBase58)
@@ -120,7 +119,7 @@ import Ledger.Address qualified as P
 import Ledger.Scripts qualified as P
 import Ledger.Slot qualified as P
 import Plutus.Script.Utils.Ada qualified as Ada
-import Plutus.Script.Utils.Ada qualified as P
+import Plutus.Script.Utils.Scripts qualified as Scripts
 import Plutus.Script.Utils.V2.Scripts qualified as PV2
 import Plutus.Script.Utils.Value qualified as Value
 import PlutusLedgerApi.V1 qualified as PV1
@@ -200,11 +199,12 @@ parseSomeCardanoTx invalid =
     (typeMismatch "Object" invalid)
 
 txOutRefs :: CardanoTx -> [(PV1.TxOut, PV3.TxOutRef)]
-txOutRefs (CardanoTx (C.Tx txBody@(C.TxBody C.TxBodyContent {..}) _) _) =
+txOutRefs (CardanoTx tx _) =
   mkOut <$> zip [0 ..] plutusTxOuts
   where
-    mkOut (i, o) = (o, PV3.TxOutRef (fromCardanoTxId $ C.getTxId txBody) i)
-    plutusTxOuts = fromCardanoTxOutToPV1TxInfoTxOut <$> txOuts
+    body = C.getTxBody tx
+    mkOut (i, o) = (o, PV3.TxOutRef (fromCardanoTxId $ C.getTxId body) i)
+    plutusTxOuts = fromCardanoTxOutToPV1TxInfoTxOut <$> C.txOuts (C.getTxBodyContent body)
 
 unspentOutputsTx :: CardanoTx -> Map PV3.TxOutRef PV1.TxOut
 unspentOutputsTx tx = Map.fromList $ swap <$> txOutRefs tx
@@ -249,24 +249,12 @@ scriptDataFromCardanoTxBody
     withShelleyBasedEraConstraintsForLedger shelleyBasedEra $ case reds' of
       (Alonzo.Redeemers reds) ->
         let datums =
-              Map.fromList
-                $ fmap
-                  ( (\d -> (P.datumHash d, d))
-                      . P.Datum
-                      . fromCardanoScriptData
-                      . C.fromAlonzoData
-                  )
-                $ Map.elems dats
+              Map.fromList ((\d -> (P.datumHash d, d)) . P.Datum . fromCardanoScriptData . C.fromAlonzoData <$> Map.elems dats)
             redeemers =
               Map.fromList
                 $ map
                   ( \(ptr, rdmr) ->
-                      ( redeemerPtrFromCardanoRdmrPtr ptr,
-                        P.Redeemer $
-                          fromCardanoScriptData $
-                            C.fromAlonzoData $
-                              fst rdmr
-                      )
+                      (redeemerPtrFromCardanoRdmrPtr ptr, P.Redeemer $ fromCardanoScriptData $ C.fromAlonzoData $ fst rdmr)
                   )
                 $ Map.toList reds
          in (datums, redeemers)
@@ -286,7 +274,7 @@ plutusScriptsFromTxBody :: C.TxBody era -> Map P.ScriptHash (P.Versioned P.Scrip
 -- plutusScriptsFromTxBody C.ByronTxBody{} = mempty
 plutusScriptsFromTxBody (C.ShelleyTxBody shelleyBasedEra _ scripts _ _ _) =
   Map.fromList $
-    mapMaybe (fmap (\s -> (P.scriptHash s, s)) . fromLedgerScript shelleyBasedEra) scripts
+    mapMaybe (fmap (\s -> (Scripts.toScriptHash s, s)) . fromLedgerScript shelleyBasedEra) scripts
 
 --
 
@@ -534,8 +522,8 @@ toCardanoScriptDataHash (P.DatumHash bs) =
 fromCardanoMintValue :: C.TxMintValue build era -> C.Value
 fromCardanoMintValue = C.txMintValueToValue
 
-adaToCardanoValue :: P.Ada -> C.Value
-adaToCardanoValue (P.Lovelace n) = fromList [(C.AdaAssetId, C.Quantity n)]
+adaToCardanoValue :: Ada.Ada -> C.Value
+adaToCardanoValue (Ada.Lovelace n) = fromList [(C.AdaAssetId, C.Quantity n)]
 
 fromCardanoValue :: C.Value -> Value.Value
 fromCardanoValue = foldMap fromSingleton . toList

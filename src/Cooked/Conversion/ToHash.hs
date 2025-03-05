@@ -3,7 +3,6 @@
 -- those elements.
 module Cooked.Conversion.ToHash where
 
-import Cooked.Conversion.ToScriptHash
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -25,7 +24,7 @@ instance ToHash (Script.Versioned Script.MintingPolicy) where
   toHash = toHash . Script.scriptCurrencySymbol
 
 instance ToHash (Script.Versioned Script.Script) where
-  toHash = toHash . toScriptHash
+  toHash = toHash . Script.toScriptHash
 
 instance ToHash Script.ScriptHash where
   toHash = Script.getScriptHash

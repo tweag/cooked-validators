@@ -41,7 +41,6 @@ module Cardano.Node.Emulator.Generators
     failOnCardanoError,
     genPolicyId,
     genAssetId,
-    Gen.genAssetName,
     genSingleton,
     genValue,
     genValueNonNegative,
@@ -207,8 +206,8 @@ genInitialTransaction ::
 genInitialTransaction GeneratorModel {..} = do
   let pkAddr pk = either (error . show) id $ LC.toCardanoAddressInEra testnet $ pubKeyAddress pk Nothing
       initialDist = Map.mapKeys pkAddr $ fmap Value.lovelaceToValue gmInitialBalance
-  let tx@(CardanoEmulatorEraTx (C.Tx (C.TxBody txBodyContent) _)) = createGenesisTransaction initialDist
-      txOuts = Tx.TxOut <$> C.txOuts txBodyContent
+  let tx@(CardanoEmulatorEraTx tx') = createGenesisTransaction initialDist
+      txOuts = Tx.TxOut <$> C.txOuts (C.getTxBodyContent $ C.getTxBody tx')
   pure (tx, txOuts)
 
 -- | Generate a valid transaction, using the unspent outputs provided.

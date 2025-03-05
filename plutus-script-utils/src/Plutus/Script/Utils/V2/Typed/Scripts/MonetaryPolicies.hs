@@ -33,19 +33,12 @@ import PlutusLedgerApi.V2.Tx (TxOut (TxOut, txOutAddress))
 import PlutusTx qualified
 import PlutusTx.Prelude (Bool (False), any, ($), (.), (==))
 
--- TODO: we should add a TypedMintingPolicy interface here
-
 -- | A minting policy that checks whether the validator script was run
 --  in the minting transaction.
 mkForwardingMintingPolicy :: ValidatorHash -> MintingPolicy
 mkForwardingMintingPolicy vshsh =
   toMintingPolicy
-    $ $$( PlutusTx.compile
-            [||
-            \(hsh :: ValidatorHash) ->
-              mkUntypedMintingPolicy (forwardToValidator hsh)
-            ||]
-        )
+    $ $$(PlutusTx.compile [||\(hsh :: ValidatorHash) -> mkUntypedMintingPolicy (forwardToValidator hsh)||])
     `PlutusTx.unsafeApplyCode` PlutusTx.liftCode plcVersion100 vshsh
 
 {-# INLINEABLE forwardToValidator #-}

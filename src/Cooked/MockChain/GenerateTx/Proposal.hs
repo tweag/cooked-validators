@@ -20,17 +20,17 @@ import Cooked.Skeleton
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Map.Ordered.Strict qualified as OMap
 import Data.Map.Strict qualified as SMap
 import Data.Maybe
 import Data.Maybe.Strict
-import Data.OSet.Strict qualified as OSet
-import Data.Set qualified as Set
 import Data.Text qualified as Text
 import GHC.IO.Unsafe
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro qualified as MicroLens
 import Network.HTTP.Simple qualified as Network
 import Optics.Core
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -90,7 +90,7 @@ toGovAction TxSkelProposal {..} = do
       Cardano.ScriptHash sHash <-
         throwOnToCardanoError
           "Unable to convert script hash"
-          (Ledger.toCardanoScriptHash (toScriptHash script))
+          (Ledger.toCardanoScriptHash (Script.toScriptHash script))
       return $ SJust sHash
   case txSkelProposalAction of
     TxGovActionParameterChange changes ->
@@ -138,17 +138,8 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures :: [TxSkelProposal] -> AnchorResolution -> ProposalGen (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props anchorResolution = do
-  (OSet.fromSet -> ppSet, Cardano.BuildTxWith -> ppMap) <- go props
+  proposalList <- mapM (((Cardano.BuildTxWith <$>) <$>) . (`toProposalProcedureAndWitness` anchorResolution)) props
   return $
-    if null ppSet
+    if null proposalList
       then Cardano.TxProposalProceduresNone
-      else Cardano.TxProposalProcedures ppSet ppMap
-  where
-    go [] = return (Set.empty, Map.empty)
-    go (h : t) = do
-      (proposals, mapWitnesses) <- go t
-      (proposal, maybeWitness) <- toProposalProcedureAndWitness h anchorResolution
-      let outputMap = case maybeWitness of
-            Nothing -> mapWitnesses
-            Just newWitness -> Map.insert proposal newWitness mapWitnesses
-      return (Set.insert proposal proposals, outputMap)
+      else Cardano.TxProposalProcedures $ OMap.fromList proposalList

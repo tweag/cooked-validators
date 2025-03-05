@@ -11,6 +11,7 @@ import Cardano.Api qualified as C
 import Ledger qualified
 import Ledger.Typed.Scripts qualified as Scripts
 import Ledger.Value.CardanoAPI (policyId)
+import Plutus.Script.Utils.Scripts (toMintingPolicy, toMintingPolicyHash, toValidator)
 import Plutus.Script.Utils.Typed as PSU
 import Plutus.Script.Utils.V1.Address qualified as PV1
 import Plutus.Script.Utils.V1.Scripts qualified as PV1
@@ -25,13 +26,11 @@ import PlutusTx qualified
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prelude hiding (not)
 
-someCode ::
-  PlutusTx.CompiledCode
-    (PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
+someCode :: PlutusTx.CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
 someCode = $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.unitval||])
 
 someValidator :: Scripts.Validator
-someValidator = Ledger.mkValidatorScript someCode
+someValidator = toValidator someCode
 
 someTypedValidator :: Scripts.TypedValidator Any
 someTypedValidator = Scripts.unsafeMkTypedValidator (Versioned someValidator PlutusV1)
@@ -46,7 +45,7 @@ someAddress :: Address
 someAddress = Ledger.scriptValidatorHashAddress someValidatorHash Nothing
 
 someValidatorV2 :: Scripts.Validator
-someValidatorV2 = Ledger.mkValidatorScript someCode
+someValidatorV2 = toValidator someCode
 
 someTypedValidatorV2 :: Scripts.TypedValidator Any
 someTypedValidatorV2 = Scripts.unsafeMkTypedValidator (Versioned someValidator PlutusV2)
@@ -79,22 +78,16 @@ coinMintingPolicy lang = case lang of
   PlutusV3 -> Versioned coinMintingPolicyV3 lang
 
 coinMintingPolicyV1 :: Ledger.MintingPolicy
-coinMintingPolicyV1 =
-  Ledger.mkMintingPolicyScript
-    $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicy||])
+coinMintingPolicyV1 = toMintingPolicy $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicy||])
 
 coinMintingPolicyV2 :: Ledger.MintingPolicy
-coinMintingPolicyV2 =
-  Ledger.mkMintingPolicyScript
-    $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicyV2||])
+coinMintingPolicyV2 = toMintingPolicy $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicyV2||])
 
 coinMintingPolicyV3 :: Ledger.MintingPolicy
-coinMintingPolicyV3 =
-  Ledger.mkMintingPolicyScript
-    $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicyV3||])
+coinMintingPolicyV3 = toMintingPolicy $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicyV3||])
 
 coinMintingPolicyHash :: Language -> Ledger.MintingPolicyHash
-coinMintingPolicyHash = Ledger.mintingPolicyHash . coinMintingPolicy
+coinMintingPolicyHash = toMintingPolicyHash . coinMintingPolicy
 
 coinMintingPolicyCurrencySymbol :: Language -> Value.CurrencySymbol
 coinMintingPolicyCurrencySymbol = mpsSymbol . coinMintingPolicyHash
