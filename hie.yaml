@@ -5,3 +5,24 @@ cradle:
 
     - path: "./tests/"
       component: "cooked-validators:test:spec"
+
+    - path: "cardano-node-emulator/src"
+      component: "lib:cardano-node-emulator"
+
+    - path: "freer-extras/src"
+      component: "lib:freer-extras"
+
+    - path: "freer-extras/test"
+      component: "freer-extras:test:freer-extras-test"
+
+    - path: "plutus-ledger/src"
+      component: "lib:plutus-ledger"
+
+    - path: "plutus-ledger/test"
+      component: "plutus-ledger:test:plutus-ledger-test"
+
+    - path: "plutus-script-utils/src"
+      component: "lib:plutus-script-utils"
+
+    - path: "plutus-script-utils/test"
+      component: "plutus-script-utils:test:plutus-ledger-test"

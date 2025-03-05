@@ -67,7 +67,7 @@ tests =
   testGroup
     "Basic usage"
     [ testCase "Payment from alice to bob, with auto-balancing" $ testSucceeds $ pkToPk alice bob 10,
-      testCase "Circular payments of 10 Script.ada between alice bob and carrie" $ testSucceeds multiplePksToPks,
+      testCase "Circular payments of 10 ada between alice bob and carrie" $ testSucceeds multiplePksToPks,
       testCase "Minting quick tokens" $ testSucceeds mintingQuickValue,
       testCase "Paying to the always true validator" $ testSucceeds payToAlwaysTrueValidator,
       testCase "Consuming the always true validator" $ testSucceeds consumeAlwaysTrueValidator

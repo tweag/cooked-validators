@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
 
 -- | This module introduces currencies (namely the /quick values/ and the
 -- /permanent values/) which make it convenient to manipulate assets that are

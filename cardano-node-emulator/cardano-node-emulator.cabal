@@ -1,0 +1,93 @@
+cabal-version: 3.8
+name:          cardano-node-emulator
+version:       1.4.0.0
+
+common lang
+  default-language:   Haskell2010
+  default-extensions:
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    ExplicitForAll
+    FlexibleContexts
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    NamedFieldPuns
+    ScopedTypeVariables
+    StandaloneDeriving
+
+  -- See Plutus Tx readme for why we need the following flags:
+  -- -fobject-code -fno-ignore-interface-pragmas and -fno-omit-interface-pragmas
+  ghc-options:
+    -Wall -Widentities -Wincomplete-record-updates -Wunused-packages
+    -Wincomplete-uni-patterns -Wnoncanonical-monad-instances
+    -Wredundant-constraints -Wmissing-import-lists -fobject-code
+    -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+    -fplugin-opt PlutusTx.Plugin:target-version=1.1.0 -fplugin-opt
+    PlutusTx.Plugin:defer-errors
+
+  -- The limitation of plutus-tx-plugin
+  if (impl(ghc <9.6) || impl(ghc >=9.7))
+    buildable: False
+
+library
+  import:          lang
+  hs-source-dirs:  src
+  exposed-modules:
+    Cardano.Node.Emulator
+    Cardano.Node.Emulator.API
+    Cardano.Node.Emulator.Generators
+    Cardano.Node.Emulator.Internal.API
+    Cardano.Node.Emulator.Internal.Node
+    Cardano.Node.Emulator.Internal.Node.Chain
+    Cardano.Node.Emulator.Internal.Node.Params
+    Cardano.Node.Emulator.Internal.Node.TimeSlot
+    Cardano.Node.Emulator.Internal.Node.Validation
+    Cardano.Node.Emulator.LogMessages
+
+  --------------------
+  -- Local components
+  --------------------
+  build-depends:
+    , freer-extras         ^>=1.4.0
+    , plutus-ledger        ^>=1.4.0
+
+  --------------------------
+  -- Other IOG dependencies
+  --------------------------
+  build-depends:
+    , cardano-api:{cardano-api, gen, internal}  ^>=10.3
+    , cardano-crypto
+    , cardano-ledger-alonzo
+    , cardano-ledger-api
+    , cardano-ledger-binary
+    , cardano-ledger-conway
+    , cardano-ledger-core
+    , cardano-ledger-shelley
+    , cardano-slotting
+    , ouroboros-consensus
+    , plutus-ledger-api                         >=1.0.0
+    , plutus-tx                                 >=1.0.0
+    , sop-extras
+    , strict-sop-core
+
+  ------------------------
+  -- Non-IOG dependencies
+  ------------------------
+  build-depends:
+    , aeson          >=2
+    , base           >=4.9     && <5
+    , bytestring
+    , containers
+    , data-default
+    , freer-simple
+    , hedgehog
+    , lens
+    , mtl
+    , prettyprinter  >=1.1.0.1
+    , sop-core
+    , text
+    , time

@@ -1,9 +1,7 @@
 module Cooked.BalancingSpec where
 
-import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.Staged
 import Data.Default
 import Data.List qualified as List
@@ -222,7 +220,7 @@ failsWithValueNotConserved (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedg
 failsWithValueNotConserved _ = testBool False
 
 failsWithEmptyTxIns :: MockChainError -> Assertion
-failsWithEmptyTxIns (MCEGenerationError (TxBodyError _ Cardano.TxBodyEmptyTxIns)) = testBool True
+failsWithEmptyTxIns (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "InputSetEmptyUTxO" text
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> MockChainError -> Assertion
