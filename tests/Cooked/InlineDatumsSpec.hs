@@ -19,8 +19,6 @@ import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
-data SimpleContract
-
 data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show)
 
 instance PrettyCooked SimpleContractDatum where
@@ -31,50 +29,33 @@ instance PlutusTx.Eq SimpleContractDatum where
   SecondPaymentDatum == SecondPaymentDatum = True
   _ == _ = False
 
-PlutusTx.makeLift ''SimpleContractDatum
 PlutusTx.unstableMakeIsData ''SimpleContractDatum
 
-instance Script.ValidatorTypes SimpleContract where
-  type DatumType SimpleContract = SimpleContractDatum
-
-compileTypedMultiPurposeScript ::
-  Script.TypedMultiPurposeScript SimpleContract ->
-  Script.MultiPurposeScript SimpleContract
-compileTypedMultiPurposeScript (Script.typedToUntypedMultiPurposeScript -> script) =
-  Script.MultiPurposeScript $
-    Script.Script $
-      Api.serialiseCompiledCode $$(PlutusTx.compile [||script||])
-
--- | This defines two validators: @inputDatumValidator True@ is a validator that
--- only returns true if the UTxO it is asked to spend has an inline datum,
--- @inputDatumValidator False@ only returns true if the UTxO has a datum hash.
-{-# INLINEABLE inputDatumValidator #-}
-inputDatumValidator :: Bool -> Script.TypedMultiPurposeScript SimpleContract
-inputDatumValidator requireInlineDatum =
-  Script.alwaysFalseTypedMultiPurposeScript
-    `Script.withSpendingPurpose` \oRef _ _ Api.TxInfo {txInfoInputs} ->
-      case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
-        Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) | requireInlineDatum -> case inDatum of
-          Api.OutputDatum _ -> True
-          Api.OutputDatumHash _ -> PlutusTx.trace "I want an inline datum, but I got a hash" False
-          Api.NoOutputDatum -> PlutusTx.trace "I want an inline datum, but I got neither a datum nor a hash" False
-        Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) -> case inDatum of
-          Api.OutputDatumHash _ -> True
-          Api.OutputDatum _ -> PlutusTx.trace "I want a datum hash, but I got an inline datum" False
-          Api.NoOutputDatum -> PlutusTx.trace "I want a datum hash, but I got neither a datum nor a hash" False
-        _ -> False
+{-# INLINEABLE inputDatumSpendingPurpose #-}
+inputDatumSpendingPurpose :: Bool -> Script.SpendingScriptType SimpleContractDatum () Api.TxInfo
+inputDatumSpendingPurpose requireInlineDatum oRef _ _ Api.TxInfo {txInfoInputs} =
+  case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
+    Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) | requireInlineDatum -> case inDatum of
+      Api.OutputDatum _ -> True
+      Api.OutputDatumHash _ -> PlutusTx.trace "I want an inline datum, but I got a hash" False
+      Api.NoOutputDatum -> PlutusTx.trace "I want an inline datum, but I got neither a datum nor a hash" False
+    Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) -> case inDatum of
+      Api.OutputDatumHash _ -> True
+      Api.OutputDatum _ -> PlutusTx.trace "I want a datum hash, but I got an inline datum" False
+      Api.NoOutputDatum -> PlutusTx.trace "I want a datum hash, but I got neither a datum nor a hash" False
+    _ -> False
 
 requireInlineDatumInInputValidator :: Script.Versioned Script.Validator
-requireInlineDatumInInputValidator =
-  Script.Versioned
-    (Script.multiPurposeToValidator $ compileTypedMultiPurposeScript $ inputDatumValidator True)
-    Script.PlutusV3
+requireInlineDatumInInputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose True
 
 requireHashedDatumInInputValidator :: Script.Versioned Script.Validator
-requireHashedDatumInInputValidator =
-  Script.Versioned
-    (Script.multiPurposeToValidator $ compileTypedMultiPurposeScript $ inputDatumValidator False)
-    Script.PlutusV3
+requireHashedDatumInInputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose False
 
 data OutputDatumKind = OnlyHash | Datum | Inline
 
@@ -83,41 +64,39 @@ PlutusTx.makeLift ''OutputDatumKind
 -- | This defines three validators: @outputDatumValidator OnlyHash@ is a
 -- validator that only returns true if there's a continuing transaction output
 -- that has a datum hash that's not included in the 'txInfoData', inline datum,
--- @outputDatumValidator Datum@ requires an output datum with a hash that's in
--- the 'txInfoData', and @outputDatumValidator Inline@ only returns true if the
+-- @outputDatumSpendingPurpose Datum@ requires an output datum with a hash that's in
+-- the 'txInfoData', and @outputDatumSpendingPurpose Inline@ only returns true if the
 -- output has an inline datum.
-{-# INLINEABLE outputDatumValidator #-}
-outputDatumValidator :: OutputDatumKind -> Script.TypedMultiPurposeScript SimpleContract
-outputDatumValidator datumKind =
-  Script.alwaysFalseTypedMultiPurposeScript
-    `Script.withSpendingPurpose` \oRef _ _ Api.TxInfo {txInfoInputs, txInfoOutputs, txInfoData} ->
-      case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
-        Just (Api.TxInInfo _ Api.TxOut {txOutAddress})
-          | [Api.TxOut {txOutDatum}] <- PlutusTx.filter ((txOutAddress PlutusTx.==) . Api.txOutAddress) txInfoOutputs ->
-              case (datumKind, txOutDatum) of
-                (OnlyHash, Api.OutputDatumHash h) -> PlutusTx.not $ PlutusTx.member h txInfoData
-                (Datum, Api.OutputDatumHash h) -> PlutusTx.member h txInfoData
-                (Inline, Api.OutputDatum _) -> True
-                _ -> False
-        _ -> False
+{-# INLINEABLE outputDatumSpendingPurpose #-}
+outputDatumSpendingPurpose :: OutputDatumKind -> Script.SpendingScriptType SimpleContractDatum () Api.TxInfo
+outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOutputs, txInfoData} =
+  case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
+    Just (Api.TxInInfo _ Api.TxOut {txOutAddress})
+      | [Api.TxOut {txOutDatum}] <- PlutusTx.filter ((txOutAddress PlutusTx.==) . Api.txOutAddress) txInfoOutputs ->
+          case (datumKind, txOutDatum) of
+            (OnlyHash, Api.OutputDatumHash h) -> PlutusTx.not $ PlutusTx.member h txInfoData
+            (Datum, Api.OutputDatumHash h) -> PlutusTx.member h txInfoData
+            (Inline, Api.OutputDatum _) -> True
+            _ -> False
+    _ -> False
 
 requireInlineDatumInOutputValidator :: Script.Versioned Script.Validator
-requireInlineDatumInOutputValidator =
-  Script.Versioned
-    (Script.multiPurposeToValidator $ compileTypedMultiPurposeScript $ outputDatumValidator Inline)
-    Script.PlutusV3
+requireInlineDatumInOutputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose Inline
 
 requireHashedDatumInOutputValidator :: Script.Versioned Script.Validator
-requireHashedDatumInOutputValidator =
-  Script.Versioned
-    (Script.multiPurposeToValidator $ compileTypedMultiPurposeScript $ outputDatumValidator Datum)
-    Script.PlutusV3
+requireHashedDatumInOutputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose Datum
 
 requireOnlyHashedDatumInOutputValidator :: Script.Versioned Script.Validator
-requireOnlyHashedDatumInOutputValidator =
-  Script.Versioned
-    (Script.multiPurposeToValidator $ compileTypedMultiPurposeScript $ outputDatumValidator OnlyHash)
-    Script.PlutusV3
+requireOnlyHashedDatumInOutputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose OnlyHash
 
 -- | This defines two single-transaction traces: @listUtxosTestTrace True@ will
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use
@@ -216,7 +195,8 @@ tests =
         assertBool "... they do not" $
           (Script.datumHash . Api.Datum . Api.toBuiltinData $ FirstPaymentDatum)
             /= (Script.datumHash . Api.Datum . Api.toBuiltinData $ SecondPaymentDatum),
-      testGroup "from the MockChain's point of view on Transaction outputs (allUtxos)" $
+      testGroup
+        "from the MockChain's point of view on Transaction outputs (allUtxos)"
         -- The validator used in these test cases does not actually matter, we
         -- just need some script to pay to.
         [ testCase "the datum is retrieved correctly" $
@@ -235,68 +215,68 @@ tests =
                     [Api.OutputDatumHash _] -> True
                     _ -> False
                 _ -> False
+        ],
+      testGroup
+        "from the point of view of scripts"
+        [ testGroup
+            "looking at transaction inputs"
+            [ testGroup
+                "validator expects an inline datum..."
+                [ testCase "...and gets an inline datum, expecting success" $
+                    testSucceeds $
+                      spendOutputTestTrace True requireInlineDatumInInputValidator,
+                  testCase "...and gets a datum hash, expecting script failure" $
+                    testFailsInPhase2 $
+                      spendOutputTestTrace False requireInlineDatumInInputValidator
+                ],
+              testGroup
+                "validator expects a datum hash..."
+                [ testCase "...and gets an inline datum, expecting script failure" $
+                    testFailsInPhase2 $
+                      spendOutputTestTrace True requireHashedDatumInInputValidator,
+                  testCase "...and gets a datum hash, expecting success" $
+                    testSucceeds $
+                      spendOutputTestTrace False requireHashedDatumInInputValidator
+                ]
+            ],
+          testGroup
+            "looking at transaction outputs"
+            [ testGroup
+                "validator expects a regular datum..."
+                [ testCase "...and gets a regular datum, expecting success" $
+                    testSucceeds $
+                      continuingOutputTestTrace Datum requireHashedDatumInOutputValidator,
+                  testCase "...and gets an inline datum, expecting script failure" $
+                    testFailsInPhase2 $
+                      continuingOutputTestTrace Inline requireHashedDatumInOutputValidator,
+                  testCase "...and gets a datum hash, expecting script failure" $
+                    testFailsInPhase2 $
+                      continuingOutputTestTrace OnlyHash requireHashedDatumInOutputValidator
+                ],
+              testGroup
+                "validator expects an inline datum..."
+                [ testCase "...and gets a regular datum, expecting script failure" $
+                    testFailsInPhase2 $
+                      continuingOutputTestTrace Datum requireInlineDatumInOutputValidator,
+                  testCase "...and gets an inline datum, expecting success" $
+                    testSucceeds $
+                      continuingOutputTestTrace Inline requireInlineDatumInOutputValidator,
+                  testCase "...and gets a datum hash, expecting script failure" $
+                    testFailsInPhase2 $
+                      continuingOutputTestTrace OnlyHash requireInlineDatumInOutputValidator
+                ],
+              testGroup
+                "validator expects a datum hash..."
+                [ testCase "...and gets a regular datum, expecting script failure" $
+                    testFailsInPhase2 $
+                      continuingOutputTestTrace Datum requireOnlyHashedDatumInOutputValidator,
+                  testCase "...and gets an inline datum, expecting script failure" $
+                    testFailsInPhase2 $
+                      continuingOutputTestTrace Inline requireOnlyHashedDatumInOutputValidator,
+                  testCase "...and gets a datum hash, expecting success" $
+                    testSucceeds $
+                      continuingOutputTestTrace OnlyHash requireOnlyHashedDatumInOutputValidator
+                ]
+            ]
         ]
-        -- testGroup
-        --   "from the point of view of scripts"
-        --   [ testGroup
-        --       "looking at transaction inputs"
-        --       [ testGroup
-        --           "validator expects an inline datum..."
-        --           [ testCase "...and gets an inline datum, expecting success" $
-        --               testSucceeds $
-        --                 spendOutputTestTrace True (inputDatumValidator True),
-        --             testCase "...and gets a datum hash, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 spendOutputTestTrace False (inputDatumValidator True)
-        --           ],
-        --         testGroup
-        --           "validator expects a datum hash..."
-        --           [ testCase "...and gets an inline datum, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 spendOutputTestTrace True (inputDatumValidator False),
-        --             testCase "...and gets a datum hash, expecting success" $
-        --               testSucceeds $
-        --                 spendOutputTestTrace False (inputDatumValidator False)
-        --           ]
-        --       ],
-        --     testGroup
-        --       "looking at transaction outputs"
-        --       [ testGroup
-        --           "validator expects a regular datum..."
-        --           [ testCase "...and gets a regular datum, expecting success" $
-        --               testSucceeds $
-        --                 continuingOutputTestTrace Datum (outputDatumValidator Datum),
-        --             testCase "...and gets an inline datum, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 continuingOutputTestTrace Inline (outputDatumValidator Datum),
-        --             testCase "...and gets a datum hash, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 continuingOutputTestTrace OnlyHash (outputDatumValidator Datum)
-        --           ],
-        --         testGroup
-        --           "validator expects an inline datum..."
-        --           [ testCase "...and gets a regular datum, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 continuingOutputTestTrace Datum (outputDatumValidator Inline),
-        --             testCase "...and gets an inline datum, expecting success" $
-        --               testSucceeds $
-        --                 continuingOutputTestTrace Inline (outputDatumValidator Inline),
-        --             testCase "...and gets a datum hash, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 continuingOutputTestTrace OnlyHash (outputDatumValidator Inline)
-        --           ],
-        --         testGroup
-        --           "validator expects a datum hash..."
-        --           [ testCase "...and gets a regular datum, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 continuingOutputTestTrace Datum (outputDatumValidator OnlyHash),
-        --             testCase "...and gets an inline datum, expecting script failure" $
-        --               testFailsInPhase2 $
-        --                 continuingOutputTestTrace Inline (outputDatumValidator OnlyHash),
-        --             testCase "...and gets a datum hash, expecting success" $
-        --               testSucceeds $
-        --                 continuingOutputTestTrace OnlyHash (outputDatumValidator OnlyHash)
-        --           ]
-        --       ]
-        --   ]
     ]

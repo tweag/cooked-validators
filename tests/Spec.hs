@@ -2,7 +2,7 @@
 -- import Cooked.BalancingSpec qualified as BalancingSpec
 import Cooked.BasicUsageSpec qualified as BasicUsageSpec
 -- import Cooked.InitialDistributionSpec qualified as InitDistribSpec
--- import Cooked.InlineDatumsSpec qualified as InlineDatumsSpec
+import Cooked.InlineDatumsSpec qualified as InlineDatumsSpec
 -- import Cooked.LtlSpec qualified as LtlSpec
 -- import Cooked.MinAdaSpec qualified as MinAdaSpec
 -- import Cooked.MockChainSpec qualified as MockChainSpec
@@ -18,17 +18,17 @@ main =
   defaultMain $
     testGroup
       "cooked-validators"
-      [ BasicUsageSpec.tests
-      -- MinAdaSpec.tests,
-      -- BalancingSpec.tests,
-      -- InlineDatumsSpec.tests
-      -- ReferenceInputsSpec.tests,
-      -- ReferenceScriptsSpec.tests,
-      -- AttackSpec.tests,
-      -- TweakSpec.tests,
-      -- LtlSpec.tests,
-      -- MockChainSpec.tests,
-      -- InitDistribSpec.tests,
-      -- ProposingSpec.tests,
-      -- WithdrawalsSpec.tests
+      [ BasicUsageSpec.tests,
+        -- MinAdaSpec.tests,
+        -- BalancingSpec.tests,
+        InlineDatumsSpec.tests
+        -- ReferenceInputsSpec.tests,
+        -- ReferenceScriptsSpec.tests,
+        -- AttackSpec.tests,
+        -- TweakSpec.tests,
+        -- LtlSpec.tests,
+        -- MockChainSpec.tests,
+        -- InitDistribSpec.tests,
+        -- ProposingSpec.tests,
+        -- WithdrawalsSpec.tests
       ]

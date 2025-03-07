@@ -78,20 +78,20 @@ checkValidatorHash script expectedHash = do
 
 -- | Checks that the given datum has the right type.
 checkDatum ::
-  (PV1.FromData (DatumType a), MonadError ConnectionError m) =>
+  (PV1.FromData (SpendingDatumType a), MonadError ConnectionError m) =>
   MultiPurposeScript a ->
   Datum ->
-  m (DatumType a)
+  m (SpendingDatumType a)
 checkDatum _ (PV1.Datum d) = maybe (throwError $ WrongDatumType d) return $ PV1.fromBuiltinData d
 
 -- | A 'TxOut' tagged by a phantom type: and the connection type of the output.
-data TypedScriptTxOut a = (FromData (DatumType a), ToData (DatumType a)) =>
+data TypedScriptTxOut a = (FromData (SpendingDatumType a), ToData (SpendingDatumType a)) =>
   TypedScriptTxOut
   { tyTxOutTxOut :: TxOut,
-    tyTxOutData :: DatumType a
+    tyTxOutData :: SpendingDatumType a
   }
 
-instance (Eq (DatumType a)) => Eq (TypedScriptTxOut a) where
+instance (Eq (SpendingDatumType a)) => Eq (TypedScriptTxOut a) where
   l == r =
     tyTxOutTxOut l == tyTxOutTxOut r
       && tyTxOutData l == tyTxOutData r
@@ -102,14 +102,14 @@ data TypedScriptTxOutRef a = TypedScriptTxOutRef
     tyTxOutRefOut :: TypedScriptTxOut a
   }
 
-instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a) where
+instance (Eq (SpendingDatumType a)) => Eq (TypedScriptTxOutRef a) where
   l == r =
     tyTxOutRefRef l == tyTxOutRefRef r
       && tyTxOutRefOut l == tyTxOutRefOut r
 
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOut ::
-  (FromData (DatumType out), ToData (DatumType out), MonadError ConnectionError m) =>
+  (FromData (SpendingDatumType out), ToData (SpendingDatumType out), MonadError ConnectionError m) =>
   MultiPurposeScript out ->
   TxOutRef ->
   TxOut ->
@@ -132,8 +132,8 @@ typeScriptTxOut _ _ _ _ = throwError $ WrongOutType ExpectedScriptGotPubkey
 
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOutRef ::
-  ( FromData (DatumType out),
-    ToData (DatumType out),
+  ( FromData (SpendingDatumType out),
+    ToData (SpendingDatumType out),
     MonadError ConnectionError m
   ) =>
   MultiPurposeScript out ->

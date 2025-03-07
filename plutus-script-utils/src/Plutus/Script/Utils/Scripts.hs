@@ -98,6 +98,9 @@ instance ToScriptHash PV1.ScriptHash where
 instance ToScriptHash C.Api.ScriptHash where
   toScriptHash = PV1.ScriptHash . Builtins.toBuiltin . C.Api.serialiseToRawBytes
 
+instance ToScriptHash PV1.CurrencySymbol where
+  toScriptHash = coerce
+
 -- | Extracting Cardano script hashes
 class ToCardanoScriptHash a where
   toCardanoScriptHash :: a -> C.Api.ScriptHash
