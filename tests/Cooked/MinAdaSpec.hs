@@ -18,7 +18,7 @@ paymentWithMinAda = do
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [wallet 2 `receives` TxSkelOutDatum heavyDatum],
+          txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
           txSkelSigners = [wallet 1]
         }
 
@@ -27,7 +27,7 @@ paymentWithoutMinAda paidLovelaces = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelOuts = [wallet 2 `receives` paymentTemplate {paymentValue = Script.lovelace paidLovelaces, paymentDatum = Just heavyDatum}],
+        { txSkelOuts = [wallet 2 `receives` (Value (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum)],
           txSkelSigners = [wallet 1]
         }
 

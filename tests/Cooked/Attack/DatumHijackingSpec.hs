@@ -5,7 +5,6 @@ import Cooked
 import Data.Default
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Data.Typeable
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -53,15 +52,12 @@ instance Script.ValidatorTypes DHContract where
 lockValue :: Api.Value
 lockValue = Script.lovelaceValueOf 12345678
 
-mkPayment :: (Show a, PrettyCooked a, PlutusTx.ToData a, PlutusTx.Eq a, Typeable a, ToValue v) => a -> v -> Payment
-mkPayment dat val = paymentTemplate {paymentDatum = Just dat, paymentDatumKind = InlineDatum, paymentValue = val}
-
 lockTxSkel :: Api.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o emptyTxSkelRedeemer,
-      txSkelOuts = [v `receives` mkPayment FirstLock lockValue],
+      txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
 
@@ -75,7 +71,7 @@ relockTxSkel v o =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
-      txSkelOuts = [v `receives` mkPayment SecondLock lockValue],
+      txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
 
@@ -168,11 +164,11 @@ tests =
             x3 = Script.lovelaceValueOf 9999
             skelIn =
               txSkelFromOuts
-                [ val1 `receives` mkPayment SecondLock x1,
-                  val1 `receives` mkPayment SecondLock x3,
-                  val2 `receives` mkPayment SecondLock x1,
-                  val1 `receives` mkPayment FirstLock x2,
-                  val1 `receives` mkPayment SecondLock x2
+                [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
+                  val1 `receives` (InlineDatum SecondLock <&&> Value x3),
+                  val2 `receives` (InlineDatum SecondLock <&&> Value x1),
+                  val1 `receives` (InlineDatum FirstLock <&&> Value x2),
+                  val1 `receives` (InlineDatum SecondLock <&&> Value x2)
                 ]
             skelOut bound select =
               runTweak
@@ -194,11 +190,11 @@ tests =
                     Set.singleton . TxLabel . DatumHijackingLbl $
                       Script.validatorAddress thief,
                   txSkelOuts =
-                    [ val1 `receives` mkPayment SecondLock x1,
-                      a `receives` mkPayment SecondLock x3,
-                      val2 `receives` mkPayment SecondLock x1,
-                      val1 `receives` mkPayment FirstLock x2,
-                      b `receives` mkPayment SecondLock x2
+                    [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
+                      a `receives` (InlineDatum SecondLock <&&> Value x3),
+                      val2 `receives` (InlineDatum SecondLock <&&> Value x1),
+                      val1 `receives` (InlineDatum FirstLock <&&> Value x2),
+                      b `receives` (InlineDatum SecondLock <&&> Value x2)
                     ],
                   txSkelSigners = [wallet 1]
                 }

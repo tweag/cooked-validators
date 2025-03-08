@@ -34,15 +34,15 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ alwaysTrueValidator @MockContract `receives` paymentTemplate {paymentValue = Script.ada 42, paymentDatum = Just ()},
-      alice `receives` (Script.ada 2 <> apple 3),
-      alice `receives` Script.ada 25,
-      alice `receives` (Script.ada 40 <> orange 6),
-      alice `receives` Script.ada 8,
-      alice `receives` Script.ada 30,
-      alice `receives` paymentTemplate {paymentValue = Script.lovelace 1280229 <> banana 3, paymentDatum = Just (10 :: Integer)},
-      alice `receives` paymentTemplate {paymentValue = Script.ada 1 <> banana 7, paymentReferenceScript = Just (alwaysTrueValidator @MockContract)},
-      alice `receives` paymentTemplate {paymentValue = Script.ada 105 <> banana 2, paymentDatum = Just ()}
+    [ alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ()),
+      alice `receives` Value (Script.ada 2 <> apple 3),
+      alice `receives` Value (Script.ada 25),
+      alice `receives` Value (Script.ada 40 <> orange 6),
+      alice `receives` Value (Script.ada 8),
+      alice `receives` Value (Script.ada 30),
+      alice `receives` (Value (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer)),
+      alice `receives` (Value (Script.ada 1 <> banana 7) <&&> ReferenceScript (alwaysTrueValidator @MockContract)),
+      alice `receives` (Value (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ())
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet), [Api.TxOutRef])
@@ -77,7 +77,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   additionalSpend <- spendsScriptUtxo consumeScriptUtxo
   let skel =
         txSkelTemplate
-          { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [bob `receives` toBobValue, alice `receives` toAliceValue],
+          { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [bob `receives` Value toBobValue, alice `receives` Value toAliceValue],
             txSkelIns = additionalSpend <> Map.fromList ((,emptyTxSkelRedeemer) <$> toSpendUtxos),
             txSkelOpts =
               optionsMod
@@ -135,7 +135,7 @@ noBalanceMaxFee = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [bob `receives` Script.lovelace (30_000_000 - maxFee)],
+        { txSkelOuts = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
           txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
           txSkelOpts =
             def
@@ -149,7 +149,7 @@ balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer
 balanceReduceFee = do
   let skelAutoFee =
         txSkelTemplate
-          { txSkelOuts = [bob `receives` Script.ada 50],
+          { txSkelOuts = [bob `receives` Value (Script.ada 50)],
             txSkelSigners = [alice]
           }
   (skelBalanced, feeBalanced, mCols) <- balanceTxSkel skelAutoFee
@@ -171,7 +171,7 @@ reachingMagic = do
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [bob `receives` (Script.ada 106 <> banana 12)],
+        { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
           txSkelSigners = [alice],
           txSkelOpts =
             def

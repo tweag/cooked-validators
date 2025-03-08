@@ -45,8 +45,8 @@ testProposingRefScript script govAction = do
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts =
-            [ wallet 1 `receives` script,
-              wallet 1 `receives` Script.ada 10
+            [ wallet 1 `receives` ReferenceScript script,
+              wallet 1 `receives` Value (Script.ada 10)
             ],
           txSkelSigners = [wallet 1],
           txSkelOpts = def {txOptEnsureMinAda = True}

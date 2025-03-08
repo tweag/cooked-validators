@@ -116,8 +116,8 @@ bValidator =
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution ((\n -> aValidator `receives` paymentTemplate {paymentDatum = Just ADatum, paymentValue = Script.ada n}) <$> [2, 3, 4, 5])
-    <> InitialDistribution ((\n -> bValidator `receives` paymentTemplate {paymentDatum = Just BDatum, paymentValue = Script.ada n}) <$> [6, 7])
+    <> InitialDistribution ((\n -> aValidator `receives` (VisibleHashedDatum ADatum <&&> Value (Script.ada n))) <$> [2, 3, 4, 5])
+    <> InitialDistribution ((\n -> bValidator `receives` (VisibleHashedDatum BDatum <&&> Value (Script.ada n))) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)
@@ -150,7 +150,7 @@ tests =
             skelIn aInputs =
               txSkelTemplate
                 { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
-                  txSkelOuts = [wallet 2 `receives` Script.lovelace 2_500_000],
+                  txSkelOuts = [wallet 2 `receives` Value (Script.lovelace 2_500_000)],
                   txSkelSigners = [wallet 1]
                 }
 
@@ -230,8 +230,8 @@ tests =
                             <$> aInputs
                         ),
                   txSkelOuts =
-                    [ wallet 2 `receives` Script.lovelace 2_500_000,
-                      wallet 6 `receives` foldMap (outputValue . snd . snd) bInputs
+                    [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
+                      wallet 6 `receives` Value (foldMap (outputValue . snd . snd) bInputs)
                     ],
                   txSkelSigners = [wallet 1]
                 }
