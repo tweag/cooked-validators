@@ -10,6 +10,7 @@ import Data.Maybe
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusCore.Version qualified as PlutusTx
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Tx qualified as V3
 import PlutusTx qualified
@@ -45,17 +46,24 @@ inputDatumSpendingPurpose requireInlineDatum oRef _ _ Api.TxInfo {txInfoInputs} 
       Api.NoOutputDatum -> PlutusTx.trace "I want a datum hash, but I got neither a datum nor a hash" False
     _ -> False
 
-requireInlineDatumInInputValidator :: Script.Versioned Script.Validator
-requireInlineDatumInInputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+compiledInputDatumSpendingPurpose :: PlutusTx.CompiledCode (Bool -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
+compiledInputDatumSpendingPurpose = $$(PlutusTx.compile [||script||])
   where
-    script =
-      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose True
+    script b = Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose b
+
+requireInlineDatumInInputValidator :: Script.Versioned Script.Validator
+requireInlineDatumInInputValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $
+        compiledInputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 True
 
 requireHashedDatumInInputValidator :: Script.Versioned Script.Validator
-requireHashedDatumInInputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose False
+requireHashedDatumInInputValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $
+        compiledInputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 False
 
 data OutputDatumKind = OnlyHash | Datum | Inline
 
@@ -80,23 +88,31 @@ outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOu
             _ -> False
     _ -> False
 
-requireInlineDatumInOutputValidator :: Script.Versioned Script.Validator
-requireInlineDatumInOutputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
+compiledOutputDatumSpendingPurpose :: PlutusTx.CompiledCode (OutputDatumKind -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
+compiledOutputDatumSpendingPurpose = $$(PlutusTx.compile [||script||])
   where
-    script =
-      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose Inline
+    script b = Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose b
+
+requireInlineDatumInOutputValidator :: Script.Versioned Script.Validator
+requireInlineDatumInOutputValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $
+        compiledOutputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 Inline
 
 requireHashedDatumInOutputValidator :: Script.Versioned Script.Validator
-requireHashedDatumInOutputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose Datum
+requireHashedDatumInOutputValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $
+        compiledOutputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 Datum
 
 requireOnlyHashedDatumInOutputValidator :: Script.Versioned Script.Validator
-requireOnlyHashedDatumInOutputValidator = Script.toVersioned $ Script.MultiPurposeScript @() $ Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose OnlyHash
+requireOnlyHashedDatumInOutputValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $
+        compiledOutputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 OnlyHash
 
 -- | This defines two single-transaction traces: @listUtxosTestTrace True@ will
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use
