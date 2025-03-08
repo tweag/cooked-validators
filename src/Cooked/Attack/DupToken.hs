@@ -35,7 +35,7 @@ dupTokenAttack ::
   m Api.Value
 dupTokenAttack change attacker = do
   totalIncrement <- changeMintAmountsTweak
-  addOutputTweak $ attacker `receives` totalIncrement
+  addOutputTweak $ attacker `receives` Value totalIncrement
   addLabelTweak DupTokenLbl
   return totalIncrement
   where

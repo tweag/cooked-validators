@@ -8,7 +8,8 @@
 -- - we can have default or automated behavior for the parts of the transactions
 -- that are less relevant to testing, such as collaterals or fees
 module Cooked.Skeleton
-  ( LabelConstrs,
+  ( module X,
+    LabelConstrs,
     TxLabel (..),
     BalanceOutputPolicy (..),
     FeePolicy (..),
@@ -42,16 +43,6 @@ module Cooked.Skeleton
     txSkelOutDatumL,
     txSkelOutValue,
     txSkelOutValidator,
-    TxSkelOutDatumConstrs,
-    TxSkelOutDatum (..),
-    TxSkelOut (..),
-    txSkelOutTypedDatum,
-    txSkelOutUntypedDatum,
-    receives,
-    Payment (..),
-    PaymentDatumKind (..),
-    DatumInTransactionBody (..),
-    paymentTemplate,
     TxSkelRedeemer (..),
     Redeemer (..),
     RedeemerConstrs,
@@ -80,6 +71,8 @@ module Cooked.Skeleton
     txSkelOutsL,
     txSkelWithdrawalsL,
     txSkelTemplate,
+    TxSkelOut (..),
+    receives,
     txSkelDataInOutputs,
     txSkelValidatorsInOutputs,
     txSkelOutOwnerTypeP,
@@ -103,6 +96,8 @@ import Cardano.Node.Emulator qualified as Emulator
 import Cooked.Conversion
 import Cooked.Output
 import Cooked.Pretty.Class
+import Cooked.Skeleton.Datum as X
+import Cooked.Skeleton.Payable as X
 import Cooked.Wallet
 import Data.ByteString (ByteString)
 import Data.Default
@@ -799,123 +794,6 @@ instance Eq TxSkelOut where
 
 deriving instance Show TxSkelOut
 
-data DatumInTransactionBody where
-  -- | The transaction will see the datum associated the datum hash
-  IncludeDatumInTransactionBody :: DatumInTransactionBody
-  -- | The transaction will not see the datum associated to the datum hash
-  DoNotIncludeDatumInTransactionBody :: DatumInTransactionBody
-
-data PaymentDatumKind where
-  -- | Pay an inline datum
-  InlineDatum :: PaymentDatumKind
-  -- | Pay a hashed datum. The boolean parameters states whether or not the full
-  -- datum should be included in the generated transaction body.
-  HashedDatum :: DatumInTransactionBody -> PaymentDatumKind
-
--- | A payment represents what the users wants to give to a specific party. The
--- party itself is not part of the payment and payments are meants to be
--- instantiated from @paymentTemplate@
-data Payment where
-  Payment ::
-    ( TxSkelOutDatumConstrs a,
-      ToVersionedScript s,
-      Show s,
-      Typeable s,
-      ToScriptHash s,
-      ToMaybeStakingCredential sCred,
-      ToValue v
-    ) =>
-    { -- | An optional datum in this payment
-      paymentDatum :: Maybe a,
-      -- | How the datum should be treated during transaction
-      -- generation. Ignored if there is no datum.
-      paymentDatumKind :: PaymentDatumKind,
-      -- | An optional staking credential in this payment
-      paymentStakingCred :: sCred,
-      -- | An optional reference script in this payment
-      paymentReferenceScript :: Maybe s,
-      -- | The value in this payment
-      paymentValue :: v
-    } ->
-    Payment
-
--- | A payment template is meant to be the basics bricks from whichs payments
--- are built and given to parties using @receives@
-paymentTemplate :: Payment
-paymentTemplate =
-  Payment
-    { -- \| By default no datum is provided
-      paymentDatum = Nothing @(),
-      -- \| By default, the datum is provided as a hash in the UTXO and is given
-      -- in full to the transaction body.
-      paymentDatumKind = HashedDatum IncludeDatumInTransactionBody,
-      -- \| By default, no staking credential is provided
-      paymentStakingCred = Nothing @Api.StakingCredential,
-      -- \| By default, no reference script is provided
-      paymentReferenceScript = Nothing @(Script.Versioned Script.Script),
-      -- \| The default value is empty. This makes sense when combined with the
-      -- option @txOptEnsureMinAda@
-      paymentValue = mempty @Api.Value
-    }
-
--- | Overloading fields of @PaymentTemplate@ is the preferred way of building
--- payment when at least 2 fields must be overriden. When a single field needs
--- overridance, this proves cumbersome, and we provide the following type class
--- instead which allows convenient payments of single elements using `receives`.
-class IsPayment a where
-  toPayment :: a -> Payment
-
-instance IsPayment Payment where
-  toPayment = id
-
-instance IsPayment Api.Value where
-  toPayment val = paymentTemplate {paymentValue = val}
-
-instance IsPayment Script.Ada where
-  toPayment = toPayment . toValue
-
-instance IsPayment TxSkelOutDatum where
-  toPayment TxSkelOutNoDatum = paymentTemplate
-  toPayment (TxSkelOutDatum dat) = paymentTemplate {paymentDatum = Just dat}
-  toPayment (TxSkelOutDatumHash dat) = paymentTemplate {paymentDatum = Just dat, paymentDatumKind = HashedDatum DoNotIncludeDatumInTransactionBody}
-  toPayment (TxSkelOutInlineDatum dat) = paymentTemplate {paymentDatum = Just dat, paymentDatumKind = InlineDatum}
-
-instance IsPayment (Script.Versioned Script.Script) where
-  toPayment script = paymentTemplate {paymentReferenceScript = Just script}
-
-instance IsPayment (Script.TypedValidator a) where
-  toPayment = toPayment . toVersionedScript
-
-instance IsPayment (Script.Versioned Script.MintingPolicy) where
-  toPayment = toPayment . toVersionedScript
-
-instance IsPayment Api.StakingCredential where
-  toPayment sCred = paymentTemplate {paymentStakingCred = Just sCred}
-
--- | Smart constructor to build @TxSkelOut@ from some kind of owner and
--- payment. This should be the main way of building outputs.
-receives ::
-  (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner, IsPayment payment) =>
-  owner ->
-  payment ->
-  TxSkelOut
-receives owner (toPayment -> Payment {..}) =
-  Pays $
-    ConcreteOutput
-      owner
-      (toMaybeStakingCredential paymentStakingCred)
-      ( maybe
-          TxSkelOutNoDatum
-          ( case paymentDatumKind of
-              InlineDatum -> TxSkelOutInlineDatum
-              HashedDatum IncludeDatumInTransactionBody -> TxSkelOutDatum
-              _ -> TxSkelOutDatumHash
-          )
-          paymentDatum
-      )
-      (toValue paymentValue)
-      paymentReferenceScript
-
 txSkelOutDatumL :: Lens' TxSkelOut TxSkelOutDatum
 txSkelOutDatumL =
   lens
@@ -934,97 +812,23 @@ txSkelOutValue = (^. txSkelOutValueL)
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
-type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Api.ToData a, PlutusTx.Eq a, Typeable a)
+-- | Smart constructor to build @TxSkelOut@ from some kind of owner and
+-- payment. This should be the main way of building outputs.
+receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner) => owner -> Payable els -> TxSkelOut
+receives owner = go $ Pays initialOutput
+  where
+    initialOutput = ConcreteOutput owner Nothing TxSkelOutNoDatum mempty (Nothing @(Script.Versioned Script.Script))
 
--- | On transaction outputs, we have the options to use
---
--- 1. no datum
--- 2. only a datum hash
--- 3. a "normal" datum
--- 4. an inline datum
---
--- These four options are also what the type 'TxSkelOutDatum' records. The
--- following table explains their differences.
---
--- +------------------------+------------------+---------------------+-----------------------+
--- |                        | datum stored in  |                     | 'Api.OutputDatum'     |
--- |                        | in the simulated | datum resolved      | constructor           |
--- |                        | chain state      | on the 'txInfoData' | seen by the validator |
--- +========================+==================+=====================+=======================+
--- | 'TxSkelOutNoDatum'     | no               | no                  | 'Api.NoOutputDatum'   |
--- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatumHash'   | yes              | no                  | 'Api.OutputDatumHash' |
--- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatum'       | yes              | yes                 | 'Api.OutputDatumHash' |
--- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutInlineDatum' | yes              | no                  | 'Api.OutputDatum'     |
--- +------------------------+------------------+---------------------+-----------------------+
---
--- That is:
---
--- - Whenever there is a datum, we'll store it in the state of our simulated
---   chain. This will make it possible to retrieve it later, using functions
---   such as 'datumFromHash'.
---
--- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will
---   create an output that scripts see on the 'txInfo' as having a datum
---   hash. The difference is whether that hash will be resolvable using
---   validator functions like 'findDatum'.
-data TxSkelOutDatum where
-  -- | use no datum
-  TxSkelOutNoDatum :: TxSkelOutDatum
-  -- | only include the hash on the transaction
-  TxSkelOutDatumHash :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-  -- | use a 'Api.OutputDatumHash' on the transaction output, but generate the
-  -- transaction in such a way that the complete datum is included in the
-  -- 'txInfoData' seen by validators
-  TxSkelOutDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-  -- | use an inline datum
-  TxSkelOutInlineDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-
-deriving instance Show TxSkelOutDatum
-
-instance Eq TxSkelOutDatum where
-  x == y = compare x y == EQ
-
-instance Ord TxSkelOutDatum where
-  compare TxSkelOutNoDatum TxSkelOutNoDatum = EQ
-  compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2) =
-    case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
-      LT -> LT
-      GT -> GT
-      EQ -> case typeOf d1 `eqTypeRep` typeOf d2 of
-        Just HRefl -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
-        Nothing -> error "This branch cannot happen: un-equal type representations that compare to EQ"
-  compare (TxSkelOutDatum d1) (TxSkelOutDatum d2) =
-    compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
-  compare (TxSkelOutInlineDatum d1) (TxSkelOutInlineDatum d2) =
-    compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
-  compare TxSkelOutDatumHash {} TxSkelOutNoDatum = GT
-  compare TxSkelOutDatum {} TxSkelOutNoDatum = GT
-  compare TxSkelOutDatum {} TxSkelOutDatumHash {} = GT
-  compare TxSkelOutInlineDatum {} _ = GT
-  compare _ _ = LT
-
-instance ToOutputDatum TxSkelOutDatum where
-  toOutputDatum TxSkelOutNoDatum = Api.NoOutputDatum
-  toOutputDatum (TxSkelOutDatumHash datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutDatum datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutInlineDatum datum) = Api.OutputDatum . Api.Datum . Api.toBuiltinData $ datum
-
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
-txSkelOutUntypedDatum = \case
-  TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> Just (Api.Datum $ Api.toBuiltinData x)
-  TxSkelOutDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
-  TxSkelOutInlineDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
-
-txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = \case
-  TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> cast x
-  TxSkelOutDatum x -> cast x
-  TxSkelOutInlineDatum x -> cast x
+    go :: TxSkelOut -> Payable els -> TxSkelOut
+    go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatum dat
+    go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
+    go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
+    go (Pays output) (Value v) = Pays $ setValue output $ toValue v
+    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ toVersionedScript script
+    go (Pays output) (StakingCredential sc) = case toMaybeStakingCredential sc of
+      Nothing -> Pays output
+      Just stCred -> Pays $ setStakingCredential output stCred
+    go pays (PayableAnd p1 p2) = go (go pays p1) p2
 
 -- * Transaction skeletons
 

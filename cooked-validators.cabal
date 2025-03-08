@@ -60,6 +60,8 @@ library
       Cooked.Pretty.Options
       Cooked.ShowBS
       Cooked.Skeleton
+      Cooked.Skeleton.Datum
+      Cooked.Skeleton.Payable
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs
