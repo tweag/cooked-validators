@@ -757,7 +757,10 @@ instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrValidator = Left
 
 instance IsTxSkelOutAllowedOwner Wallet where
-  toPKHOrValidator = toPKHOrValidator . toPubKeyHash
+  toPKHOrValidator = Left . toPubKeyHash
+
+instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
+  toPKHOrValidator = Right
 
 instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
   toPKHOrValidator = Right . Script.tvValidator
@@ -784,7 +787,7 @@ data TxSkelOut where
       Show (ReferenceScriptType o),
       Typeable (ReferenceScriptType o)
     ) =>
-    {producedOutput :: o} ->
+    o ->
     TxSkelOut
 
 instance Eq TxSkelOut where
@@ -812,22 +815,19 @@ txSkelOutValue = (^. txSkelOutValueL)
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
--- | Smart constructor to build @TxSkelOut@ from some kind of owner and
--- payment. This should be the main way of building outputs.
+-- | Smart constructor to build @TxSkelOut@ from an owner and payment. This
+-- should be the main way of building outputs.
 receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner) => owner -> Payable els -> TxSkelOut
-receives owner = go $ Pays initialOutput
+receives owner = go $ Pays $ ConcreteOutput owner Nothing TxSkelOutNoDatum mempty $ Nothing @(Script.Versioned Script.Script)
   where
-    initialOutput = ConcreteOutput owner Nothing TxSkelOutNoDatum mempty (Nothing @(Script.Versioned Script.Script))
-
     go :: TxSkelOut -> Payable els -> TxSkelOut
     go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatum dat
     go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
     go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
     go (Pays output) (Value v) = Pays $ setValue output $ toValue v
     go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ toVersionedScript script
-    go (Pays output) (StakingCredential sc) = case toMaybeStakingCredential sc of
-      Nothing -> Pays output
-      Just stCred -> Pays $ setStakingCredential output stCred
+    go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
+    go pays (StakingCredential _) = pays
     go pays (PayableAnd p1 p2) = go (go pays p1) p2
 
 -- * Transaction skeletons
