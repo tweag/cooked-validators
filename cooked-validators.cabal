@@ -61,7 +61,10 @@ library
       Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Skeleton.Datum
+      Cooked.Skeleton.Label
+      Cooked.Skeleton.Option
       Cooked.Skeleton.Payable
+      Cooked.Skeleton.Redeemer
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs

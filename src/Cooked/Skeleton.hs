@@ -9,30 +9,6 @@
 -- that are less relevant to testing, such as collaterals or fees
 module Cooked.Skeleton
   ( module X,
-    LabelConstrs,
-    TxLabel (..),
-    BalanceOutputPolicy (..),
-    FeePolicy (..),
-    BalancingPolicy (..),
-    BalancingUtxos (..),
-    RawModTx (..),
-    EmulatorParamsModification (..),
-    CollateralUtxos (..),
-    AnchorResolution (..),
-    applyEmulatorParamsModification,
-    applyRawModOnBalancedTx,
-    TxOpts (..),
-    txOptEnsureMinAdaL,
-    txOptUnsafeModTxL,
-    txOptAutoSlotIncreaseL,
-    txOptBalancingPolicyL,
-    txOptBalanceOutputPolicyL,
-    txOptFeePolicyL,
-    txOptBalancingUtxosL,
-    txOptEmulatorParamsModificationL,
-    txOptCollateralUtxosL,
-    txOptAnchorResolutionL,
-    txOptAutoReferenceScriptsL,
     TxSkelMints,
     addToTxSkelMints,
     txSkelMintsToList,
@@ -43,10 +19,6 @@ module Cooked.Skeleton
     txSkelOutDatumL,
     txSkelOutValue,
     txSkelOutValidator,
-    TxSkelRedeemer (..),
-    Redeemer (..),
-    RedeemerConstrs,
-    withReferenceInput,
     TxParameterChange (..),
     TxGovAction (..),
     TxSkelProposal (..),
@@ -85,26 +57,21 @@ module Cooked.Skeleton
     txSkelValueInOutputs,
     txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
-    someTxSkelRedeemer,
-    emptyTxSkelRedeemer,
-    toTypedRedeemer,
   )
 where
 
-import Cardano.Api qualified as Cardano
-import Cardano.Node.Emulator qualified as Emulator
 import Cooked.Conversion
 import Cooked.Output
-import Cooked.Pretty.Class
 import Cooked.Skeleton.Datum as X
+import Cooked.Skeleton.Label as X
+import Cooked.Skeleton.Option as X
 import Cooked.Skeleton.Payable as X
+import Cooked.Skeleton.Redeemer as X
 import Cooked.Wallet
-import Data.ByteString (ByteString)
 import Data.Default
 import Data.Either
 import Data.Either.Combinators
 import Data.Function
-import Data.List (foldl')
 import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -113,7 +80,6 @@ import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.Typeable (cast)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
@@ -125,325 +91,6 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
-
--- * Transaction labels
-
-type LabelConstrs x = (PrettyCooked x, Show x, Typeable x, Eq x, Ord x)
-
-data TxLabel where
-  TxLabel :: (LabelConstrs x) => x -> TxLabel
-
-instance Eq TxLabel where
-  a == x = compare a x == EQ
-
-instance Show TxLabel where
-  show (TxLabel x) = show x
-
-instance PrettyCooked TxLabel where
-  prettyCookedOpt opts (TxLabel x) = prettyCookedOpt opts x
-
-instance Ord TxLabel where
-  compare (TxLabel a) (TxLabel x) =
-    case compare (SomeTypeRep (typeOf a)) (SomeTypeRep (typeOf x)) of
-      LT -> LT
-      GT -> GT
-      EQ -> case typeOf a `eqTypeRep` typeOf x of
-        Just HRefl -> compare a x
-        -- This can never happen, since 'eqTypeRep' is implemented in terms of
-        -- '==' on the type representation:
-        Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
-
--- * Transaction options
-
--- | What fee policy to use in the transaction.
-data FeePolicy
-  = -- | Use automatic fee computation. If balancing is activated, an optimal
-    -- fee will be computed based on the transaction and existing utxos in the
-    -- balancing wallet. Otherwise, the maximum transaction fee will be applied.
-    AutoFeeComputation
-  | -- | Provide a fee to the transaction. If the autobalancing is activated, it
-    -- will be attempted around this fee, which might lead to failure if it is
-    -- too low, otherwise, this fee will be given to transaction generation.
-    ManualFee Integer
-  deriving (Eq, Ord, Show)
-
-instance Default FeePolicy where
-  def = AutoFeeComputation
-
--- | Whether to adjust a potentially existing output to the balancing wallet
--- with the change during transaction balancing.
-data BalanceOutputPolicy
-  = -- | Try to adjust an existing public key output with the change. If no
-    -- suitable output can be found, create a new change output.
-    AdjustExistingOutput
-  | -- | Do not change the existing outputs, always create a new change output.
-    DontAdjustExistingOutput
-  deriving (Eq, Ord, Show)
-
-instance Default BalanceOutputPolicy where
-  def = AdjustExistingOutput
-
--- | Which UTxOs to use when balancing. Note that utxos that are already known
--- by the skeleton being balanced (in the sense of `txSkelKnownTxOutRefs`,
--- i.e. inputs and reference inputs) will be filtered out during balancing.
-data BalancingUtxos
-  = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
-    -- and no reference script) belonging to the balancing wallet.
-    BalancingUtxosFromBalancingWallet
-  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
-    BalancingUtxosFromSet (Set Api.TxOutRef)
-  deriving (Eq, Ord, Show)
-
-instance Default BalancingUtxos where
-  def = BalancingUtxosFromBalancingWallet
-
--- | Whether to balance the transaction or not, and which wallet to use to
--- provide outputs for balancing. Either the first signer or an explicit
--- wallet. In the second case, this wallet must be a signer of the transaction.
-data BalancingPolicy
-  = BalanceWithFirstSigner
-  | BalanceWith Wallet
-  | DoNotBalance
-  deriving (Eq, Ord, Show)
-
-instance Default BalancingPolicy where
-  def = BalanceWithFirstSigner
-
--- | Wraps a function that will be applied to a transaction right before
--- submission, and after balancing.
-newtype RawModTx
-  = RawModTxAfterBalancing (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra)
-
--- This instance always returns @False@, which is no problem, because 'Eq
--- TxSkel' is only used for tests that never depend on this comparison
-instance Eq RawModTx where
-  _ == _ = False
-
-instance Show RawModTx where
-  show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
-
--- | Applies a list of modifications right before the transaction is
--- submitted. The leftmost function in the argument list is applied first.
-applyRawModOnBalancedTx :: [RawModTx] -> Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
-applyRawModOnBalancedTx = foldl' (\acc (RawModTxAfterBalancing f) -> acc . f) id
-
--- | Wraps a function that will temporarily change the emulator parameters for
--- the transaction's balancing and submission.
-newtype EmulatorParamsModification = EmulatorParamsModification (Emulator.Params -> Emulator.Params)
-
--- This instance always returns @False@, which is no problem, because 'Eq
--- TxSkel' is only used for tests that never depend on this comparison
-instance Eq EmulatorParamsModification where
-  _ == _ = False
-
-instance Show EmulatorParamsModification where
-  show EmulatorParamsModification {} = "EmulatorParamsModification <function>"
-
-applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.Params -> Emulator.Params
-applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
-applyEmulatorParamsModification Nothing = id
-
--- | Describe which UTxOs to use as collaterals
-data CollateralUtxos
-  = -- | Rely on automated computation with only-value UTxOs from the balancing
-    -- wallet. Return collaterals will be sent to this wallet.
-    CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computation with only-value UTxOs from a given
-    -- wallet. Return collaterals will be sent to this wallet.
-    CollateralUtxosFromWallet Wallet
-  | -- | Manually provide a set of candidate UTxOs to be used as collaterals
-    -- alongside a wallet to send return collaterals back to.
-    CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
-  deriving (Eq, Show)
-
-instance Default CollateralUtxos where
-  def = CollateralUtxosFromBalancingWallet
-
--- | Describes how to resolve anchors in proposal procedures
-data AnchorResolution
-  = -- | Provide a map between urls and page content as Bytestring
-    AnchorResolutionLocal (Map String ByteString)
-  | -- | Allow online fetch of pages from a given URL. Important note: using
-    -- this option is unsafe, as it requires a web connection and inherently
-    -- prevents guarantees of reproducibily. Use at your own discretion.
-    AnchorResolutionHttp
-  deriving (Eq, Show)
-
-instance Default AnchorResolution where
-  def = AnchorResolutionLocal Map.empty
-
--- | Set of options to modify the behavior of generating and validating some
--- transaction.
-data TxOpts = TxOpts
-  { -- | Performs an adjustment to unbalanced transactions, making sure every
-    -- UTxO that is produced has the necessary minimum amount of Ada.
-    --
-    -- Default is @False@.
-    txOptEnsureMinAda :: Bool,
-    -- | Whether to increase the slot counter automatically on transaction
-    -- submission.  This is useful for modelling transactions that could be
-    -- submitted in parallel in reality, so there should be no explicit ordering
-    -- of what comes first.
-    --
-    -- Default is @True@.
-    txOptAutoSlotIncrease :: Bool,
-    -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted ('txOptEnsureMinAda') and balanced. The name of this
-    -- option contains /unsafe/ to draw attention to the fact that modifying a
-    -- transaction at that stage might make it invalid. Still, this offers a
-    -- hook for being able to alter a transaction in unforeseen ways. It is
-    -- mostly used to test contracts that have been written for custom PABs.
-    --
-    -- One interesting use of this function is to observe a transaction just
-    -- before it is being sent for validation, with
-    --
-    -- > txOptUnsafeModTx = [RawModTxAfterBalancing Debug.Trace.traceShowId]
-    --
-    -- The leftmost function in the list is applied first.
-    --
-    -- Default is @[]@.
-    txOptUnsafeModTx :: [RawModTx],
-    -- | Whether to balance the transaction or not, and which wallet should
-    -- provide/reclaim the missing and surplus value. Balancing ensures that
-    --
-    -- > input + mints == output + fees + burns
-    --
-    -- If you decide to set @txOptBalance = DoNotBalance@ you will have trouble
-    -- satisfying that equation by hand unless you use @ManualFee@. You will
-    -- likely see a error about value preservation.
-    --
-    -- Default is 'BalanceWithFirstSigner'
-    txOptBalancingPolicy :: BalancingPolicy,
-    -- | The fee to use when balancing the transaction
-    --
-    -- Default is 'AutomaticFeeComputation'
-    txOptFeePolicy :: FeePolicy,
-    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
-    --
-    -- Default is 'AdjustExistingOutput'.
-    txOptBalanceOutputPolicy :: BalanceOutputPolicy,
-    -- | Which UTxOs to use during balancing. This can either be a precise list,
-    -- or rely on automatic searches for utxos with values only belonging to the
-    -- balancing wallet.
-    --
-    -- Default is 'BalancingUtxosFromBalancingWallet'.
-    txOptBalancingUtxos :: BalancingUtxos,
-    -- | Apply an arbitrary modification to the protocol parameters that are
-    -- used to balance and submit the transaction. This is obviously a very
-    -- unsafe thing to do if you want to preserve compatibility with the actual
-    -- chain. It is useful mainly for testing purposes, when you might want to
-    -- use extremely big transactions or transactions that exhaust the maximum
-    -- execution budget. Such a thing could be accomplished with
-    --
-    -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
-    --
-    -- for example.
-    --
-    -- Default is 'Nothing'.
-    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification,
-    -- | Which utxos to use as collaterals. They can be given manually, or
-    -- computed automatically from a given, or the balancing, wallet.
-    --
-    -- Default is 'CollateralUtxosFromBalancingWallet'
-    txOptCollateralUtxos :: CollateralUtxos,
-    -- | How to resolve anchor in proposal procedures
-    --
-    -- Default is 'AnchorResolutionLocal Map.Empty'
-    txOptAnchorResolution :: AnchorResolution,
-    -- | Whether to automatically fill up reference inputs in redeemers when
-    -- they contain the right reference script. This will imply going through
-    -- all the known utxos with reference scripts and compare their hashes, thus
-    -- will slightly reduce performance.
-    --
-    -- Defaut is 'False'.
-    txOptAutoReferenceScripts :: Bool
-  }
-  deriving (Eq, Show)
-
-makeLensesFor
-  [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
-    ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
-    ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
-    ("txOptBalancingPolicy", "txOptBalancingPolicyL"),
-    ("txOptFeePolicy", "txOptFeePolicyL"),
-    ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
-    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
-    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
-    ("txOptCollateralUtxos", "txOptCollateralUtxosL"),
-    ("txOptAnchorResolution", "txOptAnchorResolutionL"),
-    ("txOptAutoReferenceScripts", "txOptAutoReferenceScriptsL")
-  ]
-  ''TxOpts
-
-instance Default TxOpts where
-  def =
-    TxOpts
-      { txOptEnsureMinAda = False,
-        txOptAutoSlotIncrease = True,
-        txOptUnsafeModTx = [],
-        txOptBalancingPolicy = def,
-        txOptBalanceOutputPolicy = def,
-        txOptFeePolicy = def,
-        txOptBalancingUtxos = def,
-        txOptEmulatorParamsModification = Nothing,
-        txOptCollateralUtxos = def,
-        txOptAnchorResolution = def,
-        txOptAutoReferenceScripts = False
-      }
-
--- * Redeemers for transaction inputs
-
-type RedeemerConstrs redeemer =
-  ( Api.ToData redeemer,
-    Show redeemer,
-    PrettyCooked redeemer,
-    PlutusTx.Eq redeemer,
-    Typeable redeemer
-  )
-
-data Redeemer where
-  EmptyRedeemer :: Redeemer
-  SomeRedeemer :: (RedeemerConstrs redeemer) => redeemer -> Redeemer
-
-deriving instance (Show Redeemer)
-
-instance Eq Redeemer where
-  EmptyRedeemer == EmptyRedeemer = True
-  (SomeRedeemer r1) == (SomeRedeemer r2) =
-    case typeOf r1 `eqTypeRep` typeOf r2 of
-      Just HRefl -> r1 PlutusTx.== r2
-      Nothing -> False
-  _ == _ = False
-
-data TxSkelRedeemer = TxSkelRedeemer
-  { txSkelRedeemer :: Redeemer,
-    -- An optional input containing a reference script
-    txSkelReferenceInput :: Maybe Api.TxOutRef
-  }
-  deriving (Show, Eq)
-
--- Attempts to cast a redeemer to a certain type
-toTypedRedeemer :: (Typeable a) => Redeemer -> Maybe a
-toTypedRedeemer (SomeRedeemer red) = cast red
-toTypedRedeemer EmptyRedeemer = Nothing
-
--- Two helpers to create skeleton redeemers
-someTxSkelRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-someTxSkelRedeemer a = TxSkelRedeemer (SomeRedeemer a) Nothing
-
-emptyTxSkelRedeemer :: TxSkelRedeemer
-emptyTxSkelRedeemer = TxSkelRedeemer EmptyRedeemer Nothing
-
--- Additional helper to specify a given reference input. As reference inputs are
--- automatically attached during transaction generation when they contain the
--- right scripts by default, there are only 3 cases where this can be useful:
--- - The reliance on a reference script needs to be made explicit
--- - A wrong reference script somehow needs to be attached
--- - The automated attachement of reference inputs has been disabled using the
--- `txOptAutoReferenceScripts` option
-
-withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
-withReferenceInput red ref = red {txSkelReferenceInput = Just ref}
 
 -- * Description of the Governance actions (or proposal procedures)
 
