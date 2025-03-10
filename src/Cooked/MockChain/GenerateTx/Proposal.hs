@@ -133,7 +133,7 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
   let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
   (conwayProposalProcedure,) <$> case txSkelProposalWitness of
     Nothing -> return Nothing
-    Just (script, redeemer) -> Just <$> liftTxGen (toScriptWitness (toVersionedScript script) redeemer Cardano.NoScriptDatumForStake)
+    Just (script, redeemer) -> Just <$> liftTxGen (toScriptWitness (Script.toVersioned @Script.Script script) redeemer Cardano.NoScriptDatumForStake)
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures :: [TxSkelProposal] -> AnchorResolution -> ProposalGen (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)

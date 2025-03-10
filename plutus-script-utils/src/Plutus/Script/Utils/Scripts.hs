@@ -214,6 +214,12 @@ instance (ToValidator a) => ToValidator (Versioned a) where
 instance ToValidator (CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> BuiltinUnit)) where
   toValidator = toValidator . toScript
 
+instance ToVersioned Script (Versioned Validator) where
+  toVersioned = fmap getValidator
+
+instance ToVersioned Validator (Versioned Script) where
+  toVersioned = fmap Validator
+
 -- * Validators hashes
 
 newtype ValidatorHash = ValidatorHash {getValidatorHash :: Builtins.BuiltinByteString}
@@ -273,6 +279,12 @@ instance (ToMintingPolicy a) => ToMintingPolicy (Versioned a) where
 -- | Instance for PlutusV1 and PlutusV2 minting policies
 instance ToMintingPolicy (CompiledCode (BuiltinData -> BuiltinData -> BuiltinUnit)) where
   toMintingPolicy = toMintingPolicy . toScript
+
+instance ToVersioned Script (Versioned MintingPolicy) where
+  toVersioned = fmap getMintingPolicy
+
+instance ToVersioned MintingPolicy (Versioned Script) where
+  toVersioned = fmap MintingPolicy
 
 -- * Minting policies hashes
 
@@ -334,6 +346,12 @@ instance (ToStakeValidator a) => ToStakeValidator (Versioned a) where
 
 instance ToStakeValidator (CompiledCode (BuiltinData -> BuiltinData -> BuiltinUnit)) where
   toStakeValidator = toStakeValidator . toScript
+
+instance ToVersioned Script (Versioned StakeValidator) where
+  toVersioned = fmap getStakeValidator
+
+instance ToVersioned StakeValidator (Versioned Script) where
+  toVersioned = fmap StakeValidator
 
 -- * Stake validators hashes
 

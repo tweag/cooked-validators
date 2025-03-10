@@ -164,7 +164,7 @@ txSkelReferenceScripts =
           case output ^. outputReferenceScriptL of
             Nothing -> Map.empty
             Just x ->
-              let vScript@(Script.Versioned script version) = toVersionedScript x
+              let vScript@(Script.Versioned script version) = Script.toVersioned x
                   Script.ScriptHash hash = Script.toScriptHash vScript
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )

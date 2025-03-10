@@ -165,8 +165,8 @@ makeLensesFor
 simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
 simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
 
-withWitness :: (ToVersionedScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toVersionedScript s, red)}
+withWitness :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop {txSkelProposalWitness = Just (Script.toVersioned s, red)}
 
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}

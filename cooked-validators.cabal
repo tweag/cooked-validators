@@ -26,7 +26,6 @@ library
       Cooked.Conversion.ToPubKeyHash
       Cooked.Conversion.ToStakingCredential
       Cooked.Conversion.ToValue
-      Cooked.Conversion.ToVersionedScript
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl

@@ -54,7 +54,7 @@ data TxSkelOut where
       Typeable (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
-      ToVersionedScript (ReferenceScriptType o),
+      Script.ToVersioned Script.Script (ReferenceScriptType o),
       Show (OwnerType o),
       Show (ReferenceScriptType o),
       Typeable (ReferenceScriptType o)
@@ -79,7 +79,7 @@ receives owner = go $ Pays $ ConcreteOutput owner Nothing TxSkelOutNoDatum mempt
     go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
     go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
     go (Pays output) (Value v) = Pays $ setValue output $ toValue v
-    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ toVersionedScript script
+    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
     go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
     go pays (StakingCredential _) = pays
     go pays (PayableAnd p1 p2) = go (go pays p1) p2
@@ -118,7 +118,7 @@ txSkelOutOwnerTypeP =
         case typeOf (output ^. outputOwnerL) `eqTypeRep` typeRep @ownerType of
           Just HRefl ->
             let cOut = fromAbstractOutput output
-             in Just $ cOut {concreteOutputReferenceScript = toVersionedScript <$> concreteOutputReferenceScript cOut}
+             in Just $ cOut {concreteOutputReferenceScript = Script.toVersioned <$> concreteOutputReferenceScript cOut}
           Nothing -> Nothing
     )
 

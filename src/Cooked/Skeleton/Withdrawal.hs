@@ -24,5 +24,5 @@ type TxSkelWithdrawals =
 pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
 pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
 
-scriptWithdrawal :: (ToVersionedScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
-scriptWithdrawal script red amount = Map.singleton (Left $ toVersionedScript script) (red, amount)
+scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ Script.toVersioned script) (red, amount)

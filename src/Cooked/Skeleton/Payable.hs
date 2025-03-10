@@ -12,6 +12,7 @@ import Cooked.Conversion
 import Cooked.Skeleton.Datum
 import Data.Kind (Constraint, Type)
 import GHC.TypeLits
+import Plutus.Script.Utils.Scripts qualified as Script
 
 -- | Constraint that a given type does not appear in a list of types
 type family (∉) (el :: a) (els :: [a]) :: Constraint where
@@ -41,7 +42,7 @@ data Payable :: [Symbol] -> Type where
   -- | Hashed datums hidden from the transaction are payable
   HiddenHashedDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
   -- | Reference scripts are payable
-  ReferenceScript :: (ToVersionedScript s) => s -> Payable '["Reference Script"]
+  ReferenceScript :: (Script.ToVersioned Script.Script s) => s -> Payable '["Reference Script"]
   -- | Values are payable
   Value :: (ToValue a) => a -> Payable '["Value"]
   -- | Staking credentials are payable
