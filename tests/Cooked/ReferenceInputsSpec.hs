@@ -108,8 +108,8 @@ trace1 = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
-            [ paysScriptInlineDatum fooTypedValidator (FooDatum (walletPKHash (wallet 3))) (Script.ada 4),
-              paysScript barTypedValidator () (Script.ada 5)
+            [ fooTypedValidator `receives` (Value (Script.ada 4) <&&> InlineDatum (FooDatum $ walletPKHash $ wallet 3)),
+              barTypedValidator `receives` (Value (Script.ada 5) <&&> VisibleHashedDatum ())
             ],
           txSkelSigners = [wallet 2]
         }
@@ -118,7 +118,7 @@ trace1 = do
       txSkelTemplate
         { txSkelIns = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
           txSkelInsReference = Set.singleton txOutRefFoo,
-          txSkelOuts = [paysPK (wallet 4) (Script.ada 5)],
+          txSkelOuts = [wallet 4 `receives` Value (Script.ada 5)],
           txSkelSigners = [wallet 3]
         }
 
@@ -128,8 +128,8 @@ trace2 = do
     validateTxSkel'
       ( txSkelTemplate
           { txSkelOuts =
-              [ paysPK (wallet 1) (Script.ada 2) `withDatum` (10 :: Integer),
-                paysScript bazTypedValidator () (Script.ada 10)
+              [ wallet 1 `receives` (Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer)),
+                bazTypedValidator `receives` (Value (Script.ada 10) <&&> VisibleHashedDatum ())
               ],
             txSkelSigners = [wallet 2]
           }

@@ -9,6 +9,10 @@ import PlutusLedgerApi.V3 qualified as Api
 class ToCredential a where
   toCredential :: a -> Api.Credential
 
+instance (ToCredential a, ToCredential b) => ToCredential (Either a b) where
+  toCredential (Left l) = toCredential l
+  toCredential (Right r) = toCredential r
+
 instance ToCredential Api.Credential where
   toCredential = id
 

@@ -19,7 +19,7 @@ pkToPk sender recipient amount =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK recipient (Script.ada amount)],
+        { txSkelOuts = [recipient `receives` Value (Script.ada amount)],
           txSkelSigners = [sender]
         }
 
@@ -36,7 +36,7 @@ mintingQuickValue =
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(quickCurrencyPolicyV2, emptyTxSkelRedeemer, "banana", 10)],
-          txSkelOuts = [paysPK alice (quickValue "banana" 10)],
+          txSkelOuts = [alice `receives` Value (quickValue "banana" 10)],
           txSkelSigners = [alice],
           txSkelOpts = def {txOptEnsureMinAda = True}
         }
@@ -46,7 +46,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 10)],
+              { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 10) <&&> VisibleHashedDatum ())],
                 txSkelSigners = [alice]
               }
         )
@@ -58,7 +58,7 @@ consumeAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
-          txSkelOuts = [paysPK alice (Script.ada 10)],
+          txSkelOuts = [alice `receives` Value (Script.ada 10)],
           txSkelSigners = [alice]
         }
 

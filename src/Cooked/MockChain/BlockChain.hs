@@ -19,6 +19,7 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
+    SkelContext (..),
     AsTrans (..),
     currentTime,
     waitNSlots,
@@ -49,6 +50,7 @@ module Cooked.MockChain.BlockChain
     validateTxSkel_,
     txSkelProposalsDeposit,
     govActionDeposit,
+    txOutRefToTxSkelOut,
   )
 where
 
@@ -66,6 +68,7 @@ import Control.Monad.Writer
 import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -379,6 +382,38 @@ txSkelInputDataAsHashes skel = do
         Api.NoOutputDatum -> return Nothing
   (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
   catMaybes <$> mapM outputToDatumHashM inputTxOuts
+
+-- | This creates a payment from an existing UTXO
+txOutRefToTxSkelOut ::
+  (MonadBlockChainBalancing m) =>
+  -- | The UTXO to translate
+  Api.TxOutRef ->
+  -- | Whether to include the datum in the transaction
+  Bool ->
+  m TxSkelOut
+txOutRefToTxSkelOut oRef includeInTransactionBody = do
+  Just txOut@(Api.TxOut (Api.Address cred _) _ dat refS) <- txOutByRef oRef
+  target <- case cred of
+    Api.PubKeyCredential pkh -> return $ Left pkh
+    Api.ScriptCredential (Api.ScriptHash sh) -> do
+      Just val <- validatorFromHash (Script.ValidatorHash sh)
+      return $ Right val
+  datum <- case dat of
+    Api.NoOutputDatum -> return TxSkelOutNoDatum
+    Api.OutputDatumHash hash -> do
+      Just (Api.Datum dat') <- datumFromHash hash
+      return $ (if includeInTransactionBody then TxSkelOutDatum else TxSkelOutDatumHash) dat'
+    Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutInlineDatum dat'
+  refScript <- case refS of
+    Nothing -> return Nothing
+    Just (Api.ScriptHash sh) -> validatorFromHash (Script.ValidatorHash sh)
+  return $
+    Pays $
+      (fromAbstractOutput txOut)
+        { concreteOutputOwner = target,
+          concreteOutputDatum = datum,
+          concreteOutputReferenceScript = refScript
+        }
 
 -- ** Slot and Time Management
 

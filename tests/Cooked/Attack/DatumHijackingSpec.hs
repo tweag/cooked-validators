@@ -57,16 +57,13 @@ lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o emptyTxSkelRedeemer,
-      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue],
+      txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
 
 txLock :: (MonadBlockChain m) => Script.TypedValidator DHContract -> m ()
 txLock v = do
-  (oref, _) : _ <-
-    runUtxoSearch $
-      utxosAtSearch (wallet 1)
-        `filterWithPred` ((`Script.geq` lockValue) . outputValue)
+  (oref, _) : _ <- runUtxoSearch $ utxosAtSearch (wallet 1) `filterWithPred` ((`Script.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Script.TypedValidator DHContract -> Api.TxOutRef -> TxSkel
@@ -74,7 +71,7 @@ relockTxSkel v o =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
-      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue],
+      txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
 
@@ -167,11 +164,11 @@ tests =
             x3 = Script.lovelaceValueOf 9999
             skelIn =
               txSkelFromOuts
-                [ paysScriptInlineDatum val1 SecondLock x1,
-                  paysScriptInlineDatum val1 SecondLock x3,
-                  paysScriptInlineDatum val2 SecondLock x1,
-                  paysScriptInlineDatum val1 FirstLock x2,
-                  paysScriptInlineDatum val1 SecondLock x2
+                [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
+                  val1 `receives` (InlineDatum SecondLock <&&> Value x3),
+                  val2 `receives` (InlineDatum SecondLock <&&> Value x1),
+                  val1 `receives` (InlineDatum FirstLock <&&> Value x2),
+                  val1 `receives` (InlineDatum SecondLock <&&> Value x2)
                 ]
             skelOut bound select =
               runTweak
@@ -193,11 +190,11 @@ tests =
                     Set.singleton . TxLabel . DatumHijackingLbl $
                       Script.validatorAddress thief,
                   txSkelOuts =
-                    [ paysScriptInlineDatum val1 SecondLock x1,
-                      paysScriptInlineDatum a SecondLock x3,
-                      paysScriptInlineDatum val2 SecondLock x1,
-                      paysScriptInlineDatum val1 FirstLock x2,
-                      paysScriptInlineDatum b SecondLock x2
+                    [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
+                      a `receives` (InlineDatum SecondLock <&&> Value x3),
+                      val2 `receives` (InlineDatum SecondLock <&&> Value x1),
+                      val1 `receives` (InlineDatum FirstLock <&&> Value x2),
+                      b `receives` (InlineDatum SecondLock <&&> Value x2)
                     ],
                   txSkelSigners = [wallet 1]
                 }

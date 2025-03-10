@@ -28,11 +28,24 @@
   be used on a redeemer to manually attach a reference input (which does not
   necessarily have to contain the right reference script).
 - Capability to test the result of a mockchain run based on the log entries.
+- `txOutRefToTxSkelOut` helper to query the mock chain for recreating a
+  `TxSkelOut` from a `TxOutRef`. This is very useful when using `Tweaks` that
+  need to pay back an existing output with a slight modification.
+- A new tweak `modifySpendRedeemersOfTypeTweak` to apply an optional
+  modification of all redeemers of a certain type within the skeleton inputs.
+- New setters for the various outputs fields.
+- The `Payable` structure to properly define, compose, and later pay, payable
+  elements with `receive`.
+- The `receive` smart constructor for payments that allows to compose payable
+  elements (datums, values, staking credential and reference scripts) and
+  associate them to a recipient.
 
 ### Removed
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
 - Redundant logging of errors in mockchain runs.
+- Useless minting of non-ADA value in the dummy initial transaction.
+- Payment helpers (such as `PaysPK`, `withDatum` ...). Replaced by `receives`.
 
 ### Changed
 
@@ -57,6 +70,10 @@
   * it is not visible from outside of `cooked-validators`
 - Dependency to cardano-api bumped to 8.46.
 - The whole testing API has been revamped
+- File `AddInputsAndOutputs.hs` has been split into `Inputs.hs`, `Outputs.hs`
+  and `Mint.hs`. File `TamperDatum.hs` has been updated and integrated into
+  `Output.hs`.
+- File `Skeleton.hs` has been split into sub-files in the `Skeleton` folder.
 
 ### Fixed
 
@@ -66,6 +83,8 @@
   in the excess.
 - Transactions that do not involve script are now properly generated without any
 - All kinds of scripts can now be used as reference scripts.
+- A bug where scripts being paid to in the initial distribution would not be
+  stored in the MockChain.
 
 ## [[4.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v4.0.0) - 2024-06-28
 

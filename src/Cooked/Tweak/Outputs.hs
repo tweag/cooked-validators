@@ -1,9 +1,9 @@
--- | This module provide tweaks to tamper with output datums in a typed
--- manner. There are many use cases where slight changes in datum can have a
--- drastic effect on the bahavior of a contract, and can be unchecked. Here is
--- the way to test those cases.
-module Cooked.Tweak.TamperDatum
-  ( tamperDatumTweak,
+-- | Tweaks working on the outputs of a skeleton
+module Cooked.Tweak.Outputs
+  ( ensureOutputTweak,
+    addOutputTweak,
+    removeOutputTweak,
+    tamperDatumTweak,
     TamperDatumLbl (..),
     malformDatumTweak,
     MalformDatumLbl (..),
@@ -16,45 +16,54 @@ import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
+import Data.List
+import Data.Maybe
+import Data.Typeable
 import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
-import Type.Reflection
 
--- | A tweak that tries to change the datum on outputs carrying datums of a
--- certain type with a prescribed tampering function.
---
--- The tweak returns a list of the modified datums, as they were *before* the
--- modification was applied to them.
-tamperDatumTweak ::
-  forall a m.
-  ( MonadTweak m,
-    Show a,
-    PrettyCooked a,
-    Api.ToData a,
-    Api.FromData a,
-    Typeable a
-  ) =>
-  -- | Use this function to return 'Just' the changed datum, if you want to
-  -- perform a change, and 'Nothing', if you want to leave it as-is. All datums
-  -- on outputs that are not of type @a@ are never touched.
-  (a -> Maybe a) ->
-  m [a]
-tamperDatumTweak change = do
-  beforeModification <-
-    overMaybeTweak
-      ( txSkelOutsL
-          % traversed
-          % txSkelOutputDatumTypeAT @a
-      )
-      change
-  guard . not . null $ beforeModification
-  addLabelTweak TamperDatumLbl
-  return beforeModification
+-- | Ensure that a certain output is produced by a transaction. The return value
+-- will be @Just@ the added output, when applicable.
+ensureOutputTweak :: (MonadTweak m) => TxSkelOut -> m (Maybe TxSkelOut)
+ensureOutputTweak txSkelOut = do
+  presentOutputs <- viewTweak txSkelOutsL
+  if txSkelOut `elem` presentOutputs
+    then return Nothing
+    else do
+      addOutputTweak txSkelOut
+      return $ Just txSkelOut
+
+-- | Add a transaction output, at the end of the current list of outputs, thus
+-- retaining the initial outputs order.
+addOutputTweak :: (MonadTweak m) => TxSkelOut -> m ()
+addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
+
+-- | Remove transaction outputs according to some predicate. The returned list
+-- contains all the removed outputs.
+removeOutputTweak :: (MonadTweak m) => (TxSkelOut -> Bool) -> m [TxSkelOut]
+removeOutputTweak removePred = do
+  presentOutputs <- viewTweak txSkelOutsL
+  let (removed, kept) = partition removePred presentOutputs
+  setTweak txSkelOutsL kept
+  return removed
 
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked TamperDatumLbl where
   prettyCooked _ = "TamperDatum"
+
+-- | A tweak that tries to change the datum on outputs carrying datums of a
+-- certain type with a prescribed tampering function. The tampering function
+-- ignores datums of other types and those for which it returns @Nothing@.
+--
+-- The tweak returns a list of the modified datums, as they were *before* the
+-- modification was applied to them.
+tamperDatumTweak :: forall a m. (MonadTweak m, Show a, PrettyCooked a, Api.ToData a, Api.FromData a, Typeable a) => (a -> Maybe a) -> m [a]
+tamperDatumTweak change = do
+  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutputDatumTypeAT) change
+  guard . not . null $ beforeModification
+  addLabelTweak TamperDatumLbl
+  return beforeModification
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. There are two main
@@ -74,15 +83,7 @@ instance PrettyCooked TamperDatumLbl where
 -- > == (k_1 + 1) * ... * (k_n + 1) - 1
 --
 -- modified transactions.
-malformDatumTweak ::
-  forall a m.
-  ( MonadTweak m,
-    Api.ToData a,
-    Api.FromData a,
-    Typeable a
-  ) =>
-  (a -> [Api.BuiltinData]) ->
-  m ()
+malformDatumTweak :: forall a m. (MonadTweak m, Api.ToData a, Api.FromData a, Typeable a) => (a -> [Api.BuiltinData]) -> m ()
 malformDatumTweak change = do
   outputs <- viewAllTweak (txSkelOutsL % traversed)
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs
@@ -94,29 +95,15 @@ malformDatumTweak change = do
   where
     changeOutput :: TxSkelOut -> [TxSkelOut]
     changeOutput (Pays out) =
-      let datums = changeTxSkelOutDatum $ view outputDatumL out
-       in map
-            ( \datum ->
-                Pays $
-                  ConcreteOutput
-                    (out ^. outputOwnerL)
-                    (out ^. outputStakingCredentialL)
-                    datum
-                    (out ^. outputValueL)
-                    (out ^. outputReferenceScriptL)
-            )
-            datums
-
-    changeTxSkelOutDatum :: TxSkelOutDatum -> [TxSkelOutDatum]
-    changeTxSkelOutDatum TxSkelOutNoDatum = []
-    changeTxSkelOutDatum (TxSkelOutDatum datum) = map TxSkelOutDatum $ changeOnCorrectType datum
-    changeTxSkelOutDatum (TxSkelOutDatumHash datum) = map TxSkelOutDatumHash $ changeOnCorrectType datum
-    changeTxSkelOutDatum (TxSkelOutInlineDatum datum) = map TxSkelOutInlineDatum $ changeOnCorrectType datum
-
-    changeOnCorrectType :: (Typeable b) => b -> [Api.BuiltinData]
-    changeOnCorrectType datum = case typeOf datum `eqTypeRep` (typeRep @a) of
-      Just HRefl -> change datum
-      Nothing -> []
+      do
+        let dat = view outputDatumL out
+        typedDat <- maybeToList $ txSkelOutTypedDatum @a dat
+        modifiedDat <- change typedDat
+        return $ Pays $ setDatum out $ case dat of
+          TxSkelOutNoDatum -> TxSkelOutNoDatum
+          TxSkelOutDatum _ -> TxSkelOutDatum modifiedDat
+          TxSkelOutDatumHash _ -> TxSkelOutDatumHash modifiedDat
+          TxSkelOutInlineDatum _ -> TxSkelOutInlineDatum modifiedDat
 
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 

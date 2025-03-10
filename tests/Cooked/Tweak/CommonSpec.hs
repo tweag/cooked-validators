@@ -12,7 +12,7 @@ alice :: Wallet
 alice = wallet 1
 
 mkSkel :: [Integer] -> TxSkel
-mkSkel l = set txSkelOutsL (paysPK alice . Script.lovelaceValueOf <$> l) txSkelTemplate
+mkSkel l = set txSkelOutsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
 
 tests :: TestTree
 tests =

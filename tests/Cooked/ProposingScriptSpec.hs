@@ -2,6 +2,7 @@ module Cooked.ProposingScriptSpec where
 
 import Control.Monad
 import Cooked
+import Data.Default
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -43,8 +44,12 @@ testProposingRefScript script govAction = do
   pOutRef : _ <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withReferenceScript` script, paysPK (wallet 1) (Script.ada 10)],
-          txSkelSigners = [wallet 1]
+        { txSkelOuts =
+            [ wallet 1 `receives` ReferenceScript script,
+              wallet 1 `receives` Value (Script.ada 10)
+            ],
+          txSkelSigners = [wallet 1],
+          txSkelOpts = def {txOptEnsureMinAda = True}
         }
   void $
     validateTxSkel $

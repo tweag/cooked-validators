@@ -127,16 +127,7 @@ listUtxosTestTrace useInlineDatum validator =
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts =
-            [ Pays $
-                ConcreteOutput
-                  { concreteOutputOwner = validator,
-                    concreteOutputValue = Script.ada 2,
-                    concreteOutputReferenceScript = Nothing @(Script.Versioned Script.Script),
-                    concreteOutputStakingCredential = Nothing,
-                    concreteOutputDatum = (if useInlineDatum then TxSkelOutInlineDatum else TxSkelOutDatum) FirstPaymentDatum
-                  }
-            ],
+          txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
           txSkelSigners = [wallet 1]
         }
 
@@ -185,20 +176,15 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
           txSkelOuts =
-            [ Pays $
-                ConcreteOutput
-                  { concreteOutputOwner = validator,
-                    concreteOutputValue = outputValue theOutput,
-                    concreteOutputReferenceScript = Nothing @(Script.Versioned Script.Script),
-                    concreteOutputStakingCredential = Nothing,
-                    concreteOutputDatum =
-                      ( case datumKindOnSecondPayment of
-                          OnlyHash -> TxSkelOutDatumHash
-                          Datum -> TxSkelOutDatum
-                          Inline -> TxSkelOutInlineDatum
-                      )
-                        SecondPaymentDatum
-                  }
+            [ validator
+                `receives` ( Value (outputValue theOutput)
+                               <&&> ( case datumKindOnSecondPayment of
+                                        OnlyHash -> HiddenHashedDatum
+                                        Datum -> VisibleHashedDatum
+                                        Inline -> InlineDatum
+                                    )
+                                 SecondPaymentDatum
+                           )
             ],
           txSkelSigners = [wallet 1]
         }
