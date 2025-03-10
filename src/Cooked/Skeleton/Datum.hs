@@ -68,23 +68,20 @@ instance Eq TxSkelOutDatum where
   x == y = compare x y == EQ
 
 instance Ord TxSkelOutDatum where
-  compare TxSkelOutNoDatum TxSkelOutNoDatum = EQ
-  compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2) =
-    case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
-      LT -> LT
-      GT -> GT
-      EQ -> case typeOf d1 `eqTypeRep` typeOf d2 of
-        Just HRefl -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
-        Nothing -> error "This branch cannot happen: un-equal type representations that compare to EQ"
-  compare (TxSkelOutDatum d1) (TxSkelOutDatum d2) =
-    compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
-  compare (TxSkelOutInlineDatum d1) (TxSkelOutInlineDatum d2) =
-    compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
-  compare TxSkelOutDatumHash {} TxSkelOutNoDatum = GT
-  compare TxSkelOutDatum {} TxSkelOutNoDatum = GT
-  compare TxSkelOutDatum {} TxSkelOutDatumHash {} = GT
-  compare TxSkelOutInlineDatum {} _ = GT
-  compare _ _ = LT
+  compare = curry $ \case
+    (TxSkelOutNoDatum, TxSkelOutNoDatum) -> EQ
+    (TxSkelOutDatumHash d1, TxSkelOutDatumHash d2) -> compareDats d1 d2
+    (TxSkelOutDatum d1, TxSkelOutDatum d2) -> compareDats d1 d2
+    (TxSkelOutInlineDatum d1, TxSkelOutInlineDatum d2) -> compareDats d1 d2
+    (TxSkelOutDatumHash {}, TxSkelOutNoDatum) -> GT
+    (TxSkelOutDatum {}, TxSkelOutNoDatum) -> GT
+    (TxSkelOutDatum {}, TxSkelOutDatumHash {}) -> GT
+    (TxSkelOutInlineDatum {}, _) -> GT
+    (_, _) -> LT
+    where
+      compareDats d1 d2 = case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
+        EQ -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
+        a -> a
 
 instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum TxSkelOutNoDatum = Api.NoOutputDatum

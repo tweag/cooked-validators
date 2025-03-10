@@ -10,10 +10,9 @@ module Cooked.Skeleton.Redeemer
 where
 
 import Cooked.Pretty.Class
-import Data.Typeable (cast)
+import Data.Typeable (Typeable, cast)
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
-import Type.Reflection
 
 type RedeemerConstrs redeemer =
   ( Api.ToData redeemer,
@@ -31,10 +30,7 @@ deriving instance (Show Redeemer)
 
 instance Eq Redeemer where
   EmptyRedeemer == EmptyRedeemer = True
-  (SomeRedeemer r1) == (SomeRedeemer r2) =
-    case typeOf r1 `eqTypeRep` typeOf r2 of
-      Just HRefl -> r1 PlutusTx.== r2
-      Nothing -> False
+  (SomeRedeemer r1) == (SomeRedeemer r2) = cast r1 PlutusTx.== Just r2
   _ == _ = False
 
 data TxSkelRedeemer = TxSkelRedeemer

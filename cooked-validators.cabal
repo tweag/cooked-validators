@@ -62,9 +62,13 @@ library
       Cooked.Skeleton
       Cooked.Skeleton.Datum
       Cooked.Skeleton.Label
+      Cooked.Skeleton.Mint
       Cooked.Skeleton.Option
+      Cooked.Skeleton.Output
       Cooked.Skeleton.Payable
+      Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
+      Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs
