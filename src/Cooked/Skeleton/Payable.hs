@@ -16,7 +16,7 @@ import GHC.TypeLits
 -- | Constraint that a given type does not appear in a list of types
 type family (∉) (el :: a) (els :: [a]) :: Constraint where
   x ∉ '[] = ()
-  x ∉ (x ': xs) = TypeError ('Text "Unable to assign twice the following output feature: " ':<>: 'ShowType x)
+  x ∉ (x ': xs) = TypeError ('Text "Cannot have two payable elements of type: " ':<>: 'ShowType x)
   x ∉ (_ ': xs) = x ∉ xs
 
 -- | Disjoint lists of types
@@ -25,7 +25,7 @@ type family (⩀) (els :: [a]) (els' :: [a]) :: Constraint where
   (x ': xs) ⩀ ys = (x ∉ ys, xs ⩀ ys)
 
 -- | Union with duplicates, which will not occur by construction in the
--- concrete implentation of @Payable@ due to the @AllNew@ constraint.
+-- concrete implentation of @Payable@ due to the @⩀@ constraint.
 type family (∪) (xs :: [a]) (ys :: [a]) :: [a] where
   '[] ∪ ys = ys
   (x ': xs) ∪ ys = x ': (xs ∪ ys)
