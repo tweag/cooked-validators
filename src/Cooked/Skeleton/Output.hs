@@ -42,8 +42,7 @@ instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script
   toPKHOrValidator = id
 
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
--- probably want to use one of the smart constructors like 'paysScript' or
--- 'paysPK' in most cases.
+-- probably want to use the 'receives' smart constructor in most cases.
 data TxSkelOut where
   Pays ::
     ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which
