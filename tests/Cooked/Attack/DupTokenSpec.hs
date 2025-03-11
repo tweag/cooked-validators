@@ -4,7 +4,6 @@ import Control.Monad
 import Cooked
 import Data.Default
 import Data.Set qualified as Set
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -54,7 +53,7 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
        in txSkelTemplate
             { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelMints = mints,
-              txSkelOuts = [paysPK recipient mintedValue],
+              txSkelOuts = [recipient `receives` Value mintedValue],
               txSkelSigners = [wallet 3]
             }
 
@@ -78,8 +77,8 @@ tests =
                         (pol2, emptyTxSkelRedeemer, tName2, 7)
                       ],
                   txSkelOuts =
-                    [ paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
-                      paysPK (wallet 2) (Script.assetClassValue ac2 2)
+                    [ wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.lovelace 1234),
+                      wallet 2 `receives` Value (Script.assetClassValue ac2 2)
                     ],
                   txSkelSigners = [wallet 3]
                 }
@@ -96,9 +95,9 @@ tests =
                                   (pol2, emptyTxSkelRedeemer, tName2, v2)
                                 ],
                             txSkelOuts =
-                              [ paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
-                                paysPK (wallet 2) (Script.assetClassValue ac2 2),
-                                paysPK attacker increment
+                              [ wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.lovelace 1234),
+                                wallet 2 `receives` Value (Script.assetClassValue ac2 2),
+                                attacker `receives` Value increment
                               ],
                             txSkelSigners = [wallet 3]
                           }
@@ -134,7 +133,7 @@ tests =
             skelIn =
               txSkelTemplate
                 { txSkelMints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName1, 1)],
-                  txSkelOuts = [paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)],
+                  txSkelOuts = [wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)],
                   txSkelSigners = [wallet 2]
                 }
             skelExpected =
@@ -144,8 +143,8 @@ tests =
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName1, 2)],
                         txSkelOuts =
-                          [ paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
-                            paysPK attacker (Script.assetClassValue ac1 1)
+                          [ wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
+                            attacker `receives` Value (Script.assetClassValue ac1 1)
                           ],
                         txSkelSigners = [wallet 2]
                       }

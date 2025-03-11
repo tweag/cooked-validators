@@ -19,6 +19,7 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
+    SkelContext (..),
     AsTrans (..),
     currentTime,
     waitNSlots,
@@ -68,6 +69,7 @@ import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
 import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet

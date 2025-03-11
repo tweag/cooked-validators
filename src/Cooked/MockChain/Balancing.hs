@@ -288,7 +288,7 @@ getOptimalCandidate :: (MonadBlockChainBalancing m) => [(BalancingOutputs, Api.V
 getOptimalCandidate candidates paymentTarget mceError = do
   params <- getParams
   -- We decorate the candidates with their current ada and min ada requirements
-  let candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paysPK paymentTarget val)) <$> candidates
+  let candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paymentTarget `receives` Value val)) <$> candidates
       -- We filter the candidates that have enough ada to sustain themselves
       candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
@@ -349,7 +349,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   -- We compute the values missing in the left and right side of the equation
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
   -- We compute the minimal ada requirement of the missing payment
-  rightMinAda <- case getTxSkelOutMinAda params $ paysPK balancingWallet missingRight of
+  rightMinAda <- case getTxSkelOutMinAda params $ balancingWallet `receives` Value missingRight of
     Left err -> throwError $ MCEGenerationError err
     Right a -> return a
   -- We compute the current ada of the missing payment. If the missing payment
@@ -397,6 +397,6 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
       -- We get the optimal candidate, and update the `txSkelOuts` by appending
       -- a new output at the end of the list, to keep the order intact.
       (txOutRefs, val) <- getOptimalCandidate candidatesRaw balancingWallet balancingError
-      return (txOutRefs, txSkelOuts ++ [paysPK balancingWallet val])
+      return (txOutRefs, txSkelOuts ++ [balancingWallet `receives` Value val])
   let newTxSkelIns = txSkelIns <> Map.fromList ((,emptyTxSkelRedeemer) <$> additionalInsTxOutRefs)
   return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns

@@ -25,6 +25,7 @@ library
       Cooked.Conversion.ToOutputDatum
       Cooked.Conversion.ToPubKeyHash
       Cooked.Conversion.ToScriptHash
+      Cooked.Conversion.ToStakingCredential
       Cooked.Conversion.ToValue
       Cooked.Conversion.ToVersionedScript
       Cooked.Currencies
@@ -59,6 +60,15 @@ library
       Cooked.Pretty.Options
       Cooked.ShowBS
       Cooked.Skeleton
+      Cooked.Skeleton.Datum
+      Cooked.Skeleton.Label
+      Cooked.Skeleton.Mint
+      Cooked.Skeleton.Option
+      Cooked.Skeleton.Output
+      Cooked.Skeleton.Payable
+      Cooked.Skeleton.Proposal
+      Cooked.Skeleton.Redeemer
+      Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs

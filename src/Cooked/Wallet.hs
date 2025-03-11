@@ -100,8 +100,8 @@ walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletS
 walletAddress :: Wallet -> Api.Address
 walletAddress w =
   Api.Address
-    (Api.PubKeyCredential $ walletPKHash w)
-    (Api.StakingHash . Api.PubKeyCredential <$> walletStakingPKHash w)
+    (walletCredential w)
+    (walletStakingCredential w)
 
 -- | Retrieves a wallet private key (secret key SK)
 walletSK :: Wallet -> PrivateKey
