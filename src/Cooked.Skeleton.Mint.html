@@ -1,0 +1,445 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.Mint</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier">TxSkelMints</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addToTxSkelMints"><span class="hs-identifier">addToTxSkelMints</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier">txSkelMintsToList</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList"><span class="hs-identifier">txSkelMintsFromList</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList%27"><span class="hs-identifier">txSkelMintsFromList'</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier">txSkelMintsValue</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html"><span class="hs-identifier">Cooked.Skeleton.Redeemer</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List.NonEmpty</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">NEList</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.NonEmpty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NEMap</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.NonEmpty</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">NEMap</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">adaSymbol</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">adaToken</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NonZero</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | A description of what a transaction mints. For every policy, there can only</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- be one 'TxSkelRedeemer', and if there is, there must be some token names, each</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- with a non-zero amount of tokens.</span><span>
+</span><span id="line-28"></span><span class="hs-comment">--</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- You'll probably not construct this by hand, but use 'txSkelMintsFromList'.</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">type</span><span> </span><span id="TxSkelMints"><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-var">TxSkelMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NEMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | Combining 'TxSkelMints' in a sensible way. In particular, this means that</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- &gt; Map.fromList [(pol, (red, NEMap.fromList [(tName, 1)]))]</span><span>
+</span><span id="line-38"></span><span class="hs-comment">--</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- and</span><span>
+</span><span id="line-40"></span><span class="hs-comment">--</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- &gt; Map.fromList [(pol, (red', NEMap.fromList [(tName, -1)]))]</span><span>
+</span><span id="line-42"></span><span class="hs-comment">--</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- will combine to become the empty 'TxSkelMints' (and similar examples, where</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- the values add up to zero, see the comment at the definition of</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- 'addToTxSkelMints').</span><span>
+</span><span id="line-46"></span><span class="hs-comment">--</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- In every case, if you add mints with a different redeemer for the same</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- policy, the redeemer used in the right argument takes precedence.</span><span>
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679819490"><span id="local-6989586621679819494"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679819500"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819500"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679819501"><span class="annot"><span class="annottext">&lt;&gt; :: TxSkelMints -&gt; TxSkelMints -&gt; TxSkelMints
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679819502"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819502"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelMints
+ -&gt; (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+ -&gt; TxSkelMints)
+-&gt; TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; TxSkelMints
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+ -&gt; TxSkelMints -&gt; TxSkelMints)
+-&gt; TxSkelMints
+-&gt; (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; TxSkelMints
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; TxSkelMints -&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.Mint.html#addToTxSkelMints"><span class="hs-identifier hs-var">addToTxSkelMints</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819500"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819502"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679819509"><span id="local-6989586621679819512"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679819515"><span class="annot"><span class="annottext">mempty :: TxSkelMints
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+forall k a. Map k a
+</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- | Add a new entry to a 'TxSkelMints'. There are a few wrinkles:</span><span>
+</span><span id="line-56"></span><span class="hs-comment">--</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- (1) If for a given policy, redeemer, and token name, there are @n@ tokens in</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- the argument 'TxSkelMints', and you add @-n@ tokens, the corresponding entry</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- in the &quot;inner map&quot; of the policy will disappear (obviously, because all of</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- its values have to be non-zero). If that also means that the inner map</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- becomes empty, the policy will disappear from the 'TxSkelMints' altogether.</span><span>
+</span><span id="line-62"></span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- (2) If a policy is already present on the argument 'TxSkelMints' with a</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- redeemer @a@, and you add a mint with a different redeemer @b@, the old</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- redeemer is thrown away. The values associated with the token names of that</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- policy are added as described above, though. This means that any pre-existing</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- values will be minted with a new redeemer.</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- If, for some reason, you really want to generate a 'TxSkelMints' that has</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- both a negative and a positive entry of the same asset class and redeemer,</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- you'll have to do so manually. Note, however, that even if you do so, NO</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- VALIDATOR OR MINTING POLICY WILL EVER GET TO SEE A TRANSACTION WITH SUCH</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- CONFLICTING INFORMATION. This is not a design decision/limitation of</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- cooked-validators: The Cardano API 'TxBodyContent' type, that we're</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- translating everything into eventually, stores minting information as a</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- minted value together with a map from policy IDs to witnesses (which</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- represent the used redeemers). That means that we can only store _one_</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- redeemer per minting policy, and no conflicting mints of the same asset</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- class, since they'll just cancel.</span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addToTxSkelMints"><span class="hs-identifier hs-type">addToTxSkelMints</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-82"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-83"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span>
+</span><span id="line-84"></span><span id="addToTxSkelMints"><span class="annot"><span class="annottext">addToTxSkelMints :: (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; TxSkelMints -&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.Mint.html#addToTxSkelMints"><span class="hs-identifier hs-var hs-var">addToTxSkelMints</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819517"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819518"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819518"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819519"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819519"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819520"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819520"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679819521"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819520"><span class="hs-identifier hs-var">amount</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+-&gt; Versioned MintingPolicy
+-&gt; Maybe (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
+forall k a. Ord k =&gt; Map k a -&gt; k -&gt; Maybe a
+</span><span class="hs-operator hs-var">Map.!?</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-87"></span><span>      </span><span class="annot"><span class="annottext">Maybe (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-88"></span><span>        </span><span class="hs-comment">-- The policy isn't yet in the given 'TxSkelMints', so we can just add a</span><span>
+</span><span id="line-89"></span><span>        </span><span class="hs-comment">-- new entry:</span><span>
+</span><span id="line-90"></span><span>        </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+-&gt; (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
+-&gt; TxSkelMints
+-&gt; TxSkelMints
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819518"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; NonZero Integer -&gt; NEMap TokenName (NonZero Integer)
+forall k a. k -&gt; a -&gt; NEMap k a
+</span><span class="hs-identifier hs-var">NEMap.singleton</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819519"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+forall a. a -&gt; NonZero a
+</span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819520"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-91"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819526"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819526"><span class="hs-identifier hs-var">_oldRed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819527"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819527"><span class="hs-identifier hs-var">innerMap</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-92"></span><span>        </span><span class="hs-comment">-- Ignore the old redeemer: If it's the same as the new one, nothing</span><span>
+</span><span id="line-93"></span><span>        </span><span class="hs-comment">-- will change, if not, the new redeemer will be kept.</span><span>
+</span><span id="line-94"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819527"><span class="hs-identifier hs-var">innerMap</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+-&gt; TokenName -&gt; Maybe (NonZero Integer)
+forall k a. Ord k =&gt; NEMap k a -&gt; k -&gt; Maybe a
+</span><span class="hs-operator hs-var">NEMap.!?</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819519"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-95"></span><span>          </span><span class="annot"><span class="annottext">Maybe (NonZero Integer)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-96"></span><span>            </span><span class="hs-comment">-- The given token name has not yet occurred for the given</span><span>
+</span><span id="line-97"></span><span>            </span><span class="hs-comment">-- policy. This means that we can just add the new tokens to the</span><span>
+</span><span id="line-98"></span><span>            </span><span class="hs-comment">-- inner map:</span><span>
+</span><span id="line-99"></span><span>            </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+-&gt; (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
+-&gt; TxSkelMints
+-&gt; TxSkelMints
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819518"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
+-&gt; NonZero Integer
+-&gt; NEMap TokenName (NonZero Integer)
+-&gt; NEMap TokenName (NonZero Integer)
+forall k a. Ord k =&gt; k -&gt; a -&gt; NEMap k a -&gt; NEMap k a
+</span><span class="hs-identifier hs-var">NEMap.insert</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819519"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+forall a. a -&gt; NonZero a
+</span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819520"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819527"><span class="hs-identifier hs-var">innerMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-100"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679819530"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819530"><span class="hs-identifier hs-var">oldAmount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679819531"><span class="annot"><span class="annottext">newAmount :: Integer
+</span><a href="#local-6989586621679819531"><span class="hs-identifier hs-var hs-var">newAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819530"><span class="hs-identifier hs-var">oldAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819520"><span class="hs-identifier hs-var">amount</span></a></span><span>
+</span><span id="line-102"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819531"><span class="hs-identifier hs-var">newAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-103"></span><span>                  </span><span class="hs-keyword">then</span><span> </span><span class="hs-comment">-- If the sum of the old amount of tokens and the</span><span>
+</span><span id="line-104"></span><span>                  </span><span class="hs-comment">-- additional tokens is non-zero, we can just update the</span><span>
+</span><span id="line-105"></span><span>                  </span><span class="hs-comment">-- amount in the inner map:</span><span>
+</span><span id="line-106"></span><span>                    </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+-&gt; (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
+-&gt; TxSkelMints
+-&gt; TxSkelMints
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819518"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
+-&gt; NonZero Integer
+-&gt; NEMap TokenName (NonZero Integer)
+-&gt; NEMap TokenName (NonZero Integer)
+forall k a. Ord k =&gt; k -&gt; a -&gt; NEMap k a -&gt; NEMap k a
+</span><span class="hs-identifier hs-var">NEMap.insert</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819519"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+forall a. a -&gt; NonZero a
+</span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819531"><span class="hs-identifier hs-var">newAmount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819527"><span class="hs-identifier hs-var">innerMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-107"></span><span>                  </span><span class="hs-keyword">else</span><span> </span><span class="hs-comment">-- If the sum is zero, we'll have to delete the token</span><span>
+</span><span id="line-108"></span><span>                  </span><span class="hs-comment">-- name from the inner map. If that yields a completely empty</span><span>
+</span><span id="line-109"></span><span>                  </span><span class="hs-comment">-- inner map, we'll have to remove the entry altogether:</span><span>
+</span><span id="line-110"></span><span>                  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Map TokenName (NonZero Integer)
+-&gt; Maybe (NEMap TokenName (NonZero Integer))
+forall k a. Map k a -&gt; Maybe (NEMap k a)
+</span><span class="hs-identifier hs-var">NEMap.nonEmptyMap</span></span><span> </span><span class="annot"><span class="annottext">(Map TokenName (NonZero Integer)
+ -&gt; Maybe (NEMap TokenName (NonZero Integer)))
+-&gt; Map TokenName (NonZero Integer)
+-&gt; Maybe (NEMap TokenName (NonZero Integer))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+-&gt; NEMap TokenName (NonZero Integer)
+-&gt; Map TokenName (NonZero Integer)
+forall k a. Ord k =&gt; k -&gt; NEMap k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">NEMap.delete</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819519"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819527"><span class="hs-identifier hs-var">innerMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-111"></span><span>                    </span><span class="annot"><span class="annottext">Maybe (NEMap TokenName (NonZero Integer))
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; TxSkelMints -&gt; TxSkelMints
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-112"></span><span>                    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679819537"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819537"><span class="hs-identifier hs-var">newInnerMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+-&gt; (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
+-&gt; TxSkelMints
+-&gt; TxSkelMints
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819517"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819518"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819537"><span class="hs-identifier hs-var">newInnerMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679819521"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- being minted.</span><span>
+</span><span id="line-116"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-type">txSkelMintsToList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-117"></span><span id="txSkelMintsToList"><span class="annot"><span class="annottext">txSkelMintsToList :: TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var hs-var">txSkelMintsToList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-118"></span><span>  </span><span class="annot"><span class="annottext">((Versioned MintingPolicy,
+  (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))
+ -&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+-&gt; [(Versioned MintingPolicy,
+     (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span>
+</span><span id="line-119"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679819539"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819539"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819540"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819540"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819541"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819541"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-120"></span><span>        </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679819542"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819542"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679819543"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819543"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819539"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819540"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819542"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819543"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span>          </span><span class="annot"><span class="annottext">((TokenName, NonZero Integer)
+ -&gt; (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer))
+-&gt; [(TokenName, NonZero Integer)]
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">NonEmpty (TokenName, NonZero Integer)
+-&gt; [(TokenName, NonZero Integer)]
+forall a. NonEmpty a -&gt; [a]
+</span><span class="hs-identifier hs-var">NEList.toList</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+-&gt; NonEmpty (TokenName, NonZero Integer)
+forall k a. NEMap k a -&gt; NonEmpty (k, a)
+</span><span class="hs-identifier hs-var">NEMap.toList</span></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679819541"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>    </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy,
+   (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
+ -&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+-&gt; (TxSkelMints
+    -&gt; [(Versioned MintingPolicy,
+         (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))])
+-&gt; TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+-&gt; [(Versioned MintingPolicy,
+     (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- | Smart constructor for 'TxSkelMints'. This function relies on</span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- 'addToTxSkelMints'. So, some non-empty lists (where all amounts for a given</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- asset class an redeemer add up to zero) might be translated into the empty</span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- 'TxSkelMints'.</span><span>
+</span><span id="line-129"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList"><span class="hs-identifier hs-type">txSkelMintsFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span>
+</span><span id="line-130"></span><span id="txSkelMintsFromList"><span class="annot"><span class="annottext">txSkelMintsFromList :: [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList"><span class="hs-identifier hs-var hs-var">txSkelMintsFromList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+ -&gt; TxSkelMints -&gt; TxSkelMints)
+-&gt; TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; TxSkelMints
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; TxSkelMints -&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.Mint.html#addToTxSkelMints"><span class="hs-identifier hs-var">addToTxSkelMints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- | Another smart constructor for 'TxSkelMints', where the redeemer and minting</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- policies are not duplicated.</span><span>
+</span><span id="line-134"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList%27"><span class="hs-identifier hs-type">txSkelMintsFromList'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span>
+</span><span id="line-135"></span><span id="txSkelMintsFromList%27"><span class="annot"><span class="annottext">txSkelMintsFromList' :: [(Versioned MintingPolicy, TxSkelRedeemer, [(TokenName, Integer)])]
+-&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList%27"><span class="hs-identifier hs-var hs-var">txSkelMintsFromList'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; TxSkelMints
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList"><span class="hs-identifier hs-var">txSkelMintsFromList</span></a></span><span> </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+ -&gt; TxSkelMints)
+-&gt; ([(Versioned MintingPolicy, TxSkelRedeemer,
+      [(TokenName, Integer)])]
+    -&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer,
+     [(TokenName, Integer)])]
+-&gt; TxSkelMints
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, TxSkelRedeemer, [(TokenName, Integer)])
+ -&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer,
+     [(TokenName, Integer)])]
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679819550"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819550"><span class="hs-identifier hs-var">mp</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819551"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819551"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819552"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679819552"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679819553"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819553"><span class="hs-identifier hs-var">tn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819554"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819554"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819550"><span class="hs-identifier hs-var">mp</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679819551"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819553"><span class="hs-identifier hs-var">tn</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819554"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((TokenName, Integer)
+ -&gt; (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer))
+-&gt; [(TokenName, Integer)]
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679819552"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span class="annot"><span class="hs-comment">-- | The value described by a 'TxSkelMints'</span></span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier hs-type">txSkelMintsValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-139"></span><span id="txSkelMintsValue"><span class="annot"><span class="annottext">txSkelMintsValue :: TxSkelMints -&gt; Value
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier hs-var hs-var">txSkelMintsValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-140"></span><span>  </span><span class="annot"><span class="annottext">Optic'
+  A_Fold
+  NoIx
+  TxSkelMints
+  (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; ((Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+    -&gt; Value)
+-&gt; TxSkelMints
+-&gt; Value
+forall k m (is :: IxList) s a.
+(Is k A_Fold, Monoid m) =&gt;
+Optic' k is s a -&gt; (a -&gt; m) -&gt; s -&gt; m
+</span><span class="hs-identifier hs-var">foldMapOf</span></span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkelMints
+ -&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)])
+-&gt; Getter
+     TxSkelMints
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+forall s a. (s -&gt; a) -&gt; Getter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+-&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">Getter
+  TxSkelMints
+  [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+-&gt; Optic
+     A_Fold
+     NoIx
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+     [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+     (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+     (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+-&gt; Optic'
+     A_Fold
+     NoIx
+     TxSkelMints
+     (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Fold
+  NoIx
+  [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+  [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+  (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+  (Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
+forall (f :: * -&gt; *) a. Foldable f =&gt; Fold (f a) a
+</span><span class="hs-identifier hs-var">folded</span></span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679819559"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819559"><span class="hs-identifier hs-var">policy</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819560"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819560"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819561"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819561"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-143"></span><span>        </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><span class="hs-identifier hs-var">Script.assetClassValue</span></span><span>
+</span><span id="line-144"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><span class="hs-identifier hs-var">Script.assetClass</span></span><span>
+</span><span id="line-145"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; CurrencySymbol
+</span><span class="hs-identifier hs-var">Script.scriptCurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679819559"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-146"></span><span>              </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679819560"><span class="hs-identifier hs-var">tName</span></a></span><span>
+</span><span id="line-147"></span><span>          </span><span class="hs-special">)</span><span>
+</span><span id="line-148"></span><span>          </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679819561"><span class="hs-identifier hs-var">amount</span></a></span><span>
+</span><span id="line-149"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span></pre></body></html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | Labels are arbitrary information that can be added to skeleton. They are</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- meant to be pretty-printed. The common use case we currently have is to tag</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- skeletons that have been modified by tweaks and automated attacks.</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.Label</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier">LabelConstrs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier">TxLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Type.Reflection</span></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">type</span><span> </span><span id="LabelConstrs"><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-var">LabelConstrs</span></a></span></span><span> </span><span id="local-6989586621679819595"><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">data</span><span> </span><span id="TxLabel"><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>  </span><span id="local-6989586621679819596"><span id="TxLabel"><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819596"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679819596"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819600"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679819608"><span class="annot"><span class="annottext">TxLabel
+</span><a href="#local-6989586621679819608"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679819609"><span class="annot"><span class="annottext">== :: TxLabel -&gt; TxLabel -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span id="local-6989586621679819610"><span class="annot"><span class="annottext">TxLabel
+</span><a href="#local-6989586621679819610"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxLabel -&gt; TxLabel -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">TxLabel
+</span><a href="#local-6989586621679819608"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">TxLabel
+</span><a href="#local-6989586621679819610"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819613"><span id="local-6989586621679819618"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679819621"><span class="annot"><span class="annottext">show :: TxLabel -&gt; String
+</span><a href="#local-6989586621679819621"><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span id="local-6989586621679819626"><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819626"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">x -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819626"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819628"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679819633"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TxLabel -&gt; DocCooked
+</span><a href="#local-6989586621679819633"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679819635"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679819635"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span id="local-6989586621679819639"><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819639"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; x -&gt; DocCooked
+forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679819635"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819639"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819644"><span id="local-6989586621679819647"><span id="local-6989586621679819650"><span id="local-6989586621679819653"><span id="local-6989586621679819656"><span id="local-6989586621679819659"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>  </span><span id="local-6989586621679819662"><span class="annot"><span class="annottext">compare :: TxLabel -&gt; TxLabel -&gt; Ordering
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span id="local-6989586621679819666"><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819666"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span id="local-6989586621679819677"><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819677"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">SomeTypeRep -&gt; SomeTypeRep -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypeRep x -&gt; SomeTypeRep
+forall k (a :: k). TypeRep a -&gt; SomeTypeRep
+</span><span class="hs-identifier hs-var">SomeTypeRep</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x -&gt; TypeRep x
+forall a. Typeable a =&gt; a -&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeOf</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819666"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypeRep x -&gt; SomeTypeRep
+forall k (a :: k). TypeRep a -&gt; SomeTypeRep
+</span><span class="hs-identifier hs-var">SomeTypeRep</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x -&gt; TypeRep x
+forall a. Typeable a =&gt; a -&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeOf</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819677"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-30"></span><span>      </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span>
+</span><span id="line-31"></span><span>      </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span>
+</span><span id="line-32"></span><span>      </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">x -&gt; TypeRep x
+forall a. Typeable a =&gt; a -&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeOf</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819666"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">TypeRep x -&gt; TypeRep x -&gt; Maybe (x :~~: x)
+forall k1 k2 (a :: k1) (b :: k2).
+TypeRep a -&gt; TypeRep b -&gt; Maybe (a :~~: b)
+</span><span class="hs-operator hs-var">`eqTypeRep`</span></span><span> </span><span class="annot"><span class="annottext">x -&gt; TypeRep x
+forall a. Typeable a =&gt; a -&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeOf</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819677"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-33"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">x :~~: x
+</span><span class="hs-identifier hs-var">HRefl</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">x -&gt; x -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679819666"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">x
+x
+</span><a href="#local-6989586621679819677"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-34"></span><span>        </span><span class="hs-comment">-- This can never happen, since 'eqTypeRep' is implemented in terms of</span><span>
+</span><span id="line-35"></span><span>        </span><span class="hs-comment">-- '==' on the type representation:</span><span>
+</span><span id="line-36"></span><span>        </span><span class="annot"><span class="annottext">Maybe (x :~~: x)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Ordering
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Type representations compare as EQ, but are not eqTypeRep&quot;</span></span><span>
+</span><span id="line-37"></span></pre></body></html>
