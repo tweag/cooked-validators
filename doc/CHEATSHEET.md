@@ -159,10 +159,10 @@ txSkelTemplate
 ### Pay (transaction output)
 
 * A simple value to a wallet: ```wallet 3 `receives` Value (ada 3)```
-* A value and an inline datum to a script: ```fooTypedValidator `receives` (InlineDatum FooTypedDatum <$$> Value (myToken 4 <> lovelace 160_000))```
-* Hashed datums (visible to the transaction or hidden from it): `... <$$> (VisibleHashedDatum dat)` or `... <$$> (HiddenHashedDatum dat)`
-* A reference script: `(... <$$> ReferenceScript dat)`
-* A staking credential: `(... <$$> StakingCredential dat)`
+* A value and an inline datum to a script: ```fooTypedValidator `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelace 160_000))```
+* Hashed datums (visible to the transaction or hidden from it): `... <&&> (VisibleHashedDatum dat)` or `... <&&> (HiddenHashedDatum dat)`
+* A reference script: `(... <&&> ReferenceScript dat)`
+* A staking credential: `(... <&&> StakingCredential dat)`
 
 ```haskell
 txSkelTemplate
