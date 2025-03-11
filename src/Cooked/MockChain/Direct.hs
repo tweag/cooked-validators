@@ -64,7 +64,6 @@ instance (Monad m, Alternative m) => Alternative (MockChainT m) where
   (<|>) = combineMockChainT (<|>)
 
 combineMockChainT ::
-  (Monad m) =>
   (forall a. m a -> m a -> m a) ->
   MockChainT m x ->
   MockChainT m x ->
@@ -86,7 +85,6 @@ mapMockChainT f = MockChainT . mapStateT (mapExceptT (mapWriterT f)) . unMockCha
 -- | Executes a 'MockChainT' from some initial state; does /not/ convert the
 -- 'MockChainSt' into a 'UtxoState'.
 runMockChainTRaw ::
-  (Monad m) =>
   MockChainSt ->
   MockChainT m a ->
   m (MockChainReturn a MockChainSt)
