@@ -87,7 +87,6 @@ library
   hs-source-dirs:
       src
   default-extensions:
-      ImportQualifiedPost
       ConstraintKinds
       DataKinds
       DerivingStrategies
@@ -103,6 +102,7 @@ library
       NamedFieldPuns
       NumericUnderscores
       OverloadedStrings
+      PolyKinds
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
@@ -112,7 +112,6 @@ library
       TypeApplications
       TypeFamilies
       TypeOperators
-      TypeSynonymInstances
       ViewPatterns
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   build-depends:
@@ -190,7 +189,6 @@ test-suite spec
   hs-source-dirs:
       tests/
   default-extensions:
-      ImportQualifiedPost
       ConstraintKinds
       DataKinds
       DerivingStrategies
@@ -206,6 +204,7 @@ test-suite spec
       NamedFieldPuns
       NumericUnderscores
       OverloadedStrings
+      PolyKinds
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
@@ -215,7 +214,6 @@ test-suite spec
       TypeApplications
       TypeFamilies
       TypeOperators
-      TypeSynonymInstances
       ViewPatterns
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   build-depends:

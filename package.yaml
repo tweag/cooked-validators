@@ -63,7 +63,6 @@ library:
     -fplugin-opt PlutusTx.Plugin:defer-errors
     -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   default-extensions: &default-extensions
-    - ImportQualifiedPost
     - ConstraintKinds
     - DataKinds
     - DerivingStrategies
@@ -79,6 +78,7 @@ library:
     - NamedFieldPuns
     - NumericUnderscores
     - OverloadedStrings
+    - PolyKinds
     - RankNTypes
     - RecordWildCards
     - ScopedTypeVariables
@@ -88,7 +88,6 @@ library:
     - TypeApplications
     - TypeFamilies
     - TypeOperators
-    - TypeSynonymInstances
     - ViewPatterns
 
 tests:
