@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Cooked.Skeleton.Mint
   ( TxSkelMints,
     addToTxSkelMints,

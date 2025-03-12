@@ -29,7 +29,7 @@ import Control.Monad.State
 import Cooked.MockChain.BlockChain
 import Cooked.Skeleton
 import Data.Either.Combinators (rightToMaybe)
-import Data.List
+import Data.List (mapAccumL)
 import Data.Maybe
 import ListT (ListT)
 import ListT qualified
@@ -68,7 +68,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
 -- If you're using tweaks in a 'MonadModalBlockChain' together with mechanisms
 -- like 'withTweak', 'somewhere', or 'everywhere', you should never have areason
 -- to use this function.
-runTweakInChain :: (MonadBlockChainWithoutValidation m, MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
+runTweakInChain :: (MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
 runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 
 -- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
