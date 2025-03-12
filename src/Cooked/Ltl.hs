@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 -- | This modules provides the infrastructure to modify sequences of
 -- transactions using LTL formulaes with atomic modifications. This idea is to
 -- describe when to apply certain modifications within a trace. This is to be

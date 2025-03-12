@@ -87,8 +87,6 @@ library
   hs-source-dirs:
       src
   default-extensions:
-      ImportQualifiedPost
-      AllowAmbiguousTypes
       ConstraintKinds
       DataKinds
       DerivingStrategies
@@ -100,22 +98,22 @@ library
       ImportQualifiedPost
       LambdaCase
       MultiParamTypeClasses
+      MultiWayIf
       NamedFieldPuns
       NumericUnderscores
       OverloadedStrings
+      PolyKinds
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      StrictData
       TemplateHaskell
       TupleSections
       TypeApplications
       TypeFamilies
       TypeOperators
-      TypeSynonymInstances
       ViewPatterns
-  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -191,25 +189,33 @@ test-suite spec
   hs-source-dirs:
       tests/
   default-extensions:
-      ImportQualifiedPost
+      ConstraintKinds
       DataKinds
+      DerivingStrategies
+      DerivingVia
       FlexibleContexts
       FlexibleInstances
       GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
       LambdaCase
       MultiParamTypeClasses
       MultiWayIf
+      NamedFieldPuns
       NumericUnderscores
       OverloadedStrings
+      PolyKinds
       RankNTypes
       RecordWildCards
       ScopedTypeVariables
+      StandaloneDeriving
       TemplateHaskell
       TupleSections
       TypeApplications
       TypeFamilies
+      TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wno-missed-extra-shared-lib -Wno-type-defaults -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -238,7 +244,6 @@ test-suite spec
     , nonempty-containers
     , optics-core
     , optics-th
-    , parsec
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
