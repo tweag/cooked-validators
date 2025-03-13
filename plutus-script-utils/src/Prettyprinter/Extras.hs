@@ -1,5 +1,3 @@
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Copied from plutus-ledger-api because not exported

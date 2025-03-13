@@ -1,6 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
-
 module Plutus.Script.Utils.V1.Generators
   ( alwaysSucceedValidator,
     alwaysSucceedValidatorVersioned,

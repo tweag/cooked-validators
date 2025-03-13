@@ -1,8 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Plutus.Script.Utils.V2.Typed.Scripts.Validators
   ( UntypedValidator,
     ---
