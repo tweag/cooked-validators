@@ -18,7 +18,6 @@ import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.Skeleton
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 
 -- | This provides the minimum amount of ada required in a given `TxSkelOut`. As

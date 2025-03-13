@@ -20,6 +20,7 @@ import Data.Function
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script (TypedValidator (..))
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
 
@@ -78,7 +79,7 @@ receives owner = go $ Pays $ ConcreteOutput owner Nothing TxSkelOutNoDatum mempt
     go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatum dat
     go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
     go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
-    go (Pays output) (Value v) = Pays $ setValue output $ toValue v
+    go (Pays output) (Value v) = Pays $ setValue output $ Script.toValue v
     go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
     go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
     go pays (StakingCredential _) = pays

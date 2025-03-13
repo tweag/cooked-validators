@@ -7,4 +7,3 @@ import Cooked.Conversion.ToHash as X
 import Cooked.Conversion.ToOutputDatum as X
 import Cooked.Conversion.ToPubKeyHash as X
 import Cooked.Conversion.ToStakingCredential as X
-import Cooked.Conversion.ToValue as X

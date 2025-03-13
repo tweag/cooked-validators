@@ -118,7 +118,7 @@ import GHC.Generics (Generic)
 import Ledger.Address qualified as P
 import Ledger.Scripts qualified as P
 import Ledger.Slot qualified as P
-import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Scripts (scriptCurrencySymbol, toMintingPolicyHash)
 import Plutus.Script.Utils.Scripts qualified as Scripts
 import Plutus.Script.Utils.V2.Scripts qualified as PV2
 import Plutus.Script.Utils.Value qualified as Value
@@ -522,8 +522,8 @@ toCardanoScriptDataHash (P.DatumHash bs) =
 fromCardanoMintValue :: C.TxMintValue build era -> C.Value
 fromCardanoMintValue = C.txMintValueToValue
 
-adaToCardanoValue :: Ada.Ada -> C.Value
-adaToCardanoValue (Ada.Lovelace n) = fromList [(C.AdaAssetId, C.Quantity n)]
+adaToCardanoValue :: Value.Ada -> C.Value
+adaToCardanoValue (Value.Lovelace n) = fromList [(C.AdaAssetId, C.Quantity n)]
 
 fromCardanoValue :: C.Value -> Value.Value
 fromCardanoValue = foldMap fromSingleton . toList
@@ -559,19 +559,19 @@ toCardanoAssetName (Value.TokenName bs) =
       (deserialiseFromRawBytes C.AsAssetName (PlutusTx.fromBuiltin bs))
 
 fromCardanoAssetId :: C.AssetId -> Value.AssetClass
-fromCardanoAssetId C.AdaAssetId = Value.assetClass Ada.adaSymbol Ada.adaToken
+fromCardanoAssetId C.AdaAssetId = Value.assetClass Value.adaSymbol Value.adaToken
 fromCardanoAssetId (C.AssetId policyId assetName) =
   Value.assetClass
-    (Value.mpsSymbol . fromCardanoPolicyId $ policyId)
+    (scriptCurrencySymbol . fromCardanoPolicyId $ policyId)
     (fromCardanoAssetName assetName)
 
 toCardanoAssetId :: Value.AssetClass -> Either ToCardanoError C.AssetId
 toCardanoAssetId (Value.AssetClass (currencySymbol, tokenName))
-  | currencySymbol == Ada.adaSymbol && tokenName == Ada.adaToken =
+  | currencySymbol == Value.adaSymbol && tokenName == Value.adaToken =
       pure C.AdaAssetId
   | otherwise =
       C.AssetId
-        <$> toCardanoPolicyId (Value.currencyMPSHash currencySymbol)
+        <$> toCardanoPolicyId (toMintingPolicyHash currencySymbol)
         <*> toCardanoAssetName tokenName
 
 fromCardanoFee :: C.TxFee era -> Coin
@@ -581,15 +581,15 @@ toCardanoFee :: Coin -> C.TxFee C.ConwayEra
 toCardanoFee = C.TxFeeExplicit C.shelleyBasedEra
 
 fromCardanoLovelace :: Coin -> PV1.Value
-fromCardanoLovelace (Coin lovelace) = Ada.lovelaceValueOf lovelace
+fromCardanoLovelace (Coin lovelace) = Value.lovelace lovelace
 
 toCardanoLovelace :: PV1.Value -> Either ToCardanoError Coin
 toCardanoLovelace value =
-  if value == Ada.lovelaceValueOf lovelace
+  if value == Value.lovelace lovelace
     then pure . C.quantityToLovelace . C.Quantity $ lovelace
     else Left ValueNotPureAda
   where
-    Ada.Lovelace lovelace = Ada.fromValue value
+    Value.Lovelace lovelace = Value.fromValue value
 
 fromCardanoValidityRange :: C.TxValidityLowerBound era -> C.TxValidityUpperBound era -> P.SlotRange
 fromCardanoValidityRange l u = PV1.Interval (fromCardanoValidityLowerBound l) (fromCardanoValidityUpperBound u)

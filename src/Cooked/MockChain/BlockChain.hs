@@ -84,6 +84,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain errors
@@ -308,13 +309,13 @@ txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Ap
 txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
-govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
-govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
+govActionDeposit :: (MonadBlockChainBalancing m) => m Script.Ada
+govActionDeposit = Script.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
 
 -- | Retrieves the total amount of lovelace deposited in proposals in this
 -- skeleton (equal to `govActionDeposit` times the number of proposals).
-txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
-txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
+txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Script.Ada
+txSkelProposalsDeposit TxSkel {..} = Script.Lovelace . (toInteger (length txSkelProposals) *) . Script.getLovelace <$> govActionDeposit
 
 -- | Helper to convert Nothing to an error
 maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b

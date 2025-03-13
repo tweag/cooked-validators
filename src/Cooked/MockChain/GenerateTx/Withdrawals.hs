@@ -15,8 +15,8 @@ import Cooked.Skeleton
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 data WithdrawalsContext where

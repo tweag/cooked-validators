@@ -9,8 +9,8 @@ import Cooked.Conversion
 import Cooked.Skeleton.Redeemer as X
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Withdrawals associate either a script or a private key with a redeemer and

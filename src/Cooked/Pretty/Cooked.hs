@@ -47,7 +47,6 @@ import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -203,7 +202,7 @@ prettyWithdrawals pcOpts withdrawals =
             Left script -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
             Right pkh -> [prettyCookedOpt pcOpts pkh]
         )
-          ++ [prettyCookedOpt pcOpts (toValue ada)]
+          ++ [prettyCookedOpt pcOpts (Script.toValue ada)]
 
 prettyTxParameterChange :: PrettyCookedOpts -> TxParameterChange -> DocCooked
 prettyTxParameterChange opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
@@ -308,7 +307,7 @@ prettyTxSkelGovAction opts (TxGovActionHardForkInitiation (Api.ProtocolVersion m
   "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
 prettyTxSkelGovAction opts (TxGovActionTreasuryWithdrawals withdrawals) =
   prettyItemize "Withdrawals:" "-" $
-    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (toValue lv)) <$> Map.toList withdrawals
+    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
 prettyTxSkelGovAction _ TxGovActionNoConfidence = "No confidence"
 prettyTxSkelGovAction opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
   prettyItemize

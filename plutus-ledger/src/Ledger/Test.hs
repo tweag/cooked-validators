@@ -11,13 +11,12 @@ import Cardano.Api qualified as C
 import Ledger qualified
 import Ledger.Typed.Scripts qualified as Scripts
 import Ledger.Value.CardanoAPI (policyId)
-import Plutus.Script.Utils.Scripts (toMintingPolicy, toMintingPolicyHash, toValidator)
+import Plutus.Script.Utils.Scripts (scriptCurrencySymbol, toMintingPolicy, toMintingPolicyHash, toValidator)
 import Plutus.Script.Utils.Typed as PSU
 import Plutus.Script.Utils.V1.Address qualified as PV1
 import Plutus.Script.Utils.V1.Scripts qualified as PV1
 import Plutus.Script.Utils.V2.Address qualified as PV2
 import Plutus.Script.Utils.V2.Scripts qualified as PV2
-import Plutus.Script.Utils.Value (mpsSymbol)
 import PlutusLedgerApi.V1 (Address)
 import PlutusLedgerApi.V1.Value qualified as Value
 import PlutusLedgerApi.V2 qualified as PV2
@@ -90,7 +89,7 @@ coinMintingPolicyHash :: Language -> Ledger.MintingPolicyHash
 coinMintingPolicyHash = toMintingPolicyHash . coinMintingPolicy
 
 coinMintingPolicyCurrencySymbol :: Language -> Value.CurrencySymbol
-coinMintingPolicyCurrencySymbol = mpsSymbol . coinMintingPolicyHash
+coinMintingPolicyCurrencySymbol = scriptCurrencySymbol . coinMintingPolicyHash
 
 someToken :: Language -> Value.Value
 someToken lang = Value.singleton (coinMintingPolicyCurrencySymbol lang) "someToken" 1

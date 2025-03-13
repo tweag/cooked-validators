@@ -8,8 +8,8 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
 import Optics.Core
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -44,8 +44,8 @@ dupTokenAttack change attacker = do
       oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
       let newMintsList =
             map
-              ( \(Script.Versioned policy version, redeemer, tName, oldAmount) ->
-                  let ac = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash policy) tName
+              ( \(vPolicy@(Script.Versioned policy version), redeemer, tName, oldAmount) ->
+                  let ac = Script.assetClass (Script.scriptCurrencySymbol $ Script.toMintingPolicyHash vPolicy) tName
                       newAmount = change ac oldAmount
                    in (Script.Versioned policy version, redeemer, tName, max newAmount oldAmount)
               )

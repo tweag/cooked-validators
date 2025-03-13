@@ -32,7 +32,6 @@ module Cooked.Skeleton
   )
 where
 
-import Cooked.Conversion
 import Cooked.Output
 import Cooked.Skeleton.Datum as X
 import Cooked.Skeleton.Label as X
@@ -55,6 +54,7 @@ import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Transaction skeletons
@@ -193,7 +193,7 @@ txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.key
 -- * Various Optics on 'TxSkels' and all the other types defined here
 
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = mconcat . (toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
 
 txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
 txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals

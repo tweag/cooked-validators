@@ -31,7 +31,7 @@ import Lens.Micro qualified as MicroLens
 import Network.HTTP.Simple qualified as Network
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 type ProposalGen a = TxGen (Emulator.PParams, Map Api.TxOutRef Api.TxOut) a
@@ -101,7 +101,7 @@ toGovAction TxSkelProposal {..} = do
           sHash
     TxGovActionHardForkInitiation _ -> throwOnString "TxGovActionHardForkInitiation unsupported"
     TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
-      cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> liftTxGen (toRewardAccount cred)) (Map.toList mapCredentialLovelace)
+      cardanoMap <- SMap.fromList <$> mapM (\(cred, Script.Lovelace lv) -> (,Emulator.Coin lv) <$> liftTxGen (toRewardAccount cred)) (Map.toList mapCredentialLovelace)
       return $ Conway.TreasuryWithdrawals cardanoMap sHash
     TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing -- TODO, should not be Nothing later on
     TxGovActionUpdateCommittee {} -> throwOnString "TxGovActionUpdateCommittee unsupported"

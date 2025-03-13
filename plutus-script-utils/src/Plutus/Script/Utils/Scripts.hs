@@ -300,6 +300,9 @@ instance ToMintingPolicyHash PV1.ScriptHash where
 instance ToMintingPolicyHash (Versioned MintingPolicy) where
   toMintingPolicyHash = toMintingPolicyHash . toScriptHash . fmap toScript
 
+instance ToMintingPolicyHash PV1.CurrencySymbol where
+  toMintingPolicyHash = coerce
+
 instance ToScriptHash MintingPolicyHash where
   toScriptHash = coerce
 
