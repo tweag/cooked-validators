@@ -10,7 +10,7 @@ where
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
-import Data.List
+import Data.List (foldl')
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 

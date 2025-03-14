@@ -181,11 +181,11 @@ emptyTest trace =
     }
 
 -- | Appending an initial distribution to a test
-withInitDist :: (IsProp prop) => Test a prop -> InitialDistribution -> Test a prop
+withInitDist :: Test a prop -> InitialDistribution -> Test a prop
 withInitDist test initDist = test {testInitDist = initDist}
 
 -- | Appending printing options to a test
-withPrettyOpts :: (IsProp prop) => Test a prop -> PrettyCookedOpts -> Test a prop
+withPrettyOpts :: Test a prop -> PrettyCookedOpts -> Test a prop
 withPrettyOpts test opts = test {testPrettyOpts = opts}
 
 -- | Appending a predicate over the log to a test. This will be used both in

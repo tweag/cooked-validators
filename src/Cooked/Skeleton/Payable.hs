@@ -1,7 +1,3 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeOperators #-}
-
 module Cooked.Skeleton.Payable
   ( Payable (..),
     (<&&>),
