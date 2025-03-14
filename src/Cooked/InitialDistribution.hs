@@ -4,14 +4,9 @@
 module Cooked.InitialDistribution
   ( InitialDistribution (..),
     distributionFromList,
-    toInitDistWithMinAda,
-    unsafeToInitDistWithMinAda,
   )
 where
 
-import Control.Monad
-import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.MinAda
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
@@ -55,19 +50,6 @@ instance Semigroup InitialDistribution where
 
 instance Monoid InitialDistribution where
   mempty = InitialDistribution mempty
-
--- | Transforms a given initial distribution by ensuring each payment has enough
--- ada so that the resulting outputs can sustain themselves. This can fail if
--- any of the payments cannot be translated to their Cardano counterpart.
-toInitDistWithMinAda :: InitialDistribution -> Either GenerateTxError InitialDistribution
-toInitDistWithMinAda (InitialDistribution initDist) =
-  InitialDistribution <$> forM initDist (toTxSkelOutWithMinAda def)
-
--- | Unsafe variant of `toInitDistWithMinAda`
-unsafeToInitDistWithMinAda :: InitialDistribution -> InitialDistribution
-unsafeToInitDistWithMinAda initDist = case toInitDistWithMinAda initDist of
-  Left err -> error $ show err
-  Right initDist' -> initDist'
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution

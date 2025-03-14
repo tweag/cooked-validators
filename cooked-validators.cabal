@@ -68,6 +68,7 @@ library
       Cooked.Skeleton.Payable
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
+      Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common

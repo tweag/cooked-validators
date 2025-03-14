@@ -69,15 +69,23 @@ testingBalancingTemplate ::
   Bool ->
   -- Option modifications
   (TxOpts -> TxOpts) ->
+  -- Wether to adjust the output with min ada
+  Bool ->
   m TestBalancingOutcome
-testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch collateralSearch consumeScriptUtxo optionsMod = do
+testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch collateralSearch consumeScriptUtxo optionsMod adjust = do
   ((fst <$>) -> toSpendUtxos) <- runUtxoSearch spendSearch
   ((fst <$>) -> toBalanceUtxos) <- runUtxoSearch balanceSearch
   ((fst <$>) -> toCollateralUtxos) <- runUtxoSearch collateralSearch
   additionalSpend <- spendsScriptUtxo consumeScriptUtxo
-  let skel =
+  let valueConstr = if adjust then AdjustableValue else Value
+      skel =
         txSkelTemplate
-          { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [bob `receives` Value toBobValue, alice `receives` Value toAliceValue],
+          { txSkelOuts =
+              List.filter
+                ((/= mempty) . (^. txSkelOutValueL % txSkelOutValueContentL))
+                [ bob `receives` valueConstr toBobValue,
+                  alice `receives` valueConstr toAliceValue
+                ],
             txSkelIns = additionalSpend <> Map.fromList ((,emptyTxSkelRedeemer) <$> toSpendUtxos),
             txSkelOpts =
               optionsMod
@@ -110,7 +118,7 @@ aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txO
 emptySearch :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 emptySearch = ListT.fromFoldable []
 
-simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxOpts -> TxOpts) -> m TestBalancingOutcome
+simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxOpts -> TxOpts) -> Bool -> m TestBalancingOutcome
 simplePaymentToBob lv apples oranges bananas =
   testingBalancingTemplate
     (Script.lovelace lv <> apple apples <> orange oranges <> banana bananas)
@@ -119,7 +127,7 @@ simplePaymentToBob lv apples oranges bananas =
     emptySearch
     emptySearch
 
-bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxOpts -> TxOpts) -> m TestBalancingOutcome
+bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxOpts -> TxOpts) -> Bool -> m TestBalancingOutcome
 bothPaymentsToBobAndAlice val =
   testingBalancingTemplate
     (Script.lovelace val)
@@ -249,7 +257,6 @@ tests :: TestTree
 tests =
   let setFixedFee fee txOpts = txOpts {txOptFeePolicy = ManualFee fee}
       setDontAdjustOutput txOpts = txOpts {txOptBalanceOutputPolicy = DontAdjustExistingOutput}
-      setEnsureMinAda txOpts = txOpts {txOptEnsureMinAda = True}
       setDontBalance txOpts = txOpts {txOptBalancingPolicy = DoNotBalance}
       setCollateralWallet wallet' txOpts = txOpts {txOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
    in testGroup
@@ -266,6 +273,7 @@ tests =
                     0
                     False
                     (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingFailsWith
                 "Balancing does not occur when not requested, fails with too small inputs"
@@ -278,6 +286,7 @@ tests =
                     emptySearch
                     False
                     (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "It is possible to balance the transaction by hand without collaterals"
@@ -290,6 +299,7 @@ tests =
                     emptySearch
                     False
                     (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "It is also possible to balance the transaction by hand with collaterals"
@@ -302,6 +312,7 @@ tests =
                     emptySearch
                     True
                     (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingFailsWith
                 "A collateral wallet needs to be provided when auto balancing is enabled and script are involved..."
@@ -314,6 +325,7 @@ tests =
                     emptySearch
                     True
                     (setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "... but is not necessary otherwise."
@@ -326,6 +338,7 @@ tests =
                     emptySearch
                     False
                     (setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can also directly give a set of collateral utxos..."
@@ -338,6 +351,7 @@ tests =
                     (aliceNAdaUtxos 8)
                     True
                     (setDontBalance . setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "... which will be ignored when no script is involved"
@@ -350,6 +364,7 @@ tests =
                     (aliceNAdaUtxos 8)
                     False
                     (setDontBalance . setFixedFee 1_000_000)
+                    False
                 )
             ],
           testGroup
@@ -370,6 +385,7 @@ tests =
                     0
                     True
                     id
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can auto balance a transaction with auto fee, no collateral and no script inputs"
@@ -381,6 +397,7 @@ tests =
                     0
                     False
                     id
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can auto balance a transaction with auto fee, collaterals, script and pk inputs"
@@ -392,6 +409,7 @@ tests =
                     0
                     True
                     id
+                    False
                 ),
               testCase "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
                 testToProp $
@@ -409,6 +427,7 @@ tests =
                         0
                         False
                         id
+                        False
                     )
                     `withInitDist` initialDistributionBalancing,
               testCase "... but not always" $
@@ -421,6 +440,7 @@ tests =
                         0
                         False
                         id
+                        False
                     )
                     `withInitDist` initialDistributionBalancing
                     `withErrorPred` failsAtBalancing,
@@ -435,6 +455,7 @@ tests =
                         (aliceNAdaUtxos 2)
                         True
                         id
+                        False
                     )
                     `withInitDist` initialDistributionBalancing,
               testCase "... but not always" $
@@ -448,6 +469,7 @@ tests =
                         (aliceNAdaUtxos 1)
                         True
                         id
+                        False
                     )
                     `withInitDist` initialDistributionBalancing
                     `withErrorPred` failsAtCollaterals,
@@ -468,6 +490,7 @@ tests =
                     0
                     False
                     (setFixedFee 1_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can use several utxos for balancing with ridiculously high fee"
@@ -479,6 +502,7 @@ tests =
                     0
                     False
                     (setFixedFee 40_000_000)
+                    False
                 ),
               testBalancingFailsWith
                 "We cannot balance with too little fee"
@@ -490,6 +514,7 @@ tests =
                     0
                     False
                     (setFixedFee 150_000)
+                    False
                 ),
               testBalancingFailsWith
                 "Fee are rightfully included in the balancing process, which fails when they are too high"
@@ -501,6 +526,7 @@ tests =
                     0
                     False
                     (setFixedFee 6_000_000)
+                    False
                 ),
               testBalancingFailsWith
                 "Collaterals are rightfully included in the balancing process, which fails when they are too high"
@@ -512,6 +538,7 @@ tests =
                     0
                     True
                     (setFixedFee 80_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "Exactly the right amount leads to no output change"
@@ -523,6 +550,7 @@ tests =
                     0
                     False
                     (setFixedFee 2_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "It still leads to no output change when requesting a new output"
@@ -534,6 +562,7 @@ tests =
                     0
                     False
                     (setDontAdjustOutput . setFixedFee 2_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "1 lovelace more than the exact right amount leads to an additional output"
@@ -545,6 +574,7 @@ tests =
                     0
                     False
                     (setFixedFee 2_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "1 lovelace less than the exact right amount leads to an additional output to account for minAda"
@@ -556,6 +586,7 @@ tests =
                     0
                     False
                     (setFixedFee 2_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can merge assets to an existing outputs at the balancing wallet address"
@@ -564,6 +595,7 @@ tests =
                     6_000_000
                     False
                     (setFixedFee 2_000_000)
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can create a new output at the balancing wallet address even if one already exists"
@@ -572,6 +604,7 @@ tests =
                     6_000_000
                     False
                     (setFixedFee 2_000_000 . setDontAdjustOutput)
+                    False
                 ),
               testBalancingSucceedsWith
                 "We can balance transactions with non-ada assets"
@@ -582,7 +615,8 @@ tests =
                     5
                     0
                     False
-                    (setFixedFee 2_000_000 . setEnsureMinAda)
+                    (setFixedFee 2_000_000)
+                    True
                 ),
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets"
@@ -593,7 +627,8 @@ tests =
                     5
                     0
                     False
-                    (setEnsureMinAda . setFixedFee 1_000_000)
+                    (setFixedFee 1_000_000)
+                    True
                 ),
               testBalancingFailsWith
                 "Unsuccessful balancing with multiple assets in non value only utxos"
@@ -604,7 +639,8 @@ tests =
                     5
                     4
                     False
-                    (setEnsureMinAda . setFixedFee 1_000_000)
+                    (setFixedFee 1_000_000)
+                    True
                 ),
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets and explicit utxo set, reference script is lost"
@@ -616,7 +652,8 @@ tests =
                     (utxosAtSearch alice)
                     emptySearch
                     False
-                    (setEnsureMinAda . setFixedFee 1_000_000)
+                    (setFixedFee 1_000_000)
+                    True
                 ),
               testBalancingSucceedsWith
                 "Successful balancing with excess initial consumption"
@@ -629,6 +666,7 @@ tests =
                     emptySearch
                     False
                     (setFixedFee 1_000_000)
+                    False
                 )
             ]
         ]

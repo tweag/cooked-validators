@@ -62,8 +62,7 @@ putRefScriptOnWalletOutput recipient referenceScript =
   head
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
+        { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -76,8 +75,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [recipient `receives` (ReferenceScript referenceScript <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [recipient `receives` (ReferenceScript referenceScript <&&> VisibleHashedDatum ())],
           txSkelSigners = [wallet 1]
         }
 

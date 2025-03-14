@@ -130,7 +130,7 @@ doubleSatAttack groupings optic change attacker = do
       inValue <- foldMap (outputValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate outValue <> mintValue
       where
-        outValue = foldOf (traversed % txSkelOutValueL) outputs
+        outValue = foldOf (traversed % txSkelOutValueL % txSkelOutValueContentL) outputs
         mintValue = txSkelMintsValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction

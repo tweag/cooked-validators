@@ -35,7 +35,7 @@ tests =
                   @=? fst
                     <$> runTweak
                       ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
+                          (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
                           ( \value ->
                               if value `Script.geq` Script.lovelaceValueOf 200
                                 then Just $ Script.lovelaceValueOf 789
@@ -49,7 +49,7 @@ tests =
                   @=? fst
                     <$> runTweak
                       ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
+                          (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
                           (const $ Just $ Script.lovelaceValueOf 789)
                           (`elem` [0, 2])
                       )
@@ -94,7 +94,7 @@ tests =
                       <$> runTweak
                         ( combineModsTweak
                             (tail . subsequences)
-                            (txSkelOutsL % itraversed % txSkelOutValueL % Script.adaL)
+                            (txSkelOutsL % itraversed % txSkelOutValueL % txSkelOutValueContentL % Script.adaL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
                         )
                         skelIn
@@ -113,7 +113,7 @@ tests =
                       <$> runTweak
                         ( combineModsTweak
                             (map (: []))
-                            (txSkelOutsL % itraversed % txSkelOutValueL % Script.adaL)
+                            (txSkelOutsL % itraversed % txSkelOutValueL % txSkelOutValueContentL % Script.adaL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
                         )
                         skelIn
