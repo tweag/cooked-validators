@@ -6,9 +6,6 @@
 
 - `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
   most commonly used.
-- `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
-  distribution only provides outputs with the required minimal ada based on
-  default parameters.
 - All kinds of scripts can now be used as reference scripts.
 - `validateTxSkel_` which validates a skeleton and ignores the output.
 - `txSkelMintsFromList'` which only allows one redeemer per minting policy.
@@ -39,6 +36,9 @@
 - The `receive` smart constructor for payments that allows to compose payable
   elements (datums, values, staking credential and reference scripts) and
   associate them to a recipient.
+- `TxSkelOutValue` which encompasses both a value and whether it can be tampered
+  with through min ada adjustment. It comes with the constructor
+  `AdjustableValue` from the `Payable` type.
 
 ### Removed
 
@@ -46,6 +46,7 @@
 - Redundant logging of errors in mockchain runs.
 - Useless minting of non-ADA value in the dummy initial transaction.
 - Payment helpers (such as `PaysPK`, `withDatum` ...). Replaced by `receives`.
+- `txOptEnsureMinAda`, replaced by a field of `TxSkelOutValue`
 
 ### Changed
 
@@ -74,6 +75,7 @@
   and `Mint.hs`. File `TamperDatum.hs` has been updated and integrated into
   `Output.hs`.
 - File `Skeleton.hs` has been split into sub-files in the `Skeleton` folder.
+- Default language extensions and compilation options have been updated.
 
 ### Fixed
 
