@@ -43,21 +43,31 @@ getTxSkelOutMinAda Emulator.Params {..} txSkelOut =
 -- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
 -- This transformation is option and piloted by the 'txSkelOutValueAutoAdjust'
 -- flag from the `TxSkelOutValue`.
-toTxSkelOutWithMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError (Maybe (TxSkelOut, Integer))
-toTxSkelOutWithMinAda _ ((^. txSkelOutValueL) -> TxSkelOutValue _ False) = return Nothing
-toTxSkelOutWithMinAda params txSkelOut | TxSkelOutValue ((^. Script.adaL) -> Script.Lovelace oldAda) _ <- txSkelOut ^. txSkelOutValueL = do
+toTxSkelOutWithMinAda ::
+  -- | Current blockchain parameters
+  Emulator.Params ->
+  -- | The output to potential adjust
+  TxSkelOut ->
+  -- | Returns @Nothing@ when no ajustment was required/done, and
+  -- @Just(newOutput,newAdaAmount)@ otherwise.
+  Either GenerateTxError (Maybe (TxSkelOut, Integer))
+-- The auto adjustment is disabled so nothing is done here
+toTxSkelOutWithMinAda _ ((^. txSkelOutValueL % txSkelOutValueAutoAdjustL) -> False) = return Nothing
+-- The auto adjustment is enabled
+toTxSkelOutWithMinAda params txSkelOut = do
+  -- Computing the required minimal amount of ADA in this output
   requiredAda <- getTxSkelOutMinAda params txSkelOut
-  if oldAda < requiredAda
-    then
+  -- If this amount is sufficient, we return Nothing, otherwise, we adjust the
+  -- output and possibly iterate
+  if Script.getLovelace (txSkelOut ^. txSkelOutValueL % txSkelOutValueContentL % Script.adaL) >= requiredAda
+    then return Nothing
+    else
       let newTxSkelOut = txSkelOut & txSkelOutValueL % txSkelOutValueContentL % Script.adaL .~ Script.Lovelace requiredAda
        in Just . fromMaybe (newTxSkelOut, requiredAda) <$> toTxSkelOutWithMinAda params newTxSkelOut
-    else return Nothing
 
--- | This goes through all the `TxSkelOut`s of the given skeleton and update
+-- | This goes through all the `TxSkelOut`s of the given skeleton and updates
 -- their ada value when requested by the user and required by the protocol
--- parameters. This requires to transform the outputs into their Cardano
--- counterpart, which can cause some errors that are transformed into
--- `MCEGenerationError`.
+-- parameters.
 toTxSkelWithMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
 toTxSkelWithMinAda skel = do
   theParams <- getParams
@@ -65,8 +75,11 @@ toTxSkelWithMinAda skel = do
     <$> forM
       (skel ^. txSkelOutsL)
       ( \txSkelOut -> case toTxSkelOutWithMinAda theParams txSkelOut of
+          -- A generation error was raised, which we propagate
           Left err -> throwError $ MCEGenerationError err
+          -- No adjustment is required/necessary
           Right Nothing -> return txSkelOut
+          -- Adjustment is logged and performed
           Right (Just (newTxSkelOut, newAdaAmount)) -> do
             logEvent $ MCLogAdjustedTxSkelOut txSkelOut (Script.Lovelace newAdaAmount)
             return newTxSkelOut
