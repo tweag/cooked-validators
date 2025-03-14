@@ -136,6 +136,11 @@ instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLogEntry where
+  prettyCookedOpt opts (MCLogAdjustedTxSkelOut skelOut newAda) =
+    "The ADA amount of "
+      <> prettyTxSkelOut opts skelOut
+      <> " has been automatically adjusted to "
+      <> prettyCookedOpt opts (toValue newAda)
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
     let mCollateralsDoc =

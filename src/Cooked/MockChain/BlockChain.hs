@@ -85,6 +85,7 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
+import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -135,6 +136,8 @@ data MockChainLogEntry
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
+  | -- | Logging the automatic adjusment of a min ada amount
+    MCLogAdjustedTxSkelOut TxSkelOut Script.Ada
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where

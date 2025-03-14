@@ -240,7 +240,7 @@ utxoIndex0From (InitialDistribution initDist) = case mkBody of
       let theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42
           genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(Cardano.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
-      outputs <- mapM (toTxSkelOutWithMinAda def >=> generateTxOut theNetworkId) initDist
+      outputs <- mapM ((\txSkelOut -> maybe txSkelOut fst <$> toTxSkelOutWithMinAda def txSkelOut) >=> generateTxOut theNetworkId) initDist
       left (TxBodyError "Body error") $
         Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway $
           Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs}
