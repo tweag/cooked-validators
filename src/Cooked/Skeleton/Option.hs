@@ -10,7 +10,6 @@ module Cooked.Skeleton.Option
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
-    txOptEnsureMinAdaL,
     txOptUnsafeModTxL,
     txOptAutoSlotIncreaseL,
     txOptBalancingPolicyL,
@@ -159,12 +158,7 @@ instance Default AnchorResolution where
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
 data TxOpts = TxOpts
-  { -- | Performs an adjustment to unbalanced transactions, making sure every
-    -- UTxO that is produced has the necessary minimum amount of Ada.
-    --
-    -- Default is @False@.
-    txOptEnsureMinAda :: Bool,
-    -- | Whether to increase the slot counter automatically on transaction
+  { -- | Whether to increase the slot counter automatically on transaction
     -- submission.  This is useful for modelling transactions that could be
     -- submitted in parallel in reality, so there should be no explicit ordering
     -- of what comes first.
@@ -245,8 +239,7 @@ data TxOpts = TxOpts
   deriving (Eq, Show)
 
 makeLensesFor
-  [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
-    ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
+  [ ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
     ("txOptBalancingPolicy", "txOptBalancingPolicyL"),
     ("txOptFeePolicy", "txOptFeePolicyL"),
@@ -262,8 +255,7 @@ makeLensesFor
 instance Default TxOpts where
   def =
     TxOpts
-      { txOptEnsureMinAda = False,
-        txOptAutoSlotIncrease = True,
+      { txOptAutoSlotIncrease = True,
         txOptUnsafeModTx = [],
         txOptBalancingPolicy = def,
         txOptBalanceOutputPolicy = def,

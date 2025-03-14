@@ -2,7 +2,6 @@ module Cooked.InlineDatumsSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -103,8 +102,7 @@ listUtxosTestTrace useInlineDatum validator =
   utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
+        { txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
           txSkelSigners = [wallet 1]
         }
 
@@ -125,8 +123,7 @@ spendOutputTestTrace useInlineDatum validator = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
+        { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
           txSkelSigners = [wallet 1]
         }
 
@@ -150,11 +147,10 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
+        { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
           txSkelOuts =
             [ validator
-                `receives` ( Value (outputValue theOutput)
+                `receives` ( AdjustableValue (outputValue theOutput)
                                <&&> ( case datumKindOnSecondPayment of
                                         OnlyHash -> HiddenHashedDatum
                                         Datum -> VisibleHashedDatum

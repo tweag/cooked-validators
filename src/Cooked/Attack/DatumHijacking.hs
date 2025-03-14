@@ -34,17 +34,17 @@ redirectScriptOutputTweak ::
     Show (Script.DatumType a),
     Api.ToData (Script.DatumType a)
   ) =>
-  Optic' k is TxSkel (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script)) ->
+  Optic' k is TxSkel (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script)) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
   -- output unchanged.
-  (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script) -> Maybe (Script.TypedValidator a)) ->
+  (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Maybe (Script.TypedValidator a)) ->
   -- | The redirection described by the previous argument might apply to more
   -- than one of the script outputs of the transaction. Use this predicate to
   -- select which of the redirectable script outputs to actually redirect. We
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  m [ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script)]
+  m [ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script)]
 redirectScriptOutputTweak optic change =
   overMaybeSelectingTweak
     optic
@@ -80,12 +80,12 @@ datumHijackingAttack ::
   ) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
-  (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script) -> Bool) ->
+  (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Bool) ->
   -- | The selection predicate may match more than one output. Use this
   -- predicate to restrict to the i-th of the outputs (counting from the left,
   -- starting at zero) chosen by the selection predicate with this predicate.
   (Integer -> Bool) ->
-  m [ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script)]
+  m [ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script)]
 datumHijackingAttack change select = do
   redirected <-
     redirectScriptOutputTweak

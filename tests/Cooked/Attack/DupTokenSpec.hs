@@ -2,7 +2,6 @@ module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -51,9 +50,8 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
       let mints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName, amount)]
           mintedValue = txSkelMintsValue mints
        in txSkelTemplate
-            { txSkelOpts = def {txOptEnsureMinAda = True},
-              txSkelMints = mints,
-              txSkelOuts = [recipient `receives` Value mintedValue],
+            { txSkelMints = mints,
+              txSkelOuts = [recipient `receives` AdjustableValue mintedValue],
               txSkelSigners = [wallet 3]
             }
 

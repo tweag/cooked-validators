@@ -471,8 +471,7 @@ mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
 mPrettyTxOpts
   opts
   TxOpts
-    { txOptEnsureMinAda,
-      txOptAutoSlotIncrease,
+    { txOptAutoSlotIncrease,
       txOptUnsafeModTx,
       txOptBalanceOutputPolicy,
       txOptFeePolicy,
@@ -484,8 +483,7 @@ mPrettyTxOpts
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
-          prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+        [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
           prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
@@ -500,9 +498,6 @@ mPrettyTxOpts
       prettyIfNot defaultValue f x
         | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
         | otherwise = Just $ f x
-      prettyEnsureMinAda :: Bool -> DocCooked
-      prettyEnsureMinAda True = "Ensure min Ada per transaction"
-      prettyEnsureMinAda False = "Do not ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> DocCooked
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"
