@@ -32,7 +32,6 @@ module Cooked.Skeleton
   )
 where
 
-import Cooked.Conversion
 import Cooked.Output
 import Cooked.Skeleton.Datum as X
 import Cooked.Skeleton.Label as X
@@ -42,6 +41,7 @@ import Cooked.Skeleton.Output as X
 import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
@@ -55,6 +55,7 @@ import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Transaction skeletons
@@ -130,7 +131,7 @@ txSkelTemplate =
 
 -- | Returns the full value contained in the skeleton outputs
 txSkelValueInOutputs :: TxSkel -> Api.Value
-txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
+txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
 
 -- | Return all data on transaction outputs. This can contain duplicates, which
 -- is intended.
@@ -152,7 +153,7 @@ txSkelDataInOutputs =
 txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
 txSkelValidatorsInOutputs =
   Map.fromList
-    . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
+    . mapMaybe (fmap (\val -> (Script.toValidatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs
@@ -164,8 +165,8 @@ txSkelReferenceScripts =
           case output ^. outputReferenceScriptL of
             Nothing -> Map.empty
             Just x ->
-              let vScript@(Script.Versioned script version) = toVersionedScript x
-                  Script.ScriptHash hash = toScriptHash vScript
+              let vScript@(Script.Versioned script version) = Script.toVersioned x
+                  Script.ScriptHash hash = Script.toScriptHash vScript
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
     . txSkelOuts
@@ -193,7 +194,7 @@ txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.key
 -- * Various Optics on 'TxSkels' and all the other types defined here
 
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = mconcat . (toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
 
 txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
 txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals

@@ -51,6 +51,7 @@ module Cooked.MockChain.BlockChain
     txSkelProposalsDeposit,
     govActionDeposit,
     txOutRefToTxSkelOut,
+    txOutRefToTxSkelOut',
   )
 where
 
@@ -67,7 +68,6 @@ import Control.Monad.Trans.Control
 import Control.Monad.Writer
 import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
-import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
@@ -85,6 +85,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain errors
@@ -134,6 +135,8 @@ data MockChainLogEntry
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
+  | -- | Logging the automatic adjusment of a min ada amount
+    MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
@@ -272,7 +275,7 @@ resolveValidator out =
 -- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
 resolveReferenceScript ::
   ( IsAbstractOutput out,
-    ToScriptHash (ReferenceScriptType out),
+    Script.ToScriptHash (ReferenceScriptType out),
     MonadBlockChainBalancing m
   ) =>
   out ->
@@ -310,12 +313,12 @@ txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
-govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
+govActionDeposit = Script.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
 
 -- | Retrieves the total amount of lovelace deposited in proposals in this
 -- skeleton (equal to `govActionDeposit` times the number of proposals).
 txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
-txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
+txSkelProposalsDeposit TxSkel {..} = Script.Lovelace . (toInteger (length txSkelProposals) *) . Script.getLovelace <$> govActionDeposit
 
 -- | Helper to convert Nothing to an error
 maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b
@@ -391,9 +394,11 @@ txOutRefToTxSkelOut ::
   Api.TxOutRef ->
   -- | Whether to include the datum in the transaction
   Bool ->
+  -- | Whether to allow further adjustment of the Ada value
+  Bool ->
   m TxSkelOut
-txOutRefToTxSkelOut oRef includeInTransactionBody = do
-  Just txOut@(Api.TxOut (Api.Address cred _) _ dat refS) <- txOutByRef oRef
+txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
+  Just txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- txOutByRef oRef
   target <- case cred of
     Api.PubKeyCredential pkh -> return $ Left pkh
     Api.ScriptCredential (Api.ScriptHash sh) -> do
@@ -412,9 +417,16 @@ txOutRefToTxSkelOut oRef includeInTransactionBody = do
     Pays $
       (fromAbstractOutput txOut)
         { concreteOutputOwner = target,
+          concreteOutputValue = TxSkelOutValue value allowAdaAdjustment,
           concreteOutputDatum = datum,
           concreteOutputReferenceScript = refScript
         }
+
+-- | A default version of 'txOutRefToTxSkelOut' where we both include the datum
+-- in the transaction if it was hashed in the 'TxOut', and allow further ada
+-- adjustment in case changes in the output require it.
+txOutRefToTxSkelOut' :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
+txOutRefToTxSkelOut' oRef = txOutRefToTxSkelOut oRef True True
 
 -- ** Slot and Time Management
 

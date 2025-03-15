@@ -9,14 +9,14 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Control.Monad
 import Control.Monad.Reader
-import Cooked.Conversion
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 data WithdrawalsContext where
@@ -52,7 +52,7 @@ toWithdrawals (Map.toList -> withdrawals) =
                   <$> liftTxGen (toScriptWitness script red Cardano.NoScriptDatumForStake)
               sCred <-
                 throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
-                  Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (toScriptHash script)
+                  Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash script)
               return (witness, sCred)
         networkId <- asks networkId
         return (Cardano.makeStakeAddress networkId sCred, Cardano.Coin n, Cardano.BuildTxWith witness)

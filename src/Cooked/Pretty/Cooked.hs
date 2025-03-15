@@ -47,9 +47,9 @@ import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -136,6 +136,11 @@ instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLogEntry where
+  prettyCookedOpt opts (MCLogAdjustedTxSkelOut skelOut newAda) =
+    "The ADA amount of "
+      <> prettyTxSkelOut opts skelOut
+      <> " has been automatically adjusted to "
+      <> prettyCookedOpt opts (Script.toValue newAda)
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
     let mCollateralsDoc =
@@ -196,14 +201,14 @@ prettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
 prettyWithdrawals pcOpts withdrawals =
   prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
   where
-    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Script.Ada)) -> DocCooked
+    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> DocCooked
     prettyWithdrawal (cred, (red, ada)) =
       prettyItemizeNoTitle "-" $
         ( case cred of
             Left script -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
             Right pkh -> [prettyCookedOpt pcOpts pkh]
         )
-          ++ [prettyCookedOpt pcOpts (toValue ada)]
+          ++ [prettyCookedOpt pcOpts (Script.toValue ada)]
 
 prettyTxParameterChange :: PrettyCookedOpts -> TxParameterChange -> DocCooked
 prettyTxParameterChange opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
@@ -308,7 +313,7 @@ prettyTxSkelGovAction opts (TxGovActionHardForkInitiation (Api.ProtocolVersion m
   "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
 prettyTxSkelGovAction opts (TxGovActionTreasuryWithdrawals withdrawals) =
   prettyItemize "Withdrawals:" "-" $
-    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (toValue lv)) <$> Map.toList withdrawals
+    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
 prettyTxSkelGovAction _ TxGovActionNoConfidence = "No confidence"
 prettyTxSkelGovAction opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
   prettyItemize
@@ -450,8 +455,8 @@ prettyTxSkelInReference opts skelContext txOutRef = do
             ]
       )
 
-getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
-getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
+getReferenceScriptDoc :: (IsAbstractOutput output, Script.ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
+getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
 
 lookupOutput :: SkelContext -> Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
@@ -471,8 +476,7 @@ mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
 mPrettyTxOpts
   opts
   TxOpts
-    { txOptEnsureMinAda,
-      txOptAutoSlotIncrease,
+    { txOptAutoSlotIncrease,
       txOptUnsafeModTx,
       txOptBalanceOutputPolicy,
       txOptFeePolicy,
@@ -484,8 +488,7 @@ mPrettyTxOpts
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
-          prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+        [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
           prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
@@ -500,9 +503,6 @@ mPrettyTxOpts
       prettyIfNot defaultValue f x
         | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
         | otherwise = Just $ f x
-      prettyEnsureMinAda :: Bool -> DocCooked
-      prettyEnsureMinAda True = "Ensure min Ada per transaction"
-      prettyEnsureMinAda False = "Do not ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> DocCooked
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"
@@ -575,7 +575,7 @@ prettyAddressState opts address payloadSet =
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
         . group
-        . List.sortBy (compare `on` (Script.fromValue . utxoPayloadValue))
+        . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
         . utxoPayloadSet
         $ payloadSet
     )

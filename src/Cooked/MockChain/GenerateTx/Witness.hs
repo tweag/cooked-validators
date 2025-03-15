@@ -11,7 +11,6 @@ import Cardano.Ledger.Credential qualified as Cardano
 import Cardano.Ledger.Crypto qualified as Crypto
 import Control.Monad
 import Control.Monad.Reader
-import Cooked.Conversion
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Output
 import Cooked.Skeleton
@@ -52,22 +51,18 @@ toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
       "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
       scriptOutRef
       referenceScriptsMap
-  when (refScriptHash /= toScriptHash script) $
+  when (refScriptHash /= Script.toScriptHash script) $
     throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."
   scriptTxIn <-
     throwOnToCardanoError
       "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."
       (Ledger.toCardanoTxIn scriptOutRef)
-  scriptHash <-
-    throwOnToCardanoError
-      "toPlutusScriptOrReferenceInput: Unable to translate script hash of reference script."
-      (Ledger.toCardanoScriptHash refScriptHash)
-  return $ Cardano.PReferenceScript scriptTxIn (Just scriptHash)
+  return $ Cardano.PReferenceScript scriptTxIn
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
-toScriptWitness :: (ToVersionedScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (toVersionedScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
+toScriptWitness :: (Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
+toScriptWitness (Script.toVersioned -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
   let scriptData = case txSkelRedeemer of
         EmptyRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
         SomeRedeemer s -> Ledger.toCardanoScriptData $ Api.toBuiltinData s

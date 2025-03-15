@@ -25,7 +25,6 @@ where
 
 import Control.Monad
 import Cooked.Conversion.ToAddress
-import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.BlockChain
 import Cooked.Output
 import Data.Maybe
@@ -33,7 +32,7 @@ import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))
 import ListT qualified
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -125,13 +124,13 @@ onlyValueOutputsAtSearch addr =
 vanillaOutputsAtSearch ::
   (MonadBlockChainBalancing m, ToAddress addr) =>
   addr ->
-  UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
+  UtxoSearch m (ConcreteOutput Api.Credential () Api.Lovelace Api.ScriptHash)
 vanillaOutputsAtSearch addr =
   onlyValueOutputsAtSearch addr
     `filterWithPure` isOnlyAdaOutput
 
 scriptOutputsSearch ::
-  (MonadBlockChain m, ToScriptHash s) =>
+  (MonadBlockChain m, Script.ToScriptHash s) =>
   s ->
   UtxoSearch m (ConcreteOutput s Api.OutputDatum Api.Value Api.ScriptHash)
 scriptOutputsSearch s =
@@ -140,7 +139,7 @@ scriptOutputsSearch s =
     `filterWithPure` isScriptOutputFrom s
 
 referenceScriptOutputsSearch ::
-  (MonadBlockChain m, ToScriptHash s) =>
+  (MonadBlockChain m, Script.ToScriptHash s) =>
   s ->
   UtxoSearch m (ConcreteOutput Api.Credential Api.OutputDatum Api.Value Api.ScriptHash)
 referenceScriptOutputsSearch s =

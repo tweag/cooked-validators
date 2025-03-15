@@ -2,10 +2,10 @@ module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Reader
-import Cooked.Conversion
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Wallet
 import Data.Map (Map)
@@ -14,6 +14,8 @@ import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -65,15 +67,15 @@ toCollateralTriplet = do
       -- We retrieve the collateral percentage compared to fees. By default, we use
       -- 150% which is the current value in the parameters, although the default
       -- value should never be used here, as the call is supposed to always succeed.
-      collateralPercentage <- asks (toInteger . fromMaybe 150 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
+      collateralPercentage <- asks (toInteger . MicroLens.view Conway.ppCollateralPercentageL . Emulator.pEmulatorPParams . params)
       -- The total collateral corresponds to the fees multiplied by the collateral
       -- percentage. We add 1 because the ledger apparently rounds up this value.
-      coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . fee)
+      totalCollateralAmount <- asks ((+ 1) . (`div` 100) . (* collateralPercentage) . fee)
       -- We create the total collateral based on the computed value
-      let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway coinTotalCollateral
+      let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Emulator.Coin totalCollateralAmount
       -- We compute a return collateral value by subtracting the total collateral to
       -- the value in collateral inputs
-      let returnCollateralValue = collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)
+      let returnCollateralValue = collateralInsValue <> PlutusTx.negate (Script.lovelace totalCollateralAmount)
       -- This should never happen, as we always compute the collaterals for the
       -- user, but we guard against having some negative elements in the value in
       -- case we give more freedom to the users in the future

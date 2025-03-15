@@ -39,11 +39,11 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
     Api.ScriptCredential (Api.ScriptHash scriptHash) -> do
       validator <- throwOnLookup "toTxInAndWitness: Unknown validator" (Script.ValidatorHash scriptHash) =<< asks managedValidators
       scriptDatum <- case datum of
-        Api.NoOutputDatum -> throwOnString "toTxInAndWitness: No datum found on script output"
+        Api.NoOutputDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
         Api.OutputDatum _ -> return Cardano.InlineScriptDatum
         Api.OutputDatumHash datumHash -> do
           sDatum <- throwOnLookup "toTxInAndWitness: Unknown datum hash" datumHash =<< asks managedData
-          return $ Cardano.ScriptDatumForTxIn $ Ledger.toCardanoScriptData $ Api.getDatum sDatum
+          return $ Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.getDatum sDatum
       Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> liftTxGen (toScriptWitness validator txSkelRedeemer scriptDatum)
   throwOnToCardanoErrorOrApply
     "toTxInAndWitness: Unable to translate TxOutRef"

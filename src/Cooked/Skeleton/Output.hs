@@ -7,19 +7,23 @@ module Cooked.Skeleton.Output
     txSkelOutValidator,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
+    IsTxSkelOutAllowedOwner (..),
   )
 where
 
 import Cooked.Conversion
 import Cooked.Output
-import Cooked.Skeleton.Datum as X
-import Cooked.Skeleton.Payable as X
+import Cooked.Skeleton.Datum
+import Cooked.Skeleton.Payable
+import Cooked.Skeleton.Value
 import Cooked.Wallet
 import Data.Either.Combinators
 import Data.Function
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script (TypedValidator (..))
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
 
@@ -41,6 +45,9 @@ instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
 instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
   toPKHOrValidator = id
 
+instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
+  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
+
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use the 'receives' smart constructor in most cases.
 data TxSkelOut where
@@ -53,8 +60,8 @@ data TxSkelOut where
       ToCredential (OwnerType o),
       Typeable (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
-      ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
-      ToVersionedScript (ReferenceScriptType o),
+      ValueType o ~ TxSkelOutValue,
+      Script.ToVersioned Script.Script (ReferenceScriptType o),
       Show (OwnerType o),
       Show (ReferenceScriptType o),
       Typeable (ReferenceScriptType o)
@@ -72,14 +79,23 @@ deriving instance Show TxSkelOut
 -- | Smart constructor to build @TxSkelOut@ from an owner and payment. This
 -- should be the main way of building outputs.
 receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner) => owner -> Payable els -> TxSkelOut
-receives owner = go $ Pays $ ConcreteOutput owner Nothing TxSkelOutNoDatum mempty $ Nothing @(Script.Versioned Script.Script)
+receives owner =
+  go $
+    Pays $
+      ConcreteOutput
+        owner
+        Nothing -- No staking credential by default
+        TxSkelOutNoDatum -- No datum by default
+        (TxSkelOutValue mempty True) -- Empty value by default, adjustable to min ada
+        (Nothing @(Script.Versioned Script.Script)) -- No reference script by default
   where
     go :: TxSkelOut -> Payable els -> TxSkelOut
     go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatum dat
     go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
     go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
-    go (Pays output) (Value v) = Pays $ setValue output $ toValue v
-    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ toVersionedScript script
+    go (Pays output) (Value v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) False
+    go (Pays output) (AdjustableValue v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) True
+    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
     go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
     go pays (StakingCredential _) = pays
     go pays (PayableAnd p1 p2) = go (go pays p1) p2
@@ -90,14 +106,14 @@ txSkelOutDatumL =
     (\(Pays output) -> output ^. outputDatumL)
     (\(Pays output) newDatum -> Pays $ output & outputDatumL .~ newDatum)
 
-txSkelOutValueL :: Lens' TxSkelOut Api.Value
+txSkelOutValueL :: Lens' TxSkelOut TxSkelOutValue
 txSkelOutValueL =
   lens
-    (\(Pays output) -> outputValue output)
+    (\(Pays output) -> output ^. outputValueL)
     (\(Pays output) newValue -> Pays $ output & outputValueL .~ newValue)
 
 txSkelOutValue :: TxSkelOut -> Api.Value
-txSkelOutValue = (^. txSkelOutValueL)
+txSkelOutValue = (^. (txSkelOutValueL % txSkelOutValueContentL))
 
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
@@ -110,7 +126,7 @@ txSkelOutOwnerTypeP ::
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType
   ) =>
-  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Api.Value (Script.Versioned Script.Script))
+  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
 txSkelOutOwnerTypeP =
   prism'
     Pays
@@ -118,7 +134,7 @@ txSkelOutOwnerTypeP =
         case typeOf (output ^. outputOwnerL) `eqTypeRep` typeRep @ownerType of
           Just HRefl ->
             let cOut = fromAbstractOutput output
-             in Just $ cOut {concreteOutputReferenceScript = toVersionedScript <$> concreteOutputReferenceScript cOut}
+             in Just $ cOut {concreteOutputReferenceScript = Script.toVersioned <$> concreteOutputReferenceScript cOut}
           Nothing -> Nothing
     )
 

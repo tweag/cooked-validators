@@ -6,10 +6,10 @@ import Cardano.Ledger.Shelley.API qualified as Shelley
 import Cardano.Ledger.Shelley.LedgerState qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Arrow
-import Cooked.Conversion.ToScriptHash
-import Cooked.Conversion.ToVersionedScript
+import Control.Monad
 import Cooked.InitialDistribution
 import Cooked.MockChain.GenerateTx (GenerateTxError (..), generateTxOut)
+import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
@@ -176,9 +176,8 @@ referenceScriptMap0From =
     -- contains a reference script
     unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
     unitMaybeFrom (Pays output) = do
-      refScript <- view outputReferenceScriptL output
-      let vScript@(Script.Versioned script version) = toVersionedScript refScript
-      return (Script.ValidatorHash $ Api.getScriptHash $ toScriptHash vScript, Script.Versioned (Script.Validator script) version)
+      vValidator <- Script.toVersioned . Script.toVersioned @Script.Script <$> view outputReferenceScriptL output
+      return (Script.toValidatorHash vValidator, vValidator)
 
 -- | Scripts from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
@@ -193,7 +192,7 @@ scriptMap0From =
     unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
     unitMaybeFrom txSkelOut = do
       val <- txSkelOutValidator txSkelOut
-      return (Script.ValidatorHash $ Api.getScriptHash $ toScriptHash val, val)
+      return (Script.toValidatorHash val, val)
 
 -- | Datums from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
@@ -238,9 +237,9 @@ utxoIndex0From (InitialDistribution initDist) = case mkBody of
       let theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42
           genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(Cardano.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
-      outputs <- mapM (generateTxOut theNetworkId) initDist
+      outputs <- mapM ((\txSkelOut -> maybe txSkelOut fst <$> toTxSkelOutWithMinAda def txSkelOut) >=> generateTxOut theNetworkId) initDist
       left (TxBodyError "Body error") $
-        Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway $
+        Cardano.createTransactionBody Cardano.ShelleyBasedEraConway $
           Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs}
 
 utxoIndex0 :: Ledger.UtxoIndex

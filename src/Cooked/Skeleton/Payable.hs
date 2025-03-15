@@ -4,10 +4,12 @@ module Cooked.Skeleton.Payable
   )
 where
 
-import Cooked.Conversion
+import Cooked.Conversion.ToStakingCredential
 import Cooked.Skeleton.Datum
 import Data.Kind (Constraint, Type)
 import GHC.TypeLits
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 
 -- | Constraint that a given type does not appear in a list of types
 type family (∉) (el :: a) (els :: [a]) :: Constraint where
@@ -37,9 +39,11 @@ data Payable :: [Symbol] -> Type where
   -- | Hashed datums hidden from the transaction are payable
   HiddenHashedDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
   -- | Reference scripts are payable
-  ReferenceScript :: (ToVersionedScript s) => s -> Payable '["Reference Script"]
-  -- | Values are payable
-  Value :: (ToValue a) => a -> Payable '["Value"]
+  ReferenceScript :: (Script.ToVersioned Script.Script s) => s -> Payable '["Reference Script"]
+  -- | Values are payable. These values are NOT subject to min ada adjustment
+  Value :: (Script.ToValue a) => a -> Payable '["Value"]
+  -- | Adjustable values are payable and are subject to min ada adjustment
+  AdjustableValue :: (Script.ToValue a) => a -> Payable '["Value"]
   -- | Staking credentials are payable
   StakingCredential :: (ToMaybeStakingCredential cred) => cred -> Payable '["Staking Credential"]
   -- | Payables can be combined as long as their list of tags are disjoint

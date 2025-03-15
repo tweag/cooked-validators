@@ -5,7 +5,6 @@ where
 
 import Cardano.Api.Shelley qualified as Cardano
 import Control.Monad.Reader
-import Cooked.Conversion
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Output
 import Cooked.Skeleton
@@ -43,6 +42,6 @@ toCardanoTxOut (Pays output) = do
         "toCardanoTxOut: Unable to resolve/transate a datum hash."
         $ Cardano.TxOutDatumHash Cardano.AlonzoEraOnwardsConway
           <$> Ledger.toCardanoScriptDataHash (Script.datumHash $ Api.Datum $ Api.toBuiltinData datum)
-    TxSkelOutDatum datum -> return $ Cardano.TxOutDatumInTx Cardano.AlonzoEraOnwardsConway $ toHashableScriptData datum
+    TxSkelOutDatum datum -> return $ Cardano.TxOutSupplementalDatum Cardano.AlonzoEraOnwardsConway $ toHashableScriptData datum
     TxSkelOutInlineDatum datum -> return $ Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $ toHashableScriptData datum
-  return $ Cardano.TxOut address value datum $ Ledger.toCardanoReferenceScript (toVersionedScript <$> oRefScript)
+  return $ Cardano.TxOut address value datum $ Ledger.toCardanoReferenceScript (Script.toVersioned <$> oRefScript)
