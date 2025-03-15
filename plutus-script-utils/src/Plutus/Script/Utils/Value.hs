@@ -56,6 +56,7 @@ import PlutusLedgerApi.V1.Value as Export
     withCurrencySymbol,
   )
 import PlutusLedgerApi.V1.Value qualified as V1 (isZero)
+import PlutusLedgerApi.V3.MintValue (MintValue (UnsafeMintValue))
 import PlutusTx.AssocMap qualified as Map
 import PlutusTx.Prelude
   ( Bool,
@@ -86,6 +87,9 @@ class ToValue a where
 
 instance ToValue Value where
   toValue = Haskell.id
+
+instance ToValue MintValue where
+  toValue (UnsafeMintValue m) = Value m
 
 {-# INLINEABLE isZero #-}
 isZero :: (ToValue a) => a -> Bool

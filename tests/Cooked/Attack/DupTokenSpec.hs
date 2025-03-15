@@ -1,49 +1,44 @@
-{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
-
 module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V2 qualified as Api
-import PlutusLedgerApi.V2.Contexts qualified as Api
+import PlutusCore.Version qualified as PlutusTx
+import PlutusLedgerApi.V1.Value qualified as Api
+import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 
-{-# INLINEABLE mkCarefulPolicy #-}
-mkCarefulPolicy :: Api.TokenName -> Integer -> () -> Api.ScriptContext -> Bool
-mkCarefulPolicy tName allowedAmount _ ctx
-  | amnt PlutusTx.== Just allowedAmount = True
-  | otherwise = PlutusTx.trace "tried to mint wrong amount" False
-  where
-    txi = Api.scriptContextTxInfo ctx
+{-# INLINEABLE carefulPolicyMintingPurpose #-}
+carefulPolicyMintingPurpose :: Api.TokenName -> Integer -> Script.MintingScriptType () Api.TxInfo
+carefulPolicyMintingPurpose tn n cs _ (Api.TxInfo {txInfoMint}) =
+  case Api.flattenValue (Script.toValue txInfoMint) of
+    [(cs', tn', n')] -> cs' PlutusTx.== cs && tn' PlutusTx.== tn && n' PlutusTx.== n
+    _ -> PlutusTx.trace "tried to mint wrong amount" False
 
-    amnt :: Maybe Integer
-    amnt = case Script.flattenValue (Api.txInfoMint txi) of
-      [(cs, tn, a)] | cs PlutusTx.== Api.ownCurrencySymbol ctx && tn PlutusTx.== tName -> Just a
-      _ -> Nothing
+carefulPolicyCompiled :: PlutusTx.CompiledCode (Api.TokenName -> Integer -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
+carefulPolicyCompiled = $$(PlutusTx.compile [||script||])
+  where
+    script tn n =
+      Script.mkMultiPurposeScript $
+        Script.falseTypedMultiPurposeScript `Script.withMintingPurpose` carefulPolicyMintingPurpose tn n
 
 carefulPolicy :: Api.TokenName -> Integer -> Script.Versioned Script.MintingPolicy
 carefulPolicy tName allowedAmount =
-  case ($$(PlutusTx.compile [||\n x -> Script.mkUntypedMintingPolicy (mkCarefulPolicy n x)||]) `PlutusTx.applyCode` PlutusTx.liftCodeDef tName)
-    >>= (`PlutusTx.applyCode` PlutusTx.liftCodeDef allowedAmount) of
-    Left s -> error $ "Can't apply parameters in carefulPolicy: " ++ show s
-    Right code -> flip Script.Versioned Script.PlutusV2 . Script.toMintingPolicy $ code
-
-{-# INLINEABLE mkCarelessPolicy #-}
-mkCarelessPolicy :: () -> Api.ScriptContext -> Bool
-mkCarelessPolicy _ _ = True
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $
+        carefulPolicyCompiled
+          `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 tName
+          `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 allowedAmount
 
 carelessPolicy :: Script.Versioned Script.MintingPolicy
-carelessPolicy =
-  flip Script.Versioned Script.PlutusV2 $
-    Script.toMintingPolicy
-      $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkCarelessPolicy||])
+carelessPolicy = Script.toVersioned Script.trueMintingMPScript
 
 dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Api.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
