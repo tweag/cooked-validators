@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
@@ -6,8 +8,8 @@ import Data.Set qualified as Set
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
-import PlutusLedgerApi.V3.Contexts qualified as Api
+import PlutusLedgerApi.V2 qualified as Api
+import PlutusLedgerApi.V2.Contexts qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
@@ -31,7 +33,7 @@ carefulPolicy tName allowedAmount =
   case ($$(PlutusTx.compile [||\n x -> Script.mkUntypedMintingPolicy (mkCarefulPolicy n x)||]) `PlutusTx.applyCode` PlutusTx.liftCodeDef tName)
     >>= (`PlutusTx.applyCode` PlutusTx.liftCodeDef allowedAmount) of
     Left s -> error $ "Can't apply parameters in carefulPolicy: " ++ show s
-    Right code -> flip Script.Versioned Script.PlutusV3 . Script.mkMintingPolicyScript $ code
+    Right code -> flip Script.Versioned Script.PlutusV2 . Script.toMintingPolicy $ code
 
 {-# INLINEABLE mkCarelessPolicy #-}
 mkCarelessPolicy :: () -> Api.ScriptContext -> Bool
@@ -39,8 +41,8 @@ mkCarelessPolicy _ _ = True
 
 carelessPolicy :: Script.Versioned Script.MintingPolicy
 carelessPolicy =
-  flip Script.Versioned Script.PlutusV3 $
-    Script.mkMintingPolicyScript
+  flip Script.Versioned Script.PlutusV2 $
+    Script.toMintingPolicy
       $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkCarelessPolicy||])
 
 dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Api.TokenName -> Integer -> Wallet -> m ()
@@ -65,8 +67,8 @@ tests =
             tName2 = Script.tokenName "MockToken2"
             pol1 = carefulPolicy tName1 1
             pol2 = carelessPolicy
-            ac1 = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash pol1) tName1
-            ac2 = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash pol2) tName2
+            ac1 = Script.assetClass (Script.scriptCurrencySymbol pol1) tName1
+            ac2 = Script.assetClass (Script.scriptCurrencySymbol pol2) tName2
             skelIn =
               txSkelTemplate
                 { txSkelMints =
@@ -126,7 +128,7 @@ tests =
         let attacker = wallet 6
             pol = carelessPolicy
             tName1 = Script.tokenName "mintedToken"
-            ac1 = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash pol) tName1
+            ac1 = Script.assetClass (Script.scriptCurrencySymbol pol) tName1
             ac2 = quickAssetClass "preExistingToken"
             skelIn =
               txSkelTemplate

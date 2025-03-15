@@ -3,7 +3,6 @@ module Cooked.Tweak.CommonSpec (tests) where
 import Cooked
 import Data.List (subsequences)
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -31,26 +30,26 @@ tests =
                       )
                       skel,
               testCase "select applied modification by index" $
-                [Right ([Script.lovelaceValueOf 345], mkSkel [123, 234, 789])]
+                [Right ([Script.lovelace 345], mkSkel [123, 234, 789])]
                   @=? fst
                     <$> runTweak
                       ( overMaybeSelectingTweak
                           (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
                           ( \value ->
-                              if value `Script.geq` Script.lovelaceValueOf 200
-                                then Just $ Script.lovelaceValueOf 789
+                              if value `Script.geq` Script.lovelace 200
+                                then Just $ Script.lovelace 789
                                 else Nothing
                           )
                           (== 1)
                       )
                       skel,
               testCase "return unmodified foci in the right order" $
-                [Right ([Script.lovelaceValueOf 123, Script.lovelaceValueOf 345], mkSkel [789, 234, 789])]
+                [Right ([Script.lovelace 123, Script.lovelace 345], mkSkel [789, 234, 789])]
                   @=? fst
                     <$> runTweak
                       ( overMaybeSelectingTweak
                           (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
-                          (const $ Just $ Script.lovelaceValueOf 789)
+                          (const $ Just $ Script.lovelace 789)
                           (`elem` [0, 2])
                       )
                       skel

@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.ReferenceInputsSpec where
 
 import Control.Monad
@@ -5,9 +7,9 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx qualified
 import PlutusTx.AssocMap qualified as PlutusTx (lookup)
 import PlutusTx.Eq qualified as PlutusTx
@@ -50,7 +52,7 @@ instance Script.ValidatorTypes Foo where
 -- | Outputs can only be spent by pks whose hash is not the one in the
 -- datum.
 fooValidator :: FooDatum -> () -> Api.ScriptContext -> Bool
-fooValidator (FooDatum pkh) _ (Api.ScriptContext txInfo _ _) =
+fooValidator (FooDatum pkh) _ (Api.ScriptContext txInfo _) =
   PlutusTx.not PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
 
 fooTypedValidator :: Script.TypedValidator Foo
@@ -63,7 +65,7 @@ fooTypedValidator =
 -- | Outputs can only be spent by pks who provide a reference input to
 -- a Foo in which they are mentioned (in an inlined datum).
 barValidator :: () -> () -> Api.ScriptContext -> Bool
-barValidator _ _ (Api.ScriptContext txInfo _ _) =
+barValidator _ _ (Api.ScriptContext txInfo _) =
   (PlutusTx.not . PlutusTx.null) (PlutusTx.filter f (Api.txInfoReferenceInputs txInfo))
   where
     f :: Api.TxInInfo -> Bool

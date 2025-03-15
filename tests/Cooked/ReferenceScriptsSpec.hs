@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.ReferenceScriptsSpec where
 
 import Control.Monad
@@ -8,12 +10,12 @@ import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V2 qualified as Api
+import PlutusLedgerApi.V3 qualified as V3
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
@@ -28,7 +30,7 @@ requireSignerValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     val :: Api.PubKeyHash -> () -> () -> Api.ScriptContext -> Bool
-    val pkh _ _ (Api.ScriptContext txInfo _ _) =
+    val pkh _ _ (Api.ScriptContext txInfo _) =
       PlutusTx.traceIfFalse "the required signer is missing"
         PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
 
@@ -43,7 +45,7 @@ requireRefScriptValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     val :: Api.ScriptHash -> () -> () -> Api.ScriptContext -> Bool
-    val expectedScriptHash _ _ (Api.ScriptContext txInfo _ _) =
+    val expectedScriptHash _ _ (Api.ScriptContext txInfo _) =
       PlutusTx.traceIfFalse "there is no reference input with the correct script hash"
         PlutusTx.$ PlutusTx.any
           ( \(Api.TxInInfo _ (Api.TxOut _ _ _ mRefScriptHash)) ->
@@ -57,7 +59,7 @@ putRefScriptOnWalletOutput ::
   (MonadBlockChain m) =>
   Wallet ->
   Script.TypedValidator MockContract ->
-  m Api.TxOutRef
+  m V3.TxOutRef
 putRefScriptOnWalletOutput recipient referenceScript =
   head
     <$> validateTxSkel'
@@ -70,7 +72,7 @@ putRefScriptOnScriptOutput ::
   (MonadBlockChain m) =>
   Script.TypedValidator MockContract ->
   Script.TypedValidator MockContract ->
-  m Api.TxOutRef
+  m V3.TxOutRef
 putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkel'
@@ -79,13 +81,13 @@ putRefScriptOnScriptOutput recipient referenceScript =
           txSkelSigners = [wallet 1]
         }
 
-retrieveRefScriptHash :: (MonadBlockChain m) => Api.TxOutRef -> m (Maybe Api.ScriptHash)
+retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
 retrieveRefScriptHash = (maybe Nothing (^. outputReferenceScriptL) <$>) . txOutByRef
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
   Api.ScriptHash ->
-  Api.TxOutRef ->
+  V3.TxOutRef ->
   m ()
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
@@ -144,7 +146,7 @@ tests =
     "Reference scripts"
     [ testGroup "putting reference scripts on chain and retrieving them" $
         let theRefScript = alwaysFalseValidator
-            theRefScriptHash = toScriptHash theRefScript
+            theRefScriptHash = Script.toScriptHash theRefScript
          in [ testCase "on a public key output" $
                 testToProp $
                   mustSucceedTest
@@ -178,11 +180,11 @@ tests =
             $ testFailsInPhase2WithMsg
               (== "there is no reference input with the correct script hash")
             $ putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
-              >>= checkReferenceScriptOnOref (toScriptHash alwaysTrueValidator),
+              >>= checkReferenceScriptOnOref (Script.toScriptHash alwaysTrueValidator),
           testCase "succeed if correct reference script" $
             testSucceeds $
               putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
-                >>= checkReferenceScriptOnOref (toScriptHash alwaysTrueValidator)
+                >>= checkReferenceScriptOnOref (Script.toScriptHash alwaysTrueValidator)
         ],
       testGroup
         "using reference scripts"
@@ -193,7 +195,7 @@ tests =
                     (consumedOref, _) : _ <-
                       runUtxoSearch $
                         utxosAtSearch (wallet 1)
-                          `filterWithPred` ((`Script.geq` Script.lovelaceValueOf 42_000_000) . outputValue)
+                          `filterWithPred` ((`Script.geq` Script.lovelace 42_000_000) . outputValue)
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate

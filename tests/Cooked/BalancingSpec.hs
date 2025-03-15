@@ -14,7 +14,6 @@ import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
 import ListT
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -108,7 +107,7 @@ aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m Api.TxOut
-aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Script.Lovelace (n * 1_000_000)) . Script.fromValue . Api.txOutValue)
+aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Script.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf . Api.txOutValue)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)

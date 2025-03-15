@@ -316,19 +316,19 @@ addProposingPurpose ts ps =
       && ps ix prop red txInfo
 
 -- | Overrides the rewardings purpose
-withRewardingsPurpose ::
+withRewardingPurpose ::
   TypedMultiPurposeScript cr ctx mr mtx pr ptx rr rtx sd sr stx vr vtx ->
   RewardingScriptType rr' rtx' ->
   TypedMultiPurposeScript cr ctx mr mtx pr ptx rr' rtx' sd sr stx vr vtx
-withRewardingsPurpose ts rs = ts {rewardingTypedScript = rs}
+withRewardingPurpose ts rs = ts {rewardingTypedScript = rs}
 
 -- | Combines a new rewardings purpose with the existing one
-addRewardingsPurpose ::
+addRewardingPurpose ::
   TypedMultiPurposeScript cr ctx mr mtx pr ptx rr rtx sd sr stx vr vtx ->
   RewardingScriptType rr rtx ->
   TypedMultiPurposeScript cr ctx mr mtx pr ptx rr rtx sd sr stx vr vtx
-addRewardingsPurpose ts rs =
-  ts `withRewardingsPurpose` \cred red txInfo ->
+addRewardingPurpose ts rs =
+  ts `withRewardingPurpose` \cred red txInfo ->
     rewardingTypedScript ts cred red txInfo
       && rs cred red txInfo
 

@@ -4,30 +4,54 @@ import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.AssocMap qualified as PlutusTx
 import PlutusTx.Builtins qualified as PlutusTx hiding (head)
 import PlutusTx.Eq qualified as PlutusTx
 import PlutusTx.IsData qualified as PlutusTx
-import PlutusTx.List qualified as PlutusTx
 import PlutusTx.TH qualified as PlutusTx
 import PlutusTx.Trace qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 
-checkParameterChangeScript :: PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> ()
-checkParameterChangeScript _ ctx =
-  let scriptContext = PlutusTx.unsafeFromBuiltinData @Api.ScriptContext ctx
-      proposalProcedure = PlutusTx.head $ Api.txInfoProposalProcedures $ Api.scriptContextTxInfo scriptContext
-   in case Api.ppGovernanceAction proposalProcedure of
-        Api.ParameterChange _ (Api.ChangedParameters dat) _ ->
-          let innerMap = PlutusTx.unsafeFromBuiltinData @(PlutusTx.Map PlutusTx.Integer PlutusTx.Integer) dat
-           in if PlutusTx.toList innerMap PlutusTx.== [(0, 100)] then () else PlutusTx.traceError "wrong map"
-        _ -> PlutusTx.traceError "Wrong proposal procedure"
+{-# INLINEABLE checkParameterChangeProposingPurpose #-}
+checkParameterChangeProposingPurpose :: Script.ProposingScriptType () ()
+checkParameterChangeProposingPurpose _ (Api.ProposalProcedure _ _ (Api.ParameterChange _ (Api.ChangedParameters dat) _)) _ _ =
+  let innerMap = PlutusTx.unsafeFromBuiltinData @(PlutusTx.Map PlutusTx.Integer PlutusTx.Integer) dat
+   in ((PlutusTx.toList innerMap PlutusTx.== [(0, 100)]) || PlutusTx.traceError "wrong map")
+checkParameterChangeProposingPurpose _ _ _ _ = PlutusTx.traceError "Wrong proposal procedure"
 
 checkProposingScript :: Script.Versioned Script.Script
-checkProposingScript = mkScript $$(PlutusTx.compile [||checkParameterChangeScript||])
+checkProposingScript =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $
+        Script.falseTypedMultiPurposeScript `Script.withProposingPurpose` checkParameterChangeProposingPurpose
+
+-- | A dummy false proposing validator
+alwaysFalseProposingValidator :: Script.Versioned Script.Script
+alwaysFalseProposingValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script = Script.mkMultiPurposeScript Script.falseTypedMultiPurposeScript
+
+-- | A dummy true proposing validator
+alwaysTrueProposingValidator :: Script.Versioned Script.Script
+alwaysTrueProposingValidator =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $
+        Script.falseTypedMultiPurposeScript `Script.withProposingPurpose` (\_ _ () () -> True)
 
 testProposingScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
 testProposingScript script govAction =

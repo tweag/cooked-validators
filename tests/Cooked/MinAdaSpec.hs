@@ -3,7 +3,6 @@ module Cooked.MinAdaSpec where
 import Control.Monad
 import Cooked
 import Optics.Core ((^.))
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit

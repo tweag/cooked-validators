@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
@@ -6,11 +8,12 @@ import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
-import PlutusLedgerApi.V3 qualified as Api
-import PlutusLedgerApi.V3.Contexts qualified as Api
+import PlutusLedgerApi.V2 qualified as Api
+import PlutusLedgerApi.V2.Contexts qualified as Api
+import PlutusLedgerApi.V3 qualified as V3
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
@@ -49,9 +52,9 @@ instance Script.ValidatorTypes DHContract where
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
 lockValue :: Api.Value
-lockValue = Api.lovelaceValueOf 12345678
+lockValue = Script.lovelace 12345678
 
-lockTxSkel :: Api.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
+lockTxSkel :: V3.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
@@ -64,7 +67,7 @@ txLock v = do
   (oref, _) : _ <- runUtxoSearch $ utxosAtSearch (wallet 1) `filterWithPred` ((`Script.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
-relockTxSkel :: Script.TypedValidator DHContract -> Api.TxOutRef -> TxSkel
+relockTxSkel :: Script.TypedValidator DHContract -> V3.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
     { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
@@ -156,9 +159,9 @@ tests =
         let val1 = carelessValidator
             val2 = carefulValidator
             thief = alwaysTrueValidator @DHContract
-            x1 = Script.lovelaceValueOf 10001
-            x2 = Script.lovelaceValueOf 10000
-            x3 = Script.lovelaceValueOf 9999
+            x1 = Script.lovelace 10001
+            x2 = Script.lovelace 10000
+            x3 = Script.lovelace 9999
             skelIn =
               txSkelFromOuts
                 [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
@@ -176,10 +179,10 @@ tests =
                             Script.validatorHash val1
                               == Script.validatorHash v
                               && d == TxSkelOutInlineDatum SecondLock
-                              && bound `Script.geq` toValue x
+                              && bound `Script.geq` Script.toValue x
                         )
                         select
-                    return $ (\x -> setValue x $ toValue (x ^. outputValueL)) <$> dhRet
+                    return $ (\x -> setValue x $ Script.toValue (x ^. outputValueL)) <$> dhRet
                 )
                 skelIn
             skelExpected a b =

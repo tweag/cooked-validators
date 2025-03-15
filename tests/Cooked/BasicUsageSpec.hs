@@ -4,7 +4,7 @@ import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V3 qualified as V3
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -39,7 +39,7 @@ mintingQuickValue =
           txSkelSigners = [alice]
         }
 
-payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
+payToAlwaysTrueValidator :: (MonadBlockChain m) => m V3.TxOutRef
 payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
