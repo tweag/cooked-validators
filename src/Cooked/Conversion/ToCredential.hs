@@ -4,6 +4,7 @@ module Cooked.Conversion.ToCredential where
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 class ToCredential a where
@@ -42,3 +43,6 @@ instance ToCredential (Script.TypedValidator a) where
 
 instance ToCredential (Script.Versioned Script.MintingPolicy) where
   toCredential = toCredential . Script.toScriptHash
+
+instance ToCredential (Script.MultiPurposeScript a) where
+  toCredential = toCredential . Script.toVersioned @Script.Script

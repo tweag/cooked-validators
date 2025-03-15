@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
-
 module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
@@ -7,13 +5,13 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
-import PlutusLedgerApi.V2 qualified as Api
-import PlutusLedgerApi.V2.Contexts qualified as Api
-import PlutusLedgerApi.V3 qualified as V3
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V3.Contexts qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
@@ -54,7 +52,7 @@ instance Script.ValidatorTypes DHContract where
 lockValue :: Api.Value
 lockValue = Script.lovelace 12345678
 
-lockTxSkel :: V3.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
+lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
@@ -62,12 +60,12 @@ lockTxSkel o v =
       txSkelSigners = [wallet 1]
     }
 
-txLock :: (MonadBlockChain m) => Script.TypedValidator DHContract -> m ()
+txLock :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m ()
 txLock v = do
   (oref, _) : _ <- runUtxoSearch $ utxosAtSearch (wallet 1) `filterWithPred` ((`Script.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
-relockTxSkel :: Script.TypedValidator DHContract -> V3.TxOutRef -> TxSkel
+relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
     { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
@@ -77,7 +75,7 @@ relockTxSkel v o =
 
 txRelock ::
   (MonadBlockChain m) =>
-  Script.TypedValidator DHContract ->
+  Script.MultiPurposeScript DHContract ->
   m ()
 txRelock v = do
   (oref, _) : _ <-
@@ -88,7 +86,7 @@ txRelock v = do
         `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
   void $ validateTxSkel $ relockTxSkel v oref
 
-datumHijackingTrace :: (MonadBlockChain m) => Script.TypedValidator DHContract -> m ()
+datumHijackingTrace :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m ()
 datumHijackingTrace v = do
   txLock v
   txRelock v
@@ -105,51 +103,43 @@ outputDatum txi o = case Api.txOutDatum o of
     Api.fromBuiltinData d
   Api.OutputDatum (Api.Datum d) -> Api.fromBuiltinData d
 
-{-# INLINEABLE mkMockValidator #-}
-mkMockValidator :: (Api.ScriptContext -> [Api.TxOut]) -> LockDatum -> () -> Api.ScriptContext -> Bool
-mkMockValidator getOutputs datum _ ctx =
-  let txi = Api.scriptContextTxInfo ctx
-   in case datum of
-        FirstLock ->
-          case getOutputs ctx of
-            o : _ ->
-              PlutusTx.traceIfFalse
-                "not in 'SecondLock'-state after re-locking"
-                (outputDatum txi o PlutusTx.== Just SecondLock)
-                && PlutusTx.traceIfFalse
-                  "not re-locking the right amout"
-                  (Api.txOutValue o == lockValue)
-            _ -> PlutusTx.trace "there must be a output re-locked" False
-        SecondLock -> False
+{-# INLINEABLE mockValidatorSpendingPurpose #-}
+mockValidatorSpendingPurpose :: (Api.TxInfo -> [Api.TxOut]) -> Script.SpendingScriptType LockDatum () Api.TxInfo
+mockValidatorSpendingPurpose getOutputs _ (Just FirstLock) _ txi =
+  case getOutputs txi of
+    o : _ ->
+      PlutusTx.traceIfFalse "not in 'SecondLock'-state after re-locking" (outputDatum txi o PlutusTx.== Just SecondLock)
+        && PlutusTx.traceIfFalse "not re-locking the right amout" (Api.txOutValue o == lockValue)
+    _ -> PlutusTx.trace "there must be a output re-locked" False
+mockValidatorSpendingPurpose _ _ _ _ _ = False
 
-{-# INLINEABLE mkCarefulValidator #-}
-mkCarefulValidator :: LockDatum -> () -> Api.ScriptContext -> Bool
-mkCarefulValidator = mkMockValidator Api.getContinuingOutputs
-
-carefulValidator :: Script.TypedValidator DHContract
+carefulValidator :: Script.MultiPurposeScript DHContract
 carefulValidator =
-  Script.mkTypedValidator @DHContract
-    $$(PlutusTx.compile [||mkCarefulValidator||])
-    $$(PlutusTx.compile [||wrap||])
+  Script.MultiPurposeScript $
+    Script.toScript $$(PlutusTx.compile [||script||])
   where
-    wrap = Script.mkUntypedValidator
+    script =
+      Script.mkMultiPurposeScript $
+        Script.falseTypedMultiPurposeScript
+          `Script.withSpendingPurpose` mockValidatorSpendingPurpose (\txi -> Api.getContinuingOutputs $ Api.ScriptContext txi (PlutusTx.error ()) (PlutusTx.error ()))
 
-{-# INLINEABLE mkCarelessValidator #-}
-mkCarelessValidator :: LockDatum -> () -> Api.ScriptContext -> Bool
-mkCarelessValidator = mkMockValidator (Api.txInfoOutputs . Api.scriptContextTxInfo)
-
-carelessValidator :: Script.TypedValidator DHContract
+carelessValidator :: Script.MultiPurposeScript DHContract
 carelessValidator =
-  Script.mkTypedValidator @DHContract
-    $$(PlutusTx.compile [||mkCarelessValidator||])
-    $$(PlutusTx.compile [||wrap||])
+  Script.MultiPurposeScript $
+    Script.toScript $$(PlutusTx.compile [||script||])
   where
-    wrap = Script.mkUntypedValidator
+    script =
+      Script.mkMultiPurposeScript $
+        Script.falseTypedMultiPurposeScript
+          `Script.withSpendingPurpose` mockValidatorSpendingPurpose Api.txInfoOutputs
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
 txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSigners = [wallet 1]}
 
 -- * TestTree for the datum hijacking attack
+
+thief :: Script.MultiPurposeScript DHContract
+thief = Script.trueSpendingMPScript @DHContract
 
 tests :: TestTree
 tests =
@@ -158,7 +148,6 @@ tests =
     [ testGroup "unit tests on a 'TxSkel'" $
         let val1 = carelessValidator
             val2 = carefulValidator
-            thief = alwaysTrueValidator @DHContract
             x1 = Script.lovelace 10001
             x2 = Script.lovelace 10000
             x3 = Script.lovelace 9999
@@ -174,22 +163,21 @@ tests =
               runTweak
                 ( do
                     dhRet <-
-                      datumHijackingAttack @DHContract
+                      datumHijackingAttack
                         ( \(ConcreteOutput v _ d x _) ->
-                            Script.validatorHash val1
-                              == Script.validatorHash v
+                            Script.toValidatorHash val1 == Script.toValidatorHash v
                               && d == TxSkelOutInlineDatum SecondLock
                               && bound `Script.geq` Script.toValue x
                         )
                         select
+                        thief
                     return $ (\x -> setValue x $ Script.toValue (x ^. outputValueL)) <$> dhRet
                 )
                 skelIn
             skelExpected a b =
               txSkelTemplate
                 { txSkelLabel =
-                    Set.singleton . TxLabel . DatumHijackingLbl $
-                      Script.validatorAddress thief,
+                    Set.singleton . TxLabel . DatumHijackingLbl $ toCredential $ Script.toVersioned @Script.Script thief,
                   txSkelOuts =
                     [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
                       a `receives` (InlineDatum SecondLock <&&> Value x3),
@@ -227,23 +215,25 @@ tests =
       testCase "careful validator" $
         testFailsInPhase2 $
           somewhere
-            ( datumHijackingAttack @DHContract
+            ( datumHijackingAttack
                 ( \(ConcreteOutput v _ d _ _) ->
-                    Script.validatorHash v == Script.validatorHash carefulValidator
+                    Script.toValidatorHash v == Script.toValidatorHash carefulValidator
                       && d == TxSkelOutInlineDatum SecondLock
                 )
                 (const True)
+                thief
             )
             (datumHijackingTrace carefulValidator),
       testCase "careless validator" $
         testSucceeds $
           somewhere
-            ( datumHijackingAttack @DHContract
+            ( datumHijackingAttack
                 ( \(ConcreteOutput v _ d _ _) ->
-                    Script.validatorHash v == Script.validatorHash carelessValidator
+                    Script.toValidatorHash v == Script.toValidatorHash carelessValidator
                       && d == TxSkelOutInlineDatum SecondLock
                 )
                 (const True)
+                thief
             )
             (datumHijackingTrace carelessValidator)
     ]

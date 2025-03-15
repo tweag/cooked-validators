@@ -7,6 +7,7 @@ module Cooked.Skeleton.Output
     txSkelOutValidator,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
+    IsTxSkelOutAllowedOwner (..),
   )
 where
 
@@ -21,6 +22,7 @@ import Data.Function
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script (TypedValidator (..))
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
@@ -42,6 +44,9 @@ instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
 
 instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
   toPKHOrValidator = id
+
+instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
+  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
 
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use the 'receives' smart constructor in most cases.
