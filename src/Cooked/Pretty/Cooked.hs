@@ -49,6 +49,7 @@ import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -139,7 +140,7 @@ instance PrettyCooked MockChainLogEntry where
     "The ADA amount of "
       <> prettyTxSkelOut opts skelOut
       <> " has been automatically adjusted to "
-      <> prettyCookedOpt opts (toValue newAda)
+      <> prettyCookedOpt opts (Script.toValue newAda)
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
     let mCollateralsDoc =
@@ -200,7 +201,7 @@ prettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
 prettyWithdrawals pcOpts withdrawals =
   prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
   where
-    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Script.Ada)) -> DocCooked
+    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> DocCooked
     prettyWithdrawal (cred, (red, ada)) =
       prettyItemizeNoTitle "-" $
         ( case cred of
@@ -574,7 +575,7 @@ prettyAddressState opts address payloadSet =
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
         . group
-        . List.sortBy (compare `on` (Script.fromValue . utxoPayloadValue))
+        . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
         . utxoPayloadSet
         $ payloadSet
     )

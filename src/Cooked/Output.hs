@@ -47,6 +47,7 @@ import Cooked.Conversion.ToOutputDatum
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V2.Tx qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -240,8 +241,8 @@ isEmptyStakingCredentialOutput _ = Nothing
 -- ** Filtering on the value
 
 -- | Test if the value on an output contains only Ada.
-isOnlyAdaOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) Script.Ada (ReferenceScriptType out))
-isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ setValue out $ Script.fromValue $ outputValue out
+isOnlyAdaOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) Api.Lovelace (ReferenceScriptType out))
+isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ setValue out $ Api.lovelaceValueOf $ outputValue out
 isOnlyAdaOutput _ = Nothing
 
 -- ** Filtering on the reference script

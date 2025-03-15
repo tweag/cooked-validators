@@ -124,7 +124,7 @@ onlyValueOutputsAtSearch addr =
 vanillaOutputsAtSearch ::
   (MonadBlockChainBalancing m, ToAddress addr) =>
   addr ->
-  UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
+  UtxoSearch m (ConcreteOutput Api.Credential () Api.Lovelace Api.ScriptHash)
 vanillaOutputsAtSearch addr =
   onlyValueOutputsAtSearch addr
     `filterWithPure` isOnlyAdaOutput

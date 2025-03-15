@@ -284,7 +284,7 @@ getOptimalCandidate :: (MonadBlockChainBalancing m) => [(BalancingOutputs, Api.V
 getOptimalCandidate candidates paymentTarget mceError = do
   params <- getParams
   -- We decorate the candidates with their current ada and min ada requirements
-  let candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paymentTarget `receives` Value val)) <$> candidates
+  let candidatesDecorated = second (\val -> (val, Api.lovelaceValueOf val, getTxSkelOutMinAda params $ paymentTarget `receives` Value val)) <$> candidates
       -- We filter the candidates that have enough ada to sustain themselves
       candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of

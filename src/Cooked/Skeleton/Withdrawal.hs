@@ -10,7 +10,6 @@ import Cooked.Skeleton.Redeemer as X
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Withdrawals associate either a script or a private key with a redeemer and
@@ -19,10 +18,10 @@ import PlutusLedgerApi.V3 qualified as Api
 type TxSkelWithdrawals =
   Map
     (Either (Script.Versioned Script.Script) Api.PubKeyHash)
-    (TxSkelRedeemer, Script.Ada)
+    (TxSkelRedeemer, Api.Lovelace)
 
-pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
+pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Api.Lovelace -> TxSkelWithdrawals
 pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
 
-scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
+scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Api.Lovelace -> TxSkelWithdrawals
 scriptWithdrawal script red amount = Map.singleton (Left $ Script.toVersioned script) (red, amount)

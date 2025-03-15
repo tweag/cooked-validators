@@ -17,7 +17,6 @@ import Cooked.Skeleton.Redeemer as X
 import Data.Map (Map)
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 
@@ -131,7 +130,7 @@ data TxGovAction where
   -- one will take effect
   TxGovActionParameterChange :: [TxParameterChange] -> TxGovAction
   TxGovActionHardForkInitiation :: Api.ProtocolVersion -> TxGovAction
-  TxGovActionTreasuryWithdrawals :: Map Api.Credential Script.Ada -> TxGovAction
+  TxGovActionTreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> TxGovAction
   TxGovActionNoConfidence :: TxGovAction
   TxGovActionUpdateCommittee :: [Api.ColdCommitteeCredential] -> Map Api.ColdCommitteeCredential Integer -> PlutusTx.Rational -> TxGovAction
   TxGovActionNewConstitution :: Api.Constitution -> TxGovAction

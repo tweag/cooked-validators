@@ -5,10 +5,10 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Contexts qualified as Api
 import PlutusTx qualified
@@ -49,7 +49,7 @@ instance Script.ValidatorTypes DHContract where
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
 lockValue :: Api.Value
-lockValue = Script.lovelaceValueOf 12345678
+lockValue = Api.lovelaceValueOf 12345678
 
 lockTxSkel :: Api.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
 lockTxSkel o v =

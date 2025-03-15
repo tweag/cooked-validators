@@ -84,7 +84,6 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -137,7 +136,7 @@ data MockChainLogEntry
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
-    MCLogAdjustedTxSkelOut TxSkelOut Script.Ada
+    MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
@@ -313,12 +312,12 @@ txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Ap
 txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
-govActionDeposit :: (MonadBlockChainBalancing m) => m Script.Ada
+govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
 govActionDeposit = Script.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
 
 -- | Retrieves the total amount of lovelace deposited in proposals in this
 -- skeleton (equal to `govActionDeposit` times the number of proposals).
-txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Script.Ada
+txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
 txSkelProposalsDeposit TxSkel {..} = Script.Lovelace . (toInteger (length txSkelProposals) *) . Script.getLovelace <$> govActionDeposit
 
 -- | Helper to convert Nothing to an error

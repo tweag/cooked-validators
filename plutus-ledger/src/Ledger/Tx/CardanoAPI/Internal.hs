@@ -522,7 +522,7 @@ toCardanoScriptDataHash (P.DatumHash bs) =
 fromCardanoMintValue :: C.TxMintValue build era -> C.Value
 fromCardanoMintValue = C.txMintValueToValue
 
-adaToCardanoValue :: Value.Ada -> C.Value
+adaToCardanoValue :: Value.Lovelace -> C.Value
 adaToCardanoValue (Value.Lovelace n) = fromList [(C.AdaAssetId, C.Quantity n)]
 
 fromCardanoValue :: C.Value -> Value.Value
@@ -589,7 +589,7 @@ toCardanoLovelace value =
     then pure . C.quantityToLovelace . C.Quantity $ lovelace
     else Left ValueNotPureAda
   where
-    Value.Lovelace lovelace = Value.fromValue value
+    Value.Lovelace lovelace = Value.lovelaceValueOf value
 
 fromCardanoValidityRange :: C.TxValidityLowerBound era -> C.TxValidityUpperBound era -> P.SlotRange
 fromCardanoValidityRange l u = PV1.Interval (fromCardanoValidityLowerBound l) (fromCardanoValidityUpperBound u)
