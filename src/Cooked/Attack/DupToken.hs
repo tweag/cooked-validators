@@ -2,6 +2,7 @@
 -- transaction.
 module Cooked.Attack.DupToken (dupTokenAttack, DupTokenLbl (..)) where
 
+import Control.Applicative
 import Control.Monad
 import Cooked.Pretty
 import Cooked.Skeleton
@@ -20,7 +21,7 @@ import PlutusTx.Numeric qualified as PlutusTx
 -- transaction using 'addLabel'. Returns the 'Value' by which the minted value
 -- was increased.
 dupTokenAttack ::
-  (MonadTweak m) =>
+  (MonadTweak m, Alternative m) =>
   -- | A function describing how the amount of tokens specified by a 'Mints'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy
@@ -34,28 +35,24 @@ dupTokenAttack ::
   Wallet ->
   m Api.Value
 dupTokenAttack change attacker = do
-  totalIncrement <- changeMintAmountsTweak
-  addOutputTweak $ attacker `receives` AdjustableValue totalIncrement
+  oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
+  let newMintsList =
+        map
+          ( \(Script.Versioned policy version, redeemer, tName, oldAmount) ->
+              let ac = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash policy) tName
+                  newAmount = change ac oldAmount
+               in (Script.Versioned policy version, redeemer, tName, max newAmount oldAmount)
+          )
+          oldMintsList
+  guard (newMintsList /= oldMintsList)
   addLabelTweak DupTokenLbl
+  let newMints = txSkelMintsFromList newMintsList
+      newValue = txSkelMintsValue newMints
+      oldValue = txSkelMintsValue $ txSkelMintsFromList oldMintsList
+  setTweak txSkelMintsL newMints
+  let totalIncrement = newValue <> PlutusTx.negate oldValue
+  addOutputTweak $ attacker `receives` AdjustableValue totalIncrement
   return totalIncrement
-  where
-    changeMintAmountsTweak :: (MonadTweak m) => m Api.Value
-    changeMintAmountsTweak = do
-      oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
-      let newMintsList =
-            map
-              ( \(Script.Versioned policy version, redeemer, tName, oldAmount) ->
-                  let ac = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash policy) tName
-                      newAmount = change ac oldAmount
-                   in (Script.Versioned policy version, redeemer, tName, max newAmount oldAmount)
-              )
-              oldMintsList
-      guard $ newMintsList /= oldMintsList
-      let newMints = txSkelMintsFromList newMintsList
-          newValue = txSkelMintsValue newMints
-          oldValue = txSkelMintsValue $ txSkelMintsFromList oldMintsList
-      setTweak txSkelMintsL newMints
-      return $ newValue <> PlutusTx.negate oldValue
 
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show, Ord)

@@ -55,13 +55,11 @@ hasEmptyTimeRangeTweak = validityRangeSatisfiesTweak Api.isEmpty
 hasFullTimeRangeTweak :: (MonadTweak m) => m Bool
 hasFullTimeRangeTweak = validityRangeSatisfiesTweak (Api.always ==)
 
--- | Adds a constraint to the current validity range. Returns the old range, and
--- fails is the resulting interval is empty
+-- | Adds a constraint to the current validity range, returning the old range
 intersectValidityRangeTweak :: (MonadTweak m) => Ledger.SlotRange -> m Ledger.SlotRange
 intersectValidityRangeTweak newRange = do
   oldRange <- viewTweak txSkelValidityRangeL
   let combinedRange = Api.intersection newRange oldRange
-  guard (combinedRange /= Api.never)
   setTweak txSkelValidityRangeL combinedRange
   return oldRange
 
@@ -83,17 +81,15 @@ makeValidityRangeNowTweak :: (MonadTweak m) => m Ledger.SlotRange
 makeValidityRangeNowTweak = currentSlot >>= makeValidityRangeSingletonTweak
 
 -- | Makes current time comply with the validity range of the transaction under
--- modification. Returns the new current time after the modification; fails if
--- current time is already after the validity range.
+-- modification. Returns the new current time after the modification. Does
+-- nothing if the current time is already after the validation range.
 waitUntilValidTweak :: (MonadTweak m) => m Ledger.Slot
 waitUntilValidTweak = do
   now <- currentSlot
   vRange <- getValidityRangeTweak
-  if Api.member now vRange
+  if Api.member now vRange || Api.after now vRange
     then return now
     else do
-      guard $ Api.before now vRange
-      guard $ not $ Api.isEmpty vRange
       later <- case Api.ivFrom vRange of
         Api.LowerBound (Api.Finite left) isClosed ->
           return $ left + Ledger.Slot (toInteger $ fromEnum $ not isClosed)

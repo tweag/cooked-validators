@@ -10,6 +10,7 @@ module Cooked.Tweak.Outputs
   )
 where
 
+import Control.Applicative
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -58,10 +59,10 @@ instance PrettyCooked TamperDatumLbl where
 --
 -- The tweak returns a list of the modified datums, as they were *before* the
 -- modification was applied to them.
-tamperDatumTweak :: forall a m. (MonadTweak m, Api.FromData a, Typeable a) => (a -> Maybe a) -> m [a]
+tamperDatumTweak :: forall a m. (MonadTweak m, Api.FromData a, Typeable a, Alternative m) => (a -> Maybe a) -> m [a]
 tamperDatumTweak change = do
   beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutputDatumTypeAT) change
-  guard . not . null $ beforeModification
+  guard $ not $ null beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
 
@@ -83,7 +84,7 @@ tamperDatumTweak change = do
 -- > == (k_1 + 1) * ... * (k_n + 1) - 1
 --
 -- modified transactions.
-malformDatumTweak :: forall a m. (MonadTweak m, Typeable a) => (a -> [Api.BuiltinData]) -> m ()
+malformDatumTweak :: forall a m. (MonadTweak m, MonadPlus m, Typeable a) => (a -> [Api.BuiltinData]) -> m ()
 malformDatumTweak change = do
   outputs <- viewAllTweak (txSkelOutsL % traversed)
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs

@@ -3,12 +3,7 @@
 -- time using `Cooked.Ltl`
 module Cooked.Tweak (module X) where
 
-import Cooked.Tweak.Common as X hiding
-  ( Tweak,
-    UntypedTweak,
-    runTweakInChain,
-    runTweakInChain',
-  )
+import Cooked.Tweak.Common as X hiding (Tweak, UntypedTweak)
 import Cooked.Tweak.Inputs as X
 import Cooked.Tweak.Labels as X
 import Cooked.Tweak.Mint as X

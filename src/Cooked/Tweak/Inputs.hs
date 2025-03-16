@@ -8,7 +8,6 @@ module Cooked.Tweak.Inputs
   )
 where
 
-import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Map qualified as Map
@@ -30,12 +29,9 @@ ensureInputTweak oref howConsumed = do
       return $ Just (oref, howConsumed)
 
 -- | Add an input to a transaction. If the given 'Api.TxOutRef' is already being
--- consumed by the transaction, fail.
+-- consumed by the transaction, replaces the previous redeemer by the new one.
 addInputTweak :: (MonadTweak m) => Api.TxOutRef -> TxSkelRedeemer -> m ()
-addInputTweak oref howConsumed = do
-  presentInputs <- viewTweak txSkelInsL
-  guard (Map.notMember oref presentInputs)
-  overTweak txSkelInsL (Map.insert oref howConsumed)
+addInputTweak oref = overTweak txSkelInsL . Map.insert oref
 
 -- | Remove transaction inputs according to a given predicate. The returned list
 -- contains all removed inputs.

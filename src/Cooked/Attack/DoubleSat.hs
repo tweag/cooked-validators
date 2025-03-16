@@ -9,6 +9,7 @@ module Cooked.Attack.DoubleSat
   )
 where
 
+import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.Output
 import Cooked.Pretty
@@ -70,7 +71,7 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 -- present on the transaction. Any extra value contained in new inputs
 -- to the transaction is then paid to the attacker.
 doubleSatAttack ::
-  (MonadTweak m, Eq is, Is k A_Traversal) =>
+  (MonadTweak m, MonadPlus m, Eq is, Is k A_Traversal) =>
   -- | how to combine modifications from caused by different foci. See
   -- the comment at 'combineModsTweak', which uses the same logic.
   ([is] -> [[is]]) ->

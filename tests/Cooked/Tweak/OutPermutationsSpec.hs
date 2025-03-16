@@ -2,8 +2,6 @@ module Cooked.Tweak.OutPermutationsSpec (tests) where
 
 import Cooked
 import Cooked.Tweak.OutPermutations
-import Data.Either (rights)
-import Data.List (group)
 import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -80,15 +78,5 @@ tests =
                 assertSameSets
                   (map (Right . ((),)) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
                   (fst <$> runTweak (allOutPermutsTweak $ OmitIdentity Nothing) (skel a b c))
-            ],
-      testGroup "tests for a single random outputs permutation:" $
-        let l = (\i -> wallet i `receives` Value (Script.lovelace 123)) <$> [1 .. 5]
-            runs = txSkelOuts . snd <$> rights (fst <$> ((\i -> runTweak (singleOutPermutTweak i) txSkelTemplate {txSkelOuts = l}) =<< [1 .. 5]))
-         in [ testCase "All permutations contain the correct elements" $
-                mapM_ (assertSameSets l) runs,
-              testCase "All permutations are different from the initial distribution" $
-                mapM_ (assertBool "Lists should be different" . (l /=)) runs,
-              testCase "Permutations are different with different seeds" $
-                assertBool "There should be at least 2 different permutations" (length (group runs) == 5)
             ]
     ]

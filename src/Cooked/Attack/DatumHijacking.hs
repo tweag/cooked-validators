@@ -7,6 +7,7 @@ module Cooked.Attack.DatumHijacking
   )
 where
 
+import Control.Applicative
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -65,7 +66,7 @@ redirectScriptOutputTweak optic change =
 -- attack fails.
 datumHijackingAttack ::
   forall a m.
-  (MonadTweak m, Typeable a) =>
+  (MonadTweak m, Typeable a, Alternative m) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
   (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Bool) ->
@@ -80,7 +81,7 @@ datumHijackingAttack change select = do
       (txSkelOutsL % traversed % txSkelOutOwnerTypeP @(Script.TypedValidator a))
       (\output -> if change output then Just thief else Nothing)
       select
-  guard . not $ null redirected
+  guard $ not $ null redirected
   addLabelTweak $ DatumHijackingLbl $ Script.validatorAddress thief
   return redirected
   where

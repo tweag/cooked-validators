@@ -3,7 +3,6 @@
 -- modifications aware of the mockchain state.
 module Cooked.Tweak.Common
   ( runTweakInChain,
-    runTweakInChain',
     Tweak,
     UntypedTweak (UntypedTweak),
 
@@ -31,17 +30,15 @@ import Cooked.Skeleton
 import Data.Either.Combinators (rightToMaybe)
 import Data.List (mapAccumL)
 import Data.Maybe
-import ListT (ListT)
-import ListT qualified
 import Optics.Core
 
 -- * The type of tweaks
 
-class (MonadPlus m, MonadBlockChainWithoutValidation m) => MonadTweak m where
+class (MonadBlockChainWithoutValidation m) => MonadTweak m where
   getTxSkel :: m TxSkel
   putTxSkel :: TxSkel -> m ()
 
-type Tweak m = StateT TxSkel (ListT m)
+type Tweak m = StateT TxSkel m
 
 instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
   getTxSkel = get
@@ -68,17 +65,8 @@ instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
 -- If you're using tweaks in a 'MonadModalBlockChain' together with mechanisms
 -- like 'withTweak', 'somewhere', or 'everywhere', you should never have areason
 -- to use this function.
-runTweakInChain :: (MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
-runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
-
--- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
--- to a transaction skeleton and get all results as a list.
---
--- If you're trying to apply a tweak to a transaction directly before it's
--- modified, consider using 'MonadModalBlockChain' and idioms like 'withTweak',
--- 'somewhere', or 'everywhere'.
-runTweakInChain' :: (MonadBlockChainWithoutValidation m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
-runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
+runTweakInChain :: Tweak m a -> TxSkel -> m (a, TxSkel)
+runTweakInChain = runStateT
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You
 -- will probably never use it while you're building 'Tweak's.
@@ -95,7 +83,7 @@ instance (Monad m) => Monoid (UntypedTweak m) where
 -- * A few fundamental tweaks
 
 -- | The never-applicable tweak.
-failingTweak :: (MonadTweak m) => m a
+failingTweak :: (MonadPlus m) => m a
 failingTweak = mzero
 
 -- | The tweak that always applies and leaves the transaction unchanged.
@@ -260,7 +248,7 @@ overMaybeSelectingTweak optic mChange select = do
 -- So you see that tweaks constructed like this can branch quite wildly. Use
 -- with caution!
 combineModsTweak ::
-  (Eq is, Is k A_Traversal, MonadTweak m) =>
+  (Eq is, Is k A_Traversal, MonadTweak m, MonadPlus m) =>
   ([is] -> [[is]]) ->
   Optic' k (WithIx is) TxSkel x ->
   (is -> x -> m [(x, l)]) ->
