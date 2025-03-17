@@ -19,19 +19,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Ada qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
-data WithdrawalsContext where
-  WithdrawalsContext ::
-    { managedTxOuts :: Map Api.TxOutRef Api.TxOut,
-      networkId :: Cardano.NetworkId
-    } ->
-    WithdrawalsContext
-
-instance Transform WithdrawalsContext (Map Api.TxOutRef Api.TxOut) where
-  transform = managedTxOuts
-
-type WithdrawalsGen a = TxGen WithdrawalsContext a
-
-toWithdrawals :: TxSkelWithdrawals -> WithdrawalsGen (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
+toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals (Map.toList -> []) = return Cardano.TxWithdrawalsNone
 toWithdrawals (Map.toList -> withdrawals) =
   fmap
@@ -49,10 +37,10 @@ toWithdrawals (Map.toList -> withdrawals) =
             Left script -> do
               witness <-
                 Cardano.ScriptWitness Cardano.ScriptWitnessForStakeAddr
-                  <$> liftTxGen (toScriptWitness script red Cardano.NoScriptDatumForStake)
+                  <$> toScriptWitness script red Cardano.NoScriptDatumForStake
               sCred <-
                 throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
                   Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (toScriptHash script)
               return (witness, sCred)
-        networkId <- asks networkId
+        networkId <- Emulator.pNetworkId <$> getParams
         return (Cardano.makeStakeAddress networkId sCred, Cardano.Coin n, Cardano.BuildTxWith witness)

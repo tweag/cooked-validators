@@ -31,43 +31,19 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
-data TxContext where
-  TxContext ::
-    { fee :: Integer,
-      mCollaterals :: Maybe (Set Api.TxOutRef, Wallet),
-      params :: Emulator.Params,
-      managedData :: Map Api.DatumHash Api.Datum,
-      managedTxOuts :: Map Api.TxOutRef Api.TxOut,
-      managedValidators :: Map Script.ValidatorHash (Script.Versioned Script.Validator)
-    } ->
-    TxContext
-
-type BodyGen a = TxGen TxContext a
-
-instance Transform TxContext Cardano.NetworkId where
-  transform = Emulator.pNetworkId . params
-
-instance Transform TxContext (Map Api.TxOutRef Api.TxOut) where
-  transform = managedTxOuts
-
-instance Transform TxContext (Emulator.PParams, Map Api.TxOutRef Api.TxOut) where
-  transform ctx = (Emulator.pEmulatorPParams $ params ctx, transform ctx)
-
-instance Transform TxContext Input.InputContext where
-  transform TxContext {..} = Input.InputContext {..}
-
-instance Transform TxContext Collateral.CollateralContext where
-  transform TxContext {..} = Collateral.CollateralContext {..}
-
-instance Transform TxContext Withdrawals.WithdrawalsContext where
-  transform TxContext {..} =
-    let networkId = Emulator.pNetworkId params
-     in Withdrawals.WithdrawalsContext {..}
-
 -- | Generates a body content from a skeleton
-txSkelToBodyContent :: TxSkel -> BodyGen (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
+txSkelToBodyContent ::
+  (MonadBlockChainBalancing m) =>
+  -- | The skeleton from which the body is created
+  TxSkel ->
+  -- | The fee to set in the body
+  Integer ->
+  -- | The collaterals to set in the body
+  Maybe (Set Api.TxOutRef, Wallet) ->
+  -- | Returns a Cardano body content
+  m (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceTxOutRefs skel = do
-  txIns <- mapM (liftTxGen . Input.toTxInAndWitness) $ Map.toList txSkelIns
+  txIns <- mapM Input.toTxInAndWitness $ Map.toList txSkelIns
   txInsReference <-
     if null txSkelReferenceInputs
       then return Cardano.TxInsReferenceNone
@@ -76,13 +52,13 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
           "txSkelToBodyContent: Unable to translate reference inputs."
           (Cardano.TxInsReference Cardano.BabbageEraOnwardsConway)
           $ mapM Ledger.toCardanoTxIn txSkelReferenceInputs
-  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- liftTxGen Collateral.toCollateralTriplet
-  txOuts <- mapM (liftTxGen . Output.toCardanoTxOut) txSkelOuts
+  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- Collateral.toCollateralTriplet
+  txOuts <- mapM Output.toCardanoTxOut txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
     throwOnToCardanoError
       "txSkelToBodyContent: Unable to translate transaction validity range."
       $ Ledger.toCardanoValidityRange txSkelValidityRange
-  txMintValue <- liftTxGen $ Mint.toMintValue txSkelMints
+  txMintValue <- Mint.toMintValue txSkelMints
   txExtraKeyWits <-
     if null txSkelSigners
       then return Cardano.TxExtraKeyWitnessesNone
@@ -92,11 +68,11 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
   txProtocolParams <- asks (Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
-  txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . fee)
+  let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Emulator.Coin fee
   txProposalProcedures <-
     Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
-      <$> liftTxGen (Proposal.toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts))
-  txWithdrawals <- liftTxGen (Withdrawals.toWithdrawals txSkelWithdrawals)
+      <$> Proposal.toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts)
+  txWithdrawals <- Withdrawals.toWithdrawals txSkelWithdrawals
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txUpdateProposal = Cardano.TxUpdateProposalNone -- That's what plutus-apps does as well
@@ -107,7 +83,7 @@ txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceT
 
 -- | Generates a transaction for a skeleton. We first generate a body and we
 -- sign it with the required signers.
-txSkelToCardanoTx :: TxSkel -> BodyGen (Cardano.Tx Cardano.ConwayEra)
+txSkelToCardanoTx :: (MonadBlockChainBalancing m) => TxSkel -> m (Cardano.Tx Cardano.ConwayEra)
 txSkelToCardanoTx txSkel = do
   -- We begin by creating the body content of the transaction
   txBodyContent <- txSkelToBodyContent txSkel

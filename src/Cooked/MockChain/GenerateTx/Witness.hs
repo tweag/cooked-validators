@@ -10,22 +10,18 @@ import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Credential qualified as Cardano
 import Cardano.Ledger.Crypto qualified as Crypto
 import Control.Monad
-import Control.Monad.Reader
 import Cooked.Conversion
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Output
 import Cooked.Skeleton
-import Data.Map (Map)
-import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
-type WitnessGen a = TxGen (Map Api.TxOutRef Api.TxOut) a
-
 -- | Translates a given credential to a reward account.
-toRewardAccount :: Api.Credential -> WitnessGen (Cardano.RewardAccount Crypto.StandardCrypto)
+toRewardAccount :: (MonadBlockChainBalancing m) => Api.Credential -> m (Cardano.RewardAccount Crypto.StandardCrypto)
 toRewardAccount cred =
   Cardano.RewardAccount Cardano.Testnet <$> case cred of
     Api.ScriptCredential scriptHash -> do
@@ -43,30 +39,25 @@ toRewardAccount cred =
 
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script
-toPlutusScriptOrReferenceInput :: Script.Versioned Script.Script -> Maybe Api.TxOutRef -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang)
+toPlutusScriptOrReferenceInput :: (MonadBlockChainBalancing m) => Script.Versioned Script.Script -> Maybe Api.TxOutRef -> m (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-toPlutusScriptOrReferenceInput script (Just scriptOutRef) = do
-  referenceScriptsMap <- asks $ Map.mapMaybe (^. outputReferenceScriptL)
-  refScriptHash <-
-    throwOnLookup
-      "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
-      scriptOutRef
-      referenceScriptsMap
-  when (refScriptHash /= toScriptHash script) $
+toPlutusScriptOrReferenceInput (toScriptHash -> scriptHash) (Just scriptOutRef) = do
+  refScriptTxOut <-
+    throwOnMaybe "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo." =<< txOutByRef scriptOutRef
+  when ((refScriptTxOut ^. outputReferenceScriptL) /= Just scriptHash) $
     throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."
   scriptTxIn <-
     throwOnToCardanoError
       "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."
       (Ledger.toCardanoTxIn scriptOutRef)
-  scriptHash <-
-    throwOnToCardanoError
+  Cardano.PReferenceScript scriptTxIn . Just
+    <$> throwOnToCardanoError
       "toPlutusScriptOrReferenceInput: Unable to translate script hash of reference script."
-      (Ledger.toCardanoScriptHash refScriptHash)
-  return $ Cardano.PReferenceScript scriptTxIn (Just scriptHash)
+      (Ledger.toCardanoScriptHash scriptHash)
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
-toScriptWitness :: (ToVersionedScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
+toScriptWitness :: (MonadBlockChainBalancing m, ToVersionedScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
 toScriptWitness (toVersionedScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
   let scriptData = case txSkelRedeemer of
         EmptyRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()

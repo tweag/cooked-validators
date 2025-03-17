@@ -14,7 +14,8 @@
 -- In addition, you will find here many helpers functions which can be derived
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
-  ( MockChainError (..),
+  ( GenerateTxError (..),
+    MockChainError (..),
     MockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
@@ -55,6 +56,7 @@ module Cooked.MockChain.BlockChain
   )
 where
 
+import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator qualified as Emulator
@@ -69,7 +71,6 @@ import Control.Monad.Writer
 import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
 import Cooked.Conversion.ToScriptHash
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
@@ -91,7 +92,17 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain errors
 
--- | The errors that can be produced by the 'MockChainT' monad
+-- | Errors that can arise during transaction generation
+data GenerateTxError
+  = -- | Error when translating a skeleton element to its Cardano counterpart
+    ToCardanoError String Ledger.ToCardanoError
+  | -- | Error when generating a Cardano transaction body
+    TxBodyError String Cardano.TxBodyError
+  | -- | Other generation error
+    GenerateTxErrorGeneral String
+  deriving (Show, Eq)
+
+-- | Errors that can be produced by the 'MockChainT' monad
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
@@ -288,10 +299,10 @@ resolveReferenceScript out | Just (Api.ScriptHash hash) <- outputReferenceScript
     return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just val}
 resolveReferenceScript _ = return Nothing
 
-outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
+outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
 
-datumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Datum)
+datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Datum)
 datumFromTxOutRef oref = do
   mOutputDatum <- outputDatumFromTxOutRef oref
   case mOutputDatum of
@@ -300,10 +311,10 @@ datumFromTxOutRef oref = do
     Just (Api.OutputDatum datum) -> return $ Just datum
     Just (Api.OutputDatumHash datumHash) -> datumFromHash datumHash
 
-typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
 typedDatumFromTxOutRef = ((>>= (\(Api.Datum datum) -> Api.fromBuiltinData datum)) <$>) . datumFromTxOutRef
 
-valueFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Value)
+valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
 valueFromTxOutRef = ((outputValue <$>) <$>) . txOutByRef
 
 txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
