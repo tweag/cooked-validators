@@ -32,7 +32,6 @@ where
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class

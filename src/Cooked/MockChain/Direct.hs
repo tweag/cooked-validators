@@ -25,7 +25,6 @@ import Cooked.Output
 import Cooked.Skeleton
 import Data.Default
 import Data.Map.Strict qualified as Map
-import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
@@ -82,13 +81,10 @@ mapMockChainT ::
   MockChainT n b
 mapMockChainT f = MockChainT . mapStateT (mapExceptT (mapWriterT f)) . unMockChain
 
--- | Executes a 'MockChainT' from some initial state; does /not/ convert the
--- 'MockChainSt' into a 'UtxoState'.
 runMockChainTRaw ::
-  MockChainSt ->
   MockChainT m a ->
   m (MockChainReturn a MockChainSt)
-runMockChainTRaw i0 = runWriterT . runExceptT . flip runStateT i0 . unMockChain
+runMockChainTRaw = runWriterT . runExceptT . flip runStateT def . unMockChain
 
 -- | Executes a 'MockChainT' from an initial state set up with the given initial
 -- value distribution. Similar to 'runMockChainT', uses the default
@@ -99,17 +95,14 @@ runMockChainTFrom ::
   InitialDistribution ->
   MockChainT m a ->
   m (MockChainReturn a UtxoState)
-runMockChainTFrom i0 s = first (right (second mcstToUtxoState)) <$> runMockChainTRaw (mockChainSt0From i0) s
+runMockChainTFrom i0 s =
+  first (right (second mcstToUtxoState))
+    <$> runMockChainTRaw (mockChainSt0From i0 >>= put >> s)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
--- The canonical environment uses the default 'SlotConfig' and
--- @Cooked.Wallet.wallet 1@ as the sole wallet signing transactions.
+-- The canonical environment uses the default 'SlotConfig'
 runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a UtxoState)
 runMockChainT = runMockChainTFrom def
-
--- | See 'runMockChainTRaw'
-runMockChainRaw :: MockChain a -> MockChainReturn a MockChainSt
-runMockChainRaw = runIdentity . runMockChainTRaw def
 
 -- | See 'runMockChainTFrom'
 runMockChainFrom :: InitialDistribution -> MockChain a -> MockChainReturn a UtxoState
@@ -156,22 +149,9 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
     -- We log the adjusted skeleton
     gets mcstToSkelContext >>= \ctx -> logEvent $ MCLogAdjustedTxSkel ctx skel fee mCollaterals
-    -- We retrieve data that will be used in the transaction generation process:
-    -- datums, validators and various kinds of inputs. This idea is to provide a
-    -- rich-enough context for the transaction generation to succeed.
-    hashedData <- txSkelHashedData skel
-    insData <- txSkelInputDataAsHashes skel
-    insValidators <- txSkelInputValidators skel
-    insMap <- txSkelInputUtxos skel
-    refInsMap <- txSkelReferenceInputUtxos skel
-    collateralInsMap <- maybe (return Map.empty) (lookupUtxos . Set.toList . fst) mCollaterals
-    -- We attempt to generate the transaction associated with the balanced
-    -- skeleton and the retrieved data. This is an internal generation, there is
-    -- no validation involved yet.
-    cardanoTx <- case generateTx fee newParams hashedData (insMap <> refInsMap <> collateralInsMap) insValidators mCollaterals skel of
-      Left err -> throwError . MCEGenerationError $ err
-      -- We apply post-generation modification when applicable
-      Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx txOptUnsafeModTx tx
+    -- We generate the transaction associated with the skeleton, and apply on it
+    -- the modifications from the skeleton options
+    cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstToEmulatedLedgerState
     -- We finally run the emulated validation, and we only care about the
@@ -191,19 +171,20 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
           -- In case of success, we update the index with all inputs and outputs
           -- contained in the transaction
           Ledger.Success {} -> (Ledger.insert cardanoTx utxoIndex, Nothing)
-    -- Now that we have compute a new index, we can update it
-    modify' (\st -> st {mcstIndex = newUtxoIndex})
     case valError of
       -- When validation failed for any reason, we throw an error. TODO: This
       -- behavior could be subject to change in the future.
       Just err -> throwError (uncurry MCEValidationError err)
       -- Otherwise, we update known validators and datums.
-      Nothing ->
+      Nothing -> do
+        insData <- txSkelInputDataAsHashes skel
         modify'
           ( removeDatums insData
               . addDatums (txSkelDataInOutputs skel)
               . addValidators (txSkelValidatorsInOutputs skel <> txSkelReferenceScripts skel)
           )
+    -- Now that we have compute a new index, we can update it
+    modify' (\st -> st {mcstIndex = newUtxoIndex})
     -- We apply a change of slot when requested in the options
     when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     -- We return the parameters to their original state

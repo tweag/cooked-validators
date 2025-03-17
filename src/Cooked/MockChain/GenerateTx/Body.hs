@@ -1,4 +1,9 @@
-module Cooked.MockChain.GenerateTx.Body where
+module Cooked.MockChain.GenerateTx.Body
+  ( txSkelToTxBody,
+    txBodyContentToTxBody,
+    txSkelToTxBodyContent,
+  )
+where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
@@ -25,12 +30,11 @@ import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
-import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Generates a body content from a skeleton
-txSkelToBodyContent ::
+txSkelToTxBodyContent ::
   (MonadBlockChainBalancing m) =>
   -- | The skeleton from which the body is created
   TxSkel ->
@@ -40,7 +44,7 @@ txSkelToBodyContent ::
   Maybe (Set Api.TxOutRef, Wallet) ->
   -- | Returns a Cardano body content
   m (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
-txSkelToBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs <- txSkelReferenceTxOutRefs skel = do
+txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs <- txSkelReferenceTxOutRefs skel = do
   txIns <- mapM Input.toTxInAndWitness $ Map.toList txSkelIns
   txInsReference <-
     if null txSkelReferenceInputs
@@ -79,20 +83,8 @@ txSkelToBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs <-
       txVotingProcedures = Nothing
   return Cardano.TxBodyContent {..}
 
--- | Generates a transaction for a skeleton. We first generate a body and we
--- sign it with the required signers.
-txSkelToCardanoTx ::
-  (MonadBlockChainBalancing m) =>
-  TxSkel ->
-  -- | The fee to set in the body
-  Integer ->
-  -- | The collaterals to set in the body
-  Maybe (Set Api.TxOutRef, Wallet) ->
-  m (Cardano.Tx Cardano.ConwayEra)
-txSkelToCardanoTx txSkel fee mCollaterals = do
-  -- We begin by creating the body content of the transaction
-  txBodyContent <- txSkelToBodyContent txSkel fee mCollaterals
-
+txBodyContentToTxBody :: (MonadBlockChainBalancing m) => Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra -> TxSkel -> m (Cardano.TxBody Cardano.ConwayEra)
+txBodyContentToTxBody txBodyContent skel = do
   -- We create the associated Shelley TxBody
   txBody@(Cardano.ShelleyTxBody a body c dats e f) <-
     either
@@ -109,7 +101,7 @@ txSkelToCardanoTx txSkel fee mCollaterals = do
   -- directly without requiring this method, which somewhat feels like a hack.
 
   -- We attempt to resolve the reference inputs used by the skeleton
-  refIns <- forM (txSkelReferenceTxOutRefs txSkel) $ \oRef ->
+  refIns <- forM (txSkelReferenceTxOutRefs skel) $ \oRef ->
     throwOnMaybe ("txSkelToCardanoTx: Unable to resolve TxOutRef " <> show oRef) =<< txOutByRef oRef
   -- We collect the datum hashes present at these outputs
   let datumHashes = [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
@@ -139,17 +131,15 @@ txSkelToCardanoTx txSkel fee mCollaterals = do
       body' = body Lens.& Alonzo.scriptIntegrityHashTxBodyL Lens..~ scriptIntegrityHash
       txBody' = Cardano.ShelleyTxBody a body' c (Cardano.TxBodyScriptData era datums redeemers) e f
 
-  -- We return the transaction signed by all the required signers. The body is
-  -- chosen based on whether or not it required additional data.
-  return $
-    Ledger.getEmulatorEraTx $
-      foldl
-        (flip Ledger.addCardanoTxWitness)
-        (Ledger.CardanoEmulatorEraTx $ Cardano.Tx (if null additionalDataMap then txBody else txBody') [])
-        (Ledger.toWitness . Ledger.PaymentPrivateKey . walletSK <$> txSkelSigners txSkel)
+  return $ if null additionalDataMap then txBody else txBody'
   where
     toCardanoLanguage :: Cardano.PlutusScriptVersion lang -> Cardano.Language
     toCardanoLanguage = \case
       Cardano.PlutusScriptV1 -> Cardano.PlutusV1
       Cardano.PlutusScriptV2 -> Cardano.PlutusV2
       Cardano.PlutusScriptV3 -> Cardano.PlutusV3
+
+txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra)
+txSkelToTxBody skel fee mCollaterals = do
+  txBodyContent <- txSkelToTxBodyContent skel fee mCollaterals
+  txBodyContentToTxBody txBodyContent skel
