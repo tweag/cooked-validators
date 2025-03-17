@@ -9,13 +9,12 @@ import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad.Catch
-import Control.Monad.Reader
 import Cooked.Conversion
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Data.Default
-import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.Strict qualified as SMap
 import Data.Maybe
@@ -29,7 +28,6 @@ import Lens.Micro qualified as MicroLens
 import Network.HTTP.Simple qualified as Network
 import Optics.Core
 import PlutusLedgerApi.V1.Value qualified as Api
-import PlutusLedgerApi.V3 qualified as Api
 
 -- | Transorms a `TxParameterChange` into an actual change over a Cardano
 -- parameter update
@@ -110,7 +108,7 @@ toProposalProcedureAndWitness ::
   AnchorResolution ->
   m (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolution = do
-  minDeposit <- Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . fst <$> getParams
+  minDeposit <- Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
   cred <- toRewardAccount $ toCredential txSkelProposalAddress
   govAction <- toGovAction txSkelProposal
   let proposalAnchor = do
@@ -126,13 +124,13 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
                         ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Network.getResponseBody)
                     )
                 AnchorResolutionLocal urls ->
-                  throwOnLookup "Error when attempting to retrieve anchor url in the local anchor resolution map" anchor urls
+                  throwOnMaybe "Error when attempting to retrieve anchor url in the local anchor resolution map" (Map.lookup anchor urls)
         return $ Cardano.Anchor anchorUrl . Cardano.hashAnchorData . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor
   let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
   (conwayProposalProcedure,) <$> case txSkelProposalWitness of
     Nothing -> return Nothing
-    Just (script, redeemer) -> Just <$> liftTxGen (toScriptWitness (toVersionedScript script) redeemer Cardano.NoScriptDatumForStake)
+    Just (script, redeemer) -> Just <$> toScriptWitness script redeemer Cardano.NoScriptDatumForStake
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::

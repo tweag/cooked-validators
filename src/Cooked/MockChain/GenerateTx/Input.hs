@@ -1,11 +1,10 @@
 module Cooked.MockChain.GenerateTx.Input (toTxInAndWitness) where
 
 import Cardano.Api qualified as Cardano
-import Control.Monad.Reader
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
-import Data.Map (Map)
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -28,5 +27,8 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
         Api.OutputDatumHash datumHash -> do
           sDatum <- throwOnMaybe "toTxInAndWitness: Unknown validator" =<< datumFromHash datumHash
           return $ Cardano.ScriptDatumForTxIn $ Ledger.toCardanoScriptData $ Api.getDatum sDatum
-      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> liftTxGen (toScriptWitness validator txSkelRedeemer scriptDatum)
-  throwOnToCardanoErrorOrApply "toTxInAndWitness: Unable to translate TxOutRef" (,Cardano.BuildTxWith witness) $ Ledger.toCardanoTxIn txOutRef
+      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> toScriptWitness validator txSkelRedeemer scriptDatum
+  throwOnToCardanoErrorOrApply
+    "toTxInAndWitness: Unable to translate TxOutRef"
+    (,Cardano.BuildTxWith witness)
+    (Ledger.toCardanoTxIn txOutRef)

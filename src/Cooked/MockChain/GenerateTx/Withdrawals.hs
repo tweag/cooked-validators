@@ -1,23 +1,18 @@
-module Cooked.MockChain.GenerateTx.Withdrawals
-  ( WithdrawalsContext (..),
-    toWithdrawals,
-  )
-where
+module Cooked.MockChain.GenerateTx.Withdrawals (toWithdrawals) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Control.Monad.Reader
 import Cooked.Conversion
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
-import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Ada qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
 
 toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals (Map.toList -> []) = return Cardano.TxWithdrawalsNone
