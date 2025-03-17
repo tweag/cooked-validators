@@ -44,7 +44,6 @@ module Cooked.MockChain.BlockChain
     txSkelReferenceInputUtxos,
     txSkelInputValidators,
     txSkelInputValue,
-    txSkelHashedData,
     txSkelInputDataAsHashes,
     lookupUtxos,
     validateTxSkel',
@@ -367,37 +366,16 @@ lookupUtxos =
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
 txSkelInputValue = (foldMap Api.txOutValue <$>) . txSkelInputUtxos
 
--- | Looks up and resolves the hashed datums on UTxOs the transaction consumes
--- or references, which will be needed by the transaction body.
-txSkelHashedData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
-txSkelHashedData skel = do
-  (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
-  (Map.elems -> refInputTxOuts) <- txSkelReferenceInputUtxos skel
-  foldM
-    ( \dat dHash ->
-        maybeErrM
-          (MCEUnknownDatum "txSkelHashedData: Transaction input with unknown datum hash" dHash)
-          (\rDat -> Map.insert dHash rDat dat)
-          (datumFromHash dHash)
-    )
-    Map.empty
-    (mapMaybe (fmap (^. outputDatumL) . isOutputWithDatumHash) $ inputTxOuts <> refInputTxOuts)
-
 -- | Looks up the data on UTxOs the transaction consumes and returns their
--- hashes. This corresponds to the keys of what should be removed from the
--- stored datums in our mockchain.  There can be duplicates, which is expected.
+-- hashes.
 txSkelInputDataAsHashes :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
 txSkelInputDataAsHashes skel = do
-  let outputToDatumHashM output = case output ^. outputDatumL of
-        Api.OutputDatumHash dHash ->
-          maybeErrM
-            (MCEUnknownDatum "txSkelInputDataAsHashes: Transaction input with unknown datum hash" dHash)
-            (Just . const dHash)
-            (datumFromHash dHash)
-        Api.OutputDatum datum -> return $ Just $ Script.datumHash datum
-        Api.NoOutputDatum -> return Nothing
+  let outputToDatumHash output = case output ^. outputDatumL of
+        Api.OutputDatumHash dHash -> Just dHash
+        Api.OutputDatum datum -> Just $ Script.datumHash datum
+        Api.NoOutputDatum -> Nothing
   (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
-  catMaybes <$> mapM outputToDatumHashM inputTxOuts
+  return $ mapMaybe outputToDatumHash inputTxOuts
 
 -- | This creates a payment from an existing UTXO
 txOutRefToTxSkelOut ::

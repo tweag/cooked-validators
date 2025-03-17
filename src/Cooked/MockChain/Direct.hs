@@ -183,7 +183,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
               . addDatums (txSkelDataInOutputs skel)
               . addValidators (txSkelValidatorsInOutputs skel <> txSkelReferenceScripts skel)
           )
-    -- Now that we have compute a new index, we can update it
+    -- Now that we have computed a new index, we can update it
     modify' (\st -> st {mcstIndex = newUtxoIndex})
     -- We apply a change of slot when requested in the options
     when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
