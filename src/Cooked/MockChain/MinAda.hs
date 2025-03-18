@@ -16,6 +16,7 @@ import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.Skeleton
+import Data.Maybe
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
