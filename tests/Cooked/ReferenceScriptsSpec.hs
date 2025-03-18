@@ -76,7 +76,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [recipient `receives` (ReferenceScript referenceScript <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -92,7 +92,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` Value (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -109,7 +109,7 @@ useReferenceScript spendingSubmitter theScript = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [theScript `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -198,7 +198,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
                             txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
@@ -220,7 +220,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
                             txSkelSigners = [wallet 1]
                           }
                     void $
@@ -239,7 +239,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
                       txSkelSigners = [wallet 1]
                     }
               void $

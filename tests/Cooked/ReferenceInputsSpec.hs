@@ -111,7 +111,7 @@ trace1 = do
       txSkelTemplate
         { txSkelOuts =
             [ fooTypedValidator `receives` (Value (Script.ada 4) <&&> InlineDatum (FooDatum $ walletPKHash $ wallet 3)),
-              barTypedValidator `receives` (Value (Script.ada 5) <&&> VisibleHashedDatum ())
+              barTypedValidator `receives` Value (Script.ada 5)
             ],
           txSkelSigners = [wallet 2]
         }
@@ -131,7 +131,7 @@ trace2 = do
       ( txSkelTemplate
           { txSkelOuts =
               [ wallet 1 `receives` (Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer)),
-                bazTypedValidator `receives` (Value (Script.ada 10) <&&> VisibleHashedDatum ())
+                bazTypedValidator `receives` Value (Script.ada 10)
               ],
             txSkelSigners = [wallet 2]
           }

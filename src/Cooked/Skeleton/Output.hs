@@ -85,7 +85,7 @@ receives owner =
       ConcreteOutput
         owner
         Nothing -- No staking credential by default
-        TxSkelOutNoDatum -- No datum by default
+        defaultTxSkelDatum -- Default datum defined below
         (TxSkelOutValue mempty True) -- Empty value by default, adjustable to min ada
         (Nothing @(Script.Versioned Script.Script)) -- No reference script by default
   where
@@ -99,6 +99,12 @@ receives owner =
     go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
     go pays (StakingCredential _) = pays
     go pays (PayableAnd p1 p2) = go (go pays p1) p2
+
+    defaultTxSkelDatum = case toPKHOrValidator owner of
+      -- V1 and V2 script always need a datum, even if empty
+      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> TxSkelOutDatumHash ()
+      -- V3 script and PKH do not necessarily need a datum
+      _ -> TxSkelOutNoDatum
 
 txSkelOutDatumL :: Lens' TxSkelOut TxSkelOutDatum
 txSkelOutDatumL =
