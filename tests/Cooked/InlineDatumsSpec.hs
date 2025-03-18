@@ -150,7 +150,7 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
         { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
           txSkelOuts =
             [ validator
-                `receives` ( AdjustableValue (outputValue theOutput)
+                `receives` ( Value (outputValue theOutput)
                                <&&> ( case datumKindOnSecondPayment of
                                         OnlyHash -> HiddenHashedDatum
                                         Datum -> VisibleHashedDatum

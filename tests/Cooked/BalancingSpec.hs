@@ -34,15 +34,15 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ()),
-      alice `receives` Value (Script.ada 2 <> apple 3),
-      alice `receives` Value (Script.ada 25),
-      alice `receives` Value (Script.ada 40 <> orange 6),
-      alice `receives` Value (Script.ada 8),
-      alice `receives` Value (Script.ada 30),
-      alice `receives` (Value (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer)),
-      alice `receives` (Value (Script.ada 1 <> banana 7) <&&> ReferenceScript (alwaysTrueValidator @MockContract)),
-      alice `receives` (Value (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ())
+    [ alwaysTrueValidator @MockContract `receives` (FixedValue (Script.ada 42) <&&> VisibleHashedDatum ()),
+      alice `receives` FixedValue (Script.ada 2 <> apple 3),
+      alice `receives` FixedValue (Script.ada 25),
+      alice `receives` FixedValue (Script.ada 40 <> orange 6),
+      alice `receives` FixedValue (Script.ada 8),
+      alice `receives` FixedValue (Script.ada 30),
+      alice `receives` (FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer)),
+      alice `receives` (FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (alwaysTrueValidator @MockContract)),
+      alice `receives` (FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ())
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet), [Api.TxOutRef])
@@ -77,7 +77,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   ((fst <$>) -> toBalanceUtxos) <- runUtxoSearch balanceSearch
   ((fst <$>) -> toCollateralUtxos) <- runUtxoSearch collateralSearch
   additionalSpend <- spendsScriptUtxo consumeScriptUtxo
-  let valueConstr = if adjust then AdjustableValue else Value
+  let valueConstr = if adjust then Value else FixedValue
       skel =
         txSkelTemplate
           { txSkelOuts =

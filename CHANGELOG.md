@@ -37,8 +37,8 @@
   elements (datums, values, staking credential and reference scripts) and
   associate them to a recipient.
 - `TxSkelOutValue` which encompasses both a value and whether it can be tampered
-  with through min ada adjustment. It comes with the constructor
-  `AdjustableValue` from the `Payable` type.
+  with through min ada adjustment. It comes with the constructors
+  `Value` and `FixedValue` from the `Payable` type.
 
 ### Removed
 

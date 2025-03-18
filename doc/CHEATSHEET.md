@@ -34,7 +34,7 @@
   initDist :: InitialDistribution
   initDist = InitialDistribution
 	[ wallet 3 `receives` (Value $ ada 6)
-    , fooTypedValidator `receives` (AdjustableValue (myToken 6) <&&> InlineDatum fooTypedDatum)
+    , fooTypedValidator `receives` (Value (myToken 6) <&&> InlineDatum fooTypedDatum)
 	, wallet 2 `receives` (Value (ada 2) <&&> VisibleHashedDatum fooDatum)
 	, wallet 1 `receives` (Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred)
 	]
@@ -239,10 +239,11 @@ txSkelTemplate
   }
 ```
 
-### Automatically provide enough Ada to an output
+### Min Ada adjustment to an output
 
-* explicitly, by providing an incomplete value: ```party `receives` (AdjustableValue (myToken 5))```
-* implicitly, by providing no value: ```party `receives` (Datum myDatum)```
+* allow min ADA adjustment, by providing a value: ```party `receives` (Value (myToken 5))```
+* allow min ADA adjustment, by providing no value: ```party `receives` (Datum myDatum)```
+* forbid min ADA adjustment: ```party `receives` (FixedValue $ ada 10) ```
 
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 

@@ -51,7 +51,7 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
           mintedValue = txSkelMintsValue mints
        in txSkelTemplate
             { txSkelMints = mints,
-              txSkelOuts = [recipient `receives` AdjustableValue mintedValue],
+              txSkelOuts = [recipient `receives` Value mintedValue],
               txSkelSigners = [wallet 3]
             }
 
