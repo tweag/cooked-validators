@@ -12,6 +12,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -78,7 +79,7 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
         networkId <- Emulator.pNetworkId <$> getParams
         address <-
           throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-            Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+            Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralWallet)
         -- The return collateral is built up from those elements
         return $
           Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $

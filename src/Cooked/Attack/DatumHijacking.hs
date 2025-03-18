@@ -8,12 +8,12 @@ module Cooked.Attack.DatumHijacking
 where
 
 import Control.Monad
-import Cooked.Conversion.ToCredential
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
@@ -64,7 +64,7 @@ redirectScriptOutputTweak optic change =
 -- attack fails.
 datumHijackingAttack ::
   forall m s.
-  (MonadTweak m, ToCredential s, Show s, IsTxSkelOutAllowedOwner s, Typeable s) =>
+  (MonadTweak m, Script.ToCredential s, Show s, IsTxSkelOutAllowedOwner s, Typeable s) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
   (ConcreteOutput s TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Bool) ->
@@ -82,7 +82,7 @@ datumHijackingAttack change select thief = do
       (\output -> if change output then Just thief else Nothing)
       select
   guard . not $ null redirected
-  addLabelTweak $ DatumHijackingLbl $ toCredential thief
+  addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
   return redirected
 
 newtype DatumHijackingLbl = DatumHijackingLbl Api.Credential

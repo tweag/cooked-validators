@@ -19,8 +19,6 @@ library
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
       Cooked.Conversion
-      Cooked.Conversion.ToAddress
-      Cooked.Conversion.ToCredential
       Cooked.Conversion.ToHash
       Cooked.Conversion.ToOutputDatum
       Cooked.Conversion.ToPubKeyHash

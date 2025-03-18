@@ -42,6 +42,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Coerce (coerce)
 import Data.String (IsString)
 import GHC.Generics (Generic)
+import Plutus.Script.Utils.Address (ToAddress (toAddress), ToCredential (toCredential))
 import PlutusLedgerApi.Common (serialiseCompiledCode)
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V1.Bytes (LedgerBytes (LedgerBytes))
@@ -158,11 +159,17 @@ instance (ToScript a) => ToCardanoScriptHash (Versioned a) where
     PlutusV2 -> C.Api.hashScript $ C.Api.PlutusScript C.Api.PlutusScriptV2 $ C.Api.PlutusScriptSerialised script
     PlutusV3 -> C.Api.hashScript $ C.Api.PlutusScript C.Api.PlutusScriptV3 $ C.Api.PlutusScriptSerialised script
 
+instance (ToScript a) => ToScript (Versioned a) where
+  toScript = toScript . unversioned
+
 instance (ToScript a) => ToScriptHash (Versioned a) where
   toScriptHash = toScriptHash . toCardanoScriptHash
 
-instance (ToScript a) => ToScript (Versioned a) where
-  toScript = toScript . unversioned
+instance (ToScript a) => ToCredential (Versioned a) where
+  toCredential = PV1.ScriptCredential . toScriptHash
+
+instance (ToScript a) => ToAddress (Versioned a) where
+  toAddress = (`PV1.Address` Nothing) . toCredential
 
 class ToVersioned s a where
   toVersioned :: a -> Versioned s

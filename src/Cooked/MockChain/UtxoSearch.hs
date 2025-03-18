@@ -24,7 +24,6 @@ module Cooked.MockChain.UtxoSearch
 where
 
 import Control.Monad
-import Cooked.Conversion.ToAddress
 import Cooked.MockChain.BlockChain
 import Cooked.Output
 import Data.Maybe
@@ -32,6 +31,7 @@ import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))
 import ListT qualified
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -53,8 +53,8 @@ allUtxosSearch = allUtxos >>= ListT.fromFoldable
 
 -- | Search all 'TxOutRef's at a certain address, together with their
 -- 'TxInfo'-'TxOut'.
-utxosAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Api.TxOut
-utxosAtSearch = utxosAt . toAddress >=> ListT.fromFoldable
+utxosAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m Api.TxOut
+utxosAtSearch = utxosAt . Script.toAddress >=> ListT.fromFoldable
 
 -- | Search all 'TxOutRef's of a transaction, together with their
 -- 'TxInfo'-'TxOut'.
@@ -108,7 +108,7 @@ filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flatt
 
 -- | Search for UTxOs which only carry address and value information (no datum, staking credential, or reference script).
 onlyValueOutputsAtSearch ::
-  (MonadBlockChainBalancing m, ToAddress addr) =>
+  (MonadBlockChainBalancing m, Script.ToAddress addr) =>
   addr ->
   UtxoSearch m (ConcreteOutput Api.Credential () Api.Value Api.ScriptHash)
 onlyValueOutputsAtSearch addr =
@@ -122,7 +122,7 @@ onlyValueOutputsAtSearch addr =
 -- credential, a datum or a reference script. A vanilla UTxO is a perfect
 -- candidate to be used for fee, balancing or collateral.
 vanillaOutputsAtSearch ::
-  (MonadBlockChainBalancing m, ToAddress addr) =>
+  (MonadBlockChainBalancing m, Script.ToAddress addr) =>
   addr ->
   UtxoSearch m (ConcreteOutput Api.Credential () Api.Lovelace Api.ScriptHash)
 vanillaOutputsAtSearch addr =

@@ -5,6 +5,7 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
@@ -177,7 +178,7 @@ tests =
             skelExpected a b =
               txSkelTemplate
                 { txSkelLabel =
-                    Set.singleton . TxLabel . DatumHijackingLbl $ toCredential $ Script.toVersioned @Script.Script thief,
+                    Set.singleton . TxLabel . DatumHijackingLbl $ Script.toCredential $ Script.toVersioned @Script.Script thief,
                   txSkelOuts =
                     [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
                       a `receives` (InlineDatum SecondLock <&&> Value x3),

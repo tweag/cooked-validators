@@ -11,6 +11,7 @@ import Data.Maybe
 import Data.Set qualified as Set
 import Data.Tuple (swap)
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -137,7 +138,7 @@ tests =
     "double satisfaction attack"
     [ testCase "the two test validators have different addresses" $
         assertBool "no, the addresses are the same" $
-          toAddress aValidator /= toAddress bValidator,
+          Script.toAddress aValidator /= Script.toAddress bValidator,
       testGroup "unit tests on a 'TxSkel'" $
         -- The following tests make sure that, depending on some
         -- 'someRedeemer' constraints for UTxOs

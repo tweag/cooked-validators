@@ -42,9 +42,9 @@ module Cooked.Output
   )
 where
 
-import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -80,14 +80,14 @@ class IsAbstractOutput o where
 -- the 'TxInfo') representation
 type IsTxInfoOutput o =
   ( IsAbstractOutput o,
-    ToCredential (OwnerType o),
+    Script.ToCredential (OwnerType o),
     ToOutputDatum (DatumType o),
     Script.ToValue (ValueType o),
     Script.ToScriptHash (ReferenceScriptType o)
   )
 
-outputAddress :: (IsAbstractOutput o, ToCredential (OwnerType o)) => o -> Api.Address
-outputAddress out = Api.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
+outputAddress :: (IsAbstractOutput o, Script.ToCredential (OwnerType o)) => o -> Api.Address
+outputAddress out = Api.Address (Script.toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
 
 outputOutputDatum :: (IsAbstractOutput o, ToOutputDatum (DatumType o)) => o -> Api.OutputDatum
 outputOutputDatum = toOutputDatum . (^. outputDatumL)
@@ -229,8 +229,8 @@ isPKOutputFrom pkh out = do
 -- ** Filtering on the staking credential
 
 -- | Test if the given output possesses a certain staking credential
-isStakingCredentialOutputFrom :: (IsTxInfoOutput out, ToCredential cred) => cred -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
-isStakingCredentialOutputFrom cred out | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL, toCredential cred == cred' = Just $ fromAbstractOutput out
+isStakingCredentialOutputFrom :: (IsTxInfoOutput out, Script.ToCredential cred) => cred -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
+isStakingCredentialOutputFrom cred out | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL, Script.toCredential cred == cred' = Just $ fromAbstractOutput out
 isStakingCredentialOutputFrom _ _ = Nothing
 
 -- | Test if the give output does not possess any staking credential

@@ -7,8 +7,6 @@ module Plutus.Script.Utils.V1.Typed.Scripts.Validators
     TypedValidator,
     mkTypedValidator,
     mkTypedValidatorParam,
-    validatorHash,
-    validatorAddress,
     validatorScript,
     vValidatorScript,
     forwardingMintingPolicy,
@@ -29,6 +27,7 @@ import Control.Monad.Except (MonadError (throwError))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Kind (Type)
 import GHC.Generics (Generic)
+import Plutus.Script.Utils.Address (toAddress)
 import Plutus.Script.Utils.Scripts
   ( Language (PlutusV1),
     Versioned (Versioned),
@@ -46,8 +45,6 @@ import Plutus.Script.Utils.Typed
     mkUntypedValidator,
     vForwardingMintingPolicy,
     vValidatorScript,
-    validatorAddress,
-    validatorHash,
     validatorScript,
   )
 import Plutus.Script.Utils.V1.Scripts qualified as Scripts
@@ -124,7 +121,7 @@ instance Pretty ConnectionError where
 checkValidatorAddress ::
   forall a m. (MonadError ConnectionError m) => TypedValidator a -> PV1.Address -> m ()
 checkValidatorAddress ct actualAddr = do
-  let expectedAddr = validatorAddress ct
+  let expectedAddr = toAddress ct
   unless (expectedAddr == actualAddr) $ throwError $ WrongValidatorAddress expectedAddr actualAddr
 
 -- | Checks that the given redeemer script has the right type.

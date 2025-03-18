@@ -5,10 +5,8 @@ module Plutus.Script.Utils.Typed
     ---
     ValidatorTypes (..),
     TypedValidator (..),
-    validatorHash,
     validatorCardanoAddress,
     validatorCardanoAddressAny,
-    validatorAddress,
     validatorScript,
     vValidatorScript,
     forwardingMintingPolicy,
@@ -31,16 +29,26 @@ import Data.Aeson (ToJSON)
 import Data.Kind (Type)
 import Data.Void (Void)
 import GHC.Generics (Generic)
+import Plutus.Script.Utils.Address
+  ( ToAddress (toAddress),
+    ToCredential (toCredential),
+  )
 import Plutus.Script.Utils.Scripts
   ( Language (PlutusV1, PlutusV2, PlutusV3),
+    MintingPolicy,
+    MintingPolicyHash,
     Script,
+    ToScript (toScript),
     ToScriptHash (toScriptHash),
+    ToValidator (toValidator),
+    ToValidatorHash (toValidatorHash),
     ToVersioned (toVersioned),
+    Validator,
+    ValidatorHash,
     Versioned (Versioned, unversioned, version),
     getValidator,
     toCardanoAddressInConway,
   )
-import Plutus.Script.Utils.Scripts qualified as PV1
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V2 qualified as PV2
 import PlutusLedgerApi.V3 qualified as PV3
@@ -81,28 +89,38 @@ instance ValidatorTypes Any where
 
 -- | A typed validator script with its 'ValidatorScript' and 'Address'.
 data TypedValidator (a :: Type) = TypedValidator
-  { tvValidator :: Versioned PV1.Validator,
-    tvValidatorHash :: PV1.ValidatorHash,
-    tvForwardingMPS :: Versioned PV1.MintingPolicy,
+  { tvValidator :: Versioned Validator,
+    tvValidatorHash :: ValidatorHash,
+    tvForwardingMPS :: Versioned MintingPolicy,
     -- | The hash of the minting policy that checks whether the validator
     --   is run in this transaction
-    tvForwardingMPSHash :: PV1.MintingPolicyHash
+    tvForwardingMPSHash :: MintingPolicyHash
   }
   deriving stock (Show, Eq, Generic)
+
+instance ToScript (TypedValidator a) where
+  toScript = toScript . tvValidator
 
 instance ToVersioned Script (TypedValidator a) where
   toVersioned = fmap getValidator . tvValidator
 
+instance ToVersioned Validator (TypedValidator a) where
+  toVersioned = tvValidator
+
 instance ToScriptHash (TypedValidator a) where
   toScriptHash = toScriptHash . tvValidator
 
--- | The hash of the validator.
-validatorHash :: TypedValidator a -> PV1.ValidatorHash
-validatorHash = tvValidatorHash
+instance ToValidator (TypedValidator a) where
+  toValidator = toValidator . tvValidator
 
--- | The address of the validator.
-validatorAddress :: TypedValidator a -> PV1.Address
-validatorAddress = PV1.scriptHashAddress . PV1.ScriptHash . PV1.getValidatorHash . tvValidatorHash
+instance ToValidatorHash (TypedValidator a) where
+  toValidatorHash = toValidatorHash . tvValidator
+
+instance ToCredential (TypedValidator a) where
+  toCredential = toCredential . tvValidator
+
+instance ToAddress (TypedValidator a) where
+  toAddress = toAddress . tvValidator
 
 -- | The address of the validator.
 validatorCardanoAddress :: C.NetworkId -> TypedValidator a -> C.AddressInEra C.ConwayEra
@@ -115,11 +133,11 @@ validatorCardanoAddressAny nid tv =
     C.AddressInEra C.ByronAddressInAnyEra {} addr -> C.AddressByron addr
 
 -- | The unversioned validator script itself.
-validatorScript :: TypedValidator a -> PV1.Validator
+validatorScript :: TypedValidator a -> Validator
 validatorScript = unversioned . vValidatorScript
 
 -- | The validator script itself.
-vValidatorScript :: TypedValidator a -> Versioned PV1.Validator
+vValidatorScript :: TypedValidator a -> Versioned Validator
 vValidatorScript = tvValidator
 
 -- | Generalise the typed validator to one that works with the 'Data' type.
@@ -133,17 +151,17 @@ generalise TypedValidator {tvValidator, tvValidatorHash, tvForwardingMPS, tvForw
 
 -- | The unversioned minting policy that forwards all checks to the instance's
 --  validator
-forwardingMintingPolicy :: TypedValidator a -> PV1.MintingPolicy
+forwardingMintingPolicy :: TypedValidator a -> MintingPolicy
 forwardingMintingPolicy = unversioned . tvForwardingMPS
 
 -- | The minting policy that forwards all checks to the instance's
 --  validator
-vForwardingMintingPolicy :: TypedValidator a -> Versioned PV1.MintingPolicy
+vForwardingMintingPolicy :: TypedValidator a -> Versioned MintingPolicy
 vForwardingMintingPolicy = tvForwardingMPS
 
 -- | Hash of the minting policy that forwards all checks to the instance's
 --  validator
-forwardingMintingPolicyHash :: TypedValidator a -> PV1.MintingPolicyHash
+forwardingMintingPolicyHash :: TypedValidator a -> MintingPolicyHash
 forwardingMintingPolicyHash = tvForwardingMPSHash
 
 {-# INLINEABLE tracedUnsafeFrom #-}

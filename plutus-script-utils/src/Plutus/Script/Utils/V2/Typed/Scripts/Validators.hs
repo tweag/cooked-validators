@@ -6,8 +6,6 @@ module Plutus.Script.Utils.V2.Typed.Scripts.Validators
     TypedValidator,
     mkTypedValidator,
     mkTypedValidatorParam,
-    validatorHash,
-    validatorAddress,
     validatorScript,
     vValidatorScript,
     forwardingMintingPolicy,
@@ -30,8 +28,6 @@ import Plutus.Script.Utils.Typed
     generalise,
     vForwardingMintingPolicy,
     vValidatorScript,
-    validatorAddress,
-    validatorHash,
     validatorScript,
   )
 import Plutus.Script.Utils.V2.Scripts qualified as Scripts

@@ -17,6 +17,7 @@ module Plutus.Script.Utils.V1.Typed.Scripts
 where
 
 import Control.Monad.Except (MonadError (throwError))
+import Plutus.Script.Utils.Address (toAddress)
 import Plutus.Script.Utils.Scripts (MintingPolicy, StakeValidator, Validator, datumHash)
 import Plutus.Script.Utils.V1.Typed.Scripts.MonetaryPolicies hiding (forwardToValidator)
 import Plutus.Script.Utils.V1.Typed.Scripts.StakeValidators hiding (forwardToValidator)
@@ -70,7 +71,7 @@ makeTypedScriptTxOut ::
 makeTypedScriptTxOut ct d value =
   TypedScriptTxOut @out
     TxOut
-      { txOutAddress = validatorAddress ct,
+      { txOutAddress = toAddress ct,
         txOutValue = value,
         txOutDatumHash = Just (datumHash $ Datum $ toBuiltinData d)
       }

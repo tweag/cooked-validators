@@ -15,7 +15,6 @@ import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.MinAda
@@ -34,6 +33,7 @@ import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -369,7 +369,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Nothing
-      | (before, txSkelOut : after) <- break (\(Pays o) -> toCredential (o ^. outputOwnerL) == toCredential balancingWallet) txSkelOuts,
+      | (before, txSkelOut : after) <- break (\(Pays o) -> Script.toCredential (o ^. outputOwnerL) == Script.toCredential balancingWallet) txSkelOuts,
         AdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected

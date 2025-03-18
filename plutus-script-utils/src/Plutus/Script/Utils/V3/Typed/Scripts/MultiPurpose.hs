@@ -4,6 +4,7 @@ module Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose where
 
 import Codec.Serialise (Serialise)
 import GHC.Generics (Generic)
+import Plutus.Script.Utils.Address qualified as PSU
 import Plutus.Script.Utils.Scripts qualified as PSU
 import PlutusLedgerApi.V1.Address qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -388,6 +389,12 @@ instance PSU.ToVersioned PSU.Script (MultiPurposeScript a) where
 
 instance PSU.ToScriptHash (MultiPurposeScript a) where
   toScriptHash = PSU.toScriptHash . PSU.toVersioned @PSU.Script
+
+instance PSU.ToCredential (MultiPurposeScript a) where
+  toCredential = Api.ScriptCredential . PSU.toScriptHash
+
+instance PSU.ToAddress (MultiPurposeScript a) where
+  toAddress = (`Api.Address` Nothing) . PSU.toCredential
 
 instance PSU.ToValidator (MultiPurposeScript a) where
   toValidator = PSU.Validator . PSU.toScript

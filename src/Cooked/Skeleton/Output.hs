@@ -11,7 +11,8 @@ module Cooked.Skeleton.Output
   )
 where
 
-import Cooked.Conversion
+import Cooked.Conversion.ToPubKeyHash
+import Cooked.Conversion.ToStakingCredential
 import Cooked.Output
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Payable
@@ -20,6 +21,7 @@ import Cooked.Wallet
 import Data.Either.Combinators
 import Data.Function
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script (TypedValidator (..))
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
@@ -57,7 +59,7 @@ data TxSkelOut where
       Typeable o,
       IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
-      ToCredential (OwnerType o),
+      Script.ToCredential (OwnerType o),
       Typeable (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ TxSkelOutValue,
@@ -78,7 +80,7 @@ deriving instance Show TxSkelOut
 
 -- | Smart constructor to build @TxSkelOut@ from an owner and payment. This
 -- should be the main way of building outputs.
-receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner) => owner -> Payable els -> TxSkelOut
+receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, Script.ToCredential owner) => owner -> Payable els -> TxSkelOut
 receives owner =
   go $
     Pays $
@@ -127,7 +129,7 @@ txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. ou
 -- | Decide if a transaction output has a certain owner and datum type.
 txSkelOutOwnerTypeP ::
   forall ownerType.
-  ( ToCredential ownerType,
+  ( Script.ToCredential ownerType,
     Show ownerType,
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType

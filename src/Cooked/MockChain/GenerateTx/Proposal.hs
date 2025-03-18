@@ -9,7 +9,6 @@ import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad.Catch
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
@@ -26,6 +25,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro qualified as MicroLens
 import Network.HTTP.Simple qualified as Network
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
@@ -109,7 +109,7 @@ toProposalProcedureAndWitness ::
   m (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolution = do
   minDeposit <- Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
-  cred <- toRewardAccount $ toCredential txSkelProposalAddress
+  cred <- toRewardAccount $ Script.toCredential txSkelProposalAddress
   govAction <- toGovAction txSkelProposal
   let proposalAnchor = do
         anchor <- txSkelProposalAnchor

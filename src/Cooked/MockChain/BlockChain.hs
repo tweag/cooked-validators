@@ -67,7 +67,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
-import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
 import Cooked.MockChain.UtxoState
 import Cooked.Output
@@ -84,6 +83,7 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -266,13 +266,13 @@ resolveTypedDatum out = do
 -- 'validatorFromHash' returns @Nothing@) return @Nothing@.
 resolveValidator ::
   ( IsAbstractOutput out,
-    ToCredential (OwnerType out),
+    Script.ToCredential (OwnerType out),
     MonadBlockChainBalancing m
   ) =>
   out ->
   m (Maybe (ConcreteOutput (Script.Versioned Script.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
 resolveValidator out =
-  case toCredential (out ^. outputOwnerL) of
+  case Script.toCredential (out ^. outputOwnerL) of
     Api.PubKeyCredential _ -> return Nothing
     Api.ScriptCredential (Api.ScriptHash hash) -> do
       mVal <- validatorFromHash (Script.ValidatorHash hash)
