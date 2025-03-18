@@ -34,15 +34,10 @@
   initDist :: InitialDistribution
   initDist = InitialDistribution
 	[ wallet 3 `receives` (Value $ ada 6)
-    , fooTypedValidator `receives` (Value (ada 6) <&&> InlineDatum fooTypedDatum)
+    , fooTypedValidator `receives` (Value (myToken 6) <&&> InlineDatum fooTypedDatum)
 	, wallet 2 `receives` (Value (ada 2) <&&> VisibleHashedDatum fooDatum)
 	, wallet 1 `receives` (Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred)
 	]
-  ```
-* Ensure each initial distribution payment has min ada
-  ```haskell
-  initDist :: InitialDistribution
-  initDist = unsafeToInitDistWithMinAda $ InitialDistribution ...
   ```
 #### Usage
 
@@ -244,15 +239,12 @@ txSkelTemplate
   }
 ```
 
-### Automatically provide enough Ada to output UTxOs
+### Min Ada adjustment to an output
 
-```haskell
-txSkelTemplate
-    { ...
-      txOpts = def {txOptEnsureMinAda = True}
-      ...
-    }
-```
+* allow min ADA adjustment, by providing a value: ```party `receives` (Value (myToken 5))```
+* allow min ADA adjustment, by providing no value: ```party `receives` (Datum myDatum)```
+* forbid min ADA adjustment: ```party `receives` (FixedValue $ ada 10) ```
+
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 
 * `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`

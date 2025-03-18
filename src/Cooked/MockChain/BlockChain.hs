@@ -51,6 +51,7 @@ module Cooked.MockChain.BlockChain
     txSkelProposalsDeposit,
     govActionDeposit,
     txOutRefToTxSkelOut,
+    txOutRefToTxSkelOut',
   )
 where
 
@@ -84,6 +85,7 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
+import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -134,6 +136,8 @@ data MockChainLogEntry
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
+  | -- | Logging the automatic adjusment of a min ada amount
+    MCLogAdjustedTxSkelOut TxSkelOut Script.Ada
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
@@ -391,9 +395,11 @@ txOutRefToTxSkelOut ::
   Api.TxOutRef ->
   -- | Whether to include the datum in the transaction
   Bool ->
+  -- | Whether to allow further adjustment of the Ada value
+  Bool ->
   m TxSkelOut
-txOutRefToTxSkelOut oRef includeInTransactionBody = do
-  Just txOut@(Api.TxOut (Api.Address cred _) _ dat refS) <- txOutByRef oRef
+txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
+  Just txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- txOutByRef oRef
   target <- case cred of
     Api.PubKeyCredential pkh -> return $ Left pkh
     Api.ScriptCredential (Api.ScriptHash sh) -> do
@@ -412,9 +418,16 @@ txOutRefToTxSkelOut oRef includeInTransactionBody = do
     Pays $
       (fromAbstractOutput txOut)
         { concreteOutputOwner = target,
+          concreteOutputValue = TxSkelOutValue value allowAdaAdjustment,
           concreteOutputDatum = datum,
           concreteOutputReferenceScript = refScript
         }
+
+-- | A default version of 'txOutRefToTxSkelOut' where we both include the datum
+-- in the transaction if it was hashed in the 'TxOut', and allow further ada
+-- adjustment in case changes in the output require it.
+txOutRefToTxSkelOut' :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
+txOutRefToTxSkelOut' oRef = txOutRefToTxSkelOut oRef True True
 
 -- ** Slot and Time Management
 

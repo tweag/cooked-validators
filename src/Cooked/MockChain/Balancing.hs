@@ -388,9 +388,9 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected
           -- output. We keep intact the orders of those outputs.
-          let candidatesRaw' = second (<> txSkelOut ^. txSkelOutValueL) <$> candidatesRaw
+          let candidatesRaw' = second (<> txSkelOut ^. (txSkelOutValueL % txSkelOutValueContentL)) <$> candidatesRaw
           (txOutRefs, val) <- getOptimalCandidate candidatesRaw' balancingWallet balancingError
-          return (txOutRefs, before ++ (txSkelOut & txSkelOutValueL .~ val) : after)
+          return (txOutRefs, before ++ (txSkelOut & (txSkelOutValueL % txSkelOutValueContentL) .~ val) : after)
     -- There is no output at the balancing wallet address, or the balancing
     -- policy forces us to create a new output, both yielding the same result.
     _ -> do

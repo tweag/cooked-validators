@@ -38,8 +38,10 @@ data Payable :: [Symbol] -> Type where
   HiddenHashedDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
   -- | Reference scripts are payable
   ReferenceScript :: (ToVersionedScript s) => s -> Payable '["Reference Script"]
-  -- | Values are payable
+  -- | Values are payable and are subject to min ada adjustment
   Value :: (ToValue a) => a -> Payable '["Value"]
+  -- | Fixed Values are payable but are NOT subject to min ada adjustment
+  FixedValue :: (ToValue a) => a -> Payable '["Value"]
   -- | Staking credentials are payable
   StakingCredential :: (ToMaybeStakingCredential cred) => cred -> Payable '["Staking Credential"]
   -- | Payables can be combined as long as their list of tags are disjoint

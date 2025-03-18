@@ -2,7 +2,6 @@ module Cooked.BasicUsageSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -38,8 +37,7 @@ mintingQuickValue =
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, emptyTxSkelRedeemer, "banana", 10)],
           txSkelOuts = [alice `receives` Value (quickValue "banana" 10)],
-          txSkelSigners = [alice],
-          txSkelOpts = def {txOptEnsureMinAda = True}
+          txSkelSigners = [alice]
         }
 
 payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef

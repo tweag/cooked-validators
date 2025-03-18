@@ -2,7 +2,6 @@ module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
@@ -55,8 +54,7 @@ lockValue = Script.lovelaceValueOf 12345678
 lockTxSkel :: Api.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
-    { txSkelOpts = def {txOptEnsureMinAda = True},
-      txSkelIns = Map.singleton o emptyTxSkelRedeemer,
+    { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
       txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
@@ -69,8 +67,7 @@ txLock v = do
 relockTxSkel :: Script.TypedValidator DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
-    { txSkelOpts = def {txOptEnsureMinAda = True},
-      txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
+    { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
       txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
@@ -172,16 +169,17 @@ tests =
                 ]
             skelOut bound select =
               runTweak
-                ( datumHijackingAttack @DHContract
-                    ( \(ConcreteOutput v _ d x _) ->
-                        Script.validatorHash val1
-                          == Script.validatorHash v
-                          && d
-                            == TxSkelOutInlineDatum SecondLock
-                          && bound
-                            `Script.geq` x
-                    )
-                    select
+                ( do
+                    dhRet <-
+                      datumHijackingAttack @DHContract
+                        ( \(ConcreteOutput v _ d x _) ->
+                            Script.validatorHash val1
+                              == Script.validatorHash v
+                              && d == TxSkelOutInlineDatum SecondLock
+                              && bound `Script.geq` toValue x
+                        )
+                        select
+                    return $ (\x -> setValue x $ toValue (x ^. outputValueL)) <$> dhRet
                 )
                 skelIn
             skelExpected a b =
