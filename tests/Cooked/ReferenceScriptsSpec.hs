@@ -4,7 +4,6 @@ module Cooked.ReferenceScriptsSpec where
 
 import Control.Monad
 import Cooked
-import Cooked.MockChain.GenerateTx
 import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe
@@ -211,7 +210,7 @@ tests =
                           }
                 )
                 `withErrorPred` \case
-                  MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" _ -> testSuccess
+                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
                   _ -> testFailure,
           testCase "fail from transaction generation for mismatching reference scripts" $
             testToProp $
@@ -278,7 +277,7 @@ tests =
             testToProp $
               mustFailTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 1 False)
                 `withErrorPred` \case
-                  MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
+                  MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: No reference script found in utxo."
                   _ -> testFailure
         ]
     ]

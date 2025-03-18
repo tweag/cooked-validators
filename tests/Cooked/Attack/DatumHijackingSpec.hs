@@ -56,7 +56,7 @@ lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
-      txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> AdjustableValue lockValue)],
+      txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
 
@@ -69,7 +69,7 @@ relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
     { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
-      txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> AdjustableValue lockValue)],
+      txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> Value lockValue)],
       txSkelSigners = [wallet 1]
     }
 

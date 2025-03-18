@@ -35,7 +35,7 @@ mintingQuickValue =
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(quickCurrencyPolicyV2, emptyTxSkelRedeemer, "banana", 10)],
-          txSkelOuts = [alice `receives` AdjustableValue (quickValue "banana" 10)],
+          txSkelOuts = [alice `receives` Value (quickValue "banana" 10)],
           txSkelSigners = [alice]
         }
 

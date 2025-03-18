@@ -14,7 +14,8 @@
 -- In addition, you will find here many helpers functions which can be derived
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
-  ( MockChainError (..),
+  ( GenerateTxError (..),
+    MockChainError (..),
     MockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
@@ -43,7 +44,6 @@ module Cooked.MockChain.BlockChain
     txSkelReferenceInputUtxos,
     txSkelInputValidators,
     txSkelInputValue,
-    txSkelHashedData,
     txSkelInputDataAsHashes,
     lookupUtxos,
     validateTxSkel',
@@ -55,6 +55,7 @@ module Cooked.MockChain.BlockChain
   )
 where
 
+import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator qualified as Emulator
@@ -68,7 +69,6 @@ import Control.Monad.Trans.Control
 import Control.Monad.Writer
 import Cooked.Conversion.ToCredential
 import Cooked.Conversion.ToOutputDatum
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
@@ -90,7 +90,17 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain errors
 
--- | The errors that can be produced by the 'MockChainT' monad
+-- | Errors that can arise during transaction generation
+data GenerateTxError
+  = -- | Error when translating a skeleton element to its Cardano counterpart
+    ToCardanoError String Ledger.ToCardanoError
+  | -- | Error when generating a Cardano transaction body
+    TxBodyError String Cardano.TxBodyError
+  | -- | Other generation error
+    GenerateTxErrorGeneral String
+  deriving (Show, Eq)
+
+-- | Errors that can be produced by the 'MockChainT' monad
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
@@ -287,10 +297,10 @@ resolveReferenceScript out | Just (Api.ScriptHash hash) <- outputReferenceScript
     return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just val}
 resolveReferenceScript _ = return Nothing
 
-outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
+outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
 
-datumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Datum)
+datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Datum)
 datumFromTxOutRef oref = do
   mOutputDatum <- outputDatumFromTxOutRef oref
   case mOutputDatum of
@@ -299,10 +309,10 @@ datumFromTxOutRef oref = do
     Just (Api.OutputDatum datum) -> return $ Just datum
     Just (Api.OutputDatumHash datumHash) -> datumFromHash datumHash
 
-typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
 typedDatumFromTxOutRef = ((>>= (\(Api.Datum datum) -> Api.fromBuiltinData datum)) <$>) . datumFromTxOutRef
 
-valueFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Value)
+valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
 valueFromTxOutRef = ((outputValue <$>) <$>) . txOutByRef
 
 txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
@@ -355,37 +365,16 @@ lookupUtxos =
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
 txSkelInputValue = (foldMap Api.txOutValue <$>) . txSkelInputUtxos
 
--- | Looks up and resolves the hashed datums on UTxOs the transaction consumes
--- or references, which will be needed by the transaction body.
-txSkelHashedData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
-txSkelHashedData skel = do
-  (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
-  (Map.elems -> refInputTxOuts) <- txSkelReferenceInputUtxos skel
-  foldM
-    ( \dat dHash ->
-        maybeErrM
-          (MCEUnknownDatum "txSkelHashedData: Transaction input with unknown datum hash" dHash)
-          (\rDat -> Map.insert dHash rDat dat)
-          (datumFromHash dHash)
-    )
-    Map.empty
-    (mapMaybe (fmap (^. outputDatumL) . isOutputWithDatumHash) $ inputTxOuts <> refInputTxOuts)
-
 -- | Looks up the data on UTxOs the transaction consumes and returns their
--- hashes. This corresponds to the keys of what should be removed from the
--- stored datums in our mockchain.  There can be duplicates, which is expected.
+-- hashes.
 txSkelInputDataAsHashes :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
 txSkelInputDataAsHashes skel = do
-  let outputToDatumHashM output = case output ^. outputDatumL of
-        Api.OutputDatumHash dHash ->
-          maybeErrM
-            (MCEUnknownDatum "txSkelInputDataAsHashes: Transaction input with unknown datum hash" dHash)
-            (Just . const dHash)
-            (datumFromHash dHash)
-        Api.OutputDatum datum -> return $ Just $ Script.datumHash datum
-        Api.NoOutputDatum -> return Nothing
+  let outputToDatumHash output = case output ^. outputDatumL of
+        Api.OutputDatumHash dHash -> Just dHash
+        Api.OutputDatum datum -> Just $ Script.datumHash datum
+        Api.NoOutputDatum -> Nothing
   (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
-  catMaybes <$> mapM outputToDatumHashM inputTxOuts
+  return $ mapMaybe outputToDatumHash inputTxOuts
 
 -- | This creates a payment from an existing UTXO
 txOutRefToTxSkelOut ::
