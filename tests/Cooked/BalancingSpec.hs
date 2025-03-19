@@ -3,7 +3,6 @@ module Cooked.BalancingSpec where
 import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.Staged
 import Data.Default
 import Data.List qualified as List

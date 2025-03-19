@@ -24,10 +24,10 @@ import Control.Monad (MonadPlus (..), msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
+import Cooked.InitialDistribution
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Cooked.MockChain.MockChainSt
 import Cooked.MockChain.UtxoState
 import Cooked.Skeleton
 import Cooked.Tweak.Common
@@ -144,8 +144,8 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
 runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
 runTweak = runTweakFrom def
 
-runTweakFrom :: MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
-runTweakFrom mcst tweak = map (first (right fst)) . runMockChainTRaw mcst . runTweakInChain tweak
+runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
+runTweakFrom initDist tweak = map (first (right fst)) . runMockChainTFrom initDist . runTweakInChain tweak
 
 -- ** Modalities
 

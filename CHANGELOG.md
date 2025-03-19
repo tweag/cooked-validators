@@ -4,6 +4,16 @@
 
 ### Added
 
+### Removed
+
+### Changed
+
+### Fixed
+
+## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2024-06-28
+
+### Added
+
 - `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
   most commonly used.
 - All kinds of scripts can now be used as reference scripts.
@@ -61,7 +71,6 @@
 - `txSkelInputData` changed to `txSkelInputDataAsHashes`
 - Pretty printing of hashed datum now includes the hash (and not only the
   resolved datum).
-- Dependency to cardano-api bumped to 8.46.
 - Logging has been reworked: 
   * it is no longer limited to `StagedMockChain` runs
   * it is now a component of `MonadBlockChainBalancing`
@@ -76,6 +85,8 @@
   `Output.hs`.
 - File `Skeleton.hs` has been split into sub-files in the `Skeleton` folder.
 - Default language extensions and compilation options have been updated.
+- Transaction generation now directly lives in `MonadMockChainBalancing`.
+- Initial distributions are now handled as a first action in the `MockChain`.
 
 ### Fixed
 

@@ -164,7 +164,7 @@ tests =
               mapMaybe
                 ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . fst)
                 ( runTweakFrom
-                    (mockChainSt0From customInitDist)
+                    customInitDist
                     ( doubleSatAttack
                         splitMode
                         (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
