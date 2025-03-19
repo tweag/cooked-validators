@@ -28,15 +28,15 @@
 </span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PP</span></span><span>
 </span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter.Render.Text</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PP</span></span><span>
 </span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="hs-keyword">class</span><span> </span><span id="PrettyCooked"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-var">PrettyCooked</span></a></span></span><span> </span><span id="local-6989586621679807144"><span class="annot"><a href="#local-6989586621679807144"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-32"></span><span>  </span><span id="prettyCooked"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-type">prettyCooked</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679807144"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
-</span><span id="line-33"></span><span>  </span><span id="local-6989586621679807219"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-var hs-var">prettyCooked</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; a -&gt; DocCooked
+</span><span id="line-31"></span><span class="hs-keyword">class</span><span> </span><span id="PrettyCooked"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-var">PrettyCooked</span></a></span></span><span> </span><span id="local-6989586621679801913"><span class="annot"><a href="#local-6989586621679801913"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>  </span><span id="prettyCooked"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-type">prettyCooked</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679801913"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621679801988"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-var hs-var">prettyCooked</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; a -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 forall a. Default a =&gt; a
 </span><span class="hs-identifier hs-var">def</span></span></span><span>
-</span><span id="line-34"></span><span>  </span><span id="prettyCookedOpt"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-type">prettyCookedOpt</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807144"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
-</span><span id="line-35"></span><span>  </span><span id="local-6989586621679807224"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><span id="line-34"></span><span>  </span><span id="prettyCookedOpt"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-type">prettyCookedOpt</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679801913"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679801993"><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; DocCooked
 forall a. PrettyCooked a =&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-var">prettyCooked</span></a></span></span><span>
@@ -45,26 +45,26 @@ forall a. PrettyCooked a =&gt; a -&gt; DocCooked
 </span><span id="line-38"></span><span class="hs-comment">-- dealing with pretty-printable cooked values.</span><span>
 </span><span id="line-39"></span><span class="hs-comment">--</span><span>
 </span><span id="line-40"></span><span class="hs-comment">-- For example, @printCookedOpt def runMockChain i0 foo@</span><span>
-</span><span id="line-41"></span><span id="local-6989586621679807150"><span class="annot"><a href="Cooked.Pretty.Class.html#printCookedOpt"><span class="hs-identifier hs-type">printCookedOpt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807150"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807150"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-41"></span><span id="local-6989586621679801919"><span class="annot"><a href="Cooked.Pretty.Class.html#printCookedOpt"><span class="hs-identifier hs-type">printCookedOpt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679801919"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679801919"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-42"></span><span id="printCookedOpt"><span class="annot"><span class="annottext">printCookedOpt :: forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; IO ()
-</span><a href="Cooked.Pretty.Class.html#printCookedOpt"><span class="hs-identifier hs-var hs-var">printCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807228"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807228"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span id="local-6989586621679807229"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679807229"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; IO ()
+</span><a href="Cooked.Pretty.Class.html#printCookedOpt"><span class="hs-identifier hs-var hs-var">printCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679801997"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679801997"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span id="local-6989586621679801998"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679801998"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; IO ()
 forall ann. Doc ann -&gt; IO ()
 </span><span class="hs-identifier hs-var">PP.putDoc</span></span><span> </span><span class="annot"><span class="annottext">(DocCooked -&gt; IO ()) -&gt; DocCooked -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; a -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807228"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679807229"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679801997"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679801998"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 forall ann. Doc ann
 </span><span class="hs-identifier hs-var">PP.line</span></span><span>
 </span><span id="line-43"></span><span>
 </span><span id="line-44"></span><span class="annot"><span class="hs-comment">-- | Version of 'printCookedOpt' that uses default pretty printing options.</span></span><span>
-</span><span id="line-45"></span><span id="local-6989586621679807159"><span class="annot"><a href="Cooked.Pretty.Class.html#printCooked"><span class="hs-identifier hs-type">printCooked</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807159"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807159"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-45"></span><span id="local-6989586621679801928"><span class="annot"><a href="Cooked.Pretty.Class.html#printCooked"><span class="hs-identifier hs-type">printCooked</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679801928"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679801928"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-46"></span><span id="printCooked"><span class="annot"><span class="annottext">printCooked :: forall a. PrettyCooked a =&gt; a -&gt; IO ()
 </span><a href="Cooked.Pretty.Class.html#printCooked"><span class="hs-identifier hs-var hs-var">printCooked</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; a -&gt; IO ()
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; IO ()
@@ -72,32 +72,32 @@ forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; IO ()
 forall a. Default a =&gt; a
 </span><span class="hs-identifier hs-var">def</span></span><span>
 </span><span id="line-47"></span><span>
-</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807236"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxId</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-49"></span><span>  </span><span id="local-6989586621679807243"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TxId -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807244"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807244"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
+</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802005"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxId</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679802012"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TxId -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802013"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802013"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807244"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
+</span><a href="#local-6989586621679802013"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
 -&gt; (TxId -&gt; BuiltinByteString) -&gt; TxId -&gt; DocCooked
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxId -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span>
 </span><span id="line-50"></span><span>
-</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807250"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-52"></span><span>  </span><span id="local-6989586621679807262"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TxOutRef -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807263"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807263"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span id="local-6989586621679807265"><span class="annot"><span class="annottext">TxId
-</span><a href="#local-6989586621679807265"><span class="hs-identifier hs-var">txId</span></a></span></span><span> </span><span id="local-6989586621679807266"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807266"><span class="hs-identifier hs-var">index</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802019"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679802031"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TxOutRef -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802032"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802032"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span id="local-6989586621679802034"><span class="annot"><span class="annottext">TxId
+</span><a href="#local-6989586621679802034"><span class="hs-identifier hs-var">txId</span></a></span></span><span> </span><span id="local-6989586621679802035"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802035"><span class="hs-identifier hs-var">index</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-53"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807263"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxId -&gt; BuiltinByteString
+</span><a href="#local-6989586621679802032"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxId -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">TxId
-</span><a href="#local-6989586621679807265"><span class="hs-identifier hs-var">txId</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802034"><span class="hs-identifier hs-var">txId</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;!&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
@@ -105,16 +105,16 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Integer -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807263"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807266"><span class="hs-identifier hs-var">index</span></a></span><span>
+</span><a href="#local-6989586621679802032"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802035"><span class="hs-identifier hs-var">index</span></a></span><span>
 </span><span id="line-54"></span><span>
-</span><span id="line-55"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807268"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-56"></span><span>  </span><span id="local-6989586621679807274"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Versioned MintingPolicy -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807275"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807275"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
+</span><span id="line-55"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802037"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679802043"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Versioned MintingPolicy -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802044"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802044"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807275"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
+</span><a href="#local-6989586621679802044"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
 -&gt; (Versioned MintingPolicy -&gt; BuiltinByteString)
 -&gt; Versioned MintingPolicy
 -&gt; DocCooked
@@ -123,13 +123,13 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span>
 </span><span id="line-57"></span><span>
-</span><span id="line-58"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807277"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-59"></span><span>  </span><span id="local-6989586621679807283"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Versioned Script -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807284"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807284"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
+</span><span id="line-58"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802046"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679802052"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Versioned Script -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802053"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802053"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807284"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
+</span><a href="#local-6989586621679802053"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
 -&gt; (Versioned Script -&gt; BuiltinByteString)
 -&gt; Versioned Script
 -&gt; DocCooked
@@ -138,25 +138,25 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span>
 </span><span id="line-60"></span><span>
-</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807286"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-62"></span><span>  </span><span id="local-6989586621679807303"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Address -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807304"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807304"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679807306"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807306"><span class="hs-identifier hs-var">addrCr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802055"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>  </span><span id="local-6989586621679802072"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Address -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802073"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802073"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679802075"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802075"><span class="hs-identifier hs-var">addrCr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Credential -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807304"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807306"><span class="hs-identifier hs-var">addrCr</span></a></span><span>
-</span><span id="line-63"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679807307"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807307"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679807308"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807308"><span class="hs-identifier hs-var">addrCr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.StakingHash</span></span><span> </span><span id="local-6989586621679807310"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807310"><span class="hs-identifier hs-var">stakCr</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679802073"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802075"><span class="hs-identifier hs-var">addrCr</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679802076"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802076"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679802077"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802077"><span class="hs-identifier hs-var">addrCr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.StakingHash</span></span><span> </span><span id="local-6989586621679802079"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802079"><span class="hs-identifier hs-var">stakCr</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Credential -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807307"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807308"><span class="hs-identifier hs-var">addrCr</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802076"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802077"><span class="hs-identifier hs-var">addrCr</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann
@@ -166,19 +166,19 @@ forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Credential -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807307"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807310"><span class="hs-identifier hs-var">stakCr</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679807312"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807312"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679807313"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807313"><span class="hs-identifier hs-var">addrCr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.StakingPtr</span></span><span> </span><span id="local-6989586621679807315"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807315"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span id="local-6989586621679807316"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807316"><span class="hs-identifier hs-var">p2</span></a></span></span><span> </span><span id="local-6989586621679807317"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807317"><span class="hs-identifier hs-var">p3</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679802076"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802079"><span class="hs-identifier hs-var">stakCr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679802081"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802081"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span id="local-6989586621679802082"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802082"><span class="hs-identifier hs-var">addrCr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.StakingPtr</span></span><span> </span><span id="local-6989586621679802084"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802084"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span id="local-6989586621679802085"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802085"><span class="hs-identifier hs-var">p2</span></a></span></span><span> </span><span id="local-6989586621679802086"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802086"><span class="hs-identifier hs-var">p3</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-66"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Credential -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807312"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679807313"><span class="hs-identifier hs-var">addrCr</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802081"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679802082"><span class="hs-identifier hs-var">addrCr</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann
@@ -189,49 +189,49 @@ forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 forall ann. (Integer, Integer, Integer) -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807315"><span class="hs-identifier hs-var">p1</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807316"><span class="hs-identifier hs-var">p2</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807317"><span class="hs-identifier hs-var">p3</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679802084"><span class="hs-identifier hs-var">p1</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802085"><span class="hs-identifier hs-var">p2</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802086"><span class="hs-identifier hs-var">p3</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-67"></span><span>
-</span><span id="line-68"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807320"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-69"></span><span>  </span><span id="local-6989586621679807326"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; PubKeyHash -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807327"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807327"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
+</span><span id="line-68"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802089"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>  </span><span id="local-6989586621679802095"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; PubKeyHash -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802096"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802096"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807327"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
+</span><a href="#local-6989586621679802096"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
 -&gt; (PubKeyHash -&gt; BuiltinByteString) -&gt; PubKeyHash -&gt; DocCooked
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span>
 </span><span id="line-70"></span><span>
-</span><span id="line-71"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807329"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-72"></span><span>  </span><span id="local-6989586621679807337"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Credential -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807338"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807338"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptCredential</span></span><span> </span><span id="local-6989586621679807340"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679807340"><span class="hs-identifier hs-var">vh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-71"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802098"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-72"></span><span>  </span><span id="local-6989586621679802106"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Credential -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802107"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802107"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptCredential</span></span><span> </span><span id="local-6989586621679802109"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679802109"><span class="hs-identifier hs-var">vh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;script&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807338"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; BuiltinByteString
+</span><a href="#local-6989586621679802107"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679807340"><span class="hs-identifier hs-var">vh</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-73"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679807341"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807341"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyCredential</span></span><span> </span><span id="local-6989586621679807343"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679807343"><span class="hs-identifier hs-var">pkh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802109"><span class="hs-identifier hs-var">vh</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679802110"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802110"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyCredential</span></span><span> </span><span id="local-6989586621679802112"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679802112"><span class="hs-identifier hs-var">pkh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;pubkey&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PubKeyHash -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807341"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679807343"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><a href="#local-6989586621679802110"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679802112"><span class="hs-identifier hs-var">pkh</span></a></span><span>
 </span><span id="line-74"></span><span>
-</span><span id="line-75"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807345"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-75"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802114"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-76"></span><span>  </span><span class="hs-comment">-- Example output:</span><span>
 </span><span id="line-77"></span><span>  </span><span class="hs-comment">--</span><span>
 </span><span id="line-78"></span><span>  </span><span class="hs-comment">-- &gt; Value:</span><span>
@@ -241,11 +241,11 @@ forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><span id="line-82"></span><span>  </span><span class="hs-comment">--</span><span>
 </span><span id="line-83"></span><span>  </span><span class="hs-comment">-- In case of an empty value (even though not an empty map):</span><span>
 </span><span id="line-84"></span><span>  </span><span class="hs-comment">-- &gt; Empty value</span><span>
-</span><span id="line-85"></span><span>  </span><span id="local-6989586621679807361"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Value -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807362"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807362"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-85"></span><span>  </span><span id="local-6989586621679802130"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Value -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802131"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802131"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-86"></span><span>    </span><span class="annot"><span class="annottext">[DocCooked] -&gt; DocCooked
-</span><a href="#local-6989586621679807363"><span class="hs-identifier hs-var">prettySingletons</span></a></span><span>
+</span><a href="#local-6989586621679802132"><span class="hs-identifier hs-var">prettySingletons</span></a></span><span>
 </span><span id="line-87"></span><span>      </span><span class="annot"><span class="annottext">([DocCooked] -&gt; DocCooked)
 -&gt; (Value -&gt; [DocCooked]) -&gt; Value -&gt; DocCooked
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -253,7 +253,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 -&gt; [(CurrencySymbol, TokenName, Integer)] -&gt; [DocCooked]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">(CurrencySymbol, TokenName, Integer) -&gt; DocCooked
-</span><a href="#local-6989586621679807364"><span class="hs-identifier hs-var">prettySingletonValue</span></a></span><span>
+</span><a href="#local-6989586621679802133"><span class="hs-identifier hs-var">prettySingletonValue</span></a></span><span>
 </span><span id="line-88"></span><span>      </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; [DocCooked])
 -&gt; (Value -&gt; [(CurrencySymbol, TokenName, Integer)])
 -&gt; Value
@@ -265,9 +265,9 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol
 </span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807365"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807365"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807365"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679802134"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802134"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802134"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
@@ -280,32 +280,32 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
 </span><span class="hs-identifier hs-var">Script.flattenValue</span></span><span>
 </span><span id="line-90"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-91"></span><span>      </span><span class="annot"><a href="#local-6989586621679807363"><span class="hs-identifier hs-type">prettySingletons</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
-</span><span id="line-92"></span><span>      </span><span id="local-6989586621679807363"><span class="annot"><span class="annottext">prettySingletons :: [DocCooked] -&gt; DocCooked
-</span><a href="#local-6989586621679807363"><span class="hs-identifier hs-var hs-var">prettySingletons</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-91"></span><span>      </span><span class="annot"><a href="#local-6989586621679802132"><span class="hs-identifier hs-type">prettySingletons</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
+</span><span id="line-92"></span><span>      </span><span id="local-6989586621679802132"><span class="annot"><span class="annottext">prettySingletons :: [DocCooked] -&gt; DocCooked
+</span><a href="#local-6989586621679802132"><span class="hs-identifier hs-var hs-var">prettySingletons</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Empty value&quot;</span></span><span>
-</span><span id="line-93"></span><span>      </span><span class="annot"><a href="#local-6989586621679807363"><span class="hs-identifier hs-var">prettySingletons</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679807368"><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807368"><span class="hs-identifier hs-var">doc</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807368"><span class="hs-identifier hs-var">doc</span></a></span><span>
-</span><span id="line-94"></span><span>      </span><span class="annot"><a href="#local-6989586621679807363"><span class="hs-identifier hs-var">prettySingletons</span></a></span><span> </span><span id="local-6989586621679807369"><span class="annot"><span class="annottext">[DocCooked]
-</span><a href="#local-6989586621679807369"><span class="hs-identifier hs-var">docs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; [DocCooked] -&gt; DocCooked
+</span><span id="line-93"></span><span>      </span><span class="annot"><a href="#local-6989586621679802132"><span class="hs-identifier hs-var">prettySingletons</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679802137"><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802137"><span class="hs-identifier hs-var">doc</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802137"><span class="hs-identifier hs-var">doc</span></a></span><span>
+</span><span id="line-94"></span><span>      </span><span class="annot"><a href="#local-6989586621679802132"><span class="hs-identifier hs-var">prettySingletons</span></a></span><span> </span><span id="local-6989586621679802138"><span class="annot"><span class="annottext">[DocCooked]
+</span><a href="#local-6989586621679802138"><span class="hs-identifier hs-var">docs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; [DocCooked] -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyItemize"><span class="hs-identifier hs-var">prettyItemize</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Value:&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">[DocCooked]
-</span><a href="#local-6989586621679807369"><span class="hs-identifier hs-var">docs</span></a></span><span>
-</span><span id="line-95"></span><span>      </span><span class="annot"><a href="#local-6989586621679807364"><span class="hs-identifier hs-type">prettySingletonValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.CurrencySymbol</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
-</span><span id="line-96"></span><span>      </span><span id="local-6989586621679807364"><span class="annot"><span class="annottext">prettySingletonValue :: (CurrencySymbol, TokenName, Integer) -&gt; DocCooked
-</span><a href="#local-6989586621679807364"><span class="hs-identifier hs-var hs-var">prettySingletonValue</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807371"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807371"><span class="hs-identifier hs-var">symbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807372"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679807372"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807373"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807373"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679802138"><span class="hs-identifier hs-var">docs</span></a></span><span>
+</span><span id="line-95"></span><span>      </span><span class="annot"><a href="#local-6989586621679802133"><span class="hs-identifier hs-type">prettySingletonValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.CurrencySymbol</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
+</span><span id="line-96"></span><span>      </span><span id="local-6989586621679802133"><span class="annot"><span class="annottext">prettySingletonValue :: (CurrencySymbol, TokenName, Integer) -&gt; DocCooked
+</span><a href="#local-6989586621679802133"><span class="hs-identifier hs-var hs-var">prettySingletonValue</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679802140"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679802140"><span class="hs-identifier hs-var">symbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679802141"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679802141"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679802142"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802142"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-97"></span><span>        </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; AssetClass -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807362"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(CurrencySymbol, TokenName) -&gt; AssetClass
+</span><a href="#local-6989586621679802131"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(CurrencySymbol, TokenName) -&gt; AssetClass
 </span><span class="hs-identifier hs-var">Script.AssetClass</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807371"><span class="hs-identifier hs-var">symbol</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679807372"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802140"><span class="hs-identifier hs-var">symbol</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679802141"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;:&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
@@ -313,44 +313,44 @@ forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Integer -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807362"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807373"><span class="hs-identifier hs-var">amount</span></a></span><span>
+</span><a href="#local-6989586621679802131"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802142"><span class="hs-identifier hs-var">amount</span></a></span><span>
 </span><span id="line-98"></span><span>
-</span><span id="line-99"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807376"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.CurrencySymbol</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-100"></span><span>  </span><span id="local-6989586621679807382"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; CurrencySymbol -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807383"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807383"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span id="local-6989586621679807384"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807384"><span class="hs-identifier hs-var">symbol</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
+</span><span id="line-99"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802145"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.CurrencySymbol</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-100"></span><span>  </span><span id="local-6989586621679802151"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; CurrencySymbol -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802152"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802152"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span id="local-6989586621679802153"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679802153"><span class="hs-identifier hs-var">symbol</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807383"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; BuiltinByteString
+</span><a href="#local-6989586621679802152"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807384"><span class="hs-identifier hs-var">symbol</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679802153"><span class="hs-identifier hs-var">symbol</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-101"></span><span>
-</span><span id="line-102"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807386"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-103"></span><span>  </span><span id="local-6989586621679807392"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TokenName -&gt; DocCooked
+</span><span id="line-102"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802155"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-103"></span><span>  </span><span id="local-6989586621679802161"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TokenName -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; DocCooked
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 forall ann. TokenName -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span>
 </span><span id="line-104"></span><span>
-</span><span id="line-105"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807394"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.AssetClass</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-106"></span><span>  </span><span id="local-6989586621679807405"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; AssetClass -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807406"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807406"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.AssetClass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807407"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807407"><span class="hs-identifier hs-var">symbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807408"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679807408"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-105"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802163"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.AssetClass</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-106"></span><span>  </span><span id="local-6989586621679802174"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; AssetClass -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802175"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802175"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.AssetClass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679802176"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679802176"><span class="hs-identifier hs-var">symbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679802177"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679802177"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-107"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; CurrencySymbol -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807406"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807407"><span class="hs-identifier hs-var">symbol</span></a></span><span>
+</span><a href="#local-6989586621679802175"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679802176"><span class="hs-identifier hs-var">symbol</span></a></span><span>
 </span><span id="line-108"></span><span>      </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679807407"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; CurrencySymbol -&gt; Bool
+</span><a href="#local-6989586621679802176"><span class="hs-identifier hs-var">symbol</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; CurrencySymbol -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">BuiltinByteString -&gt; CurrencySymbol
 </span><span class="hs-identifier hs-var">Api.CurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">BuiltinByteString
@@ -358,14 +358,14 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span id="line-109"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TokenName -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807406"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679807408"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><a href="#local-6989586621679802175"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679802177"><span class="hs-identifier hs-var">name</span></a></span><span>
 </span><span id="line-110"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">DocCooked
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
 </span><span id="line-111"></span><span>
-</span><span id="line-112"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807411"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ValidationPhase</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-113"></span><span>  </span><span id="local-6989586621679807417"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ValidationPhase -&gt; DocCooked
+</span><span id="line-112"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802180"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ValidationPhase</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-113"></span><span>  </span><span id="local-6989586621679802186"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ValidationPhase -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ValidationPhase
 </span><span class="hs-identifier hs-var">Ledger.Phase1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
@@ -375,111 +375,111 @@ forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">Ledger.Phase2</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Phase 2&quot;</span></span><span>
 </span><span id="line-115"></span><span>
-</span><span id="line-116"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807421"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ValidationError</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-117"></span><span>  </span><span id="local-6989586621679807434"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ValidationError -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807435"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807435"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.TxOutRefNotFound</span></span><span> </span><span id="local-6989586621679807437"><span class="annot"><span class="annottext">TxIn
-</span><a href="#local-6989586621679807437"><span class="hs-identifier hs-var">txIn</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-116"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802190"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ValidationError</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-117"></span><span>  </span><span id="local-6989586621679802203"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ValidationError -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802204"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802204"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.TxOutRefNotFound</span></span><span> </span><span id="local-6989586621679802206"><span class="annot"><span class="annottext">TxIn
+</span><a href="#local-6989586621679802206"><span class="hs-identifier hs-var">txIn</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;TxOutRef not found&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxOutRef -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807435"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxIn -&gt; TxOutRef
+</span><a href="#local-6989586621679802204"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxIn -&gt; TxOutRef
 </span><span class="hs-identifier hs-var">Ledger.fromCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">TxIn
-</span><a href="#local-6989586621679807437"><span class="hs-identifier hs-var">txIn</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-118"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679807439"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807439"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptFailure</span></span><span> </span><span id="local-6989586621679807441"><span class="annot"><span class="annottext">ScriptError
-</span><a href="#local-6989586621679807441"><span class="hs-identifier hs-var">scriptError</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802206"><span class="hs-identifier hs-var">txIn</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span id="local-6989586621679802208"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802208"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptFailure</span></span><span> </span><span id="local-6989586621679802210"><span class="annot"><span class="annottext">ScriptError
+</span><a href="#local-6989586621679802210"><span class="hs-identifier hs-var">scriptError</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Script failure&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; ScriptError -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807439"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptError
-</span><a href="#local-6989586621679807441"><span class="hs-identifier hs-var">scriptError</span></a></span><span>
+</span><a href="#local-6989586621679802208"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptError
+</span><a href="#local-6989586621679802210"><span class="hs-identifier hs-var">scriptError</span></a></span><span>
 </span><span id="line-119"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoLedgerValidationError</span></span><span> </span><span id="local-6989586621679807443"><span class="annot"><span class="annottext">Text
-</span><a href="#local-6989586621679807443"><span class="hs-identifier hs-var">text</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoLedgerValidationError</span></span><span> </span><span id="local-6989586621679802212"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679802212"><span class="hs-identifier hs-var">text</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Cardano ledger validation error &quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; DocCooked
 forall ann. Text -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">Text
-</span><a href="#local-6989586621679807443"><span class="hs-identifier hs-var">text</span></a></span><span>
+</span><a href="#local-6989586621679802212"><span class="hs-identifier hs-var">text</span></a></span><span>
 </span><span id="line-120"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ValidationError
 </span><span class="hs-identifier hs-var">Ledger.MaxCollateralInputsExceeded</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Max collateral inputs exceeded&quot;</span></span><span>
 </span><span id="line-121"></span><span>
-</span><span id="line-122"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807446"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptError</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-123"></span><span>  </span><span id="local-6989586621679807459"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ScriptError -&gt; DocCooked
+</span><span id="line-122"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802215"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptError</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-123"></span><span>  </span><span id="local-6989586621679802228"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ScriptError -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.EvaluationError</span></span><span> </span><span id="local-6989586621679807461"><span class="annot"><span class="annottext">[Text]
-</span><a href="#local-6989586621679807461"><span class="hs-identifier hs-var">text</span></a></span></span><span> </span><span id="local-6989586621679807462"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679807462"><span class="hs-identifier hs-var">string</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.EvaluationError</span></span><span> </span><span id="local-6989586621679802230"><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679802230"><span class="hs-identifier hs-var">text</span></a></span></span><span> </span><span id="local-6989586621679802231"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679802231"><span class="hs-identifier hs-var">string</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Evaluation error&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; DocCooked
 forall ann. [Text] -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">[Text]
-</span><a href="#local-6989586621679807461"><span class="hs-identifier hs-var">text</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802230"><span class="hs-identifier hs-var">text</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; DocCooked
 forall ann. String -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679807462"><span class="hs-identifier hs-var">string</span></a></span><span>
+</span><a href="#local-6989586621679802231"><span class="hs-identifier hs-var">string</span></a></span><span>
 </span><span id="line-124"></span><span>  </span><span class="annot"><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.EvaluationException</span></span><span> </span><span id="local-6989586621679807464"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679807464"><span class="hs-identifier hs-var">string1</span></a></span></span><span> </span><span id="local-6989586621679807465"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679807465"><span class="hs-identifier hs-var">string2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.EvaluationException</span></span><span> </span><span id="local-6989586621679802233"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679802233"><span class="hs-identifier hs-var">string1</span></a></span></span><span> </span><span id="local-6989586621679802234"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679802234"><span class="hs-identifier hs-var">string2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Evaluation exception&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; DocCooked
 forall ann. String -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679807464"><span class="hs-identifier hs-var">string1</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802233"><span class="hs-identifier hs-var">string1</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; DocCooked
 forall ann. String -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679807465"><span class="hs-identifier hs-var">string2</span></a></span><span>
+</span><a href="#local-6989586621679802234"><span class="hs-identifier hs-var">string2</span></a></span><span>
 </span><span id="line-125"></span><span>
-</span><span id="line-126"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807467"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.POSIXTime</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-127"></span><span>  </span><span id="local-6989586621679807473"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; POSIXTime -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807474"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807474"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.POSIXTime</span></span><span> </span><span id="local-6989586621679807476"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807476"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-126"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802236"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.POSIXTime</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-127"></span><span>  </span><span id="local-6989586621679802242"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; POSIXTime -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802243"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802243"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.POSIXTime</span></span><span> </span><span id="local-6989586621679802245"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802245"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;POSIXTime&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Integer -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807474"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807476"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><a href="#local-6989586621679802243"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802245"><span class="hs-identifier hs-var">n</span></a></span><span>
 </span><span id="line-128"></span><span>
-</span><span id="line-129"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807478"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptHash</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-130"></span><span>  </span><span id="local-6989586621679807483"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ScriptHash -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807484"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807484"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
+</span><span id="line-129"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802247"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptHash</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-130"></span><span>  </span><span id="local-6989586621679802252"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; ScriptHash -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802253"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802253"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; BuiltinByteString -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var">pcOptHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807484"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
+</span><a href="#local-6989586621679802253"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; DocCooked)
 -&gt; (ScriptHash -&gt; BuiltinByteString) -&gt; ScriptHash -&gt; DocCooked
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Conversion.ToHash.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span>
 </span><span id="line-131"></span><span>
-</span><span id="line-132"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807206"><span id="local-6989586621679807487"><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807206"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679807206"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-133"></span><span>  </span><span id="local-6989586621679807493"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; [a] -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807494"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807494"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; DocCooked
+</span><span id="line-132"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679801975"><span id="local-6989586621679802256"><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679801975"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679801975"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-133"></span><span>  </span><span id="local-6989586621679802262"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; [a] -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802263"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802263"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; DocCooked
 </span><a href="Cooked.Pretty.Common.html#prettyItemizeNoTitle"><span class="hs-identifier hs-var">prettyItemizeNoTitle</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">([DocCooked] -&gt; DocCooked)
 -&gt; ([a] -&gt; [DocCooked]) -&gt; [a] -&gt; DocCooked
@@ -489,25 +489,25 @@ forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; a -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807494"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679802263"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-134"></span><span>
-</span><span id="line-135"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807497"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-136"></span><span>  </span><span id="local-6989586621679807503"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Int -&gt; DocCooked
+</span><span id="line-135"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802266"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-136"></span><span>  </span><span id="local-6989586621679802272"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Int -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; DocCooked
 forall ann. Int -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span>
 </span><span id="line-137"></span><span>
-</span><span id="line-138"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807505"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-139"></span><span>  </span><span id="local-6989586621679807541"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Integer -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807542"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807542"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-138"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802274"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-139"></span><span>  </span><span id="local-6989586621679802310"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Integer -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802311"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802311"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-140"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptNumericUnderscores"><span class="hs-identifier hs-var">pcOptNumericUnderscores</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807542"><span class="hs-identifier hs-var">opts</span></a></span><span>
+</span><a href="#local-6989586621679802311"><span class="hs-identifier hs-var">opts</span></a></span><span>
 </span><span id="line-141"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807544"><span class="hs-identifier hs-var">prettyNumericUnderscore</span></a></span><span>
+</span><a href="#local-6989586621679802313"><span class="hs-identifier hs-var">prettyNumericUnderscore</span></a></span><span>
 </span><span id="line-142"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; DocCooked
 forall ann. Integer -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
@@ -515,51 +515,51 @@ forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span id="line-143"></span><span>    </span><span class="hs-keyword">where</span><span>
 </span><span id="line-144"></span><span>      </span><span class="hs-comment">-- prettyNumericUnderscore 23798423723</span><span>
 </span><span id="line-145"></span><span>      </span><span class="hs-comment">-- 23_798_423_723</span><span>
-</span><span id="line-146"></span><span>      </span><span class="annot"><a href="#local-6989586621679807544"><span class="hs-identifier hs-type">prettyNumericUnderscore</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
-</span><span id="line-147"></span><span>      </span><span id="local-6989586621679807544"><span class="annot"><span class="annottext">prettyNumericUnderscore :: Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807544"><span class="hs-identifier hs-var hs-var">prettyNumericUnderscore</span></a></span></span><span> </span><span id="local-6989586621679807545"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807545"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-146"></span><span>      </span><span class="annot"><a href="#local-6989586621679802313"><span class="hs-identifier hs-type">prettyNumericUnderscore</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
+</span><span id="line-147"></span><span>      </span><span id="local-6989586621679802313"><span class="annot"><span class="annottext">prettyNumericUnderscore :: Integer -&gt; DocCooked
+</span><a href="#local-6989586621679802313"><span class="hs-identifier hs-var hs-var">prettyNumericUnderscore</span></a></span></span><span> </span><span id="local-6989586621679802314"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802314"><span class="hs-identifier hs-var">i</span></a></span></span><span>
 </span><span id="line-148"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807545"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802314"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;0&quot;</span></span><span>
 </span><span id="line-149"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807545"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679802314"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807547"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802316"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807545"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679802314"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-150"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807547"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802316"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807545"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679802314"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-151"></span><span>        </span><span class="hs-keyword">where</span><span>
-</span><span id="line-152"></span><span>          </span><span class="annot"><a href="#local-6989586621679807547"><span class="hs-identifier hs-type">psnTerm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
-</span><span id="line-153"></span><span>          </span><span id="local-6989586621679807547"><span class="annot"><span class="annottext">psnTerm :: DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807547"><span class="hs-identifier hs-var hs-var">psnTerm</span></a></span></span><span> </span><span id="local-6989586621679807548"><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807548"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span id="line-152"></span><span>          </span><span class="annot"><a href="#local-6989586621679802316"><span class="hs-identifier hs-type">psnTerm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
+</span><span id="line-153"></span><span>          </span><span id="local-6989586621679802316"><span class="annot"><span class="annottext">psnTerm :: DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
+</span><a href="#local-6989586621679802316"><span class="hs-identifier hs-var hs-var">psnTerm</span></a></span></span><span> </span><span id="local-6989586621679802317"><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802317"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807548"><span class="hs-identifier hs-var">acc</span></a></span><span>
-</span><span id="line-154"></span><span>          </span><span class="annot"><a href="#local-6989586621679807547"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span id="local-6989586621679807549"><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807549"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-number">3</span></span><span> </span><span id="local-6989586621679807550"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807550"><span class="hs-identifier hs-var">nb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807547"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; DocCooked
+</span><a href="#local-6989586621679802317"><span class="hs-identifier hs-var">acc</span></a></span><span>
+</span><span id="line-154"></span><span>          </span><span class="annot"><a href="#local-6989586621679802316"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span id="local-6989586621679802318"><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802318"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">3</span></span><span> </span><span id="local-6989586621679802319"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802319"><span class="hs-identifier hs-var">nb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
+</span><a href="#local-6989586621679802316"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; DocCooked
 forall ann. Integer -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807550"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679802319"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Integral a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">`mod`</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">10</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
@@ -568,74 +568,74 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-string">&quot;_&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807549"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802318"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807550"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679802319"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Integral a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">10</span></span><span class="hs-special">)</span><span>
-</span><span id="line-155"></span><span>          </span><span class="annot"><a href="#local-6989586621679807547"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span id="local-6989586621679807553"><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807553"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679807554"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807554"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679807555"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807555"><span class="hs-identifier hs-var">nb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
-</span><a href="#local-6989586621679807547"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; DocCooked
+</span><span id="line-155"></span><span>          </span><span class="annot"><a href="#local-6989586621679802316"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span id="local-6989586621679802322"><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679802322"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679802323"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802323"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679802324"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802324"><span class="hs-identifier hs-var">nb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; Integer -&gt; Integer -&gt; DocCooked
+</span><a href="#local-6989586621679802316"><span class="hs-identifier hs-var">psnTerm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; DocCooked
 forall ann. Integer -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807555"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679802324"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Integral a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">`mod`</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">10</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
-</span><a href="#local-6989586621679807553"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807554"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679802322"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679802323"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679807555"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679802324"><span class="hs-identifier hs-var">nb</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Integral a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">10</span></span><span class="hs-special">)</span><span>
 </span><span id="line-156"></span><span>
-</span><span id="line-157"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807558"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-158"></span><span>  </span><span id="local-6989586621679807564"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Bool -&gt; DocCooked
+</span><span id="line-157"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802327"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-158"></span><span>  </span><span id="local-6989586621679802333"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Bool -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; DocCooked
 forall ann. Bool -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span>
 </span><span id="line-159"></span><span>
-</span><span id="line-160"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807566"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-161"></span><span>  </span><span id="local-6989586621679807572"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; () -&gt; DocCooked
+</span><span id="line-160"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802335"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-161"></span><span>  </span><span id="local-6989586621679802341"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; () -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; DocCooked
 forall ann. () -&gt; Doc ann
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span>
 </span><span id="line-162"></span><span>
-</span><span id="line-163"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807574"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-164"></span><span>  </span><span id="local-6989586621679807580"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; BuiltinData -&gt; DocCooked
+</span><span id="line-163"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802343"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-164"></span><span>  </span><span id="local-6989586621679802349"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; BuiltinData -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; DocCooked
 forall a ann. Pretty a =&gt; a -&gt; Doc ann
 forall ann. BuiltinData -&gt; Doc ann
 </span><span class="hs-identifier hs-var">PP.pretty</span></span><span>
 </span><span id="line-165"></span><span>
-</span><span id="line-166"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807582"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-167"></span><span>  </span><span id="local-6989586621679807591"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Rational -&gt; DocCooked
-</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679807592"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807592"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span id="local-6989586621679807593"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679807593"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-166"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679802351"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-167"></span><span>  </span><span id="local-6989586621679802360"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; Rational -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679802361"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679802361"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span id="local-6989586621679802362"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679802362"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;(&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Integer -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807592"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Integer
+</span><a href="#local-6989586621679802361"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Integer
 forall a. Ratio a -&gt; a
 </span><span class="hs-identifier hs-var">numerator</span></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679807593"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802362"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;/&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
@@ -643,10 +643,10 @@ forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Integer -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679807592"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Integer
+</span><a href="#local-6989586621679802361"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Integer
 forall a. Ratio a -&gt; a
 </span><span class="hs-identifier hs-var">denominator</span></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679807593"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><a href="#local-6989586621679802362"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;)&quot;</span></span><span>

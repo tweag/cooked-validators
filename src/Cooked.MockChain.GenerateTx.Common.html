@@ -1,195 +1,98 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.GenerateTx.Common</span><span>
-</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxError"><span class="hs-identifier">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-3"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier">TxGen</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier">Transform</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnLookup"><span class="hs-identifier">throwOnLookup</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier">throwOnString</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier">throwOnToCardanoErrorOrApply</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier">throwOnToCardanoError</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#liftTxGen"><span class="hs-identifier">liftTxGen</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnMaybe"><span class="hs-identifier">throwOnMaybe</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-3"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier">throwOnString</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier">throwOnToCardanoErrorOrApply</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier">throwOnToCardanoError</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html"><span class="hs-identifier">Cooked.MockChain.BlockChain</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
 </span><span id="line-12"></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Shelley</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Reader</span></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bifunctor</span></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-19"></span><span>
-</span><span id="line-20"></span><span class="annot"><span class="hs-comment">-- | Errors that can arise during transaction generation</span></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">data</span><span> </span><span id="GenerateTxError"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxError"><span class="hs-identifier hs-var">GenerateTxError</span></a></span></span><span>
-</span><span id="line-22"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ToCardanoError"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#ToCardanoError"><span class="hs-identifier hs-var">ToCardanoError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span>
-</span><span id="line-23"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TxBodyError"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxBodyError"><span class="hs-identifier hs-var">TxBodyError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxBodyError</span></span><span>
-</span><span id="line-24"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="GenerateTxErrorGeneral"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
-</span><span id="line-25"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679804668"><span id="local-6989586621679804683"><span id="local-6989586621679804687"><span class="annot"><span class="annottext">Int -&gt; GenerateTxError -&gt; ShowS
-[GenerateTxError] -&gt; ShowS
-GenerateTxError -&gt; String
-(Int -&gt; GenerateTxError -&gt; ShowS)
--&gt; (GenerateTxError -&gt; String)
--&gt; ([GenerateTxError] -&gt; ShowS)
--&gt; Show GenerateTxError
-forall a.
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-$cshowsPrec :: Int -&gt; GenerateTxError -&gt; ShowS
-showsPrec :: Int -&gt; GenerateTxError -&gt; ShowS
-$cshow :: GenerateTxError -&gt; String
-show :: GenerateTxError -&gt; String
-$cshowList :: [GenerateTxError] -&gt; ShowS
-showList :: [GenerateTxError] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679804692"><span id="local-6989586621679804703"><span class="annot"><span class="annottext">GenerateTxError -&gt; GenerateTxError -&gt; Bool
-(GenerateTxError -&gt; GenerateTxError -&gt; Bool)
--&gt; (GenerateTxError -&gt; GenerateTxError -&gt; Bool)
--&gt; Eq GenerateTxError
-forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-$c== :: GenerateTxError -&gt; GenerateTxError -&gt; Bool
-== :: GenerateTxError -&gt; GenerateTxError -&gt; Bool
-$c/= :: GenerateTxError -&gt; GenerateTxError -&gt; Bool
-/= :: GenerateTxError -&gt; GenerateTxError -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="annot"><span class="hs-comment">-- | The domain in which transaction parts are generated.</span></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">type</span><span> </span><span id="TxGen"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-var">TxGen</span></a></span></span><span> </span><span id="local-6989586621679804708"><span class="annot"><a href="#local-6989586621679804708"><span class="hs-identifier hs-type">context</span></a></span></span><span> </span><span id="local-6989586621679804709"><span class="annot"><a href="#local-6989586621679804709"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="annot"><a href="#local-6989586621679804708"><span class="hs-identifier hs-type">context</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679804709"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-29"></span><span>
-</span><span id="line-30"></span><span class="hs-keyword">class</span><span> </span><span id="Transform"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-var">Transform</span></a></span></span><span> </span><span id="local-6989586621679804581"><span class="annot"><a href="#local-6989586621679804581"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679804582"><span class="annot"><a href="#local-6989586621679804582"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-31"></span><span>  </span><span id="transform"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-type">transform</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679804581"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679804582"><span class="hs-identifier hs-type">b</span></a></span><span>
-</span><span id="line-32"></span><span>
-</span><span id="line-33"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679804583"><span id="local-6989586621679804584"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679804583"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679804584"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679804584"><span class="hs-identifier hs-type">b</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-34"></span><span>  </span><span id="local-6989586621679804714"><span class="annot"><span class="annottext">transform :: (a, b) -&gt; b
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; b
-forall a b. (a, b) -&gt; b
-</span><span class="hs-identifier hs-var">snd</span></span><span>
-</span><span id="line-35"></span><span>
-</span><span id="line-36"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679804587"><span id="local-6989586621679804588"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679804587"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679804588"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679804587"><span class="hs-identifier hs-type">a</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-37"></span><span>  </span><span id="local-6989586621679804718"><span class="annot"><span class="annottext">transform :: (a, b) -&gt; a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var hs-var hs-var hs-var">transform</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; a
-forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span>
-</span><span id="line-38"></span><span>
-</span><span id="line-39"></span><span class="annot"><span class="hs-comment">-- | Lifts a computation from a smaller context</span></span><span>
-</span><span id="line-40"></span><span id="local-6989586621679804589"><span id="local-6989586621679804590"><span id="local-6989586621679804591"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#liftTxGen"><span class="hs-identifier hs-type">liftTxGen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#Transform"><span class="hs-identifier hs-type">Transform</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804589"><span class="hs-identifier hs-type">context'</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804590"><span class="hs-identifier hs-type">context</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804590"><span class="hs-identifier hs-type">context</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804591"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804589"><span class="hs-identifier hs-type">context'</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804591"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
-</span><span id="line-41"></span><span id="liftTxGen"><span class="annot"><span class="annottext">liftTxGen :: forall context' context a.
-Transform context' context =&gt;
-TxGen context a -&gt; TxGen context' a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#liftTxGen"><span class="hs-identifier hs-var hs-var">liftTxGen</span></a></span></span><span> </span><span id="local-6989586621679804731"><span class="annot"><span class="annottext">TxGen context a
-</span><a href="#local-6989586621679804731"><span class="hs-identifier hs-var">comp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Either GenerateTxError a
--&gt; ReaderT context' (Either GenerateTxError) a
-forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ReaderT context' m a
-forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
-(MonadTrans t, Monad m) =&gt;
-m a -&gt; t m a
-</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(Either GenerateTxError a
- -&gt; ReaderT context' (Either GenerateTxError) a)
--&gt; (context -&gt; Either GenerateTxError a)
--&gt; context
--&gt; ReaderT context' (Either GenerateTxError) a
+</span><span id="line-13"></span><span class="annot"><span class="hs-comment">-- | Throws a general error from a String.</span></span><span>
+</span><span id="line-14"></span><span id="local-6989586621679810388"><span id="local-6989586621679810390"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-type">throwOnString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810388"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810388"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810390"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-15"></span><span id="throwOnString"><span class="annot"><span class="annottext">throwOnString :: forall (m :: * -&gt; *) a.
+MonadError MockChainError m =&gt;
+String -&gt; m a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var hs-var">throwOnString</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; m a
+forall a. MockChainError -&gt; m a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; m a)
+-&gt; (String -&gt; MockChainError) -&gt; String -&gt; m a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxGen context a -&gt; context -&gt; Either GenerateTxError a
-forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
-</span><span class="hs-identifier hs-var">runReaderT</span></span><span> </span><span class="annot"><span class="annottext">TxGen context a
-</span><a href="#local-6989586621679804731"><span class="hs-identifier hs-var">comp</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(context -&gt; ReaderT context' (Either GenerateTxError) a)
--&gt; ReaderT context' (Either GenerateTxError) context
--&gt; ReaderT context' (Either GenerateTxError) a
-forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
-</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">(context' -&gt; context)
--&gt; ReaderT context' (Either GenerateTxError) context
-forall r (m :: * -&gt; *) a. MonadReader r m =&gt; (r -&gt; a) -&gt; m a
-</span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">context' -&gt; context
-forall a b. Transform a b =&gt; a -&gt; b
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#transform"><span class="hs-identifier hs-var">transform</span></a></span><span>
-</span><span id="line-42"></span><span>
-</span><span id="line-43"></span><span class="hs-comment">-- | Looks up a key in a map. Throws a 'GenerateTxErrorGeneral' error with a given</span><span>
-</span><span id="line-44"></span><span class="hs-comment">-- message when the key is absent, returns the associated value otherwise.</span><span>
-</span><span id="line-45"></span><span id="local-6989586621679804620"><span id="local-6989586621679804621"><span id="local-6989586621679804623"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnLookup"><span class="hs-identifier hs-type">throwOnLookup</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679804620"><span class="hs-identifier hs-type">k</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679804620"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679804620"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804621"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804623"><span class="hs-identifier hs-type">context</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804621"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
-</span><span id="line-46"></span><span id="throwOnLookup"><span class="annot"><span class="annottext">throwOnLookup :: forall k a context.
-Ord k =&gt;
-String -&gt; k -&gt; Map k a -&gt; TxGen context a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnLookup"><span class="hs-identifier hs-var hs-var">throwOnLookup</span></a></span></span><span> </span><span id="local-6989586621679804741"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679804741"><span class="hs-identifier hs-var">errorMsg</span></a></span></span><span> </span><span id="local-6989586621679804742"><span class="annot"><span class="annottext">k
-</span><a href="#local-6989586621679804742"><span class="hs-identifier hs-var">key</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxGen context a
--&gt; (a -&gt; TxGen context a) -&gt; Maybe a -&gt; TxGen context a
-forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
-</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; TxGen context a
-forall context a. String -&gt; TxGen context a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var">throwOnString</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679804741"><span class="hs-identifier hs-var">errorMsg</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxGen context a
-forall a. a -&gt; ReaderT context (Either GenerateTxError) a
-forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe a -&gt; TxGen context a)
--&gt; (Map k a -&gt; Maybe a) -&gt; Map k a -&gt; TxGen context a
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">k -&gt; Map k a -&gt; Maybe a
-forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">k
-</span><a href="#local-6989586621679804742"><span class="hs-identifier hs-var">key</span></a></span><span>
-</span><span id="line-47"></span><span>
-</span><span id="line-48"></span><span class="annot"><span class="hs-comment">-- | Throws a general error from a String.</span></span><span>
-</span><span id="line-49"></span><span id="local-6989586621679804629"><span id="local-6989586621679804630"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-type">throwOnString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804629"><span class="hs-identifier hs-type">context</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804630"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-50"></span><span id="throwOnString"><span class="annot"><span class="annottext">throwOnString :: forall context a. String -&gt; TxGen context a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var hs-var">throwOnString</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either GenerateTxError a
--&gt; ReaderT context (Either GenerateTxError) a
-forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ReaderT context m a
-forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
-(MonadTrans t, Monad m) =&gt;
-m a -&gt; t m a
-</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(Either GenerateTxError a
- -&gt; ReaderT context (Either GenerateTxError) a)
--&gt; (String -&gt; Either GenerateTxError a)
--&gt; String
--&gt; ReaderT context (Either GenerateTxError) a
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenerateTxError -&gt; Either GenerateTxError a
-forall a b. a -&gt; Either a b
-</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(GenerateTxError -&gt; Either GenerateTxError a)
--&gt; (String -&gt; GenerateTxError)
--&gt; String
--&gt; Either GenerateTxError a
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenerateTxError -&gt; MockChainError
+</span><a href="Cooked.MockChain.BlockChain.html#MCEGenerationError"><span class="hs-identifier hs-var">MCEGenerationError</span></a></span><span> </span><span class="annot"><span class="annottext">(GenerateTxError -&gt; MockChainError)
+-&gt; (String -&gt; GenerateTxError) -&gt; String -&gt; MockChainError
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span>
-</span><span id="line-51"></span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- | Lifts a 'ToCardanoError' with an associated error message, or apply a</span><span>
-</span><span id="line-53"></span><span class="hs-comment">-- function if a value exists.</span><span>
-</span><span id="line-54"></span><span id="local-6989586621679804639"><span id="local-6989586621679804640"><span id="local-6989586621679804641"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-type">throwOnToCardanoErrorOrApply</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679804639"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679804640"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span> </span><span class="annot"><a href="#local-6989586621679804639"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804641"><span class="hs-identifier hs-type">context</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804640"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
-</span><span id="line-55"></span><span id="throwOnToCardanoErrorOrApply"><span class="annot"><span class="annottext">throwOnToCardanoErrorOrApply :: forall a b context.
-String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; TxGen context b
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-var hs-var">throwOnToCardanoErrorOrApply</span></a></span></span><span> </span><span id="local-6989586621679804751"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679804751"><span class="hs-identifier hs-var">errorMsg</span></a></span></span><span> </span><span id="local-6989586621679804752"><span class="annot"><span class="annottext">a -&gt; b
-</span><a href="#local-6989586621679804752"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either GenerateTxError b
--&gt; ReaderT context (Either GenerateTxError) b
-forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ReaderT context m a
-forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
-(MonadTrans t, Monad m) =&gt;
-m a -&gt; t m a
-</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(Either GenerateTxError b
- -&gt; ReaderT context (Either GenerateTxError) b)
--&gt; (Either ToCardanoError a -&gt; Either GenerateTxError b)
--&gt; Either ToCardanoError a
--&gt; ReaderT context (Either GenerateTxError) b
+</span><a href="Cooked.MockChain.BlockChain.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><span class="hs-comment">-- | Lifts a 'Nothing' as an error with an associated message.</span></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679810400"><span id="local-6989586621679810401"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnMaybe"><span class="hs-identifier hs-type">throwOnMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810400"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679810401"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810400"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810401"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-19"></span><span id="throwOnMaybe"><span class="annot"><span class="annottext">throwOnMaybe :: forall (m :: * -&gt; *) a.
+MonadError MockChainError m =&gt;
+String -&gt; Maybe a -&gt; m a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnMaybe"><span class="hs-identifier hs-var hs-var">throwOnMaybe</span></a></span></span><span> </span><span id="local-6989586621679810441"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679810441"><span class="hs-identifier hs-var">errorMsg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m a -&gt; (a -&gt; m a) -&gt; Maybe a -&gt; m a
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; m a
+forall (m :: * -&gt; *) a.
+MonadError MockChainError m =&gt;
+String -&gt; m a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var">throwOnString</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679810441"><span class="hs-identifier hs-var">errorMsg</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; m a
+forall a. a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Lifts a 'ToCardanoError' with an associated error message, or apply a</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- function if a value exists.</span><span>
+</span><span id="line-23"></span><span id="local-6989586621679810408"><span id="local-6989586621679810409"><span id="local-6989586621679810410"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-type">throwOnToCardanoErrorOrApply</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810408"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679810409"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810410"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span> </span><span class="annot"><a href="#local-6989586621679810409"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810408"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810410"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-24"></span><span id="throwOnToCardanoErrorOrApply"><span class="annot"><span class="annottext">throwOnToCardanoErrorOrApply :: forall (m :: * -&gt; *) a b.
+MonadError MockChainError m =&gt;
+String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; m b
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-var hs-var">throwOnToCardanoErrorOrApply</span></a></span></span><span> </span><span id="local-6989586621679810448"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679810448"><span class="hs-identifier hs-var">errorMsg</span></a></span></span><span> </span><span id="local-6989586621679810449"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679810449"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; m b)
+-&gt; (a -&gt; m b) -&gt; Either ToCardanoError a -&gt; m b
+forall a c b. (a -&gt; c) -&gt; (b -&gt; c) -&gt; Either a b -&gt; c
+</span><span class="hs-identifier hs-var">either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MockChainError -&gt; m b
+forall a. MockChainError -&gt; m a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; m b)
+-&gt; (ToCardanoError -&gt; MockChainError) -&gt; ToCardanoError -&gt; m b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
--&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; Either GenerateTxError b
-forall a b c d. (a -&gt; b) -&gt; (c -&gt; d) -&gt; Either a c -&gt; Either b d
-forall (p :: * -&gt; * -&gt; *) a b c d.
-Bifunctor p =&gt;
-(a -&gt; b) -&gt; (c -&gt; d) -&gt; p a c -&gt; p b d
-</span><span class="hs-identifier hs-var">bimap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; ToCardanoError -&gt; GenerateTxError
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#ToCardanoError"><span class="hs-identifier hs-var">ToCardanoError</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621679804751"><span class="hs-identifier hs-var">errorMsg</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; b
-</span><a href="#local-6989586621679804752"><span class="hs-identifier hs-var">f</span></a></span><span>
-</span><span id="line-56"></span><span>
-</span><span id="line-57"></span><span class="hs-comment">-- | Lifts a 'ToCardanoError' with an associated error message, or leaves the</span><span>
-</span><span id="line-58"></span><span class="hs-comment">-- value unchanged if it exists.</span><span>
-</span><span id="line-59"></span><span id="local-6989586621679804651"><span id="local-6989586621679804652"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-type">throwOnToCardanoError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span> </span><span class="annot"><a href="#local-6989586621679804651"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#TxGen"><span class="hs-identifier hs-type">TxGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804652"><span class="hs-identifier hs-type">context</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804651"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-60"></span><span id="throwOnToCardanoError"><span class="annot"><span class="annottext">throwOnToCardanoError :: forall a context.
-String -&gt; Either ToCardanoError a -&gt; TxGen context a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var hs-var">throwOnToCardanoError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String -&gt; (a -&gt; a) -&gt; Either ToCardanoError a -&gt; TxGen context a)
--&gt; (a -&gt; a) -&gt; String -&gt; Either ToCardanoError a -&gt; TxGen context a
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenerateTxError -&gt; MockChainError
+</span><a href="Cooked.MockChain.BlockChain.html#MCEGenerationError"><span class="hs-identifier hs-var">MCEGenerationError</span></a></span><span> </span><span class="annot"><span class="annottext">(GenerateTxError -&gt; MockChainError)
+-&gt; (ToCardanoError -&gt; GenerateTxError)
+-&gt; ToCardanoError
+-&gt; MockChainError
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ToCardanoError -&gt; GenerateTxError
+</span><a href="Cooked.MockChain.BlockChain.html#ToCardanoError"><span class="hs-identifier hs-var">ToCardanoError</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679810448"><span class="hs-identifier hs-var">errorMsg</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b -&gt; m b
+forall a. a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(b -&gt; m b) -&gt; (a -&gt; b) -&gt; a -&gt; m b
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679810449"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | Lifts a 'ToCardanoError' with an associated error message, or leaves the</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- value unchanged if it exists.</span><span>
+</span><span id="line-28"></span><span id="local-6989586621679810418"><span id="local-6989586621679810419"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-type">throwOnToCardanoError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810418"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span> </span><span class="annot"><a href="#local-6989586621679810419"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810418"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810419"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-29"></span><span id="throwOnToCardanoError"><span class="annot"><span class="annottext">throwOnToCardanoError :: forall (m :: * -&gt; *) a.
+MonadError MockChainError m =&gt;
+String -&gt; Either ToCardanoError a -&gt; m a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var hs-var">throwOnToCardanoError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String -&gt; (a -&gt; a) -&gt; Either ToCardanoError a -&gt; m a)
+-&gt; (a -&gt; a) -&gt; String -&gt; Either ToCardanoError a -&gt; m a
 forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
-</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; (a -&gt; a) -&gt; Either ToCardanoError a -&gt; TxGen context a
-forall a b context.
-String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; TxGen context b
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; (a -&gt; a) -&gt; Either ToCardanoError a -&gt; m a
+forall (m :: * -&gt; *) a b.
+MonadError MockChainError m =&gt;
+String -&gt; (a -&gt; b) -&gt; Either ToCardanoError a -&gt; m b
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoErrorOrApply"><span class="hs-identifier hs-var">throwOnToCardanoErrorOrApply</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
 forall a. a -&gt; a
 </span><span class="hs-identifier hs-var">id</span></span><span>
-</span><span id="line-61"></span></pre></body></html>
+</span><span id="line-30"></span></pre></body></html>
