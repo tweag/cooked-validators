@@ -118,6 +118,7 @@ import GHC.Generics (Generic)
 import Ledger.Address qualified as P
 import Ledger.Scripts qualified as P
 import Ledger.Slot qualified as P
+import Plutus.Script.Utils.Data qualified as P
 import Plutus.Script.Utils.Scripts (scriptCurrencySymbol, toMintingPolicyHash)
 import Plutus.Script.Utils.Scripts qualified as Scripts
 import Plutus.Script.Utils.V2.Scripts qualified as PV2

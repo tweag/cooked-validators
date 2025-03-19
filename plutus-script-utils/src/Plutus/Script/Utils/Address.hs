@@ -1,6 +1,8 @@
 module Plutus.Script.Utils.Address
   ( ToCredential (..),
     ToAddress (..),
+    ToPubKeyHash (..),
+    ToMaybeStakingCredential (..),
   )
 where
 
@@ -19,7 +21,7 @@ instance ToCredential Api.PubKeyHash where
   toCredential = Api.PubKeyCredential
 
 instance ToCredential Api.Address where
-  toCredential (Api.Address cred _) = cred
+  toCredential = Api.addressCredential
 
 instance (ToCredential a, ToCredential b) => ToCredential (Either a b) where
   toCredential = either toCredential toCredential
@@ -43,3 +45,23 @@ instance ToAddress Api.Credential where
 
 instance ToAddress Api.Address where
   toAddress = id
+
+class ToPubKeyHash a where
+  toPubKeyHash :: a -> Api.PubKeyHash
+
+instance ToPubKeyHash Api.PubKeyHash where
+  toPubKeyHash = id
+
+-- | Addresses contain an optional staking credential, so it makes more sense to
+-- have a class which returns it.
+class ToMaybeStakingCredential a where
+  toMaybeStakingCredential :: a -> Maybe Api.StakingCredential
+
+instance ToMaybeStakingCredential Api.StakingCredential where
+  toMaybeStakingCredential = Just
+
+instance ToMaybeStakingCredential Api.Address where
+  toMaybeStakingCredential = Api.addressStakingCredential
+
+instance ToMaybeStakingCredential (Maybe Api.StakingCredential) where
+  toMaybeStakingCredential = id

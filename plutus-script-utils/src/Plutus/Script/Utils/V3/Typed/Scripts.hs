@@ -18,7 +18,8 @@ import Control.Monad (unless)
 import Control.Monad.Except (MonadError (throwError))
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
-import Plutus.Script.Utils.Scripts (MintingPolicy, Script, StakeValidator, Validator, datumHash, toScriptHash, toVersioned)
+import Plutus.Script.Utils.Data (datumHash)
+import Plutus.Script.Utils.Scripts (MintingPolicy, Script, StakeValidator, Validator, toScriptHash, toVersioned)
 import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V3

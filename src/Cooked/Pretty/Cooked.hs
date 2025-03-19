@@ -46,6 +46,7 @@ import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api

@@ -6,9 +6,6 @@ module Plutus.Script.Utils.V3.Scripts
     PV3.DatumHash,
     PV3.Redeemer,
     PV3.RedeemerHash,
-    P.datumHash,
-    P.redeemerHash,
-    P.dataHash,
 
     -- * Script hashes
     PV3.Validator,
@@ -30,7 +27,6 @@ where
 
 import Cardano.Api qualified as Script
 import Cardano.Api.Shelley qualified as Script
-import Plutus.Script.Utils.Scripts qualified as P
 import Plutus.Script.Utils.Scripts qualified as PV3
 import PlutusLedgerApi.V3 qualified as PV3
 import PlutusTx.Builtins qualified as Builtins

@@ -67,7 +67,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
-import Cooked.Conversion.ToOutputDatum
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
@@ -84,6 +83,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -229,7 +229,7 @@ utxosFromCardanoTx =
 -- datum or hash at all, return @Nothing@.
 resolveDatum ::
   ( IsAbstractOutput out,
-    ToOutputDatum (DatumType out),
+    Script.ToOutputDatum (DatumType out),
     MonadBlockChainBalancing m
   ) =>
   out ->
@@ -247,7 +247,7 @@ resolveDatum out = do
 -- datum of the suitable type.
 resolveTypedDatum ::
   ( IsAbstractOutput out,
-    ToOutputDatum (DatumType out),
+    Script.ToOutputDatum (DatumType out),
     MonadBlockChainBalancing m,
     Api.FromData a
   ) =>

@@ -7,25 +7,21 @@ module Plutus.Script.Utils.Typed
     TypedValidator (..),
     validatorCardanoAddress,
     validatorCardanoAddressAny,
-    validatorScript,
-    vValidatorScript,
     forwardingMintingPolicy,
     vForwardingMintingPolicy,
     forwardingMintingPolicyHash,
     generalise,
     ---
     Any,
-    Language (PlutusV1, PlutusV2, PlutusV3),
-    Versioned (Versioned, unversioned, version),
     IsScriptContext (..),
     ScriptContextV1,
     ScriptContextV2,
-    ScriptContextV3,
   )
 where
 
 import Cardano.Api qualified as C
 import Data.Aeson (ToJSON)
+import Data.Coerce (coerce)
 import Data.Kind (Type)
 import Data.Void (Void)
 import GHC.Generics (Generic)
@@ -34,8 +30,7 @@ import Plutus.Script.Utils.Address
     ToCredential (toCredential),
   )
 import Plutus.Script.Utils.Scripts
-  ( Language (PlutusV1, PlutusV2, PlutusV3),
-    MintingPolicy,
+  ( MintingPolicy,
     MintingPolicyHash,
     Script,
     ToScript (toScript),
@@ -45,18 +40,15 @@ import Plutus.Script.Utils.Scripts
     ToVersioned (toVersioned),
     Validator,
     ValidatorHash,
-    Versioned (Versioned, unversioned, version),
+    Versioned (unversioned),
     getValidator,
     toCardanoAddressInConway,
   )
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V2 qualified as PV2
-import PlutusLedgerApi.V3 qualified as PV3
 import PlutusTx.Prelude (BuiltinData, BuiltinString, BuiltinUnit, check, trace)
 
 type UntypedValidator = BuiltinData -> BuiltinData -> BuiltinData -> BuiltinUnit
-
-type UntypedScriptChang = BuiltinData -> BuiltinUnit
 
 type UntypedMintingPolicy = BuiltinData -> BuiltinData -> BuiltinUnit
 
@@ -132,22 +124,13 @@ validatorCardanoAddressAny nid tv =
     C.AddressInEra C.ShelleyAddressInEra {} addr -> C.AddressShelley addr
     C.AddressInEra C.ByronAddressInAnyEra {} addr -> C.AddressByron addr
 
--- | The unversioned validator script itself.
-validatorScript :: TypedValidator a -> Validator
-validatorScript = unversioned . vValidatorScript
-
--- | The validator script itself.
-vValidatorScript :: TypedValidator a -> Versioned Validator
-vValidatorScript = tvValidator
-
--- | Generalise the typed validator to one that works with the 'Data' type.
-generalise :: forall a. TypedValidator a -> TypedValidator Any
-generalise TypedValidator {tvValidator, tvValidatorHash, tvForwardingMPS, tvForwardingMPSHash} =
-  -- we can do this safely because the on-chain validators are untyped, so they always
-  -- take 'BuiltinData' arguments. The validator script stays the same, so the conversion
-  -- from 'BuiltinData' to 'a' still takes place, even if it's not reflected in the type
-  -- signature anymore.
-  TypedValidator {tvValidator, tvValidatorHash, tvForwardingMPS, tvForwardingMPSHash}
+-- | Generalise the typed validator to one that works with the 'Data' type.  we
+-- can do this safely because the on-chain validators are untyped, so they
+-- always take 'BuiltinData' arguments. The validator script stays the same, so
+-- the conversion from 'BuiltinData' to 'a' still takes place, even if it's not
+-- reflected in the type signature anymore.
+generalise :: TypedValidator a -> TypedValidator Any
+generalise = coerce
 
 -- | The unversioned minting policy that forwards all checks to the instance's
 --  validator
@@ -166,7 +149,7 @@ forwardingMintingPolicyHash = tvForwardingMPSHash
 
 {-# INLINEABLE tracedUnsafeFrom #-}
 tracedUnsafeFrom :: forall a. (PV1.UnsafeFromData a) => BuiltinString -> BuiltinData -> a
-tracedUnsafeFrom label d = trace label $ PV1.unsafeFromBuiltinData d
+tracedUnsafeFrom label = trace label . PV1.unsafeFromBuiltinData
 
 class (PV1.UnsafeFromData sc) => IsScriptContext sc where
   {-# INLINEABLE mkUntypedValidator #-}
@@ -234,13 +217,6 @@ class (PV1.UnsafeFromData sc) => IsScriptContext sc where
       f
         (tracedUnsafeFrom "Data decoded successfully" d)
         (tracedUnsafeFrom "Redeemer decoded successfully" r)
-        (tracedUnsafeFrom "Script context decoded successfully" p)
-
-  {-# INLINEABLE mkUntypedScriptChang #-}
-  mkUntypedScriptChang :: (sc -> Bool) -> UntypedScriptChang
-  mkUntypedScriptChang f p =
-    check $
-      f
         (tracedUnsafeFrom "Script context decoded successfully" p)
 
   {-# INLINEABLE mkUntypedStakeValidator #-}
@@ -330,10 +306,6 @@ type ScriptContextV1 = PV1.ScriptContext
 
 type ScriptContextV2 = PV2.ScriptContext
 
-type ScriptContextV3 = PV3.ScriptContext
-
 instance IsScriptContext PV1.ScriptContext
 
 instance IsScriptContext PV2.ScriptContext
-
-instance IsScriptContext PV3.ScriptContext

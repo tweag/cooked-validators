@@ -4,7 +4,8 @@ module Plutus.Script.Utils.V1.Tx
   )
 where
 
-import Plutus.Script.Utils.Scripts (Validator, datumHash)
+import Plutus.Script.Utils.Data (datumHash)
+import Plutus.Script.Utils.Scripts (Validator)
 import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
 import PlutusLedgerApi.V1 (Address, Datum, TxOut (TxOut), Value)
 

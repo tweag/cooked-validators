@@ -42,9 +42,9 @@ module Cooked.Output
   )
 where
 
-import Cooked.Conversion.ToOutputDatum
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -81,7 +81,7 @@ class IsAbstractOutput o where
 type IsTxInfoOutput o =
   ( IsAbstractOutput o,
     Script.ToCredential (OwnerType o),
-    ToOutputDatum (DatumType o),
+    Script.ToOutputDatum (DatumType o),
     Script.ToValue (ValueType o),
     Script.ToScriptHash (ReferenceScriptType o)
   )
@@ -89,8 +89,8 @@ type IsTxInfoOutput o =
 outputAddress :: (IsAbstractOutput o, Script.ToCredential (OwnerType o)) => o -> Api.Address
 outputAddress out = Api.Address (Script.toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
 
-outputOutputDatum :: (IsAbstractOutput o, ToOutputDatum (DatumType o)) => o -> Api.OutputDatum
-outputOutputDatum = toOutputDatum . (^. outputDatumL)
+outputOutputDatum :: (IsAbstractOutput o, Script.ToOutputDatum (DatumType o)) => o -> Api.OutputDatum
+outputOutputDatum = Script.toOutputDatum . (^. outputDatumL)
 
 outputValue :: (IsAbstractOutput o, Script.ToValue (ValueType o)) => o -> Api.Value
 outputValue = Script.toValue . (^. outputValueL)

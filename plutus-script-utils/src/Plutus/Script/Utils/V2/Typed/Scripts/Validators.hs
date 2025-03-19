@@ -6,8 +6,6 @@ module Plutus.Script.Utils.V2.Typed.Scripts.Validators
     TypedValidator,
     mkTypedValidator,
     mkTypedValidatorParam,
-    validatorScript,
-    vValidatorScript,
     forwardingMintingPolicy,
     vForwardingMintingPolicy,
     forwardingMintingPolicyHash,
@@ -27,8 +25,6 @@ import Plutus.Script.Utils.Typed
     forwardingMintingPolicyHash,
     generalise,
     vForwardingMintingPolicy,
-    vValidatorScript,
-    validatorScript,
   )
 import Plutus.Script.Utils.V2.Scripts qualified as Scripts
 import Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies qualified as MPS

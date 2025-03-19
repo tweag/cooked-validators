@@ -55,9 +55,9 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
 -- witness.
 toScriptWitness :: (MonadBlockChainBalancing m, Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
 toScriptWitness (Script.toVersioned -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
-  let scriptData = case txSkelRedeemer of
-        EmptyRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
-        SomeRedeemer s -> Ledger.toCardanoScriptData $ Api.toBuiltinData s
+  let scriptData = Ledger.toCardanoScriptData $ case txSkelRedeemer of
+        EmptyRedeemer -> Api.toBuiltinData ()
+        SomeRedeemer s -> Api.toBuiltinData s
    in case version of
         Script.PlutusV1 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)

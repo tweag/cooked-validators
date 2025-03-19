@@ -171,7 +171,7 @@ tests =
                         >>= fmap fromJust . txOutByRef
                         >>= resolveReferenceScript
                     )
-                    `withValuePred` maybe testFailure ((Just (Script.vValidatorScript theRefScript) .==.) . (^. outputReferenceScriptL))
+                    `withValuePred` maybe testFailure ((Just (Script.toVersioned theRefScript) .==.) . (^. outputReferenceScriptL))
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"

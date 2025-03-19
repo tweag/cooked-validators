@@ -11,8 +11,6 @@ module Cooked.Skeleton.Output
   )
 where
 
-import Cooked.Conversion.ToPubKeyHash
-import Cooked.Conversion.ToStakingCredential
 import Cooked.Output
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Payable
@@ -36,7 +34,7 @@ instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrValidator = Left
 
 instance IsTxSkelOutAllowedOwner Wallet where
-  toPKHOrValidator = Left . toPubKeyHash
+  toPKHOrValidator = Left . walletPKHash
 
 instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
   toPKHOrValidator = Right
@@ -98,7 +96,7 @@ receives owner =
     go (Pays output) (FixedValue v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) False
     go (Pays output) (Value v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) True
     go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
-    go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
+    go (Pays output) (StakingCredential (Script.toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
     go pays (StakingCredential _) = pays
     go pays (PayableAnd p1 p2) = go (go pays p1) p2
 

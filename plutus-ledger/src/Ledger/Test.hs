@@ -11,7 +11,7 @@ import Cardano.Api qualified as C
 import Ledger qualified
 import Ledger.Typed.Scripts qualified as Scripts
 import Ledger.Value.CardanoAPI (policyId)
-import Plutus.Script.Utils.Scripts (scriptCurrencySymbol, toMintingPolicy, toMintingPolicyHash, toValidator)
+import Plutus.Script.Utils.Scripts (Language (PlutusV1, PlutusV2, PlutusV3), Versioned (Versioned), scriptCurrencySymbol, toMintingPolicy, toMintingPolicyHash, toValidator)
 import Plutus.Script.Utils.Typed as PSU
 import Plutus.Script.Utils.V1.Address qualified as PV1
 import Plutus.Script.Utils.V1.Scripts qualified as PV1
@@ -20,7 +20,6 @@ import Plutus.Script.Utils.V2.Scripts qualified as PV2
 import PlutusLedgerApi.V1 (Address)
 import PlutusLedgerApi.V1.Value qualified as Value
 import PlutusLedgerApi.V2 qualified as PV2
-import PlutusLedgerApi.V3 qualified as PV3
 import PlutusTx qualified
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prelude hiding (not)
@@ -66,24 +65,17 @@ mkPolicy _ _ = True
 mkPolicyV2 :: () -> PV2.ScriptContext -> Bool
 mkPolicyV2 _ _ = True
 
-{-# INLINEABLE mkPolicyV3 #-}
-mkPolicyV3 :: () -> PV3.ScriptContext -> Bool
-mkPolicyV3 _ _ = True
-
 coinMintingPolicy :: Language -> Versioned Ledger.MintingPolicy
 coinMintingPolicy lang = case lang of
   PlutusV1 -> Versioned coinMintingPolicyV1 lang
   PlutusV2 -> Versioned coinMintingPolicyV2 lang
-  PlutusV3 -> Versioned coinMintingPolicyV3 lang
+  PlutusV3 -> error "Unsupported"
 
 coinMintingPolicyV1 :: Ledger.MintingPolicy
 coinMintingPolicyV1 = toMintingPolicy $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicy||])
 
 coinMintingPolicyV2 :: Ledger.MintingPolicy
 coinMintingPolicyV2 = toMintingPolicy $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicyV2||])
-
-coinMintingPolicyV3 :: Ledger.MintingPolicy
-coinMintingPolicyV3 = toMintingPolicy $$(PlutusTx.compile [||PSU.mkUntypedMintingPolicy mkPolicyV3||])
 
 coinMintingPolicyHash :: Language -> Ledger.MintingPolicyHash
 coinMintingPolicyHash = toMintingPolicyHash . coinMintingPolicy

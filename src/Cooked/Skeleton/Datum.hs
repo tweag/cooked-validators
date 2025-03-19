@@ -6,15 +6,20 @@ module Cooked.Skeleton.Datum
   )
 where
 
-import Cooked.Conversion
 import Cooked.Pretty.Class
 import Data.Typeable (cast)
-import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 import Type.Reflection
 
-type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Api.ToData a, PlutusTx.Eq a, Typeable a)
+type TxSkelOutDatumConstrs a =
+  ( Show a,
+    PrettyCooked a,
+    Api.ToData a,
+    PlutusTx.Eq a,
+    Typeable a
+  )
 
 -- | On transaction outputs, we have the options to use
 --
@@ -83,7 +88,7 @@ instance Ord TxSkelOutDatum where
         EQ -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
         a -> a
 
-instance ToOutputDatum TxSkelOutDatum where
+instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum TxSkelOutNoDatum = Api.NoOutputDatum
   toOutputDatum (TxSkelOutDatumHash datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
   toOutputDatum (TxSkelOutDatum datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum

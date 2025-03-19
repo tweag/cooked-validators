@@ -17,7 +17,8 @@ module Plutus.Script.Utils.V2.Typed.Scripts
 where
 
 import Control.Monad.Except (MonadError (throwError))
-import Plutus.Script.Utils.Scripts (MintingPolicy, StakeValidator, Validator, datumHash)
+import Plutus.Script.Utils.Data (datumHash)
+import Plutus.Script.Utils.Scripts (MintingPolicy, StakeValidator, Validator)
 import Plutus.Script.Utils.V1.Typed.Scripts.Validators (ConnectionError (..))
 import Plutus.Script.Utils.V1.Typed.Scripts.Validators qualified as V1
 import Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies hiding (forwardToValidator)

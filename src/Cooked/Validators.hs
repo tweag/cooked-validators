@@ -13,7 +13,7 @@ module Cooked.Validators
 where
 
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
+import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies qualified as Script
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import PlutusTx.Code qualified as PlutusTx

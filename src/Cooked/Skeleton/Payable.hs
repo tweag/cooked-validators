@@ -4,10 +4,10 @@ module Cooked.Skeleton.Payable
   )
 where
 
-import Cooked.Conversion.ToStakingCredential
 import Cooked.Skeleton.Datum
 import Data.Kind (Constraint, Type)
 import GHC.TypeLits
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 
@@ -45,7 +45,7 @@ data Payable :: [Symbol] -> Type where
   -- | Fixed Values are payable but are NOT subject to min ada adjustment
   FixedValue :: (Script.ToValue a) => a -> Payable '["Value"]
   -- | Staking credentials are payable
-  StakingCredential :: (ToMaybeStakingCredential cred) => cred -> Payable '["Staking Credential"]
+  StakingCredential :: (Script.ToMaybeStakingCredential cred) => cred -> Payable '["Staking Credential"]
   -- | Payables can be combined as long as their list of tags are disjoint
   PayableAnd :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 

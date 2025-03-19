@@ -8,6 +8,7 @@ import Cooked.Output
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 

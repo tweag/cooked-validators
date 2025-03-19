@@ -24,13 +24,13 @@ import Plutus.Script.Utils.Typed as Export
 import Plutus.Script.Utils.V1.Typed.Scripts qualified as PV1
 import Plutus.Script.Utils.V2.Typed.Scripts qualified as PV2
 
-mkForwardingMintingPolicy :: Versioned Validator -> Versioned MintingPolicy
-mkForwardingMintingPolicy vl@(Versioned _ PlutusV1) = Versioned (PV1.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) PlutusV1
-mkForwardingMintingPolicy vl@(Versioned _ PlutusV2) = Versioned (PV2.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) PlutusV2
-mkForwardingMintingPolicy (Versioned _ PlutusV3) = error "Stand alone forward minting policy are no longer relevant in PlutusV3"
+mkForwardingMintingPolicy :: Untyped.Versioned Validator -> Untyped.Versioned MintingPolicy
+mkForwardingMintingPolicy vl@(Untyped.Versioned _ Untyped.PlutusV1) = Untyped.Versioned (PV1.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) Untyped.PlutusV1
+mkForwardingMintingPolicy vl@(Untyped.Versioned _ Untyped.PlutusV2) = Untyped.Versioned (PV2.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) Untyped.PlutusV2
+mkForwardingMintingPolicy (Untyped.Versioned _ Untyped.PlutusV3) = error "Stand alone forward minting policy are no longer relevant in PlutusV3"
 
 -- | Make a 'TypedValidator' (with no type constraints) from an untyped 'Validator' script.
-unsafeMkTypedValidator :: Versioned Validator -> TypedValidator Any
+unsafeMkTypedValidator :: Untyped.Versioned Validator -> TypedValidator Any
 unsafeMkTypedValidator vl =
   TypedValidator
     { tvValidator = vl,

@@ -54,6 +54,7 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
