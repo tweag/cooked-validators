@@ -9,9 +9,9 @@ module Cooked.Pretty.Options
   )
 where
 
-import Cooked.Conversion.ToHash
-import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
-import Cooked.Wallet (wallet)
+import Cooked.Currencies
+import Cooked.Pretty.Hashable
+import Cooked.Wallet
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)

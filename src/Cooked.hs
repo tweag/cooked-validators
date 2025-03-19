@@ -8,7 +8,6 @@ module Cooked
 where
 
 import Cooked.Attack as X
-import Cooked.Conversion as X
 import Cooked.Currencies as X
 import Cooked.InitialDistribution as X
 import Cooked.Ltl qualified as Ltl

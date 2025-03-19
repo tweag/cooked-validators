@@ -13,8 +13,8 @@ module Cooked.Pretty.Class
   )
 where
 
-import Cooked.Conversion.ToHash
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
 import Data.Ratio
