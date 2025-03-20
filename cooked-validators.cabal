@@ -167,6 +167,7 @@ test-suite spec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
+      Cooked.MultiPurposeSpec
       Cooked.ProposingScriptSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
