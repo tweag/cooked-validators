@@ -8,6 +8,8 @@ module Cooked.Pretty.Common
     prettyItemizeNonEmpty,
     prettyEnumerate,
     prettyHash,
+    prettyEmpty,
+    prettyItemizeFromContent,
   )
 where
 
@@ -18,6 +20,7 @@ import Numeric qualified
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prettyprinter (Doc, (<+>))
 import Prettyprinter qualified as PP
+import Prettyprinter.Internal.Type (Doc (Empty))
 import Prettyprinter.Render.String qualified as PP
 
 type DocCooked = Doc ()
@@ -27,6 +30,13 @@ type DocCooked = Doc ()
 renderString :: (a -> DocCooked) -> a -> String
 renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 
+prettyItemizeFromContent :: DocCooked -> DocCooked -> DocCooked
+prettyItemizeFromContent title content =
+  PP.vsep
+    [ title,
+      PP.indent 2 content
+    ]
+
 -- | Print an item list with a title.
 --
 -- >>> prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
@@ -35,11 +45,11 @@ renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions
 --   - bar2
 --   - bar3
 prettyItemize :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
-prettyItemize title bullet items =
-  PP.vsep
-    [ title,
-      PP.indent 2 . prettyItemizeNoTitle bullet $ items
-    ]
+prettyItemize title bullet items = prettyItemizeFromContent title $ prettyItemizeNoTitle bullet items
+
+prettyEmpty :: DocCooked -> Maybe DocCooked
+prettyEmpty Empty = Nothing
+prettyEmpty dc = Just dc
 
 prettyItemizeNoTitle :: DocCooked -> [DocCooked] -> DocCooked
 prettyItemizeNoTitle bullet = PP.vsep . map (bullet <+>)

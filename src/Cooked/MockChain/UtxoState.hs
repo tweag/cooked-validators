@@ -7,14 +7,17 @@ module Cooked.MockChain.UtxoState
     UtxoPayload (..),
     holdsInState,
     SkelContext (..),
+    lookupOutput,
   )
 where
 
-import Cooked.Skeleton (TxSkelOutDatum)
+import Cooked.Output
+import Cooked.Skeleton
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -72,3 +75,12 @@ data SkelContext = SkelContext
   { skelContextTxOuts :: Map Api.TxOutRef Api.TxOut,
     skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum
   }
+
+lookupOutput :: SkelContext -> Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
+lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
+  output <- Map.lookup txOutRef managedTxOuts
+  datum <- case outputOutputDatum output of
+    Api.OutputDatum datum -> Map.lookup (Script.datumHash datum) managedTxSkelOutDatums
+    Api.OutputDatumHash datumHash -> Map.lookup datumHash managedTxSkelOutDatums
+    Api.NoOutputDatum -> Just TxSkelOutNoDatum
+  return (output, datum)
