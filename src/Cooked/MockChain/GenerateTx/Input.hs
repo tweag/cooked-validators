@@ -6,7 +6,6 @@ import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Converts a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
@@ -19,8 +18,8 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
   Api.TxOut (Api.Address cred _) _ datum _ <- throwOnMaybe "toCollateralTriplet: unresolved txOutRefs" =<< txOutByRef txOutRef
   witness <- case cred of
     Api.PubKeyCredential _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-    Api.ScriptCredential (Api.ScriptHash scriptHash) -> do
-      validator <- throwOnMaybe "toTxInAndWitness: Unknown validator" =<< validatorFromHash (Script.ValidatorHash scriptHash)
+    Api.ScriptCredential scriptHash -> do
+      validator <- throwOnMaybe "toTxInAndWitness: Unknown validator" =<< scriptFromHash scriptHash
       scriptDatum <- case datum of
         Api.NoOutputDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
         Api.OutputDatum _ -> return Cardano.InlineScriptDatum

@@ -8,6 +8,7 @@ module Cooked.Skeleton.Output
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     IsTxSkelOutAllowedOwner (..),
+    txSkelOutReferenceScript,
   )
 where
 
@@ -123,6 +124,9 @@ txSkelOutValue = (^. (txSkelOutValueL % txSkelOutValueContentL))
 
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
+
+txSkelOutReferenceScript :: TxSkelOut -> Maybe (Script.Versioned Script.Script)
+txSkelOutReferenceScript (Pays output) = Script.toVersioned <$> (output ^. outputReferenceScriptL)
 
 -- | Decide if a transaction output has a certain owner and datum type.
 txSkelOutOwnerTypeP ::
