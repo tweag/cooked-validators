@@ -1,10 +1,19 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This modules defines a small dummy smart contract which can both be used as
+-- a spending or minting script. The smart contract is parameterized with a
+-- transaction. It allows the minting of as manay NFTs as there are outputs to
+-- this transactions. Each NFT can be minted alone, in a transaction that
+-- consumes one of these outputs. They must be put at the script minting script
+-- address to allow for the spending purpose to be used, with a datum containing
+-- an integer. This integer must be equal to the index at which the TxOutRef was
+-- produced in the parameter transaction. Then, if the datum is 0, the token can
+-- be burned while consuming its UTXO. If is it greater than 0, 1 by 1 steps can
+-- descrease the counter until it reaches 0, at which point it can be burned.
 module Cooked.MultiPurposeSpec where
 
 import Cooked
-import Data.Default
 import Data.Map qualified as HMap
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
@@ -17,6 +26,7 @@ import PlutusTx.Builtins.Internal qualified as PlutusTx
 import PlutusTx.Prelude
 import Prettyprinter qualified as PP
 import Test.Tasty
+import Test.Tasty.HUnit
 import Prelude qualified as HS
 
 instance Eq Api.ScriptPurpose where
@@ -145,26 +155,15 @@ runScript = do
       $ txSkelTemplate
         { txSkelOuts =
             [ alice `receives` Value (Script.ada 3),
-              alice `receives` Value (Script.ada 5),
-              bob `receives` Value (Script.ada 10)
+              alice `receives` Value (Script.ada 5)
             ],
-          txSkelSigners = [bob],
-          txSkelOpts =
-            def
-              { txOptBalanceOutputPolicy = AdjustExistingOutput
-              }
+          txSkelSigners = [bob]
         }
 
   let script = mpScript txId
       (mintSkel1, _, tn1) = mkMintSkel alice oRef script
       (mintSkel2, mintValue2, tn2) = mkMintSkel alice oRef' script
       (mintSkel3, mintValue3, tn3) = mkMintSkel bob oRef'' script
-
-  alias tn1 "Token1"
-  alias tn2 "Token2"
-  alias tn3 "Token3"
-
-  alias script "MYSCRIPT"
 
   (oRefScript : _) <- validateTxSkel' mintSkel1
   (oRefScript1 : _) <- validateTxSkel' mintSkel2
@@ -225,4 +224,8 @@ runScript = do
           )
 
 tests :: TestTree
-tests = testGroup "Multi purpose scripts" []
+tests =
+  testGroup
+    "Multi purpose scripts"
+    [ testCase "Using a script as minting and spending in the same scenario" $ testSucceeds runScript
+    ]
