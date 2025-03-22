@@ -29,13 +29,13 @@ module Cooked.Pretty.Cooked
   )
 where
 
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -46,9 +46,10 @@ import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -124,7 +125,7 @@ instance (Show a) => PrettyCooked (a, UtxoState) where
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
 instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
-  prettyCookedOpt opts (res, entries) =
+  prettyCookedOpt opts' (res, (entries, (`addHashNames` opts') -> opts)) =
     let mcLog = "📘" <+> prettyItemize "MockChain run log:" "⁍" (prettyCookedOpt opts <$> entries)
         mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err
@@ -139,7 +140,7 @@ instance PrettyCooked MockChainLogEntry where
     "The ADA amount of "
       <> prettyTxSkelOut opts skelOut
       <> " has been automatically adjusted to "
-      <> prettyCookedOpt opts (toValue newAda)
+      <> prettyCookedOpt opts (Script.toValue newAda)
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
     let mCollateralsDoc =
@@ -200,14 +201,14 @@ prettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
 prettyWithdrawals pcOpts withdrawals =
   prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
   where
-    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Script.Ada)) -> DocCooked
+    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> DocCooked
     prettyWithdrawal (cred, (red, ada)) =
       prettyItemizeNoTitle "-" $
         ( case cred of
             Left script -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
             Right pkh -> [prettyCookedOpt pcOpts pkh]
         )
-          ++ [prettyCookedOpt pcOpts (toValue ada)]
+          ++ [prettyCookedOpt pcOpts (Script.toValue ada)]
 
 prettyTxParameterChange :: PrettyCookedOpts -> TxParameterChange -> DocCooked
 prettyTxParameterChange opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
@@ -312,7 +313,7 @@ prettyTxSkelGovAction opts (TxGovActionHardForkInitiation (Api.ProtocolVersion m
   "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
 prettyTxSkelGovAction opts (TxGovActionTreasuryWithdrawals withdrawals) =
   prettyItemize "Withdrawals:" "-" $
-    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (toValue lv)) <$> Map.toList withdrawals
+    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
 prettyTxSkelGovAction _ TxGovActionNoConfidence = "No confidence"
 prettyTxSkelGovAction opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
   prettyItemize
@@ -454,8 +455,8 @@ prettyTxSkelInReference opts skelContext txOutRef = do
             ]
       )
 
-getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
-getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
+getReferenceScriptDoc :: (IsAbstractOutput output, Script.ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
+getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
 
 lookupOutput :: SkelContext -> Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
@@ -574,7 +575,7 @@ prettyAddressState opts address payloadSet =
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
         . group
-        . List.sortBy (compare `on` (Script.fromValue . utxoPayloadValue))
+        . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
         . utxoPayloadSet
         $ payloadSet
     )

@@ -29,6 +29,7 @@ import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
+import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
@@ -79,8 +80,9 @@ data MockChainBuiltin a where
   DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe Api.Datum)
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
   UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
-  ValidatorFromHash :: Script.ValidatorHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Validator))
+  ScriptFromHash :: Script.ScriptHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
+  Alias :: (ToHash a) => a -> String -> MockChainBuiltin ()
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -129,7 +131,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
   interpBuiltin (DatumFromHash h) = datumFromHash h
-  interpBuiltin (ValidatorFromHash h) = validatorFromHash h
+  interpBuiltin (ScriptFromHash h) = scriptFromHash h
   interpBuiltin AllUtxos = allUtxos
   interpBuiltin (UtxosAt address) = utxosAt address
   interpBuiltin Empty = mzero
@@ -138,6 +140,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (ThrowError err) = throwError err
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
   interpBuiltin (LogEvent entry) = logEvent entry
+  interpBuiltin (Alias hash name) = alias hash name
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -201,7 +204,7 @@ instance MonadBlockChainBalancing StagedMockChain where
   datumFromHash = singletonBuiltin . DatumFromHash
   txOutByRef = singletonBuiltin . TxOutByRef
   utxosAt = singletonBuiltin . UtxosAt
-  validatorFromHash = singletonBuiltin . ValidatorFromHash
+  scriptFromHash = singletonBuiltin . ScriptFromHash
   logEvent = singletonBuiltin . LogEvent
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
@@ -209,6 +212,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   setParams = singletonBuiltin . SetParams
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
+  alias hash = singletonBuiltin . Alias hash
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

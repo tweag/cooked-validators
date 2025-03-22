@@ -67,11 +67,9 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
-import Cooked.Conversion.ToCredential
-import Cooked.Conversion.ToOutputDatum
-import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.UtxoState
 import Cooked.Output
+import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Kind
@@ -85,8 +83,10 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain errors
@@ -147,7 +147,7 @@ data MockChainLogEntry
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
-    MCLogAdjustedTxSkelOut TxSkelOut Script.Ada
+    MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
@@ -162,7 +162,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
 
   -- | Returns the full validator corresponding to hash, if that validator owns
   -- something or if it is stored in the reference script field of some UTxO.
-  validatorFromHash :: Script.ValidatorHash -> m (Maybe (Script.Versioned Script.Validator))
+  scriptFromHash :: Script.ScriptHash -> m (Maybe (Script.Versioned Script.Script))
 
   -- | Returns an output given a reference to it
   txOutByRef :: Api.TxOutRef -> m (Maybe Api.TxOut)
@@ -187,6 +187,9 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- enough.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
+  -- | Registers the name for a hash, to be displayed by PrettyCooked
+  alias :: (ToHash a) => a -> String -> m ()
+
 -- | The main abstraction of the blockchain.
 class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- | Generates, balances and validates a transaction from a skeleton. It
@@ -197,7 +200,7 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- - adds the produced outputs to 'msctIndex'
   -- - deletes the consumed datums from 'mcstDatums'
   -- - adds the produced datums to 'mcstDatums'
-  -- - adds the validators on outputs to the 'mcstValidators'.
+  -- - adds the validators on outputs to the 'mcstScripts'.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
 -- | Validates a skeleton, and retuns the ordered list of produced output
@@ -230,7 +233,7 @@ utxosFromCardanoTx =
 -- datum or hash at all, return @Nothing@.
 resolveDatum ::
   ( IsAbstractOutput out,
-    ToOutputDatum (DatumType out),
+    Script.ToOutputDatum (DatumType out),
     MonadBlockChainBalancing m
   ) =>
   out ->
@@ -248,7 +251,7 @@ resolveDatum out = do
 -- datum of the suitable type.
 resolveTypedDatum ::
   ( IsAbstractOutput out,
-    ToOutputDatum (DatumType out),
+    Script.ToOutputDatum (DatumType out),
     MonadBlockChainBalancing m,
     Api.FromData a
   ) =>
@@ -264,38 +267,38 @@ resolveTypedDatum out = do
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
--- 'validatorFromHash' returns @Nothing@) return @Nothing@.
+-- 'scriptFromHash' returns @Nothing@) return @Nothing@.
 resolveValidator ::
   ( IsAbstractOutput out,
-    ToCredential (OwnerType out),
+    Script.ToCredential (OwnerType out),
     MonadBlockChainBalancing m
   ) =>
   out ->
   m (Maybe (ConcreteOutput (Script.Versioned Script.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
 resolveValidator out =
-  case toCredential (out ^. outputOwnerL) of
+  case Script.toCredential (out ^. outputOwnerL) of
     Api.PubKeyCredential _ -> return Nothing
-    Api.ScriptCredential (Api.ScriptHash hash) -> do
-      mVal <- validatorFromHash (Script.ValidatorHash hash)
+    Api.ScriptCredential scriptHash -> do
+      mVal <- scriptFromHash scriptHash
       return $ do
         val <- mVal
-        return $ (fromAbstractOutput out) {concreteOutputOwner = val}
+        return $ (fromAbstractOutput out) {concreteOutputOwner = Script.toVersioned val}
 
 -- | Try to resolve the reference script on an output: If the output has no
 -- reference script, or if the reference script's hash is not known (i.e. if
 -- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
 resolveReferenceScript ::
   ( IsAbstractOutput out,
-    ToScriptHash (ReferenceScriptType out),
+    Script.ToScriptHash (ReferenceScriptType out),
     MonadBlockChainBalancing m
   ) =>
   out ->
   m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Script.Versioned Script.Validator)))
-resolveReferenceScript out | Just (Api.ScriptHash hash) <- outputReferenceScriptHash out = do
-  mVal <- validatorFromHash (Script.ValidatorHash hash)
+resolveReferenceScript out | Just hash <- outputReferenceScriptHash out = do
+  mVal <- scriptFromHash hash
   return $ do
     val <- mVal
-    return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just val}
+    return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just $ Script.toVersioned val}
 resolveReferenceScript _ = return Nothing
 
 outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
@@ -324,12 +327,12 @@ txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
-govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
+govActionDeposit = Script.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
 
 -- | Retrieves the total amount of lovelace deposited in proposals in this
 -- skeleton (equal to `govActionDeposit` times the number of proposals).
 txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
-txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
+txSkelProposalsDeposit TxSkel {..} = Script.Lovelace . (toInteger (length txSkelProposals) *) . Script.getLovelace <$> govActionDeposit
 
 -- | Helper to convert Nothing to an error
 maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b
@@ -342,15 +345,15 @@ txSkelInputValidators skel = do
   Map.fromList . catMaybes
     <$> mapM
       ( \(_oref, out) -> case outputAddress out of
-          Api.Address (Api.ScriptCredential (Api.ScriptHash hash)) _ -> do
-            let valHash = Script.ValidatorHash hash
+          Api.Address (Api.ScriptCredential sHash) _ -> do
+            let valHash = Script.toValidatorHash sHash
             maybeErrM
               ( MCEUnknownValidator
                   "txSkelInputValidators: unknown validator hash on transaction input"
                   valHash
               )
               (Just . (valHash,))
-              (validatorFromHash valHash)
+              ((Script.toVersioned <$>) <$> scriptFromHash sHash)
           _ -> return Nothing
       )
       utxos
@@ -391,9 +394,9 @@ txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
   Just txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- txOutByRef oRef
   target <- case cred of
     Api.PubKeyCredential pkh -> return $ Left pkh
-    Api.ScriptCredential (Api.ScriptHash sh) -> do
-      Just val <- validatorFromHash (Script.ValidatorHash sh)
-      return $ Right val
+    Api.ScriptCredential hash -> do
+      Just val <- scriptFromHash hash
+      return $ Right $ Script.toVersioned @Script.Validator val
   datum <- case dat of
     Api.NoOutputDatum -> return TxSkelOutNoDatum
     Api.OutputDatumHash hash -> do
@@ -402,7 +405,7 @@ txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
     Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutInlineDatum dat'
   refScript <- case refS of
     Nothing -> return Nothing
-    Just (Api.ScriptHash sh) -> validatorFromHash (Script.ValidatorHash sh)
+    Just hash -> scriptFromHash hash
   return $
     Pays $
       (fromAbstractOutput txOut)
@@ -527,7 +530,7 @@ instance (MonadTransControl t, MonadError MockChainError m, Monad (t m)) => Mona
 
 instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainBalancing (AsTrans t m) where
   getParams = lift getParams
-  validatorFromHash = lift . validatorFromHash
+  scriptFromHash = lift . scriptFromHash
   utxosAt = lift . utxosAt
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
@@ -538,6 +541,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
   setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
+  alias hash = lift . alias hash
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
@@ -571,7 +575,7 @@ deriving via (AsTrans (StateT s) m) instance (MonadBlockChain m) => MonadBlockCh
 
 instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) where
   getParams = lift getParams
-  validatorFromHash = lift . validatorFromHash
+  scriptFromHash = lift . scriptFromHash
   utxosAt = lift . utxosAt
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
@@ -582,6 +586,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidatio
   setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
+  alias hash = lift . alias hash
 
 instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel

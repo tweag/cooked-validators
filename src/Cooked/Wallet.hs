@@ -12,11 +12,9 @@ module Cooked.Wallet
     walletStakingPK,
     walletPKHash,
     walletStakingPKHash,
-    walletAddress,
     walletSK,
     walletStakingSK,
     walletStakingCredential,
-    walletCredential,
     Wallet,
     PrivateKey,
   )
@@ -28,6 +26,7 @@ import Data.List (elemIndex)
 import Ledger.Address qualified as Ledger
 import Ledger.CardanoWallet qualified as Ledger
 import Ledger.Crypto qualified as Ledger
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain Wallets
@@ -89,19 +88,17 @@ walletPKHash = Ledger.pubKeyHash . walletPK
 walletStakingPKHash :: Wallet -> Maybe Api.PubKeyHash
 walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
 
--- | Retrieves a wallet credential
-walletCredential :: Wallet -> Api.Credential
-walletCredential = Api.PubKeyCredential . walletPKHash
+instance Script.ToCredential Wallet where
+  toCredential = Api.PubKeyCredential . walletPKHash
 
 walletStakingCredential :: Wallet -> Maybe Api.StakingCredential
 walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
 
--- | Retrieves a wallet's address
-walletAddress :: Wallet -> Api.Address
-walletAddress w =
-  Api.Address
-    (walletCredential w)
-    (walletStakingCredential w)
+instance Script.ToAddress Wallet where
+  toAddress w =
+    Api.Address
+      (Script.toCredential w)
+      (walletStakingCredential w)
 
 -- | Retrieves a wallet private key (secret key SK)
 walletSK :: Wallet -> PrivateKey

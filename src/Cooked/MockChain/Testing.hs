@@ -226,12 +226,16 @@ withErrorPred test errorPred = withPrettyAndErrorPred test $ \_ err -> errorPred
 -- | This takes a test and transforms it into an actual test case in prop.
 testToProp :: (IsProp prop) => Test a prop -> prop
 testToProp Test {..} =
-  let innerProp (res, mcLog) =
+  let innerProp (res, (mcLog, names)) =
         case res of
-          Left err -> testErrorProp testPrettyOpts err mcLog
-          Right (result, state) -> testResultProp testPrettyOpts result state mcLog
+          Left err -> testErrorProp (addHashNames names testPrettyOpts) err mcLog
+          Right (result, state) -> testResultProp (addHashNames names testPrettyOpts) result state mcLog
    in testAll
-        (\ret@(_, mcLog) -> testCounterexample (renderString (prettyCookedOpt testPrettyOpts) mcLog) (innerProp ret))
+        ( \res@(_, (mcLog, names)) ->
+            testCounterexample
+              (renderString (prettyCookedOpt (addHashNames names testPrettyOpts)) mcLog)
+              (innerProp res)
+        )
         (interpretAndRunWith (runMockChainTFrom testInitDist) testTrace)
 
 -- | Ensure that all results produced by the staged mockchain /succeed/,

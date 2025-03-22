@@ -5,11 +5,10 @@ module Cooked.Skeleton.Withdrawal
   )
 where
 
-import Cooked.Conversion
-import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.Redeemer
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -19,10 +18,10 @@ import PlutusLedgerApi.V3 qualified as Api
 type TxSkelWithdrawals =
   Map
     (Either (Script.Versioned Script.Script) Api.PubKeyHash)
-    (TxSkelRedeemer, Script.Ada)
+    (TxSkelRedeemer, Api.Lovelace)
 
-pkWithdrawal :: (ToPubKeyHash pkh) => pkh -> Script.Ada -> TxSkelWithdrawals
-pkWithdrawal pkh amount = Map.singleton (Right $ toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
+pkWithdrawal :: (Script.ToPubKeyHash pkh) => pkh -> Api.Lovelace -> TxSkelWithdrawals
+pkWithdrawal pkh amount = Map.singleton (Right $ Script.toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
 
-scriptWithdrawal :: (ToVersionedScript script) => script -> TxSkelRedeemer -> Script.Ada -> TxSkelWithdrawals
-scriptWithdrawal script red amount = Map.singleton (Left $ toVersionedScript script) (red, amount)
+scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Api.Lovelace -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ Script.toVersioned script) (red, amount)

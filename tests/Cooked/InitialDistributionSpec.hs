@@ -37,7 +37,7 @@ spendReferenceAlwaysTrueValidator = do
   (scriptTxOutRef : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (VisibleHashedDatum () <&&> Value (Script.ada 2))],
+        { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 2)],
           txSkelSigners = [bob]
         }
   void $

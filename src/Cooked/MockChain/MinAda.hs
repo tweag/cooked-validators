@@ -16,9 +16,7 @@ import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.Skeleton
-import Data.Maybe
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 
 -- | Compute the required minimal ADA for a given output
@@ -31,16 +29,11 @@ getTxSkelOutMinAda txSkelOut = do
     . Cardano.toCtxUTxOTxOut
     <$> toCardanoTxOut txSkelOut
 
--- | This transforms an output into another output which necessarily contains at
--- least the minimal required ada. If the previous quantity of ada was
--- sufficient, it remains unchanged.
-toTxSkelOutWithMinAda ::
-  (MonadBlockChainBalancing m) =>
-  -- | The output to potential adjust
-  TxSkelOut ->
-  -- | Returns @Nothing@ when no ajustment was required/done, and
-  -- @Just(newOutput,newAdaAmount)@ otherwise.
-  m TxSkelOut
+-- | This transforms an output into another output which contains the minimal
+-- required ada. If the previous quantity of ADA was sufficient, it remains
+-- unchanged. This can require a few iterations to converge, as the added ADA
+-- will increase the size of the UTXO which in turn might need more ADA.
+toTxSkelOutWithMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
 toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueL % txSkelOutValueAutoAdjustL) -> False) = return txSkelOut
 -- The auto adjustment is enabled

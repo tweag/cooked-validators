@@ -58,7 +58,7 @@
             pkgs.zlib
             pkgs.xz
             pkgs.glibcLocales
-            pkgs.openssl_3_3
+            pkgs.openssl_3_4
             pkgs.postgresql # For pg_config
             hpkgs.ghc
             hpkgs.cabal-install
@@ -71,7 +71,7 @@
             pkgs.secp256k1
             pkgs.zlib
             pkgs.xz
-            pkgs.openssl_3_3
+            pkgs.openssl_3_4
             pkgs.postgresql # For cardano-node-emulator
             pkgs.openldap # For freer-extras‽
           ];

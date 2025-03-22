@@ -81,6 +81,8 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs 
       txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
       txVotingProcedures = Nothing
+      txCurrentTreasuryValue = Nothing
+      txTreasuryDonation = Nothing
   return Cardano.TxBodyContent {..}
 
 txBodyContentToTxBody :: (MonadBlockChainBalancing m) => Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra -> TxSkel -> m (Cardano.TxBody Cardano.ConwayEra)
@@ -90,7 +92,7 @@ txBodyContentToTxBody txBodyContent skel = do
     either
       (throwError . MCEGenerationError . TxBodyError "generateTx :")
       return
-      (Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent)
+      (Cardano.createTransactionBody Cardano.ShelleyBasedEraConway txBodyContent)
 
   -- There is a chance that the body is in need of additional data. This happens
   -- when the set of reference inputs contains hashed datums that will need to

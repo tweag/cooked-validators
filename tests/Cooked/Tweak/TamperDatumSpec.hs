@@ -26,7 +26,7 @@ tamperDatumTweakTest =
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
                 [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (52 :: Integer, 54 :: Integer)),
-                  alice `receives` (Value (Script.lovelace 234) <&&> VisibleHashedDatum ()),
+                  alice `receives` Value (Script.lovelace 234),
                   alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer))
                 ]
             }
@@ -40,7 +40,7 @@ tamperDatumTweakTest =
           ( txSkelTemplate
               { txSkelOuts =
                   [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (52 :: Integer, 53 :: Integer)),
-                    alice `receives` (Value (Script.lovelace 234) <&&> VisibleHashedDatum ()),
+                    alice `receives` Value (Script.lovelace 234),
                     alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer))
                   ]
               }
@@ -57,7 +57,7 @@ malformDatumTweakTest =
                 { txSkelLabel = Set.singleton $ TxLabel MalformDatumLbl,
                   txSkelOuts =
                     [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (PlutusTx.toBuiltinData datum1)),
-                      alice `receives` (Value (Script.lovelace 234) <&&> VisibleHashedDatum ()),
+                      alice `receives` Value (Script.lovelace 234),
                       alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer)),
                       alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (PlutusTx.toBuiltinData datum4))
                     ]
@@ -88,7 +88,7 @@ malformDatumTweakTest =
                 ( txSkelTemplate
                     { txSkelOuts =
                         [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (52 :: Integer, 53 :: Integer)),
-                          alice `receives` (Value (Script.lovelace 234) <&&> VisibleHashedDatum ()),
+                          alice `receives` Value (Script.lovelace 234),
                           alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer)),
                           alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (84 :: Integer, 85 :: Integer))
                         ]

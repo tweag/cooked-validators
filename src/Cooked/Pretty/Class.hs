@@ -13,8 +13,8 @@ module Cooked.Pretty.Class
   )
 where
 
-import Cooked.Conversion.ToHash
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
 import Data.Ratio
@@ -100,7 +100,7 @@ instance PrettyCooked Api.CurrencySymbol where
   prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
 
 instance PrettyCooked Api.TokenName where
-  prettyCookedOpt _ = PP.pretty
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance PrettyCooked Script.AssetClass where
   prettyCookedOpt opts (Script.AssetClass (symbol, name)) =

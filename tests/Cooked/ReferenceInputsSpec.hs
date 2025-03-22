@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.ReferenceInputsSpec where
 
 import Control.Monad
@@ -5,9 +7,9 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx qualified
 import PlutusTx.AssocMap qualified as PlutusTx (lookup)
 import PlutusTx.Eq qualified as PlutusTx
@@ -109,7 +111,7 @@ trace1 = do
       txSkelTemplate
         { txSkelOuts =
             [ fooTypedValidator `receives` (Value (Script.ada 4) <&&> InlineDatum (FooDatum $ walletPKHash $ wallet 3)),
-              barTypedValidator `receives` (Value (Script.ada 5) <&&> VisibleHashedDatum ())
+              barTypedValidator `receives` Value (Script.ada 5)
             ],
           txSkelSigners = [wallet 2]
         }
@@ -129,7 +131,7 @@ trace2 = do
       ( txSkelTemplate
           { txSkelOuts =
               [ wallet 1 `receives` (Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer)),
-                bazTypedValidator `receives` (Value (Script.ada 10) <&&> VisibleHashedDatum ())
+                bazTypedValidator `receives` Value (Script.ada 10)
               ],
             txSkelSigners = [wallet 2]
           }

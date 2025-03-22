@@ -5,8 +5,8 @@ module Cooked.Skeleton.Value
   )
 where
 
-import Cooked.Conversion.ToValue
 import Optics.TH (makeLensesFor)
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 data TxSkelOutValue where
@@ -20,7 +20,7 @@ data TxSkelOutValue where
     TxSkelOutValue
   deriving (Show, Eq)
 
-instance ToValue TxSkelOutValue where
+instance Script.ToValue TxSkelOutValue where
   toValue = txSkelOutValueContent
 
 makeLensesFor

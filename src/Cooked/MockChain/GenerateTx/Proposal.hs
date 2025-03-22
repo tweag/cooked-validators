@@ -9,24 +9,24 @@ import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad.Catch
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Data.Default
 import Data.Map qualified as Map
+import Data.Map.Ordered.Strict qualified as OMap
 import Data.Map.Strict qualified as SMap
 import Data.Maybe
 import Data.Maybe.Strict
-import Data.OSet.Strict qualified as OSet
-import Data.Set qualified as Set
 import Data.Text qualified as Text
 import GHC.IO.Unsafe
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro qualified as MicroLens
 import Network.HTTP.Simple qualified as Network
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
 -- | Transorms a `TxParameterChange` into an actual change over a Cardano
@@ -83,7 +83,7 @@ toGovAction TxSkelProposal {..} = do
       Cardano.ScriptHash sHash <-
         throwOnToCardanoError
           "Unable to convert script hash"
-          (Ledger.toCardanoScriptHash (toScriptHash script))
+          (Ledger.toCardanoScriptHash (Script.toScriptHash script))
       return $ SJust sHash
   case txSkelProposalAction of
     TxGovActionParameterChange changes ->
@@ -109,7 +109,7 @@ toProposalProcedureAndWitness ::
   m (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolution = do
   minDeposit <- Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
-  cred <- toRewardAccount $ toCredential txSkelProposalAddress
+  cred <- toRewardAccount $ Script.toCredential txSkelProposalAddress
   govAction <- toGovAction txSkelProposal
   let proposalAnchor = do
         anchor <- txSkelProposalAnchor
@@ -139,17 +139,8 @@ toProposalProcedures ::
   AnchorResolution ->
   m (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props anchorResolution = do
-  (OSet.fromSet -> ppSet, Cardano.BuildTxWith -> ppMap) <- go props
+  proposalList <- mapM (((Cardano.BuildTxWith <$>) <$>) . (`toProposalProcedureAndWitness` anchorResolution)) props
   return $
-    if null ppSet
+    if null proposalList
       then Cardano.TxProposalProceduresNone
-      else Cardano.TxProposalProcedures ppSet ppMap
-  where
-    go [] = return (Set.empty, Map.empty)
-    go (h : t) = do
-      (proposals, mapWitnesses) <- go t
-      (proposal, maybeWitness) <- toProposalProcedureAndWitness h anchorResolution
-      let outputMap = case maybeWitness of
-            Nothing -> mapWitnesses
-            Just newWitness -> Map.insert proposal newWitness mapWitnesses
-      return (Set.insert proposal proposals, outputMap)
+      else Cardano.TxProposalProcedures $ OMap.fromList proposalList

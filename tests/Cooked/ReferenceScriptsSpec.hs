@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.ReferenceScriptsSpec where
 
 import Control.Monad
@@ -7,12 +9,12 @@ import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V2 qualified as Api
+import PlutusLedgerApi.V3 qualified as V3
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
@@ -56,7 +58,7 @@ putRefScriptOnWalletOutput ::
   (MonadBlockChain m) =>
   Wallet ->
   Script.TypedValidator MockContract ->
-  m Api.TxOutRef
+  m V3.TxOutRef
 putRefScriptOnWalletOutput recipient referenceScript =
   head
     <$> validateTxSkel'
@@ -69,28 +71,28 @@ putRefScriptOnScriptOutput ::
   (MonadBlockChain m) =>
   Script.TypedValidator MockContract ->
   Script.TypedValidator MockContract ->
-  m Api.TxOutRef
+  m V3.TxOutRef
 putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [recipient `receives` (ReferenceScript referenceScript <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
           txSkelSigners = [wallet 1]
         }
 
-retrieveRefScriptHash :: (MonadBlockChain m) => Api.TxOutRef -> m (Maybe Api.ScriptHash)
+retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
 retrieveRefScriptHash = (maybe Nothing (^. outputReferenceScriptL) <$>) . txOutByRef
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
   Api.ScriptHash ->
-  Api.TxOutRef ->
+  V3.TxOutRef ->
   m ()
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` Value (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -107,7 +109,7 @@ useReferenceScript spendingSubmitter theScript = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [theScript `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+        { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -143,7 +145,7 @@ tests =
     "Reference scripts"
     [ testGroup "putting reference scripts on chain and retrieving them" $
         let theRefScript = alwaysFalseValidator
-            theRefScriptHash = toScriptHash theRefScript
+            theRefScriptHash = Script.toScriptHash theRefScript
          in [ testCase "on a public key output" $
                 testToProp $
                   mustSucceedTest
@@ -169,7 +171,7 @@ tests =
                         >>= fmap fromJust . txOutByRef
                         >>= resolveReferenceScript
                     )
-                    `withValuePred` maybe testFailure ((Just (Script.vValidatorScript theRefScript) .==.) . (^. outputReferenceScriptL))
+                    `withValuePred` maybe testFailure ((Just (Script.toVersioned theRefScript) .==.) . (^. outputReferenceScriptL))
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"
@@ -177,11 +179,11 @@ tests =
             $ testFailsInPhase2WithMsg
               (== "there is no reference input with the correct script hash")
             $ putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
-              >>= checkReferenceScriptOnOref (toScriptHash alwaysTrueValidator),
+              >>= checkReferenceScriptOnOref (Script.toScriptHash alwaysTrueValidator),
           testCase "succeed if correct reference script" $
             testSucceeds $
               putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
-                >>= checkReferenceScriptOnOref (toScriptHash alwaysTrueValidator)
+                >>= checkReferenceScriptOnOref (Script.toScriptHash alwaysTrueValidator)
         ],
       testGroup
         "using reference scripts"
@@ -192,11 +194,11 @@ tests =
                     (consumedOref, _) : _ <-
                       runUtxoSearch $
                         utxosAtSearch (wallet 1)
-                          `filterWithPred` ((`Script.geq` Script.lovelaceValueOf 42_000_000) . outputValue)
+                          `filterWithPred` ((`Script.geq` Script.lovelace 42_000_000) . outputValue)
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
                             txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
@@ -218,7 +220,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
                             txSkelSigners = [wallet 1]
                           }
                     void $
@@ -237,7 +239,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
+                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
                       txSkelSigners = [wallet 1]
                     }
               void $
@@ -260,20 +262,20 @@ tests =
         "referencing minting policies"
         [ testCase "succeed if given a reference minting policy" $
             testSucceeds $
-              referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 False,
+              referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 0 False,
           testCase "succeed if relying on automated finding of reference minting policy" $
             testToProp $
-              mustSucceedTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 0 True)
+              mustSucceedTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 0 True)
                 `withJournalPred` (testBool . any (\case MCLogAddedReferenceScript {} -> True; _ -> False)),
           testCase "fail if given the wrong reference minting policy" $
             testToProp $
-              mustFailTest (referenceMint permanentCurrencyPolicyV3 quickCurrencyPolicyV3 0 False)
+              mustFailTest (referenceMint permanentCurrencyPolicyV2 quickCurrencyPolicyV2 0 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure,
           testCase "fail if referencing the wrong utxo" $
             testToProp $
-              mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1 False)
+              mustFailTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 1 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: No reference script found in utxo."
                   _ -> testFailure

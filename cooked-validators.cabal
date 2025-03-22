@@ -18,16 +18,6 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Conversion
-      Cooked.Conversion.ToAddress
-      Cooked.Conversion.ToCredential
-      Cooked.Conversion.ToHash
-      Cooked.Conversion.ToOutputDatum
-      Cooked.Conversion.ToPubKeyHash
-      Cooked.Conversion.ToScriptHash
-      Cooked.Conversion.ToStakingCredential
-      Cooked.Conversion.ToValue
-      Cooked.Conversion.ToVersionedScript
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl
@@ -57,6 +47,7 @@ library
       Cooked.Pretty.Class
       Cooked.Pretty.Common
       Cooked.Pretty.Cooked
+      Cooked.Pretty.Hashable
       Cooked.Pretty.Options
       Cooked.ShowBS
       Cooked.Skeleton
@@ -142,6 +133,7 @@ library
     , nonempty-containers
     , optics-core
     , optics-th
+    , ordered-containers
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
@@ -175,6 +167,7 @@ test-suite spec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
+      Cooked.MultiPurposeSpec
       Cooked.ProposingScriptSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
@@ -245,6 +238,7 @@ test-suite spec
     , nonempty-containers
     , optics-core
     , optics-th
+    , ordered-containers
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
