@@ -19,10 +19,20 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 
+-- | Redirects some outputs from one owner to another owner, which can be of
+-- different types. Returns the list of outputs it redirected (as they were
+-- before the modification), in the order in which they occurred on the original
+-- transaction.
 redirectOutputTweak ::
   forall owner owner' m.
   (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
+  -- | Return @Just@ the new owner, or @Nothing@ if you want to leave this
+  -- output unchanged.
   (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Maybe owner') ->
+  -- | The redirection described by the previous argument might apply to more
+  -- than one of the outputs of the transaction. Use this predicate to select
+  -- which of the redirectable outputs to actually redirect. We count the
+  -- redirectable outputs from the left to the right, starting with zero.
   (Integer -> Bool) ->
   m [ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script)]
 redirectOutputTweak outputPred indexPred = do

@@ -57,6 +57,12 @@ type OwnerConstraints owner =
     Show owner
   )
 
+type ReferenceScriptConstraints refScript =
+  ( Script.ToVersioned Script.Script refScript,
+    Show refScript,
+    Typeable refScript
+  )
+
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use the 'receives' smart constructor in most cases.
 data TxSkelOut where
@@ -68,9 +74,7 @@ data TxSkelOut where
       OwnerConstraints (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ TxSkelOutValue,
-      Script.ToVersioned Script.Script (ReferenceScriptType o),
-      Show (ReferenceScriptType o),
-      Typeable (ReferenceScriptType o)
+      ReferenceScriptConstraints (ReferenceScriptType o)
     ) =>
     o ->
     TxSkelOut
