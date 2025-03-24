@@ -19,7 +19,6 @@ import Ledger (Slot (Slot))
 import Ledger.Tx.CardanoAPI (CardanoBuildTx (CardanoBuildTx), CardanoTx (CardanoTx))
 import Ledger.Tx.CardanoAPI qualified as CardanoAPI
 import Ledger.Tx.CardanoAPISpec qualified
-import Plutus.Script.Utils.Ada qualified as Ada
 import Plutus.Script.Utils.Value qualified as Value hiding (scale)
 import PlutusLedgerApi.V1.Interval qualified as Interval
 import Test.Gen.Cardano.Api.Typed qualified as Gen
@@ -59,7 +58,7 @@ tests =
                )
             ++ ( let vlJson :: BSL.ByteString
                      vlJson = "{\"getValue\":[[{\"unCurrencySymbol\":\"\"},[[{\"unTokenName\":\"\"},50]]]]}"
-                     vlValue = Ada.lovelaceValueOf 50
+                     vlValue = Value.lovelace 50
                   in byteStringJson vlJson vlValue
                )
         ),

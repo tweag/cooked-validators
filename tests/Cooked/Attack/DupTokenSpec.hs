@@ -62,8 +62,8 @@ tests =
             tName2 = Script.tokenName "MockToken2"
             pol1 = carefulPolicy tName1 1
             pol2 = carelessPolicy
-            ac1 = Script.assetClass (Script.scriptCurrencySymbol pol1) tName1
-            ac2 = Script.assetClass (Script.scriptCurrencySymbol pol2) tName2
+            ac1 = Api.assetClass (Script.scriptCurrencySymbol pol1) tName1
+            ac2 = Api.assetClass (Script.scriptCurrencySymbol pol2) tName2
             skelIn =
               txSkelTemplate
                 { txSkelMints =
@@ -72,14 +72,14 @@ tests =
                         (pol2, emptyTxSkelRedeemer, tName2, 7)
                       ],
                   txSkelOuts =
-                    [ wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.lovelace 1234),
-                      wallet 2 `receives` Value (Script.assetClassValue ac2 2)
+                    [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
+                      wallet 2 `receives` Value (Api.assetClassValue ac2 2)
                     ],
                   txSkelSigners = [wallet 3]
                 }
             skelOut select = runTweak (dupTokenAttack select attacker) skelIn
             skelExpected v1 v2 =
-              let increment = Script.assetClassValue ac1 (v1 - 5) <> Script.assetClassValue ac2 (v2 - 7)
+              let increment = Api.assetClassValue ac1 (v1 - 5) <> Api.assetClassValue ac2 (v2 - 7)
                in [ Right
                       ( increment,
                         txSkelTemplate
@@ -90,8 +90,8 @@ tests =
                                   (pol2, emptyTxSkelRedeemer, tName2, v2)
                                 ],
                             txSkelOuts =
-                              [ wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.lovelace 1234),
-                                wallet 2 `receives` Value (Script.assetClassValue ac2 2),
+                              [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
+                                wallet 2 `receives` Value (Api.assetClassValue ac2 2),
                                 attacker `receives` Value increment
                               ],
                             txSkelSigners = [wallet 3]
@@ -123,23 +123,23 @@ tests =
         let attacker = wallet 6
             pol = carelessPolicy
             tName1 = Script.tokenName "mintedToken"
-            ac1 = Script.assetClass (Script.scriptCurrencySymbol pol) tName1
-            ac2 = quickAssetClass "preExistingToken"
+            ac1 = Api.assetClass (Script.scriptCurrencySymbol pol) tName1
+            ac2 = Api.assetClass (Script.scriptCurrencySymbol Script.trueMintingMPScript) "preExistingToken"
             skelIn =
               txSkelTemplate
                 { txSkelMints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName1, 1)],
-                  txSkelOuts = [wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)],
+                  txSkelOuts = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
                   txSkelSigners = [wallet 2]
                 }
             skelExpected =
               [ Right
-                  ( Script.assetClassValue ac1 1,
+                  ( Api.assetClassValue ac1 1,
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, emptyTxSkelRedeemer, tName1, 2)],
                         txSkelOuts =
-                          [ wallet 1 `receives` Value (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
-                            attacker `receives` Value (Script.assetClassValue ac1 1)
+                          [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),
+                            attacker `receives` Value (Api.assetClassValue ac1 1)
                           ],
                         txSkelSigners = [wallet 2]
                       }

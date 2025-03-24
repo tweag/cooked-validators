@@ -164,7 +164,7 @@ tests =
               runTweak
                 ( do
                     dhRet <-
-                      datumHijackingAttack
+                      datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                         ( \(ConcreteOutput v _ d x _) ->
                             Script.toValidatorHash val1 == Script.toValidatorHash v
                               && d == TxSkelOutInlineDatum SecondLock
@@ -216,7 +216,7 @@ tests =
       testCase "careful validator" $
         testFailsInPhase2 $
           somewhere
-            ( datumHijackingAttack
+            ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                 ( \(ConcreteOutput v _ d _ _) ->
                     Script.toValidatorHash v == Script.toValidatorHash carefulValidator
                       && d == TxSkelOutInlineDatum SecondLock
@@ -228,7 +228,7 @@ tests =
       testCase "careless validator" $
         testSucceeds $
           somewhere
-            ( datumHijackingAttack
+            ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                 ( \(ConcreteOutput v _ d _ _) ->
                     Script.toValidatorHash v == Script.toValidatorHash carelessValidator
                       && d == TxSkelOutInlineDatum SecondLock

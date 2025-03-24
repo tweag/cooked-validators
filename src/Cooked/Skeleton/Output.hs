@@ -8,6 +8,8 @@ module Cooked.Skeleton.Output
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     IsTxSkelOutAllowedOwner (..),
+    txSkelOutReferenceScript,
+    OwnerConstraints,
   )
 where
 
@@ -48,6 +50,19 @@ instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script
 instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
   toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
 
+type OwnerConstraints owner =
+  ( IsTxSkelOutAllowedOwner owner,
+    Script.ToCredential owner,
+    Typeable owner,
+    Show owner
+  )
+
+type ReferenceScriptConstraints refScript =
+  ( Script.ToVersioned Script.Script refScript,
+    Show refScript,
+    Typeable refScript
+  )
+
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use the 'receives' smart constructor in most cases.
 data TxSkelOut where
@@ -56,15 +71,10 @@ data TxSkelOut where
     -- in turn is only needed in tests.
       Typeable o,
       IsTxInfoOutput o,
-      IsTxSkelOutAllowedOwner (OwnerType o),
-      Script.ToCredential (OwnerType o),
-      Typeable (OwnerType o),
+      OwnerConstraints (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ TxSkelOutValue,
-      Script.ToVersioned Script.Script (ReferenceScriptType o),
-      Show (OwnerType o),
-      Show (ReferenceScriptType o),
-      Typeable (ReferenceScriptType o)
+      ReferenceScriptConstraints (ReferenceScriptType o)
     ) =>
     o ->
     TxSkelOut
@@ -124,14 +134,13 @@ txSkelOutValue = (^. (txSkelOutValueL % txSkelOutValueContentL))
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
+txSkelOutReferenceScript :: TxSkelOut -> Maybe (Script.Versioned Script.Script)
+txSkelOutReferenceScript (Pays output) = Script.toVersioned <$> (output ^. outputReferenceScriptL)
+
 -- | Decide if a transaction output has a certain owner and datum type.
 txSkelOutOwnerTypeP ::
   forall ownerType.
-  ( Script.ToCredential ownerType,
-    Show ownerType,
-    IsTxSkelOutAllowedOwner ownerType,
-    Typeable ownerType
-  ) =>
+  (OwnerConstraints ownerType) =>
   Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
 txSkelOutOwnerTypeP =
   prism'

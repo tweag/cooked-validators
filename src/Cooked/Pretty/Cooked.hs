@@ -106,7 +106,7 @@ instance (Show a) => PrettyCooked (a, UtxoState) where
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
 instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
-  prettyCookedOpt opts (res, entries) =
+  prettyCookedOpt opts' (res, (entries, (`addHashNames` opts') -> opts)) =
     let mcLog = "📘" <+> prettyItemize "MockChain run log:" "⁍" (prettyCookedOpt opts <$> entries)
         mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err

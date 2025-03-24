@@ -22,17 +22,14 @@ module Cooked.Skeleton
     txSkelWithdrawalsL,
     txSkelTemplate,
     txSkelDataInOutputs,
-    txSkelValidatorsInOutputs,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
     txSkelWithdrawalsScripts,
     txSkelValueInOutputs,
-    txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
   )
 where
 
-import Cooked.Output
 import Cooked.Skeleton.Datum as X
 import Cooked.Skeleton.Label as X
 import Cooked.Skeleton.Mint as X
@@ -150,28 +147,6 @@ txSkelDataInOutputs =
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
 
--- | All validators which will receive transaction outputs
-txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelValidatorsInOutputs =
-  Map.fromList
-    . mapMaybe (fmap (\val -> (Script.toValidatorHash val, val)) . txSkelOutValidator)
-    . txSkelOuts
-
--- | All validators in the reference script field of transaction outputs
-txSkelReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelReferenceScripts =
-  mconcat
-    . map
-      ( \(Pays output) ->
-          case output ^. outputReferenceScriptL of
-            Nothing -> Map.empty
-            Just x ->
-              let vScript@(Script.Versioned script version) = Script.toVersioned x
-                  Script.ScriptHash hash = Script.toScriptHash vScript
-               in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
-      )
-    . txSkelOuts
-
 -- | All `TxOutRefs` in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelReferenceTxOutRefs TxSkel {..} =
@@ -183,6 +158,8 @@ txSkelReferenceTxOutRefs TxSkel {..} =
     <> mapMaybe (txSkelReferenceInput . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
     -- reference inputs in mints redeemers
     <> mapMaybe (txSkelReferenceInput . fst . snd) (Map.toList txSkelMints)
+    -- reference inputs in withdrawals redeemers
+    <> mapMaybe (txSkelReferenceInput . fst . snd) (Map.toList txSkelWithdrawals)
 
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
@@ -191,8 +168,6 @@ txSkelReferenceTxOutRefs TxSkel {..} =
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.keys txSkelIns
-
--- * Various Optics on 'TxSkels' and all the other types defined here
 
 txSkelWithdrawnValue :: TxSkel -> Api.Value
 txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals

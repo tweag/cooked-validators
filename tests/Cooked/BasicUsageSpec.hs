@@ -3,6 +3,8 @@ module Cooked.BasicUsageSpec where
 import Control.Monad
 import Cooked
 import Data.Map qualified as Map
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as V3
 import Test.Tasty
@@ -34,8 +36,8 @@ mintingQuickValue =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(quickCurrencyPolicyV2, emptyTxSkelRedeemer, "banana", 10)],
-          txSkelOuts = [alice `receives` Value (quickValue "banana" 10)],
+        { txSkelMints = txSkelMintsFromList [(Script.toVersioned Script.trueMintingMPScript, emptyTxSkelRedeemer, "banana", 10)],
+          txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript "banana" 10)],
           txSkelSigners = [alice]
         }
 
@@ -44,7 +46,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 10)],
+              { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
                 txSkelSigners = [alice]
               }
         )

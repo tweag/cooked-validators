@@ -11,6 +11,7 @@ import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V2.Generators qualified as Script
 import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
@@ -22,9 +23,9 @@ import Test.Tasty.HUnit
 
 -- | This validator ensures that the given public key signs the
 -- transaction.
-requireSignerValidator :: Api.PubKeyHash -> Script.TypedValidator MockContract
+requireSignerValidator :: Api.PubKeyHash -> Script.TypedValidator ()
 requireSignerValidator =
-  Script.mkTypedValidatorParam @MockContract
+  Script.mkTypedValidatorParam @()
     $$(PlutusTx.compile [||val||])
     $$(PlutusTx.compile [||wrap||])
   where
@@ -37,9 +38,9 @@ requireSignerValidator =
 
 -- | This validator ensures that there is a transaction input that has
 -- a reference script with the given hash.
-requireRefScriptValidator :: Api.ScriptHash -> Script.TypedValidator MockContract
+requireRefScriptValidator :: Api.ScriptHash -> Script.TypedValidator ()
 requireRefScriptValidator =
-  Script.mkTypedValidatorParam @MockContract
+  Script.mkTypedValidatorParam @()
     $$(PlutusTx.compile [||val||])
     $$(PlutusTx.compile [||wrap||])
   where
@@ -57,7 +58,7 @@ requireRefScriptValidator =
 putRefScriptOnWalletOutput ::
   (MonadBlockChain m) =>
   Wallet ->
-  Script.TypedValidator MockContract ->
+  Script.Versioned Script.Validator ->
   m V3.TxOutRef
 putRefScriptOnWalletOutput recipient referenceScript =
   head
@@ -69,8 +70,8 @@ putRefScriptOnWalletOutput recipient referenceScript =
 
 putRefScriptOnScriptOutput ::
   (MonadBlockChain m) =>
-  Script.TypedValidator MockContract ->
-  Script.TypedValidator MockContract ->
+  Script.Versioned Script.Validator ->
+  Script.Versioned Script.Validator ->
   m V3.TxOutRef
 putRefScriptOnScriptOutput recipient referenceScript =
   head
@@ -103,7 +104,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
           txSkelSigners = [wallet 1]
         }
 
-useReferenceScript :: (MonadBlockChain m) => Wallet -> Script.TypedValidator MockContract -> m ()
+useReferenceScript :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
 useReferenceScript spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
   oref : _ <-
@@ -144,7 +145,7 @@ tests =
   testGroup
     "Reference scripts"
     [ testGroup "putting reference scripts on chain and retrieving them" $
-        let theRefScript = alwaysFalseValidator
+        let theRefScript = Script.alwaysSucceedValidatorVersioned
             theRefScriptHash = Script.toScriptHash theRefScript
          in [ testCase "on a public key output" $
                 testToProp $
@@ -158,7 +159,7 @@ tests =
               testCase "on a script output" $
                 testToProp $
                   mustSucceedTest
-                    ( putRefScriptOnScriptOutput alwaysTrueValidator theRefScript
+                    ( putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript
                         >>= retrieveRefScriptHash
                     )
                     `withValuePred` ( testCounterexample "the script hash on the retrieved output is wrong"
@@ -178,12 +179,12 @@ tests =
         [ testCase "fail if wrong reference script"
             $ testFailsInPhase2WithMsg
               (== "there is no reference input with the correct script hash")
-            $ putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
-              >>= checkReferenceScriptOnOref (Script.toScriptHash alwaysTrueValidator),
+            $ putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
+              >>= checkReferenceScriptOnOref (Script.toScriptHash Script.alwaysSucceedValidatorVersioned),
           testCase "succeed if correct reference script" $
             testSucceeds $
-              putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
-                >>= checkReferenceScriptOnOref (Script.toScriptHash alwaysTrueValidator)
+              putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
+                >>= checkReferenceScriptOnOref (Script.toScriptHash Script.alwaysSucceedValidatorVersioned)
         ],
       testGroup
         "using reference scripts"
@@ -198,7 +199,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
+                          { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                             txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
@@ -216,11 +217,11 @@ tests =
             testToProp $
               mustFailTest
                 ( do
-                    scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
+                    scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
+                          { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                             txSkelSigners = [wallet 1]
                           }
                     void $
@@ -235,11 +236,11 @@ tests =
                   _ -> testFailure,
           testCase "phase 1 - fail if using a reference script with 'someRedeemer'" $
             testFailsInPhase1 $ do
-              scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
+              scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` Value (Script.ada 42)],
+                    { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                       txSkelSigners = [wallet 1]
                     }
               void $
@@ -253,29 +254,29 @@ tests =
           testCase
             "fail if reference script's requirement is violated"
             $ testFailsInPhase2WithMsg (== "the required signer is missing")
-            $ useReferenceScript (wallet 1) (requireSignerValidator $ walletPKHash $ wallet 2),
+            $ useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ walletPKHash $ wallet 2),
           testCase "succeed if reference script's requirement is met" $
             testSucceeds $
-              useReferenceScript (wallet 1) (requireSignerValidator $ walletPKHash $ wallet 1)
+              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ walletPKHash $ wallet 1)
         ],
       testGroup
         "referencing minting policies"
         [ testCase "succeed if given a reference minting policy" $
             testSucceeds $
-              referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 0 False,
+              referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False,
           testCase "succeed if relying on automated finding of reference minting policy" $
             testToProp $
-              mustSucceedTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 0 True)
+              mustSucceedTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 True)
                 `withJournalPred` (testBool . any (\case MCLogAddedReferenceScript {} -> True; _ -> False)),
           testCase "fail if given the wrong reference minting policy" $
             testToProp $
-              mustFailTest (referenceMint permanentCurrencyPolicyV2 quickCurrencyPolicyV2 0 False)
+              mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
                   _ -> testFailure,
           testCase "fail if referencing the wrong utxo" $
             testToProp $
-              mustFailTest (referenceMint quickCurrencyPolicyV2 quickCurrencyPolicyV2 1 False)
+              mustFailTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 1 False)
                 `withErrorPred` \case
                   MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: No reference script found in utxo."
                   _ -> testFailure

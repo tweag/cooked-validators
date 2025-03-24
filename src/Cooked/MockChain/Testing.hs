@@ -139,6 +139,8 @@ data Test a prop = Test
     testTrace :: StagedMockChain a,
     -- | The initial distribution from which the trace should be run
     testInitDist :: InitialDistribution,
+    -- | The requirement on the number of results
+    testSizeProp :: Integer -> prop,
     -- | The property should hold in case of failure
     testErrorProp :: PrettyCookedOpts -> MockChainError -> [MockChainLogEntry] -> prop,
     -- | The property that should hold in case of success
@@ -153,6 +155,7 @@ mustSucceedTest trace =
   Test
     { testTrace = trace,
       testInitDist = def,
+      testSizeProp = const testSuccess,
       testErrorProp = \opts res _ -> testFailureMsg $ renderString (prettyCookedOpt opts) res,
       testResultProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def
@@ -164,6 +167,7 @@ mustFailTest trace =
   Test
     { testTrace = trace,
       testInitDist = def,
+      testSizeProp = const testSuccess,
       testErrorProp = \_ _ _ -> testSuccess,
       testResultProp = \opts a res _ -> testFailureMsg $ renderString (prettyCookedOpt opts) (a, res),
       testPrettyOpts = def
@@ -175,6 +179,7 @@ emptyTest trace =
   Test
     { testTrace = trace,
       testInitDist = def,
+      testSizeProp = const testSuccess,
       testErrorProp = \_ _ _ -> testSuccess,
       testResultProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def
@@ -205,6 +210,13 @@ withValueAndStatePred test resultPred =
     { testResultProp = \opts val state journal -> testResultProp test opts val state journal .&&. resultPred val state
     }
 
+-- | Ensuring the number of results of a test is exactly as expected
+withExactSize :: (IsProp prop) => Test a prop -> Integer -> Test a prop
+withExactSize test reqSize =
+  test
+    { testSizeProp = \n -> if n == reqSize then testSuccess else testFailureMsg "Incorrect number of results"
+    }
+
 -- | Appending a predicate over the return value, which will be used in case of
 -- success of the trace.
 withValuePred :: (IsProp prop) => Test a prop -> (a -> prop) -> Test a prop
@@ -226,13 +238,19 @@ withErrorPred test errorPred = withPrettyAndErrorPred test $ \_ err -> errorPred
 -- | This takes a test and transforms it into an actual test case in prop.
 testToProp :: (IsProp prop) => Test a prop -> prop
 testToProp Test {..} =
-  let innerProp (res, mcLog) =
+  let innerProp (res, (mcLog, names)) =
         case res of
-          Left err -> testErrorProp testPrettyOpts err mcLog
-          Right (result, state) -> testResultProp testPrettyOpts result state mcLog
-   in testAll
-        (\ret@(_, mcLog) -> testCounterexample (renderString (prettyCookedOpt testPrettyOpts) mcLog) (innerProp ret))
-        (interpretAndRunWith (runMockChainTFrom testInitDist) testTrace)
+          Left err -> testErrorProp (addHashNames names testPrettyOpts) err mcLog
+          Right (result, state) -> testResultProp (addHashNames names testPrettyOpts) result state mcLog
+      results = interpretAndRunWith (runMockChainTFrom testInitDist) testTrace
+   in testSizeProp (toInteger (length results))
+        .&&. testAll
+          ( \res@(_, (mcLog, names)) ->
+              testCounterexample
+                (renderString (prettyCookedOpt (addHashNames names testPrettyOpts)) mcLog)
+                (innerProp res)
+          )
+          results
 
 -- | Ensure that all results produced by the staged mockchain /succeed/,
 -- starting from the default initial distribution

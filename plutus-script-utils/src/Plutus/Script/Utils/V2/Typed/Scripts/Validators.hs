@@ -10,11 +10,17 @@ module Plutus.Script.Utils.V2.Typed.Scripts.Validators
     vForwardingMintingPolicy,
     forwardingMintingPolicyHash,
     generalise,
+    validatorToTypedValidator,
   )
 where
 
 import Data.Kind (Type)
-import Plutus.Script.Utils.Scripts (Language (PlutusV2), Versioned (Versioned), toValidator)
+import Plutus.Script.Utils.Scripts
+  ( Language (PlutusV2),
+    Validator,
+    Versioned (Versioned),
+    toValidator,
+  )
 import Plutus.Script.Utils.Typed
   ( DatumType,
     RedeemerType,
@@ -36,6 +42,18 @@ import PlutusTx (CompiledCode, Lift, liftCode, unsafeApplyCode)
 -- | The type of validators for the given connection type.
 type ValidatorType (a :: Type) = DatumType a -> RedeemerType a -> PV2.ScriptContext -> Bool
 
+validatorToTypedValidator :: Validator -> TypedValidator a
+validatorToTypedValidator val =
+  TypedValidator
+    { tvValidator = Versioned val PlutusV2,
+      tvValidatorHash = hsh,
+      tvForwardingMPS = Versioned mps PlutusV2,
+      tvForwardingMPSHash = Scripts.mintingPolicyHash mps
+    }
+  where
+    hsh = Scripts.validatorHash val
+    mps = MPS.mkForwardingMintingPolicy hsh
+
 -- | Make a 'TypedValidator' from the 'CompiledCode' of a validator script and its wrapper.
 mkTypedValidator ::
   -- | Validator script (compiled)
@@ -44,16 +62,7 @@ mkTypedValidator ::
   CompiledCode (ValidatorType a -> UntypedValidator) ->
   TypedValidator a
 mkTypedValidator vc wrapper =
-  TypedValidator
-    { tvValidator = Versioned val PlutusV2,
-      tvValidatorHash = hsh,
-      tvForwardingMPS = Versioned mps PlutusV2,
-      tvForwardingMPSHash = Scripts.mintingPolicyHash mps
-    }
-  where
-    val = toValidator $ wrapper `unsafeApplyCode` vc
-    hsh = Scripts.validatorHash val
-    mps = MPS.mkForwardingMintingPolicy hsh
+  validatorToTypedValidator $ toValidator $ wrapper `unsafeApplyCode` vc
 
 -- | Make a 'TypedValidator' from the 'CompiledCode' of a parameterized validator script and its wrapper.
 mkTypedValidatorParam ::
