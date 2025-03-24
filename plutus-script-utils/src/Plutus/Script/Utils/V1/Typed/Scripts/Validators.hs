@@ -17,6 +17,7 @@ module Plutus.Script.Utils.V1.Typed.Scripts.Validators
     checkValidatorAddress,
     checkDatum,
     checkRedeemer,
+    validatorToTypedValidator,
   )
 where
 
@@ -28,6 +29,7 @@ import GHC.Generics (Generic)
 import Plutus.Script.Utils.Address (toAddress)
 import Plutus.Script.Utils.Scripts
   ( Language (PlutusV1),
+    Validator,
     Versioned (Versioned),
     toValidator,
   )
@@ -54,6 +56,18 @@ import Prettyprinter (Pretty (pretty), viaShow, (<+>))
 -- | The type of validators for the given connection type.
 type ValidatorType (a :: Type) = DatumType a -> RedeemerType a -> PV1.ScriptContext -> Bool
 
+validatorToTypedValidator :: Validator -> TypedValidator a
+validatorToTypedValidator val =
+  TypedValidator
+    { tvValidator = Versioned val PlutusV1,
+      tvValidatorHash = hsh,
+      tvForwardingMPS = Versioned mps PlutusV1,
+      tvForwardingMPSHash = Scripts.mintingPolicyHash mps
+    }
+  where
+    hsh = Scripts.validatorHash val
+    mps = MPS.mkForwardingMintingPolicy hsh
+
 -- | Make a 'TypedValidator' from the 'CompiledCode' of a validator script and its wrapper.
 mkTypedValidator ::
   -- | Validator script (compiled)
@@ -62,16 +76,7 @@ mkTypedValidator ::
   CompiledCode (ValidatorType a -> UntypedValidator) ->
   TypedValidator a
 mkTypedValidator vc wrapper =
-  TypedValidator
-    { tvValidator = Versioned val PlutusV1,
-      tvValidatorHash = hsh,
-      tvForwardingMPS = Versioned mps PlutusV1,
-      tvForwardingMPSHash = Scripts.mintingPolicyHash mps
-    }
-  where
-    val = toValidator $ wrapper `unsafeApplyCode` vc
-    hsh = Scripts.validatorHash val
-    mps = MPS.mkForwardingMintingPolicy hsh
+  validatorToTypedValidator $ toValidator $ wrapper `unsafeApplyCode` vc
 
 -- | Make a 'TypedValidator' from the 'CompiledCode' of a parameterized validator script and its wrapper.
 mkTypedValidatorParam ::

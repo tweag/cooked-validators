@@ -75,10 +75,10 @@ barValidator _ _ (Api.ScriptContext txInfo _) =
         Just (FooDatum pkh) -> PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
     f _ = False
 
-barTypedValidator :: Script.TypedValidator MockContract
+barTypedValidator :: Script.TypedValidator ()
 barTypedValidator =
   let wrap = Script.mkUntypedValidator
-   in Script.mkTypedValidator @MockContract
+   in Script.mkTypedValidator
         $$(PlutusTx.compile [||barValidator||])
         $$(PlutusTx.compile [||wrap||])
 
@@ -97,10 +97,10 @@ bazValidator _ _ context =
                 _ -> False
         _ -> False
 
-bazTypedValidator :: Script.TypedValidator MockContract
+bazTypedValidator :: Script.TypedValidator ()
 bazTypedValidator =
   let wrap = Script.mkUntypedValidator
-   in Script.mkTypedValidator @MockContract
+   in Script.mkTypedValidator
         $$(PlutusTx.compile [||bazValidator||])
         $$(PlutusTx.compile [||wrap||])
 
