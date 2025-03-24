@@ -46,7 +46,7 @@ representing the transaction from the left to the right, and adding
 some extra inputs, outputs, and mints depending on each focus and the
 current 'MockChainSt'ate. -}
 
--- | A triple of transaction inputs, transaction outputs, and minted
+-- | A triplet of transaction inputs, transaction outputs, and minted
 -- value. This is what we can add to the transaction in order to try a
 -- double satisfaction attack.
 type DoubleSatDelta = (Map Api.TxOutRef TxSkelRedeemer, [TxSkelOut], TxSkelMints)

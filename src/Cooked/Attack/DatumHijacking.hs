@@ -1,8 +1,11 @@
 -- | This module provides an automated attack to try and redirect outputs to a
 -- certain target with a similar datum type.
 module Cooked.Attack.DatumHijacking
-  ( redirectOutputTweak,
+  ( redirectOutputTweakAny,
+    datumHijackingAttackAny,
     datumHijackingAttack,
+    redirectOutputTweakAll,
+    datumHijackingAttackAll,
     DatumHijackingLbl (..),
   )
 where
@@ -23,7 +26,7 @@ import Prettyprinter ((<+>))
 -- different types. Returns the list of outputs it redirected (as they were
 -- before the modification), in the order in which they occurred on the original
 -- transaction.
-redirectOutputTweak ::
+redirectOutputTweakAll ::
   forall owner owner' m.
   (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
   -- | Return @Just@ the new owner, or @Nothing@ if you want to leave this
@@ -35,7 +38,7 @@ redirectOutputTweak ::
   -- redirectable outputs from the left to the right, starting with zero.
   (Integer -> Bool) ->
   m [ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script)]
-redirectOutputTweak outputPred indexPred = do
+redirectOutputTweakAll outputPred indexPred = do
   outputs <- viewTweak txSkelOutsL
   let (changed, newOutputs) = unzip $ go outputs 0
   setTweak txSkelOutsL newOutputs
@@ -53,6 +56,32 @@ redirectOutputTweak outputPred indexPred = do
         Just (out', newOwner) | indexPred n -> (Just out', modifyOutputOwner out newOwner) : go l (n + 1)
         _ -> (Nothing, out) : go l (n + 1)
 
+-- | A version of 'redirectOutputTweakAll' where, instead of modifying all the
+-- outputs targeted by the input predicates in the same transaction, we modify
+-- one of them at a time, relying on the 'MonadPlus' instance of 'm'.
+redirectOutputTweakAny ::
+  forall owner owner' m.
+  (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
+  (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Maybe owner') ->
+  (Integer -> Bool) ->
+  m (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
+redirectOutputTweakAny outputPred indexPred = viewTweak txSkelOutsL >>= go [] 0
+  where
+    go _ _ [] = mzero
+    go l' n (out : l)
+      | indexPred n =
+          fromMaybe
+            (go (l' ++ [out]) (n + 1) l)
+            ( do
+                out' <- preview txSkelOutOwnerTypeP out
+                newOwner <- outputPred out'
+                return $
+                  mplus
+                    (setTweak txSkelOutsL (l' ++ Pays (setOwner out' newOwner) : l) >> return out')
+                    (go (l' ++ [out]) (n + 1) l)
+            )
+    go l' n (out : l) = go (l' ++ [out]) n l
+
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
 -- different recipient on 'PaysScript' constraints, but leaves the datum as it
 -- is. That is, it tests for careless uses of something like 'txInfoOutputs' in
@@ -67,7 +96,7 @@ redirectOutputTweak outputPred indexPred = do
 -- This attack returns the list of outputs it redirected, in the order in which
 -- they occurred on the original transaction. If no output is redirected, this
 -- attack fails.
-datumHijackingAttack ::
+datumHijackingAttackAll ::
   forall owner owner' m.
   (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
   -- | Predicate to select outputs to steal, depending on the intended
@@ -80,11 +109,40 @@ datumHijackingAttack ::
   -- | The thief
   owner' ->
   m [ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script)]
-datumHijackingAttack change select thief = do
-  redirected <- redirectOutputTweak (\output -> if change output then Just thief else Nothing) select
+datumHijackingAttackAll change select thief = do
+  redirected <- redirectOutputTweakAll (\output -> if change output then Just thief else Nothing) select
   guard . not $ null redirected
   addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
   return redirected
+
+-- | A version of datumHijackingAttackAll relying on the rules of
+-- 'redirectOutputAnyTweak'.
+datumHijackingAttackAny ::
+  forall owner owner' m.
+  (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
+  -- | Predicate to select outputs to steal, depending on the intended
+  -- recipient, the datum, and the value.
+  (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Bool) ->
+  -- | The selection predicate may match more than one output. Use this
+  -- predicate to restrict to the i-th of the outputs (counting from the left,
+  -- starting at zero) chosen by the selection predicate with this predicate.
+  (Integer -> Bool) ->
+  -- | The thief
+  owner' ->
+  m (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
+datumHijackingAttackAny change select thief = do
+  redirected <- redirectOutputTweakAny (\output -> if change output then Just thief else Nothing) select
+  addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
+  return redirected
+
+-- | The default datum hijacking attack. It tries to redirect any output for
+-- which the owner is of type @owner@ and branches at each attempt.
+datumHijackingAttack ::
+  forall owner owner' m.
+  (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
+  owner' ->
+  m (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
+datumHijackingAttack = datumHijackingAttackAny (const True) (const True)
 
 newtype DatumHijackingLbl = DatumHijackingLbl Api.Credential
   deriving (Show, Eq, Ord)

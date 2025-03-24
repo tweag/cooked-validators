@@ -148,7 +148,7 @@ alice, bob :: Wallet
 alice = wallet 1
 bob = wallet 2
 
-runScript :: (MonadBlockChain m) => m ()
+runScript :: (MonadModalBlockChain m) => m ()
 runScript = do
   [oRef@(Api.TxOutRef txId _), oRef', oRef''] <-
     validateTxSkel'
@@ -227,5 +227,36 @@ tests :: TestTree
 tests =
   testGroup
     "Multi purpose scripts"
-    [ testCase "Using a script as minting and spending in the same scenario" $ testSucceeds runScript
+    [ testCase "Using a script as minting and spending in the same scenario" $ testSucceeds runScript,
+      testGroup
+        "The Spending purpose behaves properly"
+        [ testCase "We cannot redirect any output to a private key"
+            $ testToProp
+            $ mustFailTest
+              ( somewhere
+                  (datumHijackingAttack @(Script.MultiPurposeScript ()) alice)
+                  runScript
+              )
+            `withExactSize` 6,
+          testCase "We cannot redirect any output to another script"
+            $ testToProp
+            $ mustFailTest
+              ( somewhere
+                  (datumHijackingAttack @(Script.MultiPurposeScript ()) (Script.trueSpendingMPScript @()))
+                  runScript
+              )
+            `withExactSize` 6
+        ],
+      testGroup
+        "The Minting purpose behaves properly"
+        [ testCase "We cannot duplicate the tokens"
+            $ testToProp
+            $ mustFailTest (somewhere (dupTokenAttack (\_ n -> n + 1) alice) runScript)
+            `withExactSize` 6,
+          testCase
+            "We cannot mint additional tokens"
+            $ testToProp
+            $ mustFailTest (somewhere (addTokenAttack (const [(Api.TokenName "myToken", 1)]) alice) runScript)
+            `withExactSize` 6
+        ]
     ]
