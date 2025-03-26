@@ -187,8 +187,9 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- enough.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
-  -- | Registers the name for a hash, to be displayed by PrettyCooked
-  alias :: (ToHash a) => a -> String -> m ()
+  -- | Bind a hashable quantity of type @a@ to a variable in the mockchain,
+  -- while registering its alias for printing purposes.
+  define :: (ToHash a) => String -> a -> m a
 
 -- | The main abstraction of the blockchain.
 class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
@@ -541,7 +542,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
   setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
-  alias hash = lift . alias hash
+  define name = lift . define name
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
@@ -586,7 +587,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidatio
   setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
-  alias hash = lift . alias hash
+  define name = lift . define name
 
 instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel
