@@ -4,11 +4,18 @@
 
 ### Added
 
+### Removed
+
+### Changed
+
+### Fixed
+
+## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2024-06-28
+
+### Added
+
 - `quickCurrencyPolicyV3` and `permanentCurrencyPolicyV3` which should be the
   most commonly used.
-- `toInitDistWithMinAda` and `unsafeToInitDistWithMinAda` to ensure the initial
-  distribution only provides outputs with the required minimal ada based on
-  default parameters.
 - All kinds of scripts can now be used as reference scripts.
 - `validateTxSkel_` which validates a skeleton and ignores the output.
 - `txSkelMintsFromList'` which only allows one redeemer per minting policy.
@@ -34,12 +41,22 @@
 - A new tweak `modifySpendRedeemersOfTypeTweak` to apply an optional
   modification of all redeemers of a certain type within the skeleton inputs.
 - New setters for the various outputs fields.
+- The `Payable` structure to properly define, compose, and later pay, payable
+  elements with `receive`.
+- The `receive` smart constructor for payments that allows to compose payable
+  elements (datums, values, staking credential and reference scripts) and
+  associate them to a recipient.
+- `TxSkelOutValue` which encompasses both a value and whether it can be tampered
+  with through min ada adjustment. It comes with the constructors
+  `Value` and `FixedValue` from the `Payable` type.
 
 ### Removed
 
 - `positivePart` and `negativePart` in `ValueUtils.hs`. Replaced by `Api.split`.
 - Redundant logging of errors in mockchain runs.
 - Useless minting of non-ADA value in the dummy initial transaction.
+- Payment helpers (such as `PaysPK`, `withDatum` ...). Replaced by `receives`.
+- `txOptEnsureMinAda`, replaced by a field of `TxSkelOutValue`
 
 ### Changed
 
@@ -54,7 +71,6 @@
 - `txSkelInputData` changed to `txSkelInputDataAsHashes`
 - Pretty printing of hashed datum now includes the hash (and not only the
   resolved datum).
-- Dependency to cardano-api bumped to 8.46.
 - Logging has been reworked: 
   * it is no longer limited to `StagedMockChain` runs
   * it is now a component of `MonadBlockChainBalancing`
@@ -67,6 +83,10 @@
 - File `AddInputsAndOutputs.hs` has been split into `Inputs.hs`, `Outputs.hs`
   and `Mint.hs`. File `TamperDatum.hs` has been updated and integrated into
   `Output.hs`.
+- File `Skeleton.hs` has been split into sub-files in the `Skeleton` folder.
+- Default language extensions and compilation options have been updated.
+- Transaction generation now directly lives in `MonadMockChainBalancing`.
+- Initial distributions are now handled as a first action in the `MockChain`.
 
 ### Fixed
 

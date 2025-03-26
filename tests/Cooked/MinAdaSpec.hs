@@ -2,7 +2,6 @@ module Cooked.MinAdaSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Optics.Core ((^.))
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -17,8 +16,7 @@ paymentWithMinAda = do
   Script.getLovelace . (^. Script.adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysPK (wallet 2) mempty `withDatum` heavyDatum],
+        { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
           txSkelSigners = [wallet 1]
         }
 
@@ -27,7 +25,7 @@ paymentWithoutMinAda paidLovelaces = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 2) (Script.lovelaceValueOf paidLovelaces) `withDatum` heavyDatum],
+        { txSkelOuts = [wallet 2 `receives` (FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum)],
           txSkelSigners = [wallet 1]
         }
 

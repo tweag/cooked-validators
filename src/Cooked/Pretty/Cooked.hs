@@ -32,7 +32,6 @@ where
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -136,6 +135,11 @@ instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLogEntry where
+  prettyCookedOpt opts (MCLogAdjustedTxSkelOut skelOut newAda) =
+    "The ADA amount of "
+      <> prettyTxSkelOut opts skelOut
+      <> " has been automatically adjusted to "
+      <> prettyCookedOpt opts (toValue newAda)
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
     let mCollateralsDoc =
@@ -471,8 +475,7 @@ mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
 mPrettyTxOpts
   opts
   TxOpts
-    { txOptEnsureMinAda,
-      txOptAutoSlotIncrease,
+    { txOptAutoSlotIncrease,
       txOptUnsafeModTx,
       txOptBalanceOutputPolicy,
       txOptFeePolicy,
@@ -484,8 +487,7 @@ mPrettyTxOpts
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
-          prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+        [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
           prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
@@ -500,9 +502,6 @@ mPrettyTxOpts
       prettyIfNot defaultValue f x
         | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
         | otherwise = Just $ f x
-      prettyEnsureMinAda :: Bool -> DocCooked
-      prettyEnsureMinAda True = "Ensure min Ada per transaction"
-      prettyEnsureMinAda False = "Do not ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> DocCooked
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"

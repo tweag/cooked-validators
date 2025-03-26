@@ -33,16 +33,11 @@
   ```haskell
   initDist :: InitialDistribution
   initDist = InitialDistribution
-	[ paysPK (wallet 3) (ada 6)
-    , paysScript fooTypedValidator FooTypedDatum (ada 6)
-	, paysPK (wallet 2) (ada 2) `withDatum` fooDatum
-	, paysPK (wallet 1) (ada 2) `withReferenceScript` fooValidator
+	[ wallet 3 `receives` (Value $ ada 6)
+    , fooTypedValidator `receives` (Value (myToken 6) <&&> InlineDatum fooTypedDatum)
+	, wallet 2 `receives` (Value (ada 2) <&&> VisibleHashedDatum fooDatum)
+	, wallet 1 `receives` (Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred)
 	]
-  ```
-* Ensure each initial distribution payment has min ada
-  ```haskell
-  initDist :: InitialDistribution
-  initDist = unsafeToInitDistWithMinAda $ InitialDistribution ...
   ```
 #### Usage
 
@@ -166,13 +161,16 @@ txSkelTemplate
 
 ### Pay (transaction output)
 
-* `paysPK (wallet 3) (ada 6)`
-* `paysScript fooTypedValidator FooTypedDatum (ada 6)`
+* A simple value to a wallet: ```wallet 3 `receives` Value (ada 3)```
+* A value and an inline datum to a script: ```fooTypedValidator `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelace 160_000))```
+* Hashed datums (visible to the transaction or hidden from it): `... <&&> (VisibleHashedDatum dat)` or `... <&&> (HiddenHashedDatum dat)`
+* A reference script: `(... <&&> ReferenceScript dat)`
+* A staking credential: `(... <&&> StakingCredential dat)`
 
 ```haskell
 txSkelTemplate
     { ...
-      txSkelOuts = [paysPK ..., paysScript ...]
+      txSkelOuts = [party1 `receives` payment1, party2 `receives` payment2, ...]
       ...
     }
 ```
@@ -259,39 +257,16 @@ txSkelTemplate
   }
 ```
 
-### Automatically provide enough Ada to output UTxOs
+### Min Ada adjustment to an output
 
-```haskell
-txSkelTemplate
-    { ...
-      txOpts = def {txOptEnsureMinAda = True}
-      ...
-    }
-```
+* allow min ADA adjustment, by providing a value: ```party `receives` (Value (myToken 5))```
+* allow min ADA adjustment, by providing no value: ```party `receives` (Datum myDatum)```
+* forbid min ADA adjustment: ```party `receives` (FixedValue $ ada 10) ```
+
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 
 * `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`
-* `paysPK ... (permanentValue "customToken" 7)`
-
-### Provide a datum in a pubkey transaction output
-
-* ``paysPK ... `withDatum` FooTypedDatum``
-
-### Inline a datum in a transaction output
-
-* ``paysPK ... `withInlineDatum` FooTypedDatum``
-* `paysScriptInlineDatum fooTypedValidator FooTypedDatum (ada 6)`
-
-### Provide a hashed datum, that is not resolved in the transaction, in a transaction output
-
-* ``paysPK ... `withDatumHash` FooTypedDatum``
-* `paysScriptDatumHash fooTypedValidator FooTypedDatum (ada 6)`
-
-### Pay a script a datum whose type may not match the validator's
-
-* ``paysScriptNoDatum fooTypedValidator (ada 6) `withDatum` FooTypedDatum``
-* ``paysScriptNoDatum fooTypedValidator (ada 6) `withInlineDatum` FooTypedDatum``
-* ``paysScriptNoDatum fooTypedValidator (ada 6) `withDatumHash` FooTypedDatum``
+* ```party `receives` ... (permanentValue "customToken" 7)```
 
 ### Use reference inputs in a transaction
 
@@ -303,15 +278,15 @@ txSkelTemplate
     }
 ```
 
-### Include a reference script in a transaction output
+### Spend a referenced script output
 
-* ``paysPK ... `withReferenceScript` fooTypedValidator``
-* ``paysScript... ... `withReferenceScript` fooTypedValidator``
-
-### Include a staking credential in a transaction output
-
-* ``paysPK ... `withStakingCredential` ...``
-* ``paysScript... ... `withStakingCredential` ...``
+```haskell
+txSkelTemplate
+  { ...
+    txSkelIns = Map.fromList [(scriptTxOutRefToSpend, txSkelSomeRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
+    ...
+  }
+```
 
 ## Balancing
 
@@ -459,7 +434,7 @@ foo = do
 foo :: MonadBlockChain m => m ()
 foo = do
     bar `withTweak` ( do
-                        addOutputTweak $ paysScript bazValidator bazDatum bazValue
+                        addOutputTweak $ bazValidator `receives` bazPayment
                         removeOutputTweak (\(Pays out) -> somePredicate out)
                         addInputTweak somePkTxOutRef txSkelEmptyRedeemer
                         removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)

@@ -2,7 +2,7 @@ verbatim:
   cabal-version: 3.4
 
 name: cooked-validators
-version: 4.0.0
+version: 5.0.0
 
 dependencies:
   - QuickCheck
@@ -46,11 +46,15 @@ dependencies:
   - tasty-quickcheck
   - text
   - transformers
-
+    
 library:
   source-dirs: src
-  ghc-options:
+  ghc-options: &ghc-options
     -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
     -Wno-missed-extra-shared-lib
     -fobject-code
     -fno-ignore-interface-pragmas
@@ -58,9 +62,7 @@ library:
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
     -fplugin-opt PlutusTx.Plugin:conservative-optimisation
-  default-extensions:
-    - ImportQualifiedPost
-    - AllowAmbiguousTypes
+  default-extensions: &default-extensions
     - ConstraintKinds
     - DataKinds
     - DerivingStrategies
@@ -72,20 +74,20 @@ library:
     - ImportQualifiedPost
     - LambdaCase
     - MultiParamTypeClasses
+    - MultiWayIf
     - NamedFieldPuns
     - NumericUnderscores
     - OverloadedStrings
+    - PolyKinds
     - RankNTypes
     - RecordWildCards
     - ScopedTypeVariables
     - StandaloneDeriving
-    - StrictData
     - TemplateHaskell
     - TupleSections
     - TypeApplications
     - TypeFamilies
     - TypeOperators
-    - TypeSynonymInstances
     - ViewPatterns
 
 tests:
@@ -93,35 +95,7 @@ tests:
     main: Spec.hs
     source-dirs:
       - tests/
-    ghc-options:
-      -Wall
-      -Wno-missed-extra-shared-lib
-      -Wno-type-defaults
-      -fobject-code
-      -fno-ignore-interface-pragmas
-      -fignore-hpc-changes
-      -fno-omit-interface-pragmas
-      -fplugin-opt PlutusTx.Plugin:defer-errors
-      -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+    ghc-options: *ghc-options  
     dependencies:
       - cooked-validators
-      - parsec
-    default-extensions:
-      - ImportQualifiedPost
-      - DataKinds
-      - FlexibleContexts
-      - FlexibleInstances
-      - GADTs
-      - LambdaCase
-      - MultiParamTypeClasses
-      - MultiWayIf
-      - NumericUnderscores
-      - OverloadedStrings
-      - RankNTypes
-      - RecordWildCards
-      - ScopedTypeVariables
-      - TemplateHaskell
-      - TupleSections
-      - TypeApplications
-      - TypeFamilies
-      - ViewPatterns
+    default-extensions: *default-extensions

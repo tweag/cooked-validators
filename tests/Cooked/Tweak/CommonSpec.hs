@@ -1,7 +1,7 @@
 module Cooked.Tweak.CommonSpec (tests) where
 
 import Cooked
-import Data.List
+import Data.List (subsequences)
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -12,7 +12,7 @@ alice :: Wallet
 alice = wallet 1
 
 mkSkel :: [Integer] -> TxSkel
-mkSkel l = set txSkelOutsL (paysPK alice . Script.lovelaceValueOf <$> l) txSkelTemplate
+mkSkel l = set txSkelOutsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
 
 tests :: TestTree
 tests =
@@ -35,7 +35,7 @@ tests =
                   @=? fst
                     <$> runTweak
                       ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
+                          (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
                           ( \value ->
                               if value `Script.geq` Script.lovelaceValueOf 200
                                 then Just $ Script.lovelaceValueOf 789
@@ -49,7 +49,7 @@ tests =
                   @=? fst
                     <$> runTweak
                       ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
+                          (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
                           (const $ Just $ Script.lovelaceValueOf 789)
                           (`elem` [0, 2])
                       )
@@ -94,7 +94,7 @@ tests =
                       <$> runTweak
                         ( combineModsTweak
                             (tail . subsequences)
-                            (txSkelOutsL % itraversed % txSkelOutValueL % Script.adaL)
+                            (txSkelOutsL % itraversed % txSkelOutValueL % txSkelOutValueContentL % Script.adaL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
                         )
                         skelIn
@@ -113,7 +113,7 @@ tests =
                       <$> runTweak
                         ( combineModsTweak
                             (map (: []))
-                            (txSkelOutsL % itraversed % txSkelOutValueL % Script.adaL)
+                            (txSkelOutsL % itraversed % txSkelOutValueL % txSkelOutValueContentL % Script.adaL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
                         )
                         skelIn

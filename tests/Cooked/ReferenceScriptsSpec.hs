@@ -2,7 +2,6 @@ module Cooked.ReferenceScriptsSpec where
 
 import Control.Monad
 import Cooked
-import Cooked.MockChain.GenerateTx
 import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe
@@ -62,8 +61,7 @@ putRefScriptOnWalletOutput recipient referenceScript =
   head
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysPK recipient (Script.lovelaceValueOf 1) `withReferenceScript` referenceScript],
+        { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -76,8 +74,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysScript recipient () (Script.lovelaceValueOf 1) `withReferenceScript` referenceScript],
+        { txSkelOuts = [recipient `receives` (ReferenceScript referenceScript <&&> VisibleHashedDatum ())],
           txSkelSigners = [wallet 1]
         }
 
@@ -93,7 +90,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript (requireRefScriptValidator expectedScriptHash) () (Script.ada 42)],
+        { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -110,7 +107,7 @@ useReferenceScript spendingSubmitter theScript = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript theScript () (Script.ada 42)],
+        { txSkelOuts = [theScript `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -125,14 +122,17 @@ referenceMint mp1 mp2 n autoRefScript = do
   ((!! n) -> mpOutRef) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withReferenceScript` mp1, paysPK (wallet 1) (Script.ada 10)],
+        { txSkelOuts =
+            [ wallet 1 `receives` (Value (Script.ada 2) <&&> ReferenceScript mp1),
+              wallet 1 `receives` Value (Script.ada 10)
+            ],
           txSkelSigners = [wallet 1]
         }
   void $
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(mp2, if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef, "banana", 3)],
-          txSkelOuts = [paysPK (wallet 1) (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
+          txSkelOuts = [wallet 1 `receives` Value (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.scriptCurrencySymbol mp2, "banana")) 3)],
           txSkelSigners = [wallet 1],
           txSkelOpts = def {txOptAutoReferenceScripts = autoRefScript}
         }
@@ -196,7 +196,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
                             txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
                             txSkelSigners = [wallet 1]
                           }
@@ -208,7 +208,7 @@ tests =
                           }
                 )
                 `withErrorPred` \case
-                  MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" _ -> testSuccess
+                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
                   _ -> testFailure,
           testCase "fail from transaction generation for mismatching reference scripts" $
             testToProp $
@@ -218,7 +218,7 @@ tests =
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate
-                          { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
+                          { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
                             txSkelSigners = [wallet 1]
                           }
                     void $
@@ -237,7 +237,7 @@ tests =
               oref : _ <-
                 validateTxSkel'
                   txSkelTemplate
-                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 42)],
+                    { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 42) <&&> VisibleHashedDatum ())],
                       txSkelSigners = [wallet 1]
                     }
               void $
@@ -275,7 +275,7 @@ tests =
             testToProp $
               mustFailTest (referenceMint quickCurrencyPolicyV3 quickCurrencyPolicyV3 1 False)
                 `withErrorPred` \case
-                  MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
+                  MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: No reference script found in utxo."
                   _ -> testFailure
         ]
     ]

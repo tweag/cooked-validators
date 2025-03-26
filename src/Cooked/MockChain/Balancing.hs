@@ -16,7 +16,7 @@ import Control.Monad
 import Control.Monad.Except
 import Cooked.Conversion
 import Cooked.MockChain.BlockChain
-import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoSearch
 import Cooked.Output
@@ -24,7 +24,7 @@ import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Bifunctor
 import Data.Function
-import Data.List
+import Data.List (find, partition, sortBy)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Ratio qualified as Rat
@@ -286,11 +286,11 @@ reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
 -- `reachValue`. This throws an error when there are no suitable candidates.
 getOptimalCandidate :: (MonadBlockChainBalancing m) => [(BalancingOutputs, Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
 getOptimalCandidate candidates paymentTarget mceError = do
-  params <- getParams
   -- We decorate the candidates with their current ada and min ada requirements
-  let candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paysPK paymentTarget val)) <$> candidates
-      -- We filter the candidates that have enough ada to sustain themselves
-      candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
+  candidatesDecorated <- forM candidates $ \(output, val) ->
+    (output,val,Script.fromValue val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
+  -- We filter the candidates that have enough ada to sustain themselves
+  let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Script.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
     -- If the list of candidates is empty, we throw an error
     [] -> throwError mceError
@@ -302,20 +302,13 @@ estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Maybe (Col
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
-  managedData <- txSkelHashedData skel
   let collateralIns = case mCollaterals of
         Nothing -> []
         Just (s, _) -> Set.toList s
-  managedTxOuts <- lookupUtxos $ txSkelKnownTxOutRefs skel <> collateralIns
-  managedValidators <- txSkelInputValidators skel
   -- We generate the transaction body content, handling errors in the meantime
-  txBodyContent <- case generateBodyContent fee params managedData managedTxOuts managedValidators mCollaterals skel of
-    Left err -> throwError $ MCEGenerationError err
-    Right txBodyContent -> return txBodyContent
+  txBodyContent <- txSkelToTxBodyContent skel fee mCollaterals
   -- We create the actual body and send if for validation
-  txBody <- case Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent of
-    Left err -> throwError $ MCEGenerationError $ TxBodyError "Error creating body when estimating fees" err
-    Right txBody -> return txBody
+  txBody <- txBodyContentToTxBody txBodyContent skel
   -- We retrieve the estimate number of required witness in the transaction
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
   -- We need to reconstruct an index to pass to the fee estimate function
@@ -338,7 +331,6 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- value + withdrawn value = output value + burned value + fee + deposits
 computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
-  params <- getParams
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
   let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
@@ -349,9 +341,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   -- We compute the values missing in the left and right side of the equation
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
   -- We compute the minimal ada requirement of the missing payment
-  rightMinAda <- case getTxSkelOutMinAda params $ paysPK balancingWallet missingRight of
-    Left err -> throwError $ MCEGenerationError err
-    Right a -> return a
+  rightMinAda <- getTxSkelOutMinAda $ balancingWallet `receives` Value missingRight
   -- We compute the current ada of the missing payment. If the missing payment
   -- is not empty and the minimal ada is not present, some value is missing.
   let Script.Lovelace rightAda = missingRight ^. Script.adaL
@@ -388,15 +378,15 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected
           -- output. We keep intact the orders of those outputs.
-          let candidatesRaw' = second (<> txSkelOut ^. txSkelOutValueL) <$> candidatesRaw
+          let candidatesRaw' = second (<> txSkelOut ^. (txSkelOutValueL % txSkelOutValueContentL)) <$> candidatesRaw
           (txOutRefs, val) <- getOptimalCandidate candidatesRaw' balancingWallet balancingError
-          return (txOutRefs, before ++ (txSkelOut & txSkelOutValueL .~ val) : after)
+          return (txOutRefs, before ++ (txSkelOut & (txSkelOutValueL % txSkelOutValueContentL) .~ val) : after)
     -- There is no output at the balancing wallet address, or the balancing
     -- policy forces us to create a new output, both yielding the same result.
     _ -> do
       -- We get the optimal candidate, and update the `txSkelOuts` by appending
       -- a new output at the end of the list, to keep the order intact.
       (txOutRefs, val) <- getOptimalCandidate candidatesRaw balancingWallet balancingError
-      return (txOutRefs, txSkelOuts ++ [paysPK balancingWallet val])
+      return (txOutRefs, txSkelOuts ++ [balancingWallet `receives` Value val])
   let newTxSkelIns = txSkelIns <> Map.fromList ((,emptyTxSkelRedeemer) <$> additionalInsTxOutRefs)
   return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns

@@ -43,7 +43,10 @@ testProposingRefScript script govAction = do
   pOutRef : _ <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysPK (wallet 1) (Script.ada 2) `withReferenceScript` script, paysPK (wallet 1) (Script.ada 10)],
+        { txSkelOuts =
+            [ wallet 1 `receives` ReferenceScript script,
+              wallet 1 `receives` Value (Script.ada 10)
+            ],
           txSkelSigners = [wallet 1]
         }
   void $

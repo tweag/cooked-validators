@@ -2,7 +2,6 @@ module Cooked.BasicUsageSpec where
 
 import Control.Monad
 import Cooked
-import Data.Default
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -20,7 +19,7 @@ pkToPk sender recipient amount =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK recipient (Script.ada amount)],
+        { txSkelOuts = [recipient `receives` Value (Script.ada amount)],
           txSkelSigners = [sender]
         }
 
@@ -37,9 +36,8 @@ mintingQuickValue =
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, emptyTxSkelRedeemer, "banana", 10)],
-          txSkelOuts = [paysPK alice (quickValue "banana" 10)],
-          txSkelSigners = [alice],
-          txSkelOpts = def {txOptEnsureMinAda = True}
+          txSkelOuts = [alice `receives` Value (quickValue "banana" 10)],
+          txSkelSigners = [alice]
         }
 
 payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
@@ -47,7 +45,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (Script.ada 10)],
+              { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 10) <&&> VisibleHashedDatum ())],
                 txSkelSigners = [alice]
               }
         )
@@ -59,7 +57,7 @@ consumeAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
-          txSkelOuts = [paysPK alice (Script.ada 10)],
+          txSkelOuts = [alice `receives` Value (Script.ada 10)],
           txSkelSigners = [alice]
         }
 

@@ -116,8 +116,8 @@ bValidator =
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution (paysScript aValidator ADatum . Script.ada <$> [2, 3, 4, 5])
-    <> InitialDistribution (paysScript bValidator BDatum . Script.ada <$> [6, 7])
+    <> InitialDistribution ((\n -> aValidator `receives` (VisibleHashedDatum ADatum <&&> Value (Script.ada n))) <$> [2, 3, 4, 5])
+    <> InitialDistribution ((\n -> bValidator `receives` (VisibleHashedDatum BDatum <&&> Value (Script.ada n))) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)
@@ -150,7 +150,7 @@ tests =
             skelIn aInputs =
               txSkelTemplate
                 { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
-                  txSkelOuts = [paysPK (wallet 2) (Script.lovelaceValueOf 2_500_000)],
+                  txSkelOuts = [wallet 2 `receives` Value (Script.lovelace 2_500_000)],
                   txSkelSigners = [wallet 1]
                 }
 
@@ -164,7 +164,7 @@ tests =
               mapMaybe
                 ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . fst)
                 ( runTweakFrom
-                    (mockChainSt0From customInitDist)
+                    customInitDist
                     ( doubleSatAttack
                         splitMode
                         (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
@@ -230,8 +230,8 @@ tests =
                             <$> aInputs
                         ),
                   txSkelOuts =
-                    [ paysPK (wallet 2) (Script.lovelaceValueOf 2_500_000),
-                      paysPK (wallet 6) (foldMap (outputValue . snd . snd) bInputs)
+                    [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
+                      wallet 6 `receives` Value (foldMap (outputValue . snd . snd) bInputs)
                     ],
                   txSkelSigners = [wallet 1]
                 }
