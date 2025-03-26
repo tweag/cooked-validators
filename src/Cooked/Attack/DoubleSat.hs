@@ -76,11 +76,6 @@ doubleSatAttack ::
   ([is] -> [[is]]) ->
   -- | Each focus of this optic is a potential reason to add some
   -- extra constraints.
-  --
-  -- As an example, one could go through the 'paysScript' outputs for
-  -- validators of type @t@ with the following traversal:
-  --
-  -- > txSkelOutsL % itaversed % txSkelOutputToTypedValidatorP @t
   Optic' k (WithIx is) TxSkel a ->
   -- | How to change each focus, and which inputs, outputs, and mints
   -- to add, for each of the foci. There might be different options

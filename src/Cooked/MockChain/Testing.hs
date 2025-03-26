@@ -214,7 +214,10 @@ withValueAndStatePred test resultPred =
 withExactSize :: (IsProp prop) => Test a prop -> Integer -> Test a prop
 withExactSize test reqSize =
   test
-    { testSizeProp = \n -> if n == reqSize then testSuccess else testFailureMsg "Incorrect number of results"
+    { testSizeProp = \n ->
+        if n == reqSize
+          then testSuccess
+          else testFailureMsg $ "Incorrect number of results (expected: " <> show reqSize <> " but got: " <> show n <> ")"
     }
 
 -- | Appending a predicate over the return value, which will be used in case of

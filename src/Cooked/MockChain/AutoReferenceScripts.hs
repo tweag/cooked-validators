@@ -37,8 +37,8 @@ updateRedeemer _ redeemer = return redeemer
 -- from `updateRedeemer`
 toTxSkelWithReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
 toTxSkelWithReferenceScripts txSkel = do
-  newMints <- forM (txSkelMintsToList $ txSkel ^. txSkelMintsL) $ \(mPol, red, tk, nb) ->
-    (mPol,,tk,nb) <$> updateRedeemer mPol red
+  newMints <- forM (txSkelMintsToList $ txSkel ^. txSkelMintsL) $ \(Mint mPol red tks) ->
+    (\x -> Mint mPol x tks) <$> updateRedeemer (Script.toVersioned @Script.MintingPolicy mPol) red
   newInputs <- forM (Map.toList $ txSkel ^. txSkelInsL) $ \(oRef, red) -> do
     outputM <- txOutByRef oRef
     -- We retrieve the possible script hash of the current oRef

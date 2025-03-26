@@ -34,7 +34,7 @@ instance Eq Api.ScriptPurpose where
   Api.Minting r1 == Api.Minting r2 = r1 == r2
   _ == _ = False
 
-data MintingRed = Mint Api.TxOutRef | Burn
+data MintingRed = MintToken Api.TxOutRef | BurnToken
   deriving (HS.Show, HS.Eq)
 
 instance PrettyCooked MintingRed where
@@ -62,20 +62,15 @@ PlutusTx.makeLift ''SpendingRed
 txOutRefToToken :: Api.TxOutRef -> Api.TokenName
 txOutRefToToken (Api.TxOutRef (Api.TxId txId) n) = Api.TokenName $ sha2_256 (txId <> encodeInteger n)
 
-{-# INLINEABLE txOutRefToToken' #-}
-txOutRefToToken' :: Integer -> Api.TxOutRef -> Api.TokenName
-txOutRefToToken' ix (Api.TxOutRef (Api.TxId txId) n) =
-  Api.TokenName . consByteString ix . sliceByteString 1 31 $ sha2_256 (txId <> encodeInteger n)
-
 {-# INLINEABLE encodeInteger #-}
-encodeInteger :: Integer -> PlutusTx.BuiltinByteString
+encodeInteger :: Integer -> Api.BuiltinByteString
 encodeInteger x
   | x < 256 = PlutusTx.consByteString x ""
   | otherwise = encodeInteger (x `quotient` 256) <> consByteString (x `modulo` 256) ""
 
 {-# INLINEABLE mpMintingPurpose #-}
 mpMintingPurpose :: Api.TxId -> Script.MintingScriptType MintingRed Api.TxInfo
-mpMintingPurpose txId cs@(Api.CurrencySymbol hash) (Mint oRef@(Api.TxOutRef txId' ix)) (Api.TxInfo {..}) =
+mpMintingPurpose txId cs@(Api.CurrencySymbol hash) (MintToken oRef@(Api.TxOutRef txId' ix)) (Api.TxInfo {..}) =
   let requiredMintedValue = Api.assetClassValue (Api.assetClass cs (txOutRefToToken oRef)) 1
    in Script.toValue txInfoMint
         == requiredMintedValue
@@ -91,7 +86,7 @@ mpMintingPurpose txId cs@(Api.CurrencySymbol hash) (Mint oRef@(Api.TxOutRef txId
         `elem` (Api.txInInfoOutRef <$> txInfoInputs)
         && txId
         == txId'
-mpMintingPurpose _ cs@(Api.CurrencySymbol hash) Burn (Api.TxInfo {..}) =
+mpMintingPurpose _ cs@(Api.CurrencySymbol hash) BurnToken (Api.TxInfo {..}) =
   Api.Value
     ( Map.singleton cs
         $ Map.safeFromList
@@ -114,7 +109,7 @@ mpSpendingPurpose oRef (Just x) Close Api.TxInfo {..}
         [ h
           | Api.TxInInfo oRef' (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h)) _) _ _ _) <- txInfoInputs,
             oRef == oRef',
-            Map.lookup (Api.Minting (Api.CurrencySymbol h)) txInfoRedeemers == Just (Api.Redeemer (Api.toBuiltinData Burn))
+            Map.lookup (Api.Minting (Api.CurrencySymbol h)) txInfoRedeemers == Just (Api.Redeemer (Api.toBuiltinData BurnToken))
         ]
         == 1
 mpSpendingPurpose oRef (Just x) Step Api.TxInfo {..} =
@@ -183,7 +178,7 @@ runScript = do
             [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue2),
               script `receives` (InlineDatum (1 :: Integer) <&&> Value mintValue3)
             ],
-          txSkelMints = txSkelMintsFromList [(Script.toVersioned @Script.MintingPolicy script, someTxSkelRedeemer Burn, tn1, -1)]
+          txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn1 1]
         }
 
   (oRefScript2'' : _) <-
@@ -198,20 +193,20 @@ runScript = do
           txSkelOuts =
             [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue3)
             ],
-          txSkelMints = txSkelMintsFromList [(Script.toVersioned @Script.MintingPolicy script, someTxSkelRedeemer Burn, tn2, -1)]
+          txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn2 1]
         }
 
   validateTxSkel_
     $ txSkelTemplate
       { txSkelSigners = [alice],
         txSkelIns = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
-        txSkelMints = txSkelMintsFromList [(Script.toVersioned @Script.MintingPolicy script, someTxSkelRedeemer Burn, tn3, -1)]
+        txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn3 1]
       }
   where
     mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript () -> (TxSkel, Api.Value, Api.TokenName)
     mkMintSkel signer oRef@(Api.TxOutRef _ ix) script =
       let tn = txOutRefToToken oRef
-          mints = txSkelMintsFromList' [(Script.toVersioned @Script.MintingPolicy script, someTxSkelRedeemer (Mint oRef), [(tn, 1)])]
+          mints = txSkelMintsFromList [mint script (someTxSkelRedeemer (MintToken oRef)) tn 1]
           mintValue = txSkelMintsValue mints
        in ( txSkelTemplate
               { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,

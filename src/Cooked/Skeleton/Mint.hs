@@ -2,24 +2,27 @@
 
 module Cooked.Skeleton.Mint
   ( TxSkelMints,
-    addToTxSkelMints,
+    Mint (..),
+    mint,
+    burn,
+    addMint,
+    addMints,
     txSkelMintsToList,
     txSkelMintsFromList,
-    txSkelMintsFromList',
     txSkelMintsValue,
   )
 where
 
 import Cooked.Skeleton.Redeemer as X
+import Data.Bifunctor
 import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
 import Data.Map.NonEmpty qualified as NEMap
-import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
-import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V1.Value qualified as Api
+import PlutusTx.AssocMap qualified as PMap
 import Test.QuickCheck (NonZero (..))
 
 -- | A description of what a transaction mints. For every policy, there can only
@@ -32,25 +35,40 @@ type TxSkelMints =
     (Script.Versioned Script.MintingPolicy)
     (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
 
--- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
---
--- > Map.fromList [(pol, (red, NEMap.fromList [(tName, 1)]))]
---
--- and
---
--- > Map.fromList [(pol, (red', NEMap.fromList [(tName, -1)]))]
---
--- will combine to become the empty 'TxSkelMints' (and similar examples, where
--- the values add up to zero, see the comment at the definition of
--- 'addToTxSkelMints').
---
--- In every case, if you add mints with a different redeemer for the same
--- policy, the redeemer used in the right argument takes precedence.
-instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
-  a <> b = foldl (flip addToTxSkelMints) a (txSkelMintsToList b)
+-- | A description of a new entry to be added in a 'TxSkelMints'. The users
+-- should be using lists of those (using 'txSkelMintsFromList') instead of
+-- building a 'TxSkelMints' directly.
+data Mint where
+  Mint ::
+    (Script.ToVersioned Script.MintingPolicy a) =>
+    { txSkelMintMintingPolicy :: a,
+      txSkelMintRedeemer :: TxSkelRedeemer,
+      txSkelMintTokens :: [(Api.TokenName, Integer)]
+    } ->
+    Mint
 
-instance {-# OVERLAPPING #-} Monoid TxSkelMints where
-  mempty = Map.empty
+-- | Additional helper to build some 'Mint' in the usual minting case where a
+-- single type of token is minted for a given MP
+mint :: (Script.ToVersioned Script.MintingPolicy a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
+mint mp red tn n = Mint mp red [(tn, n)]
+
+-- | Similar to 'mint' but deducing the tokens instead
+burn :: (Script.ToVersioned Script.MintingPolicy a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
+burn mp red tn n = mint mp red tn (-n)
+
+-- | Add a new pair (TokenName, Amount) to a non-empty map or pairs. There are
+-- some case where this addition car lead to the removal of an entry in the map
+-- and, if this happens to be the last entry, to the returning map being empty.
+-- This is why the return value is optional.
+addTokens :: [(Api.TokenName, Integer)] -> NEMap Api.TokenName (NonZero Integer) -> Maybe (NEMap Api.TokenName (NonZero Integer))
+addTokens [] neMap = Just neMap
+addTokens ((_, n) : l) neMap | n == 0 = addTokens l neMap
+addTokens ((tn, n) : l) neMap = case addTokens l neMap of
+  Nothing -> Just $ NEMap.singleton tn (NonZero n)
+  Just neMap' -> case NEMap.lookup tn neMap' of
+    Nothing -> Just $ NEMap.insert tn (NonZero n) neMap'
+    Just (NonZero n') | n - n' == 0 -> NEMap.nonEmptyMap $ NEMap.delete tn neMap'
+    Just (NonZero n') -> Just $ NEMap.insert tn (NonZero (n + n')) neMap'
 
 -- | Add a new entry to a 'TxSkelMints'. There are a few wrinkles:
 --
@@ -65,85 +83,61 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- redeemer is thrown away. The values associated with the token names of that
 -- policy are added as described above, though. This means that any pre-existing
 -- values will be minted with a new redeemer.
+addMint :: TxSkelMints -> Mint -> TxSkelMints
+addMint txSkelMints (Mint _ _ []) = txSkelMints
+addMint txSkelMints (Mint (Script.toVersioned -> mp) red tks@((tn, NonZero -> n) : tkxs)) =
+  case Map.lookup mp txSkelMints of
+    Nothing -> case addTokens tkxs (NEMap.singleton tn n) of
+      Nothing -> txSkelMints
+      Just newSubmap -> Map.insert mp (red, newSubmap) txSkelMints
+    Just (_, subMap) -> case addTokens tks subMap of
+      Nothing -> Map.delete mp txSkelMints
+      Just newSubmap -> Map.insert mp (red, newSubmap) txSkelMints
+
+-- | Adds a list of 'Mint' to a 'TxSkelMints', by iterating over the list
+-- and using 'addMint'
+addMints :: TxSkelMints -> [Mint] -> TxSkelMints
+addMints = foldl addMint
+
+-- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
 --
--- If, for some reason, you really want to generate a 'TxSkelMints' that has
--- both a negative and a positive entry of the same asset class and redeemer,
--- you'll have to do so manually. Note, however, that even if you do so, NO
--- VALIDATOR OR MINTING POLICY WILL EVER GET TO SEE A TRANSACTION WITH SUCH
--- CONFLICTING INFORMATION. This is not a design decision/limitation of
--- cooked-validators: The Cardano API 'TxBodyContent' type, that we're
--- translating everything into eventually, stores minting information as a
--- minted value together with a map from policy IDs to witnesses (which
--- represent the used redeemers). That means that we can only store _one_
--- redeemer per minting policy, and no conflicting mints of the same asset
--- class, since they'll just cancel.
-addToTxSkelMints ::
-  (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) ->
-  TxSkelMints ->
-  TxSkelMints
-addToTxSkelMints (pol, red, tName, amount) mints
-  | 0 == amount = mints
-  | otherwise = case mints Map.!? pol of
-      Nothing ->
-        -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
-        -- new entry:
-        Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
-      Just (_oldRed, innerMap) ->
-        -- Ignore the old redeemer: If it's the same as the new one, nothing
-        -- will change, if not, the new redeemer will be kept.
-        case innerMap NEMap.!? tName of
-          Nothing ->
-            -- The given token name has not yet occurred for the given
-            -- policy. This means that we can just add the new tokens to the
-            -- inner map:
-            Map.insert pol (red, NEMap.insert tName (NonZero amount) innerMap) mints
-          Just (NonZero oldAmount) ->
-            let newAmount = oldAmount + amount
-             in if newAmount /= 0
-                  then -- If the sum of the old amount of tokens and the
-                  -- additional tokens is non-zero, we can just update the
-                  -- amount in the inner map:
-                    Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
-                  else -- If the sum is zero, we'll have to delete the token
-                  -- name from the inner map. If that yields a completely empty
-                  -- inner map, we'll have to remove the entry altogether:
-                  case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
-                    Nothing -> Map.delete pol mints
-                    Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
+-- > Map.fromList [(pol, (red, NEMap.fromList [(tName, 1)]))]
+--
+-- and
+--
+-- > Map.fromList [(pol, (red', NEMap.fromList [(tName, -1)]))]
+--
+-- will combine to become the empty 'TxSkelMints' (and similar examples, where
+-- the values add up to zero, see the comment at the definition of
+-- 'addMint').
+--
+-- In every case, if you add mints with a different redeemer for the same
+-- policy, the redeemer used in the right argument takes precedence.
+instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
+  a <> b = addMints a (txSkelMintsToList b)
 
--- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
--- being minted.
-txSkelMintsToList :: TxSkelMints -> [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer)]
+instance {-# OVERLAPPING #-} Monoid TxSkelMints where
+  mempty = Map.empty
+
+-- | Convert from 'TxSkelMints' to a list of 'Mint'
+txSkelMintsToList :: TxSkelMints -> [Mint]
 txSkelMintsToList =
-  concatMap
-    ( \(p, (r, m)) ->
-        (\(t, NonZero n) -> (p, r, t, n))
-          <$> NEList.toList (NEMap.toList m)
-    )
-    . Map.toList
+  map (\(p, (r, m)) -> Mint p r $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList
 
--- | Smart constructor for 'TxSkelMints'. This function relies on
--- 'addToTxSkelMints'. So, some non-empty lists (where all amounts for a given
--- asset class an redeemer add up to zero) might be translated into the empty
--- 'TxSkelMints'.
-txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer)] -> TxSkelMints
-txSkelMintsFromList = foldr addToTxSkelMints mempty
-
--- | Another smart constructor for 'TxSkelMints', where the redeemer and minting
--- policies are not duplicated.
-txSkelMintsFromList' :: [(Script.Versioned Script.MintingPolicy, TxSkelRedeemer, [(Api.TokenName, Integer)])] -> TxSkelMints
-txSkelMintsFromList' = txSkelMintsFromList . concatMap (\(mp, r, m) -> (\(tn, i) -> (mp, r, tn, i)) <$> m)
+-- | A smart constructor for 'TxSkelMints'
+txSkelMintsFromList :: [Mint] -> TxSkelMints
+txSkelMintsFromList = addMints mempty
 
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Api.Value
-txSkelMintsValue =
-  foldMapOf
-    (to txSkelMintsToList % folded)
-    ( \(policy, _, tName, amount) ->
-        Script.assetClassValue
-          ( Script.assetClass
-              (Script.scriptCurrencySymbol policy)
-              tName
+txSkelMintsValue txSkelMints =
+  Api.Value $
+    PMap.unsafeFromList $
+      ( \(mp, (_, tks)) ->
+          ( Script.scriptCurrencySymbol mp,
+            PMap.unsafeFromList $
+              (\(t, NonZero n) -> (t, n))
+                <$> NEList.toList (NEMap.toList tks)
           )
-          amount
-    )
+      )
+        <$> Map.toList txSkelMints

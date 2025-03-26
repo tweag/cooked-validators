@@ -16,7 +16,6 @@ module Cooked.Pretty.Cooked
   ( prettyTxSkel,
     prettyBalancingWallet,
     prettySigners,
-    prettyMints,
     mPrettyTxOpts,
     prettyTxSkelOut,
     prettyTxSkelOutDatumMaybe,
@@ -186,7 +185,7 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
     ( catMaybes
         [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
           mPrettyTxOpts opts txopts,
-          prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
+          prettyItemizeNonEmpty "Mints:" "-" (prettyCookedOpt opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
           prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
@@ -353,17 +352,16 @@ prettySigners _ _ [] = []
 
 -- | Prints a minting specification
 --
--- Examples without and with redeemer
--- > #abcdef "Foo": 500
--- > #123456 "Bar": 1000
+-- Example:
+-- > #abcdef
 --     - Redeemer: red
 --     - Reference script at: txOutRef
-prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) -> DocCooked
-prettyMints opts (policy, redeemer, tokenName, amount) =
-  let docTitle = prettyCookedOpt opts policy <+> PP.viaShow tokenName <> ":" <+> PP.viaShow amount
-   in case prettyTxSkelRedeemer opts redeemer of
-        [] -> docTitle
-        l -> prettyItemize docTitle "-" l
+--     - "Foo": 500
+--     - "Bar": 1000
+instance PrettyCooked Mint where
+  prettyCookedOpt opts (Mint pol red tks) =
+    prettyItemize (prettyCookedOpt opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
+      prettyTxSkelRedeemer opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
 prettyTxSkelOut :: PrettyCookedOpts -> TxSkelOut -> DocCooked
 prettyTxSkelOut opts (Pays output) =
