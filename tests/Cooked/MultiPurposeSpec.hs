@@ -3,14 +3,14 @@
 
 -- | This modules defines a small dummy smart contract which can both be used as
 -- a spending or minting script. The smart contract is parameterized with a
--- transaction. It allows the minting of as manay NFTs as there are outputs to
--- this transactions. Each NFT can be minted alone, in a transaction that
--- consumes one of these outputs. They must be put at the script minting script
--- address to allow for the spending purpose to be used, with a datum containing
--- an integer. This integer must be equal to the index at which the TxOutRef was
+-- transaction id. It allows the minting of as many NFTs as there are outputs to
+-- this transactions. Each NFT has to be minted alone, in a transaction that
+-- consumes exactly one of these outputs. They must be put at the script address
+-- to allow for the spending purpose to be used, with a datum containing an
+-- integer. This integer must be equal to the index at which the TxOutRef was
 -- produced in the parameter transaction. Then, if the datum is 0, the token can
 -- be burned while consuming its UTXO. If is it greater than 0, 1 by 1 steps can
--- descrease the counter until it reaches 0, at which point it can be burned.
+-- decrease the counter until it reaches 0, at which point it can be burned.
 module Cooked.MultiPurposeSpec where
 
 import Cooked
@@ -66,7 +66,7 @@ txOutRefToToken (Api.TxOutRef (Api.TxId txId) n) = Api.TokenName $ sha2_256 (txI
 encodeInteger :: Integer -> Api.BuiltinByteString
 encodeInteger x
   | x < 256 = PlutusTx.consByteString x ""
-  | otherwise = encodeInteger (x `quotient` 256) <> consByteString (x `modulo` 256) ""
+  | otherwise = consByteString (x `modulo` 256) $ encodeInteger (x `quotient` 256)
 
 {-# INLINEABLE mpMintingPurpose #-}
 mpMintingPurpose :: Api.TxId -> Script.MintingScriptType MintingRed Api.TxInfo

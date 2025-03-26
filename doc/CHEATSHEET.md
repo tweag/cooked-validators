@@ -3,6 +3,7 @@
 * This cheastsheet is quick reminder, not a tutorial about `cooked-validators`.
 * Minimum prior knowledge (Cardano, general idea of what `cooked-validators` is about) is expected.
 * It reminds how to use or help discover `cooked-validators` features.
+* This does not go in depth into all features, instead it give an overview of their most basic usage.
 * Code snippets are not usable as is, they give intuition and direction. Adapt them to your use case.
 
 ## Basics
@@ -29,7 +30,7 @@
 	  , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 	  ]
   ```
-* With arbitrary payments
+* With arbitrary payments (more details on the payments content in the dedicated section)
   ```haskell
   initDist :: InitialDistribution
   initDist = InitialDistribution
@@ -46,6 +47,8 @@
 
 ### Give human-readable names to pubkey/script/minting hashes
 
+* Outside the mockchain, for static names in the pretty options direclty:
+
 ```haskell
 pcOpts :: C.PrettyCookedOpts
 pcOpts =
@@ -54,9 +57,9 @@ pcOpts =
         def
           { C.pcOptHashNames =
                 C.hashNamesFromList
-                  [ (alice, "Alice"),
-                    (bob, "Bob"),
-                    (carrie, "Carie")
+                  [ (wallet 1, "Alice"),
+                    (wallet 2, "Bob"),
+                    (wallet 3, "Carie")
                   ]
                 <> C.hashNamesFromList
                   [ (nftCurrencySymbol, "NFT"),
@@ -68,6 +71,17 @@ pcOpts =
                 <> C.defaultHashNames -- IMPORTANT: must be the last element
           }
     }
+```
+
+```haskell
+pcOpts :: C.PrettyCookedOpts
+pcOpts = addHashNames (C.hashNamesFromList [...] <> ...) def
+```
+
+* Inside the mockchain, for dynamic names (depending on on-chain data, such as `TxOutRef`s):
+
+```haskell
+myScript <- define "myScript" $ generateScript txOutRef
 ```
 
 ### Write a trace or endpoint
@@ -149,12 +163,12 @@ foo = do
 * `walletAddress (wallet 3)`
 * `walletPKHash (wallet 2)`
 
-### Sign a transaction with a wallet
+### Sign a transaction with one or more wallets
 
 ```haskell
 txSkelTemplate
     { ...
-      txSkelSigners = [wallet 1]
+      txSkelSigners = [wallet 1, ...]
       ...
     }
 ```
@@ -241,17 +255,21 @@ foo txOutRef = do
 * Mint tokens: positive amount
 * Burn tokens: negative amount
 
-* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, emptyTxSkelRedeemer, "fooName", 3)`
-* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, someTxSkelRedeemer typedRedeemer, "barName", -3)`
-* With a redeemer and explicit reference script: ``(Script.Versioned barPolicy Script.PlutusV3, someTxSkelRedeemer typedRedeemer `withReferenceInput` oRef, "barName", 12)``
-* With a redeemer and implicit reference script: `(Script.Versioned barPolicy Script.PlutusV3, someTxSkelRedeemer typedRedeemer, "fooName", -6)`, and turn on option `txOptAutoReferenceScript`
+* No redeemer: `Mint fooPolicy emptyTxSkelRedeemer [("fooName", 3),("barName", 5)]`
+* With redeemer: `Mint barPolicy (someTxSkelRedeemer redeemer) [("fooName", 3), ("barName", -3)]`
+* With a redeemer and explicit reference script: ``Mint bazPolicy (someTxSkelRedeemer redeemer `withReferenceInput` oRef) [("fooName", 15), ("barName", 12)]``
+* With a redeemer and implicit reference script: `Mint barPolicy (someTxSkelRedeemer redeemer) [("fooName", -6)]`, and turn on option `txOptAutoReferenceScript`
+* Mint a single kind of token for a given minting policy: `mint fooPolicy red "fooName" 5`
+* Burn a single kind of token for a given minting policy: `burn barPolicy red "barName" 6`
 
 ```haskell
 txSkelTemplate
   { ...
     txSkelMints = txSkelMintsFromList
-      [ (Script.Versioned fooPolicy Script.PlutusV3, ..., ..., ...),
-        (Script.Versioned barPolicy Script.PlutusV3, ..., ..., ...)
+      [ Mint ...,
+        mint ...,
+		burn ...,
+		Mint ...
       ]
     ...
   }
@@ -262,11 +280,6 @@ txSkelTemplate
 * allow min ADA adjustment, by providing a value: ```party `receives` (Value (myToken 5))```
 * allow min ADA adjustment, by providing no value: ```party `receives` (Datum myDatum)```
 * forbid min ADA adjustment: ```party `receives` (FixedValue $ ada 10) ```
-
-### Have pre-existing non-Ada tokens that cannot be minted or burnt
-
-* `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`
-* ```party `receives` ... (permanentValue "customToken" 7)```
 
 ### Use reference inputs in a transaction
 
@@ -280,10 +293,26 @@ txSkelTemplate
 
 ### Spend a referenced script output
 
+* With empty redeemer
 ```haskell
 txSkelTemplate
   { ...
-    txSkelIns = Map.fromList [(scriptTxOutRefToSpend, txSkelSomeRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
+    txSkelIns = Map.fromList [
+	   (scriptTxOutRefToSpend, TxSkelRedeemer EmptyRedeemer txOutRefCarryingReferenceScript), 
+	   (scriptTxOutRefToSpend', emptyTxSkelRedeemer `withReferenceInput` txOutRefCarryingReferenceScript'), 
+	   ...],
+    ...
+  }
+```
+
+* With some redeemer
+```haskell
+txSkelTemplate
+  { ...
+    txSkelIns = Map.fromList [
+	   (scriptTxOutRefToSpend, TxSkelRedeemer (SomeRedeemer red) txOutRefCarryingReferenceScript), 
+	   (scriptTxOutRefToSpend', someTxSkelRedeemer red `withReferenceInput` txOutRefCarryingReferenceScript'), 
+	   ...],
     ...
   }
 ```

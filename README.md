@@ -38,7 +38,7 @@ the [license](LICENSE) for details.
 ## How to integrate `cooked-validators` in a project
 
 To use `cooked-validators`, you need
-- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_5.html) version 9.6.5
+- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_5.html) version 9.6.6
 - [Cabal](https://www.haskell.org/cabal) version 3.10 or later
 
 1. `cooked-validators` depends on
@@ -59,7 +59,7 @@ the `packages` stanza.
      subdir:
        .
    ```
-   where `myTag` is either a commit hash in the repo, or a tag, such as v4.0.0
+   where `myTag` is either a commit hash in the repo, or a tag, such as v5.0.0
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
 
@@ -69,7 +69,7 @@ the `packages` stanza.
    [depend](https://cabal.readthedocs.io/en/stable/getting-started.html#adding-dependencies)
    on `cooked-validators` and `plutus-script-utils`
    
-3. Enter a Cabal read-eval-print-loop (with `cabal repl`)
+2. Enter a Cabal read-eval-print-loop (with `cabal repl`)
    and create and validate a transaction which transfers 10 Ada
    from wallet 1 to wallet 2:
    ```haskell
@@ -77,7 +77,7 @@ the `packages` stanza.
    > import qualified Plutus.Script.Utils.Ada as Script
    > printCooked . runMockChain . validateTxSkel $
          txSkelTemplate
-           { txSkelOuts = [paysPK (wallet 2) (Script.adaValueOf 10)],
+           { txSkelOuts = [wallet 2 `receives` Value (ada 10)],
              txSkelSigners = [wallet 1]
            }
    [...]
@@ -116,7 +116,7 @@ ready-to-use recipes book.
 
 - We also have a [repository](https://github.com/tweag/cooked-smart-contracts)
 of example contracts with offchain code and tests written using
-`cooked-validators`. Note that some examples are not maintained and thus written
+`cooked-validators`. Note that these examples are not maintained and thus written
 using older versions of cooked-validators.
 
 - Feel free to visit our [issue

@@ -23,7 +23,5 @@ hasLabelTweak = (viewTweak txSkelLabelL <&>) . Set.member . TxLabel
 -- | Removes a label from a 'TxSkel' when possible, fails otherwise
 removeLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
 removeLabelTweak label = do
-  hasLabel <- hasLabelTweak label
-  if hasLabel
-    then overTweak txSkelLabelL . Set.delete $ TxLabel label
-    else mzero
+  hasLabelTweak label >>= guard
+  overTweak txSkelLabelL . Set.delete $ TxLabel label

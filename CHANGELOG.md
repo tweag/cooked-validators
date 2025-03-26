@@ -4,13 +4,69 @@
 
 ### Added
 
+- Module `Cooked.Pretty.Hashable` has been brought back from
+  `Cooked.Conversion.ToHash` has it has no purpose being in
+  `plutus-script-utils`.
+- It is now possible to use `TxSkelOutNoDatum` when paying to scripts, as
+  PlutusV3 allows for it. As a consequence, providing no datum in a `Payable` will
+  result in the generation of `TxSkelOutDatum ()` for scripts of version 1 or 2,
+  and in the generation of `TxSkelOutNoDatum` for scripts of version 3.
+- New `define` primitive in `MonadBlockChainBalancing` which allows to bind an
+  alias while defining a variable. This is used by the pretty printer to render
+  names that are dynamic, i.e. depend on on-chain data, like utxos.
+- The list of `MockChainLogEntry` has been integrated into a `MockChainBook`
+  which also stores the aliases exported using `define`.
+- The testing framewok now allows to predicate over the number of resulting
+  traces using new Test field `testSizeProp` and new helper `withExactSize`.
+- Support for multi-purpose scripts post CIP69 and Chang hard fork.
+- A test over multi purpose scripts with Minting + Spending purposes.
+- Constructor `Mint` with smart constructors `mint` and `burn` to populate the
+  `TxSkelMints` field of our skeleton.
+- New helper `addHashNames` to add alias in the pretty cooked options without
+  overriding the existing default names.
+- `OwnerConstraints` and `ReferenceScriptConstraints` for output to clarify some
+  types and allow to reuse those constraints in other parts of the code, such as
+  attacks or tweaks.
+- New helper `txSkelOutReferenceScript` to retrieve the option reference script
+  from an output.
+  
 ### Removed
+
+- Modules `Validators.hs` and `Currencies.hs`. Their content has been moved to
+  `plutus-script-utils` directly with some improvements and adaptations.
+- Modules `Cooked.Conversion.***` which have been integrated to
+  `plutus-script-utils`. 
+- Two helpers from `Skeleton.hs` that were only used once in `MockChain.Direct`:
+  `txSkelValidatorsInOutputs`, `txSkelReferenceScripts`
+- `walletCredential`, `walletAddress` replaced by `toCredential` and
+  `toAddress` from the classes `ToCredential` and `ToAddress`.
 
 ### Changed
 
+- Update cardano-api to version 10.10, post Chang hard fork.
+- Datum hijacking attack now branches on each modified outputs.
+- Datum hijacking attack has a simpler interface, no longer relying on optics.
+- Datum hijacking can now redirect output to any suitable party, the type of can
+  be different from the original owner of the utxo.
+- The link to explicit typed validators, validators and minting policies has
+  been reduced, relying on conversion type classes whenever possible.
+- `TxSkelMints` is now built from a list of dedicated `Mint` constructs instead
+  of tuples. This allows to use any kind of scripts that can be seen as
+  versioned minting policies, such as multipurpose scripts.
+- The default way of building `TxSkelMints` now does not pushes for specifying
+  multiple redeemers for the same minting policy.
+- `validatorFromHash` changed to `scriptFromHash`
+- Token names can now be seen as hashables by the pretty printer and thus giving
+  a dynamic alias during mockchain runs using `define`.
+- Default hash names map in the pretty printer option have been updated.
+- The `removeLabelTweak` now fails if the label is absent from the skeleton.
+
 ### Fixed
 
-## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2024-06-28
+- A bug where reference inputs given in the withdrawal redeemer would not be put
+  in the set of reference inputs of the generated transaction.
+
+## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2025-03-17
 
 ### Added
 
