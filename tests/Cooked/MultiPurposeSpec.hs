@@ -155,8 +155,8 @@ runScript = do
           txSkelSigners = [bob]
         }
 
-  let script = mpScript txId
-      (mintSkel1, _, tn1) = mkMintSkel alice oRef script
+  script <- define "My multipurpose script" $ mpScript txId
+  let (mintSkel1, _, tn1) = mkMintSkel alice oRef script
       (mintSkel2, mintValue2, tn2) = mkMintSkel alice oRef' script
       (mintSkel3, mintValue3, tn3) = mkMintSkel bob oRef'' script
 

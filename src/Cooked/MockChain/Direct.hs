@@ -139,7 +139,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   setParams newParams = modify (\st -> st {mcstParams = newParams})
   currentSlot = gets mcstCurrentSlot
   awaitSlot slot = modify' (\st -> st {mcstCurrentSlot = max slot (mcstCurrentSlot st)}) >> currentSlot
-  alias hashable name = tell ([], Map.singleton (toHash hashable) name)
+  define name hashable = tell ([], Map.singleton (toHash hashable) name) >> return hashable
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do

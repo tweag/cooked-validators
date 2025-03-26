@@ -82,7 +82,7 @@ data MockChainBuiltin a where
   UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
   ScriptFromHash :: Script.ScriptHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
-  Alias :: (ToHash a) => a -> String -> MockChainBuiltin ()
+  Define :: (ToHash a) => String -> a -> MockChainBuiltin a
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -140,7 +140,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (ThrowError err) = throwError err
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
   interpBuiltin (LogEvent entry) = logEvent entry
-  interpBuiltin (Alias hash name) = alias hash name
+  interpBuiltin (Define name hash) = define name hash
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -212,7 +212,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   setParams = singletonBuiltin . SetParams
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
-  alias hash = singletonBuiltin . Alias hash
+  define name = singletonBuiltin . Define name
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
