@@ -22,13 +22,17 @@ import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainSt
 import Cooked.MockChain.UtxoState
 import Cooked.Output
+import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Data.Default
+import Data.Map (Map)
 import Data.Map.Strict qualified as Map
+import Data.Maybe
 import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import PlutusLedgerApi.V3 qualified as Api
 
 -- * Direct Emulation
 
@@ -41,9 +45,17 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 -- Running a 'MockChain' produces a 'UtxoState', a simplified view on
 -- 'Ledger.UtxoIndex', which we also keep in our state.
 
+type MockChainBook = ([MockChainLogEntry], Map Api.BuiltinByteString String)
+
 newtype MockChainT m a = MockChainT
-  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT [MockChainLogEntry] m))) a}
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadWriter [MockChainLogEntry])
+  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT MockChainBook m))) a}
+  deriving newtype
+    ( Functor,
+      Applicative,
+      MonadState MockChainSt,
+      MonadError MockChainError,
+      MonadWriter MockChainBook
+    )
 
 type MockChain = MockChainT Identity
 
@@ -73,7 +85,7 @@ combineMockChainT f ma mb = MockChainT $
         resB = runWriterT $ runExceptT $ runStateT (unMockChain mb) s
      in ExceptT $ WriterT $ f resA resB
 
-type MockChainReturn a b = (Either MockChainError (a, b), [MockChainLogEntry])
+type MockChainReturn a b = (Either MockChainError (a, b), MockChainBook)
 
 mapMockChainT ::
   (m (MockChainReturn a MockChainSt) -> n (MockChainReturn b MockChainSt)) ->
@@ -116,20 +128,21 @@ runMockChain = runIdentity . runMockChainT
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
-  validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
+  scriptFromHash sHash = gets $ Map.lookup sHash . mcstScripts
   txOutByRef outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAt addr = filter ((addr ==) . outputAddress . snd) <$> allUtxos
-  logEvent l = tell [l]
+  logEvent l = tell ([l], Map.empty)
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   allUtxos = gets $ Map.toList . getIndex . mcstIndex
   setParams newParams = modify (\st -> st {mcstParams = newParams})
   currentSlot = gets mcstCurrentSlot
-  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
+  awaitSlot slot = modify' (\st -> st {mcstCurrentSlot = max slot (mcstCurrentSlot st)}) >> currentSlot
+  alias hashable name = tell ([], Map.singleton (toHash hashable) name)
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal@TxSkel {..} | TxOpts {..} <- txSkelOpts = do
+  validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do
     -- We log the submitted skeleton
     gets mcstToSkelContext >>= logEvent . (`MCLogSubmittedTxSkel` skelUnbal)
     -- We retrieve the current parameters
@@ -177,12 +190,13 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Just err -> throwError (uncurry MCEValidationError err)
       -- Otherwise, we update known validators and datums.
       Nothing -> do
-        insData <- txSkelInputDataAsHashes skel
-        modify'
-          ( removeDatums insData
-              . addDatums (txSkelDataInOutputs skel)
-              . addValidators (txSkelValidatorsInOutputs skel <> txSkelReferenceScripts skel)
-          )
+        -- We add the script in outputs
+        forM_ (mapMaybe txSkelOutValidator (txSkelOuts skel)) $ modify' . addScript
+        forM_ (mapMaybe txSkelOutReferenceScript (txSkelOuts skel)) $ modify' . addScript
+        -- We remove the consumed datums
+        txSkelInputDataAsHashes skel >>= (modify' . removeDatums)
+        -- We add the created datums
+        (modify' . addDatums) (txSkelDataInOutputs skel)
     -- Now that we have computed a new index, we can update it
     modify' (\st -> st {mcstIndex = newUtxoIndex})
     -- We apply a change of slot when requested in the options

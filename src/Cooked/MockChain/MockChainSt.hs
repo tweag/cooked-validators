@@ -7,8 +7,6 @@ import Cardano.Ledger.Shelley.LedgerState qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
-import Cooked.Conversion.ToScriptHash
-import Cooked.Conversion.ToVersionedScript
 import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -29,6 +27,7 @@ import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core (view)
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -42,7 +41,7 @@ data MockChainSt = MockChainSt
     -- of the state to the user, and to recover datums for transaction
     -- generation.
     mcstDatums :: Map Api.DatumHash (TxSkelOutDatum, Integer),
-    mcstValidators :: Map Script.ValidatorHash (Script.Versioned Script.Validator),
+    mcstScripts :: Map Script.ScriptHash (Script.Versioned Script.Script),
     mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show, Eq)
@@ -152,8 +151,8 @@ removeDatums toRemove st@(MockChainSt {mcstDatums}) =
     minusMaybe n | n == 1 = Nothing
     minusMaybe n = Just $ n - 1
 
-addValidators :: Map Script.ValidatorHash (Script.Versioned Script.Validator) -> MockChainSt -> MockChainSt
-addValidators valMap st@(MockChainSt {mcstValidators}) = st {mcstValidators = Map.union valMap mcstValidators}
+addScript :: (Script.ToScriptHash s, Script.ToVersioned Script.Script s) => s -> MockChainSt -> MockChainSt
+addScript script st = st {mcstScripts = Map.insert (Script.toScriptHash script) (Script.toVersioned script) (mcstScripts st)}
 
 -- * Initial `MockChainSt` from an initial distribution
 
@@ -162,7 +161,7 @@ mockChainSt0From i0 = (\x -> MockChainSt def x (datumMap0From i0) (referenceScri
 
 -- | Reference scripts from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
-referenceScriptMap0From :: InitialDistribution -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+referenceScriptMap0From :: InitialDistribution -> Map Script.ScriptHash (Script.Versioned Script.Script)
 referenceScriptMap0From =
   -- This builds a map of entries from the reference scripts contained in the
   -- initial distribution
@@ -170,15 +169,14 @@ referenceScriptMap0From =
   where
     -- This takes a single output and returns a possible map entry when it
     -- contains a reference script
-    unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
+    unitMaybeFrom :: TxSkelOut -> Maybe (Script.ScriptHash, Script.Versioned Script.Script)
     unitMaybeFrom (Pays output) = do
-      refScript <- view outputReferenceScriptL output
-      let vScript@(Script.Versioned script version) = toVersionedScript refScript
-      return (Script.ValidatorHash $ Api.getScriptHash $ toScriptHash vScript, Script.Versioned (Script.Validator script) version)
+      vScript <- Script.toVersioned @Script.Script <$> view outputReferenceScriptL output
+      return (Script.toScriptHash vScript, vScript)
 
 -- | Scripts from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
-scriptMap0From :: InitialDistribution -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+scriptMap0From :: InitialDistribution -> Map Script.ScriptHash (Script.Versioned Script.Script)
 scriptMap0From =
   -- This builds a map of entries from the scripts contained in the initial
   -- distribution
@@ -186,10 +184,10 @@ scriptMap0From =
   where
     -- This takes a single output and returns a possible map entry when it
     -- contains a script
-    unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
+    unitMaybeFrom :: TxSkelOut -> Maybe (Script.ScriptHash, Script.Versioned Script.Script)
     unitMaybeFrom txSkelOut = do
       val <- txSkelOutValidator txSkelOut
-      return (Script.ValidatorHash $ Api.getScriptHash $ toScriptHash val, val)
+      return (Script.toScriptHash val, Script.toVersioned @Script.Script val)
 
 -- | Datums from initial distributions should be accounted for in the
 -- `MockChainSt` which is done using this function.
@@ -230,7 +228,7 @@ utxoIndex0From (InitialDistribution initDist) = do
     <$> either
       (throwError . MCEGenerationError . TxBodyError "generateTx :")
       return
-      ( Cardano.createAndValidateTransactionBody
+      ( Cardano.createTransactionBody
           Cardano.ShelleyBasedEraConway
           (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs})
       )

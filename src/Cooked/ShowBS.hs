@@ -148,6 +148,10 @@ instance ShowBS Api.Value where
   {-# INLINEABLE showBS #-}
   showBS (Api.Value m) = application1 "Value" m
 
+instance ShowBS Api.MintValue where
+  {-# INLINEABLE showBS #-}
+  showBS mVal = showBS $ Api.mintValueMinted mVal <> negate (Api.mintValueBurned mVal)
+
 instance ShowBS Api.TxId where
   {-# INLINEABLE showBS #-}
   showBS (Api.TxId x) = application1 "TxId" x
@@ -391,6 +395,15 @@ instance ShowBS Api.TxInfo where
       <> "treasury donation:"
       <> showBS txInfoTreasuryDonation
 
+instance ShowBS Api.ScriptInfo where
+  {-# INLINEABLE showBS #-}
+  showBS (Api.MintingScript cs) = application1 "MintingScript" cs
+  showBS (Api.SpendingScript oref mDat) = application2 "SpendingScript" oref mDat
+  showBS (Api.RewardingScript stCred) = application1 "RewardingScript" stCred
+  showBS (Api.CertifyingScript nb txCert) = application2 "CertifyingScript" nb txCert
+  showBS (Api.VotingScript voter) = application1 "VotingScript" voter
+  showBS (Api.ProposingScript nb proposal) = application2 "ProposingScript" nb proposal
+
 instance ShowBS Api.ScriptContext where
   {-# INLINEABLE showBS #-}
   showBS Api.ScriptContext {..} =
@@ -398,5 +411,7 @@ instance ShowBS Api.ScriptContext where
       $ "Script context:"
       <> "Script Tx info:"
       <> showBS scriptContextTxInfo
+      <> "Script redeemer:"
+      <> showBS scriptContextRedeemer
       <> "Script purpose:"
-      <> showBS scriptContextPurpose
+      <> showBS scriptContextScriptInfo

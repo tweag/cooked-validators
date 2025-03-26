@@ -6,16 +6,20 @@ module Cooked.Pretty.Options
     PCOptTxOutRefs (..),
     hashNamesFromList,
     defaultHashNames,
+    addHashNames,
   )
 where
 
-import Cooked.Conversion.ToHash
-import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
-import Cooked.Wallet (wallet)
+import Cooked.Pretty.Hashable
+import Cooked.Wallet
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.V1.Generators qualified as ScriptV1
+import Plutus.Script.Utils.V2.Generators qualified as ScriptV2
+import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose qualified as ScriptV3
 import PlutusLedgerApi.V3 qualified as Api
 
 data PrettyCookedOpts = PrettyCookedOpts
@@ -93,8 +97,12 @@ defaultHashNames :: Map Api.BuiltinByteString String
 defaultHashNames =
   hashNamesFromList
     [ (Api.CurrencySymbol "", "Lovelace"),
-      (quickCurrencySymbol, "Quick"),
-      (permanentCurrencySymbol, "Permanent")
+      (ScriptV1.alwaysSucceedCurrencySymbol, "QuickV1"),
+      (ScriptV2.alwaysSucceedCurrencySymbol, "QuickV2"),
+      (Script.scriptCurrencySymbol ScriptV3.trueMintingMPScript, "QuickV3"),
+      (ScriptV1.alwaysFailCurrencySymbol, "PermanentV1"),
+      (ScriptV2.alwaysFailCurrencySymbol, "PermanentV2"),
+      (Script.scriptCurrencySymbol ScriptV3.falseMPScript, "PermanentV3")
     ]
     <> hashNamesFromList
       ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 10])
@@ -103,3 +111,16 @@ defaultHashNames =
 -- pretty-printing option.
 hashNamesFromList :: (ToHash a) => [(a, String)] -> Map Api.BuiltinByteString String
 hashNamesFromList = Map.fromList . map (first toHash)
+
+-- | Adds some additional names to these pretty cooked options. This has two
+-- practical use cases:
+--
+-- * Users can use it in conjuction to 'hashNamesFromList' without having to
+-- remember to manually invoke 'defaultHashNames'
+--
+-- * We use it internally to account for names that have been registered during
+-- mockchain runs, such as for names that depend on on-chain data, typically a
+-- 'TxOutRef'.
+addHashNames :: Map Api.BuiltinByteString String -> PrettyCookedOpts -> PrettyCookedOpts
+addHashNames names opts'@(PrettyCookedOpts _ _ _ _ hashOpts _) =
+  opts' {pcOptHashes = hashOpts {pcOptHashNames = Map.union names (pcOptHashNames hashOpts)}}

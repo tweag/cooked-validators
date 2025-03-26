@@ -1,0 +1,150 @@
+module Plutus.Script.Utils.V1.Typed.Scripts.Validators
+  ( UntypedValidator,
+    mkUntypedValidator,
+    ---
+    ValidatorTypes (..),
+    ValidatorType,
+    TypedValidator,
+    mkTypedValidator,
+    mkTypedValidatorParam,
+    forwardingMintingPolicy,
+    vForwardingMintingPolicy,
+    forwardingMintingPolicyHash,
+    generalise,
+    ---
+    WrongOutTypeError (..),
+    ConnectionError (..),
+    checkValidatorAddress,
+    checkDatum,
+    checkRedeemer,
+    validatorToTypedValidator,
+  )
+where
+
+import Control.Monad (unless)
+import Control.Monad.Except (MonadError (throwError))
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Kind (Type)
+import GHC.Generics (Generic)
+import Plutus.Script.Utils.Address (toAddress)
+import Plutus.Script.Utils.Scripts
+  ( Language (PlutusV1),
+    Validator,
+    Versioned (Versioned),
+    toValidator,
+  )
+import Plutus.Script.Utils.Typed
+  ( DatumType,
+    RedeemerType,
+    TypedValidator (TypedValidator, tvForwardingMPS, tvForwardingMPSHash, tvValidator, tvValidatorHash),
+    UntypedValidator,
+    ValidatorTypes,
+    forwardingMintingPolicy,
+    forwardingMintingPolicyHash,
+    generalise,
+    mkUntypedValidator,
+    vForwardingMintingPolicy,
+  )
+import Plutus.Script.Utils.V1.Scripts qualified as Scripts
+import Plutus.Script.Utils.V1.Typed.Scripts.MonetaryPolicies qualified as MPS
+import PlutusCore.Default (DefaultUni)
+import PlutusCore.Version (plcVersion100)
+import PlutusLedgerApi.V1 qualified as PV1
+import PlutusTx (CompiledCode, Lift, liftCode, unsafeApplyCode)
+import Prettyprinter (Pretty (pretty), viaShow, (<+>))
+
+-- | The type of validators for the given connection type.
+type ValidatorType (a :: Type) = DatumType a -> RedeemerType a -> PV1.ScriptContext -> Bool
+
+validatorToTypedValidator :: Validator -> TypedValidator a
+validatorToTypedValidator val =
+  TypedValidator
+    { tvValidator = Versioned val PlutusV1,
+      tvValidatorHash = hsh,
+      tvForwardingMPS = Versioned mps PlutusV1,
+      tvForwardingMPSHash = Scripts.mintingPolicyHash mps
+    }
+  where
+    hsh = Scripts.validatorHash val
+    mps = MPS.mkForwardingMintingPolicy hsh
+
+-- | Make a 'TypedValidator' from the 'CompiledCode' of a validator script and its wrapper.
+mkTypedValidator ::
+  -- | Validator script (compiled)
+  CompiledCode (ValidatorType a) ->
+  -- | A wrapper for the compiled validator
+  CompiledCode (ValidatorType a -> UntypedValidator) ->
+  TypedValidator a
+mkTypedValidator vc wrapper =
+  validatorToTypedValidator $ toValidator $ wrapper `unsafeApplyCode` vc
+
+-- | Make a 'TypedValidator' from the 'CompiledCode' of a parameterized validator script and its wrapper.
+mkTypedValidatorParam ::
+  forall a param.
+  (Lift DefaultUni param) =>
+  -- | Validator script (compiled)
+  CompiledCode (param -> ValidatorType a) ->
+  -- | A wrapper for the compiled validator
+  CompiledCode (ValidatorType a -> UntypedValidator) ->
+  -- | The extra paramater for the validator script
+  param ->
+  TypedValidator a
+mkTypedValidatorParam vc wrapper param =
+  mkTypedValidator (vc `unsafeApplyCode` liftCode plcVersion100 param) wrapper
+
+data WrongOutTypeError
+  = ExpectedScriptGotPubkey
+  | ExpectedPubkeyGotScript
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+-- | An error we can get while trying to type an existing transaction part.
+data ConnectionError
+  = WrongValidatorAddress PV1.Address PV1.Address
+  | WrongOutType WrongOutTypeError
+  | WrongValidatorType String
+  | WrongRedeemerType PV1.BuiltinData
+  | WrongDatumType PV1.BuiltinData
+  | NoDatum PV1.TxOutRef PV1.DatumHash
+  | UnknownRef PV1.TxOutRef
+  deriving stock (Show, Eq, Ord, Generic)
+
+instance Pretty ConnectionError where
+  pretty (WrongValidatorAddress a1 a2) = "Wrong validator address. Expected:" <+> pretty a1 <+> "Actual:" <+> pretty a2
+  pretty (WrongOutType t) = "Wrong out type:" <+> viaShow t
+  pretty (WrongValidatorType t) = "Wrong validator type:" <+> pretty t
+  pretty (WrongRedeemerType d) = "Wrong redeemer type" <+> pretty (PV1.builtinDataToData d)
+  pretty (WrongDatumType d) = "Wrong datum type" <+> pretty (PV1.builtinDataToData d)
+  pretty (NoDatum t d) = "No datum with hash " <+> pretty d <+> "for tx output" <+> pretty t
+  pretty (UnknownRef d) = "Unknown reference" <+> pretty d
+
+-- | Checks that the given validator hash is consistent with the actual validator.
+checkValidatorAddress ::
+  forall a m. (MonadError ConnectionError m) => TypedValidator a -> PV1.Address -> m ()
+checkValidatorAddress ct actualAddr = do
+  let expectedAddr = toAddress ct
+  unless (expectedAddr == actualAddr) $ throwError $ WrongValidatorAddress expectedAddr actualAddr
+
+-- | Checks that the given redeemer script has the right type.
+checkRedeemer ::
+  forall inn m.
+  (PV1.FromData (RedeemerType inn), MonadError ConnectionError m) =>
+  TypedValidator inn ->
+  PV1.Redeemer ->
+  m (RedeemerType inn)
+checkRedeemer _ (PV1.Redeemer d) =
+  case PV1.fromBuiltinData d of
+    Just v -> pure v
+    Nothing -> throwError $ WrongRedeemerType d
+
+-- | Checks that the given datum has the right type.
+checkDatum ::
+  forall a m.
+  (PV1.FromData (DatumType a), MonadError ConnectionError m) =>
+  TypedValidator a ->
+  PV1.Datum ->
+  m (DatumType a)
+checkDatum _ (PV1.Datum d) =
+  case PV1.fromBuiltinData d of
+    Just v -> pure v
+    Nothing -> throwError $ WrongDatumType d

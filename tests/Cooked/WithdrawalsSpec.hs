@@ -2,8 +2,8 @@ module Cooked.WithdrawalsSpec where
 
 import Control.Monad
 import Cooked
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.AssocMap qualified as PMap
@@ -11,26 +11,25 @@ import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 
-checkWithdrawalScript :: PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> ()
-checkWithdrawalScript red ctx =
-  let scriptContext = PlutusTx.unsafeFromBuiltinData @Api.ScriptContext ctx
-      withdrawals = Api.txInfoWdrl PlutusTx.$ Api.scriptContextTxInfo scriptContext
-      quantity = PlutusTx.unsafeFromBuiltinData @Integer red
-      purpose = Api.scriptContextPurpose scriptContext
-   in case purpose of
-        Api.Rewarding cred -> case PMap.toList withdrawals of
-          [(cred', Api.Lovelace n)] ->
-            if cred PlutusTx.== cred'
-              then
-                if n PlutusTx.== quantity
-                  then ()
-                  else PlutusTx.traceError "Wrong quantity."
-              else PlutusTx.traceError "Wrong credential."
-          _ -> PlutusTx.traceError "Wrong withdrawal."
-        _ -> PlutusTx.traceError "Wrong script purpose."
+{-# INLINEABLE checkWithdrawalPurpose #-}
+checkWithdrawalPurpose :: Script.RewardingScriptType Integer Api.TxInfo
+checkWithdrawalPurpose cred quantity (Api.TxInfo {txInfoWdrl}) =
+  case PMap.toList txInfoWdrl of
+    [(cred', Api.Lovelace n)] ->
+      if cred PlutusTx.== cred'
+        then (n PlutusTx.== quantity) || PlutusTx.traceError "Wrong quantity."
+        else PlutusTx.traceError "Wrong credential."
+    _ -> PlutusTx.traceError "Wrong withdrawal."
 
 checkWithdrawalVersionedScript :: Script.Versioned Script.Script
-checkWithdrawalVersionedScript = mkScript $$(PlutusTx.compile [||checkWithdrawalScript||])
+checkWithdrawalVersionedScript =
+  Script.toVersioned $
+    Script.MultiPurposeScript @() $
+      Script.toScript $$(PlutusTx.compile [||script||])
+  where
+    script =
+      Script.mkMultiPurposeScript $
+        Script.falseTypedMultiPurposeScript `Script.withRewardingPurpose` checkWithdrawalPurpose
 
 testWithdrawingScript :: (MonadBlockChain m) => Integer -> Integer -> m ()
 testWithdrawingScript n1 n2 =
@@ -38,7 +37,7 @@ testWithdrawingScript n1 n2 =
     validateTxSkel $
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelWithdrawals = scriptWithdrawal checkWithdrawalVersionedScript (someTxSkelRedeemer (n1 * 1_000 :: Integer)) $ Script.Lovelace $ n2 * 1_000
+          txSkelWithdrawals = scriptWithdrawal checkWithdrawalVersionedScript (someTxSkelRedeemer (n1 * 1_000 :: Integer)) $ Api.Lovelace $ n2 * 1_000
         }
 
 tests :: TestTree

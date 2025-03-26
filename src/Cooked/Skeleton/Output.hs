@@ -7,10 +7,12 @@ module Cooked.Skeleton.Output
     txSkelOutValidator,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
+    IsTxSkelOutAllowedOwner (..),
+    txSkelOutReferenceScript,
+    OwnerConstraints,
   )
 where
 
-import Cooked.Conversion
 import Cooked.Output
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Payable
@@ -19,8 +21,11 @@ import Cooked.Wallet
 import Data.Either.Combinators
 import Data.Function
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script (TypedValidator (..))
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
 
@@ -31,7 +36,7 @@ instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrValidator = Left
 
 instance IsTxSkelOutAllowedOwner Wallet where
-  toPKHOrValidator = Left . toPubKeyHash
+  toPKHOrValidator = Left . walletPKHash
 
 instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
   toPKHOrValidator = Right
@@ -42,6 +47,22 @@ instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
 instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
   toPKHOrValidator = id
 
+instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
+  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
+
+type OwnerConstraints owner =
+  ( IsTxSkelOutAllowedOwner owner,
+    Script.ToCredential owner,
+    Typeable owner,
+    Show owner
+  )
+
+type ReferenceScriptConstraints refScript =
+  ( Script.ToVersioned Script.Script refScript,
+    Show refScript,
+    Typeable refScript
+  )
+
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use the 'receives' smart constructor in most cases.
 data TxSkelOut where
@@ -50,15 +71,10 @@ data TxSkelOut where
     -- in turn is only needed in tests.
       Typeable o,
       IsTxInfoOutput o,
-      IsTxSkelOutAllowedOwner (OwnerType o),
-      ToCredential (OwnerType o),
-      Typeable (OwnerType o),
+      OwnerConstraints (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ TxSkelOutValue,
-      ToVersionedScript (ReferenceScriptType o),
-      Show (OwnerType o),
-      Show (ReferenceScriptType o),
-      Typeable (ReferenceScriptType o)
+      ReferenceScriptConstraints (ReferenceScriptType o)
     ) =>
     o ->
     TxSkelOut
@@ -72,14 +88,14 @@ deriving instance Show TxSkelOut
 
 -- | Smart constructor to build @TxSkelOut@ from an owner and payment. This
 -- should be the main way of building outputs.
-receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, ToCredential owner) => owner -> Payable els -> TxSkelOut
+receives :: (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner, Script.ToCredential owner) => owner -> Payable els -> TxSkelOut
 receives owner =
   go $
     Pays $
       ConcreteOutput
         owner
         Nothing -- No staking credential by default
-        TxSkelOutNoDatum -- No datum by default
+        defaultTxSkelDatum -- Default datum defined below
         (TxSkelOutValue mempty True) -- Empty value by default, adjustable to min ada
         (Nothing @(Script.Versioned Script.Script)) -- No reference script by default
   where
@@ -87,12 +103,18 @@ receives owner =
     go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatum dat
     go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
     go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
-    go (Pays output) (FixedValue v) = Pays $ setValue output $ TxSkelOutValue (toValue v) False
-    go (Pays output) (Value v) = Pays $ setValue output $ TxSkelOutValue (toValue v) True
-    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ toVersionedScript script
-    go (Pays output) (StakingCredential (toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
+    go (Pays output) (FixedValue v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) False
+    go (Pays output) (Value v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) True
+    go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
+    go (Pays output) (StakingCredential (Script.toMaybeStakingCredential -> Just stCred)) = Pays $ setStakingCredential output stCred
     go pays (StakingCredential _) = pays
     go pays (PayableAnd p1 p2) = go (go pays p1) p2
+
+    defaultTxSkelDatum = case toPKHOrValidator owner of
+      -- V1 and V2 script always need a datum, even if empty
+      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> TxSkelOutDatumHash ()
+      -- V3 script and PKH do not necessarily need a datum
+      _ -> TxSkelOutNoDatum
 
 txSkelOutDatumL :: Lens' TxSkelOut TxSkelOutDatum
 txSkelOutDatumL =
@@ -112,14 +134,13 @@ txSkelOutValue = (^. (txSkelOutValueL % txSkelOutValueContentL))
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
+txSkelOutReferenceScript :: TxSkelOut -> Maybe (Script.Versioned Script.Script)
+txSkelOutReferenceScript (Pays output) = Script.toVersioned <$> (output ^. outputReferenceScriptL)
+
 -- | Decide if a transaction output has a certain owner and datum type.
 txSkelOutOwnerTypeP ::
   forall ownerType.
-  ( ToCredential ownerType,
-    Show ownerType,
-    IsTxSkelOutAllowedOwner ownerType,
-    Typeable ownerType
-  ) =>
+  (OwnerConstraints ownerType) =>
   Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
 txSkelOutOwnerTypeP =
   prism'
@@ -128,7 +149,7 @@ txSkelOutOwnerTypeP =
         case typeOf (output ^. outputOwnerL) `eqTypeRep` typeRep @ownerType of
           Just HRefl ->
             let cOut = fromAbstractOutput output
-             in Just $ cOut {concreteOutputReferenceScript = toVersionedScript <$> concreteOutputReferenceScript cOut}
+             in Just $ cOut {concreteOutputReferenceScript = Script.toVersioned <$> concreteOutputReferenceScript cOut}
           Nothing -> Nothing
     )
 

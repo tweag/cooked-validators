@@ -10,11 +10,11 @@ where
 
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.MinAda
@@ -31,8 +31,9 @@ import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -141,20 +142,13 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 -- based on the current protocol parameters
 getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Fee, Fee)
 getMinAndMaxFee = do
-  -- Default parameters in case they are not present. It is unclear when/if this
-  -- could actually happen though. These default values have been taken from the
-  -- current default instance of the protocol parameters.
-  let defMaxTxExecutionUnits =
-        Cardano.ExecutionUnits {executionSteps = 10_000_000_000, executionMemory = 14_000_000}
-      defExecutionUnitPrices =
-        Cardano.ExecutionUnitPrices {priceExecutionSteps = 721 Rat.% 10_000_000, priceExecutionMemory = 577 Rat.% 10_000}
   -- Parameters necessary to compute the maximum possible fee for a transaction
-  params <- Emulator.pProtocolParams <$> getParams
-  let maxTxSize = toInteger $ Cardano.protocolParamMaxTxSize params
-      Emulator.Coin txFeePerByte = Cardano.protocolParamTxFeePerByte params
-      Emulator.Coin txFeeFixed = Cardano.protocolParamTxFeeFixed params
-      Cardano.ExecutionUnitPrices priceESteps priceEMem = fromMaybe defExecutionUnitPrices $ Cardano.protocolParamPrices params
-      Cardano.ExecutionUnits (toInteger -> eSteps) (toInteger -> eMem) = fromMaybe defMaxTxExecutionUnits $ Cardano.protocolParamMaxTxExUnits params
+  params <- Emulator.pEmulatorPParams <$> getParams
+  let maxTxSize = toInteger $ MicroLens.view Conway.ppMaxTxSizeL params
+      Emulator.Coin txFeePerByte = MicroLens.view Conway.ppMinFeeAL params
+      Emulator.Coin txFeeFixed = MicroLens.view Conway.ppMinFeeBL params
+      Cardano.Prices (Cardano.unboundRational -> priceESteps) (Cardano.unboundRational -> priceEMem) = MicroLens.view Conway.ppPricesL params
+      Cardano.ExUnits (toInteger -> eSteps) (toInteger -> eMem) = MicroLens.view Conway.ppMaxTxExUnitsL params
   -- Final fee accounts for the size of the transaction and the units consumed
   -- by the execution of scripts from the transaction
   let sizeFees = txFeeFixed + (maxTxSize * txFeePerByte)
@@ -230,15 +224,17 @@ attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals s
 -- number of collateral inputs authorized by protocol parameters.
 collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Collaterals -> Wallet -> m Collaterals
 collateralInsFromFees fee collateralIns returnCollateralWallet = do
+  -- We retrieve the protocal parameters
+  params <- Emulator.pEmulatorPParams <$> getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
-  nbMax <- toInteger . fromMaybe 10 . Cardano.protocolParamMaxCollateralInputs . Emulator.pProtocolParams <$> getParams
+  let nbMax = toInteger $ MicroLens.view Conway.ppMaxCollateralInputsL params
   -- We retrieve the percentage to respect between fees and total collaterals
-  percentage <- toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
+  let percentage = toInteger $ MicroLens.view Conway.ppCollateralPercentageL params
   -- We compute the total collateral to be associated to the transaction as a
   -- value. This will be the target value to be reached by collateral inputs. We
   -- add one because of ledger requirement which seem to round up this value.
-  let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) $ fee
+  let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
@@ -288,7 +284,7 @@ getOptimalCandidate :: (MonadBlockChainBalancing m) => [(BalancingOutputs, Api.V
 getOptimalCandidate candidates paymentTarget mceError = do
   -- We decorate the candidates with their current ada and min ada requirements
   candidatesDecorated <- forM candidates $ \(output, val) ->
-    (output,val,Script.fromValue val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
+    (output,val,Api.lovelaceValueOf val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
   -- We filter the candidates that have enough ada to sustain themselves
   let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Script.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
@@ -337,7 +333,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
-  depositedValue <- toValue <$> txSkelProposalsDeposit txSkel
+  depositedValue <- Script.toValue <$> txSkelProposalsDeposit txSkel
   -- We compute the values missing in the left and right side of the equation
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
   -- We compute the minimal ada requirement of the missing payment
@@ -373,7 +369,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Nothing
-      | (before, txSkelOut : after) <- break (\(Pays o) -> toCredential (o ^. outputOwnerL) == toCredential balancingWallet) txSkelOuts,
+      | (before, txSkelOut : after) <- break (\(Pays o) -> Script.toCredential (o ^. outputOwnerL) == Script.toCredential balancingWallet) txSkelOuts,
         AdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected

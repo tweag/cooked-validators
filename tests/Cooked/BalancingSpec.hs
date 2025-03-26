@@ -1,6 +1,5 @@
 module Cooked.BalancingSpec where
 
-import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
@@ -15,7 +14,7 @@ import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
 import ListT
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -26,21 +25,21 @@ alice, bob :: Wallet
 (alice, bob) = (wallet 1, wallet 2)
 
 apple, orange, banana :: Integer -> Api.Value
-apple = permanentValue "apple"
-orange = permanentValue "orange"
-banana = permanentValue "banana"
+apple = Script.multiPurposeScriptValue Script.trueMintingMPScript "apple"
+orange = Script.multiPurposeScriptValue Script.trueMintingMPScript "orange"
+banana = Script.multiPurposeScriptValue Script.trueMintingMPScript "banana"
 
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ alwaysTrueValidator @MockContract `receives` (FixedValue (Script.ada 42) <&&> VisibleHashedDatum ()),
+    [ Script.trueSpendingMPScript @() `receives` (FixedValue (Script.ada 42) <&&> VisibleHashedDatum ()),
       alice `receives` FixedValue (Script.ada 2 <> apple 3),
       alice `receives` FixedValue (Script.ada 25),
       alice `receives` FixedValue (Script.ada 40 <> orange 6),
       alice `receives` FixedValue (Script.ada 8),
       alice `receives` FixedValue (Script.ada 30),
       alice `receives` (FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer)),
-      alice `receives` (FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (alwaysTrueValidator @MockContract)),
+      alice `receives` (FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (Script.trueSpendingMPScript @())),
       alice `receives` (FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ())
     ]
 
@@ -49,7 +48,7 @@ type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Maybe (Set Api.TxOutRef, W
 spendsScriptUtxo :: (MonadBlockChain m) => Bool -> m (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
 spendsScriptUtxo True = do
-  (scriptOutRef, _) : _ <- runUtxoSearch $ utxosAtSearch $ alwaysTrueValidator @MockContract
+  (scriptOutRef, _) : _ <- runUtxoSearch $ utxosAtSearch $ Script.trueSpendingMPScript @()
   return $ Map.singleton scriptOutRef emptyTxSkelRedeemer
 
 testingBalancingTemplate ::
@@ -109,7 +108,7 @@ aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m Api.TxOut
-aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Script.Lovelace (n * 1_000_000)) . Script.fromValue . Api.txOutValue)
+aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Script.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf . Api.txOutValue)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)
@@ -229,7 +228,7 @@ failsWithValueNotConserved (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedg
 failsWithValueNotConserved _ = testBool False
 
 failsWithEmptyTxIns :: MockChainError -> Assertion
-failsWithEmptyTxIns (MCEGenerationError (TxBodyError _ Cardano.TxBodyEmptyTxIns)) = testBool True
+failsWithEmptyTxIns (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "InputSetEmptyUTxO" text
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> MockChainError -> Assertion

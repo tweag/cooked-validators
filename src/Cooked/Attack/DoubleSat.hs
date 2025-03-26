@@ -46,7 +46,7 @@ representing the transaction from the left to the right, and adding
 some extra inputs, outputs, and mints depending on each focus and the
 current 'MockChainSt'ate. -}
 
--- | A triple of transaction inputs, transaction outputs, and minted
+-- | A triplet of transaction inputs, transaction outputs, and minted
 -- value. This is what we can add to the transaction in order to try a
 -- double satisfaction attack.
 type DoubleSatDelta = (Map Api.TxOutRef TxSkelRedeemer, [TxSkelOut], TxSkelMints)
@@ -76,11 +76,6 @@ doubleSatAttack ::
   ([is] -> [[is]]) ->
   -- | Each focus of this optic is a potential reason to add some
   -- extra constraints.
-  --
-  -- As an example, one could go through the 'paysScript' outputs for
-  -- validators of type @t@ with the following traversal:
-  --
-  -- > txSkelOutsL % itaversed % txSkelOutputToTypedValidatorP @t
   Optic' k (WithIx is) TxSkel a ->
   -- | How to change each focus, and which inputs, outputs, and mints
   -- to add, for each of the foci. There might be different options

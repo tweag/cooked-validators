@@ -5,14 +5,14 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 
 toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals (Map.toList -> []) = return Cardano.TxWithdrawalsNone
@@ -35,7 +35,7 @@ toWithdrawals (Map.toList -> withdrawals) =
                   <$> toScriptWitness script red Cardano.NoScriptDatumForStake
               sCred <-
                 throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
-                  Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (toScriptHash script)
+                  Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash script)
               return (witness, sCred)
         networkId <- Emulator.pNetworkId <$> getParams
         return (Cardano.makeStakeAddress networkId sCred, Cardano.Coin n, Cardano.BuildTxWith witness)

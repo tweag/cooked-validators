@@ -12,10 +12,10 @@ module Cooked.Skeleton.Proposal
   )
 where
 
-import Cooked.Conversion
 import Cooked.Skeleton.Redeemer as X
 import Data.Map (Map)
 import Optics.TH
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
@@ -162,11 +162,11 @@ makeLensesFor
   ]
   ''TxSkelProposal
 
-simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
-simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
+simpleTxSkelProposal :: (Script.ToAddress a) => a -> TxGovAction -> TxSkelProposal
+simpleTxSkelProposal a govAction = TxSkelProposal (Script.toAddress a) govAction Nothing Nothing
 
-withWitness :: (ToVersionedScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toVersionedScript s, red)}
+withWitness :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop {txSkelProposalWitness = Just (Script.toVersioned s, red)}
 
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}

@@ -1,0 +1,43 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-missing-import-lists #-}
+
+module Ledger.Typed.Scripts
+  ( module Export,
+    MintingPolicy,
+    Validator,
+    PV1.ConnectionError (..),
+    mkForwardingMintingPolicy,
+    unsafeMkTypedValidator,
+    -- TODO: Don't export Plutus V1 specific code from a module that doesn't mention a plutus version
+    PV1.ValidatorType,
+    PV1.mkTypedValidator,
+    PV1.mkTypedValidatorParam,
+  )
+where
+
+import Ledger.Typed.Scripts.Orphans as Export ()
+import Plutus.Script.Utils.Scripts (MintingPolicy, Validator)
+import Plutus.Script.Utils.Scripts qualified as Untyped
+import Plutus.Script.Utils.Typed as Export
+import Plutus.Script.Utils.V1.Typed.Scripts qualified as PV1
+import Plutus.Script.Utils.V2.Typed.Scripts qualified as PV2
+
+mkForwardingMintingPolicy :: Untyped.Versioned Validator -> Untyped.Versioned MintingPolicy
+mkForwardingMintingPolicy vl@(Untyped.Versioned _ Untyped.PlutusV1) = Untyped.Versioned (PV1.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) Untyped.PlutusV1
+mkForwardingMintingPolicy vl@(Untyped.Versioned _ Untyped.PlutusV2) = Untyped.Versioned (PV2.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) Untyped.PlutusV2
+mkForwardingMintingPolicy (Untyped.Versioned _ Untyped.PlutusV3) = error "Stand alone forward minting policy are no longer relevant in PlutusV3"
+
+-- | Make a 'TypedValidator' (with no type constraints) from an untyped 'Validator' script.
+unsafeMkTypedValidator :: Untyped.Versioned Validator -> TypedValidator Any
+unsafeMkTypedValidator vl =
+  TypedValidator
+    { tvValidator = vl,
+      tvValidatorHash = vh,
+      tvForwardingMPS = mps,
+      tvForwardingMPSHash = Untyped.toMintingPolicyHash mps
+    }
+  where
+    vh = Untyped.toValidatorHash vl
+    mps = mkForwardingMintingPolicy vl
