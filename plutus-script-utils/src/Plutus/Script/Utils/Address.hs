@@ -3,9 +3,11 @@ module Plutus.Script.Utils.Address
     ToAddress (..),
     ToPubKeyHash (..),
     ToMaybeStakingCredential (..),
+    ToCardanoAddress (..),
   )
 where
 
+import Cardano.Api.Shelley qualified as C.Api
 import PlutusLedgerApi.V1 qualified as Api
 
 class ToCredential a where
@@ -65,3 +67,7 @@ instance ToMaybeStakingCredential Api.Address where
 
 instance ToMaybeStakingCredential (Maybe Api.StakingCredential) where
   toMaybeStakingCredential = id
+
+-- | Similar to 'ToAddress', but for Cardano addresses
+class ToCardanoAddress a where
+  toCardanoAddress :: C.Api.NetworkId -> a -> C.Api.AddressInEra C.Api.ConwayEra

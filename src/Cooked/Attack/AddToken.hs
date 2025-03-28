@@ -34,7 +34,7 @@ addTokenAttack extraTokens attacker = do
           ( \(newMs, addVal) (Mint mp@(Script.toVersioned @Script.MintingPolicy -> mp') red tks) ->
               let change = extraTokens mp'
                in ( Mint mp red (tks ++ change) : newMs,
-                    Api.Value (PMap.singleton (Script.scriptCurrencySymbol mp') (PMap.unsafeFromList change)) <> addVal
+                    Api.Value (PMap.singleton (Script.toCurrencySymbol mp') (PMap.unsafeFromList change)) <> addVal
                   )
           )
           ([], mempty)

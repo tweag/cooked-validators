@@ -119,9 +119,8 @@ import Ledger.Address qualified as P
 import Ledger.Scripts qualified as P
 import Ledger.Slot qualified as P
 import Plutus.Script.Utils.Data qualified as P
-import Plutus.Script.Utils.Scripts (scriptCurrencySymbol, toMintingPolicyHash)
+import Plutus.Script.Utils.Scripts (toCurrencySymbol, toMintingPolicyHash)
 import Plutus.Script.Utils.Scripts qualified as Scripts
-import Plutus.Script.Utils.V2.Scripts qualified as PV2
 import Plutus.Script.Utils.Value qualified as Value
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V1.Credential qualified as Credential
@@ -563,7 +562,7 @@ fromCardanoAssetId :: C.AssetId -> Value.AssetClass
 fromCardanoAssetId C.AdaAssetId = Value.assetClass Value.adaSymbol Value.adaToken
 fromCardanoAssetId (C.AssetId policyId assetName) =
   Value.assetClass
-    (scriptCurrencySymbol . fromCardanoPolicyId $ policyId)
+    (toCurrencySymbol . fromCardanoPolicyId $ policyId)
     (fromCardanoAssetName assetName)
 
 toCardanoAssetId :: Value.AssetClass -> Either ToCardanoError C.AssetId

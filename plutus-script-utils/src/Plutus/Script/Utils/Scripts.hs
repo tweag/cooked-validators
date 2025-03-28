@@ -1,8 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module contains functions related to versioning scripts and
--- BuiltinData, or more specifially, 'Datum's and 'Redeemer's. These functions
--- do not depend on a particular version of Plutus.
 module Plutus.Script.Utils.Scripts
   ( Script (..),
     PV1.ScriptHash (..),
@@ -12,7 +9,6 @@ module Plutus.Script.Utils.Scripts
     Language (..),
     Versioned (..),
     ToVersioned (..),
-    toCardanoAddressInConway,
     Validator (..),
     ToValidator (..),
     ValidatorHash (..),
@@ -25,7 +21,7 @@ module Plutus.Script.Utils.Scripts
     ToStakeValidator (..),
     StakeValidatorHash (..),
     ToStakeValidatorHash (..),
-    scriptCurrencySymbol,
+    toCurrencySymbol,
   )
 where
 
@@ -36,7 +32,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Coerce (coerce)
 import Data.String (IsString)
 import GHC.Generics (Generic)
-import Plutus.Script.Utils.Address (ToAddress (toAddress), ToCredential (toCredential))
+import Plutus.Script.Utils.Address (ToAddress (toAddress), ToCardanoAddress (toCardanoAddress), ToCredential (toCredential))
 import PlutusLedgerApi.Common (serialiseCompiledCode)
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V1.Bytes (LedgerBytes (LedgerBytes))
@@ -148,9 +144,11 @@ instance ToVersioned a (Versioned a) where
 
 -- | Anything that can be seen as a versioned script can be assigned a Cardano
 -- address. However this address will bear no staking.
-toCardanoAddressInConway :: (ToVersioned Script script) => C.Api.NetworkId -> script -> C.Api.AddressInEra C.Api.ConwayEra
-toCardanoAddressInConway networkId (toVersioned @Script -> script) =
-  C.Api.makeShelleyAddressInEra C.Api.shelleyBasedEra networkId (C.Api.PaymentCredentialByScript $ toCardanoScriptHash script) C.Api.NoStakeAddress
+instance (ToScript a) => ToCardanoAddress (Versioned a) where
+  toCardanoAddress networkId =
+    flip (C.Api.makeShelleyAddressInEra C.Api.shelleyBasedEra networkId) C.Api.NoStakeAddress
+      . C.Api.PaymentCredentialByScript
+      . toCardanoScriptHash
 
 -- * Validators
 
@@ -279,9 +277,9 @@ instance ToScriptHash MintingPolicyHash where
 
 -- | CurrencySymbol and MintingPolicyHash are isomorphic, so anything that can be
 -- translated to a MintingPolicyHash can be seen as a CurrencySymbol
-{-# INLINEABLE scriptCurrencySymbol #-}
-scriptCurrencySymbol :: (ToMintingPolicyHash script) => script -> PV1.CurrencySymbol
-scriptCurrencySymbol = coerce . toMintingPolicyHash
+{-# INLINEABLE toCurrencySymbol #-}
+toCurrencySymbol :: (ToMintingPolicyHash script) => script -> PV1.CurrencySymbol
+toCurrencySymbol = coerce . toMintingPolicyHash
 
 -- * Stake validators
 

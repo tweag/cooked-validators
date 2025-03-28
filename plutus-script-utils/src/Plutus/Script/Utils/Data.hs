@@ -30,8 +30,8 @@ instance ToOutputDatum () where
 instance ToOutputDatum PV2.DatumHash where
   toOutputDatum = PV2.OutputDatumHash
 
-instance ToOutputDatum PV2.BuiltinData where
-  toOutputDatum = toOutputDatum . PV2.Datum
+instance ToOutputDatum PV1.BuiltinData where
+  toOutputDatum = toOutputDatum . PV1.Datum
 
 {- Note [Hash computation of datums, redeemers and scripts]
 

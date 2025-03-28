@@ -5,8 +5,7 @@ module Plutus.Script.Utils.Typed
     ---
     ValidatorTypes (..),
     TypedValidator (..),
-    validatorCardanoAddress,
-    validatorCardanoAddressAny,
+    toCardanoAddressAny,
     forwardingMintingPolicy,
     vForwardingMintingPolicy,
     forwardingMintingPolicyHash,
@@ -27,6 +26,7 @@ import Data.Void (Void)
 import GHC.Generics (Generic)
 import Plutus.Script.Utils.Address
   ( ToAddress (toAddress),
+    ToCardanoAddress (toCardanoAddress),
     ToCredential (toCredential),
   )
 import Plutus.Script.Utils.Scripts
@@ -42,7 +42,6 @@ import Plutus.Script.Utils.Scripts
     ValidatorHash,
     Versioned (unversioned),
     getValidator,
-    toCardanoAddressInConway,
   )
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V2 qualified as PV2
@@ -117,12 +116,12 @@ instance ToAddress (TypedValidator a) where
   toAddress = toAddress . tvValidator
 
 -- | The address of the validator.
-validatorCardanoAddress :: C.NetworkId -> TypedValidator a -> C.AddressInEra C.ConwayEra
-validatorCardanoAddress = toCardanoAddressInConway
+instance ToCardanoAddress (TypedValidator a) where
+  toCardanoAddress networkId = toCardanoAddress networkId . tvValidator
 
-validatorCardanoAddressAny :: C.NetworkId -> TypedValidator a -> C.AddressAny
-validatorCardanoAddressAny nid tv =
-  case validatorCardanoAddress nid tv of
+toCardanoAddressAny :: C.NetworkId -> TypedValidator a -> C.AddressAny
+toCardanoAddressAny nid tv =
+  case toCardanoAddress nid tv of
     C.AddressInEra C.ShelleyAddressInEra {} addr -> C.AddressShelley addr
     C.AddressInEra C.ByronAddressInAnyEra {} addr -> C.AddressByron addr
 

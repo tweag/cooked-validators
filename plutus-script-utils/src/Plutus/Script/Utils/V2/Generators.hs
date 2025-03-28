@@ -29,11 +29,13 @@ import Plutus.Script.Utils.Scripts
     Validator,
     ValidatorHash,
     Versioned (Versioned),
-    scriptCurrencySymbol,
+    toCurrencySymbol,
     toMintingPolicy,
+    toMintingPolicyHash,
     toValidator,
+    toValidatorHash,
   )
-import Plutus.Script.Utils.V2.Scripts qualified as Scripts
+import Plutus.Script.Utils.V2.Scripts ()
 import Plutus.Script.Utils.V2.Typed.Scripts.Validators (TypedValidator, validatorToTypedValidator)
 import PlutusLedgerApi.V1.Value (CurrencySymbol, TokenName, Value, singleton)
 import PlutusTx qualified
@@ -64,10 +66,10 @@ alwaysFailValidatorVersioned :: Versioned Validator
 alwaysFailValidatorVersioned = Versioned alwaysFailValidator PlutusV2
 
 alwaysSucceedValidatorHash :: ValidatorHash
-alwaysSucceedValidatorHash = Scripts.validatorHash alwaysSucceedValidator
+alwaysSucceedValidatorHash = toValidatorHash alwaysSucceedValidator
 
 alwaysFailValidatorHash :: ValidatorHash
-alwaysFailValidatorHash = Scripts.validatorHash alwaysFailValidator
+alwaysFailValidatorHash = toValidatorHash alwaysFailValidator
 
 alwaysSucceedPolicy :: MintingPolicy
 alwaysSucceedPolicy = toMintingPolicy $$(PlutusTx.compile [||trueMP||])
@@ -88,19 +90,19 @@ alwaysFailPolicyVersioned :: Versioned MintingPolicy
 alwaysFailPolicyVersioned = Versioned alwaysFailPolicy PlutusV2
 
 alwaysSucceedPolicyHash :: MintingPolicyHash
-alwaysSucceedPolicyHash = Scripts.mintingPolicyHash alwaysSucceedPolicy
+alwaysSucceedPolicyHash = toMintingPolicyHash alwaysSucceedPolicy
 
 alwaysFailPolicyHash :: MintingPolicyHash
-alwaysFailPolicyHash = Scripts.mintingPolicyHash alwaysFailPolicy
+alwaysFailPolicyHash = toMintingPolicyHash alwaysFailPolicy
 
 alwaysSucceedCurrencySymbol :: CurrencySymbol
-alwaysSucceedCurrencySymbol = scriptCurrencySymbol alwaysSucceedPolicyVersioned
+alwaysSucceedCurrencySymbol = toCurrencySymbol alwaysSucceedPolicyVersioned
 
 alwaysSucceedTokenValue :: TokenName -> Integer -> Value
 alwaysSucceedTokenValue = singleton alwaysSucceedCurrencySymbol
 
 alwaysFailCurrencySymbol :: CurrencySymbol
-alwaysFailCurrencySymbol = scriptCurrencySymbol alwaysFailPolicyVersioned
+alwaysFailCurrencySymbol = toCurrencySymbol alwaysFailPolicyVersioned
 
 alwaysFailTokenValue :: TokenName -> Integer -> Value
 alwaysFailTokenValue = singleton alwaysFailCurrencySymbol

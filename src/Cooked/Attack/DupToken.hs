@@ -34,7 +34,7 @@ dupTokenAttack change attacker = do
   oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
   let (newMintsList, totalIncrement) =
         foldl
-          ( \(newMs, addVal) (Mint mp@(Script.scriptCurrencySymbol . Script.toVersioned @Script.MintingPolicy -> cs) red tks) ->
+          ( \(newMs, addVal) (Mint mp@(Script.toCurrencySymbol . Script.toVersioned @Script.MintingPolicy -> cs) red tks) ->
               let (newTokensList, addValTokens) =
                     foldl
                       ( \(newTks, addVal') (tn, n) ->

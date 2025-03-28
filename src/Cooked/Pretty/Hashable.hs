@@ -25,7 +25,7 @@ instance ToHash Wallet where
   toHash = toHash . walletPKHash
 
 instance ToHash (Script.Versioned Script.MintingPolicy) where
-  toHash = toHash . Script.scriptCurrencySymbol
+  toHash = toHash . Script.toCurrencySymbol
 
 instance ToHash (Script.Versioned Script.Script) where
   toHash = toHash . Script.toScriptHash

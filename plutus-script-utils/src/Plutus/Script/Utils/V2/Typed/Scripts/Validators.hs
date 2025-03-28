@@ -19,7 +19,9 @@ import Plutus.Script.Utils.Scripts
   ( Language (PlutusV2),
     Validator,
     Versioned (Versioned),
+    toMintingPolicyHash,
     toValidator,
+    toValidatorHash,
   )
 import Plutus.Script.Utils.Typed
   ( DatumType,
@@ -32,7 +34,7 @@ import Plutus.Script.Utils.Typed
     generalise,
     vForwardingMintingPolicy,
   )
-import Plutus.Script.Utils.V2.Scripts qualified as Scripts
+import Plutus.Script.Utils.V2.Scripts ()
 import Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies qualified as MPS
 import PlutusCore.Default (DefaultUni)
 import PlutusCore.Version (plcVersion100)
@@ -48,10 +50,10 @@ validatorToTypedValidator val =
     { tvValidator = Versioned val PlutusV2,
       tvValidatorHash = hsh,
       tvForwardingMPS = Versioned mps PlutusV2,
-      tvForwardingMPSHash = Scripts.mintingPolicyHash mps
+      tvForwardingMPSHash = toMintingPolicyHash mps
     }
   where
-    hsh = Scripts.validatorHash val
+    hsh = toValidatorHash val
     mps = MPS.mkForwardingMintingPolicy hsh
 
 -- | Make a 'TypedValidator' from the 'CompiledCode' of a validator script and its wrapper.

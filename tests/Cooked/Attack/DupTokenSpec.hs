@@ -62,8 +62,8 @@ tests =
             tName2 = Api.TokenName "MockToken2"
             pol1 = carefulPolicy tName1 1
             pol2 = carelessPolicy
-            ac1 = Api.assetClass (Script.scriptCurrencySymbol pol1) tName1
-            ac2 = Api.assetClass (Script.scriptCurrencySymbol pol2) tName2
+            ac1 = Api.assetClass (Script.toCurrencySymbol pol1) tName1
+            ac2 = Api.assetClass (Script.toCurrencySymbol pol2) tName2
             skelIn =
               txSkelTemplate
                 { txSkelMints =
@@ -123,8 +123,8 @@ tests =
         let attacker = wallet 6
             pol = carelessPolicy
             tName1 = Api.TokenName "mintedToken"
-            ac1 = Api.assetClass (Script.scriptCurrencySymbol pol) tName1
-            ac2 = Api.assetClass (Script.scriptCurrencySymbol Script.trueMintingMPScript) (Api.TokenName "preExistingToken")
+            ac1 = Api.assetClass (Script.toCurrencySymbol pol) tName1
+            ac2 = Api.assetClass (Script.toCurrencySymbol Script.trueMintingMPScript) (Api.TokenName "preExistingToken")
             skelIn =
               txSkelTemplate
                 { txSkelMints = txSkelMintsFromList [mint pol emptyTxSkelRedeemer tName1 1],

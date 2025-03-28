@@ -543,4 +543,4 @@ falseMPScript = MultiPurposeScript $ PSU.toScript $$(compile [||script||])
     script = mkMultiPurposeScript falseTypedMultiPurposeScript
 
 multiPurposeScriptValue :: MultiPurposeScript a -> Api.BuiltinByteString -> Integer -> Api.Value
-multiPurposeScriptValue mpScript bs = Api.singleton (PSU.scriptCurrencySymbol mpScript) (Api.TokenName bs)
+multiPurposeScriptValue mpScript bs = Api.singleton (PSU.toCurrencySymbol mpScript) (Api.TokenName bs)

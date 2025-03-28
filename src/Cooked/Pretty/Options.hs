@@ -99,10 +99,10 @@ defaultHashNames =
     [ (Api.CurrencySymbol "", "Lovelace"),
       (ScriptV1.alwaysSucceedCurrencySymbol, "QuickV1"),
       (ScriptV2.alwaysSucceedCurrencySymbol, "QuickV2"),
-      (Script.scriptCurrencySymbol ScriptV3.trueMintingMPScript, "QuickV3"),
+      (Script.toCurrencySymbol ScriptV3.trueMintingMPScript, "QuickV3"),
       (ScriptV1.alwaysFailCurrencySymbol, "PermanentV1"),
       (ScriptV2.alwaysFailCurrencySymbol, "PermanentV2"),
-      (Script.scriptCurrencySymbol ScriptV3.falseMPScript, "PermanentV3")
+      (Script.toCurrencySymbol ScriptV3.falseMPScript, "PermanentV3")
     ]
     <> hashNamesFromList
       ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 10])

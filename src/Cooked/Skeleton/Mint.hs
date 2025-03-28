@@ -134,7 +134,7 @@ txSkelMintsValue txSkelMints =
   Api.Value $
     PMap.unsafeFromList $
       ( \(mp, (_, tks)) ->
-          ( Script.scriptCurrencySymbol mp,
+          ( Script.toCurrencySymbol mp,
             PMap.unsafeFromList $
               (\(t, NonZero n) -> (t, n))
                 <$> NEList.toList (NEMap.toList tks)

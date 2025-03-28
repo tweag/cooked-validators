@@ -1,40 +1,67 @@
-{-# OPTIONS_GHC -Wno-missing-import-lists #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module contains functions related to the computation of script hashes
--- for PlutusV1.
 module Plutus.Script.Utils.V1.Scripts
   ( module Plutus.Script.Utils.Scripts,
-    validatorHash,
-    mintingPolicyHash,
-    stakeValidatorHash,
-    scriptHash,
-    toCardanoApiScript,
+    toCardanoScript,
   )
 where
 
-import Cardano.Api qualified as C.Api
 import Cardano.Api.Shelley qualified as C.Api
+import Plutus.Script.Utils.Address
+  ( ToAddress (toAddress),
+    ToCardanoAddress (toCardanoAddress),
+  )
 import Plutus.Script.Utils.Scripts
+  ( Language (PlutusV1),
+    MintingPolicy,
+    Script (unScript),
+    StakeValidator,
+    ToMintingPolicyHash (toMintingPolicyHash),
+    ToScriptHash (toScriptHash),
+    ToStakeValidatorHash (toStakeValidatorHash),
+    ToValidatorHash (toValidatorHash),
+    Validator,
+    Versioned (Versioned),
+    toMintingPolicyHash,
+    toScriptHash,
+    toStakeValidatorHash,
+    toValidatorHash,
+  )
 
--- | Hash a 'Validator' script.
-validatorHash :: Validator -> ValidatorHash
-validatorHash = toValidatorHash . (`Versioned` PlutusV1)
+instance ToValidatorHash Validator where
+  {-# INLINEABLE toValidatorHash #-}
+  toValidatorHash = toValidatorHash . (`Versioned` PlutusV1)
 
--- | Hash a 'MintingPolicy' script.
-mintingPolicyHash :: MintingPolicy -> MintingPolicyHash
-mintingPolicyHash = toMintingPolicyHash . (`Versioned` PlutusV1)
+instance ToMintingPolicyHash MintingPolicy where
+  {-# INLINEABLE toMintingPolicyHash #-}
+  toMintingPolicyHash = toMintingPolicyHash . (`Versioned` PlutusV1)
 
--- | Hash a 'StakeValidator' script.
-stakeValidatorHash :: StakeValidator -> StakeValidatorHash
-stakeValidatorHash = toStakeValidatorHash . (`Versioned` PlutusV1)
+instance ToStakeValidatorHash StakeValidator where
+  {-# INLINEABLE toStakeValidatorHash #-}
+  toStakeValidatorHash = toStakeValidatorHash . (`Versioned` PlutusV1)
 
--- | Hash a 'Script'
-scriptHash :: Script -> ScriptHash
-scriptHash = toScriptHash . (`Versioned` PlutusV1)
+instance ToScriptHash Script where
+  {-# INLINEABLE toScriptHash #-}
+  toScriptHash = toScriptHash . (`Versioned` PlutusV1)
 
--- | Convert a 'Script' to a 'cardano-api' script.
---
--- For why we depend on `cardano-api`, see note [Hash computation of datums,
--- redeemers and scripts] in module Plutus.Script.Utils.Scripts
-toCardanoApiScript :: Script -> C.Api.Script C.Api.PlutusScriptV1
-toCardanoApiScript = C.Api.PlutusScript C.Api.PlutusScriptV1 . C.Api.PlutusScriptSerialised . unScript
+instance ToAddress Validator where
+  {-# INLINEABLE toAddress #-}
+  toAddress = toAddress . (`Versioned` PlutusV1)
+
+toCardanoScript :: Script -> C.Api.Script C.Api.PlutusScriptV1
+toCardanoScript =
+  C.Api.PlutusScript C.Api.PlutusScriptV1
+    . C.Api.PlutusScriptSerialised
+    . unScript
+
+instance ToCardanoAddress Script where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
+
+instance ToCardanoAddress Validator where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
+
+instance ToCardanoAddress StakeValidator where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
+
+instance ToCardanoAddress MintingPolicy where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)

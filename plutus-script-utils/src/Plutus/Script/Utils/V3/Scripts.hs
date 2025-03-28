@@ -1,94 +1,67 @@
-{-# OPTIONS_GHC -Wno-missing-import-lists #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Plutus.Script.Utils.V3.Scripts
-  ( -- * Script data hashes
-    PV3.Datum,
-    PV3.DatumHash,
-    PV3.Redeemer,
-    PV3.RedeemerHash,
-
-    -- * Script hashes
-    PV3.Validator,
-    PV3.ValidatorHash,
-    PV3.MintingPolicy,
-    PV3.MintingPolicyHash,
-    PV3.StakeValidator,
-    PV3.StakeValidatorHash,
-    validatorHash,
-    mintingPolicyHash,
-    stakeValidatorHash,
-    scriptHash,
-
-    -- * Script utilities
-    scriptCurrencySymbol,
-    toCardanoApiScript,
+  ( module Plutus.Script.Utils.Scripts,
+    toCardanoScript,
   )
 where
 
-import Cardano.Api qualified as Script
-import Cardano.Api.Shelley qualified as Script
-import Plutus.Script.Utils.Scripts qualified as PV3
-import PlutusLedgerApi.V3 qualified as PV3
-import PlutusTx.Builtins qualified as Builtins
+import Cardano.Api.Shelley qualified as C.Api
+import Plutus.Script.Utils.Address
+  ( ToAddress (toAddress),
+    ToCardanoAddress (toCardanoAddress),
+  )
+import Plutus.Script.Utils.Scripts
+  ( Language (PlutusV3),
+    MintingPolicy,
+    Script (unScript),
+    StakeValidator,
+    ToMintingPolicyHash (toMintingPolicyHash),
+    ToScriptHash (toScriptHash),
+    ToStakeValidatorHash (toStakeValidatorHash),
+    ToValidatorHash (toValidatorHash),
+    Validator,
+    Versioned (Versioned),
+    toMintingPolicyHash,
+    toScriptHash,
+    toStakeValidatorHash,
+    toValidatorHash,
+  )
 
--- | Hash a 'PV3.Validator' script.
-validatorHash :: PV3.Validator -> PV3.ValidatorHash
-validatorHash =
-  PV3.ValidatorHash
-    . PV3.getScriptHash
-    . scriptHash
-    . PV3.getValidator
+instance ToValidatorHash Validator where
+  {-# INLINEABLE toValidatorHash #-}
+  toValidatorHash = toValidatorHash . (`Versioned` PlutusV3)
 
--- | Hash a 'PV3.MintingPolicy' script.
-mintingPolicyHash :: PV3.MintingPolicy -> PV3.MintingPolicyHash
-mintingPolicyHash =
-  PV3.MintingPolicyHash
-    . PV3.getScriptHash
-    . scriptHash
-    . PV3.getMintingPolicy
+instance ToMintingPolicyHash MintingPolicy where
+  {-# INLINEABLE toMintingPolicyHash #-}
+  toMintingPolicyHash = toMintingPolicyHash . (`Versioned` PlutusV3)
 
--- | Hash a 'PV3.StakeValidator' script.
-stakeValidatorHash :: PV3.StakeValidator -> PV3.StakeValidatorHash
-stakeValidatorHash =
-  PV3.StakeValidatorHash
-    . PV3.getScriptHash
-    . scriptHash
-    . PV3.getStakeValidator
+instance ToStakeValidatorHash StakeValidator where
+  {-# INLINEABLE toStakeValidatorHash #-}
+  toStakeValidatorHash = toStakeValidatorHash . (`Versioned` PlutusV3)
 
--- | Convert a 'Builtins.BuiltinsData' value to a 'cardano-api' script
---  data value.
---
--- For why we depend on `cardano-api`,
--- see note [Hash computation of datums, redeemers and scripts]
--- toCardanoAPIData :: Builtins.BuiltinData -> Script.ScriptData
--- toCardanoAPIData = Script.fromPlutusData . Builtins.builtinDataToData
+instance ToScriptHash Script where
+  {-# INLINEABLE toScriptHash #-}
+  toScriptHash = toScriptHash . (`Versioned` PlutusV3)
 
--- | Hash a 'Script'
-scriptHash :: PV3.Script -> PV3.ScriptHash
-scriptHash =
-  PV3.ScriptHash
-    . Builtins.toBuiltin
-    . Script.serialiseToRawBytes
-    . Script.hashScript
-    . toCardanoApiScript
+instance ToAddress Validator where
+  {-# INLINEABLE toAddress #-}
+  toAddress = toAddress . (`Versioned` PlutusV3)
 
--- | Convert a 'Script' to a 'cardano-api' script.
---
--- For why we depend on `cardano-api`,
--- see note [Hash computation of datums, redeemers and scripts]
-toCardanoApiScript :: PV3.Script -> Script.Script Script.PlutusScriptV3
-toCardanoApiScript =
-  Script.PlutusScript Script.PlutusScriptV3
-    . Script.PlutusScriptSerialised
-    . PV3.unScript
+toCardanoScript :: Script -> C.Api.Script C.Api.PlutusScriptV3
+toCardanoScript =
+  C.Api.PlutusScript C.Api.PlutusScriptV3
+    . C.Api.PlutusScriptSerialised
+    . unScript
 
-{-# INLINEABLE scriptCurrencySymbol #-}
+instance ToCardanoAddress Script where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV3)
 
--- | The 'CurrencySymbol' of a 'MintingPolicy'.
-scriptCurrencySymbol :: PV3.MintingPolicy -> PV3.CurrencySymbol
-scriptCurrencySymbol scrpt =
-  let (PV3.MintingPolicyHash hsh) = mintingPolicyHash scrpt in PV3.CurrencySymbol hsh
+instance ToCardanoAddress Validator where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV3)
 
-{- See Note [Hash computation of datums, redeemers and scripts] -}
+instance ToCardanoAddress StakeValidator where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV3)
 
-{- See Note [Scripts returning Bool] -}
+instance ToCardanoAddress MintingPolicy where
+  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV3)

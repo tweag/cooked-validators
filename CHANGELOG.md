@@ -5,7 +5,7 @@
 ### Added
 
 - Module `Cooked.Pretty.Hashable` has been brought back from
-  `Cooked.Conversion.ToHash` has it has no purpose being in
+  `Cooked.Conversion.ToHash` since it has no purpose being in
   `plutus-script-utils`.
 - It is now possible to use `TxSkelOutNoDatum` when paying to scripts, as
   PlutusV3 allows for it. As a consequence, providing no datum in a `Payable` will
@@ -27,7 +27,7 @@
 - `OwnerConstraints` and `ReferenceScriptConstraints` for output to clarify some
   types and allow to reuse those constraints in other parts of the code, such as
   attacks or tweaks.
-- New helper `txSkelOutReferenceScript` to retrieve the option reference script
+- New helper `txSkelOutReferenceScript` to retrieve the optional reference script
   from an output.
   
 ### Removed
