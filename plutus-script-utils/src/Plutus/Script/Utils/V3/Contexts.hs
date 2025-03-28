@@ -6,59 +6,58 @@
 
 module Plutus.Script.Utils.V3.Contexts
   ( module Contexts,
+    findTxInByTxOutRef,
     findTxRefInByTxOutRef,
     outputsAt,
     scriptOutputsAt,
+    valuePaidTo,
     ownHash,
-    ownHashes,
+    ownHashValueAndDatum,
+    findInput,
   )
 where
 
-import Plutus.Script.Utils.Scripts (ValidatorHash (..))
-import PlutusLedgerApi.V1 (Address, Value)
-import PlutusLedgerApi.V3 qualified as PV3
-import PlutusLedgerApi.V3.Contexts as Contexts
-import PlutusTx.Prelude (Maybe (Just, Nothing), find, fst, mapMaybe, traceError, (==))
+import Plutus.Script.Utils.Address (ToAddress (toAddress))
+import Plutus.Script.Utils.Scripts (ToValidatorHash, ValidatorHash (..), toScriptHash, toValidatorHash)
+import PlutusLedgerApi.V3 (Address (Address), Credential (ScriptCredential), OutputDatum, ScriptHash (ScriptHash), TxOut (TxOut), TxOutRef, Value)
+import PlutusLedgerApi.V3.Contexts as Contexts hiding (findTxInByTxOutRef, valuePaidTo)
+import PlutusTx.Prelude (Maybe (Just), find, foldMap, fst, traceError, (.), (<$>), (==))
+
+{-# INLINEABLE findInput #-}
+findInput :: TxOutRef -> [TxInInfo] -> Maybe TxOut
+findInput outRef = (txInInfoResolved <$>) . find ((== outRef) . txInInfoOutRef)
+
+{-# INLINEABLE findTxInByTxOutRef #-}
+findTxInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxOut
+findTxInByTxOutRef outRef = findInput outRef . txInfoInputs
 
 {-# INLINEABLE findTxRefInByTxOutRef #-}
-findTxRefInByTxOutRef :: PV3.TxOutRef -> PV3.TxInfo -> Maybe PV3.TxInInfo
-findTxRefInByTxOutRef outRef PV3.TxInfo {PV3.txInfoReferenceInputs} =
-  find (\PV3.TxInInfo {PV3.txInInfoOutRef} -> txInInfoOutRef == outRef) txInfoReferenceInputs
-
-{-# INLINEABLE outputsAt #-}
+findTxRefInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxOut
+findTxRefInByTxOutRef outRef = findInput outRef . txInfoReferenceInputs
 
 -- | Get the datums and values paid to an address by a pending transaction.
-outputsAt :: Address -> TxInfo -> [(PV3.OutputDatum, Value)]
-outputsAt addr p =
-  let flt PV3.TxOut {PV3.txOutAddress, PV3.txOutValue, PV3.txOutDatum} | txOutAddress == addr = Just (txOutDatum, txOutValue)
-      flt _ = Nothing
-   in mapMaybe flt (txInfoOutputs p)
-
-{-# INLINEABLE scriptOutputsAt #-}
+{-# INLINEABLE outputsAt #-}
+outputsAt :: (ToAddress a) => TxInfo -> a -> [(Value, OutputDatum)]
+outputsAt txInfo (toAddress -> addr) = [(val, dat) | TxOut addr' val dat _ <- txInfoOutputs txInfo, addr == addr']
 
 -- | Get the datums and values paid to an address of a validator by a pending transaction.
-scriptOutputsAt :: ValidatorHash -> TxInfo -> [(PV3.OutputDatum, Value)]
-scriptOutputsAt (ValidatorHash s) = outputsAt (PV3.Address (PV3.ScriptCredential (PV3.ScriptHash s)) Nothing)
+{-# INLINEABLE scriptOutputsAt #-}
+scriptOutputsAt :: (ToValidatorHash a) => TxInfo -> a -> [(Value, OutputDatum)]
+scriptOutputsAt txInfo = outputsAt txInfo . toScriptHash . toValidatorHash
 
-{-# INLINEABLE ownHashes #-}
+-- | Get the total value paid to a public key address by a pending transaction.
+{-# INLINEABLE valuePaidTo #-}
+valuePaidTo :: (ToAddress a) => TxInfo -> a -> Value
+valuePaidTo txInfo = foldMap fst . outputsAt txInfo
 
--- | Get the validator and datum hashes of the output that is curently being validated
-ownHashes :: ScriptContext -> (ValidatorHash, PV3.OutputDatum)
-ownHashes
-  ( findOwnInput ->
-      Just
-        PV3.TxInInfo
-          { PV3.txInInfoResolved =
-              PV3.TxOut
-                { PV3.txOutAddress = PV3.Address (PV3.ScriptCredential (PV3.ScriptHash s)) _,
-                  PV3.txOutDatum = d
-                }
-          }
-    ) = (ValidatorHash s, d)
-ownHashes _ = traceError "Lg" -- "Can't get validator and datum hashes"
-
-{-# INLINEABLE ownHash #-}
+-- | Get the validator hash, datum and value of the output that is curently
+-- being validated
+{-# INLINEABLE ownHashValueAndDatum #-}
+ownHashValueAndDatum :: ScriptContext -> (ValidatorHash, Value, OutputDatum)
+ownHashValueAndDatum (findOwnInput -> Just (TxInInfo _ (TxOut (Address (ScriptCredential (ScriptHash s)) _) val dat _))) = (ValidatorHash s, val, dat)
+ownHashValueAndDatum _ = traceError "Unable to find the own script's input"
 
 -- | Get the hash of the validator script that is currently being validated.
+{-# INLINEABLE ownHash #-}
 ownHash :: ScriptContext -> ValidatorHash
-ownHash p = fst (ownHashes p)
+ownHash (ownHashValueAndDatum -> (vHash, _, _)) = vHash

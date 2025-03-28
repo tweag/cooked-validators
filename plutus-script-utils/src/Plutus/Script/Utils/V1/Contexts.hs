@@ -8,21 +8,17 @@ module Plutus.Script.Utils.V1.Contexts
   )
 where
 
-import PlutusLedgerApi.V1 (Address, Value)
+import Plutus.Script.Utils.Address (ToAddress (toAddress))
+import PlutusLedgerApi.V1 (Value)
 import PlutusLedgerApi.V1.Contexts as Contexts hiding (valuePaidTo)
-import PlutusTx.Prelude (Maybe (Just, Nothing), mapMaybe, mconcat, (==))
+import PlutusTx.Prelude (mconcat, (.), (==))
 
+-- | Get the list of values paid to an address within a 'TxInfo'
 {-# INLINEABLE outputsAt #-}
+outputsAt :: (ToAddress a) => TxInfo -> a -> [Value]
+outputsAt txInfo (toAddress -> addr) = [val | TxOut addr' val _ <- txInfoOutputs txInfo, addr == addr']
 
--- | Get the values paid to a public key address by a pending transaction.
-outputsAt :: Address -> TxInfo -> [Value]
-outputsAt addr p =
-  let flt TxOut {txOutAddress, txOutValue} | txOutAddress == addr = Just txOutValue
-      flt _ = Nothing
-   in mapMaybe flt (txInfoOutputs p)
-
+-- | Get the total value paid to an address within a 'TxInfo'
 {-# INLINEABLE valuePaidTo #-}
-
--- | Get the total value paid to a public key address by a pending transaction.
-valuePaidTo :: TxInfo -> Address -> Value
-valuePaidTo ptx addr = mconcat (outputsAt addr ptx)
+valuePaidTo :: (ToAddress a) => TxInfo -> a -> Value
+valuePaidTo txInfo = mconcat . outputsAt txInfo
