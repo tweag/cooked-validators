@@ -29,7 +29,7 @@
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
-            nixfmt.enable = true;
+            nixfmt-classic.enable = true;
             ormolu.enable = true;
             hpack.enable = true;
           };
@@ -46,23 +46,12 @@
           };
         };
       in {
-        formatter = pkgs.nixfmt;
+        formatter = pkgs.nixfmt-classic;
 
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
-          buildInputs = [
-            blst-portable
-            pkgs.libsodium
-            pkgs.secp256k1
-            pkgs.pkg-config
-            pkgs.zlib
-            pkgs.xz
-            pkgs.glibcLocales
-            pkgs.openssl_3_4
-            pkgs.postgresql # For pg_config
-            hpkgs.ghc
-            hpkgs.cabal-install
-          ];
+          buildInputs =
+            [ pkgs.pkg-config pkgs.glibcLocales hpkgs.ghc hpkgs.cabal-install ];
 
           ## Folders in which to find ".so" files
           LD_LIBRARY_PATH = pkgs.lib.strings.makeLibraryPath [
@@ -84,10 +73,6 @@
           };
 
           default = pkgs.mkShell {
-            ## NOTE: `pkgs.ormolu` must appear before `hpkgs.haskell-language-server`
-            ## in the `buildInputs`, so as to take precedence. This ensures that the
-            ## version of Ormolu available in the path is that of nixpkgs and not the
-            ## one pinned by HLS.
             buildInputs = buildInputs ++ [
               pkgs.hpack
               pkgs.hlint
@@ -104,9 +89,9 @@
             shellHook = pre-commit.shellHook + ''
               function cabal() {
                     if [ "$1" != "test" ]; then
-                      command cabal $@
+                      command cabal "$@"
                     else
-                      command cabal --test-option=--color=always $@ | grep -vE --color=never "^Writing:.*html$"
+                      command cabal --test-option=--color=always "$@" | grep -vE --color=never "^Writing:.*html$"
                     fi
               }
               export -f cabal
