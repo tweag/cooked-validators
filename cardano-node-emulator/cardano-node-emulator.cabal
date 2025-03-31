@@ -52,14 +52,15 @@ library
   -- Local components
   --------------------
   build-depends:
-    , freer-extras         ^>=1.4.0
-    , plutus-ledger        ^>=1.4.0
+    , freer-extras   ^>=1.4.0
+    , plutus-ledger  ^>=1.4.0
 
   --------------------------
   -- Other IOG dependencies
   --------------------------
   build-depends:
-    , cardano-api:{cardano-api,gen} ^>=10.12
+    , cardano-api             ^>=10.12
+    , cardano-api:gen
     , cardano-crypto
     , cardano-ledger-alonzo
     , cardano-ledger-api
@@ -69,8 +70,8 @@ library
     , cardano-ledger-shelley
     , cardano-slotting
     , ouroboros-consensus
-    , plutus-ledger-api                         >=1.0.0
-    , plutus-tx                                 >=1.0.0
+    , plutus-ledger-api       >=1.0.0
+    , plutus-tx               >=1.0.0
     , sop-extras
     , strict-sop-core
 

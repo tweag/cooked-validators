@@ -102,7 +102,7 @@ library
   -- Other IOG dependencies
   --------------------------
   build-depends:
-    , cardano-api ^>=10.12
+    , cardano-api             ^>=10.12
     , cardano-binary
     , cardano-crypto
     , cardano-ledger-alonzo
@@ -112,10 +112,10 @@ library
     , cardano-ledger-shelley
     , data-default
     , iohk-monitoring
-    , plutus-core                          >=1.0.0
-    , plutus-ledger-api                    >=1.0.0
-    , plutus-tx                            >=1.0.0
-    , plutus-tx-plugin                     >=1.0.0
+    , plutus-core             >=1.0.0
+    , plutus-ledger-api       >=1.0.0
+    , plutus-tx               >=1.0.0
+    , plutus-tx-plugin        >=1.0.0
 
   ------------------------
   -- Non-IOG dependencies
@@ -125,25 +125,25 @@ library
   -- defined there.
   build-depends:
     , aeson
-    , base               >=4.9  && <5
+    , base                >=4.9  && <5
     , base16-bytestring
     , bytestring
     , cborg
     , containers
-    , cryptonite         >=0.25
+    , cryptonite          >=0.25
     , flat
     , hashable
     , http-api-data
     , lens
     , memory
     , newtype-generics
+    , ordered-containers
     , prettyprinter
     , scientific
     , serialise
     , servant
     , text
     , time-units
-    , ordered-containers
     , vector
 
   ghc-options:      -fprint-potential-instances
@@ -168,9 +168,10 @@ test-suite plutus-ledger-test
   -- Other IOG dependencies
   --------------------------
   build-depends:
-    , cardano-api:{cardano-api, gen}  ^>=10.12
-    , plutus-ledger-api               >=1.0.0
-    , plutus-tx                       >=1.0.0
+    , cardano-api        ^>=10.12
+    , cardano-api:gen
+    , plutus-ledger-api  >=1.0.0
+    , plutus-tx          >=1.0.0
 
   ------------------------
   -- Non-IOG dependencies

@@ -38,7 +38,7 @@ the [license](LICENSE) for details.
 ## How to integrate `cooked-validators` in a project
 
 To use `cooked-validators`, you need
-- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_5.html) version 9.6.6
+- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_6.html) version 9.6.6
 - [Cabal](https://www.haskell.org/cabal) version 3.10 or later
 
 1. `cooked-validators` depends on

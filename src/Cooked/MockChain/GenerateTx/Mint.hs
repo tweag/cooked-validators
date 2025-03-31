@@ -20,12 +20,18 @@ import Test.QuickCheck.Modifiers (NonZero (NonZero))
 toMintValue :: (MonadBlockChainBalancing m) => TxSkelMints -> m (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue mints | null mints = return Cardano.TxMintNone
 toMintValue mints = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $
-  forM (Map.toList mints) $ \(policy, (red, assets)) -> do
+  forM (Map.toList mints) $ \(policy, (red, Map.toList . NEMap.toMap -> assets)) -> do
     policyId <-
       throwOnToCardanoError
         "toMintValue: Unable to translate minting policy hash"
         (Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash policy)
-    mintWitness <- toScriptWitness policy red Cardano.NoScriptDatumForMint
-    assetsMinted <- forM (Map.toList $ NEMap.toMap assets) $ \(Api.TokenName (PlutusTx.BuiltinByteString name), NonZero quantity) -> do
-      return (Cardano.AssetName name, Cardano.Quantity quantity)
-    return (policyId, (fromList assetsMinted, Cardano.BuildTxWith mintWitness))
+    mintWitness <- Cardano.BuildTxWith <$> toScriptWitness policy red Cardano.NoScriptDatumForMint
+    return
+      ( policyId,
+        ( fromList
+            [ (Cardano.AssetName name, Cardano.Quantity quantity)
+              | (Api.TokenName (PlutusTx.BuiltinByteString name), NonZero quantity) <- assets
+            ],
+          mintWitness
+        )
+      )

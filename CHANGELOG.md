@@ -19,7 +19,7 @@
 - The testing framewok now allows to predicate over the number of resulting
   traces using new Test field `testSizeProp` and new helper `withExactSize`.
 - Support for multi-purpose scripts post CIP69 and Chang hard fork.
-- A test over multi purpose scripts with Minting + Spending purposes.
+- A test over multi-purpose scripts with Minting + Spending purposes.
 - Constructor `Mint` with smart constructors `mint` and `burn` to populate the
   `TxSkelMints` field of our skeleton.
 - New helper `addHashNames` to add alias in the pretty cooked options without

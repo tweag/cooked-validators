@@ -354,7 +354,7 @@ txSkelInputValidators skel = do
                   valHash
               )
               (Just . (valHash,))
-              ((Script.toVersioned <$>) <$> scriptFromHash sHash)
+              (fmap Script.toVersioned <$> scriptFromHash sHash)
           _ -> return Nothing
       )
       utxos

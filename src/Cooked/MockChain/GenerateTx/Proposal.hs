@@ -106,7 +106,7 @@ toProposalProcedureAndWitness ::
   (MonadBlockChainBalancing m) =>
   TxSkelProposal ->
   AnchorResolution ->
-  m (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
+  m (Conway.ProposalProcedure Emulator.EmulatorEra, Cardano.BuildTxWith Cardano.BuildTx (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra)))
 toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolution = do
   minDeposit <- Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
   cred <- toRewardAccount $ Script.toCredential txSkelProposalAddress
@@ -128,7 +128,7 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
         return $ Cardano.Anchor anchorUrl . Conway.hashAnnotated . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor
   let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
-  (conwayProposalProcedure,) <$> case txSkelProposalWitness of
+  (conwayProposalProcedure,) . Cardano.BuildTxWith <$> case txSkelProposalWitness of
     Nothing -> return Nothing
     Just (script, redeemer) -> Just <$> toScriptWitness script redeemer Cardano.NoScriptDatumForStake
 
@@ -138,9 +138,6 @@ toProposalProcedures ::
   [TxSkelProposal] ->
   AnchorResolution ->
   m (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
-toProposalProcedures props anchorResolution = do
-  proposalList <- mapM (((Cardano.BuildTxWith <$>) <$>) . (`toProposalProcedureAndWitness` anchorResolution)) props
-  return $
-    if null proposalList
-      then Cardano.TxProposalProceduresNone
-      else Cardano.TxProposalProcedures $ OMap.fromList proposalList
+toProposalProcedures props _ | null props = return Cardano.TxProposalProceduresNone
+toProposalProcedures props anchorResolution =
+  Cardano.TxProposalProcedures . OMap.fromList <$> mapM (`toProposalProcedureAndWitness` anchorResolution) props
