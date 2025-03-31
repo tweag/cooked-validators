@@ -39,7 +39,6 @@ import Cardano.Ledger.BaseTypes (mkTxIxPartial)
 import Cardano.Ledger.Conway qualified as Conway
 import Cardano.Ledger.Conway.TxBody (ConwayTxBody (ConwayTxBody, ctbReqSignerHashes))
 import Cardano.Ledger.Core qualified as Ledger
-import Cardano.Ledger.Crypto (StandardCrypto)
 import Cardano.Ledger.Shelley.API qualified as C.Ledger
 import Data.Bifunctor (bimap)
 import Data.Map qualified as Map
@@ -143,14 +142,14 @@ toPlutusIndex (C.Ledger.UTxO utxo) =
     . Map.toList
     $ utxo
 
-fromPlutusIndex :: P.UtxoIndex -> C.Ledger.UTxO (Conway.ConwayEra StandardCrypto)
+fromPlutusIndex :: P.UtxoIndex -> C.Ledger.UTxO Conway.ConwayEra
 fromPlutusIndex = C.toLedgerUTxO C.ShelleyBasedEraConway
 
-fromPlutusTxOutRef :: PV3.TxOutRef -> Either ToCardanoError (C.Ledger.TxIn StandardCrypto)
+fromPlutusTxOutRef :: PV3.TxOutRef -> Either ToCardanoError C.Ledger.TxIn
 fromPlutusTxOutRef (PV3.TxOutRef txId i) = C.Ledger.TxIn <$> fromPlutusTxId txId <*> pure (mkTxIxPartial i)
 
-fromPlutusTxId :: PV3.TxId -> Either ToCardanoError (C.Ledger.TxId StandardCrypto)
+fromPlutusTxId :: PV3.TxId -> Either ToCardanoError C.Ledger.TxId
 fromPlutusTxId = fmap C.toShelleyTxId . toCardanoTxId
 
-fromPlutusTxOut :: P.TxOut -> Ledger.TxOut (Conway.ConwayEra StandardCrypto)
+fromPlutusTxOut :: P.TxOut -> Ledger.TxOut Conway.ConwayEra
 fromPlutusTxOut = C.toShelleyTxOut C.ShelleyBasedEraConway . P.toCtxUTxOTxOut

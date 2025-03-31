@@ -100,7 +100,6 @@ import Cardano.Ledger.Coin (Coin (Coin))
 import Cardano.Ledger.Conway (ConwayEra)
 import Cardano.Ledger.Conway.Scripts qualified as Conway
 import Cardano.Ledger.Core qualified as Ledger
-import Cardano.Ledger.Crypto (StandardCrypto)
 import Control.Lens ((<&>))
 import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON), object, (.:), (.=))
 import Data.Aeson qualified as Aeson
@@ -130,7 +129,7 @@ import PlutusLedgerApi.V3 qualified as PV3
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter (Pretty (pretty), colon, viaShow, (<+>))
 
-type EmulatorEra = ConwayEra StandardCrypto
+type EmulatorEra = ConwayEra
 
 newtype CardanoBuildTx = CardanoBuildTx {getCardanoBuildTx :: C.TxBodyContent C.BuildTx C.ConwayEra}
   deriving (Show, Eq, Generic)

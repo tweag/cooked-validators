@@ -106,14 +106,14 @@ tests =
                 skelExpected 10 7 @=? fst <$> skelOut (\ac n -> if ac == ac1 then n + 5 else n)
             ],
       testCase "careful minting policy" $
-        let tName = "MockToken"
+        let tName = Api.TokenName "MockToken"
             pol = carefulPolicy tName 1
          in testFailsInPhase2 $
               somewhere
                 (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCase "careless minting policy" $
-        let tName = "MockToken"
+        let tName = Api.TokenName "MockToken"
             pol = carelessPolicy
          in testSucceeds $
               somewhere

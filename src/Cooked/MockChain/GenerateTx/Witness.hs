@@ -8,7 +8,6 @@ import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Address qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Credential qualified as Cardano
-import Cardano.Ledger.Crypto qualified as Crypto
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Output
@@ -19,7 +18,7 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Translates a given credential to a reward account.
-toRewardAccount :: (MonadBlockChainBalancing m) => Api.Credential -> m (Cardano.RewardAccount Crypto.StandardCrypto)
+toRewardAccount :: (MonadBlockChainBalancing m) => Api.Credential -> m Cardano.RewardAccount
 toRewardAccount cred =
   Cardano.RewardAccount Cardano.Testnet <$> case cred of
     Api.ScriptCredential scriptHash -> do
@@ -45,7 +44,7 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
   case mScriptHash of
     Nothing -> throwOnString "toPlutusScriptOrReferenceInput: No reference script found in utxo."
     Just scriptHash' | scriptHash /= scriptHash' -> throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."
-    Just _ ->
+    _ ->
       Cardano.PReferenceScript
         <$> throwOnToCardanoError
           "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."

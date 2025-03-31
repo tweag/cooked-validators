@@ -9,6 +9,7 @@ import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Map.NonEmpty qualified as NEMap
 import Data.Map.Strict qualified as SMap
+import GHC.Exts (fromList)
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -24,7 +25,7 @@ toMintValue mints = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMa
       throwOnToCardanoError
         "toMintValue: Unable to translate minting policy hash"
         (Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash policy)
+    mintWitness <- toScriptWitness policy red Cardano.NoScriptDatumForMint
     assetsMinted <- forM (Map.toList $ NEMap.toMap assets) $ \(Api.TokenName (PlutusTx.BuiltinByteString name), NonZero quantity) -> do
-      mintWitness <- toScriptWitness policy red Cardano.NoScriptDatumForMint
-      return (Cardano.AssetName name, Cardano.Quantity quantity, Cardano.BuildTxWith mintWitness)
-    return (policyId, assetsMinted)
+      return (Cardano.AssetName name, Cardano.Quantity quantity)
+    return (policyId, (fromList assetsMinted, Cardano.BuildTxWith mintWitness))

@@ -82,7 +82,7 @@ coinMintingPolicyCurrencySymbol :: Language -> Value.CurrencySymbol
 coinMintingPolicyCurrencySymbol = toCurrencySymbol . coinMintingPolicyHash
 
 someToken :: Language -> Value.Value
-someToken lang = Value.singleton (coinMintingPolicyCurrencySymbol lang) "someToken" 1
+someToken lang = Value.singleton (coinMintingPolicyCurrencySymbol lang) (Value.TokenName "someToken") 1
 
 asRedeemer :: (PlutusTx.ToData a) => a -> PV2.Redeemer
 asRedeemer a = PV2.Redeemer $ PlutusTx.dataToBuiltinData $ PlutusTx.toData a

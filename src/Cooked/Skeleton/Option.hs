@@ -166,16 +166,16 @@ data TxOpts = TxOpts
     -- Default is @True@.
     txOptAutoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted ('txOptEnsureMinAda') and balanced. The name of this
-    -- option contains /unsafe/ to draw attention to the fact that modifying a
-    -- transaction at that stage might make it invalid. Still, this offers a
-    -- hook for being able to alter a transaction in unforeseen ways. It is
-    -- mostly used to test contracts that have been written for custom PABs.
+    -- potentially adjusted and balanced. The name of this option contains
+    -- /unsafe/ to draw attention to the fact that modifying a transaction at
+    -- that stage might make it invalid. Still, this offers a hook for being
+    -- able to alter a transaction in unforeseen ways. It is mostly used to test
+    -- contracts that have been written for custom PABs.
     --
     -- One interesting use of this function is to observe a transaction just
     -- before it is being sent for validation, with
     --
-    -- > txOptUnsafeModTx = [RawModTxAfterBalancing Debug.Trace.traceShowId]
+    -- > txOptUnsafeModTx = [RawModTx Debug.Trace.traceShowId]
     --
     -- The leftmost function in the list is applied first.
     --

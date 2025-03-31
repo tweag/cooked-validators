@@ -8,7 +8,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        hpkgs = pkgs.haskell.packages.ghc966;
+        hpkgs = pkgs.haskell.packages.ghc96;
 
         ## We change the way 'blst' is built so that it takes into
         ## account the current architecture of the processor. This
@@ -50,21 +50,28 @@
 
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
-          buildInputs =
-            [ pkgs.pkg-config pkgs.glibcLocales hpkgs.ghc hpkgs.cabal-install ];
+          buildInputs = [
+            blst-portable
+            pkgs.pkg-config
+            pkgs.glibcLocales
+            pkgs.zlib
+            pkgs.libsodium
+            pkgs.secp256k1
+            hpkgs.ghc
+            hpkgs.cabal-install
+          ];
 
           ## Folders in which to find ".so" files
           LD_LIBRARY_PATH = pkgs.lib.strings.makeLibraryPath [
-            blst-portable
-            pkgs.libsodium
-            pkgs.secp256k1
-            pkgs.zlib
             pkgs.xz
+            pkgs.zlib
             pkgs.openssl_3_4
             pkgs.postgresql # For cardano-node-emulator
             pkgs.openldap # For freer-extras‽
           ];
+
           LANG = "C.UTF-8";
+
         in {
           ci = pkgs.mkShell {
             inherit buildInputs;

@@ -5,7 +5,7 @@ import Cooked
 import Data.Map qualified as Map
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as V3
+import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -35,12 +35,12 @@ mintingQuickValue =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [mint Script.trueMintingMPScript emptyTxSkelRedeemer "banana" 10],
+        { txSkelMints = txSkelMintsFromList [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
           txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript "banana" 10)],
           txSkelSigners = [alice]
         }
 
-payToAlwaysTrueValidator :: (MonadBlockChain m) => m V3.TxOutRef
+payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
 payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $

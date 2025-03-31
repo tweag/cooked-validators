@@ -324,7 +324,7 @@ genValidTransactionBodySpending' g ins totalVal = do
               C.MaryEraOnwardsConway
               $ Map.singleton
                 alwaysSucceedPolicyId
-                [(mintTokenName, C.Quantity mintAmount, C.BuildTxWith mintWitness)]
+                (fromList [(mintTokenName, C.Quantity mintAmount)], C.BuildTxWith mintWitness)
       txIns = map (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending) ins
   txInsCollateral <-
     maybe

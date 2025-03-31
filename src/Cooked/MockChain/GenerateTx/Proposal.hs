@@ -125,7 +125,7 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
                     )
                 AnchorResolutionLocal urls ->
                   throwOnMaybe "Error when attempting to retrieve anchor url in the local anchor resolution map" (Map.lookup anchor urls)
-        return $ Cardano.Anchor anchorUrl . Cardano.hashAnchorData . Cardano.AnchorData <$> anchorDataHash
+        return $ Cardano.Anchor anchorUrl . Conway.hashAnnotated . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor
   let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
   (conwayProposalProcedure,) <$> case txSkelProposalWitness of

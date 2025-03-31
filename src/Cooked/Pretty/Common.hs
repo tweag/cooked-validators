@@ -64,7 +64,13 @@ prettyHash PrettyCookedHashOpts {..} bbs@(PlutusTx.BuiltinByteString bs) =
         "#"
           <> ( PP.pretty
                  . take pcOptHashLength
-                 . concatMap (`Numeric.showHex` "")
+                 . concatMap
+                   ( \x ->
+                       let res = Numeric.showHex x ""
+                        in if length res == 1
+                             then '0' : res
+                             else res
+                   )
                  . ByteString.unpack
              )
             bs

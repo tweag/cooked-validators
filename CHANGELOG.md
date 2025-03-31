@@ -65,6 +65,8 @@
 
 - A bug where reference inputs given in the withdrawal redeemer would not be put
   in the set of reference inputs of the generated transaction.
+- A bug where hashes were not properly displayed by pretty cooked when involving
+  leading zeros in the hexadecimal conversion of their digits.
 
 ## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2025-03-17
 

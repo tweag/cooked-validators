@@ -180,7 +180,6 @@ initialState params =
             C.Ledger.ledgerIx = minBound,
             C.Ledger.ledgerPp = emulatorPParams params,
             C.Ledger.ledgerAccount = C.Ledger.AccountState (Coin 0) (Coin 0),
-            C.Ledger.ledgerMempool = True, -- TODO, what does it mean?
             C.Ledger.ledgerEpochNo = Nothing
           },
       _memPoolState = esLState (nesEs (createInitialState (pConfig params)))

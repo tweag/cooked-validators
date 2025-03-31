@@ -46,10 +46,9 @@ import Cardano.Ledger.Alonzo.Genesis qualified as C
 import Cardano.Ledger.Alonzo.PParams qualified as C
 import Cardano.Ledger.Api.PParams qualified as C
 import Cardano.Ledger.Api.Transition qualified as C
-import Cardano.Ledger.BaseTypes (ProtVer (ProtVer), boundRational)
+import Cardano.Ledger.BaseTypes (ProtVer (ProtVer), boundRational, unNonZero)
 import Cardano.Ledger.Binary.Version (Version, natVersion)
 import Cardano.Ledger.Conway (ConwayEra)
-import Cardano.Ledger.Crypto (StandardCrypto)
 import Cardano.Ledger.Plutus.ExUnits (ExUnits (ExUnits), Prices (Prices))
 import Cardano.Ledger.Shelley.API (Coin (Coin), Globals, mkShelleyGlobals)
 import Cardano.Ledger.Shelley.API qualified as C.Ledger
@@ -85,7 +84,7 @@ import PlutusLedgerApi.V1 (POSIXTime (POSIXTime, getPOSIXTime))
 import Prettyprinter (Pretty (pretty), viaShow, vsep, (<+>))
 
 -- | The default era for the emulator
-type EmulatorEra = ConwayEra StandardCrypto
+type EmulatorEra = ConwayEra
 
 type PParams = C.PParams EmulatorEra
 
@@ -164,7 +163,7 @@ defaultConfig =
     emulatorAlonzoGenesisDefaults
     emulatorConwayGenesisDefaults
 
-emulatorShelleyGenesisDefaults :: C.ShelleyGenesis StandardCrypto
+emulatorShelleyGenesisDefaults :: C.ShelleyGenesis
 emulatorShelleyGenesisDefaults =
   C.shelleyGenesisDefaults
     { C.sgNetworkMagic = case testNetworkMagic of C.NetworkMagic nm -> nm,
@@ -188,7 +187,7 @@ emulatorAlonzoGenesisDefaults =
       C.agMaxTxExUnits = ExUnits 14_000_000 10_000_000_000
     }
 
-emulatorConwayGenesisDefaults :: C.ConwayGenesis StandardCrypto
+emulatorConwayGenesisDefaults :: C.ConwayGenesis
 emulatorConwayGenesisDefaults = C.conwayGenesisDefaults
 
 paramsFromConfig :: TransitionConfig -> Params
@@ -213,7 +212,7 @@ slotLength :: Params -> SlotLength
 slotLength Params {pSlotConfig} = mkSlotLength $ posixTimeToNominalDiffTime $ POSIXTime $ scSlotLength pSlotConfig
 
 keptBlocks :: Params -> Integer
-keptBlocks Params {pConfig} = fromIntegral $ C.sgSecurityParam (pConfig ^. C.tcShelleyGenesisL)
+keptBlocks Params {pConfig} = fromIntegral $ unNonZero $ C.sgSecurityParam (pConfig ^. C.tcShelleyGenesisL)
 
 -- | A sensible default 'EpochSize' value for the emulator
 emulatorEpochSize :: EpochSize
