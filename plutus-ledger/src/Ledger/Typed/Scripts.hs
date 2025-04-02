@@ -1,43 +1,22 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-missing-import-lists #-}
-
 module Ledger.Typed.Scripts
-  ( module Export,
-    MintingPolicy,
-    Validator,
-    PV1.ConnectionError (..),
-    mkForwardingMintingPolicy,
-    unsafeMkTypedValidator,
-    -- TODO: Don't export Plutus V1 specific code from a module that doesn't mention a plutus version
-    PV1.ValidatorType,
-    PV1.mkTypedValidator,
-    PV1.mkTypedValidatorParam,
+  ( mkForwardingMintingPolicy,
+    mkTypedValidator,
   )
 where
 
-import Ledger.Typed.Scripts.Orphans as Export ()
-import Plutus.Script.Utils.Scripts (MintingPolicy, Validator)
-import Plutus.Script.Utils.Scripts qualified as Untyped
-import Plutus.Script.Utils.Typed as Export
-import Plutus.Script.Utils.V1.Typed.Scripts qualified as PV1
-import Plutus.Script.Utils.V2.Typed.Scripts qualified as PV2
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V1.Generators qualified as PV1
+import Plutus.Script.Utils.V1.Typed qualified as PV1
+import Plutus.Script.Utils.V2.Generators qualified as PV2
+import Plutus.Script.Utils.V2.Typed qualified as PV2
 
-mkForwardingMintingPolicy :: Untyped.Versioned Validator -> Untyped.Versioned MintingPolicy
-mkForwardingMintingPolicy vl@(Untyped.Versioned _ Untyped.PlutusV1) = Untyped.Versioned (PV1.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) Untyped.PlutusV1
-mkForwardingMintingPolicy vl@(Untyped.Versioned _ Untyped.PlutusV2) = Untyped.Versioned (PV2.mkForwardingMintingPolicy (Untyped.toValidatorHash vl)) Untyped.PlutusV2
-mkForwardingMintingPolicy (Untyped.Versioned _ Untyped.PlutusV3) = error "Stand alone forward minting policy are no longer relevant in PlutusV3"
+mkForwardingMintingPolicy :: Script.Versioned Script.Validator -> Script.Versioned Script.MintingPolicy
+mkForwardingMintingPolicy vl@(Script.Versioned _ Script.PlutusV1) = PV1.mkForwardingMintingPolicy (Script.toValidatorHash vl) <$ vl
+mkForwardingMintingPolicy vl@(Script.Versioned _ Script.PlutusV2) = PV2.mkForwardingMintingPolicy (Script.toValidatorHash vl) <$ vl
+mkForwardingMintingPolicy _ = error "Standalone forwarding minting policy are no longer relevant in PlutusV3"
 
--- | Make a 'TypedValidator' (with no type constraints) from an untyped 'Validator' script.
-unsafeMkTypedValidator :: Untyped.Versioned Validator -> TypedValidator Any
-unsafeMkTypedValidator vl =
-  TypedValidator
-    { tvValidator = vl,
-      tvValidatorHash = vh,
-      tvForwardingMPS = mps,
-      tvForwardingMPSHash = Untyped.toMintingPolicyHash mps
-    }
-  where
-    vh = Untyped.toValidatorHash vl
-    mps = mkForwardingMintingPolicy vl
+mkTypedValidator :: Script.Versioned Script.Validator -> Script.TypedValidator a
+mkTypedValidator (Script.Versioned val Script.PlutusV1) = PV1.validatorToTypedValidator val
+mkTypedValidator (Script.Versioned val Script.PlutusV2) = PV2.validatorToTypedValidator val
+mkTypedValidator _ = error "Standalone typed validators are no longer relevant in PlutusV3"

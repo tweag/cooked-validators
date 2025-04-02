@@ -1,8 +1,9 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Plutus.Script.Utils.Typed
   ( UntypedValidator,
     UntypedMintingPolicy,
     UntypedStakeValidator,
-    ---
     ValidatorTypes (..),
     TypedValidator (..),
     toCardanoAddressAny,
@@ -10,7 +11,6 @@ module Plutus.Script.Utils.Typed
     vForwardingMintingPolicy,
     forwardingMintingPolicyHash,
     generalise,
-    ---
     Any,
     IsScriptContext (..),
     ScriptContextV1,

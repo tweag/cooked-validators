@@ -53,13 +53,12 @@ payToAlwaysTrueValidator =
 consumeAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 consumeAlwaysTrueValidator = do
   outref <- payToAlwaysTrueValidator
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
-          txSkelOuts = [alice `receives` Value (Script.ada 10)],
-          txSkelSigners = [alice]
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
+        txSkelOuts = [alice `receives` Value (Script.ada 10)],
+        txSkelSigners = [alice]
+      }
 
 tests :: TestTree
 tests =

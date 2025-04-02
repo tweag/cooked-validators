@@ -3,8 +3,6 @@
 module Plutus.Script.Utils.V1.Generators
   ( alwaysSucceedValidator,
     alwaysFailValidator,
-    alwaysSucceedTypedValidator,
-    alwaysFailTypedValidator,
     alwaysSucceedValidatorVersioned,
     alwaysFailValidatorVersioned,
     alwaysSucceedValidatorHash,
@@ -19,6 +17,8 @@ module Plutus.Script.Utils.V1.Generators
     alwaysSucceedTokenValue,
     alwaysFailCurrencySymbol,
     alwaysFailTokenValue,
+    mkForwardingMintingPolicy,
+    mkForwardingStakeValidator,
   )
 where
 
@@ -26,18 +26,34 @@ import Plutus.Script.Utils.Scripts
   ( Language (PlutusV1),
     MintingPolicy,
     MintingPolicyHash,
+    StakeValidator,
     Validator,
-    ValidatorHash,
+    ValidatorHash (ValidatorHash),
     Versioned (Versioned),
     toCurrencySymbol,
     toMintingPolicy,
     toMintingPolicyHash,
+    toStakeValidator,
     toValidator,
     toValidatorHash,
   )
+import Plutus.Script.Utils.Typed (mkUntypedMintingPolicy, mkUntypedStakeValidator)
 import Plutus.Script.Utils.V1.Scripts ()
-import Plutus.Script.Utils.V1.Typed.Scripts.Validators (TypedValidator, validatorToTypedValidator)
-import PlutusLedgerApi.V1.Value (CurrencySymbol, TokenName, Value, singleton)
+import PlutusCore.Version (plcVersion100)
+import PlutusLedgerApi.V1
+  ( Address (Address),
+    Credential (ScriptCredential),
+    CurrencySymbol,
+    ScriptContext (ScriptContext),
+    ScriptHash (ScriptHash),
+    ScriptPurpose (Certifying, Minting, Rewarding),
+    TokenName,
+    TxInInfo (txInInfoResolved),
+    TxInfo (TxInfo, txInfoInputs),
+    TxOut (TxOut),
+    Value,
+    singleton,
+  )
 import PlutusTx qualified
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 
@@ -52,12 +68,6 @@ alwaysFailValidator = toValidator $$(PlutusTx.compile [||falseVal||])
   where
     falseVal :: PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit
     falseVal _ _ _ = PlutusTx.error PlutusTx.unitval
-
-alwaysSucceedTypedValidator :: TypedValidator a
-alwaysSucceedTypedValidator = validatorToTypedValidator alwaysSucceedValidator
-
-alwaysFailTypedValidator :: TypedValidator a
-alwaysFailTypedValidator = validatorToTypedValidator alwaysFailValidator
 
 alwaysSucceedValidatorVersioned :: Versioned Validator
 alwaysSucceedValidatorVersioned = Versioned alwaysSucceedValidator PlutusV1
@@ -106,3 +116,38 @@ alwaysFailCurrencySymbol = toCurrencySymbol alwaysFailPolicyVersioned
 
 alwaysFailTokenValue :: TokenName -> Integer -> Value
 alwaysFailTokenValue = singleton alwaysFailCurrencySymbol
+
+-- | A minting policy that checks whether the validator script was run
+--  in the minting transaction.
+mkForwardingMintingPolicy :: ValidatorHash -> MintingPolicy
+mkForwardingMintingPolicy vshsh =
+  toMintingPolicy $
+    $$(PlutusTx.compile [||mkUntypedMintingPolicy . forwardToValidator||])
+      `PlutusTx.unsafeApplyCode` PlutusTx.liftCode plcVersion100 vshsh
+  where
+    {-# INLINEABLE forwardToValidator #-}
+    forwardToValidator :: ValidatorHash -> () -> ScriptContext -> Bool
+    forwardToValidator (ValidatorHash h) _ (ScriptContext (TxInfo {txInfoInputs}) (Minting _)) =
+      let checkHash (TxOut (Address (ScriptCredential (ScriptHash vh)) _) _ _) = vh == h
+          checkHash _ = False
+       in any (checkHash . txInInfoResolved) txInfoInputs
+    forwardToValidator _ _ _ = False
+
+-- | A stake validator that checks whether the validator script was run
+--  in the right transaction.
+mkForwardingStakeValidator :: ValidatorHash -> StakeValidator
+mkForwardingStakeValidator vshsh =
+  toStakeValidator $
+    $$(PlutusTx.compile [||\(hsh :: ValidatorHash) -> mkUntypedStakeValidator (forwardToValidator hsh)||])
+      `PlutusTx.unsafeApplyCode` PlutusTx.liftCode plcVersion100 vshsh
+  where
+    {-# INLINEABLE forwardToValidator #-}
+    forwardToValidator :: ValidatorHash -> () -> ScriptContext -> Bool
+    forwardToValidator (ValidatorHash h) _ (ScriptContext (TxInfo {txInfoInputs}) scriptContextPurpose) =
+      let checkHash (TxOut (Address (ScriptCredential (ScriptHash vh)) _) _ _) = vh == h
+          checkHash _ = False
+          result = any (checkHash . txInInfoResolved) txInfoInputs
+       in case scriptContextPurpose of
+            Rewarding _ -> result
+            Certifying _ -> result
+            _ -> False

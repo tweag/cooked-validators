@@ -7,7 +7,7 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx qualified

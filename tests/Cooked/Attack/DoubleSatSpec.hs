@@ -13,7 +13,7 @@ import Data.Tuple (swap)
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V2.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V2.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusLedgerApi.V3 qualified as V3

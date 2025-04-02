@@ -50,12 +50,6 @@ package cardano-api
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
--- This is required by cardano-api 10.12 but is not yet on CHaP
-source-repository-package
-    type: git
-    location: https://github.com/IntersectMBO/cardano-addresses
-    tag: 3749045778e0d8bb1f2bed1c598594eeed0b442e
-
 constraints:
   cardano-api ^>= 10.12,
   cardano-addresses ^>= 4.0
