@@ -46,6 +46,7 @@ import Plutus.Script.Utils.Scripts
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V2 qualified as PV2
 import PlutusTx.Prelude (BuiltinData, BuiltinString, BuiltinUnit, check, trace)
+import PlutusTx.Prelude qualified as PlutusTx
 
 type UntypedValidator = BuiltinData -> BuiltinData -> BuiltinData -> BuiltinUnit
 
@@ -149,10 +150,13 @@ forwardingMintingPolicyHash :: TypedValidator a -> MintingPolicyHash
 forwardingMintingPolicyHash = tvForwardingMPSHash
 
 {-# INLINEABLE tracedUnsafeFrom #-}
-tracedUnsafeFrom :: forall a. (PV1.UnsafeFromData a) => BuiltinString -> BuiltinData -> a
-tracedUnsafeFrom label = trace label . PV1.unsafeFromBuiltinData
+tracedUnsafeFrom :: (PV1.FromData a) => BuiltinString -> BuiltinData -> Maybe a
+tracedUnsafeFrom label builtinData = do
+  dat <- PV1.fromBuiltinData builtinData
+  -- We trace after the decoding is actually successful
+  return $ trace label dat
 
-class (PV1.UnsafeFromData sc) => IsScriptContext sc where
+class (PV1.FromData sc) => IsScriptContext sc where
   {-# INLINEABLE mkUntypedValidator #-}
 
   -- | Converts a custom datum and redeemer from a validator function to an
@@ -202,23 +206,26 @@ class (PV1.UnsafeFromData sc) => IsScriptContext sc where
   --       wrap = mkUntypedValidator
   -- @
   --
-  -- For debugging purpose, it may be of interest to know that in the default implementation,
-  -- the parameters are decoded in the order they appear
-  -- (data, redeemer and then script context).
-  -- A log trace is generated after each successfully decoded parameter.
-  -- Thus, if a parameter can't be decoded, the culprit is the first parameter in the list that doesn't appear as
+  -- For debugging purpose, it may be of interest to know that in the default
+  -- implementation, the parameters are decoded in the order they appear (data,
+  -- redeemer and then script context). A log trace is generated after each
+  -- successfully decoded parameter.  Thus, if a parameter can't be decoded, the
+  -- culprit is the first parameter in the list that doesn't appear as
   -- successfully decoded in the log trace.
   mkUntypedValidator ::
-    (PV1.UnsafeFromData d, PV1.UnsafeFromData r) =>
+    (PV1.FromData d, PV1.FromData r) =>
     (d -> r -> sc -> Bool) ->
     UntypedValidator
-  -- We can use unsafeFromBuiltinData here as we would fail immediately anyway if parsing failed
   mkUntypedValidator f d r p =
     check $
-      f
-        (tracedUnsafeFrom "Data decoded successfully" d)
-        (tracedUnsafeFrom "Redeemer decoded successfully" r)
-        (tracedUnsafeFrom "Script context decoded successfully" p)
+      PlutusTx.fromMaybe
+        False
+        ( do
+            dat <- tracedUnsafeFrom "Datum decoded successfully" d
+            red <- tracedUnsafeFrom "Redeemer decoded successfully" r
+            sc <- tracedUnsafeFrom "Script context decoded successfully" p
+            return $ f dat red sc
+        )
 
   {-# INLINEABLE mkUntypedStakeValidator #-}
 
@@ -245,21 +252,25 @@ class (PV1.UnsafeFromData sc) => IsScriptContext sc where
   --       wrap = mkUntypedStakeValidator mkStakeValidator
   -- @
   --
-  -- For debugging purpose, it may be of interest to know that in the default implementation,
-  -- the parameters are decoded in the order they appear
-  -- (redeemer and then script context).
-  -- A log trace is generated after each successfully decoded parameter.
-  -- Thus, if a parameter can't be decoded, the culprit is the first parameter in the list that doesn't appear as
+  -- For debugging purpose, it may be of interest to know that in the default
+  -- implementation, the parameters are decoded in the order they appear
+  -- (redeemer and then script context). A log trace is generated after each
+  -- successfully decoded parameter.  Thus, if a parameter can't be decoded, the
+  -- culprit is the first parameter in the list that doesn't appear as
   -- successfully decoded in the log trace.
   mkUntypedStakeValidator ::
-    (PV1.UnsafeFromData r) =>
+    (PV1.FromData r) =>
     (r -> sc -> Bool) ->
     UntypedStakeValidator
   mkUntypedStakeValidator f r p =
     check $
-      f
-        (tracedUnsafeFrom "Redeemer decoded successfully" r)
-        (tracedUnsafeFrom "Script context decoded successfully" p)
+      PlutusTx.fromMaybe
+        False
+        ( do
+            red <- tracedUnsafeFrom "Redeemer decoded successfully" r
+            sc <- tracedUnsafeFrom "Script context decoded successfully" p
+            return $ f red sc
+        )
 
   {-# INLINEABLE mkUntypedMintingPolicy #-}
 
@@ -286,22 +297,25 @@ class (PV1.UnsafeFromData sc) => IsScriptContext sc where
   --       wrap = mkUntypedMintingPolicy mkMintingPolicy
   -- @
   --
-  -- For debugging purpose, it may be of interest to know that in the default implementation,
-  -- the parameters are decoded in the order they appear
-  -- (redeemer and then script context).
-  -- A log trace is generated after each successfully decoded parameter.
-  -- Thus, if a parameter can't be decoded, the culprit is the first parameter in the list that doesn't appear as
+  -- For debugging purpose, it may be of interest to know that in the default
+  -- implementation, the parameters are decoded in the order they appear
+  -- (redeemer and then script context). A log trace is generated after each
+  -- successfully decoded parameter.  Thus, if a parameter can't be decoded, the
+  -- culprit is the first parameter in the list that doesn't appear as
   -- successfully decoded in the log trace.
   mkUntypedMintingPolicy ::
-    (PV1.UnsafeFromData r) =>
+    (PV1.FromData r) =>
     (r -> sc -> Bool) ->
     UntypedMintingPolicy
-  -- We can use unsafeFromBuiltinData here as we would fail immediately anyway if parsing failed
   mkUntypedMintingPolicy f r p =
     check $
-      f
-        (tracedUnsafeFrom "Redeemer decoded successfully" r)
-        (tracedUnsafeFrom "Script context decoded successfully" p)
+      PlutusTx.fromMaybe
+        False
+        ( do
+            red <- tracedUnsafeFrom "Redeemer decoded successfully" r
+            sc <- tracedUnsafeFrom "Script context decoded successfully" p
+            return $ f red sc
+        )
 
 type ScriptContextV1 = PV1.ScriptContext
 
