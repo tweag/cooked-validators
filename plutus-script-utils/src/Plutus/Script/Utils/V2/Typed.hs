@@ -17,39 +17,63 @@ module Plutus.Script.Utils.V2.Typed
     makeTypedScriptTxOut,
     typeScriptTxOut,
     typeScriptTxOutRef,
+    ValidatorTypes (..),
+    TypedValidator (..),
+    generalise,
+    Any,
+    toCardanoAddressAny,
   )
 where
 
-import Control.Monad (unless)
 import Control.Monad.Except (MonadError, throwError)
-import Data.Aeson (FromJSON, ToJSON)
 import Data.Kind (Type)
-import GHC.Generics (Generic)
-import Plutus.Script.Utils.Address (toAddress)
 import Plutus.Script.Utils.Data (datumHash)
 import Plutus.Script.Utils.Scripts
   ( Language (PlutusV2),
+    ToScriptHash (toScriptHash),
     Validator,
     Versioned (Versioned),
     toMintingPolicyHash,
     toValidator,
     toValidatorHash,
   )
-import Plutus.Script.Utils.Typed
-  ( TypedValidator (TypedValidator),
-    UntypedValidator,
+import Plutus.Script.Utils.V1.Typed
+  ( Any,
+    ConnectionError
+      ( NoDatum,
+        UnknownRef,
+        WrongCredentialType,
+        WrongDatumType,
+        WrongRedeemerType,
+        WrongValidatorHash,
+        WrongValidatorType
+      ),
+    TypedValidator
+      ( TypedValidator,
+        tvForwardingMintingPolicy,
+        tvForwardingMintingPolicyHash,
+        tvLanguage,
+        tvValidator,
+        tvValidatorHash
+      ),
     ValidatorTypes (DatumType, RedeemerType),
+    WrongOutTypeError (ExpectedPubkeyGotScript, ExpectedScriptGotPubkey),
+    checkValidatorAddress,
+    generalise,
+    toCardanoAddressAny,
   )
-import Plutus.Script.Utils.V2.Generators (alwaysFailValidator, alwaysSucceedValidator, mkForwardingMintingPolicy)
-import Plutus.Script.Utils.V2.Scripts ()
+import Plutus.Script.Utils.V2.Generators
+  ( alwaysFailValidator,
+    alwaysSucceedValidator,
+    mkForwardingMintingPolicy,
+  )
+import Plutus.Script.Utils.V2.Scripts (UntypedValidator)
 import PlutusCore.Core (plcVersion100)
 import PlutusCore.Default (DefaultUni)
 import PlutusLedgerApi.V2
-  ( Address (addressCredential),
-    BuiltinData,
+  ( Address (Address, addressCredential),
     Credential (PubKeyCredential, ScriptCredential),
     Datum (Datum),
-    DatumHash,
     FromData,
     OutputDatum (OutputDatum, OutputDatumHash),
     Redeemer (Redeemer),
@@ -58,24 +82,20 @@ import PlutusLedgerApi.V2
     TxOut (TxOut),
     TxOutRef,
     Value,
-    builtinDataToData,
   )
 import PlutusTx (CompiledCode, FromData (fromBuiltinData), Lift, liftCode, unsafeApplyCode)
-import Prettyprinter (Pretty (pretty), viaShow, (<+>))
 
 -- | The type of validators for the given connection type.
 type ValidatorType (a :: Type) = DatumType a -> RedeemerType a -> ScriptContext -> Bool
 
 validatorToTypedValidator :: Validator -> TypedValidator a
 validatorToTypedValidator val =
-  TypedValidator
-    (Versioned val PlutusV2)
-    hsh
-    (Versioned mps PlutusV2)
-    (toMintingPolicyHash mps)
+  TypedValidator val hsh fmp fmph lang
   where
-    hsh = toValidatorHash val
-    mps = mkForwardingMintingPolicy hsh
+    lang = PlutusV2
+    hsh = toValidatorHash (Versioned val lang)
+    fmp = mkForwardingMintingPolicy hsh
+    fmph = toMintingPolicyHash (Versioned fmp lang)
 
 alwaysSucceedTypedValidator :: TypedValidator a
 alwaysSucceedTypedValidator = validatorToTypedValidator alwaysSucceedValidator
@@ -106,39 +126,6 @@ mkTypedValidatorParam ::
   TypedValidator a
 mkTypedValidatorParam vc wrapper param =
   mkTypedValidator (vc `unsafeApplyCode` liftCode plcVersion100 param) wrapper
-
-data WrongOutTypeError
-  = ExpectedScriptGotPubkey
-  | ExpectedPubkeyGotScript
-  deriving stock (Show, Eq, Ord, Generic)
-  deriving anyclass (ToJSON, FromJSON)
-
--- | An error we can get while trying to type an existing transaction part.
-data ConnectionError
-  = WrongValidatorAddress Address Address
-  | WrongOutType WrongOutTypeError
-  | WrongValidatorType String
-  | WrongRedeemerType BuiltinData
-  | WrongDatumType BuiltinData
-  | NoDatum TxOutRef DatumHash
-  | UnknownRef TxOutRef
-  deriving stock (Show, Eq, Ord, Generic)
-
-instance Pretty ConnectionError where
-  pretty (WrongValidatorAddress a1 a2) = "Wrong validator address. Expected:" <+> pretty a1 <+> "Actual:" <+> pretty a2
-  pretty (WrongOutType t) = "Wrong out type:" <+> viaShow t
-  pretty (WrongValidatorType t) = "Wrong validator type:" <+> pretty t
-  pretty (WrongRedeemerType d) = "Wrong redeemer type" <+> pretty (builtinDataToData d)
-  pretty (WrongDatumType d) = "Wrong datum type" <+> pretty (builtinDataToData d)
-  pretty (NoDatum t d) = "No datum with hash " <+> pretty d <+> "for tx output" <+> pretty t
-  pretty (UnknownRef d) = "Unknown reference" <+> pretty d
-
--- | Checks that the given validator hash is consistent with the actual validator.
-checkValidatorAddress ::
-  forall a m. (MonadError ConnectionError m) => TypedValidator a -> Address -> m ()
-checkValidatorAddress ct actualAddr = do
-  let expectedAddr = toAddress ct
-  unless (expectedAddr == actualAddr) $ throwError $ WrongValidatorAddress expectedAddr actualAddr
 
 -- | Checks that the given redeemer script has the right type.
 checkRedeemer ::
@@ -182,10 +169,10 @@ makeTypedScriptTxOut ::
   DatumType out ->
   Value ->
   TypedScriptTxOut out
-makeTypedScriptTxOut tv dat val =
+makeTypedScriptTxOut (TypedValidator {tvValidatorHash}) dat val =
   TypedScriptTxOut
     ( TxOut
-        (toAddress tv)
+        (Address (ScriptCredential (toScriptHash tvValidatorHash)) Nothing)
         val
         (OutputDatumHash $ datumHash $ Datum $ toBuiltinData dat)
         Nothing
@@ -211,7 +198,7 @@ typeScriptTxOut ::
 typeScriptTxOut tv txOutRef txOut@(TxOut addr _ dat _) datum =
   case addressCredential addr of
     PubKeyCredential _ ->
-      throwError $ WrongOutType ExpectedScriptGotPubkey
+      throwError $ WrongCredentialType ExpectedScriptGotPubkey
     ScriptCredential _vh ->
       case dat of
         OutputDatum d

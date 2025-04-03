@@ -124,6 +124,7 @@ import Plutus.Script.Utils.Value qualified as Value
 import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V1.Credential qualified as Credential
 import PlutusLedgerApi.V1.Tx qualified as PV1
+import PlutusLedgerApi.V1.Value qualified as Value
 import PlutusLedgerApi.V2 qualified as PV2
 import PlutusLedgerApi.V3 qualified as PV3
 import PlutusTx.Prelude qualified as PlutusTx

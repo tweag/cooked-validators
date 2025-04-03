@@ -23,7 +23,7 @@ import Data.Function
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script (TypedValidator (..))
+import Plutus.Script.Utils.V1.Typed qualified as Script (TypedValidator (..))
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -42,7 +42,7 @@ instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
   toPKHOrValidator = Right
 
 instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
-  toPKHOrValidator = Right . Script.tvValidator
+  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
 
 instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
   toPKHOrValidator = id

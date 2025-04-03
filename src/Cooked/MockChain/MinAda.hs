@@ -18,6 +18,7 @@ import Cooked.MockChain.GenerateTx.Output
 import Cooked.Skeleton
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 
 -- | Compute the required minimal ADA for a given output
 getTxSkelOutMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m Integer
@@ -50,9 +51,9 @@ toTxSkelOutWithMinAda txSkelOut = do
       requiredAda <- getTxSkelOutMinAda skelOut
       -- If this amount is sufficient, we return Nothing, otherwise, we adjust the
       -- output and possibly iterate
-      if Script.getLovelace (skelOut ^. txSkelOutValueL % txSkelOutValueContentL % Script.adaL) >= requiredAda
+      if Api.getLovelace (skelOut ^. txSkelOutValueL % txSkelOutValueContentL % Script.adaL) >= requiredAda
         then return skelOut
-        else go $ skelOut & txSkelOutValueL % txSkelOutValueContentL % Script.adaL .~ Script.Lovelace requiredAda
+        else go $ skelOut & txSkelOutValueL % txSkelOutValueContentL % Script.adaL .~ Api.Lovelace requiredAda
 
 -- | This goes through all the `TxSkelOut`s of the given skeleton and updates
 -- their ada value when requested by the user and required by the protocol

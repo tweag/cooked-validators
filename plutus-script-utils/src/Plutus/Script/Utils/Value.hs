@@ -3,8 +3,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Plutus.Script.Utils.Value
-  ( module Export,
-    adaAssetClass,
+  ( adaAssetClass,
     lovelace,
     ada,
     noAdaValue,
@@ -25,35 +24,18 @@ where
 import Codec.Serialise.Class (Serialise)
 import Data.Fixed (Fixed (MkFixed), Micro)
 import Optics.Core (Iso', Lens', iso, lens, over, (^.))
-import PlutusLedgerApi.V1.Value as Export
-  ( AssetClass (AssetClass, unAssetClass),
-    CurrencySymbol (CurrencySymbol, unCurrencySymbol),
-    Lovelace (Lovelace, getLovelace),
-    TokenName (TokenName, unTokenName),
-    Value (Value, getValue),
+import PlutusLedgerApi.V1.Value
+  ( AssetClass,
+    CurrencySymbol,
+    Lovelace (Lovelace),
+    Value (Value),
     adaSymbol,
     adaToken,
     assetClass,
     assetClassValue,
-    assetClassValueOf,
-    currencySymbol,
-    currencySymbolValueOf,
     flattenValue,
-    geq,
-    gt,
-    leq,
-    lovelaceValue,
     lovelaceValueOf,
-    lt,
-    scale,
     singleton,
-    split,
-    symbols,
-    toString,
-    tokenName,
-    unionWith,
-    valueOf,
-    withCurrencySymbol,
   )
 import PlutusLedgerApi.V1.Value qualified as V1 (isZero)
 import PlutusLedgerApi.V3.MintValue (MintValue (UnsafeMintValue))

@@ -4,6 +4,7 @@ import Cooked
 import Data.List (subsequences)
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -36,7 +37,7 @@ tests =
                       ( overMaybeSelectingTweak
                           (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
                           ( \value ->
-                              if value `Script.geq` Script.lovelace 200
+                              if value `Api.geq` Script.lovelace 200
                                 then Just $ Script.lovelace 789
                                 else Nothing
                           )

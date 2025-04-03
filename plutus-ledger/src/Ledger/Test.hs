@@ -9,7 +9,6 @@ module Ledger.Test where
 
 import Cardano.Api qualified as C.Api
 import Ledger.Address qualified as Ledger
-import Ledger.Typed.Scripts (mkTypedValidator)
 import Ledger.Value.CardanoAPI (policyId)
 import Plutus.Script.Utils.Address (ToCardanoAddress (toCardanoAddress))
 import Plutus.Script.Utils.Scripts
@@ -23,9 +22,10 @@ import Plutus.Script.Utils.Scripts
     toMintingPolicy,
     toMintingPolicyHash,
     toValidator,
-    toValidatorHash,
   )
-import Plutus.Script.Utils.Typed (Any, TypedValidator, mkUntypedMintingPolicy)
+import Plutus.Script.Utils.V1 (Any, TypedValidator)
+import Plutus.Script.Utils.V1 qualified as V1
+import Plutus.Script.Utils.V2 qualified as V2
 import PlutusLedgerApi.V1 qualified as V1
 import PlutusLedgerApi.V2 qualified as V2
 import PlutusTx qualified
@@ -38,14 +38,17 @@ someCode = $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.unitval||])
 someValidator :: Validator
 someValidator = toValidator someCode
 
+someVersionedValidator :: Versioned Validator
+someVersionedValidator = Versioned someValidator PlutusV1
+
 someTypedValidator :: TypedValidator Any
-someTypedValidator = mkTypedValidator (Versioned someValidator PlutusV1)
+someTypedValidator = V1.validatorToTypedValidator someValidator
 
 someValidatorHash :: ValidatorHash
-someValidatorHash = toValidatorHash someTypedValidator
+someValidatorHash = V1.tvValidatorHash someTypedValidator
 
 someCardanoAddress :: C.Api.NetworkId -> Ledger.CardanoAddress
-someCardanoAddress = flip toCardanoAddress someTypedValidator
+someCardanoAddress = flip toCardanoAddress someVersionedValidator
 
 someAddress :: V1.Address
 someAddress = Ledger.scriptValidatorHashAddress someValidatorHash Nothing
@@ -53,14 +56,17 @@ someAddress = Ledger.scriptValidatorHashAddress someValidatorHash Nothing
 someValidatorV2 :: Validator
 someValidatorV2 = toValidator someCode
 
+someVersionedValidatorV2 :: Versioned Validator
+someVersionedValidatorV2 = Versioned someValidatorV2 PlutusV2
+
 someTypedValidatorV2 :: TypedValidator Any
-someTypedValidatorV2 = mkTypedValidator (Versioned someValidator PlutusV2)
+someTypedValidatorV2 = V2.validatorToTypedValidator someValidator
 
 someValidatorHashV2 :: ValidatorHash
-someValidatorHashV2 = toValidatorHash someTypedValidatorV2
+someValidatorHashV2 = V2.tvValidatorHash someTypedValidatorV2
 
 someCardanoAddressV2 :: C.Api.NetworkId -> Ledger.CardanoAddress
-someCardanoAddressV2 = flip toCardanoAddress someTypedValidatorV2
+someCardanoAddressV2 = flip toCardanoAddress someVersionedValidatorV2
 
 someAddressV2 :: V2.Address
 someAddressV2 = Ledger.scriptValidatorHashAddress someValidatorHashV2 Nothing
@@ -80,10 +86,10 @@ coinMintingPolicy lang = case lang of
   PlutusV3 -> error "Unsupported"
 
 coinMintingPolicyV1 :: MintingPolicy
-coinMintingPolicyV1 = toMintingPolicy $$(PlutusTx.compile [||mkUntypedMintingPolicy mkPolicy||])
+coinMintingPolicyV1 = toMintingPolicy $$(PlutusTx.compile [||V1.mkUntypedMintingPolicy mkPolicy||])
 
 coinMintingPolicyV2 :: MintingPolicy
-coinMintingPolicyV2 = toMintingPolicy $$(PlutusTx.compile [||mkUntypedMintingPolicy mkPolicyV2||])
+coinMintingPolicyV2 = toMintingPolicy $$(PlutusTx.compile [||V2.mkUntypedMintingPolicy mkPolicyV2||])
 
 coinMintingPolicyHash :: Language -> MintingPolicyHash
 coinMintingPolicyHash = toMintingPolicyHash . coinMintingPolicy

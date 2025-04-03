@@ -8,7 +8,6 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
 -- | A token duplication attack increases values in 'Mints'-constraints of a
@@ -24,7 +23,7 @@ dupTokenAttack ::
   -- @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the minted
   -- amount. If it does *not* increase the minted amount, the amount will be
   -- left unchanged.
-  (Script.AssetClass -> Integer -> Integer) ->
+  (Api.AssetClass -> Integer -> Integer) ->
   -- | The wallet of the attacker. Any additional tokens that are minted by the
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.

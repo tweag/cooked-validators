@@ -4,6 +4,7 @@ import Control.Monad
 import Cooked
 import Optics.Core ((^.))
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -12,7 +13,7 @@ heavyDatum = take 100 [0 ..]
 
 paymentWithMinAda :: (MonadBlockChain m) => m Integer
 paymentWithMinAda = do
-  Script.getLovelace . (^. Script.adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
+  Api.getLovelace . (^. Script.adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],

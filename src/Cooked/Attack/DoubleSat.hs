@@ -18,7 +18,7 @@ import Cooked.Wallet
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Optics.Core
-import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
@@ -113,7 +113,7 @@ doubleSatAttack groupings optic change attacker = do
   let delta = joinDoubleSatDeltas deltas
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta
-  if addedValue `Script.gt` mempty
+  if addedValue `Api.gt` mempty
     then addOutputTweak $ attacker `receives` Value addedValue
     else failingTweak
   addLabelTweak DoubleSatLbl

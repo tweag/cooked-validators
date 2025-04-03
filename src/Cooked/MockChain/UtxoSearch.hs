@@ -33,7 +33,7 @@ import ListT qualified
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * The type of UTxO searches
@@ -101,10 +101,10 @@ filterWithValuePred as p = filterWithPure as $
   \txOut -> let val = Api.txOutValue txOut in if p val then Just val else Nothing
 
 filterWithOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
-filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Script.flattenValue
+filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Api.flattenValue
 
 filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
-filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flattenValue
+filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Api.flattenValue
 
 -- | Search for UTxOs which only carry address and value information (no datum, staking credential, or reference script).
 onlyValueOutputsAtSearch ::

@@ -37,8 +37,10 @@ import Plutus.Script.Utils.Scripts
     toValidator,
     toValidatorHash,
   )
-import Plutus.Script.Utils.Typed (mkUntypedMintingPolicy, mkUntypedStakeValidator)
-import Plutus.Script.Utils.V2.Scripts ()
+import Plutus.Script.Utils.V2.Scripts
+  ( mkUntypedMintingPolicy,
+    mkUntypedStakeValidator,
+  )
 import PlutusCore.Core (plcVersion100)
 import PlutusLedgerApi.V2
   ( Address (Address),
@@ -76,10 +78,10 @@ alwaysFailValidatorVersioned :: Versioned Validator
 alwaysFailValidatorVersioned = Versioned alwaysFailValidator PlutusV2
 
 alwaysSucceedValidatorHash :: ValidatorHash
-alwaysSucceedValidatorHash = toValidatorHash alwaysSucceedValidator
+alwaysSucceedValidatorHash = toValidatorHash alwaysSucceedValidatorVersioned
 
 alwaysFailValidatorHash :: ValidatorHash
-alwaysFailValidatorHash = toValidatorHash alwaysFailValidator
+alwaysFailValidatorHash = toValidatorHash alwaysFailValidatorVersioned
 
 alwaysSucceedPolicy :: MintingPolicy
 alwaysSucceedPolicy = toMintingPolicy $$(PlutusTx.compile [||trueMP||])
@@ -100,10 +102,10 @@ alwaysFailPolicyVersioned :: Versioned MintingPolicy
 alwaysFailPolicyVersioned = Versioned alwaysFailPolicy PlutusV2
 
 alwaysSucceedPolicyHash :: MintingPolicyHash
-alwaysSucceedPolicyHash = toMintingPolicyHash alwaysSucceedPolicy
+alwaysSucceedPolicyHash = toMintingPolicyHash alwaysSucceedPolicyVersioned
 
 alwaysFailPolicyHash :: MintingPolicyHash
-alwaysFailPolicyHash = toMintingPolicyHash alwaysFailPolicy
+alwaysFailPolicyHash = toMintingPolicyHash alwaysFailPolicyVersioned
 
 alwaysSucceedCurrencySymbol :: CurrencySymbol
 alwaysSucceedCurrencySymbol = toCurrencySymbol alwaysSucceedPolicyVersioned
@@ -138,7 +140,7 @@ mkForwardingMintingPolicy vshsh =
 mkForwardingStakeValidator :: ValidatorHash -> StakeValidator
 mkForwardingStakeValidator vshsh =
   toStakeValidator $
-    $$(PlutusTx.compile [||\(hsh :: ValidatorHash) -> mkUntypedStakeValidator (forwardToValidator hsh)||])
+    $$(PlutusTx.compile [||mkUntypedStakeValidator . forwardToValidator||])
       `PlutusTx.unsafeApplyCode` PlutusTx.liftCode plcVersion100 vshsh
   where
     {-# INLINEABLE forwardToValidator #-}

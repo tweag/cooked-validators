@@ -5,7 +5,7 @@ module Cooked.Pretty.Hashable where
 
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V1.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose
 import PlutusLedgerApi.V3 qualified as Api
 

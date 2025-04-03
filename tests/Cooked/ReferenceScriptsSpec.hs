@@ -9,11 +9,8 @@ import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V2.Generators qualified as Script
-import Plutus.Script.Utils.V2.Typed qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V2 qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusLedgerApi.V3 qualified as V3
 import PlutusTx qualified
@@ -138,7 +135,7 @@ referenceMint mp1 mp2 n autoRefScript = do
             txSkelMintsFromList
               [ mint mp2 (if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef) (Api.TokenName "banana") 3
               ],
-          txSkelOuts = [wallet 1 `receives` Value (Script.ada 2 <> Script.assetClassValue (Script.AssetClass (Script.toCurrencySymbol mp2, Api.TokenName "banana")) 3)],
+          txSkelOuts = [wallet 1 `receives` Value (Script.ada 2 <> Api.assetClassValue (Api.AssetClass (Script.toCurrencySymbol mp2, Api.TokenName "banana")) 3)],
           txSkelSigners = [wallet 1],
           txSkelOpts = def {txOptAutoReferenceScripts = autoRefScript}
         }
@@ -198,7 +195,7 @@ tests =
                     (consumedOref, _) : _ <-
                       runUtxoSearch $
                         utxosAtSearch (wallet 1)
-                          `filterWithPred` ((`Script.geq` Script.lovelace 42_000_000) . outputValue)
+                          `filterWithPred` ((`Api.geq` Script.lovelace 42_000_000) . outputValue)
                     oref : _ <-
                       validateTxSkel'
                         txSkelTemplate

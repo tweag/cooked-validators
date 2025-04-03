@@ -108,7 +108,7 @@ aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m Api.TxOut
-aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Script.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf . Api.txOutValue)
+aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Api.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf . Api.txOutValue)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)

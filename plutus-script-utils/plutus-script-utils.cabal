@@ -79,7 +79,6 @@ library
     Plutus.Script.Utils.Address
     Plutus.Script.Utils.Data
     Plutus.Script.Utils.Scripts
-    Plutus.Script.Utils.Typed
     Plutus.Script.Utils.V1
     Plutus.Script.Utils.V1.Contexts
     Plutus.Script.Utils.V1.Generators

@@ -12,7 +12,7 @@ import Cooked.Skeleton
 import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 
 toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals (Map.toList -> []) = return Cardano.TxWithdrawalsNone
@@ -20,7 +20,7 @@ toWithdrawals (Map.toList -> withdrawals) =
   fmap
     (Cardano.TxWithdrawals Cardano.ShelleyBasedEraConway)
     $ forM withdrawals
-    $ \(staker, (red, Script.Lovelace n)) ->
+    $ \(staker, (red, Api.Lovelace n)) ->
       do
         (witness, sCred) <-
           case staker of

@@ -22,7 +22,7 @@ import Ledger.Index qualified as Ledger
 import Ledger.Scripts qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -86,7 +86,7 @@ instance PrettyCooked Api.Value where
     prettySingletons
       . map prettySingletonValue
       . filter (\(_, _, n) -> n /= 0)
-      . Script.flattenValue
+      . Api.flattenValue
     where
       prettySingletons :: [DocCooked] -> DocCooked
       prettySingletons [] = "Empty value"
@@ -94,7 +94,7 @@ instance PrettyCooked Api.Value where
       prettySingletons docs = prettyItemize "Value:" "-" docs
       prettySingletonValue :: (Api.CurrencySymbol, Api.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyCookedOpt opts (Script.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
+        prettyCookedOpt opts (Api.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
 
 instance PrettyCooked Api.CurrencySymbol where
   prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
@@ -102,8 +102,8 @@ instance PrettyCooked Api.CurrencySymbol where
 instance PrettyCooked Api.TokenName where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Script.AssetClass where
-  prettyCookedOpt opts (Script.AssetClass (symbol, name)) =
+instance PrettyCooked Api.AssetClass where
+  prettyCookedOpt opts (Api.AssetClass (symbol, name)) =
     prettyCookedOpt opts symbol
       <+> if symbol /= Api.CurrencySymbol ""
         then prettyCookedOpt opts name

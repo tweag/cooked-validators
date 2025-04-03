@@ -8,7 +8,6 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.AssocMap qualified as PMap
 import Prettyprinter qualified as PP
@@ -23,7 +22,7 @@ addTokenAttack ::
   (MonadTweak m, OwnerConstraints o) =>
   -- | For each policy that occurs in some 'Mints' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
-  (Script.Versioned Script.MintingPolicy -> [(Script.TokenName, Integer)]) ->
+  (Script.Versioned Script.MintingPolicy -> [(Api.TokenName, Integer)]) ->
   -- | The wallet of the attacker where extra tokens will be paid to
   o ->
   m Api.Value

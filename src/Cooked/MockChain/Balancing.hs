@@ -286,7 +286,7 @@ getOptimalCandidate candidates paymentTarget mceError = do
   candidatesDecorated <- forM candidates $ \(output, val) ->
     (output,val,Api.lovelaceValueOf val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
   -- We filter the candidates that have enough ada to sustain themselves
-  let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Script.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
+  let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Api.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
     -- If the list of candidates is empty, we throw an error
     [] -> throwError mceError
@@ -340,7 +340,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   rightMinAda <- getTxSkelOutMinAda $ balancingWallet `receives` Value missingRight
   -- We compute the current ada of the missing payment. If the missing payment
   -- is not empty and the minimal ada is not present, some value is missing.
-  let Script.Lovelace rightAda = missingRight ^. Script.adaL
+  let Api.Lovelace rightAda = missingRight ^. Script.adaL
       missingAda = rightMinAda - rightAda
       missingAdaValue = if missingRight /= mempty && missingAda > 0 then Script.lovelace missingAda else mempty
   -- The actual missing value on the left might needs to account for any missing

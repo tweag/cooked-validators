@@ -1,67 +1,67 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Plutus.Script.Utils.V1.Scripts
-  ( module Plutus.Script.Utils.Scripts,
-    toCardanoScript,
+  ( UntypedValidator,
+    UntypedStakeValidator,
+    UntypedMintingPolicy,
+    mkUntypedValidator,
+    mkUntypedStakeValidator,
+    mkUntypedMintingPolicy,
   )
 where
 
-import Cardano.Api.Shelley qualified as C.Api
-import Plutus.Script.Utils.Address
-  ( ToAddress (toAddress),
-    ToCardanoAddress (toCardanoAddress),
-  )
-import Plutus.Script.Utils.Scripts
-  ( Language (PlutusV1),
-    MintingPolicy,
-    Script (unScript),
-    StakeValidator,
-    ToMintingPolicyHash (toMintingPolicyHash),
-    ToScriptHash (toScriptHash),
-    ToStakeValidatorHash (toStakeValidatorHash),
-    ToValidatorHash (toValidatorHash),
-    Validator,
-    Versioned (Versioned),
-    toMintingPolicyHash,
-    toScriptHash,
-    toStakeValidatorHash,
-    toValidatorHash,
-  )
+import PlutusTx (BuiltinData, FromData, fromBuiltinData)
+import PlutusTx.Prelude (BuiltinString, BuiltinUnit, check, trace)
+import PlutusTx.Prelude qualified as PlutusTx
 
-instance ToValidatorHash Validator where
-  {-# INLINEABLE toValidatorHash #-}
-  toValidatorHash = toValidatorHash . (`Versioned` PlutusV1)
+type UntypedValidator = BuiltinData -> BuiltinData -> BuiltinData -> BuiltinUnit
 
-instance ToMintingPolicyHash MintingPolicy where
-  {-# INLINEABLE toMintingPolicyHash #-}
-  toMintingPolicyHash = toMintingPolicyHash . (`Versioned` PlutusV1)
+type UntypedMintingPolicy = BuiltinData -> BuiltinData -> BuiltinUnit
 
-instance ToStakeValidatorHash StakeValidator where
-  {-# INLINEABLE toStakeValidatorHash #-}
-  toStakeValidatorHash = toStakeValidatorHash . (`Versioned` PlutusV1)
+type UntypedStakeValidator = BuiltinData -> BuiltinData -> BuiltinUnit
 
-instance ToScriptHash Script where
-  {-# INLINEABLE toScriptHash #-}
-  toScriptHash = toScriptHash . (`Versioned` PlutusV1)
+{-# INLINEABLE tracedSafeFrom #-}
+tracedSafeFrom :: (FromData a) => BuiltinString -> BuiltinData -> Maybe a
+tracedSafeFrom label builtinData = do
+  dat <- fromBuiltinData builtinData
+  -- We trace after the decoding is actually successful
+  return $ trace label dat
 
-instance ToAddress Validator where
-  {-# INLINEABLE toAddress #-}
-  toAddress = toAddress . (`Versioned` PlutusV1)
+-- | Converts a typed to an untyped validator
+{-# INLINEABLE mkUntypedValidator #-}
+mkUntypedValidator ::
+  (FromData datum, FromData redeemer, FromData scriptContext) =>
+  (datum -> redeemer -> scriptContext -> Bool) ->
+  UntypedValidator
+mkUntypedValidator f d r sc =
+  check $
+    PlutusTx.fromMaybe
+      False
+      ( do
+          dat <- tracedSafeFrom "Datum decoded successfully" d
+          red <- tracedSafeFrom "Redeemer decoded successfully" r
+          ctx <- tracedSafeFrom "Script context decoded successfully" sc
+          return $ f dat red ctx
+      )
 
-toCardanoScript :: Script -> C.Api.Script C.Api.PlutusScriptV1
-toCardanoScript =
-  C.Api.PlutusScript C.Api.PlutusScriptV1
-    . C.Api.PlutusScriptSerialised
-    . unScript
+-- | Converts a typed to an untyped stake validator
+{-# INLINEABLE mkUntypedStakeValidator #-}
+mkUntypedStakeValidator ::
+  (FromData redeemer, FromData scriptContext) =>
+  (redeemer -> scriptContext -> Bool) ->
+  UntypedStakeValidator
+mkUntypedStakeValidator f r sc =
+  check $
+    PlutusTx.fromMaybe
+      False
+      ( do
+          red <- tracedSafeFrom "Redeemer decoded successfully" r
+          ctx <- tracedSafeFrom "Script context decoded successfully" sc
+          return $ f red ctx
+      )
 
-instance ToCardanoAddress Script where
-  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
-
-instance ToCardanoAddress Validator where
-  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
-
-instance ToCardanoAddress StakeValidator where
-  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
-
-instance ToCardanoAddress MintingPolicy where
-  toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV1)
+-- | Converts a typed to an untyped minting policy
+{-# INLINEABLE mkUntypedMintingPolicy #-}
+mkUntypedMintingPolicy ::
+  (FromData redeemer, FromData scriptContext) =>
+  (redeemer -> scriptContext -> Bool) ->
+  UntypedMintingPolicy
+mkUntypedMintingPolicy = mkUntypedStakeValidator

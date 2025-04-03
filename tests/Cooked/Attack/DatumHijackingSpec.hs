@@ -7,7 +7,6 @@ import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -44,10 +43,6 @@ PlutusTx.unstableMakeIsData ''LockDatum
 
 data DHContract
 
-instance Script.ValidatorTypes DHContract where
-  type DatumType DHContract = LockDatum
-  type RedeemerType DHContract = ()
-
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
 lockValue :: Api.Value
@@ -63,7 +58,7 @@ lockTxSkel o v =
 
 txLock :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m ()
 txLock v = do
-  (oref, _) : _ <- runUtxoSearch $ utxosAtSearch (wallet 1) `filterWithPred` ((`Script.geq` lockValue) . outputValue)
+  (oref, _) : _ <- runUtxoSearch $ utxosAtSearch (wallet 1) `filterWithPred` ((`Api.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
@@ -168,7 +163,7 @@ tests =
                         ( \(ConcreteOutput v _ d x _) ->
                             Script.toValidatorHash val1 == Script.toValidatorHash v
                               && d == TxSkelOutInlineDatum SecondLock
-                              && bound `Script.geq` Script.toValue x
+                              && bound `Api.geq` Script.toValue x
                         )
                         select
                         thief
