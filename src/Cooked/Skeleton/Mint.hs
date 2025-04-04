@@ -56,10 +56,16 @@ mint mp red tn n = Mint mp red [(tn, n)]
 burn :: (Script.ToVersioned Script.MintingPolicy a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
 burn mp red tn n = mint mp red tn (-n)
 
--- | Add a new pair (TokenName, Amount) to a non-empty map or pairs. There are
--- some case where this addition car lead to the removal of an entry in the map
--- and, if this happens to be the last entry, to the returning map being empty.
--- This is why the return value is optional.
+-- | For each pair (tokenName, amount) in the input list, either:
+--
+-- - adds this new entry in the map if tokenName was not already a key
+--
+-- - updates the existing number of tokens associated with tokenName by adding
+-- amount. Since amount can be negative, this addition can result in lowering
+-- the amount of tokens present in the map. If it reaches exactly 0, the entry
+-- is removed. As a consequences, if all inputs happen to cancel the existing
+-- number of tokens for each tokenName, this will remove all entries in the map,
+-- which is why the return value is wrapped in 'Maybe'.
 addTokens :: [(Api.TokenName, Integer)] -> NEMap Api.TokenName (NonZero Integer) -> Maybe (NEMap Api.TokenName (NonZero Integer))
 addTokens [] neMap = Just neMap
 addTokens ((_, n) : l) neMap | n == 0 = addTokens l neMap
