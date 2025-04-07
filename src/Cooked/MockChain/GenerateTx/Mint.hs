@@ -1,3 +1,4 @@
+-- | This module exposes the generation of a transaction minted value
 module Cooked.MockChain.GenerateTx.Mint (toMintValue) where
 
 import Cardano.Api qualified as Cardano
@@ -16,7 +17,7 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Test.QuickCheck.Modifiers (NonZero (NonZero))
 
--- | Converts the 'TxSkelMints' into a 'TxMintValue'
+-- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'
 toMintValue :: (MonadBlockChainBalancing m) => TxSkelMints -> m (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue mints | null mints = return Cardano.TxMintNone
 toMintValue mints = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $

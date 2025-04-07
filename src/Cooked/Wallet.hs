@@ -16,7 +16,6 @@ module Cooked.Wallet
     walletStakingSK,
     walletStakingCredential,
     Wallet,
-    PrivateKey,
   )
 where
 
@@ -36,9 +35,8 @@ import PlutusLedgerApi.V3 qualified as Api
 -- Because mock wallets from plutus-ledger change often, we provide our own
 -- wrapper on top of them to ensure that we can easily deal changes from Plutus.
 
+-- | A 'Wallet' is a 'Ledger.MockWallet' from plutus-ledger
 type Wallet = Ledger.MockWallet
-
-type PrivateKey = Crypto.XPrv
 
 instance Eq Wallet where
   (==) = (==) `on` Ledger.mwWalletId
@@ -91,6 +89,7 @@ walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
 instance Script.ToCredential Wallet where
   toCredential = Api.PubKeyCredential . walletPKHash
 
+-- | Retrieves a wallet's staking credential
 walletStakingCredential :: Wallet -> Maybe Api.StakingCredential
 walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
 
@@ -101,9 +100,9 @@ instance Script.ToAddress Wallet where
       (walletStakingCredential w)
 
 -- | Retrieves a wallet private key (secret key SK)
-walletSK :: Wallet -> PrivateKey
+walletSK :: Wallet -> Crypto.XPrv
 walletSK = Ledger.unPaymentPrivateKey . Ledger.paymentPrivateKey
 
 -- | Retrieves a wallet's private staking key (secret key SK), if any
-walletStakingSK :: Wallet -> Maybe PrivateKey
+walletStakingSK :: Wallet -> Maybe Crypto.XPrv
 walletStakingSK = fmap Ledger.unStakePrivateKey . Ledger.stakePrivateKey

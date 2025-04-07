@@ -1,3 +1,4 @@
+-- | This module exposes the generation of transaction inputs
 module Cooked.MockChain.GenerateTx.Input (toTxInAndWitness) where
 
 import Cardano.Api qualified as Cardano
@@ -9,7 +10,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Converts a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
--- 'TxSkelIn', into a 'Cardano.TxIn', together with the appropriate witness.
+-- 'TxSkelRedeemer', into a 'Cardano.TxIn', together with the appropriate witness.
 toTxInAndWitness ::
   (MonadBlockChainBalancing m) =>
   (Api.TxOutRef, TxSkelRedeemer) ->

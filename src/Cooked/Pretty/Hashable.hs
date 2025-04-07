@@ -9,6 +9,7 @@ import Plutus.Script.Utils.V1.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose
 import PlutusLedgerApi.V3 qualified as Api
 
+-- | Hashable elements can be transformed to 'Api.BuiltinByteString'
 class ToHash a where
   toHash :: a -> Api.BuiltinByteString
 

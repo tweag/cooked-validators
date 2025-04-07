@@ -1,3 +1,4 @@
+-- | This module exposes the generation of proposal procedures
 module Cooked.MockChain.GenerateTx.Proposal (toProposalProcedures) where
 
 import Cardano.Api qualified as Cardano

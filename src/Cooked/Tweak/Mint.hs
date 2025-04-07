@@ -1,4 +1,4 @@
--- | Tweaks working on the minting part of a skeleton
+-- | 'Tweak's working on the minting part of a 'TxSkel'
 module Cooked.Tweak.Mint
   ( addMintTweak,
     removeMintTweak,
@@ -10,9 +10,9 @@ import Cooked.Tweak.Common
 import Data.List (partition)
 import Optics.Core
 
--- | Add a new entry to the 'TxSkelMints' of the transaction skeleton under
--- modification. As this is implemented in terms of 'addToTxSkelMints', the same
--- caveats apply as do to that function!
+-- | Adds a new entry to the 'TxSkelMints' of the transaction skeleton under
+-- modification. As this is implemented in terms of 'addMint', the same caveats
+-- apply as do to that function!
 addMintTweak :: (MonadTweak m) => Mint -> m ()
 addMintTweak = overTweak txSkelMintsL . flip addMint
 

@@ -1,3 +1,5 @@
+-- | This module exposes the notion of Withdrawal within a
+-- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Withdrawal
   ( TxSkelWithdrawals,
     pkWithdrawal,
@@ -20,8 +22,10 @@ type TxSkelWithdrawals =
     (Either (Script.Versioned Script.Script) Api.PubKeyHash)
     (TxSkelRedeemer, Api.Lovelace)
 
+-- | Creates a 'TxSkelWithdrawals' from a private key hash and amount
 pkWithdrawal :: (Script.ToPubKeyHash pkh) => pkh -> Api.Lovelace -> TxSkelWithdrawals
 pkWithdrawal pkh amount = Map.singleton (Right $ Script.toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
 
+-- | Creates a 'TxSkelWithdrawals' from a script, redeemer and amount
 scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Api.Lovelace -> TxSkelWithdrawals
 scriptWithdrawal script red amount = Map.singleton (Left $ Script.toVersioned script) (red, amount)

@@ -1,3 +1,5 @@
+-- | This module exposes the internal state in which our direct simulation is
+-- run, and functions to update and querry it.
 module Cooked.MockChain.MockChainSt where
 
 import Cardano.Api qualified as Cardano
@@ -31,8 +33,7 @@ import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- | Slightly more concrete version of 'UtxoState', used to actually run the
--- simulation.
+-- | The state used to run the simulation in 'Cooked.MockChain.Direct'
 data MockChainSt = MockChainSt
   { mcstParams :: Emulator.Params,
     mcstIndex :: Ledger.UtxoIndex,
@@ -68,6 +69,7 @@ getIndex =
             Cardano.TxOutDatumInline s sd -> Cardano.TxOutDatumInline s sd
        in Cardano.TxOut addr val dat refS
 
+-- | Builds a 'UtxoState' from a 'MockChainSt'
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
@@ -124,6 +126,7 @@ mcstToEmulatedLedgerState MockChainSt {..} =
               }
         }
 
+-- | Adds a list of pairs @(datumHash, datum)@ into a 'MockChainSt'
 addDatums :: [(Api.DatumHash, TxSkelOutDatum)] -> MockChainSt -> MockChainSt
 addDatums toAdd st@(MockChainSt {mcstDatums}) =
   st
@@ -136,6 +139,7 @@ addDatums toAdd st@(MockChainSt {mcstDatums}) =
           toAdd
     }
 
+-- | Removes a certain amound of datum hashes from a 'MockChainSt'
 removeDatums :: [Api.DatumHash] -> MockChainSt -> MockChainSt
 removeDatums toRemove st@(MockChainSt {mcstDatums}) =
   st
@@ -151,16 +155,18 @@ removeDatums toRemove st@(MockChainSt {mcstDatums}) =
     minusMaybe n | n == 1 = Nothing
     minusMaybe n = Just $ n - 1
 
+-- | Stores a script in a 'MockChainSt'
 addScript :: (Script.ToScriptHash s, Script.ToVersioned Script.Script s) => s -> MockChainSt -> MockChainSt
 addScript script st = st {mcstScripts = Map.insert (Script.toScriptHash script) (Script.toVersioned script) (mcstScripts st)}
 
--- * Initial `MockChainSt` from an initial distribution
+-- * Initial `MockChainSt` from an 'InitialDistribution'
 
+-- | Builds a 'MockChainSt' from an 'InitialDistribution'. This lives in
+-- 'MonadBlockChainBalancing' because the creation of 'mcstIndex' is impure
 mockChainSt0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m MockChainSt
 mockChainSt0From i0 = (\x -> MockChainSt def x (datumMap0From i0) (referenceScriptMap0From i0 <> scriptMap0From i0) 0) <$> utxoIndex0From i0
 
--- | Reference scripts from initial distributions should be accounted for in the
--- `MockChainSt` which is done using this function.
+-- | Collects the reference scripts present in an 'InitialDistribution'
 referenceScriptMap0From :: InitialDistribution -> Map Script.ScriptHash (Script.Versioned Script.Script)
 referenceScriptMap0From =
   -- This builds a map of entries from the reference scripts contained in the
@@ -174,8 +180,7 @@ referenceScriptMap0From =
       vScript <- Script.toVersioned @Script.Script <$> view outputReferenceScriptL output
       return (Script.toScriptHash vScript, vScript)
 
--- | Scripts from initial distributions should be accounted for in the
--- `MockChainSt` which is done using this function.
+-- | Collects the scripts paid to in an 'InitialDistribution'
 scriptMap0From :: InitialDistribution -> Map Script.ScriptHash (Script.Versioned Script.Script)
 scriptMap0From =
   -- This builds a map of entries from the scripts contained in the initial
@@ -189,8 +194,7 @@ scriptMap0From =
       val <- txSkelOutValidator txSkelOut
       return (Script.toScriptHash val, Script.toVersioned @Script.Script val)
 
--- | Datums from initial distributions should be accounted for in the
--- `MockChainSt` which is done using this function.
+-- | Collects the datums paid in an 'InitialDistribution'
 datumMap0From :: InitialDistribution -> Map Api.DatumHash (TxSkelOutDatum, Integer)
 datumMap0From (InitialDistribution initDist) =
   -- This concatenates singleton maps from inputs and accounts for the number of
@@ -233,5 +237,6 @@ utxoIndex0From (InitialDistribution initDist) = do
           (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs})
       )
 
+-- | Same as 'utxoIndex0From' with the default 'InitialDistribution'
 utxoIndex0 :: (MonadBlockChainBalancing m) => m Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def

@@ -1,3 +1,6 @@
+-- | This modules provides a variety of options associated with a
+-- 'Cooked.Skeleton.TxSkel'. These options mostly revolves around customizing
+-- the default behavior of cooked-validators's transaction generation mechanism.
 module Cooked.Skeleton.Option
   ( BalanceOutputPolicy (..),
     FeePolicy (..),
@@ -19,7 +22,6 @@ module Cooked.Skeleton.Option
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
     txOptAnchorResolutionL,
-    txOptAutoReferenceScriptsL,
   )
 where
 
@@ -64,8 +66,9 @@ instance Default BalanceOutputPolicy where
   def = AdjustExistingOutput
 
 -- | Which UTxOs to use when balancing. Note that utxos that are already known
--- by the skeleton being balanced (in the sense of `txSkelKnownTxOutRefs`,
--- i.e. inputs and reference inputs) will be filtered out during balancing.
+-- by the skeleton being balanced (in the sense of
+-- `Cooked.Skeleton.txSkelKnownTxOutRefs`, i.e. inputs and reference inputs)
+-- will be filtered out during balancing.
 data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
     -- and no reference script) belonging to the balancing wallet.
@@ -114,7 +117,7 @@ applyRawModOnBalancedTx = foldl' (\acc (RawModTx f) -> acc . f) id
 -- the transaction's balancing and submission.
 newtype EmulatorParamsModification = EmulatorParamsModification (Emulator.Params -> Emulator.Params)
 
--- This instance always returns @False@, which is no problem, because 'Eq
+-- | This instance always returns @False@, which is no problem, because 'Eq
 -- TxSkel' is only used for tests that never depend on this comparison
 instance Eq EmulatorParamsModification where
   _ == _ = False
@@ -122,6 +125,7 @@ instance Eq EmulatorParamsModification where
 instance Show EmulatorParamsModification where
   show EmulatorParamsModification {} = "EmulatorParamsModification <function>"
 
+-- | Performs an 'EmulatorParamsModification' over an 'Emulator.Params'
 applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.Params -> Emulator.Params
 applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
 applyEmulatorParamsModification Nothing = id
@@ -194,7 +198,7 @@ data TxOpts = TxOpts
     txOptBalancingPolicy :: BalancingPolicy,
     -- | The fee to use when balancing the transaction
     --
-    -- Default is 'AutomaticFeeComputation'
+    -- Default is 'AutoFeeComputation'
     txOptFeePolicy :: FeePolicy,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
@@ -227,30 +231,36 @@ data TxOpts = TxOpts
     -- | How to resolve anchor in proposal procedures
     --
     -- Default is 'AnchorResolutionLocal Map.Empty'
-    txOptAnchorResolution :: AnchorResolution,
-    -- | Whether to automatically fill up reference inputs in redeemers when
-    -- they contain the right reference script. This will imply going through
-    -- all the known utxos with reference scripts and compare their hashes, thus
-    -- will slightly reduce performance.
-    --
-    -- Defaut is 'False'.
-    txOptAutoReferenceScripts :: Bool
+    txOptAnchorResolution :: AnchorResolution
   }
   deriving (Eq, Show)
 
-makeLensesFor
-  [ ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
-    ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
-    ("txOptBalancingPolicy", "txOptBalancingPolicyL"),
-    ("txOptFeePolicy", "txOptFeePolicyL"),
-    ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
-    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
-    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
-    ("txOptCollateralUtxos", "txOptCollateralUtxosL"),
-    ("txOptAnchorResolution", "txOptAnchorResolutionL"),
-    ("txOptAutoReferenceScripts", "txOptAutoReferenceScriptsL")
-  ]
-  ''TxOpts
+-- | A lens to get or set the automatic slot increase option
+makeLensesFor [("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL")] ''TxOpts
+
+-- | A lens to get or set the Cardano transaction modifications option
+makeLensesFor [("txOptUnsafeModTx", "txOptUnsafeModTxL")] ''TxOpts
+
+-- | A lens to get or set the balancing policy option
+makeLensesFor [("txOptBalancingPolicy", "txOptBalancingPolicyL")] ''TxOpts
+
+-- | A lens to get or set the fee policy option
+makeLensesFor [("txOptFeePolicy", "txOptFeePolicyL")] ''TxOpts
+
+-- | A lens to get or set the handling of balancing outputs option
+makeLensesFor [("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL")] ''TxOpts
+
+-- | A lens to get or set the balancing utxos option
+makeLensesFor [("txOptBalancingUtxos", "txOptBalancingUtxosL")] ''TxOpts
+
+-- | A lens to get or set the changes to protocol parameters option
+makeLensesFor [("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")] ''TxOpts
+
+-- | A lens to get or set the collateral utxos option
+makeLensesFor [("txOptCollateralUtxos", "txOptCollateralUtxosL")] ''TxOpts
+
+-- | A lens to get or set the anchor resolution option
+makeLensesFor [("txOptAnchorResolution", "txOptAnchorResolutionL")] ''TxOpts
 
 instance Default TxOpts where
   def =
@@ -263,6 +273,5 @@ instance Default TxOpts where
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def,
-        txOptAnchorResolution = def,
-        txOptAutoReferenceScripts = False
+        txOptAnchorResolution = def
       }

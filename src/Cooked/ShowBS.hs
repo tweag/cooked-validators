@@ -1,13 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | This module exposes on-chain pretty-printing function for all the types
--- that occur on the 'ScriptContext' to 'BuiltinString'. This is useful for
+-- that occur on the 'Api.ScriptContext' to 'BuiltinString'. This is useful for
 -- debugging of validators. You probably do not want to use this in production
 -- code, as many of the functions in this module are wildly inefficient due to
 -- limitations of the 'BuiltinString' type.
 --
 -- If the script execution on your transactions go over budget by using this
--- module, consider using 'txOptEmulatorParamsModification' to temporarily
+-- module, consider using
+-- 'Cooked.Skeleton.Option.txOptEmulatorParamsModification' to temporarily
 -- loosen the limits (at the cost of breaking compatibility with mainnet)
 module Cooked.ShowBS (ShowBS (..)) where
 
@@ -17,9 +18,9 @@ import PlutusTx.Builtins qualified as PlutusTx
 import PlutusTx.Prelude hiding (toList)
 import PlutusTx.Ratio qualified as PlutusTx hiding (negate)
 
--- | analogue of Haskell's 'Show' class to be use in Plutus scripts.
+-- | analogue of Haskell's 'Prelude.Show' class to be use in Plutus scripts.
 class ShowBS a where
-  -- | analogue of 'show'
+  -- | analogue of 'Prelude.show'
   showBS :: a -> BuiltinString
 
 -- | print with a surrounding parenthesis

@@ -1,6 +1,5 @@
--- | Labels are arbitrary information that can be added to skeleton. They are
--- meant to be pretty-printed. The common use case we currently have is to tag
--- skeletons that have been modified by tweaks and automated attacks.
+-- | This module exposes the labels that can be used to stamp
+-- 'Cooked.Skeleton.TxSkel' with additional arbitrary pieces of information.
 module Cooked.Skeleton.Label
   ( LabelConstrs,
     TxLabel (..),
@@ -10,8 +9,12 @@ where
 import Cooked.Pretty.Class
 import Type.Reflection
 
+-- | These are type constraints that must be satisfied by labels
 type LabelConstrs x = (PrettyCooked x, Show x, Typeable x, Eq x, Ord x)
 
+-- | Labels are arbitrary information that can be added to skeleton. They are
+-- meant to be pretty-printed. The common use case we currently have is to tag
+-- skeletons that have been modified by tweaks and automated attacks.
 data TxLabel where
   TxLabel :: (LabelConstrs x) => x -> TxLabel
 

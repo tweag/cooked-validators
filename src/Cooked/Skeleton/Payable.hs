@@ -1,5 +1,10 @@
+-- | This module defines the notion of 'Payable' elements with consist of the
+-- user API to build payments in a 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Payable
   ( Payable (..),
+    type (∉),
+    type (⩀),
+    type (∪),
     (<&&>),
   )
 where
@@ -23,7 +28,7 @@ type family (⩀) (els :: [a]) (els' :: [a]) :: Constraint where
   (x ': xs) ⩀ ys = (x ∉ ys, xs ⩀ ys)
 
 -- | Union with duplicates, which will not occur by construction in the
--- concrete implentation of @Payable@ due to the @⩀@ constraint.
+-- concrete implentation of 'Payable' due to the '⩀' constraint.
 type family (∪) (xs :: [a]) (ys :: [a]) :: [a] where
   '[] ∪ ys = ys
   (x ': xs) ∪ ys = x ': (xs ∪ ys)
@@ -49,6 +54,6 @@ data Payable :: [Symbol] -> Type where
   -- | Payables can be combined as long as their list of tags are disjoint
   PayableAnd :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 
--- | Basically re-exporting @PayableAnd@ as a builtin operator
+-- | An infix-usable alias for 'PayableAnd'
 (<&&>) :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 (<&&>) = PayableAnd

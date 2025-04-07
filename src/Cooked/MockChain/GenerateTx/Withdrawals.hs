@@ -1,3 +1,4 @@
+-- | This modules exposes the generation of withdrawals
 module Cooked.MockChain.GenerateTx.Withdrawals (toWithdrawals) where
 
 import Cardano.Api qualified as Cardano
@@ -14,6 +15,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
+-- | Takes a 'TxSkelWithdrawals' and transforms it into a 'Cardano.TxWithdrawals'
 toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals (Map.toList -> []) = return Cardano.TxWithdrawalsNone
 toWithdrawals (Map.toList -> withdrawals) =

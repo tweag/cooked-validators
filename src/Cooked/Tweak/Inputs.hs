@@ -52,7 +52,6 @@ modifySpendRedeemersOfTypeTweak f = do
   presentInputs <- Map.toList <$> viewTweak txSkelInsL
   setTweak txSkelInsL $
     Map.fromList $
-      presentInputs <&> \(oRef, TxSkelRedeemer red refInput) -> (oRef,) . fromMaybe (TxSkelRedeemer red refInput) $ do
-        typedRedeemer <- toTypedRedeemer red
-        typedRedeemerModified <- f typedRedeemer
-        return $ TxSkelRedeemer (SomeRedeemer typedRedeemerModified) refInput
+      presentInputs <&> \(oRef, red) -> (oRef,) . fromMaybe red $ do
+        typedRedeemer <- getTypedRedeemer red
+        (`setTypedRedeemer` red) <$> f typedRedeemer

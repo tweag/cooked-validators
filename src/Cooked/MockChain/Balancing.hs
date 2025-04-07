@@ -39,21 +39,13 @@ import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 
--- * A few types to make the functions in this module more readable
-
-type Fee = Integer
-
-type Collaterals = Set Api.TxOutRef
-
-type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
-
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and returns a (possibly) balanced skeleton alongside the
 -- associated fee, collateral inputs and return collateral wallet, which might
 -- be empty when no script is involved in the transaction. The options from the
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
-balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Maybe (Collaterals, Wallet))
+balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet))
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
   -- redirected to them, and utxos will be taken from their wallet if associated
@@ -140,7 +132,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters
-getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Fee, Fee)
+getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Integer, Integer)
 getMinAndMaxFee = do
   -- Parameters necessary to compute the maximum possible fee for a transaction
   params <- Emulator.pEmulatorPParams <$> getParams
@@ -158,7 +150,7 @@ getMinAndMaxFee = do
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
-computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> BalancingOutputs -> Maybe (Collaterals, Wallet) -> TxSkel -> m (TxSkel, Fee, Maybe (Collaterals, Wallet))
+computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Integer -> Integer -> [(Api.TxOutRef, Api.TxOut)] -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet))
 computeFeeAndBalance _ minFee maxFee _ _ _
   | minFee > maxFee =
       throwError $ FailWith "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
@@ -212,7 +204,7 @@ computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals s
 
 -- | Helper function to group the two real steps of the balancing: balance a
 -- skeleton around a given fee, and compute the associated collateral inputs
-attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> Fee -> Maybe (Collaterals, Wallet) -> TxSkel -> m (Maybe (Collaterals, Wallet), TxSkel)
+attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (Maybe (Set Api.TxOutRef, Wallet), TxSkel)
 attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals skel = do
   adjustedCollateralIns <- collateralsFromFees fee mCollaterals
   attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skel fee
@@ -222,7 +214,7 @@ attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals s
 -- accounting for the ratio to respect between fees and total collaterals, the
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
-collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Collaterals -> Wallet -> m Collaterals
+collateralInsFromFees :: (MonadBlockChainBalancing m) => Integer -> Set Api.TxOutRef -> Wallet -> m (Set Api.TxOutRef)
 collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- We retrieve the protocal parameters
   params <- Emulator.pEmulatorPParams <$> getParams
@@ -245,7 +237,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   Set.fromList . fst <$> getOptimalCandidate candidatesRaw returnCollateralWallet noSuitableCollateralError
 
 -- | This adjusts collateral inputs when necessary
-collateralsFromFees :: (MonadBlockChainBalancing m) => Fee -> Maybe (Collaterals, Wallet) -> m (Maybe (Collaterals, Wallet))
+collateralsFromFees :: (MonadBlockChainBalancing m) => Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Maybe (Set Api.TxOutRef, Wallet))
 collateralsFromFees _ Nothing = return Nothing
 collateralsFromFees fee (Just (collateralIns, returnCollateralWallet)) =
   Just . (,returnCollateralWallet) <$> collateralInsFromFees fee collateralIns returnCollateralWallet
@@ -255,7 +247,7 @@ collateralsFromFees fee (Just (collateralIns, returnCollateralWallet)) =
 -- stops when the target is reached, not adding superfluous UTxOs. Despite
 -- optimizations, this function is theoretically in 2^n where n is the number of
 -- candidate UTxOs. Use with caution.
-reachValue :: BalancingOutputs -> Api.Value -> Integer -> [(BalancingOutputs, Api.Value)]
+reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [([(Api.TxOutRef, Api.TxOut)], Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
 reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
@@ -280,7 +272,7 @@ reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
 -- | A helper function to grab an optimal candidate in terms of having a minimal
 -- enough amount of ada to sustain itself meant to be used after calling
 -- `reachValue`. This throws an error when there are no suitable candidates.
-getOptimalCandidate :: (MonadBlockChainBalancing m) => [(BalancingOutputs, Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
+getOptimalCandidate :: (MonadBlockChainBalancing m) => [([(Api.TxOutRef, Api.TxOut)], Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
 getOptimalCandidate candidates paymentTarget mceError = do
   -- We decorate the candidates with their current ada and min ada requirements
   candidatesDecorated <- forM candidates $ \(output, val) ->
@@ -294,7 +286,7 @@ getOptimalCandidate candidates paymentTarget mceError = do
 
 -- | This function is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Maybe (Collaterals, Wallet) -> m Fee
+estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m Integer
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
@@ -325,7 +317,7 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
-computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
+computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> TxSkel -> Integer -> m TxSkel
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.

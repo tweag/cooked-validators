@@ -13,14 +13,15 @@ import PlutusTx.AssocMap qualified as PMap
 import Prettyprinter qualified as PP
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
--- different from the 'dupTokenAttack' in that it does not merely try to
--- increase the amount of tokens minted: It tries to mint tokens of asset
--- classes that were not necessarily present on the unmodified transaction.
+-- different from the 'Cooked.Attack.DupToken.dupTokenAttack' in that it does
+-- not merely try to increase the amount of tokens minted: It tries to mint
+-- tokens of asset classes that were not necessarily present on the unmodified
+-- transaction.
 --
 -- This attack adds an 'AddTokenLbl' label.
 addTokenAttack ::
   (MonadTweak m, OwnerConstraints o) =>
-  -- | For each policy that occurs in some 'Mints' constraint, return a list of
+  -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
   (Script.Versioned Script.MintingPolicy -> [(Api.TokenName, Integer)]) ->
   -- | The wallet of the attacker where extra tokens will be paid to
@@ -44,6 +45,8 @@ addTokenAttack extraTokens attacker = do
   addLabelTweak AddTokenLbl
   return totalIncrement
 
+-- | A label that is added to a 'TxSkel' that has successfully been modified by
+-- 'addTokenAttack'
 data AddTokenLbl = AddTokenLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked AddTokenLbl where

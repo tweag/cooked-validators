@@ -1,4 +1,4 @@
--- | Tweaks working on the outputs of a skeleton
+-- | 'Tweak's working on the outputs of a 'TxSkel'
 module Cooked.Tweak.Outputs
   ( ensureOutputTweak,
     addOutputTweak,
@@ -22,8 +22,8 @@ import Data.Typeable
 import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 
--- | Ensure that a certain output is produced by a transaction. The return value
--- will be @Just@ the added output, when applicable.
+-- | Ensures that a certain output is produced by a transaction. The return
+-- value will be @Just@ the added output, when applicable.
 ensureOutputTweak :: (MonadTweak m) => TxSkelOut -> m (Maybe TxSkelOut)
 ensureOutputTweak txSkelOut = do
   presentOutputs <- viewTweak txSkelOutsL
@@ -33,12 +33,12 @@ ensureOutputTweak txSkelOut = do
       addOutputTweak txSkelOut
       return $ Just txSkelOut
 
--- | Add a transaction output, at the end of the current list of outputs, thus
+-- | Adds a transaction output, at the end of the current list of outputs, thus
 -- retaining the initial outputs order.
 addOutputTweak :: (MonadTweak m) => TxSkelOut -> m ()
 addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
 
--- | Remove transaction outputs according to some predicate. The returned list
+-- | Removes transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
 removeOutputTweak :: (MonadTweak m) => (TxSkelOut -> Bool) -> m [TxSkelOut]
 removeOutputTweak removePred = do
@@ -47,6 +47,8 @@ removeOutputTweak removePred = do
   setTweak txSkelOutsL kept
   return removed
 
+-- | A label added to a 'TxSkel' on which the 'tamperDatumTweak' has been
+-- successfully applied
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked TamperDatumLbl where
@@ -68,11 +70,11 @@ tamperDatumTweak change = do
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. There are two main
 -- differences with 'tamperDatumTweak'. First, the tampering function returns
--- 'BuiltinData', allowing it to do pretty much anything with the
+-- 'Api.BuiltinData', allowing it to do pretty much anything with the
 -- datums. Second, for every output datum there are zero or more options for how
 -- to modify it, and all combinations of these modifications are tried.
 --
--- That is, if there are 'n' output datums, for which there are 'k_1,...,k_n'
+-- That is, if there are @n@ output datums, for which there are @k_1,...,k_n@
 -- possible modifications, this tweak will try
 --
 -- >   k_1 + ... + k_n
@@ -105,6 +107,8 @@ malformDatumTweak change = do
           TxSkelOutDatumHash _ -> TxSkelOutDatumHash modifiedDat
           TxSkelOutInlineDatum _ -> TxSkelOutInlineDatum modifiedDat
 
+-- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been
+-- successfully applied
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked MalformDatumLbl where

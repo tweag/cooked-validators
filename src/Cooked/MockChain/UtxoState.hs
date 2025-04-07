@@ -1,6 +1,5 @@
--- | This module provides a depiction of the internal state we carry around to
--- emulate the blockchain index. This is mostly useful in the Direct
--- implementation of the MonadBlockChain.
+-- | This module provides a depiction of the state we return when running a
+-- 'Cooked.BlockChain.Direct.MockChain'.
 module Cooked.MockChain.UtxoState
   ( UtxoState (..),
     UtxoPayloadSet (..),
@@ -33,18 +32,23 @@ instance Semigroup UtxoState where
 
 -- | Represents a /set/ of payloads.
 newtype UtxoPayloadSet = UtxoPayloadSet
-  { utxoPayloadSet :: [UtxoPayload]
-  -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
-  -- and because it is possible that we want to distinguish between utxo states
-  -- that have additional utxos, even if these could have been merged together.
+  { -- | List of UTxOs contained in this 'UtxoPayloadSet'
+    utxoPayloadSet :: [UtxoPayload]
+    -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
+    -- and because it is possible that we want to distinguish between utxo states
+    -- that have additional utxos, even if these could have been merged together.
   }
   deriving (Show)
 
 -- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload = UtxoPayload
-  { utxoPayloadTxOutRef :: Api.TxOutRef,
+  { -- | The reference of this UTxO
+    utxoPayloadTxOutRef :: Api.TxOutRef,
+    -- | The value stored in this UTxO
     utxoPayloadValue :: Api.Value,
+    -- | The datum stored in this UTxO
     utxoPayloadSkelOutDatum :: TxSkelOutDatum,
+    -- | The optional reference script stored in this UTxO
     utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }
   deriving (Eq, Show)
@@ -66,8 +70,8 @@ instance Monoid UtxoPayloadSet where
 utxoPayloadSetTotal :: UtxoPayloadSet -> Api.Value
 utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
 
--- | The missing information on a 'TxSkel' that can only be resolved by querying
--- the state of the blockchain.
+-- | The missing information on a 'Cooked.Skeleton.TxSkel' that can only be
+-- resolved by querying the state of the blockchain.
 data SkelContext = SkelContext
   { skelContextTxOuts :: Map Api.TxOutRef Api.TxOut,
     skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum

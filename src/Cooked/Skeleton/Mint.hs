@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This module exposes the minting constructs used in a
+-- 'Cooked.Skeleton.TxSkel' and their associated utilities.
 module Cooked.Skeleton.Mint
   ( TxSkelMints,
     Mint (..),

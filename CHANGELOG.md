@@ -40,6 +40,8 @@
   `txSkelValidatorsInOutputs`, `txSkelReferenceScripts`
 - `walletCredential`, `walletAddress` replaced by `toCredential` and
   `toAddress` from the classes `ToCredential` and `ToAddress`.
+- `txOptAutoReferenceScripts` replaced by local option `txSkelRedeemerAutoFill`
+  which can be turned on and off in each `TxSkelRedeemer`.
 
 ### Changed
 
@@ -60,6 +62,9 @@
   a dynamic alias during mockchain runs using `define`.
 - Default hash names map in the pretty printer option have been updated.
 - The `removeLabelTweak` now fails if the label is absent from the skeleton.
+- `TxSkelRedeemer` has been improved: it directly contains a redeemer content
+  (no longer needed type `Redeemer`) and it now contains locally an option to
+  either automatically assign a reference input or not.
 
 ### Fixed
 

@@ -7,8 +7,10 @@ module Cooked.MockChain.Staged
   ( interpretAndRunWith,
     interpretAndRun,
     StagedMockChain,
+    MockChainBuiltin,
     runTweakFrom,
     MonadModalBlockChain,
+    InterpMockChain,
     somewhere,
     runTweak,
     everywhere,
@@ -49,11 +51,12 @@ interpretAndRunWith ::
   [res]
 interpretAndRunWith f smc = f $ interpret smc
 
+-- | Same as 'interpretAndRunWith' but using 'runMockChainT' as the default way
+-- to run the computation.
 interpretAndRun :: StagedMockChain a -> [MockChainReturn a UtxoState]
 interpretAndRun = interpretAndRunWith runMockChainT
 
--- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
--- 'interpret' function for more.
+-- | The semantic domain in which 'StagedMockChain' gets interpreted
 type InterpMockChain = MockChainT []
 
 -- | The 'interpret' function gives semantics to our traces. One
@@ -69,6 +72,7 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
+-- | Abstract representation of all the builtin functions of a 'MonadBlockChain'
 data MockChainBuiltin a where
   -- methods of 'MonadBlockChain'
   GetParams :: MockChainBuiltin Emulator.Params
@@ -93,9 +97,11 @@ data MockChainBuiltin a where
   ThrowError :: MockChainError -> MockChainBuiltin a
   CatchError :: StagedMockChain a -> (MockChainError -> StagedMockChain a) -> MockChainBuiltin a
 
-type MockChainOp = LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin
-
-type StagedMockChain = Staged MockChainOp
+-- | A 'StagedMockChain' is a mockchain that can be modified using
+-- 'Cooked.Tweak.Common.Tweak's whenever a transaction is being sent for
+-- validation. Selecting which transactions should be modified before going to
+-- validations is done using 'Cooked.Ltl.Ltl' formulas.
+type StagedMockChain = Staged (LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin)
 
 instance Alternative StagedMockChain where
   empty = Instr (Builtin Empty) Return
@@ -144,9 +150,12 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
+-- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
 runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
 runTweak = runTweakFrom def
 
+-- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
+-- mockchain
 runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
 runTweakFrom initDist tweak = map (first (right fst)) . runMockChainTFrom initDist . runTweakInChain tweak
 

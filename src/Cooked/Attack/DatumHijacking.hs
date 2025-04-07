@@ -29,7 +29,7 @@ import Prettyprinter ((<+>))
 redirectOutputTweakAll ::
   forall owner owner' m.
   (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
-  -- | Return @Just@ the new owner, or @Nothing@ if you want to leave this
+  -- | Return 'Just' the new owner, or 'Nothing' if you want to leave this
   -- output unchanged.
   (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script) -> Maybe owner') ->
   -- | The redirection described by the previous argument might apply to more
@@ -58,7 +58,7 @@ redirectOutputTweakAll outputPred indexPred = do
 
 -- | A version of 'redirectOutputTweakAll' where, instead of modifying all the
 -- outputs targeted by the input predicates in the same transaction, we modify
--- one of them at a time, relying on the 'MonadPlus' instance of 'm'.
+-- one of them at a time, relying on the 'MonadPlus' instance of @m@.
 redirectOutputTweakAny ::
   forall owner owner' m.
   (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
@@ -83,15 +83,15 @@ redirectOutputTweakAny outputPred indexPred = viewTweak txSkelOutsL >>= go [] 0
     go l' n (out : l) = go (l' ++ [out]) n l
 
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
--- different recipient on 'PaysScript' constraints, but leaves the datum as it
--- is. That is, it tests for careless uses of something like 'txInfoOutputs' in
--- places where something like 'getContinuingOutputs' should be used. If this
--- attack goes through, however, a "proper" datum hijacking attack that modifies
--- the datum in a way that (the relevant part of) the
--- 'toBuiltinData'-translation stays the same will also work.
+-- different recipient on outputs belonging to scripts, but leaves the datum as
+-- it is. That is, it tests for careless uses of something like
+-- 'Api.txInfoOutputs' in places where something like 'Api.getContinuingOutputs'
+-- should be used. If this attack goes through, however, a "proper" datum
+-- hijacking attack that modifies the datum in a way that (the relevant part of)
+-- the 'Api.toBuiltinData'-translation stays the same will also work.
 --
 -- A 'DatumHijackingLbl' with the hash of the "thief" validator is added to the
--- labels of the 'TxSkel' using 'addLabel'.
+-- labels of the 'TxSkel' using 'addLabelTweak'.
 --
 -- This attack returns the list of outputs it redirected, in the order in which
 -- they occurred on the original transaction. If no output is redirected, this
@@ -116,7 +116,7 @@ datumHijackingAttackAll change select thief = do
   return redirected
 
 -- | A version of datumHijackingAttackAll relying on the rules of
--- 'redirectOutputAnyTweak'.
+-- 'redirectOutputTweakAny'.
 datumHijackingAttackAny ::
   forall owner owner' m.
   (MonadTweak m, OwnerConstraints owner, OwnerConstraints owner') =>
@@ -144,6 +144,8 @@ datumHijackingAttack ::
   m (ConcreteOutput owner TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
 datumHijackingAttack = datumHijackingAttackAny (const True) (const True)
 
+-- | A label that is added to a 'TxSkel' that has successfully been modified by
+-- any of the datum hijacking attacks
 newtype DatumHijackingLbl = DatumHijackingLbl Api.Credential
   deriving (Show, Eq, Ord)
 

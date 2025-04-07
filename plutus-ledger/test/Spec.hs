@@ -19,8 +19,9 @@ import Ledger (Slot (Slot))
 import Ledger.Tx.CardanoAPI (CardanoBuildTx (CardanoBuildTx), CardanoTx (CardanoTx))
 import Ledger.Tx.CardanoAPI qualified as CardanoAPI
 import Ledger.Tx.CardanoAPISpec qualified
-import Plutus.Script.Utils.Value qualified as Value hiding (scale)
+import Plutus.Script.Utils.Value qualified as Value
 import PlutusLedgerApi.V1.Interval qualified as Interval
+import PlutusLedgerApi.V1.Value qualified as Value
 import Test.Gen.Cardano.Api.Typed qualified as Gen
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.HUnit (testCase)

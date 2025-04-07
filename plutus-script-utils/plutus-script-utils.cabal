@@ -127,18 +127,3 @@ library
 
   -- TODO This needs to be changed to 1.35 once cardano-node creates the tag
   ghc-options:      -fprint-potential-instances
-
-test-suite plutus-script-utils-tests
-  import:             lang
-  type:               exitcode-stdio-1.0
-  main-is:            Spec.hs
-  hs-source-dirs:     test
-  default-language:   Haskell2010
-  default-extensions: ImportQualifiedPost
-
-  ------------------------
-  -- Non-IOG dependencies
-  ------------------------
-  build-depends:
-    , base   >=4.9 && <5
-    , tasty

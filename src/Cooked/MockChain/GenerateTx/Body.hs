@@ -1,3 +1,5 @@
+-- | This modules exposes entry points to convert a 'TxSkel' into a fully
+-- fledged transaction body
 module Cooked.MockChain.GenerateTx.Body
   ( txSkelToTxBody,
     txBodyContentToTxBody,
@@ -85,6 +87,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs 
       txTreasuryDonation = Nothing
   return Cardano.TxBodyContent {..}
 
+-- | Generates a transaction body from a body content
 txBodyContentToTxBody :: (MonadBlockChainBalancing m) => Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra -> TxSkel -> m (Cardano.TxBody Cardano.ConwayEra)
 txBodyContentToTxBody txBodyContent skel = do
   -- We create the associated Shelley TxBody
@@ -141,6 +144,8 @@ txBodyContentToTxBody txBodyContent skel = do
       Cardano.PlutusScriptV2 -> Cardano.PlutusV2
       Cardano.PlutusScriptV3 -> Cardano.PlutusV3
 
+-- | Generates a transaction body from a 'TxSkel' and associated fee and
+-- collateral information
 txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra)
 txSkelToTxBody skel fee mCollaterals = do
   txBodyContent <- txSkelToTxBodyContent skel fee mCollaterals

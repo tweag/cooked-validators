@@ -1,3 +1,5 @@
+-- | This module exposes the notion of datums as they are handled within a
+-- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Datum
   ( TxSkelOutDatumConstrs,
     TxSkelOutDatum (..),
@@ -13,6 +15,7 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 import Type.Reflection
 
+-- | These are the type constraints that must be satisfied by the datum content
 type TxSkelOutDatumConstrs a =
   ( Show a,
     PrettyCooked a,
@@ -32,9 +35,9 @@ type TxSkelOutDatumConstrs a =
 -- following table explains their differences.
 --
 -- +------------------------+------------------+---------------------+-----------------------+
--- |                        | datum stored in  |                     | 'Api.OutputDatum'     |
--- |                        | in the simulated | datum resolved      | constructor           |
--- |                        | chain state      | on the 'txInfoData' | seen by the validator |
+-- |                        | datum stored in  | datum resolved      | 'Api.OutputDatum'     |
+-- |                        | in the simulated | on the              | constructor           |
+-- |                        | chain state      | 'Api.txInfoData'    | seen by the validator |
 -- +========================+==================+=====================+=======================+
 -- | 'TxSkelOutNoDatum'     | no               | no                  | 'Api.NoOutputDatum'   |
 -- +------------------------+------------------+---------------------+-----------------------+
@@ -49,12 +52,12 @@ type TxSkelOutDatumConstrs a =
 --
 -- - Whenever there is a datum, we'll store it in the state of our simulated
 --   chain. This will make it possible to retrieve it later, using functions
---   such as 'datumFromHash'.
+--   such as 'Api.datumFromHash'.
 --
 -- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will
---   create an output that scripts see on the 'txInfo' as having a datum
+--   create an output that scripts see on the 'Api.txInfo' as having a datum
 --   hash. The difference is whether that hash will be resolvable using
---   validator functions like 'findDatum'.
+--   validator functions like 'Api.findDatum'.
 data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
@@ -62,7 +65,7 @@ data TxSkelOutDatum where
   TxSkelOutDatumHash :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
   -- | use a 'Api.OutputDatumHash' on the transaction output, but generate the
   -- transaction in such a way that the complete datum is included in the
-  -- 'txInfoData' seen by validators
+  -- 'Api.txInfoData' seen by validators
   TxSkelOutDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
   -- | use an inline datum
   TxSkelOutInlineDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
@@ -94,6 +97,7 @@ instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum (TxSkelOutDatum datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Api.OutputDatum . Api.Datum . Api.toBuiltinData $ datum
 
+-- | Converts a 'TxSkelOutDatum' into a possible Plutus datum
 txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
 txSkelOutUntypedDatum = \case
   TxSkelOutNoDatum -> Nothing
@@ -101,6 +105,7 @@ txSkelOutUntypedDatum = \case
   TxSkelOutDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
   TxSkelOutInlineDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
 
+-- | Attempts to cast the content of this 'TxSkelOutDatum' to a given type
 txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
 txSkelOutTypedDatum = \case
   TxSkelOutNoDatum -> Nothing

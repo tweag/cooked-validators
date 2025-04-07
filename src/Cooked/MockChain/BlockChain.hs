@@ -52,6 +52,7 @@ module Cooked.MockChain.BlockChain
     govActionDeposit,
     txOutRefToTxSkelOut,
     txOutRefToTxSkelOut',
+    defineM,
   )
 where
 
@@ -88,7 +89,7 @@ import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- * MockChain errors
+-- * Mockchain errors
 
 -- | Errors that can arise during transaction generation
 data GenerateTxError
@@ -100,7 +101,7 @@ data GenerateTxError
     GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
--- | Errors that can be produced by the 'MockChainT' monad
+-- | Errors that can be produced by the blockchain
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
@@ -121,7 +122,7 @@ data MockChainError
     FailWith String
   deriving (Show, Eq)
 
--- * MockChain logs
+-- * Mockchain logs
 
 -- | This represents the specific events that should be logged when processing
 -- transactions. If a new kind of event arises, then a new constructor should be
@@ -144,11 +145,14 @@ data MockChainLogEntry
     -- utxos to be used as collaterals.
     MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
   | -- | Logging the automatic addition of a reference script
-    MCLogAddedReferenceScript Redeemer Api.TxOutRef Script.ScriptHash
+    MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
     MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
 
--- | Contains methods needed for balancing.
+-- * Mockchain layers
+
+-- | This is the first layer of our blockchain, which provides the minimal
+-- subset of primitives required to perform balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
   -- | Returns the emulator parameters, including protocol parameters
   getParams :: m Emulator.Params
@@ -169,6 +173,10 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Logs an event that occured during a BlockChain run
   logEvent :: MockChainLogEntry -> m ()
 
+-- | This is the second layer of our block, which provides all the other
+-- blockchain primitives not needed for balancing, except transaction
+-- validation. This layers is the one where
+-- 'Cooked.MockChain.Tweak.Common.Tweak's are plugged to.
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
   allUtxos :: m [(Api.TxOutRef, Api.TxOut)]
@@ -186,21 +194,20 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- enough.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
-  -- | Bind a hashable quantity of type @a@ to a variable in the mockchain,
+  -- | Binds a hashable quantity of type @a@ to a variable in the mockchain,
   -- while registering its alias for printing purposes.
   define :: (ToHash a) => String -> a -> m a
 
--- | The main abstraction of the blockchain.
+-- | Like 'define', but binds the result of a monadic computation instead
+defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
+defineM name comp = comp >>= define name
+
+-- | The final layer of our blockchain, adding transaction validation to the
+-- mix. This is the only primitive that actually modifies the ledger state.
 class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- | Generates, balances and validates a transaction from a skeleton. It
   -- returns the validated transaction and updates the state of the
-  -- blockchain. In 'MockChainT', this means:
-  --
-  -- - deletes the consumed outputs from 'mcstIndex'
-  -- - adds the produced outputs to 'msctIndex'
-  -- - deletes the consumed datums from 'mcstDatums'
-  -- - adds the produced datums to 'mcstDatums'
-  -- - adds the validators on outputs to the 'mcstScripts'.
+  -- blockchain.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
 -- | Validates a skeleton, and retuns the ordered list of produced output
@@ -212,7 +219,7 @@ validateTxSkel' = (map fst . utxosFromCardanoTx <$>) . validateTxSkel
 validateTxSkel_ :: (MonadBlockChain m) => TxSkel -> m ()
 validateTxSkel_ = void . validateTxSkel
 
--- | Retrieve the ordered list of outputs of the given "CardanoTx".
+-- | Retrieves the ordered list of outputs of the given "CardanoTx".
 --
 -- This is useful when writing endpoints and/or traces to fetch utxos of
 -- interest right from the start and avoid querying the chain for them
@@ -226,6 +233,8 @@ utxosFromCardanoTx =
         )
     )
     . Ledger.getCardanoTxOutRefs
+
+-- * Mockchain helpers
 
 -- | Try to resolve the datum on the output: If there's an inline datum, take
 -- that; if there's a datum hash, look the corresponding datum up (with
@@ -243,12 +252,10 @@ resolveDatum out = do
     Api.OutputDatumHash datumHash -> datumFromHash datumHash
     Api.OutputDatum datum -> return $ Just datum
     Api.NoOutputDatum -> return Nothing
-  return $ do
-    mDat <- mDatum
-    return $ (fromAbstractOutput out) {concreteOutputDatum = mDat}
+  return $ setDatum out <$> mDatum
 
--- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
--- datum of the suitable type.
+-- | Like 'resolveDatum', but also tries to use 'Api.fromBuiltinData' to extract
+-- a datum of the suitable type.
 resolveTypedDatum ::
   ( IsAbstractOutput out,
     Script.ToOutputDatum (DatumType out),
@@ -261,11 +268,9 @@ resolveTypedDatum out = do
   mOut <- resolveDatum out
   return $ do
     out' <- mOut
-    let Api.Datum datum = out' ^. outputDatumL
-    dat <- Api.fromBuiltinData datum
-    return $ (fromAbstractOutput out) {concreteOutputDatum = dat}
+    setDatum out <$> Api.fromBuiltinData (Api.getDatum (out' ^. outputDatumL))
 
--- | Try to resolve the validator that owns an output: If the output is owned by
+-- | Tries to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
 -- 'scriptFromHash' returns @Nothing@) return @Nothing@.
 resolveValidator ::
@@ -284,9 +289,9 @@ resolveValidator out =
         val <- mVal
         return $ (fromAbstractOutput out) {concreteOutputOwner = Script.toVersioned val}
 
--- | Try to resolve the reference script on an output: If the output has no
+-- | Tries to resolve the reference script on an output: If the output has no
 -- reference script, or if the reference script's hash is not known (i.e. if
--- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
+-- 'scriptFromHash' returns 'Nothing'), this function will return 'Nothing'.
 resolveReferenceScript ::
   ( IsAbstractOutput out,
     Script.ToScriptHash (ReferenceScriptType out),
@@ -301,9 +306,11 @@ resolveReferenceScript out | Just hash <- outputReferenceScriptHash out = do
     return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just $ Script.toVersioned val}
 resolveReferenceScript _ = return Nothing
 
+-- | Extracts a potential 'Api.OutputDatum' from a given 'Api.TxOutRef'
 outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
 
+-- | Extracts a potential 'Api.Datum' from a given 'Api.TxOutRef'
 datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Datum)
 datumFromTxOutRef oref = do
   mOutputDatum <- outputDatumFromTxOutRef oref
@@ -313,15 +320,20 @@ datumFromTxOutRef oref = do
     Just (Api.OutputDatum datum) -> return $ Just datum
     Just (Api.OutputDatumHash datumHash) -> datumFromHash datumHash
 
+-- | Like 'datumFromTxOutRef', but uses 'Api.fromBuiltinData' to attempt to
+-- deserialize this datum into a given type
 typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
 typedDatumFromTxOutRef = ((>>= (\(Api.Datum datum) -> Api.fromBuiltinData datum)) <$>) . datumFromTxOutRef
 
+-- | Resolves an 'Api.TxOutRef' and extracts the value it contains
 valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
 valueFromTxOutRef = ((outputValue <$>) <$>) . txOutByRef
 
+-- | Resolves all the inputs of a given 'Cooked.Skeleton.TxSkel'
 txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
+-- | Resolves all the reference inputs of a given 'Cooked.Skeleton.TxSkel'
 txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
 txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
@@ -334,11 +346,11 @@ govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionD
 txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
 txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
 
--- | Helper to convert Nothing to an error
+-- | Converts 'Nothing' to an error
 maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b
 maybeErrM err f = (maybe (throwError err) (return . f) =<<)
 
--- | All validators which protect transaction inputs
+-- | Returns all validators which protect transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Script.ValidatorHash (Script.Versioned Script.Validator))
 txSkelInputValidators skel = do
   utxos <- Map.toList <$> lookupUtxos (Map.keys . txSkelIns $ skel)
@@ -416,12 +428,12 @@ txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
         }
 
 -- | A default version of 'txOutRefToTxSkelOut' where we both include the datum
--- in the transaction if it was hashed in the 'TxOut', and allow further ada
+-- in the transaction if it was hashed in the 'Api.TxOut', and allow further ADA
 -- adjustment in case changes in the output require it.
 txOutRefToTxSkelOut' :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
 txOutRefToTxSkelOut' oRef = txOutRefToTxSkelOut oRef True True
 
--- ** Slot and Time Management
+-- * Slot and Time Management
 
 -- $slotandtime
 -- #slotandtime#
@@ -507,7 +519,7 @@ slotRangeAfter t = do
   (a, _) <- slotToTimeInterval n
   return $ Api.from $ if t == a then n else n + 1
 
--- ** Deriving further 'MonadBlockChain' instances
+-- * Deriving further 'MonadBlockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of
 -- 'MonadBlockChain' for any 'MonadTransControl'.

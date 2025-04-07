@@ -1,3 +1,4 @@
+-- | This module exposes the generation of witnesses and reward account
 module Cooked.MockChain.GenerateTx.Witness
   ( toRewardAccount,
     toScriptWitness,
@@ -54,16 +55,14 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
 -- witness.
 toScriptWitness :: (MonadBlockChainBalancing m, Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
 toScriptWitness (Script.toVersioned -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
-  let scriptData = Ledger.toCardanoScriptData $ case txSkelRedeemer of
-        EmptyRedeemer -> Api.toBuiltinData ()
-        SomeRedeemer s -> Api.toBuiltinData s
+  let scriptData = Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
    in case version of
         Script.PlutusV1 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
+            <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
         Script.PlutusV2 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
+            <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
         Script.PlutusV3 ->
           (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelReferenceInput
+            <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput

@@ -1,8 +1,8 @@
 -- | This module provides the 'PrettyCooked' class and instances for common
--- Plutus types.  We don't rely on 'Pretty' from "Prettyprinter" in order to
+-- Plutus types.  We don't rely on 'PP.Pretty' from "Prettyprinter" in order to
 -- define better printers for Plutus types which already have instances of
--- 'Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify pretty
--- printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
+-- 'PP.Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify
+-- pretty printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
 --
 -- When defining a new 'PrettyCooked' instance, prefer implementing
 -- 'prettyCookedOpt' and relay the option parameter to other printers.
@@ -28,6 +28,7 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 import Prettyprinter.Render.Text qualified as PP
 
+-- | Type class of things within cooked-validators that can be pretty printed
 class PrettyCooked a where
   prettyCooked :: a -> DocCooked
   prettyCooked = prettyCookedOpt def

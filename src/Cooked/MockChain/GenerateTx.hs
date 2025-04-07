@@ -1,3 +1,5 @@
+-- | This module exposes translation functions to transform a 'TxSkel' into a
+-- signed transaction
 module Cooked.MockChain.GenerateTx
   ( txSignersAndBodyToCardanoTx,
     txSkelToCardanoTx,
@@ -24,7 +26,7 @@ txSignersAndBodyToCardanoTx signers txBody =
       (Ledger.CardanoEmulatorEraTx $ txBody `Cardano.Tx` [])
       (Ledger.toWitness . Ledger.PaymentPrivateKey . walletSK <$> signers)
 
--- | Generates a full Cardano transaction for a skeleton, fees and collaterals
+-- | Generates a full Cardano transaction from a skeleton, fees and collaterals
 txSkelToCardanoTx :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.Tx Cardano.ConwayEra)
 txSkelToCardanoTx txSkel fee mCollaterals =
   txSignersAndBodyToCardanoTx (txSkelSigners txSkel) <$> txSkelToTxBody txSkel fee mCollaterals

@@ -10,14 +10,14 @@ import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
--- | A token duplication attack increases values in 'Mints'-constraints of a
+-- | A token duplication attack increases values in 'Mint' constraints of a
 -- 'TxSkel' according to some conditions, and pays the extra minted value to a
 -- given recipient wallet. This adds a 'DupTokenLbl' to the labels of the
--- transaction using 'addLabel'. Returns the 'Value' by which the minted value
--- was increased.
+-- transaction using 'addLabelTweak'. Returns the 'Value' by which the minted
+-- value was increased.
 dupTokenAttack ::
   (MonadTweak m, OwnerConstraints o) =>
-  -- | A function describing how the amount of tokens specified by a 'Mints'
+  -- | A function describing how the amount of tokens specified by a 'Mint'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy
   -- @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the minted
@@ -54,6 +54,8 @@ dupTokenAttack change attacker = do
   addLabelTweak DupTokenLbl
   return totalIncrement
 
+-- | A label that is added to a 'TxSkel' that has successfully been modified by
+-- the 'dupTokenAttack'
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show, Ord)
 

@@ -2,8 +2,8 @@
 -- skeletons, utxo states, addresses, pubkey hashes, values, etc.
 --
 -- We provide the 'PrettyCooked' class and instances for common Plutus types.
--- We don't rely on 'Pretty' from "Prettyprinter" in order to define better
--- printers for Plutus types which already have instances of 'Pretty'. Also,
+-- We don't rely on 'PP.Pretty' from "Prettyprinter" in order to define better
+-- printers for Plutus types which already have instances of 'PP.Pretty'. Also,
 -- 'PrettyCooked' makes it possible to optionally modify pretty printing
 -- settings 'PrettyCookedOpts' (e.g. length of printed hashes).
 --
@@ -11,8 +11,8 @@
 --
 -- Datums and redeemers are required to have a 'PrettyCooked' instance.
 --
--- For trivial datatypes, you can rely on Show by using 'viaShow' from
--- "Prettyprinter": 'prettyCooked = Prettyprinter.viaShow'.
+-- For trivial datatypes, you can rely on Show by using 'PrettyPrinter.viaShow'
+-- from "Prettyprinter": @prettyCooked = Prettyprinter.viaShow@.
 --
 -- For more complex datatypes, you can rely on existing 'PrettyCooked'
 -- instances. Prefer implementing the 'prettyCookedOpt' function and relay the
@@ -32,8 +32,8 @@
 -- @
 --
 -- The 'prettyItemize' function is useful to nicely lay down nested lists of
--- elements. Since we manipulate regular 'Doc' values, any function from
--- "Prettyprinter" can be used to implement your printers.
+-- elements. Since we manipulate regular 'PrettyPrinter.Doc' values, any
+-- function from "Prettyprinter" can be used to implement your printers.
 --
 -- == How to pretty print?
 --
@@ -41,7 +41,9 @@
 -- automatically by the end-user functions provided in
 -- "Cooked.MockChain.Testing".
 --
--- To do it manually, use 'prettyTxSkel' or 'prettyUtxoState'.
+-- To do it manually, use functions defined in 'Cooked.Pretty.Cooked' such as
+-- 'prettyTxSkel' or instance of 'PrettyCooked' such as the one for
+-- @MockChainReturn a UtxoState@.
 module Cooked.Pretty (module X) where
 
 import Cooked.Pretty.Class as X

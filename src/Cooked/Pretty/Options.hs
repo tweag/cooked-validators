@@ -1,5 +1,5 @@
--- | This module defines pretty-printing options for 'prettyCookedOpt' and their
--- default values.
+-- | This module defines pretty-printing options for
+-- 'Cooked.Pretty.Class.prettyCookedOpt' and their default values.
 module Cooked.Pretty.Options
   ( PrettyCookedOpts (..),
     PrettyCookedHashOpts (..),
@@ -22,6 +22,7 @@ import Plutus.Script.Utils.V2.Generators qualified as ScriptV2
 import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose qualified as ScriptV3
 import PlutusLedgerApi.V3 qualified as Api
 
+-- | A set of option to pilot pretty printing in cooked-validators
 data PrettyCookedOpts = PrettyCookedOpts
   { -- | Whether to print transaction ids of validated transactions. By
     -- default: False
@@ -67,6 +68,7 @@ data PCOptTxOutRefs
     PCOptTxOutRefsPartial
   deriving (Eq, Show)
 
+-- | A set of options to pilot how hashes are pretty printed
 data PrettyCookedHashOpts = PrettyCookedHashOpts
   { -- | Length of printed hash prefix. By default: 7
     pcOptHashLength :: Int,
@@ -120,7 +122,7 @@ hashNamesFromList = Map.fromList . map (first toHash)
 --
 -- * We use it internally to account for names that have been registered during
 -- mockchain runs, such as for names that depend on on-chain data, typically a
--- 'TxOutRef'.
+-- 'Api.TxOutRef'.
 addHashNames :: Map Api.BuiltinByteString String -> PrettyCookedOpts -> PrettyCookedOpts
 addHashNames names opts'@(PrettyCookedOpts _ _ _ _ hashOpts _) =
   opts' {pcOptHashes = hashOpts {pcOptHashNames = Map.union names (pcOptHashNames hashOpts)}}

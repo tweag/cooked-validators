@@ -43,25 +43,30 @@ class IsProp prop where
   testFailureMsg :: String -> prop
   testFailureMsg msg = testCounterexample msg testFailure
 
+-- | Turns a boolean into a @prop@
 testBool :: (IsProp prop) => Bool -> prop
 testBool True = testSuccess
 testBool False = testFailure
 
+-- | Ensures all elements of a list satisfy a given @prop@
 testAll :: (IsProp prop) => (a -> prop) -> [a] -> prop
 testAll f = testConjoin . map f
 
 infix 4 .==.
 
+-- | Lifts an equality test to a @prop@
 (.==.) :: (IsProp prop, Eq a) => a -> a -> prop
 a .==. b = testBool $ a == b
 
 infixr 3 .&&.
 
+-- | Conjunction of two @prop@s
 (.&&.) :: (IsProp prop) => prop -> prop -> prop
 a .&&. b = testConjoin [a, b]
 
 infixr 2 .||.
 
+-- | Disjunction of two @prop@s
 (.||.) :: (IsProp prop) => prop -> prop -> prop
 a .||. b = testDisjoin [a, b]
 
@@ -235,20 +240,21 @@ withStatePred test statePred = withValueAndStatePred test $ \_ st -> statePred s
 withPrettyAndErrorPred :: (IsProp prop) => Test a prop -> (PrettyCookedOpts -> MockChainError -> prop) -> Test a prop
 withPrettyAndErrorPred test errorPred = test {testErrorProp = \opts err journal -> testErrorProp test opts err journal .&&. errorPred opts err}
 
+-- | Appends a predicate over an error to a 'Test'
 withErrorPred :: (IsProp prop) => Test a prop -> (MockChainError -> prop) -> Test a prop
 withErrorPred test errorPred = withPrettyAndErrorPred test $ \_ err -> errorPred err
 
 -- | This takes a test and transforms it into an actual test case in prop.
 testToProp :: (IsProp prop) => Test a prop -> prop
 testToProp Test {..} =
-  let innerProp (res, (mcLog, names)) =
+  let innerProp (res, MockChainBook mcLog names) =
         case res of
           Left err -> testErrorProp (addHashNames names testPrettyOpts) err mcLog
           Right (result, state) -> testResultProp (addHashNames names testPrettyOpts) result state mcLog
       results = interpretAndRunWith (runMockChainTFrom testInitDist) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \res@(_, (mcLog, names)) ->
+          ( \res@(_, MockChainBook mcLog names) ->
               testCounterexample
                 (renderString (prettyCookedOpt (addHashNames names testPrettyOpts)) mcLog)
                 (innerProp res)
