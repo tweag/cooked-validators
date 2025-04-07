@@ -18,12 +18,18 @@ module Plutus.Script.Utils.V3.Typed
     IsDataDatum,
     TypedMultiPurposeScript (..),
     mkMultiPurposeScript,
-    CertifyingScriptType,
-    MintingScriptType,
-    ProposingScriptType,
-    RewardingScriptType,
-    SpendingScriptType,
-    VotingScriptType,
+    CertifyingPurposeType',
+    MintingPurposeType',
+    ProposingPurposeType',
+    RewardingPurposeType',
+    SpendingPurposeType',
+    VotingPurposeType',
+    CertifyingPurposeType,
+    MintingPurposeType,
+    ProposingPurposeType,
+    RewardingPurposeType,
+    SpendingPurposeType,
+    VotingPurposeType,
   )
 where
 
@@ -216,22 +222,34 @@ instance MultiPurposeScriptTypes Any where
 --}
 
 -- | Certifying scripts take an index, certificate, redeemer and txInfo
-type CertifyingScriptType red txInfo = Integer -> TxCert -> red -> txInfo -> Bool
+type CertifyingPurposeType' red txInfo = Integer -> TxCert -> red -> txInfo -> Bool
+
+type CertifyingPurposeType a = CertifyingPurposeType' (CertifyingRedeemerType a) (CertifyingTxInfoType a)
 
 -- | Minting scripts take their own currency symbol, redeemer and txInfo
-type MintingScriptType red txInfo = CurrencySymbol -> red -> txInfo -> Bool
+type MintingPurposeType' red txInfo = CurrencySymbol -> red -> txInfo -> Bool
+
+type MintingPurposeType a = MintingPurposeType' (MintingRedeemerType a) (MintingTxInfoType a)
 
 -- | Proposing scripts take an index, proposal, redeemer and txInfo
-type ProposingScriptType red txInfo = Integer -> ProposalProcedure -> red -> txInfo -> Bool
+type ProposingPurposeType' red txInfo = Integer -> ProposalProcedure -> red -> txInfo -> Bool
+
+type ProposingPurposeType a = ProposingPurposeType' (ProposingRedeemerType a) (ProposingTxInfoType a)
 
 -- | Rewarding scripts take a credential, redeemer and txInfo
-type RewardingScriptType red txInfo = Credential -> red -> txInfo -> Bool
+type RewardingPurposeType' red txInfo = Credential -> red -> txInfo -> Bool
+
+type RewardingPurposeType a = RewardingPurposeType' (RewardingRedeemerType a) (RewardingTxInfoType a)
 
 -- | Spending scripts take the utxo being consumed, an optional datum, redeemer and txInfo
-type SpendingScriptType dat red txInfo = TxOutRef -> Maybe dat -> red -> txInfo -> Bool
+type SpendingPurposeType' dat red txInfo = TxOutRef -> Maybe dat -> red -> txInfo -> Bool
+
+type SpendingPurposeType a = SpendingPurposeType' (SpendingDatumType a) (SpendingRedeemerType a) (SpendingTxInfoType a)
 
 -- | Voting scripts take a voter, redeemer and txInfo
-type VotingScriptType red txInfo = Voter -> red -> txInfo -> Bool
+type VotingPurposeType' red txInfo = Voter -> red -> txInfo -> Bool
+
+type VotingPurposeType a = VotingPurposeType' (VotingRedeemerType a) (VotingTxInfoType a)
 
 -- * Typed multi-purpose scripts
 
@@ -251,13 +269,27 @@ data
     spendingRed
     spendingTxInfo
     votingRed
-    votingTxInfo = TypedMultiPurposeScript
-  { certifyingTypedScript :: CertifyingScriptType certifyingRed certifyingTxInfo,
-    mintingTypedScript :: MintingScriptType mintingRed mintingTxInfo,
-    proposingTypedScript :: ProposingScriptType proposingRed proposingTxInfo,
-    rewardingTypedScript :: RewardingScriptType rewardingRed rewardingTxInfo,
-    spendingTypedScript :: SpendingScriptType spendingDat spendingRed spendingTxInfo,
-    votingTypedScript :: VotingScriptType votingRed votingTxInfo
+    votingTxInfo = ( FromData certifyingRed,
+                     FromData certifyingTxInfo,
+                     FromData mintingRed,
+                     FromData mintingTxInfo,
+                     FromData proposingRed,
+                     FromData proposingTxInfo,
+                     FromData rewardingRed,
+                     FromData rewardingTxInfo,
+                     FromData spendingDat,
+                     FromData spendingRed,
+                     FromData spendingTxInfo,
+                     FromData votingRed,
+                     FromData votingTxInfo
+                   ) =>
+  TypedMultiPurposeScript
+  { certifyingPurpose :: Maybe (CertifyingPurposeType' certifyingRed certifyingTxInfo),
+    mintingPurpose :: Maybe (MintingPurposeType' mintingRed mintingTxInfo),
+    proposingPurpose :: Maybe (ProposingPurposeType' proposingRed proposingTxInfo),
+    rewardingPurpose :: Maybe (RewardingPurposeType' rewardingRed rewardingTxInfo),
+    spendingPurpose :: Maybe (SpendingPurposeType' spendingDat spendingRed spendingTxInfo),
+    votingPurpose :: Maybe (VotingPurposeType' votingRed votingTxInfo)
   }
 
 -- * Compiled multi-purpose scripts
@@ -330,19 +362,19 @@ toCardanoAddressAny nid tv =
 generalise :: MultiPurposeScript a -> MultiPurposeScript Any
 generalise = coerce
 
--- * From @TypedMultiPurposeScript@ to @MultiPurposeScript@
+-- * From 'TypedMultiPurposeScript' to 'MultiPurposeScript'
 
-{-- Note on converting @TypedMultiPurposeScript@ to their on-chain representation:
-  @TypedMultiPurposeScript@ is an abstraction over actual scripts. It splits the
+{-- Note on converting 'TypedMultiPurposeScript' to their on-chain representation:
+  'TypedMultiPurposeScript' is an abstraction over actual scripts. It splits the
   various purposes into manageable entities. However, the on-chain script is a
-  single function from @BuiltinData@ to @BuiltinUnit@. In order to convert the
+  single function from 'BuiltinData' to 'BuiltinUnit'. In order to convert the
   former to the latter, we follow these two steps:
 
   - We define a custom script context where only the script info is
     deserialized, minimizing the cost and leaving to the various purpose the
     opportunity to handle the deserialization of the @TxInfo@ the way they require.
 
-  - We define a function @mkMultiPurposeScript@ which wraps the various purposes
+  - We define a function 'mkMultiPurposeScript' which wraps the various purposes
     into an actual script. The function deserializes the script info, case
     splits on it and delegates the work to the right script purpose. On the way,
     some tracing is performed when errors occurs, tracing that will be erased by
@@ -361,48 +393,38 @@ unstableMakeIsData ''ScriptContextResolvedScriptInfo
 
 {-# INLINEABLE mkMultiPurposeScript #-}
 mkMultiPurposeScript ::
-  ( FromData cRed,
-    FromData cTxInfo,
-    FromData mRed,
-    FromData mTxInfo,
-    FromData pRed,
-    FromData pTxInfo,
-    FromData rRed,
-    FromData rTxInfo,
-    FromData sDat,
-    FromData sRed,
-    FromData sTxInfo,
-    FromData vRed,
-    FromData vTxInfo
-  ) =>
-  TypedMultiPurposeScript cRed cTxInfo mRed mTxInfo pRed pTxInfo rRed rTxInfo sDat sRed sTxInfo vRed vTxInfo ->
-  BuiltinData ->
-  BuiltinUnit
-mkMultiPurposeScript (TypedMultiPurposeScript certifyingPurpose mintingPurpose proposingPurpose rewardingPurpose spendingPurpose votingPurpose) dat =
+  TypedMultiPurposeScript cRed cTxInfo mRed mTxInfo pRed pTxInfo rRed rTxInfo sDat sRed sTxInfo vRed vTxInfo -> BuiltinData -> BuiltinUnit
+mkMultiPurposeScript TypedMultiPurposeScript {..} dat =
   either traceError check $ do
     ScriptContextResolvedScriptInfo {..} <- fromBuiltinDataEither "script info" dat
     case scriptContextScriptInfo of
-      MintingScript cur -> do
+      CertifyingScript i cert | Just cPurpose <- certifyingPurpose -> do
+        (red, txInfo) <- deserializeContext "certifying" scriptContextRedeemer scriptContextTxInfo
+        return $ traceRunning "Certifying" $ cPurpose i cert red txInfo
+      CertifyingScript {} -> traceError "Unsupported purpose: Certifying"
+      MintingScript cur | Just mPurpose <- mintingPurpose -> do
         (red, txInfo) <- deserializeContext "minting" scriptContextRedeemer scriptContextTxInfo
-        return $ traceRunning "Minting" $ mintingPurpose cur red txInfo
-      SpendingScript oRef mDat -> do
+        return $ traceRunning "Minting" $ mPurpose cur red txInfo
+      MintingScript {} -> traceError "Unsupported purpose: Minting"
+      ProposingScript i prop | Just pPurpose <- proposingPurpose -> do
+        (red, txInfo) <- deserializeContext "proposing" scriptContextRedeemer scriptContextTxInfo
+        return $ traceRunning "Proposing" $ pPurpose i prop red txInfo
+      ProposingScript {} -> traceError "Unsupported purpose: Proposing"
+      RewardingScript cred | Just rPurpose <- rewardingPurpose -> do
+        (red, txInfo) <- deserializeContext "rewarding" scriptContextRedeemer scriptContextTxInfo
+        return $ traceRunning "Rewarding" $ rPurpose cred red txInfo
+      RewardingScript {} -> traceError "Unsupported purpose: Rewarding"
+      SpendingScript oRef mDat | Just sPurpose <- spendingPurpose -> do
         (red, txInfo) <- deserializeContext "spending" scriptContextRedeemer scriptContextTxInfo
         mResolvedDat <- case mDat of
           Nothing -> return Nothing
           Just (Datum bDat) -> Just <$> fromBuiltinDataEither "datum" bDat
-        return $ traceRunning "Spending" $ spendingPurpose oRef mResolvedDat red txInfo
-      RewardingScript cred -> do
-        (red, txInfo) <- deserializeContext "rewarding" scriptContextRedeemer scriptContextTxInfo
-        return $ traceRunning "Rewarding" $ rewardingPurpose cred red txInfo
-      CertifyingScript i cert -> do
-        (red, txInfo) <- deserializeContext "certifying" scriptContextRedeemer scriptContextTxInfo
-        return $ traceRunning "Certifying" $ certifyingPurpose i cert red txInfo
-      VotingScript voter -> do
+        return $ traceRunning "Spending" $ sPurpose oRef mResolvedDat red txInfo
+      SpendingScript {} -> traceError "Unsupported purpose: Spending"
+      VotingScript voter | Just vPurpose <- votingPurpose -> do
         (red, txInfo) <- deserializeContext "voting" scriptContextRedeemer scriptContextTxInfo
-        return $ traceRunning "Voting" $ votingPurpose voter red txInfo
-      ProposingScript i prop -> do
-        (red, txInfo) <- deserializeContext "proposing" scriptContextRedeemer scriptContextTxInfo
-        return $ traceRunning "Proposing" $ proposingPurpose i prop red txInfo
+        return $ traceRunning "Voting" $ vPurpose voter red txInfo
+      VotingScript {} -> traceError "Unsupported purpose: Voting"
   where
     fromBuiltinDataEither :: (FromData a) => BuiltinString -> BuiltinData -> Either BuiltinString a
     fromBuiltinDataEither name = maybe (Left $ "Error when deserializing the " PlutusTx.<> name) Right . fromBuiltinData

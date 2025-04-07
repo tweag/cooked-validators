@@ -11,7 +11,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 {-# INLINEABLE checkWithdrawalPurpose #-}
-checkWithdrawalPurpose :: Script.RewardingScriptType Integer Api.TxInfo
+checkWithdrawalPurpose :: Script.RewardingPurposeType' Integer Api.TxInfo
 checkWithdrawalPurpose cred quantity (Api.TxInfo {txInfoWdrl}) =
   case PMap.toList txInfoWdrl of
     [(cred', Api.Lovelace n)] ->

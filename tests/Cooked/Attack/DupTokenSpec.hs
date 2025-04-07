@@ -13,7 +13,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 {-# INLINEABLE carefulPolicyMintingPurpose #-}
-carefulPolicyMintingPurpose :: Api.TokenName -> Integer -> Script.MintingScriptType () Api.TxInfo
+carefulPolicyMintingPurpose :: Api.TokenName -> Integer -> Script.MintingPurposeType ()
 carefulPolicyMintingPurpose tn n cs _ (Api.TxInfo {txInfoMint}) =
   case Api.flattenValue (Script.toValue txInfoMint) of
     [(cs', tn', n')] -> cs' PlutusTx.== cs && tn' PlutusTx.== tn && n' PlutusTx.== n

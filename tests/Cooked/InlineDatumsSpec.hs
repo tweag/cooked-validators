@@ -27,8 +27,13 @@ instance PlutusTx.Eq SimpleContractDatum where
 
 PlutusTx.unstableMakeIsData ''SimpleContractDatum
 
+data SimpleContract
+
+instance Script.MultiPurposeScriptTypes SimpleContract where
+  type SpendingDatumType SimpleContract = SimpleContractDatum
+
 {-# INLINEABLE inputDatumSpendingPurpose #-}
-inputDatumSpendingPurpose :: Bool -> Script.SpendingScriptType SimpleContractDatum () Api.TxInfo
+inputDatumSpendingPurpose :: Bool -> Script.SpendingPurposeType SimpleContract
 inputDatumSpendingPurpose requireInlineDatum oRef _ _ Api.TxInfo {txInfoInputs} =
   case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
     Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) | requireInlineDatum -> case inDatum of
@@ -49,14 +54,14 @@ compiledInputDatumSpendingPurpose = $$(PlutusTx.compile [||script||])
 requireInlineDatumInInputValidator :: Script.Versioned Script.Validator
 requireInlineDatumInInputValidator =
   Script.toVersioned $
-    Script.MultiPurposeScript @() $
+    Script.MultiPurposeScript @SimpleContract $
       Script.toScript $
         compiledInputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 True
 
 requireHashedDatumInInputValidator :: Script.Versioned Script.Validator
 requireHashedDatumInInputValidator =
   Script.toVersioned $
-    Script.MultiPurposeScript @() $
+    Script.MultiPurposeScript @SimpleContract $
       Script.toScript $
         compiledInputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 False
 
@@ -71,7 +76,7 @@ PlutusTx.makeLift ''OutputDatumKind
 -- the 'txInfoData', and @outputDatumSpendingPurpose Inline@ only returns true if the
 -- output has an inline datum.
 {-# INLINEABLE outputDatumSpendingPurpose #-}
-outputDatumSpendingPurpose :: OutputDatumKind -> Script.SpendingScriptType SimpleContractDatum () Api.TxInfo
+outputDatumSpendingPurpose :: OutputDatumKind -> Script.SpendingPurposeType SimpleContract
 outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOutputs, txInfoData} =
   case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
     Just (Api.TxInInfo _ Api.TxOut {txOutAddress})

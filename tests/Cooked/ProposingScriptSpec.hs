@@ -15,7 +15,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 {-# INLINEABLE checkParameterChangeProposingPurpose #-}
-checkParameterChangeProposingPurpose :: Script.ProposingScriptType () ()
+checkParameterChangeProposingPurpose :: Script.ProposingPurposeType ()
 checkParameterChangeProposingPurpose _ (Api.ProposalProcedure _ _ (Api.ParameterChange _ (Api.ChangedParameters dat) _)) _ _ =
   let innerMap = PlutusTx.unsafeFromBuiltinData @(PlutusTx.Map PlutusTx.Integer PlutusTx.Integer) dat
    in ((PlutusTx.toList innerMap PlutusTx.== [(0, 100)]) || PlutusTx.traceError "wrong map")

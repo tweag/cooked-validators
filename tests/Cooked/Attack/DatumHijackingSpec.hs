@@ -40,6 +40,9 @@ PlutusTx.unstableMakeIsData ''LockDatum
 
 data DHContract
 
+instance Script.MultiPurposeScriptTypes DHContract where
+  type SpendingDatumType DHContract = LockDatum
+
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
 lockValue :: Api.Value
@@ -97,7 +100,7 @@ outputDatum txi o = case Api.txOutDatum o of
   Api.OutputDatum (Api.Datum d) -> Api.fromBuiltinData d
 
 {-# INLINEABLE mockValidatorSpendingPurpose #-}
-mockValidatorSpendingPurpose :: (Api.TxInfo -> [Api.TxOut]) -> Script.SpendingScriptType LockDatum () Api.TxInfo
+mockValidatorSpendingPurpose :: (Api.TxInfo -> [Api.TxOut]) -> Script.SpendingPurposeType DHContract
 mockValidatorSpendingPurpose getOutputs _ (Just FirstLock) _ txi =
   case getOutputs txi of
     o : _ ->

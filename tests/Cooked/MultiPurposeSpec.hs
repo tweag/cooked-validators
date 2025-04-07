@@ -66,8 +66,15 @@ encodeInteger x
   | x < 256 = PlutusTx.consByteString x ""
   | otherwise = consByteString (x `modulo` 256) $ encodeInteger (x `quotient` 256)
 
+data MPTag
+
+instance Script.MultiPurposeScriptTypes MPTag where
+  type SpendingRedeemerType MPTag = SpendingRed
+  type SpendingDatumType MPTag = Integer
+  type MintingRedeemerType MPTag = MintingRed
+
 {-# INLINEABLE mpMintingPurpose #-}
-mpMintingPurpose :: Api.TxId -> Script.MintingScriptType MintingRed Api.TxInfo
+mpMintingPurpose :: Api.TxId -> Script.MintingPurposeType MPTag
 mpMintingPurpose txId cs@(Api.CurrencySymbol hash) (MintToken oRef@(Api.TxOutRef txId' ix)) (Api.TxInfo {..}) =
   let requiredMintedValue = Api.assetClassValue (Api.assetClass cs (txOutRefToToken oRef)) 1
    in Script.toValue txInfoMint
@@ -100,7 +107,7 @@ mpMintingPurpose _ cs@(Api.CurrencySymbol hash) BurnToken (Api.TxInfo {..}) =
     == negate (Script.toValue txInfoMint)
 
 {-# INLINEABLE mpSpendingPurpose #-}
-mpSpendingPurpose :: Script.SpendingScriptType Integer SpendingRed Api.TxInfo
+mpSpendingPurpose :: Script.SpendingPurposeType MPTag
 mpSpendingPurpose oRef (Just x) Close Api.TxInfo {..}
   | x == 0 =
       length
@@ -123,14 +130,7 @@ mpSpendingPurpose oRef (Just x) Step Api.TxInfo {..} =
     == 1
 mpSpendingPurpose _ _ _ _ = False
 
-data MPTag
-
-instance Script.MultiPurposeScriptTypes MPTag where
-  type SpendingRedeemerType MPTag = SpendingRed
-  type SpendingDatumType MPTag = Integer
-  type MintingRedeemerType MPTag = MintingRed
-
-mpScript :: Api.TxId -> Script.MultiPurposeScript ()
+mpScript :: Api.TxId -> Script.MultiPurposeScript MPTag
 mpScript txId = Script.MultiPurposeScript $ Script.toScript $ $$(PlutusTx.compile [||script||]) `PlutusTx.unsafeApplyCode` PlutusTx.liftCodeDef txId
   where
     script txId' =
@@ -203,7 +203,7 @@ runScript = do
         txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn3 1]
       }
   where
-    mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript () -> (TxSkel, Api.Value, Api.TokenName)
+    mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript MPTag -> (TxSkel, Api.Value, Api.TokenName)
     mkMintSkel signer oRef@(Api.TxOutRef _ ix) script =
       let tn = txOutRefToToken oRef
           mints = txSkelMintsFromList [mint script (someTxSkelRedeemer (MintToken oRef)) tn 1]
@@ -229,7 +229,7 @@ tests =
             $ testToProp
             $ mustFailTest
               ( somewhere
-                  (datumHijackingAttack @(Script.MultiPurposeScript ()) alice)
+                  (datumHijackingAttack @(Script.MultiPurposeScript MPTag) alice)
                   runScript
               )
             `withExactSize` 6,
@@ -237,7 +237,7 @@ tests =
             $ testToProp
             $ mustFailTest
               ( somewhere
-                  (datumHijackingAttack @(Script.MultiPurposeScript ()) (Script.trueSpendingMPScript @()))
+                  (datumHijackingAttack @(Script.MultiPurposeScript MPTag) (Script.trueSpendingMPScript @()))
                   runScript
               )
             `withExactSize` 6
