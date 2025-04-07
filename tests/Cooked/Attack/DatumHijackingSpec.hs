@@ -5,10 +5,7 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Contexts qualified as Api

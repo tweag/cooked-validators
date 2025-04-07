@@ -89,10 +89,10 @@ library
     Plutus.Script.Utils.V2.Generators
     Plutus.Script.Utils.V2.Scripts
     Plutus.Script.Utils.V2.Typed
+    Plutus.Script.Utils.V3
     Plutus.Script.Utils.V3.Contexts
-    Plutus.Script.Utils.V3.Scripts
-    Plutus.Script.Utils.V3.Typed.Scripts
-    Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose
+    Plutus.Script.Utils.V3.Generators
+    Plutus.Script.Utils.V3.Typed
     Plutus.Script.Utils.Value
     Prettyprinter.Extras
 

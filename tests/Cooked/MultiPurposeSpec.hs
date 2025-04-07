@@ -15,9 +15,7 @@ module Cooked.MultiPurposeSpec where
 
 import Cooked
 import Data.Map qualified as HMap
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
@@ -125,10 +123,12 @@ mpSpendingPurpose oRef (Just x) Step Api.TxInfo {..} =
     == 1
 mpSpendingPurpose _ _ _ _ = False
 
-instance Script.MultiPurposeScriptTypes () where
-  type SpendingRedeemerType () = SpendingRed
-  type SpendingDatumType () = Integer
-  type MintingRedeemerType () = MintingRed
+data MPTag
+
+instance Script.MultiPurposeScriptTypes MPTag where
+  type SpendingRedeemerType MPTag = SpendingRed
+  type SpendingDatumType MPTag = Integer
+  type MintingRedeemerType MPTag = MintingRed
 
 mpScript :: Api.TxId -> Script.MultiPurposeScript ()
 mpScript txId = Script.MultiPurposeScript $ Script.toScript $ $$(PlutusTx.compile [||script||]) `PlutusTx.unsafeApplyCode` PlutusTx.liftCodeDef txId

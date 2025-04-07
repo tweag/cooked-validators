@@ -2,8 +2,7 @@ module Cooked.WithdrawalsSpec where
 
 import Control.Monad
 import Cooked
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.AssocMap qualified as PMap

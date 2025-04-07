@@ -3,9 +3,7 @@ module Cooked.Attack.DupTokenSpec (tests) where
 import Control.Monad
 import Cooked
 import Data.Set qualified as Set
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusCore.Version qualified as PlutusTx
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api

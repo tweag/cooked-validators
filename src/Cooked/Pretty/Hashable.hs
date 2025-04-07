@@ -6,7 +6,7 @@ module Cooked.Pretty.Hashable where
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V1.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose
+import Plutus.Script.Utils.V3.Typed qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Hashable elements can be transformed to 'Api.BuiltinByteString'
@@ -50,5 +50,5 @@ instance ToHash Api.Address where
   toHash (Api.Address (Api.PubKeyCredential pkh) _) = toHash pkh
   toHash (Api.Address (Api.ScriptCredential vh) _) = toHash vh
 
-instance ToHash (MultiPurposeScript a) where
+instance ToHash (Script.MultiPurposeScript a) where
   toHash = toHash . Script.toVersioned @Script.Script

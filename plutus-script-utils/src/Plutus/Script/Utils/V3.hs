@@ -1,32 +1,20 @@
+{-# OPTIONS_GHC -Wno-missing-import-lists #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Plutus.Script.Utils.V3.Scripts
-  ( module Plutus.Script.Utils.Scripts,
+module Plutus.Script.Utils.V3
+  ( module X,
     toCardanoScript,
   )
 where
 
 import Cardano.Api.Shelley qualified as C.Api
-import Plutus.Script.Utils.Address
-  ( ToAddress (toAddress),
-    ToCardanoAddress (toCardanoAddress),
-  )
-import Plutus.Script.Utils.Scripts
-  ( Language (PlutusV3),
-    MintingPolicy,
-    Script (unScript),
-    StakeValidator,
-    ToMintingPolicyHash (toMintingPolicyHash),
-    ToScriptHash (toScriptHash),
-    ToStakeValidatorHash (toStakeValidatorHash),
-    ToValidatorHash (toValidatorHash),
-    Validator,
-    Versioned (Versioned),
-    toMintingPolicyHash,
-    toScriptHash,
-    toStakeValidatorHash,
-    toValidatorHash,
-  )
+import Plutus.Script.Utils.Address as X
+import Plutus.Script.Utils.Data as X
+import Plutus.Script.Utils.Scripts as X
+import Plutus.Script.Utils.V3.Contexts as X
+import Plutus.Script.Utils.V3.Generators as X
+import Plutus.Script.Utils.V3.Typed as X
+import Plutus.Script.Utils.Value as X
 
 instance ToValidatorHash Validator where
   {-# INLINEABLE toValidatorHash #-}
@@ -48,12 +36,6 @@ instance ToAddress Validator where
   {-# INLINEABLE toAddress #-}
   toAddress = toAddress . (`Versioned` PlutusV3)
 
-toCardanoScript :: Script -> C.Api.Script C.Api.PlutusScriptV3
-toCardanoScript =
-  C.Api.PlutusScript C.Api.PlutusScriptV3
-    . C.Api.PlutusScriptSerialised
-    . unScript
-
 instance ToCardanoAddress Script where
   toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV3)
 
@@ -65,3 +47,9 @@ instance ToCardanoAddress StakeValidator where
 
 instance ToCardanoAddress MintingPolicy where
   toCardanoAddress networkId = toCardanoAddress networkId . (`Versioned` PlutusV3)
+
+toCardanoScript :: Script -> C.Api.Script C.Api.PlutusScriptV3
+toCardanoScript =
+  C.Api.PlutusScript C.Api.PlutusScriptV3
+    . C.Api.PlutusScriptSerialised
+    . unScript

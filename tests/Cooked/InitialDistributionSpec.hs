@@ -4,8 +4,7 @@ import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
 

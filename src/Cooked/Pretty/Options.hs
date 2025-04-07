@@ -19,7 +19,7 @@ import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V1.Generators qualified as ScriptV1
 import Plutus.Script.Utils.V2.Generators qualified as ScriptV2
-import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose qualified as ScriptV3
+import Plutus.Script.Utils.V3.Generators qualified as ScriptV3
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A set of option to pilot pretty printing in cooked-validators

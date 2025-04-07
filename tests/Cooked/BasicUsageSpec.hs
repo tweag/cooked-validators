@@ -3,8 +3,7 @@ module Cooked.BasicUsageSpec where
 import Control.Monad
 import Cooked
 import Data.Map qualified as Map
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -36,7 +35,7 @@ mintingQuickValue =
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
-          txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript "banana" 10)],
+          txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript (Api.TokenName "banana") 10)],
           txSkelSigners = [alice]
         }
 

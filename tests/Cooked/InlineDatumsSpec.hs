@@ -4,9 +4,7 @@ import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe
-import Plutus.Script.Utils.Data qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts.MultiPurpose qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusCore.Version qualified as PlutusTx
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusLedgerApi.V3.Tx qualified as V3

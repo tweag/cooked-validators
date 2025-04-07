@@ -22,6 +22,7 @@ module Plutus.Script.Utils.V2.Typed
     generalise,
     Any,
     toCardanoAddressAny,
+    IsDataDatum,
   )
 where
 
@@ -48,6 +49,7 @@ import Plutus.Script.Utils.V1.Typed
         WrongValidatorHash,
         WrongValidatorType
       ),
+    IsDataDatum,
     TypedValidator
       ( TypedValidator,
         tvForwardingMintingPolicy,
@@ -151,8 +153,6 @@ checkDatum _ (Datum d) =
     Just v -> pure v
     Nothing -> throwError $ WrongDatumType d
 
-type IsDataDatum a = (FromData (DatumType a), ToData (DatumType a))
-
 -- | A 'TxOut' tagged by a phantom type: and the connection type of the output.
 data TypedScriptTxOut a = (IsDataDatum a) =>
   TypedScriptTxOut
@@ -179,14 +179,6 @@ makeTypedScriptTxOut (TypedValidator {tvValidatorHash}) dat val =
     )
     dat
 
--- | A 'TxOutRef' tagged by a phantom type: and the connection type of the output.
-data TypedScriptTxOutRef a = TypedScriptTxOutRef
-  { tyTxOutRefRef :: TxOutRef,
-    tyTxOutRefOut :: TypedScriptTxOut a
-  }
-
-deriving instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a)
-
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOut ::
   (IsDataDatum out, MonadError ConnectionError m) =>
@@ -210,6 +202,14 @@ typeScriptTxOut tv txOutRef txOut@(TxOut addr _ dat _) datum =
               checkValidatorAddress tv addr
                 >> TypedScriptTxOut txOut <$> checkDatum tv datum
         _ -> throwError $ NoDatum txOutRef (datumHash datum)
+
+-- | A 'TxOutRef' tagged by a phantom type: and the connection type of the output.
+data TypedScriptTxOutRef a = TypedScriptTxOutRef
+  { tyTxOutRefRef :: TxOutRef,
+    tyTxOutRefOut :: TypedScriptTxOut a
+  }
+
+deriving instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a)
 
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOutRef ::

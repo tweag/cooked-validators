@@ -29,6 +29,7 @@ module Plutus.Script.Utils.V1.Typed
     generalise,
     Any,
     toCardanoAddressAny,
+    IsDataDatum,
   )
 where
 
@@ -239,7 +240,7 @@ instance Pretty ConnectionError where
   pretty (NoDatum t d) = "No datum with hash " <+> pretty d <+> "for tx output" <+> pretty t
   pretty (UnknownRef d) = "Unknown reference" <+> pretty d
 
--- | Checks that the given validator hash is consistent with the actual validator.
+-- | Checks that the given address is consistent with the actual validator.
 checkValidatorAddress ::
   (MonadError ConnectionError m) => TypedValidator a -> Address -> m ()
 checkValidatorAddress (TypedValidator {tvValidatorHash}) (Address (ScriptCredential (ScriptHash sHash)) _) =
@@ -250,7 +251,6 @@ checkValidatorAddress _ _ = throwError $ WrongCredentialType ExpectedScriptGotPu
 
 -- | Checks that the given redeemer script has the right type.
 checkRedeemer ::
-  forall inn m.
   (FromData (RedeemerType inn), MonadError ConnectionError m) =>
   TypedValidator inn ->
   Redeemer ->
@@ -262,7 +262,6 @@ checkRedeemer _ (Redeemer d) =
 
 -- | Checks that the given datum has the right type.
 checkDatum ::
-  forall a m.
   (FromData (DatumType a), MonadError ConnectionError m) =>
   TypedValidator a ->
   Datum ->
@@ -299,14 +298,6 @@ makeTypedScriptTxOut (TypedValidator {tvValidatorHash}) dat val =
     )
     dat
 
--- | A 'TxOutRef' tagged by a phantom type: the connection type of the output.
-data TypedScriptTxOutRef a = TypedScriptTxOutRef
-  { tyTxOutRefRef :: TxOutRef,
-    tyTxOutRefOut :: TypedScriptTxOut a
-  }
-
-deriving instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a)
-
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOut ::
   (IsDataDatum out, MonadError ConnectionError m) =>
@@ -326,6 +317,14 @@ typeScriptTxOut tv txOutRef txOut@(TxOut addr _ dHash) datum =
               checkValidatorAddress tv addr
                 >> TypedScriptTxOut txOut <$> checkDatum tv datum
         _ -> throwError $ NoDatum txOutRef (datumHash datum)
+
+-- | A 'TxOutRef' tagged by a phantom type: the connection type of the output.
+data TypedScriptTxOutRef a = TypedScriptTxOutRef
+  { tyTxOutRefRef :: TxOutRef,
+    tyTxOutRefOut :: TypedScriptTxOut a
+  }
+
+deriving instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a)
 
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOutRef ::
