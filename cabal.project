@@ -28,7 +28,7 @@ repository cardano-haskell-packages
 
 index-state:
   , hackage.haskell.org 2025-03-17T12:01:29Z
-  , cardano-haskell-packages 2025-04-03T07:46:54Z
+  , cardano-haskell-packages 2025-04-04T13:50:31Z
   
 -- We never, ever, want this.
 write-ghc-environment-files: never
@@ -51,12 +51,5 @@ package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
 constraints:
-  cardano-api ^>= 10.12,
+  cardano-api ^>= 10.13,
   cardano-addresses ^>= 4.0
-  
-source-repository-package
-    type: git
-    location: https://github.com/IntersectMBO/cardano-api
-    tag: c91a37c9b372dec26545e915613b491849772dae
-    subdir:
-      cardano-api

@@ -189,30 +189,37 @@ txSkelTemplate
     }
 ```
 
-### Spend some UTxOs
+### Build redeemers
 
-* No redeemer: `emptyTxSkelRedeemer`
-* With a given redeemer: `someTxSkelRedeemer myRedeemer`
-* Attach a reference input (with a reference script): ``redeemer `withReferenceInput` txOutRef``
+* No redeemer, auto fill of reference script: `emptyTxSkelRedeemer`
+* No redeemer, forbid auto fill of reference script: `emptyTxSkelRedeemerNoAutoFill`
+* Some redeemer, auto fill of reference script: `someTxSkelRedeemer myRedeemer`
+* Some redeemer, forbid auto fill of reference script: `someTxSkelRedeemerNoAutoFill myRedeemer`
+* Attach a reference input manually (with a reference script): ``txSkelRedeemer `withReferenceInput` txOutRefContainingRefScript``
+* Build the redeemer as a record manually:
+```haskell
+myRedeemer :: TxSkelRedeemer
+myRedeemer =
+  TxSkelRedeemer
+    { txSkelRedeemerContent = red,
+      txSkelRedeemerReferenceInput = Just txOutRefContainingRefScript,
+      txSkelRedeemerAutoFill = False -- ignored if txSkelRedeemerReferenceInput /= Nothing
+    }
+```
+
+### Spend some UTxOs
 
 ```haskell
 txSkelTemplate
     { ...
-      txSkelIns = Map.fromList [(txOutRef1, myRedeemer1), (txOutRef2, myRedeemer2 `withReferenceInput` txOutRef)]
+      txSkelIns = Map.fromList [
+	      (txOutRef1, someTxSkelRedeemer red), 
+		  (txOutRef2, emptyTxSkelRedeemer `withReferenceInput` txOutRef),
+		  (txOutRef3, someTxSkelRedeemerNoAutoFill red2)
+	    ]
       ...
     }
 ```
-
-* Allow automatic attachment of reference scripts:
-```
-txSkelTemplate
-    { ...
-      txSkelIns = Map.fromList [(txOutRef1, myRedeemer1), (txOutRef2, myRedeemer2)],
-	  txSkelOpts = def { txOptAutoReferenceScript = True },
-      ...
-    }
-```
-
 
 ### Return `TxOutRef`s from transaction outputs from...
 
@@ -254,13 +261,9 @@ foo txOutRef = do
 
 * Mint tokens: positive amount
 * Burn tokens: negative amount
-
-* No redeemer: `Mint fooPolicy emptyTxSkelRedeemer [("fooName", 3),("barName", 5)]`
-* With redeemer: `Mint barPolicy (someTxSkelRedeemer redeemer) [("fooName", 3), ("barName", -3)]`
-* With a redeemer and explicit reference script: ``Mint bazPolicy (someTxSkelRedeemer redeemer `withReferenceInput` oRef) [("fooName", 15), ("barName", 12)]``
-* With a redeemer and implicit reference script: `Mint barPolicy (someTxSkelRedeemer redeemer) [("fooName", -6)]`, and turn on option `txOptAutoReferenceScript`
-* Mint a single kind of token for a given minting policy: `mint fooPolicy red "fooName" 5`
-* Burn a single kind of token for a given minting policy: `burn barPolicy red "barName" 6`
+* Mint/Burn several different tokens from the same MP: `Mint fooPolicy myTxSkelRedeemer [("fooName", 3),("barName", -5)]`
+* Mint a single kind of token for a given minting policy: `mint fooPolicy myTxSkelRedeemer "fooName" 5`
+* Burn a single kind of token for a given minting policy: `burn barPolicy myTxSkelRedeemer "barName" 6`
 
 ```haskell
 txSkelTemplate
@@ -283,38 +286,15 @@ txSkelTemplate
 
 ### Use reference inputs in a transaction
 
+* Within redeemers automatically `myTxSkelRedeemer`
+* Within redeemers manually ``myTxSkelRedeemer `withReferenceInput` myRefInput``
+* Additional reference inputs not bound to redeemers:
 ```haskell
 txSkelTemplate
     { ...
       txSkelInsReference = Set.fromList [txOutRef1, txOutRef2, ...]
       ...
     }
-```
-
-### Spend a referenced script output
-
-* With empty redeemer
-```haskell
-txSkelTemplate
-  { ...
-    txSkelIns = Map.fromList [
-	   (scriptTxOutRefToSpend, TxSkelRedeemer EmptyRedeemer txOutRefCarryingReferenceScript), 
-	   (scriptTxOutRefToSpend', emptyTxSkelRedeemer `withReferenceInput` txOutRefCarryingReferenceScript'), 
-	   ...],
-    ...
-  }
-```
-
-* With some redeemer
-```haskell
-txSkelTemplate
-  { ...
-    txSkelIns = Map.fromList [
-	   (scriptTxOutRefToSpend, TxSkelRedeemer (SomeRedeemer red) txOutRefCarryingReferenceScript), 
-	   (scriptTxOutRefToSpend', someTxSkelRedeemer red `withReferenceInput` txOutRefCarryingReferenceScript'), 
-	   ...],
-    ...
-  }
 ```
 
 ## Balancing
@@ -512,7 +492,7 @@ txSkelTemplate
                   [ (toCredential $ wallet 1, Api.Lovelace 100),
                     (toCredential $ wallet 2, Api.Lovelace 10_000)
                   ],
-            txSkelProposalWitness = (toScript myScript, myRedeemer),
+            txSkelProposalWitness = (toScript myScript, myTxSkelRedeemer),
             txSkelProposalAnchor = Nothing
           }
       ]
@@ -529,7 +509,7 @@ txSkelTemplate
       [ simpleTxSkelProposal
           (wallet 1)
           (TxGovActionParameterChange [FeePerByte 100, FeeFixed 1_000])
-          `withWitness` (myScript, myRedeemer)
+          `withWitness` (myScript, myTxSkelRedeemer)
           `withAnchor` "https://www.tweag.io/"
       ]
     ...
@@ -562,7 +542,7 @@ work properly in terms of withdrawn values.
 
 ```haskell 
     txSkelTemplate
-      { txSkelWithdrawals = scriptWithdrawal withdrawalScript someRedeemer someAdaValue,
+      { txSkelWithdrawals = scriptWithdrawal withdrawalScript myTxSkelRedeemer someAdaValue,
 	    ...
       }
 ```	
