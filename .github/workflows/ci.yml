@@ -10,8 +10,16 @@ on:
       - '*'
   pull_request:
 
+## We specify a concurrency group with automated cancellation. This means that
+## other pushes on the same `github.ref` (eg. other pushes to the same pull
+## request) cancel previous occurrences of the CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
+  ## Caches the minimal set of dependencies used for the other jobs in this CI
   cache-minimal-nix-dependencies:
     name: Cache minimal Nix dependencies
 
@@ -40,6 +48,9 @@ jobs:
       - name: Build Nix CI environment
         run: |
           nix develop .#ci --command true
+
+  ## This job is not used by the CI but caches all the dependencies used during
+  ## development when entering nix develop
 
   cache-all-nix-dependencies:
     name: Cache all Nix dependencies
@@ -102,8 +113,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cabal/packages
-            ~/.cabal/store
+            ~/.cache/cabal/packages
+            ~/.local/state/cabal/store
             dist-newstyle
           key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-build-and-test
 
@@ -132,8 +143,6 @@ jobs:
             ## what we want.
             set -xuo pipefail
 
-            cabal_build_ok=true
-
             cabal update
 
             echo "Running \`cabal build\`"
@@ -142,7 +151,7 @@ jobs:
             cabal_res=$?
             echo "cabal_build:$cabal_res" > cabal-build.res
             if [ $cabal_res -ne 0 ]; then
-              cabal_build_ok=false
+              exit 1
             fi
 
             echo "Running \`cabal run tests\`"
@@ -150,10 +159,6 @@ jobs:
             cabal run tests | tee cabal-test.out
             cabal_res=$?
             echo "run_cabal_test:$cabal_res" > cabal-test.res
-
-            if ! $cabal_build_ok; then
-              exit 1
-            fi
           '
 
       - name: Upload build and test outputs
@@ -229,13 +234,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cabal/packages
-            ~/.cabal/store
+            ~/.cache/cabal/packages
+            ~/.local/state/cabal/store
             dist-newstyle
           key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-haddock
 
       - name: Build documentation
         run: |
+          mkdir -p docs
+
           nix develop .#ci --command bash -c '
             ## NOTE: `-e` and `-u` are here to help us avoid making mistakes.
             ##       `-x` is here to help with debugging.
@@ -247,9 +254,9 @@ jobs:
               --haddock-hyperlink-source \
               --haddock-quickjump \
               --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' \
-              cooked-validators
+              cooked-validators \
+             | tee docs/cabal-haddock.out
 
-            mkdir -p docs
             cp --force --recursive dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
           '
 
@@ -266,10 +273,25 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
 
+  check-haddock-warnings:
+    name: Check for warnings in Haddock output
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy-documentation]
+    steps:
+      - name: Access haddock outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+      - name: Check for warnings in Haddock output
+        run: |
+          ## Edit this regexp if you wish to forbid other warnings
+          if grep -EC 5 "(is out of scope|Missing documentation for)" docs/cabal-haddock.out; then exit 1; fi
+
   run-and-cache-flake-checks:
     name: Run and cache flake checks
 
     runs-on: ubuntu-latest
+
     needs: []
 
     steps:

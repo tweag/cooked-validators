@@ -65,6 +65,7 @@
 - `TxSkelRedeemer` has been improved: it directly contains a redeemer content
   (no longer needed type `Redeemer`) and it now contains locally an option to
   either automatically assign a reference input or not.
+- The CI now ensures the documentation is filled up properly.
 
 ### Fixed
 
