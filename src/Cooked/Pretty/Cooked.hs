@@ -11,15 +11,13 @@
 --
 -- Some structure require additional arguments to be pretty-printed and have
 -- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
--- 'TxSkelContext').
+-- 'SkelContext').
 module Cooked.Pretty.Cooked
   ( prettyTxSkel,
     prettyBalancingWallet,
     prettySigners,
-    prettyMints,
     mPrettyTxOpts,
-    prettyTxSkelOut,
-    prettyTxSkelOutDatumMaybe,
+    mPrettyTxSkelOutDatum,
     prettyTxSkelIn,
     prettyTxSkelInReference,
     prettyAddressState,
@@ -29,13 +27,13 @@ module Cooked.Pretty.Cooked
   )
 where
 
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -46,9 +44,10 @@ import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -124,22 +123,21 @@ instance (Show a) => PrettyCooked (a, UtxoState) where
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
 instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
-  prettyCookedOpt opts (res, entries) =
+  prettyCookedOpt opts' (res, MockChainBook entries ((`addHashNames` opts') -> opts)) =
     let mcLog = "📘" <+> prettyItemize "MockChain run log:" "⁍" (prettyCookedOpt opts <$> entries)
         mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err
           Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
      in PP.vsep $ if pcOptPrintLog opts then [mcLog, mcEndResult] else [mcEndResult]
 
--- | This pretty prints a 'MockChainLog' that usually consists of the list of
--- validated or submitted transactions. In the log, we know a transaction has
+-- | This prints a 'MockChainLogEntry'. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLogEntry where
   prettyCookedOpt opts (MCLogAdjustedTxSkelOut skelOut newAda) =
     "The ADA amount of "
-      <> prettyTxSkelOut opts skelOut
+      <> prettyCookedOpt opts skelOut
       <> " has been automatically adjusted to "
-      <> prettyCookedOpt opts (toValue newAda)
+      <> prettyCookedOpt opts (Script.toValue newAda)
   prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
   prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
     let mCollateralsDoc =
@@ -170,13 +168,11 @@ instance PrettyCooked MockChainLogEntry where
     "A reference script located in "
       <> prettyCookedOpt opts oRef
       <> " has been automatically associated to redeemer "
-      <> ( case red of
-             EmptyRedeemer -> "Empty"
-             SomeRedeemer s -> prettyCookedOpt opts s
-         )
+      <> prettyItemizeNoTitle "-" (lPrettyTxSkelRedeemer opts red)
       <> " for script "
       <> prettyCookedOpt opts sHash
 
+-- | Prints a 'TxSkel' within a certain 'SkelContext'
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =
   prettyItemize
@@ -185,148 +181,142 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
     ( catMaybes
         [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
           mPrettyTxOpts opts txopts,
-          prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
+          prettyItemizeNonEmpty "Mints:" "-" (prettyCookedOpt opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
           prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
-          prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs),
-          prettyItemizeNonEmpty "Proposals:" "-" (prettyTxSkelProposal opts <$> proposals),
-          prettyWithdrawals opts withdrawals
+          prettyItemizeNonEmpty "Outputs:" "-" (prettyCookedOpt opts <$> outs),
+          prettyItemizeNonEmpty "Proposals:" "-" (prettyCookedOpt opts <$> proposals),
+          mPrettyWithdrawals opts withdrawals
         ]
     )
 
-prettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
-prettyWithdrawals pcOpts withdrawals =
+-- | This prints a 'TxSkelWithdrawals' when it is not empty
+mPrettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
+mPrettyWithdrawals pcOpts withdrawals =
   prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
   where
-    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Script.Ada)) -> DocCooked
+    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> DocCooked
     prettyWithdrawal (cred, (red, ada)) =
       prettyItemizeNoTitle "-" $
         ( case cred of
-            Left script -> prettyCookedOpt pcOpts script : prettyTxSkelRedeemer pcOpts red
+            Left script -> prettyCookedOpt pcOpts script : lPrettyTxSkelRedeemer pcOpts red
             Right pkh -> [prettyCookedOpt pcOpts pkh]
         )
-          ++ [prettyCookedOpt pcOpts (toValue ada)]
+          ++ [prettyCookedOpt pcOpts (Script.toValue ada)]
 
-prettyTxParameterChange :: PrettyCookedOpts -> TxParameterChange -> DocCooked
-prettyTxParameterChange opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (FeeFixed n) = "Fee fixed:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (MaxBlockBodySize n) = "Max block body size:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (MaxTxSize n) = "Max transaction size:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (MaxBlockHeaderSize n) = "Max block header size:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (KeyDeposit n) = "Key deposit:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (PoolDeposit n) = "Pool deposit:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (PoolRetirementMaxEpoch n) = "Pool retirement max epoch:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (PoolNumber n) = "Pool number:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (PoolInfluence q) = "Pool influence:" <+> prettyCookedOpt opts q
-prettyTxParameterChange opts (MonetaryExpansion q) = "Monetary expansion:" <+> prettyCookedOpt opts q
-prettyTxParameterChange opts (TreasuryCut q) = "Treasury cut:" <+> prettyCookedOpt opts q
-prettyTxParameterChange opts (MinPoolCost n) = "Min pool cost:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (CoinsPerUTxOByte n) = "Lovelace per utxo byte:" <+> prettyCookedOpt opts n
-prettyTxParameterChange _opts (CostModels _pv1 _pv2 _pv3) = "Cost models (unsupported)"
-prettyTxParameterChange opts (Prices q r) =
-  prettyItemize
-    "Prices:"
-    "-"
-    [ "Memory cost:" <+> prettyCookedOpt opts q,
-      "Step cost:" <+> prettyCookedOpt opts r
-    ]
-prettyTxParameterChange opts (MaxTxExUnits n m) =
-  prettyItemize
-    "Max transaction execution units:"
-    "-"
-    [ "Max memory:" <+> prettyCookedOpt opts n,
-      "Max steps:" <+> prettyCookedOpt opts m
-    ]
-prettyTxParameterChange opts (MaxBlockExUnits n m) =
-  prettyItemize
-    "Max block execution units:"
-    "-"
-    [ "Max memory:" <+> prettyCookedOpt opts n,
-      "Max steps:" <+> prettyCookedOpt opts m
-    ]
-prettyTxParameterChange opts (MaxValSize n) = "Max value size:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (CollateralPercentage n) = "Collateral percentage:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (MaxCollateralInputs n) = "Max number of collateral inputs:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (PoolVotingThresholds a b c d e) =
-  prettyItemize
-    "Pool voting thresholds:"
-    "-"
-    [ "Motion no confidence:" <+> prettyCookedOpt opts a,
-      "Committee normal:" <+> prettyCookedOpt opts b,
-      "Committee no confidence:" <+> prettyCookedOpt opts c,
-      "Hard fork:" <+> prettyCookedOpt opts d,
-      "Security group:" <+> prettyCookedOpt opts e
-    ]
-prettyTxParameterChange opts (DRepVotingThresholds a b c d e f g h i j) =
-  prettyItemize
-    "DRep voting thresholds:"
-    "-"
-    [ "Motion no confidence:" <+> prettyCookedOpt opts a,
-      "Committee normal:" <+> prettyCookedOpt opts b,
-      "Committee no confidence:" <+> prettyCookedOpt opts c,
-      "Update constitution:" <+> prettyCookedOpt opts d,
-      "Hard fork initialization:" <+> prettyCookedOpt opts e,
-      "Network group:" <+> prettyCookedOpt opts f,
-      "Economic group:" <+> prettyCookedOpt opts g,
-      "Technical group:" <+> prettyCookedOpt opts h,
-      "Governance group:" <+> prettyCookedOpt opts i,
-      "Treasury withdrawal:" <+> prettyCookedOpt opts j
-    ]
-prettyTxParameterChange opts (CommitteeMinSize n) = "Committee min size:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (CommitteeMaxTermLength n) = "Committee max term length:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (GovActionLifetime n) = "Governance action life time:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (GovActionDeposit n) = "Governance action deposit:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (DRepRegistrationDeposit n) = "DRep registration deposit:" <+> prettyCookedOpt opts n
-prettyTxParameterChange opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
+instance PrettyCooked TxParameterChange where
+  prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (FeeFixed n) = "Fee fixed:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (MaxBlockBodySize n) = "Max block body size:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (MaxTxSize n) = "Max transaction size:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (MaxBlockHeaderSize n) = "Max block header size:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (KeyDeposit n) = "Key deposit:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (PoolDeposit n) = "Pool deposit:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (PoolRetirementMaxEpoch n) = "Pool retirement max epoch:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (PoolNumber n) = "Pool number:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (PoolInfluence q) = "Pool influence:" <+> prettyCookedOpt opts q
+  prettyCookedOpt opts (MonetaryExpansion q) = "Monetary expansion:" <+> prettyCookedOpt opts q
+  prettyCookedOpt opts (TreasuryCut q) = "Treasury cut:" <+> prettyCookedOpt opts q
+  prettyCookedOpt opts (MinPoolCost n) = "Min pool cost:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (CoinsPerUTxOByte n) = "Lovelace per utxo byte:" <+> prettyCookedOpt opts n
+  prettyCookedOpt _opts (CostModels _pv1 _pv2 _pv3) = "Cost models (unsupported)"
+  prettyCookedOpt opts (Prices q r) =
+    prettyItemize
+      "Prices:"
+      "-"
+      [ "Memory cost:" <+> prettyCookedOpt opts q,
+        "Step cost:" <+> prettyCookedOpt opts r
+      ]
+  prettyCookedOpt opts (MaxTxExUnits n m) =
+    prettyItemize
+      "Max transaction execution units:"
+      "-"
+      [ "Max memory:" <+> prettyCookedOpt opts n,
+        "Max steps:" <+> prettyCookedOpt opts m
+      ]
+  prettyCookedOpt opts (MaxBlockExUnits n m) =
+    prettyItemize
+      "Max block execution units:"
+      "-"
+      [ "Max memory:" <+> prettyCookedOpt opts n,
+        "Max steps:" <+> prettyCookedOpt opts m
+      ]
+  prettyCookedOpt opts (MaxValSize n) = "Max value size:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (CollateralPercentage n) = "Collateral percentage:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (MaxCollateralInputs n) = "Max number of collateral inputs:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (PoolVotingThresholds a b c d e) =
+    prettyItemize
+      "Pool voting thresholds:"
+      "-"
+      [ "Motion no confidence:" <+> prettyCookedOpt opts a,
+        "Committee normal:" <+> prettyCookedOpt opts b,
+        "Committee no confidence:" <+> prettyCookedOpt opts c,
+        "Hard fork:" <+> prettyCookedOpt opts d,
+        "Security group:" <+> prettyCookedOpt opts e
+      ]
+  prettyCookedOpt opts (DRepVotingThresholds a b c d e f g h i j) =
+    prettyItemize
+      "DRep voting thresholds:"
+      "-"
+      [ "Motion no confidence:" <+> prettyCookedOpt opts a,
+        "Committee normal:" <+> prettyCookedOpt opts b,
+        "Committee no confidence:" <+> prettyCookedOpt opts c,
+        "Update constitution:" <+> prettyCookedOpt opts d,
+        "Hard fork initialization:" <+> prettyCookedOpt opts e,
+        "Network group:" <+> prettyCookedOpt opts f,
+        "Economic group:" <+> prettyCookedOpt opts g,
+        "Technical group:" <+> prettyCookedOpt opts h,
+        "Governance group:" <+> prettyCookedOpt opts i,
+        "Treasury withdrawal:" <+> prettyCookedOpt opts j
+      ]
+  prettyCookedOpt opts (CommitteeMinSize n) = "Committee min size:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (CommitteeMaxTermLength n) = "Committee max term length:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (GovActionLifetime n) = "Governance action life time:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (GovActionDeposit n) = "Governance action deposit:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (DRepRegistrationDeposit n) = "DRep registration deposit:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
 
-prettyTxSkelRedeemer :: PrettyCookedOpts -> TxSkelRedeemer -> [DocCooked]
-prettyTxSkelRedeemer opts (TxSkelRedeemer red mRefScript) =
+-- | Prints a list of docs corresponding to an instance of 'TxSkelRedeemer'
+lPrettyTxSkelRedeemer :: PrettyCookedOpts -> TxSkelRedeemer -> [DocCooked]
+lPrettyTxSkelRedeemer opts (TxSkelRedeemer red mRefScript _) =
   catMaybes
-    [ case red of
-        EmptyRedeemer -> Nothing
-        SomeRedeemer s -> Just $ "Redeemer" <+> prettyCookedOpt opts s,
+    [ Just $ "Redeemer" <+> prettyCookedOpt opts red,
       ("Reference script at:" <+>) . prettyCookedOpt opts <$> mRefScript
     ]
 
-prettyTxSkelProposal :: PrettyCookedOpts -> TxSkelProposal -> DocCooked
-prettyTxSkelProposal opts TxSkelProposal {..} =
-  prettyItemizeNoTitle "-" $
-    catMaybes
-      [ Just $ "Governance action:" <+> prettyTxSkelGovAction opts txSkelProposalAction,
-        Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
-        ( \(script, redeemer) ->
-            prettyItemize
-              "Witness:"
-              "-"
-              (prettyCookedOpt opts script : prettyTxSkelRedeemer opts redeemer)
-        )
-          <$> txSkelProposalWitness,
-        ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
-      ]
+instance PrettyCooked TxSkelProposal where
+  prettyCookedOpt opts TxSkelProposal {..} =
+    prettyItemizeNoTitle "-" $
+      catMaybes
+        [ Just $ "Governance action:" <+> prettyCookedOpt opts txSkelProposalAction,
+          Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
+          (\(script, redeemer) -> prettyItemize "Witness:" "-" (prettyCookedOpt opts script : lPrettyTxSkelRedeemer opts redeemer)) <$> txSkelProposalWitness,
+          ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
+        ]
 
-prettyTxSkelGovAction :: PrettyCookedOpts -> TxGovAction -> DocCooked
-prettyTxSkelGovAction opts (TxGovActionParameterChange params) = prettyItemize "Parameter changes:" "-" $ prettyTxParameterChange opts <$> params
-prettyTxSkelGovAction opts (TxGovActionHardForkInitiation (Api.ProtocolVersion major minor)) =
-  "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
-prettyTxSkelGovAction opts (TxGovActionTreasuryWithdrawals withdrawals) =
-  prettyItemize "Withdrawals:" "-" $
-    (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (toValue lv)) <$> Map.toList withdrawals
-prettyTxSkelGovAction _ TxGovActionNoConfidence = "No confidence"
-prettyTxSkelGovAction opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
-  prettyItemize
-    "Updates in committee:"
-    "-"
-    [ prettyItemize "Credentials to remove:" "-" $
-        (\(Api.ColdCommitteeCredential cred) -> prettyCookedOpt opts cred) <$> toRemoveCreds,
-      prettyItemize "Credentials to add:" "-" $
-        (\(Api.ColdCommitteeCredential cred, i) -> prettyCookedOpt opts cred <+> "->" <+> prettyCookedOpt opts i) <$> Map.toList toAddCreds,
-      "Quorum:" <+> prettyCookedOpt opts (Api.toGHC quorum)
-    ]
-prettyTxSkelGovAction opts (TxGovActionNewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
-  Nothing -> "Empty new constitution"
-  Just sHash -> "New constitution:" <+> prettyCookedOpt opts sHash
+instance PrettyCooked TxGovAction where
+  prettyCookedOpt opts (TxGovActionParameterChange params) = prettyItemize "Parameter changes:" "-" $ prettyCookedOpt opts <$> params
+  prettyCookedOpt opts (TxGovActionHardForkInitiation (Api.ProtocolVersion major minor)) =
+    "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
+  prettyCookedOpt opts (TxGovActionTreasuryWithdrawals withdrawals) =
+    prettyItemize "Withdrawals:" "-" $
+      (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
+  prettyCookedOpt _ TxGovActionNoConfidence = "No confidence"
+  prettyCookedOpt opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
+    prettyItemize
+      "Updates in committee:"
+      "-"
+      [ prettyItemize "Credentials to remove:" "-" $
+          (\(Api.ColdCommitteeCredential cred) -> prettyCookedOpt opts cred) <$> toRemoveCreds,
+        prettyItemize "Credentials to add:" "-" $
+          (\(Api.ColdCommitteeCredential cred, i) -> prettyCookedOpt opts cred <+> "->" <+> prettyCookedOpt opts i) <$> Map.toList toAddCreds,
+        "Quorum:" <+> prettyCookedOpt opts (Api.toGHC quorum)
+      ]
+  prettyCookedOpt opts (TxGovActionNewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
+    Nothing -> "Empty new constitution"
+    Just sHash -> "New constitution:" <+> prettyCookedOpt opts sHash
 
 -- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix mentioning
 -- this is the balancing wallet
@@ -352,58 +342,59 @@ prettySigners _ _ [] = []
 
 -- | Prints a minting specification
 --
--- Examples without and with redeemer
--- > #abcdef "Foo": 500
--- > #123456 "Bar": 1000
+-- Example:
+-- > #abcdef
 --     - Redeemer: red
 --     - Reference script at: txOutRef
-prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) -> DocCooked
-prettyMints opts (policy, redeemer, tokenName, amount) =
-  let docTitle = prettyCookedOpt opts policy <+> PP.viaShow tokenName <> ":" <+> PP.viaShow amount
-   in case prettyTxSkelRedeemer opts redeemer of
-        [] -> docTitle
-        l -> prettyItemize docTitle "-" l
+--     - "Foo": 500
+--     - "Bar": 1000
+instance PrettyCooked Mint where
+  prettyCookedOpt opts (Mint pol red tks) =
+    prettyItemize (prettyCookedOpt opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
+      lPrettyTxSkelRedeemer opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
-prettyTxSkelOut :: PrettyCookedOpts -> TxSkelOut -> DocCooked
-prettyTxSkelOut opts (Pays output) =
-  prettyItemize
-    ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
-    "-"
-    ( prettyCookedOpt opts (outputValue output)
-        : catMaybes
-          [ case outputOutputDatum output of
-              Api.OutputDatum _datum ->
-                Just $
-                  "Datum (inlined):"
-                    <+> (PP.align . prettyCookedOpt opts)
-                      (output ^. outputDatumL)
-              Api.OutputDatumHash dHash ->
-                Just $
-                  "Datum (hashed)"
-                    <+> "("
-                    <> prettyHash (pcOptHashes opts) (toHash dHash)
-                    <> "):"
-                    <+> (PP.align . prettyCookedOpt opts)
-                      (output ^. outputDatumL)
-              Api.NoOutputDatum -> Nothing,
-            getReferenceScriptDoc opts output
-          ]
-    )
+instance PrettyCooked TxSkelOut where
+  prettyCookedOpt opts (Pays output) =
+    prettyItemize
+      ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
+      "-"
+      ( prettyCookedOpt opts (outputValue output)
+          : catMaybes
+            [ case outputOutputDatum output of
+                Api.OutputDatum _datum ->
+                  Just $
+                    "Datum (inlined):"
+                      <+> (PP.align . prettyCookedOpt opts)
+                        (output ^. outputDatumL)
+                Api.OutputDatumHash dHash ->
+                  Just $
+                    "Datum (hashed)"
+                      <+> "("
+                      <> prettyHash (pcOptHashes opts) (toHash dHash)
+                      <> "):"
+                      <+> (PP.align . prettyCookedOpt opts)
+                        (output ^. outputDatumL)
+                Api.NoOutputDatum -> Nothing,
+              getReferenceScriptDoc opts output
+            ]
+      )
 
-prettyTxSkelOutDatumMaybe :: PrettyCookedOpts -> TxSkelOutDatum -> Maybe DocCooked
-prettyTxSkelOutDatumMaybe _ TxSkelOutNoDatum = Nothing
-prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
+-- | Optionnally prints a 'TxSkelOutDatum' when its different from
+-- 'TxSkelOutNoDatum'
+mPrettyTxSkelOutDatum :: PrettyCookedOpts -> TxSkelOutDatum -> Maybe DocCooked
+mPrettyTxSkelOutDatum _ TxSkelOutNoDatum = Nothing
+mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
   Just $
     "Datum (inlined):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
-prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
+mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
   Just $
     "Datum (hashed)"
       <+> "("
       <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
       <> "):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
-prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutDatum dat) =
+mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutDatum dat) =
   Just $
     "Datum (hashed)"
       <+> "("
@@ -420,26 +411,29 @@ utxoToPartsAsDocCooked opts skelContext txOutRef =
       ( prettyCookedOpt opts (outputAddress output),
         prettyCookedOpt opts (outputValue output),
         catMaybes
-          [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+          [ mPrettyTxSkelOutDatum opts txSkelOutDatum,
             getReferenceScriptDoc opts output
           ]
       )
   )
     <$> lookupOutput skelContext txOutRef
 
+-- | Prints a collateral input with a certain 'SkelContext'
 prettyCollateralIn :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> DocCooked
 prettyCollateralIn opts skelContext txOutRef =
   case utxoToPartsAsDocCooked opts skelContext txOutRef of
     Nothing -> prettyCookedOpt opts txOutRef <+> "(non resolved)"
     Just (addressDoc, valueDoc, otherDocs) -> prettyItemize ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
 
+-- | Prints an input within a certain 'SkelContext'
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) =
   case utxoToPartsAsDocCooked opts skelContext txOutRef of
     Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
     Just (addressDoc, valueDoc, otherDocs) ->
-      prettyItemize ("Spends from" <+> addressDoc) "-" (valueDoc : prettyTxSkelRedeemer opts txSkelRedeemer <> otherDocs)
+      prettyItemize ("Spends from" <+> addressDoc) "-" (valueDoc : lPrettyTxSkelRedeemer opts txSkelRedeemer <> otherDocs)
 
+-- | Prints a reference input within a certain 'SkelContext'
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do
   (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
@@ -449,13 +443,13 @@ prettyTxSkelInReference opts skelContext txOutRef = do
       "-"
       ( prettyCookedOpt opts (outputValue output)
           : catMaybes
-            [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+            [ mPrettyTxSkelOutDatum opts txSkelOutDatum,
               getReferenceScriptDoc opts output
             ]
       )
 
-getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
-getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
+getReferenceScriptDoc :: (IsAbstractOutput output, Script.ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
+getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
 
 lookupOutput :: SkelContext -> Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
@@ -574,7 +568,7 @@ prettyAddressState opts address payloadSet =
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
         . group
-        . List.sortBy (compare `on` (Script.fromValue . utxoPayloadValue))
+        . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
         . utxoPayloadSet
         $ payloadSet
     )
@@ -606,6 +600,8 @@ prettyPayloadGrouped opts (payload : rest) =
    in (PP.parens ("×" <> prettyCookedOpt opts cardinality) <+>)
         <$> prettyPayload opts False payload
 
+-- | Optionally prints a 'UtxoPayload' with an option piloting whether
+-- 'Api.TxOutRef's should be shown.
 prettyPayload :: PrettyCookedOpts -> Bool -> UtxoPayload -> Maybe DocCooked
 prettyPayload
   opts
@@ -622,13 +618,14 @@ prettyPayload
           then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
           else Nothing,
         Just (prettyCookedOpt opts utxoPayloadValue),
-        prettyTxSkelOutDatumMaybe opts utxoPayloadSkelOutDatum,
+        mPrettyTxSkelOutDatum opts utxoPayloadSkelOutDatum,
         prettyReferenceScriptHash opts <$> utxoPayloadReferenceScript
       ] of
       [] -> Nothing
       [doc] -> Just $ PP.align doc
       docs -> Just . PP.align . PP.vsep $ docs
 
+-- | Prints a reference script hash
 prettyReferenceScriptHash :: PrettyCookedOpts -> Script.ScriptHash -> DocCooked
 prettyReferenceScriptHash opts scriptHash =
   "Reference script hash:"

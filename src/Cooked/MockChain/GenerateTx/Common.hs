@@ -1,3 +1,5 @@
+-- | Common utilities used to transfer generation errors raised by plutus-ledger
+-- into instances of 'MockChainError'
 module Cooked.MockChain.GenerateTx.Common
   ( throwOnMaybe,
     throwOnString,

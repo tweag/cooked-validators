@@ -3,8 +3,7 @@ module Cooked.BasicUsageSpec where
 import Control.Monad
 import Cooked
 import Data.Map qualified as Map
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -35,8 +34,8 @@ mintingQuickValue =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, emptyTxSkelRedeemer, "banana", 10)],
-          txSkelOuts = [alice `receives` Value (quickValue "banana" 10)],
+        { txSkelMints = txSkelMintsFromList [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
+          txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript (Api.TokenName "banana") 10)],
           txSkelSigners = [alice]
         }
 
@@ -45,7 +44,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [alwaysTrueValidator @MockContract `receives` (Value (Script.ada 10) <&&> VisibleHashedDatum ())],
+              { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
                 txSkelSigners = [alice]
               }
         )
@@ -53,20 +52,19 @@ payToAlwaysTrueValidator =
 consumeAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 consumeAlwaysTrueValidator = do
   outref <- payToAlwaysTrueValidator
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
-          txSkelOuts = [alice `receives` Value (Script.ada 10)],
-          txSkelSigners = [alice]
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
+        txSkelOuts = [alice `receives` Value (Script.ada 10)],
+        txSkelSigners = [alice]
+      }
 
 tests :: TestTree
 tests =
   testGroup
     "Basic usage"
     [ testCase "Payment from alice to bob, with auto-balancing" $ testSucceeds $ pkToPk alice bob 10,
-      testCase "Circular payments of 10 Script.ada between alice bob and carrie" $ testSucceeds multiplePksToPks,
+      testCase "Circular payments of 10 ada between alice bob and carrie" $ testSucceeds multiplePksToPks,
       testCase "Minting quick tokens" $ testSucceeds mintingQuickValue,
       testCase "Paying to the always true validator" $ testSucceeds payToAlwaysTrueValidator,
       testCase "Consuming the always true validator" $ testSucceeds consumeAlwaysTrueValidator

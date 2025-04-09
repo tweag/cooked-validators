@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+
 module Cooked.Attack.DoubleSatSpec where
 
 import Control.Arrow
@@ -9,11 +11,10 @@ import Data.Maybe
 import Data.Set qualified as Set
 import Data.Tuple (swap)
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.V2 qualified as Script
+import PlutusLedgerApi.V2 qualified as Api
+import PlutusLedgerApi.V3 qualified as V3
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
@@ -120,7 +121,7 @@ customInitDist =
     <> InitialDistribution ((\n -> bValidator `receives` (VisibleHashedDatum BDatum <&&> Value (Script.ada n))) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
-aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (Api.TxOutRef, Api.TxOut)
+aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, Api.TxOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
   case fst $ runMockChainFrom customInitDist $ do
     [a1, a2, a3, a4] <- runUtxoSearch $ utxosAtSearch aValidator
@@ -135,7 +136,7 @@ tests =
     "double satisfaction attack"
     [ testCase "the two test validators have different addresses" $
         assertBool "no, the addresses are the same" $
-          toAddress aValidator /= toAddress bValidator,
+          Script.toAddress aValidator /= Script.toAddress bValidator,
       testGroup "unit tests on a 'TxSkel'" $
         -- The following tests make sure that, depending on some
         -- 'someRedeemer' constraints for UTxOs
@@ -146,7 +147,7 @@ tests =
         -- tested.
         let -- generate an input skeleton from some 'aValidator'
             -- UTxOs to be spent.
-            skelIn :: [(ARedeemer, Api.TxOutRef)] -> TxSkel
+            skelIn :: [(ARedeemer, V3.TxOutRef)] -> TxSkel
             skelIn aInputs =
               txSkelTemplate
                 { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
@@ -159,7 +160,7 @@ tests =
             -- multiway-if statement is what decides which UTxOs
             -- belonging to the 'bValidator' to add, depending
             -- on the focused input 'aValidator' UTxO.
-            skelsOut :: ([Api.TxOutRef] -> [[Api.TxOutRef]]) -> [(ARedeemer, Api.TxOutRef)] -> [TxSkel]
+            skelsOut :: ([V3.TxOutRef] -> [[V3.TxOutRef]]) -> [(ARedeemer, V3.TxOutRef)] -> [TxSkel]
             skelsOut splitMode aInputs =
               mapMaybe
                 ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . fst)
@@ -175,7 +176,7 @@ tests =
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
                                       | (bOref, bOut) <- bUtxos,
-                                        outputValue bOut == Script.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        outputValue bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
@@ -204,7 +205,7 @@ tests =
                     (skelIn aInputs)
                 )
               where
-                toDelta :: Api.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
+                toDelta :: V3.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
                 toDelta oref howSpent = (Map.singleton oref howSpent, [], mempty)
 
             -- generate a transaction that spends the given
@@ -212,7 +213,7 @@ tests =
             -- 'bValidator' UTxOs with the specified redeemers,
             -- while redirecting the value of the inputs from
             -- the 'bValidator' to wallet 6
-            skelExpected :: [(ARedeemer, Api.TxOutRef)] -> [(BRedeemer, (Api.TxOutRef, Api.TxOut))] -> TxSkel
+            skelExpected :: [(ARedeemer, V3.TxOutRef)] -> [(BRedeemer, (V3.TxOutRef, Api.TxOut))] -> TxSkel
             skelExpected aInputs bInputs =
               txSkelTemplate
                 { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
@@ -237,9 +238,9 @@ tests =
                 }
          in [ testGroup "with separate skeletons for each modification" $
                 let thePredicate ::
-                      [(ARedeemer, (Api.TxOutRef, Api.TxOut))] ->
-                      [ ( [(ARedeemer, (Api.TxOutRef, Api.TxOut))],
-                          [(BRedeemer, (Api.TxOutRef, Api.TxOut))]
+                      [(ARedeemer, (V3.TxOutRef, Api.TxOut))] ->
+                      [ ( [(ARedeemer, (V3.TxOutRef, Api.TxOut))],
+                          [(BRedeemer, (V3.TxOutRef, Api.TxOut))]
                         )
                       ] ->
                       Assertion
@@ -306,9 +307,9 @@ tests =
                     ],
               testGroup "trying all combinations of modifications" $
                 let thePredicate ::
-                      [(ARedeemer, (Api.TxOutRef, Api.TxOut))] ->
-                      [ ( [(ARedeemer, (Api.TxOutRef, Api.TxOut))],
-                          [(BRedeemer, (Api.TxOutRef, Api.TxOut))]
+                      [(ARedeemer, (V3.TxOutRef, Api.TxOut))] ->
+                      [ ( [(ARedeemer, (V3.TxOutRef, Api.TxOut))],
+                          [(BRedeemer, (V3.TxOutRef, Api.TxOut))]
                         )
                       ] ->
                       Assertion

@@ -16,10 +16,9 @@ import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.Skeleton
-import Data.Maybe
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 
 -- | Compute the required minimal ADA for a given output
 getTxSkelOutMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m Integer
@@ -31,16 +30,11 @@ getTxSkelOutMinAda txSkelOut = do
     . Cardano.toCtxUTxOTxOut
     <$> toCardanoTxOut txSkelOut
 
--- | This transforms an output into another output which necessarily contains at
--- least the minimal required ada. If the previous quantity of ada was
--- sufficient, it remains unchanged.
-toTxSkelOutWithMinAda ::
-  (MonadBlockChainBalancing m) =>
-  -- | The output to potential adjust
-  TxSkelOut ->
-  -- | Returns @Nothing@ when no ajustment was required/done, and
-  -- @Just(newOutput,newAdaAmount)@ otherwise.
-  m TxSkelOut
+-- | This transforms an output into another output which contains the minimal
+-- required ada. If the previous quantity of ADA was sufficient, it remains
+-- unchanged. This can require a few iterations to converge, as the added ADA
+-- will increase the size of the UTXO which in turn might need more ADA.
+toTxSkelOutWithMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
 toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueL % txSkelOutValueAutoAdjustL) -> False) = return txSkelOut
 -- The auto adjustment is enabled
@@ -57,9 +51,9 @@ toTxSkelOutWithMinAda txSkelOut = do
       requiredAda <- getTxSkelOutMinAda skelOut
       -- If this amount is sufficient, we return Nothing, otherwise, we adjust the
       -- output and possibly iterate
-      if Script.getLovelace (skelOut ^. txSkelOutValueL % txSkelOutValueContentL % Script.adaL) >= requiredAda
+      if Api.getLovelace (skelOut ^. txSkelOutValueL % txSkelOutValueContentL % Script.adaL) >= requiredAda
         then return skelOut
-        else go $ skelOut & txSkelOutValueL % txSkelOutValueContentL % Script.adaL .~ Script.Lovelace requiredAda
+        else go $ skelOut & txSkelOutValueL % txSkelOutValueContentL % Script.adaL .~ Api.Lovelace requiredAda
 
 -- | This goes through all the `TxSkelOut`s of the given skeleton and updates
 -- their ada value when requested by the user and required by the protocol

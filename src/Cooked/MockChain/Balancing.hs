@@ -10,11 +10,11 @@ where
 
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.MinAda
@@ -31,20 +31,13 @@ import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
-
--- * A few types to make the functions in this module more readable
-
-type Fee = Integer
-
-type Collaterals = Set Api.TxOutRef
-
-type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and returns a (possibly) balanced skeleton alongside the
@@ -52,7 +45,7 @@ type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 -- be empty when no script is involved in the transaction. The options from the
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
-balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Maybe (Collaterals, Wallet))
+balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet))
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
   -- redirected to them, and utxos will be taken from their wallet if associated
@@ -139,22 +132,15 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters
-getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Fee, Fee)
+getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Integer, Integer)
 getMinAndMaxFee = do
-  -- Default parameters in case they are not present. It is unclear when/if this
-  -- could actually happen though. These default values have been taken from the
-  -- current default instance of the protocol parameters.
-  let defMaxTxExecutionUnits =
-        Cardano.ExecutionUnits {executionSteps = 10_000_000_000, executionMemory = 14_000_000}
-      defExecutionUnitPrices =
-        Cardano.ExecutionUnitPrices {priceExecutionSteps = 721 Rat.% 10_000_000, priceExecutionMemory = 577 Rat.% 10_000}
   -- Parameters necessary to compute the maximum possible fee for a transaction
-  params <- Emulator.pProtocolParams <$> getParams
-  let maxTxSize = toInteger $ Cardano.protocolParamMaxTxSize params
-      Emulator.Coin txFeePerByte = Cardano.protocolParamTxFeePerByte params
-      Emulator.Coin txFeeFixed = Cardano.protocolParamTxFeeFixed params
-      Cardano.ExecutionUnitPrices priceESteps priceEMem = fromMaybe defExecutionUnitPrices $ Cardano.protocolParamPrices params
-      Cardano.ExecutionUnits (toInteger -> eSteps) (toInteger -> eMem) = fromMaybe defMaxTxExecutionUnits $ Cardano.protocolParamMaxTxExUnits params
+  params <- Emulator.pEmulatorPParams <$> getParams
+  let maxTxSize = toInteger $ MicroLens.view Conway.ppMaxTxSizeL params
+      Emulator.Coin txFeePerByte = MicroLens.view Conway.ppMinFeeAL params
+      Emulator.Coin txFeeFixed = MicroLens.view Conway.ppMinFeeBL params
+      Cardano.Prices (Cardano.unboundRational -> priceESteps) (Cardano.unboundRational -> priceEMem) = MicroLens.view Conway.ppPricesL params
+      Cardano.ExUnits (toInteger -> eSteps) (toInteger -> eMem) = MicroLens.view Conway.ppMaxTxExUnitsL params
   -- Final fee accounts for the size of the transaction and the units consumed
   -- by the execution of scripts from the transaction
   let sizeFees = txFeeFixed + (maxTxSize * txFeePerByte)
@@ -164,7 +150,7 @@ getMinAndMaxFee = do
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
-computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> BalancingOutputs -> Maybe (Collaterals, Wallet) -> TxSkel -> m (TxSkel, Fee, Maybe (Collaterals, Wallet))
+computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Integer -> Integer -> [(Api.TxOutRef, Api.TxOut)] -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet))
 computeFeeAndBalance _ minFee maxFee _ _ _
   | minFee > maxFee =
       throwError $ FailWith "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
@@ -218,7 +204,7 @@ computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals s
 
 -- | Helper function to group the two real steps of the balancing: balance a
 -- skeleton around a given fee, and compute the associated collateral inputs
-attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> Fee -> Maybe (Collaterals, Wallet) -> TxSkel -> m (Maybe (Collaterals, Wallet), TxSkel)
+attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (Maybe (Set Api.TxOutRef, Wallet), TxSkel)
 attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals skel = do
   adjustedCollateralIns <- collateralsFromFees fee mCollaterals
   attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skel fee
@@ -228,17 +214,19 @@ attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals s
 -- accounting for the ratio to respect between fees and total collaterals, the
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
-collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Collaterals -> Wallet -> m Collaterals
+collateralInsFromFees :: (MonadBlockChainBalancing m) => Integer -> Set Api.TxOutRef -> Wallet -> m (Set Api.TxOutRef)
 collateralInsFromFees fee collateralIns returnCollateralWallet = do
+  -- We retrieve the protocal parameters
+  params <- Emulator.pEmulatorPParams <$> getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
-  nbMax <- toInteger . fromMaybe 10 . Cardano.protocolParamMaxCollateralInputs . Emulator.pProtocolParams <$> getParams
+  let nbMax = toInteger $ MicroLens.view Conway.ppMaxCollateralInputsL params
   -- We retrieve the percentage to respect between fees and total collaterals
-  percentage <- toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
+  let percentage = toInteger $ MicroLens.view Conway.ppCollateralPercentageL params
   -- We compute the total collateral to be associated to the transaction as a
   -- value. This will be the target value to be reached by collateral inputs. We
   -- add one because of ledger requirement which seem to round up this value.
-  let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) $ fee
+  let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
@@ -249,7 +237,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   Set.fromList . fst <$> getOptimalCandidate candidatesRaw returnCollateralWallet noSuitableCollateralError
 
 -- | This adjusts collateral inputs when necessary
-collateralsFromFees :: (MonadBlockChainBalancing m) => Fee -> Maybe (Collaterals, Wallet) -> m (Maybe (Collaterals, Wallet))
+collateralsFromFees :: (MonadBlockChainBalancing m) => Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Maybe (Set Api.TxOutRef, Wallet))
 collateralsFromFees _ Nothing = return Nothing
 collateralsFromFees fee (Just (collateralIns, returnCollateralWallet)) =
   Just . (,returnCollateralWallet) <$> collateralInsFromFees fee collateralIns returnCollateralWallet
@@ -259,7 +247,7 @@ collateralsFromFees fee (Just (collateralIns, returnCollateralWallet)) =
 -- stops when the target is reached, not adding superfluous UTxOs. Despite
 -- optimizations, this function is theoretically in 2^n where n is the number of
 -- candidate UTxOs. Use with caution.
-reachValue :: BalancingOutputs -> Api.Value -> Integer -> [(BalancingOutputs, Api.Value)]
+reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [([(Api.TxOutRef, Api.TxOut)], Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
 reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
@@ -284,13 +272,13 @@ reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
 -- | A helper function to grab an optimal candidate in terms of having a minimal
 -- enough amount of ada to sustain itself meant to be used after calling
 -- `reachValue`. This throws an error when there are no suitable candidates.
-getOptimalCandidate :: (MonadBlockChainBalancing m) => [(BalancingOutputs, Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
+getOptimalCandidate :: (MonadBlockChainBalancing m) => [([(Api.TxOutRef, Api.TxOut)], Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
 getOptimalCandidate candidates paymentTarget mceError = do
   -- We decorate the candidates with their current ada and min ada requirements
   candidatesDecorated <- forM candidates $ \(output, val) ->
-    (output,val,Script.fromValue val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
+    (output,val,Api.lovelaceValueOf val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
   -- We filter the candidates that have enough ada to sustain themselves
-  let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Script.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
+  let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Api.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
     -- If the list of candidates is empty, we throw an error
     [] -> throwError mceError
@@ -298,7 +286,7 @@ getOptimalCandidate candidates paymentTarget mceError = do
 
 -- | This function is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Maybe (Collaterals, Wallet) -> m Fee
+estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m Integer
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
@@ -329,7 +317,7 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
-computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
+computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> TxSkel -> Integer -> m TxSkel
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
@@ -337,14 +325,14 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
-  depositedValue <- toValue <$> txSkelProposalsDeposit txSkel
+  depositedValue <- Script.toValue <$> txSkelProposalsDeposit txSkel
   -- We compute the values missing in the left and right side of the equation
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
   -- We compute the minimal ada requirement of the missing payment
   rightMinAda <- getTxSkelOutMinAda $ balancingWallet `receives` Value missingRight
   -- We compute the current ada of the missing payment. If the missing payment
   -- is not empty and the minimal ada is not present, some value is missing.
-  let Script.Lovelace rightAda = missingRight ^. Script.adaL
+  let Api.Lovelace rightAda = missingRight ^. Script.adaL
       missingAda = rightMinAda - rightAda
       missingAdaValue = if missingRight /= mempty && missingAda > 0 then Script.lovelace missingAda else mempty
   -- The actual missing value on the left might needs to account for any missing
@@ -373,7 +361,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Nothing
-      | (before, txSkelOut : after) <- break (\(Pays o) -> toCredential (o ^. outputOwnerL) == toCredential balancingWallet) txSkelOuts,
+      | (before, txSkelOut : after) <- break (\(Pays o) -> Script.toCredential (o ^. outputOwnerL) == Script.toCredential balancingWallet) txSkelOuts,
         AdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected

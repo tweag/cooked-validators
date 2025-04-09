@@ -1,17 +1,21 @@
+-- | This module exposes the generation of transaction collaterals, which
+-- consist of a collateral amount, collateral inputs and return collateral
 module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Wallet
-import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -46,15 +50,15 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- We retrieve the collateral percentage compared to fees. By default, we use
   -- 150% which is the current value in the parameters, although the default
   -- value should never be used here, as the call is supposed to always succeed.
-  collateralPercentage <- toInteger . fromMaybe 150 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
+  collateralPercentage <- toInteger . MicroLens.view Conway.ppCollateralPercentageL . Emulator.pEmulatorPParams <$> getParams
   -- The total collateral corresponds to the fees multiplied by the collateral
   -- percentage. We add 1 because the ledger apparently rounds up this value.
-  let coinTotalCollateral = Emulator.Coin $ 1 + (fee * collateralPercentage) `div` 100
+  let coinTotalCollateral = 1 + (fee * collateralPercentage) `div` 100
   -- We create the total collateral based on the computed value
-  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway coinTotalCollateral
+  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Emulator.Coin coinTotalCollateral
   -- We compute a return collateral value by subtracting the total collateral to
   -- the value in collateral inputs
-  let returnCollateralValue = collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)
+  let returnCollateralValue = collateralInsValue <> PlutusTx.negate (Script.lovelace coinTotalCollateral)
   -- This should never happen, as we always compute the collaterals for the
   -- user, but we guard against having some negative elements in the value in
   -- case we give more freedom to the users in the future
@@ -77,7 +81,7 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
         networkId <- Emulator.pNetworkId <$> getParams
         address <-
           throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-            Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+            Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralWallet)
         -- The return collateral is built up from those elements
         return $
           Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $

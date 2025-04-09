@@ -4,7 +4,6 @@
 module Cooked.MockChain.AutoReferenceScripts (toTxSkelWithReferenceScripts) where
 
 import Control.Monad
-import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.UtxoSearch
 import Cooked.Output
@@ -12,33 +11,34 @@ import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Maybe
 import Optics.Core
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Searches through the known utxos for a utxo containing a reference script
 -- with a given script hash, and returns the first such utxo found, if any.
-retrieveReferenceScript :: (MonadBlockChain m, ToScriptHash s) => s -> m (Maybe Api.TxOutRef)
+retrieveReferenceScript :: (MonadBlockChain m, Script.ToScriptHash s) => s -> m (Maybe Api.TxOutRef)
 retrieveReferenceScript = (listToMaybe . (fst <$>) <$>) . runUtxoSearch . referenceScriptOutputsSearch
 
 -- | Attempts to find in the index a utxo containing a reference script with the
 -- given script hash, and attaches it to a redeemer when it does not yet have a
--- reference input, in which case an event is logged.
-updateRedeemer :: (MonadBlockChain m, ToScriptHash s) => s -> TxSkelRedeemer -> m TxSkelRedeemer
-updateRedeemer script txSkelRed@(TxSkelRedeemer red Nothing) = do
+-- reference input and when it is allowed, in which case an event is logged.
+updateRedeemer :: (MonadBlockChain m, Script.ToScriptHash s) => s -> TxSkelRedeemer -> m TxSkelRedeemer
+updateRedeemer script txSkelRed@(TxSkelRedeemer _ Nothing True) = do
   oRefM <- retrieveReferenceScript script
   case oRefM of
     Nothing -> return txSkelRed
     Just oRef -> do
-      logEvent $ MCLogAddedReferenceScript red oRef (toScriptHash script)
-      return $ TxSkelRedeemer red $ Just oRef
+      logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash script)
+      return $ txSkelRed `withReferenceInput` oRef
 updateRedeemer _ redeemer = return redeemer
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,
--- and attempt to attach a reference input to each of them, following the rules
--- from `updateRedeemer`
+-- and attempts to attach a reference input to each of them, whenever it is
+-- allowed and one has not already been set.
 toTxSkelWithReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
 toTxSkelWithReferenceScripts txSkel = do
-  newMints <- forM (txSkelMintsToList $ txSkel ^. txSkelMintsL) $ \(mPol, red, tk, nb) ->
-    (mPol,,tk,nb) <$> updateRedeemer mPol red
+  newMints <- forM (txSkelMintsToList $ txSkel ^. txSkelMintsL) $ \(Mint mPol red tks) ->
+    (\x -> Mint mPol x tks) <$> updateRedeemer (Script.toVersioned @Script.MintingPolicy mPol) red
   newInputs <- forM (Map.toList $ txSkel ^. txSkelInsL) $ \(oRef, red) -> do
     outputM <- txOutByRef oRef
     -- We retrieve the possible script hash of the current oRef

@@ -1,9 +1,14 @@
 -- | This module provides the description of a transaction skeleton. We have our
--- own representation of a transaction for three main reasons:
+-- own representation of a transaction for many reasons. Here are some of them:
 --
 -- - our transaction skeletons are typed (datums, validators, outputs...)
 --
--- - with our own wrapper, we are less affected by plutus updates
+-- - each transaction skeleton comes with its own set of generation options
+--
+-- - our transaction skeleton is by default anchored in the latest Cardano era
+--
+-- - each field in our transaction skeleton comes with a set of helpers and
+-- - smart constructor to ease the transaction creation
 --
 -- - we can have default or automated behavior for the parts of the transactions
 -- that are less relevant to testing, such as collaterals or fees
@@ -22,18 +27,14 @@ module Cooked.Skeleton
     txSkelWithdrawalsL,
     txSkelTemplate,
     txSkelDataInOutputs,
-    txSkelValidatorsInOutputs,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
     txSkelWithdrawalsScripts,
     txSkelValueInOutputs,
-    txSkelReferenceScripts,
     txSkelReferenceTxOutRefs,
   )
 where
 
-import Cooked.Conversion
-import Cooked.Output
 import Cooked.Skeleton.Datum as X
 import Cooked.Skeleton.Label as X
 import Cooked.Skeleton.Mint as X
@@ -55,11 +56,13 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- * Transaction skeletons
-
+-- | A transaction skeleton. This is cooked-validators's variant of transaction
+-- bodies, eventually translated to Cardano @TxBody@.
 data TxSkel where
   TxSkel ::
     { -- | Labels do not influence the transaction generation at all; they are
@@ -69,23 +72,27 @@ data TxSkel where
       -- | Some options that control transaction generation.
       txSkelOpts :: TxOpts,
       -- | Any value minted or burned by the transaction. You'll probably want
-      -- to use 'txSkelMintsFromList' to construct this.
+      -- to use 'Cooked.Skeleton.Mint.txSkelMintsFromList' to construct this.
       txSkelMints :: TxSkelMints,
       -- | The wallets signing the transaction. This list must contain at least
       -- one element. By default, the first signer will pay for fees and
-      -- balancing. You can change that with 'txOptBalanceWallet'.
+      -- balancing. You can change that with
+      -- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.
       txSkelSigners :: [Wallet],
       txSkelValidityRange :: Ledger.SlotRange,
-      -- | To each 'TxOutRef' the transaction should consume, add a redeemer
+      -- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that
       --
-      -- - On 'TxOutRef's referencing UTxOs belonging to public keys, you use
-      --   the 'emptyTxSkelRedeemer' smart constructor.
+      -- - On 'Api.TxOutRef's referencing UTxOs belonging to public keys, use
+      --   the 'Cooked.Skeleton.Redeemer.emptyTxSkelRedeemer' smart constructor.
       --
-      -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
-      --   sure that the type of the redeemer is appropriate for the script.
+      -- - On 'Api.TxOutRef's referencing UTxOs belonging to scripts, use
+      --   the 'Cooked.Skeleton.Redeemer.someTxSkelRedeemer' smart constructor.
       txSkelIns :: Map Api.TxOutRef TxSkelRedeemer,
-      -- | All outputs referenced by the transaction.
+      -- | All outputs directly referenced by the transaction. Note that
+      -- additional reference inputs can be found within the various redeemers
+      -- of this skeleton. Function 'txSkelReferenceTxOutRefs' collects them
+      -- all.
       txSkelInsReference :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
@@ -99,19 +106,35 @@ data TxSkel where
     TxSkel
   deriving (Show, Eq)
 
-makeLensesFor
-  [ ("txSkelLabel", "txSkelLabelL"),
-    ("txSkelOpts", "txSkelOptsL"),
-    ("txSkelMints", "txSkelMintsL"),
-    ("txSkelValidityRange", "txSkelValidityRangeL"),
-    ("txSkelSigners", "txSkelSignersL"),
-    ("txSkelIns", "txSkelInsL"),
-    ("txSkelInsReference", "txSkelInsReferenceL"),
-    ("txSkelOuts", "txSkelOutsL"),
-    ("txSkelProposals", "txSkelProposalsL"),
-    ("txSkelWithdrawals", "txSkelWithdrawalsL")
-  ]
-  ''TxSkel
+-- | A lens to set of get labels from a 'TxSkel'
+makeLensesFor [("txSkelLabel", "txSkelLabelL")] ''TxSkel
+
+-- | A lens to set of get options from a 'TxSkel'
+makeLensesFor [("txSkelOpts", "txSkelOptsL")] ''TxSkel
+
+-- | A lens to set of get the minted value of a 'TxSkel'
+makeLensesFor [("txSkelMints", "txSkelMintsL")] ''TxSkel
+
+-- | A lens to set of get the validity range of a 'TxSkel'
+makeLensesFor [("txSkelValidityRange", "txSkelValidityRangeL")] ''TxSkel
+
+-- | A lens to set of get signers from a 'TxSkel'
+makeLensesFor [("txSkelSigners", "txSkelSignersL")] ''TxSkel
+
+-- | A lens to set of get inputs from a 'TxSkel'
+makeLensesFor [("txSkelIns", "txSkelInsL")] ''TxSkel
+
+-- | A lens to set of get reference inputs from a 'TxSkel'
+makeLensesFor [("txSkelInsReference", "txSkelInsReferenceL")] ''TxSkel
+
+-- | A lens to set of get outputs from a 'TxSkel'
+makeLensesFor [("txSkelOuts", "txSkelOutsL")] ''TxSkel
+
+-- | A lens to set of get proposals from a 'TxSkel'
+makeLensesFor [("txSkelProposals", "txSkelProposalsL")] ''TxSkel
+
+-- | A lens to set of get withdrawals from a 'TxSkel'
+makeLensesFor [("txSkelWithdrawals", "txSkelWithdrawalsL")] ''TxSkel
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel
@@ -133,7 +156,7 @@ txSkelTemplate =
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
 
--- | Return all data on transaction outputs. This can contain duplicates, which
+-- | Returns all data on transaction outputs. This can contain duplicates, which
 -- is intended.
 txSkelDataInOutputs :: TxSkel -> [(Api.DatumHash, TxSkelOutDatum)]
 txSkelDataInOutputs =
@@ -149,52 +172,32 @@ txSkelDataInOutputs =
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
 
--- | All validators which will receive transaction outputs
-txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelValidatorsInOutputs =
-  Map.fromList
-    . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
-    . txSkelOuts
-
--- | All validators in the reference script field of transaction outputs
-txSkelReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelReferenceScripts =
-  mconcat
-    . map
-      ( \(Pays output) ->
-          case output ^. outputReferenceScriptL of
-            Nothing -> Map.empty
-            Just x ->
-              let vScript@(Script.Versioned script version) = toVersionedScript x
-                  Script.ScriptHash hash = toScriptHash vScript
-               in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
-      )
-    . txSkelOuts
-
--- | All `TxOutRefs` in reference inputs
+-- | All `Api.TxOutRef`s in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelReferenceTxOutRefs TxSkel {..} =
   -- direct reference inputs
   Set.toList txSkelInsReference
     -- reference inputs in inputs redeemers
-    <> mapMaybe txSkelReferenceInput (Map.elems txSkelIns)
+    <> mapMaybe txSkelRedeemerReferenceInput (Map.elems txSkelIns)
     -- reference inputs in proposals redeemers
-    <> mapMaybe (txSkelReferenceInput . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
+    <> mapMaybe (txSkelRedeemerReferenceInput . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
     -- reference inputs in mints redeemers
-    <> mapMaybe (txSkelReferenceInput . fst . snd) (Map.toList txSkelMints)
+    <> mapMaybe (txSkelRedeemerReferenceInput . fst . snd) (Map.toList txSkelMints)
+    -- reference inputs in withdrawals redeemers
+    <> mapMaybe (txSkelRedeemerReferenceInput . fst . snd) (Map.toList txSkelWithdrawals)
 
--- | All `TxOutRefs` known by a given transaction skeleton. This includes
--- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
+-- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
+-- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
 -- inputs of the skeleton.  This does not include additional possible
--- `TxOutRef`s used for balancing and additional `TxOutRef`s used as collateral
+-- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.keys txSkelIns
 
--- * Various Optics on 'TxSkels' and all the other types defined here
-
+-- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = mconcat . (toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
 
+-- | Returns all the scripts involved in withdrawals in this 'TxSkel'
 txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
 txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals

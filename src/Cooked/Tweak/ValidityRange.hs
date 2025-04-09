@@ -1,4 +1,4 @@
--- | This module defines 'Tweaks' revolving around the validity range of a
+-- | This module defines 'Tweak's revolving around the validity range of a
 -- transaction
 module Cooked.Tweak.ValidityRange where
 
@@ -9,6 +9,7 @@ import Cooked.Tweak.Common
 import Ledger.Slot qualified as Ledger
 import PlutusLedgerApi.V1.Interval qualified as Api
 
+-- | Looks up the current validity range of the transaction
 getValidityRangeTweak :: (MonadTweak m) => m Ledger.SlotRange
 getValidityRangeTweak = viewTweak txSkelValidityRangeL
 

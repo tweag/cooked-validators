@@ -205,7 +205,7 @@ data LtlOp (modification :: Type) (builtin :: Type -> Type) :: Type -> Type wher
   -- formulas that should already be applied to the next time step.
   StartLtl :: Ltl modification -> LtlOp modification builtin ()
   -- | The operation that removes the last LTL formula that was introduced. If
-  -- the formula is not yet 'finished', the current time line will fail.
+  -- the formula is not yet finished, the current time line will fail.
   StopLtl :: LtlOp modification builtin ()
   Builtin :: builtin a -> LtlOp modification builtin a
 
@@ -232,8 +232,8 @@ instance Monad (Staged op) where
 -- | To be a suitable semantic domain for computations modified by LTL formulas,
 -- a monad @m@ has to
 --
--- * have the right 'builtin' functions, which can be modified by the right
---   'modification's,
+-- * have the right @builtin@ functions, which can be modified by the right
+--   @modification@s,
 --
 -- * be a 'MonadPlus', because one LTL formula might yield different modified
 --   versions of the computation, and
@@ -277,8 +277,8 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
 -- | Interpret a 'Staged' computation into a suitable domain, using the function
 -- 'interpBuiltin' to interpret the builtins. At the end of the computation,
--- prune branches that still have un'finished' modifications applied to them.
--- See the discussion on the regression test case for PRs 110 and 131 in
+-- prune branches that still have unfinished modifications applied to them.  See
+-- the discussion on the regression test case for PRs 110 and 131 in
 -- 'StagedSpec.hs' for a discussion on why this function has to exist.
 interpLtlAndPruneUnfinished ::
   (InterpLtl modification builtin m) =>

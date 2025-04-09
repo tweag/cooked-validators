@@ -8,20 +8,9 @@ package cooked-validators
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
-source-repository-package
-  type: git
-  location: https://github.com/IntersectMBO/cardano-node-emulator/
-  tag: 3bdb1f2a578226c1aa39fe09b8fb13e3a0be6d6a
-  subdir:
-    cardano-node-emulator
-    plutus-ledger
-    plutus-script-utils
-    freer-extras
-  
--- Everything below this point has been copied from cardano-node-emulator cabal.project
-
 -- Custom repository for cardano haskell packages
--- See https://github.com/input-output-hk/cardano-haskell-packages on how to use CHaP in a Haskell project.
+-- See https://github.com/IntersectMBO/cardano-haskell-packages
+-- on how to use CHaP in a Haskell project.
 repository cardano-haskell-packages
   url: https://chap.intersectmbo.org/
   secure: True
@@ -33,11 +22,10 @@ repository cardano-haskell-packages
     c00aae8461a256275598500ea0e187588c35a5d5d7454fb57eac18d9edb86a56
     d4a35cd3121aa00d18544bb0ac01c3e1691d618f462c46129271bccf39f7e8ee
 
--- See CONTRIBUTING.adoc for how to update index-state
 index-state:
-  , hackage.haskell.org 2024-06-12T10:10:17Z
-  , cardano-haskell-packages 2024-06-12T10:10:17Z
-
+  , hackage.haskell.org 2025-03-17T12:01:29Z
+  , cardano-haskell-packages 2025-04-04T13:50:31Z
+  
 -- We never, ever, want this.
 write-ghc-environment-files: never
 
@@ -57,14 +45,16 @@ package cardano-api
   optimization: False
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
-      
+
 constraints:
-  cardano-api ^>= 8.46
+  cardano-api ^>= 10.13,
 
 source-repository-package
     type: git
-    location: https://github.com/input-output-hk/quickcheck-contractmodel
-    tag: b19a7689a0d40ba3c7f91da87ef5fbcf20f3926c
+    location: https://github.com/tweag/cardano-node-emulator-forked
+    tag: 2c7bfc7663956d3ecccff3243ca65f38a5526a2c
     subdir:
-      quickcheck-contractmodel
-      quickcheck-threatmodel
+      plutus-script-utils
+      plutus-ledger
+      cardano-node-emulator
+      freer-extras

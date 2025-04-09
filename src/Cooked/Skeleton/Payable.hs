@@ -1,13 +1,20 @@
+-- | This module defines the notion of 'Payable' elements with consist of the
+-- user API to build payments in a 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Payable
   ( Payable (..),
+    type (∉),
+    type (⩀),
+    type (∪),
     (<&&>),
   )
 where
 
-import Cooked.Conversion
 import Cooked.Skeleton.Datum
 import Data.Kind (Constraint, Type)
 import GHC.TypeLits
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 
 -- | Constraint that a given type does not appear in a list of types
 type family (∉) (el :: a) (els :: [a]) :: Constraint where
@@ -21,7 +28,7 @@ type family (⩀) (els :: [a]) (els' :: [a]) :: Constraint where
   (x ': xs) ⩀ ys = (x ∉ ys, xs ⩀ ys)
 
 -- | Union with duplicates, which will not occur by construction in the
--- concrete implentation of @Payable@ due to the @⩀@ constraint.
+-- concrete implentation of 'Payable' due to the '⩀' constraint.
 type family (∪) (xs :: [a]) (ys :: [a]) :: [a] where
   '[] ∪ ys = ys
   (x ': xs) ∪ ys = x ': (xs ∪ ys)
@@ -37,16 +44,16 @@ data Payable :: [Symbol] -> Type where
   -- | Hashed datums hidden from the transaction are payable
   HiddenHashedDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
   -- | Reference scripts are payable
-  ReferenceScript :: (ToVersionedScript s) => s -> Payable '["Reference Script"]
+  ReferenceScript :: (Script.ToVersioned Script.Script s) => s -> Payable '["Reference Script"]
   -- | Values are payable and are subject to min ada adjustment
-  Value :: (ToValue a) => a -> Payable '["Value"]
+  Value :: (Script.ToValue a) => a -> Payable '["Value"]
   -- | Fixed Values are payable but are NOT subject to min ada adjustment
-  FixedValue :: (ToValue a) => a -> Payable '["Value"]
+  FixedValue :: (Script.ToValue a) => a -> Payable '["Value"]
   -- | Staking credentials are payable
-  StakingCredential :: (ToMaybeStakingCredential cred) => cred -> Payable '["Staking Credential"]
+  StakingCredential :: (Script.ToMaybeStakingCredential cred) => cred -> Payable '["Staking Credential"]
   -- | Payables can be combined as long as their list of tags are disjoint
   PayableAnd :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 
--- | Basically re-exporting @PayableAnd@ as a builtin operator
+-- | An infix-usable alias for 'PayableAnd'
 (<&&>) :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 (<&&>) = PayableAnd

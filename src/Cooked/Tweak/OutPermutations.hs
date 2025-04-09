@@ -1,6 +1,6 @@
--- | This module provides tweaks to modify the order of outputs in a transaction
--- skeleton. This can be useful since some validators expect a certain rigid
--- output order to make sense of them.
+-- | This module provides 'Cooked.Tweak.Common.Tweak's to modify the order of
+-- outputs in a transaction skeleton. This can be useful since some validators
+-- expect a certain rigid output order to make sense of them.
 module Cooked.Tweak.OutPermutations
   ( PermutOutTweakMode (..),
     allOutPermutsTweak,
@@ -17,10 +17,11 @@ import Cooked.Tweak.Common
 import System.Random
 import System.Random.Shuffle
 
+-- | Output permutation policy
 data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 
 -- | Modify transactions by changing the ordering of output constraints. If the
--- 'PermutTweakMode' is
+-- 'PermutOutTweakMode' is
 --
 -- - @KeepIdentity (Just n)@, the unmodified transaction is included in the list
 --   of modified transactions and only the first n outputs are permuted,
@@ -52,8 +53,8 @@ allOutPermutsTweak mode = do
       OmitIdentity (Just n) -> \l -> map (++ drop n l) $ nonIdentityPermutations (take n l)
       OmitIdentity Nothing -> nonIdentityPermutations
 
--- This is implemented so that duplicate entries in the input list don't give
--- rise to duplicate permutations.
+-- | This ensures duplicate entries in the input list don't give rise to
+-- duplicate permutations.
 distinctPermutations :: (Eq a) => [a] -> [[a]]
 distinctPermutations = foldr (concatMap . insertSomewhere) [[]] . groupEq
   where
@@ -87,7 +88,7 @@ nonIdentityPermutations l = removeFirst l $ distinctPermutations l
     removeFirst _ [] = []
     removeFirst x (y : ys) = if x == y then ys else y : removeFirst x ys
 
--- | This randomly permutes the outputs of a transaction with a given seed Can
+-- | This randomly permutes the outputs of a transaction with a given seed. Can
 -- be used to assess if a certain validator is order-dependant
 singleOutPermutTweak :: (MonadTweak m) => Int -> m ()
 singleOutPermutTweak seed = do

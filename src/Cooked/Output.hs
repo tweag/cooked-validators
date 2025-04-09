@@ -42,69 +42,81 @@ module Cooked.Output
   )
 where
 
-import Cooked.Conversion.ToCredential
-import Cooked.Conversion.ToOutputDatum
-import Cooked.Conversion.ToScriptHash
-import Cooked.Conversion.ToValue
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V2.Tx qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
+-- * Abstract outputs
+
 -- | A generalisation of 'Api.TxOut': With the four type families, we can lift
--- some information about
---
--- - who owns the output (a public key, a script...?)
---
--- - what kind of datum is there (do we have an inline datum, a datum hash,
---   nothing...?)
---
--- - what kind of value does the output hold (pure Ada ...?)
---
--- - what information do we have on the reference script (only a hash, a
---   complete script, a typed validator...?)
---
--- to the type level.
+-- some information about its content
 class IsAbstractOutput o where
+  -- | The owner of the output. Is it a public key, as script...?
   type OwnerType o
+
+  -- | The datum stored in the output. Is a nothing, an 'Api.OutputDatum', a
+  -- 'Cooked.Skeleton.Datum.TxSkelOutDatum'...?
   type DatumType o
+
+  -- | The value in the output. Does it contain pure ADA? Other assets?
   type ValueType o
+
+  -- | The reference script in the output. Is it a hash, a typed validator...?
   type ReferenceScriptType o
+
+  -- | Getting or setting the owner of this output
   outputOwnerL :: Lens' o (OwnerType o)
+
+  -- | Getting or setting the staking credential of this output
   outputStakingCredentialL :: Lens' o (Maybe Api.StakingCredential)
+
+  -- | Getting or setting the datum of this output
   outputDatumL :: Lens' o (DatumType o)
+
+  -- | Getting or setting the value of this output
   outputValueL :: Lens' o (ValueType o)
+
+  -- | Getting or setting the reference script of this output
   outputReferenceScriptL :: Lens' o (Maybe (ReferenceScriptType o))
 
+-- * Script-translatable outputs
+
 -- | An output that can be translated into its script-perspective (as seen on
--- the 'TxInfo') representation
+-- the 'Api.TxInfo') representation
 type IsTxInfoOutput o =
   ( IsAbstractOutput o,
-    ToCredential (OwnerType o),
-    ToOutputDatum (DatumType o),
-    ToValue (ValueType o),
-    ToScriptHash (ReferenceScriptType o)
+    Script.ToCredential (OwnerType o),
+    Script.ToOutputDatum (DatumType o),
+    Script.ToValue (ValueType o),
+    Script.ToScriptHash (ReferenceScriptType o)
   )
 
-outputAddress :: (IsAbstractOutput o, ToCredential (OwnerType o)) => o -> Api.Address
-outputAddress out = Api.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
+-- | Retrieve the 'Api.Address' of a script-translatable output
+outputAddress :: (IsAbstractOutput o, Script.ToCredential (OwnerType o)) => o -> Api.Address
+outputAddress out = Api.Address (Script.toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
 
-outputOutputDatum :: (IsAbstractOutput o, ToOutputDatum (DatumType o)) => o -> Api.OutputDatum
-outputOutputDatum = toOutputDatum . (^. outputDatumL)
+-- | Retrieves the 'Api.OutputDatum' of a script-translatable output
+outputOutputDatum :: (IsAbstractOutput o, Script.ToOutputDatum (DatumType o)) => o -> Api.OutputDatum
+outputOutputDatum = Script.toOutputDatum . (^. outputDatumL)
 
-outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Api.Value
-outputValue = toValue . (^. outputValueL)
+-- | Retrieves the 'Api.Value' of a script-translatable output
+outputValue :: (IsAbstractOutput o, Script.ToValue (ValueType o)) => o -> Api.Value
+outputValue = Script.toValue . (^. outputValueL)
 
-outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Api.ScriptHash
-outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
+-- | Retrieves the optional 'Api.ScriptHash' of a script-translatable output
+outputReferenceScriptHash :: (IsAbstractOutput o, Script.ToScriptHash (ReferenceScriptType o)) => o -> Maybe Api.ScriptHash
+outputReferenceScriptHash = (Script.toScriptHash <$>) . (^. outputReferenceScriptL)
 
--- | Return the output as it is seen by a validator on the 'TxInfo'.
+-- | Translates a script-translatable output into an 'Api.TxOut'
 outputTxOut :: (IsTxInfoOutput o) => o -> Api.TxOut
 outputTxOut o = Api.TxOut (outputAddress o) (outputValue o) (outputOutputDatum o) (outputReferenceScriptHash o)
 
--- * 'Api.TxOut's are outputs
-
+-- | 'Api.TxOut's are abstract outputs
 instance IsAbstractOutput Api.TxOut where
   type OwnerType Api.TxOut = Api.Credential
   type DatumType Api.TxOut = Api.OutputDatum
@@ -125,7 +137,7 @@ instance IsAbstractOutput Api.TxOut where
   outputValueL = lensVL Api.outValue
   outputReferenceScriptL = lensVL Api.outReferenceScript
 
--- * A concrete type for outputs
+-- * Concrete outputs
 
 -- | A type constructed to be the most general instance of 'IsAbstractOutput'.
 data ConcreteOutput ownerType datumType valueType referenceScriptType where
@@ -142,6 +154,7 @@ deriving instance (Show ownerType, Show datumType, Show valueType, Show referenc
 
 deriving instance (Eq ownerType, Eq datumType, Eq valueType, Eq referenceScriptType) => Eq (ConcreteOutput ownerType datumType valueType referenceScriptType)
 
+-- | Concrete outputs are abstract outputs
 instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenceScriptType) where
   type OwnerType (ConcreteOutput ownerType _ _ _) = ownerType
   type DatumType (ConcreteOutput _ datumType _ _) = datumType
@@ -155,22 +168,33 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
 
 -- | Creates a generic concrete instance of any kind of abstract output
 fromAbstractOutput :: (IsAbstractOutput out) => out -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out)
-fromAbstractOutput o = ConcreteOutput (o ^. outputOwnerL) (o ^. outputStakingCredentialL) (o ^. outputDatumL) (o ^. outputValueL) (o ^. outputReferenceScriptL)
+fromAbstractOutput o =
+  ConcreteOutput
+    (o ^. outputOwnerL)
+    (o ^. outputStakingCredentialL)
+    (o ^. outputDatumL)
+    (o ^. outputValueL)
+    (o ^. outputReferenceScriptL)
 
--- * Setters for outputs
+-- * Type-changing setters for outputs
 
+-- | Type-changing setter for an abstract output datum
 setDatum :: (IsAbstractOutput out) => out -> dat -> ConcreteOutput (OwnerType out) dat (ValueType out) (ReferenceScriptType out)
 setDatum o dat = (fromAbstractOutput o) {concreteOutputDatum = dat}
 
+-- | Type-changing setter for an abstract output owner
 setOwner :: (IsAbstractOutput out) => out -> owner -> ConcreteOutput owner (DatumType out) (ValueType out) (ReferenceScriptType out)
 setOwner o own = (fromAbstractOutput o) {concreteOutputOwner = own}
 
+-- | Type-changing setter for an abstract output staking scredential
 setStakingCredential :: (IsAbstractOutput out) => out -> Api.StakingCredential -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out)
 setStakingCredential o cred = (fromAbstractOutput o) {concreteOutputStakingCredential = Just cred}
 
+-- | Type-changing setter for an abstract output value
 setValue :: (IsAbstractOutput out) => out -> val -> ConcreteOutput (OwnerType out) (DatumType out) val (ReferenceScriptType out)
 setValue o val = (fromAbstractOutput o) {concreteOutputValue = val}
 
+-- | Type-changing setter for an abstract output reference script
 setReferenceScript :: (IsAbstractOutput out) => out -> ref -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) ref
 setReferenceScript o refScript = (fromAbstractOutput o) {concreteOutputReferenceScript = Just refScript}
 
@@ -207,14 +231,14 @@ isScriptOutput out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAd
 isScriptOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific script
-isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
+isScriptOutputFrom :: (IsTxInfoOutput out, Script.ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
 isScriptOutputFrom validator out = do
   x <- isScriptOutput out
-  if toScriptHash validator == x ^. outputOwnerL
+  if Script.toScriptHash validator == x ^. outputOwnerL
     then Just $ setOwner x validator
     else Nothing
 
--- Test if the owner of an output is a public key
+-- | Test if the owner of an output is a public key
 isPKOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
 isPKOutput out | Api.Address (Api.PubKeyCredential pkh) _ <- outputAddress out = Just $ setOwner out pkh
 isPKOutput _ = Nothing
@@ -230,8 +254,8 @@ isPKOutputFrom pkh out = do
 -- ** Filtering on the staking credential
 
 -- | Test if the given output possesses a certain staking credential
-isStakingCredentialOutputFrom :: (IsTxInfoOutput out, ToCredential cred) => cred -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
-isStakingCredentialOutputFrom cred out | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL, toCredential cred == cred' = Just $ fromAbstractOutput out
+isStakingCredentialOutputFrom :: (IsTxInfoOutput out, Script.ToCredential cred) => cred -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
+isStakingCredentialOutputFrom cred out | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL, Script.toCredential cred == cred' = Just $ fromAbstractOutput out
 isStakingCredentialOutputFrom _ _ = Nothing
 
 -- | Test if the give output does not possess any staking credential
@@ -242,17 +266,17 @@ isEmptyStakingCredentialOutput _ = Nothing
 -- ** Filtering on the value
 
 -- | Test if the value on an output contains only Ada.
-isOnlyAdaOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) Script.Ada (ReferenceScriptType out))
-isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ setValue out $ Script.fromValue $ outputValue out
+isOnlyAdaOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) Api.Lovelace (ReferenceScriptType out))
+isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ setValue out $ Api.lovelaceValueOf $ outputValue out
 isOnlyAdaOutput _ = Nothing
 
 -- ** Filtering on the reference script
 
 -- | Convert the reference script type on the output to 'Api.ScriptHash'.
 toOutputWithReferenceScriptHash :: (IsTxInfoOutput out) => out -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash
-toOutputWithReferenceScriptHash out = (fromAbstractOutput out) {concreteOutputReferenceScript = toScriptHash <$> out ^. outputReferenceScriptL}
+toOutputWithReferenceScriptHash out = (fromAbstractOutput out) {concreteOutputReferenceScript = Script.toScriptHash <$> out ^. outputReferenceScriptL}
 
 -- | Test if the reference script in an output is a specific script
-isReferenceScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash)
-isReferenceScriptOutputFrom script out | Just x <- out ^. outputReferenceScriptL, toScriptHash x == toScriptHash script = Just $ toOutputWithReferenceScriptHash out
+isReferenceScriptOutputFrom :: (IsTxInfoOutput out, Script.ToScriptHash s) => s -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash)
+isReferenceScriptOutputFrom script out | Just x <- out ^. outputReferenceScriptL, Script.toScriptHash x == Script.toScriptHash script = Just $ toOutputWithReferenceScriptHash out
 isReferenceScriptOutputFrom _ _ = Nothing

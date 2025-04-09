@@ -1,3 +1,5 @@
+-- | This module exposes the notion of proposal within a
+-- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Proposal
   ( TxParameterChange (..),
     TxGovAction (..),
@@ -12,15 +14,16 @@ module Cooked.Skeleton.Proposal
   )
 where
 
-import Cooked.Conversion
 import Cooked.Skeleton.Redeemer as X
 import Data.Map (Map)
+import Optics.Core ((&), (?~))
 import Optics.TH
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 
--- These are all the protocol parameters. They are taken from
+-- | These are all the protocol parameters. They are taken from
 -- https://github.com/IntersectMBO/cardano-ledger/blob/c4fbc05999866fea7c0cb1b211fd5288f286b95d/eras/conway/impl/cddl-files/conway.cddl#L381-L412
 -- and will most likely change in future eras.
 data TxParameterChange where
@@ -125,6 +128,7 @@ data TxParameterChange where
   -- will exist later on MinFeeRefScriptCostPerByte :: Integer -> TxParameterChange
   deriving (Show, Eq)
 
+-- | This lists the various possible governance actions
 data TxGovAction where
   -- If several parameter changes are of the same kind, only the last
   -- one will take effect
@@ -136,6 +140,7 @@ data TxGovAction where
   TxGovActionNewConstitution :: Api.Constitution -> TxGovAction
   deriving (Show, Eq)
 
+-- | This bundles a governance action into an actual proposal
 data TxSkelProposal where
   TxSkelProposal ::
     { -- | Whatever credential will get back the deposit
@@ -154,19 +159,26 @@ data TxSkelProposal where
     TxSkelProposal
   deriving (Show, Eq)
 
-makeLensesFor
-  [ ("txSkelProposalAddress", "txSkelProposalAddressL"),
-    ("txSkelProposalAction", "txSkelProposalActionL"),
-    ("txSkelProposalWitness", "txSkelProposalWitnessL"),
-    ("txSkelProposalAnchor", "txSkelProposalAnchorL")
-  ]
-  ''TxSkelProposal
+-- | A lens to get or set the address of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalAddress", "txSkelProposalAddressL")] ''TxSkelProposal
 
-simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
-simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
+-- | A lens to get or set the governance action of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalAction", "txSkelProposalActionL")] ''TxSkelProposal
 
-withWitness :: (ToVersionedScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toVersionedScript s, red)}
+-- | A lens to get or set the witness of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalWitness", "txSkelProposalWitnessL")] ''TxSkelProposal
 
+-- | A lens to get or set the anchor of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelProposal
+
+-- | Builds a 'TxSkelProposal' from an address and a 'TxGovAction'
+simpleTxSkelProposal :: (Script.ToAddress a) => a -> TxGovAction -> TxSkelProposal
+simpleTxSkelProposal a govAction = TxSkelProposal (Script.toAddress a) govAction Nothing Nothing
+
+-- | Assigns a witness to a 'TxSkelProposal'
+withWitness :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop & txSkelProposalWitnessL ?~ (Script.toVersioned s, red)
+
+-- | Assigns an anchor to a 'TxSkelProposal'
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
-withAnchor prop url = prop {txSkelProposalAnchor = Just url}
+withAnchor prop url = prop & txSkelProposalAnchorL ?~ url

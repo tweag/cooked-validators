@@ -12,13 +12,10 @@ module Cooked.Wallet
     walletStakingPK,
     walletPKHash,
     walletStakingPKHash,
-    walletAddress,
     walletSK,
     walletStakingSK,
     walletStakingCredential,
-    walletCredential,
     Wallet,
-    PrivateKey,
   )
 where
 
@@ -28,6 +25,7 @@ import Data.List (elemIndex)
 import Ledger.Address qualified as Ledger
 import Ledger.CardanoWallet qualified as Ledger
 import Ledger.Crypto qualified as Ledger
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * MockChain Wallets
@@ -37,9 +35,8 @@ import PlutusLedgerApi.V3 qualified as Api
 -- Because mock wallets from plutus-ledger change often, we provide our own
 -- wrapper on top of them to ensure that we can easily deal changes from Plutus.
 
+-- | A 'Wallet' is a 'Ledger.MockWallet' from plutus-ledger
 type Wallet = Ledger.MockWallet
-
-type PrivateKey = Crypto.XPrv
 
 instance Eq Wallet where
   (==) = (==) `on` Ledger.mwWalletId
@@ -89,24 +86,23 @@ walletPKHash = Ledger.pubKeyHash . walletPK
 walletStakingPKHash :: Wallet -> Maybe Api.PubKeyHash
 walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
 
--- | Retrieves a wallet credential
-walletCredential :: Wallet -> Api.Credential
-walletCredential = Api.PubKeyCredential . walletPKHash
+instance Script.ToCredential Wallet where
+  toCredential = Api.PubKeyCredential . walletPKHash
 
+-- | Retrieves a wallet's staking credential
 walletStakingCredential :: Wallet -> Maybe Api.StakingCredential
 walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
 
--- | Retrieves a wallet's address
-walletAddress :: Wallet -> Api.Address
-walletAddress w =
-  Api.Address
-    (walletCredential w)
-    (walletStakingCredential w)
+instance Script.ToAddress Wallet where
+  toAddress w =
+    Api.Address
+      (Script.toCredential w)
+      (walletStakingCredential w)
 
 -- | Retrieves a wallet private key (secret key SK)
-walletSK :: Wallet -> PrivateKey
+walletSK :: Wallet -> Crypto.XPrv
 walletSK = Ledger.unPaymentPrivateKey . Ledger.paymentPrivateKey
 
 -- | Retrieves a wallet's private staking key (secret key SK), if any
-walletStakingSK :: Wallet -> Maybe PrivateKey
+walletStakingSK :: Wallet -> Maybe Crypto.XPrv
 walletStakingSK = fmap Ledger.unStakePrivateKey . Ledger.stakePrivateKey

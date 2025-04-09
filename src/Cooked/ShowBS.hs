@@ -1,13 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | This module exposes on-chain pretty-printing function for all the types
--- that occur on the 'ScriptContext' to 'BuiltinString'. This is useful for
+-- that occur on the 'Api.ScriptContext' to 'BuiltinString'. This is useful for
 -- debugging of validators. You probably do not want to use this in production
 -- code, as many of the functions in this module are wildly inefficient due to
 -- limitations of the 'BuiltinString' type.
 --
 -- If the script execution on your transactions go over budget by using this
--- module, consider using 'txOptEmulatorParamsModification' to temporarily
+-- module, consider using
+-- 'Cooked.Skeleton.Option.txOptEmulatorParamsModification' to temporarily
 -- loosen the limits (at the cost of breaking compatibility with mainnet)
 module Cooked.ShowBS (ShowBS (..)) where
 
@@ -17,9 +18,9 @@ import PlutusTx.Builtins qualified as PlutusTx
 import PlutusTx.Prelude hiding (toList)
 import PlutusTx.Ratio qualified as PlutusTx hiding (negate)
 
--- | analogue of Haskell's 'Show' class to be use in Plutus scripts.
+-- | analogue of Haskell's 'Prelude.Show' class to be use in Plutus scripts.
 class ShowBS a where
-  -- | analogue of 'show'
+  -- | analogue of 'Prelude.show'
   showBS :: a -> BuiltinString
 
 -- | print with a surrounding parenthesis
@@ -147,6 +148,10 @@ instance ShowBS Api.CurrencySymbol where
 instance ShowBS Api.Value where
   {-# INLINEABLE showBS #-}
   showBS (Api.Value m) = application1 "Value" m
+
+instance ShowBS Api.MintValue where
+  {-# INLINEABLE showBS #-}
+  showBS mVal = showBS $ Api.mintValueMinted mVal <> negate (Api.mintValueBurned mVal)
 
 instance ShowBS Api.TxId where
   {-# INLINEABLE showBS #-}
@@ -391,6 +396,15 @@ instance ShowBS Api.TxInfo where
       <> "treasury donation:"
       <> showBS txInfoTreasuryDonation
 
+instance ShowBS Api.ScriptInfo where
+  {-# INLINEABLE showBS #-}
+  showBS (Api.MintingScript cs) = application1 "MintingScript" cs
+  showBS (Api.SpendingScript oref mDat) = application2 "SpendingScript" oref mDat
+  showBS (Api.RewardingScript stCred) = application1 "RewardingScript" stCred
+  showBS (Api.CertifyingScript nb txCert) = application2 "CertifyingScript" nb txCert
+  showBS (Api.VotingScript voter) = application1 "VotingScript" voter
+  showBS (Api.ProposingScript nb proposal) = application2 "ProposingScript" nb proposal
+
 instance ShowBS Api.ScriptContext where
   {-# INLINEABLE showBS #-}
   showBS Api.ScriptContext {..} =
@@ -398,5 +412,7 @@ instance ShowBS Api.ScriptContext where
       $ "Script context:"
       <> "Script Tx info:"
       <> showBS scriptContextTxInfo
+      <> "Script redeemer:"
+      <> showBS scriptContextRedeemer
       <> "Script purpose:"
-      <> showBS scriptContextPurpose
+      <> showBS scriptContextScriptInfo

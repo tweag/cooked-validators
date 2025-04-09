@@ -1,8 +1,8 @@
 -- | This module provides the 'PrettyCooked' class and instances for common
--- Plutus types.  We don't rely on 'Pretty' from "Prettyprinter" in order to
+-- Plutus types.  We don't rely on 'PP.Pretty' from "Prettyprinter" in order to
 -- define better printers for Plutus types which already have instances of
--- 'Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify pretty
--- printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
+-- 'PP.Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify
+-- pretty printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
 --
 -- When defining a new 'PrettyCooked' instance, prefer implementing
 -- 'prettyCookedOpt' and relay the option parameter to other printers.
@@ -13,8 +13,8 @@ module Cooked.Pretty.Class
   )
 where
 
-import Cooked.Conversion.ToHash
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
 import Data.Ratio
@@ -22,12 +22,13 @@ import Ledger.Index qualified as Ledger
 import Ledger.Scripts qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 import Prettyprinter.Render.Text qualified as PP
 
+-- | Type class of things within cooked-validators that can be pretty printed
 class PrettyCooked a where
   prettyCooked :: a -> DocCooked
   prettyCooked = prettyCookedOpt def
@@ -86,7 +87,7 @@ instance PrettyCooked Api.Value where
     prettySingletons
       . map prettySingletonValue
       . filter (\(_, _, n) -> n /= 0)
-      . Script.flattenValue
+      . Api.flattenValue
     where
       prettySingletons :: [DocCooked] -> DocCooked
       prettySingletons [] = "Empty value"
@@ -94,16 +95,16 @@ instance PrettyCooked Api.Value where
       prettySingletons docs = prettyItemize "Value:" "-" docs
       prettySingletonValue :: (Api.CurrencySymbol, Api.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyCookedOpt opts (Script.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
+        prettyCookedOpt opts (Api.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
 
 instance PrettyCooked Api.CurrencySymbol where
   prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
 
 instance PrettyCooked Api.TokenName where
-  prettyCookedOpt _ = PP.pretty
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Script.AssetClass where
-  prettyCookedOpt opts (Script.AssetClass (symbol, name)) =
+instance PrettyCooked Api.AssetClass where
+  prettyCookedOpt opts (Api.AssetClass (symbol, name)) =
     prettyCookedOpt opts symbol
       <+> if symbol /= Api.CurrencySymbol ""
         then prettyCookedOpt opts name

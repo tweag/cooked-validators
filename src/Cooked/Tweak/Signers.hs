@@ -1,6 +1,6 @@
--- | This module defines 'Tweaks' revolving around the signers of a
--- transaction. They assume but do not ensure that the list of signers is free
--- of duplicates.
+-- | This module defines 'Cooked.Tweak.Common.Tweak's revolving around the
+-- signers of a transaction. They assume but do not ensure that the list of
+-- signers is free of duplicates.
 module Cooked.Tweak.Signers
   ( getSignersTweak,
     modifySignersTweak,

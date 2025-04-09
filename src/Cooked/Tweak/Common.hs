@@ -1,4 +1,4 @@
--- | This module defines 'Tweaks' which are the fundamental building blocks of
+-- | This module defines 'Tweak's which are the fundamental building blocks of
 -- our "domain specific language" for attacks. They are essentially skeleton
 -- modifications aware of the mockchain state.
 module Cooked.Tweak.Common
@@ -37,10 +37,17 @@ import Optics.Core
 
 -- * The type of tweaks
 
+-- | A 'MonadTweak' is a 'MonadBlockChainWithoutValidation' where you can also
+-- retrieve and store a 'TxSkel'
 class (MonadPlus m, MonadBlockChainWithoutValidation m) => MonadTweak m where
+  -- | Retrieves the stores 'TxSkel'
   getTxSkel :: m TxSkel
+
+  -- | Stores a 'TxSkel'
   putTxSkel :: TxSkel -> m ()
 
+-- | A 'Tweak' is the most natural instance of 'MonadTweak' where the storing
+-- and retrieving of the 'TxSkel' is performed through a state monad
 type Tweak m = StateT TxSkel (ListT m)
 
 instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
@@ -61,13 +68,14 @@ instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
 --   function (which is also the value it returns in the monad @Tweak m@).
 --
 -- - /modifies/ a 'TxSkel'. Since it can use every method of
---   'MonadBlockChainWithoutValidateTxSkel' to do so, this also includes
---   stateful lookups or even things like waiting for a certain amount of time
---   before submitting the transaction.
+--   'MonadBlockChainWithoutValidation' to do so, this also includes stateful
+--   lookups or even things like waiting for a certain amount of time before
+--   submitting the transaction.
 --
--- If you're using tweaks in a 'MonadModalBlockChain' together with mechanisms
--- like 'withTweak', 'somewhere', or 'everywhere', you should never have areason
--- to use this function.
+-- If you're using tweaks in a 'Cooked.MockChain.Staged.MonadModalBlockChain'
+-- together with mechanisms like 'Cooked.MockChain.Staged.withTweak',
+-- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere',
+-- you should never have a reason to use this function.
 runTweakInChain :: (MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
 runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 
@@ -75,8 +83,9 @@ runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 -- to a transaction skeleton and get all results as a list.
 --
 -- If you're trying to apply a tweak to a transaction directly before it's
--- modified, consider using 'MonadModalBlockChain' and idioms like 'withTweak',
--- 'somewhere', or 'everywhere'.
+-- modified, consider using 'Cooked.MockChain.Staged.MonadModalBlockChain' and
+-- idioms like 'Cooked.MockChain.Staged.withTweak',
+-- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere'.
 runTweakInChain' :: (MonadBlockChainWithoutValidation m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
 runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
 
@@ -94,18 +103,17 @@ instance (Monad m) => Monoid (UntypedTweak m) where
 
 -- * A few fundamental tweaks
 
--- | The never-applicable tweak.
+-- | The never-applicable 'Tweak'.
 failingTweak :: (MonadTweak m) => m a
 failingTweak = mzero
 
--- | The tweak that always applies and leaves the transaction unchanged.
+-- | The 'Tweak' that always applies and leaves the transaction unchanged.
 doNothingTweak :: (MonadTweak m) => m ()
 doNothingTweak = return ()
 
 -- * Constructing Tweaks from Optics
 
--- | The "tweak" that obtains some value from the 'TxSkel'. This does *not*
--- modify the transaction.
+-- | Retrieves some value from the 'TxSkel'
 viewTweak :: (MonadTweak m, Is k A_Getter) => Optic' k is TxSkel a -> m a
 viewTweak optic = getTxSkel <&> view optic
 
@@ -297,9 +305,9 @@ combineModsTweak groupings optic changes = do
 -- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
 -- Sometimes, it can prove more convenient to explicitly state which property
 -- the foci shoud satisfy to be eligible for a modification that cannot fail
--- instead.  'selectP' provides a prism to make such a selection.  The intended
--- use case is 'overTweak (optic % selectP prop) mod' where 'optic' gives the
--- candidate foci, 'prop' is the predicate to be satisfied by the foci, and
--- 'mod' is the modification to be applied to the selected foci.
+-- instead. 'selectP' provides a prism to make such a selection.  The intended
+-- use case is @overTweak (optic % selectP prop) mod@ where @optic@ gives the
+-- candidate foci, @prop@ is the predicate to be satisfied by the foci, and
+-- @mod@ is the modification to be applied to the selected foci.
 selectP :: (a -> Bool) -> Prism' a a
 selectP prop = prism' id (\a -> if prop a then Just a else Nothing)

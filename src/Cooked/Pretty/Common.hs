@@ -20,6 +20,7 @@ import Prettyprinter (Doc, (<+>))
 import Prettyprinter qualified as PP
 import Prettyprinter.Render.String qualified as PP
 
+-- | A standard 'PP.Doc' without any annotation
 type DocCooked = Doc ()
 
 -- | Use this to convert a pretty-printer to a regular show function using
@@ -27,7 +28,7 @@ type DocCooked = Doc ()
 renderString :: (a -> DocCooked) -> a -> String
 renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 
--- | Print an item list with a title.
+-- | Print an item list with a title
 --
 -- >>> prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
 -- Foo
@@ -41,13 +42,16 @@ prettyItemize title bullet items =
       PP.indent 2 . prettyItemizeNoTitle bullet $ items
     ]
 
+-- | Print an item list without a title
 prettyItemizeNoTitle :: DocCooked -> [DocCooked] -> DocCooked
 prettyItemizeNoTitle bullet = PP.vsep . map (bullet <+>)
 
+-- | Print an item list with a title, but only when the list is non-empty
 prettyItemizeNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
 prettyItemizeNonEmpty _ _ [] = Nothing
 prettyItemizeNonEmpty title bullet items = Just $ prettyItemize title bullet items
 
+-- | Print an enumerated item list with a title
 prettyEnumerate :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
 prettyEnumerate title bullet items =
   PP.vsep
@@ -64,7 +68,13 @@ prettyHash PrettyCookedHashOpts {..} bbs@(PlutusTx.BuiltinByteString bs) =
         "#"
           <> ( PP.pretty
                  . take pcOptHashLength
-                 . concatMap (`Numeric.showHex` "")
+                 . concatMap
+                   ( \x ->
+                       let res = Numeric.showHex x ""
+                        in if length res == 1
+                             then '0' : res
+                             else res
+                   )
                  . ByteString.unpack
              )
             bs

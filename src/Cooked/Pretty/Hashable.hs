@@ -1,19 +1,23 @@
 -- | This module provides an interface for plutus elements that can be
--- hashed. This is mostly used to provide alias for hashes when pretty printing
--- those elements.
-module Cooked.Conversion.ToHash where
+-- hashed. This is used to provide aliases for hashes when pretty printing those
+-- elements.
+module Cooked.Pretty.Hashable where
 
-import Cooked.Conversion.ToScriptHash
 import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V1.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
+-- | Hashable elements can be transformed to 'Api.BuiltinByteString'
 class ToHash a where
   toHash :: a -> Api.BuiltinByteString
 
 instance ToHash Api.CurrencySymbol where
   toHash = Api.unCurrencySymbol
+
+instance ToHash Api.TokenName where
+  toHash = Api.unTokenName
 
 instance ToHash Api.PubKeyHash where
   toHash = Api.getPubKeyHash
@@ -22,10 +26,10 @@ instance ToHash Wallet where
   toHash = toHash . walletPKHash
 
 instance ToHash (Script.Versioned Script.MintingPolicy) where
-  toHash = toHash . Script.scriptCurrencySymbol
+  toHash = toHash . Script.toCurrencySymbol
 
 instance ToHash (Script.Versioned Script.Script) where
-  toHash = toHash . toScriptHash
+  toHash = toHash . Script.toScriptHash
 
 instance ToHash Script.ScriptHash where
   toHash = Script.getScriptHash
@@ -45,3 +49,6 @@ instance ToHash Api.TxId where
 instance ToHash Api.Address where
   toHash (Api.Address (Api.PubKeyCredential pkh) _) = toHash pkh
   toHash (Api.Address (Api.ScriptCredential vh) _) = toHash vh
+
+instance ToHash (Script.MultiPurposeScript a) where
+  toHash = toHash . Script.toVersioned @Script.Script
