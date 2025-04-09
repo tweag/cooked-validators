@@ -2,8 +2,8 @@
 </span><span id="line-2"></span><span class="hs-comment">-- skeletons, utxo states, addresses, pubkey hashes, values, etc.</span><span>
 </span><span id="line-3"></span><span class="hs-comment">--</span><span>
 </span><span id="line-4"></span><span class="hs-comment">-- We provide the 'PrettyCooked' class and instances for common Plutus types.</span><span>
-</span><span id="line-5"></span><span class="hs-comment">-- We don't rely on 'Pretty' from &quot;Prettyprinter&quot; in order to define better</span><span>
-</span><span id="line-6"></span><span class="hs-comment">-- printers for Plutus types which already have instances of 'Pretty'. Also,</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- We don't rely on 'PP.Pretty' from &quot;Prettyprinter&quot; in order to define better</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- printers for Plutus types which already have instances of 'PP.Pretty'. Also,</span><span>
 </span><span id="line-7"></span><span class="hs-comment">-- 'PrettyCooked' makes it possible to optionally modify pretty printing</span><span>
 </span><span id="line-8"></span><span class="hs-comment">-- settings 'PrettyCookedOpts' (e.g. length of printed hashes).</span><span>
 </span><span id="line-9"></span><span class="hs-comment">--</span><span>
@@ -11,8 +11,8 @@
 </span><span id="line-11"></span><span class="hs-comment">--</span><span>
 </span><span id="line-12"></span><span class="hs-comment">-- Datums and redeemers are required to have a 'PrettyCooked' instance.</span><span>
 </span><span id="line-13"></span><span class="hs-comment">--</span><span>
-</span><span id="line-14"></span><span class="hs-comment">-- For trivial datatypes, you can rely on Show by using 'viaShow' from</span><span>
-</span><span id="line-15"></span><span class="hs-comment">-- &quot;Prettyprinter&quot;: 'prettyCooked = Prettyprinter.viaShow'.</span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- For trivial datatypes, you can rely on Show by using 'PrettyPrinter.viaShow'</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- from &quot;Prettyprinter&quot;: @prettyCooked = Prettyprinter.viaShow@.</span><span>
 </span><span id="line-16"></span><span class="hs-comment">--</span><span>
 </span><span id="line-17"></span><span class="hs-comment">-- For more complex datatypes, you can rely on existing 'PrettyCooked'</span><span>
 </span><span id="line-18"></span><span class="hs-comment">-- instances. Prefer implementing the 'prettyCookedOpt' function and relay the</span><span>
@@ -32,8 +32,8 @@
 </span><span id="line-32"></span><span class="hs-comment">-- @</span><span>
 </span><span id="line-33"></span><span class="hs-comment">--</span><span>
 </span><span id="line-34"></span><span class="hs-comment">-- The 'prettyItemize' function is useful to nicely lay down nested lists of</span><span>
-</span><span id="line-35"></span><span class="hs-comment">-- elements. Since we manipulate regular 'Doc' values, any function from</span><span>
-</span><span id="line-36"></span><span class="hs-comment">-- &quot;Prettyprinter&quot; can be used to implement your printers.</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- elements. Since we manipulate regular 'PrettyPrinter.Doc' values, any</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- function from &quot;Prettyprinter&quot; can be used to implement your printers.</span><span>
 </span><span id="line-37"></span><span class="hs-comment">--</span><span>
 </span><span id="line-38"></span><span class="hs-comment">-- == How to pretty print?</span><span>
 </span><span id="line-39"></span><span class="hs-comment">--</span><span>
@@ -41,11 +41,14 @@
 </span><span id="line-41"></span><span class="hs-comment">-- automatically by the end-user functions provided in</span><span>
 </span><span id="line-42"></span><span class="hs-comment">-- &quot;Cooked.MockChain.Testing&quot;.</span><span>
 </span><span id="line-43"></span><span class="hs-comment">--</span><span>
-</span><span id="line-44"></span><span class="hs-comment">-- To do it manually, use 'prettyTxSkel' or 'prettyUtxoState'.</span><span>
-</span><span id="line-45"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Pretty</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">module</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-46"></span><span>
-</span><span id="line-47"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-48"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html"><span class="hs-identifier">Cooked.Pretty.Common</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Cooked.html"><span class="hs-identifier">Cooked.Pretty.Cooked</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html"><span class="hs-identifier">Cooked.Pretty.Options</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-51"></span></pre></body></html>
+</span><span id="line-44"></span><span class="hs-comment">-- To do it manually, use functions defined in 'Cooked.Pretty.Cooked' such as</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- 'prettyTxSkel' or instance of 'PrettyCooked' such as the one for</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- @MockChainReturn a UtxoState@.</span><span>
+</span><span id="line-47"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Pretty</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">module</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html"><span class="hs-identifier">Cooked.Pretty.Common</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Cooked.html"><span class="hs-identifier">Cooked.Pretty.Cooked</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html"><span class="hs-identifier">Cooked.Pretty.Hashable</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html"><span class="hs-identifier">Cooked.Pretty.Options</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-54"></span></pre></body></html>

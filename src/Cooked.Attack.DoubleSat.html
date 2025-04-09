@@ -18,140 +18,131 @@
 </span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
 </span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
 </span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V1.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
 </span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
 </span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Numeric</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
 </span><span id="line-24"></span><span>
 </span><span id="line-25"></span><span class="hs-comment">{- Note: What is a double satisfaction attack?
 
-A double satisfaction attack consists in trying to satisfy the
-requirements for what conceptually are two transactions in a single
-transaction, and doing so incompletely. It succeeds whenever the
-requirements of two validators ovelap, but the required outputs of the
-transaction are not sufficiently unique, so that both validators see
-them as satisfying &quot;their&quot; requirement.
+A double satisfaction attack consists in trying to satisfy the requirements for
+what conceptually are two transactions in a single transaction, and doing so
+incompletely. It succeeds whenever the requirements of two validators ovelap,
+but the required outputs of the transaction are not sufficiently unique, so that
+both validators see them as satisfying &quot;their&quot; requirement.
 
-The mechanism is explained very well in the following analogy from the
-Plutus documentation: &quot;Suppose that two tax auditors from two
-different departments come to visit you in turn to see if you&#8217;ve paid
-your taxes. You come up with a clever scheme to confuse them. Your tax
-liability to both departments is $10, so you make a single payment to
-the tax office&#8217;s bank account for $10. When the auditors arrive, you
-show them your books, containing the payment to the tax office. They
-both leave satisfied.&quot;
+The mechanism is explained very well in the following analogy from the Plutus
+documentation: &quot;Suppose that two tax auditors from two different departments
+come to visit you in turn to see if you&#8217;ve paid your taxes. You come up with a
+clever scheme to confuse them. Your tax liability to both departments is $10, so
+you make a single payment to the tax office&#8217;s bank account for $10. When the
+auditors arrive, you show them your books, containing the payment to the tax
+office. They both leave satisfied.&quot;
 
-The double satisfaction attack 'doubleSatAttack' provided by this
-module works by going through the foci of some optic on the 'TxSkel'
-representing the transaction from the left to the right, and adding
-some extra inputs, outputs, and mints depending on each focus and the
-current 'MockChainSt'ate. -}</span><span>
-</span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="hs-comment">-- | A triple of transaction inputs, transaction outputs, and minted</span><span>
-</span><span id="line-50"></span><span class="hs-comment">-- value. This is what we can add to the transaction in order to try a</span><span>
-</span><span id="line-51"></span><span class="hs-comment">-- double satisfaction attack.</span><span>
-</span><span id="line-52"></span><span class="hs-keyword">type</span><span> </span><span id="DoubleSatDelta"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-var">DoubleSatDelta</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-53"></span><span>
-</span><span id="line-54"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679819952"><span id="local-6989586621679819956"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-55"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679819967"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679819967"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819968"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819968"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819969"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679819969"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679819970"><span class="annot"><span class="annottext">&lt;&gt; :: DoubleSatDelta -&gt; DoubleSatDelta -&gt; DoubleSatDelta
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819971"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679819971"><span class="hs-identifier hs-var">i'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819972"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819972"><span class="hs-identifier hs-var">o'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819973"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679819973"><span class="hs-identifier hs-var">m'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-56"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679819967"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+The double satisfaction attack 'doubleSatAttack' provided by this module works
+by going through the foci of some optic on the 'TxSkel' representing the
+transaction from the left to the right, and adding some extra inputs, outputs,
+and mints depending on each focus and the current 'MockChainSt'ate. -}</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- | A triplet of transaction inputs, transaction outputs, and minted</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- value. This is what we can add to the transaction in order to try a double</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- satisfaction attack.</span><span>
+</span><span id="line-49"></span><span class="hs-keyword">type</span><span> </span><span id="DoubleSatDelta"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-var">DoubleSatDelta</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679832560"><span id="local-6989586621679832564"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679832575"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679832575"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832576"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679832576"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832577"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679832577"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679832578"><span class="annot"><span class="annottext">&lt;&gt; :: DoubleSatDelta -&gt; DoubleSatDelta -&gt; DoubleSatDelta
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679832579"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679832579"><span class="hs-identifier hs-var">i'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832580"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679832580"><span class="hs-identifier hs-var">o'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832581"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679832581"><span class="hs-identifier hs-var">m'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679832575"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
 -&gt; Map TxOutRef TxSkelRedeemer -&gt; Map TxOutRef TxSkelRedeemer
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679819971"><span class="hs-identifier hs-var">i'</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- this is left-biased union</span><span>
-</span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819968"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679832579"><span class="hs-identifier hs-var">i'</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- this is left-biased union</span><span>
+</span><span id="line-54"></span><span>      </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679832576"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819972"><span class="hs-identifier hs-var">o'</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679819969"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; TxSkelMints -&gt; TxSkelMints
+</span><a href="#local-6989586621679832580"><span class="hs-identifier hs-var">o'</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-55"></span><span>      </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679832577"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; TxSkelMints -&gt; TxSkelMints
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679819973"><span class="hs-identifier hs-var">m'</span></a></span><span> </span><span class="hs-comment">-- see the 'Semigroup' instance of 'TxSkelMints'</span><span>
-</span><span id="line-59"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-60"></span><span>
-</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679819978"><span id="local-6989586621679819982"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-62"></span><span>  </span><span id="local-6989586621679819987"><span class="annot"><span class="annottext">mempty :: DoubleSatDelta
+</span><a href="#local-6989586621679832581"><span class="hs-identifier hs-var">m'</span></a></span><span> </span><span class="hs-comment">-- see the 'Semigroup' instance of 'TxSkelMints'</span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679832586"><span id="local-6989586621679832590"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679832595"><span class="annot"><span class="annottext">mempty :: DoubleSatDelta
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
-</span><span id="line-63"></span><span>
-</span><span id="line-64"></span><span class="hs-comment">-- | Double satisfaction attack. See the comment above for what such an</span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- attack is about conceptually.</span><span>
-</span><span id="line-66"></span><span class="hs-comment">--</span><span>
-</span><span id="line-67"></span><span class="hs-comment">-- This attack consists in adding some extra constraints to a</span><span>
-</span><span id="line-68"></span><span class="hs-comment">-- transaction, and hoping that the additional minting policies or</span><span>
-</span><span id="line-69"></span><span class="hs-comment">-- validator scripts thereby involved are fooled by what's already</span><span>
-</span><span id="line-70"></span><span class="hs-comment">-- present on the transaction. Any extra value contained in new inputs</span><span>
-</span><span id="line-71"></span><span class="hs-comment">-- to the transaction is then paid to the attacker.</span><span>
-</span><span id="line-72"></span><span id="local-6989586621679819811"><span id="local-6989586621679819813"><span id="local-6989586621679819814"><span id="local-6989586621679819819"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-type">doubleSatAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-73"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819811"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679819813"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679819814"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-74"></span><span>  </span><span class="hs-comment">-- | how to combine modifications from caused by different foci. See</span><span>
-</span><span id="line-75"></span><span>  </span><span class="hs-comment">-- the comment at 'combineModsTweak', which uses the same logic.</span><span>
-</span><span id="line-76"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679819813"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679819813"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-77"></span><span>  </span><span class="hs-comment">-- | Each focus of this optic is a potential reason to add some</span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-comment">-- extra constraints.</span><span>
-</span><span id="line-79"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-80"></span><span>  </span><span class="hs-comment">-- As an example, one could go through the 'paysScript' outputs for</span><span>
-</span><span id="line-81"></span><span>  </span><span class="hs-comment">-- validators of type @t@ with the following traversal:</span><span>
-</span><span id="line-82"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-83"></span><span>  </span><span class="hs-comment">-- &gt; txSkelOutsL % itaversed % txSkelOutputToTypedValidatorP @t</span><span>
-</span><span id="line-84"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679819814"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithIx</span></span><span> </span><span class="annot"><a href="#local-6989586621679819813"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819819"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-85"></span><span>  </span><span class="hs-comment">-- | How to change each focus, and which inputs, outputs, and mints</span><span>
-</span><span id="line-86"></span><span>  </span><span class="hs-comment">-- to add, for each of the foci. There might be different options</span><span>
-</span><span id="line-87"></span><span>  </span><span class="hs-comment">-- for each focus, that's why the return value is a list.</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | Double satisfaction attack. See the comment above for what such an</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- attack is about conceptually.</span><span>
+</span><span id="line-63"></span><span class="hs-comment">--</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- This attack consists in adding some extra constraints to a transaction, and</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- hoping that the additional minting policies or validator scripts thereby</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- involved are fooled by what's already present on the transaction. Any extra</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- value contained in new inputs to the transaction is then paid to the</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- attacker.</span><span>
+</span><span id="line-69"></span><span id="local-6989586621679832421"><span id="local-6989586621679832423"><span id="local-6989586621679832424"><span id="local-6989586621679832429"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-type">doubleSatAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679832421"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679832423"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679832424"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-comment">-- | how to combine modifications from caused by different foci. See the</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-comment">-- comment at 'combineModsTweak', which uses the same logic.</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679832423"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679832423"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-comment">-- | Each focus of this optic is a potential reason to add some extra</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-comment">-- constraints.</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679832424"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithIx</span></span><span> </span><span class="annot"><a href="#local-6989586621679832423"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679832429"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-comment">-- | How to change each focus, and which inputs, outputs, and mints to add,</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-comment">-- for each of the foci. There might be different options for each focus,</span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-comment">-- that's why the return value is a list.</span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-comment">-- Continuing the example, for each of the focused script outputs, you might</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-comment">-- want to try adding some script inputs to the transaction. Since it might be</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-comment">-- interesting to try different redeemers on these extra script inputs, you</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-comment">-- can just provide a list of all the options you want to try adding for a</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-comment">-- given script output that's already on the transaction.</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-comment">-- ###################################</span><span>
 </span><span id="line-88"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-89"></span><span>  </span><span class="hs-comment">-- Continuing the example, for each of the focused 'paysScript'</span><span>
-</span><span id="line-90"></span><span>  </span><span class="hs-comment">-- outputs, you might want to try adding some 'spendsScript' inputs</span><span>
-</span><span id="line-91"></span><span>  </span><span class="hs-comment">-- to the transaction. Since it might be interesting to try</span><span>
-</span><span id="line-92"></span><span>  </span><span class="hs-comment">-- different redeemers on these extra 'spendsScript' inputs, you can</span><span>
-</span><span id="line-93"></span><span>  </span><span class="hs-comment">-- just provide a list of all the options you want to try adding for</span><span>
-</span><span id="line-94"></span><span>  </span><span class="hs-comment">-- a given 'paysScript' that's already on the transaction.</span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-comment">-- ATTENTION: If you modify the state while computing these lists, the</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-comment">-- behaviour of the 'doubleSatAttack' might be strange: Any modification of</span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-comment">-- the state that happens on any call to this function will be applied to all</span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-comment">-- returned transactions. For example, if you</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-comment">-- 'Cooked.MockChain.BlockChain.awaitSlot' in any of these computations, the</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-comment">-- 'doubleSatAttack' will wait for all returned transactions.</span><span>
 </span><span id="line-95"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-96"></span><span>  </span><span class="hs-comment">-- ###################################</span><span>
-</span><span id="line-97"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-98"></span><span>  </span><span class="hs-comment">-- ATTENTION: If you modify the state while computing these lists,</span><span>
-</span><span id="line-99"></span><span>  </span><span class="hs-comment">-- the behaviour of the 'doubleSatAttack' might be strange: Any</span><span>
-</span><span id="line-100"></span><span>  </span><span class="hs-comment">-- modification of the state that happens on any call to this</span><span>
-</span><span id="line-101"></span><span>  </span><span class="hs-comment">-- function will be applied to all returned transactions. For</span><span>
-</span><span id="line-102"></span><span>  </span><span class="hs-comment">-- example, if you 'awaitTime' in any of these computations, the</span><span>
-</span><span id="line-103"></span><span>  </span><span class="hs-comment">-- 'doubleSatAttack' will wait for all returned transactions.</span><span>
-</span><span id="line-104"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-105"></span><span>  </span><span class="hs-comment">-- TODO: Make this interface safer, for example by using (some kind</span><span>
-</span><span id="line-106"></span><span>  </span><span class="hs-comment">-- of) an 'UtxoState' argument.</span><span>
-</span><span id="line-107"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-108"></span><span>  </span><span class="hs-comment">-- ###################################</span><span>
-</span><span id="line-109"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679819813"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679819819"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679819811"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679819819"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-110"></span><span>  </span><span class="hs-comment">-- | The wallet of the attacker, where any surplus is paid to.</span><span>
-</span><span id="line-111"></span><span>  </span><span class="hs-comment">--</span><span>
-</span><span id="line-112"></span><span>  </span><span class="hs-comment">-- In the example, the extra value in the added 'spendsScript'</span><span>
-</span><span id="line-113"></span><span>  </span><span class="hs-comment">-- constraints will be paid to the attacker.</span><span>
-</span><span id="line-114"></span><span>  </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-115"></span><span>  </span><span class="annot"><a href="#local-6989586621679819811"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span><span>
-</span><span id="line-116"></span><span id="doubleSatAttack"><span class="annot"><span class="annottext">doubleSatAttack :: forall (m :: * -&gt; *) is k a.
+</span><span id="line-96"></span><span>  </span><span class="hs-comment">-- TODO: Make this interface safer, for example by using (some kind of) an</span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-comment">-- 'Cooked.MockChain.UtxoState.UtxoState' argument.</span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-comment">-- ###################################</span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679832423"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679832429"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679832421"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679832429"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-comment">-- | The wallet of the attacker, where any surplus is paid to.</span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-comment">-- In the example, the extra value in the added input will be paid to the</span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-comment">-- attacker.</span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-106"></span><span>  </span><span class="annot"><a href="#local-6989586621679832421"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-107"></span><span id="doubleSatAttack"><span class="annot"><span class="annottext">doubleSatAttack :: forall (m :: * -&gt; *) is k a.
 (MonadTweak m, Eq is, Is k A_Traversal) =&gt;
 ([is] -&gt; [[is]])
 -&gt; Optic' k (WithIx is) TxSkel a
 -&gt; (is -&gt; a -&gt; m [(a, DoubleSatDelta)])
 -&gt; Wallet
 -&gt; m ()
-</span><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-var hs-var">doubleSatAttack</span></a></span></span><span> </span><span id="local-6989586621679820031"><span class="annot"><span class="annottext">[is] -&gt; [[is]]
-</span><a href="#local-6989586621679820031"><span class="hs-identifier hs-var">groupings</span></a></span></span><span> </span><span id="local-6989586621679820032"><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
-</span><a href="#local-6989586621679820032"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679820033"><span class="annot"><span class="annottext">is -&gt; a -&gt; m [(a, DoubleSatDelta)]
-</span><a href="#local-6989586621679820033"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679820034"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679820034"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-117"></span><span>  </span><span id="local-6989586621679820035"><span class="annot"><span class="annottext">[DoubleSatDelta]
-</span><a href="#local-6989586621679820035"><span class="hs-identifier hs-var">deltas</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">([is] -&gt; [[is]])
+</span><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-var hs-var">doubleSatAttack</span></a></span></span><span> </span><span id="local-6989586621679832640"><span class="annot"><span class="annottext">[is] -&gt; [[is]]
+</span><a href="#local-6989586621679832640"><span class="hs-identifier hs-var">groupings</span></a></span></span><span> </span><span id="local-6989586621679832641"><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
+</span><a href="#local-6989586621679832641"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679832642"><span class="annot"><span class="annottext">is -&gt; a -&gt; m [(a, DoubleSatDelta)]
+</span><a href="#local-6989586621679832642"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679832643"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679832643"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679832644"><span class="annot"><span class="annottext">[DoubleSatDelta]
+</span><a href="#local-6989586621679832644"><span class="hs-identifier hs-var">deltas</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">([is] -&gt; [[is]])
 -&gt; Optic' k (WithIx is) TxSkel a
 -&gt; (is -&gt; a -&gt; m [(a, DoubleSatDelta)])
 -&gt; m [DoubleSatDelta]
@@ -162,33 +153,33 @@ forall is k (m :: * -&gt; *) x l.
 -&gt; (is -&gt; x -&gt; m [(x, l)])
 -&gt; m [l]
 </span><a href="Cooked.Tweak.Common.html#combineModsTweak"><span class="hs-identifier hs-var">combineModsTweak</span></a></span><span> </span><span class="annot"><span class="annottext">[is] -&gt; [[is]]
-</span><a href="#local-6989586621679820031"><span class="hs-identifier hs-var">groupings</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
-</span><a href="#local-6989586621679820032"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">is -&gt; a -&gt; m [(a, DoubleSatDelta)]
-</span><a href="#local-6989586621679820033"><span class="hs-identifier hs-var">change</span></a></span><span>
-</span><span id="line-118"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679820036"><span class="annot"><span class="annottext">delta :: DoubleSatDelta
-</span><a href="#local-6989586621679820036"><span class="hs-identifier hs-var hs-var">delta</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[DoubleSatDelta] -&gt; DoubleSatDelta
-</span><a href="#local-6989586621679820037"><span class="hs-identifier hs-var">joinDoubleSatDeltas</span></a></span><span> </span><span class="annot"><span class="annottext">[DoubleSatDelta]
-</span><a href="#local-6989586621679820035"><span class="hs-identifier hs-var">deltas</span></a></span><span>
-</span><span id="line-119"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatDelta -&gt; m ()
+</span><a href="#local-6989586621679832640"><span class="hs-identifier hs-var">groupings</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
+</span><a href="#local-6989586621679832641"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">is -&gt; a -&gt; m [(a, DoubleSatDelta)]
+</span><a href="#local-6989586621679832642"><span class="hs-identifier hs-var">change</span></a></span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679832645"><span class="annot"><span class="annottext">delta :: DoubleSatDelta
+</span><a href="#local-6989586621679832645"><span class="hs-identifier hs-var hs-var">delta</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[DoubleSatDelta] -&gt; DoubleSatDelta
+</span><a href="#local-6989586621679832646"><span class="hs-identifier hs-var">joinDoubleSatDeltas</span></a></span><span> </span><span class="annot"><span class="annottext">[DoubleSatDelta]
+</span><a href="#local-6989586621679832644"><span class="hs-identifier hs-var">deltas</span></a></span><span>
+</span><span id="line-110"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatDelta -&gt; m ()
 forall (m :: * -&gt; *). MonadTweak m =&gt; DoubleSatDelta -&gt; m ()
-</span><a href="#local-6989586621679820038"><span class="hs-identifier hs-var">addDoubleSatDeltaTweak</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatDelta
-</span><a href="#local-6989586621679820036"><span class="hs-identifier hs-var">delta</span></a></span><span>
-</span><span id="line-120"></span><span>  </span><span id="local-6989586621679820039"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820039"><span class="hs-identifier hs-var">addedValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">DoubleSatDelta -&gt; m Value
+</span><a href="#local-6989586621679832647"><span class="hs-identifier hs-var">addDoubleSatDeltaTweak</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatDelta
+</span><a href="#local-6989586621679832645"><span class="hs-identifier hs-var">delta</span></a></span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679832648"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679832648"><span class="hs-identifier hs-var">addedValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">DoubleSatDelta -&gt; m Value
 forall (m :: * -&gt; *). MonadTweak m =&gt; DoubleSatDelta -&gt; m Value
-</span><a href="#local-6989586621679820040"><span class="hs-identifier hs-var">deltaBalance</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatDelta
-</span><a href="#local-6989586621679820036"><span class="hs-identifier hs-var">delta</span></a></span><span>
-</span><span id="line-121"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820039"><span class="hs-identifier hs-var">addedValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
-</span><span class="hs-operator hs-var">`Script.gt`</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679832649"><span class="hs-identifier hs-var">deltaBalance</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatDelta
+</span><a href="#local-6989586621679832645"><span class="hs-identifier hs-var">delta</span></a></span><span>
+</span><span id="line-112"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679832648"><span class="hs-identifier hs-var">addedValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
+</span><span class="hs-operator hs-var">`Api.gt`</span></span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
-</span><span id="line-122"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m ()
+</span><span id="line-113"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m ()
 forall (m :: * -&gt; *). MonadTweak m =&gt; TxSkelOut -&gt; m ()
 </span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var">addOutputTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; m ()) -&gt; TxSkelOut -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679820034"><span class="hs-identifier hs-var">attacker</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Payable '[&quot;Value&quot;] -&gt; TxSkelOut
+</span><a href="#local-6989586621679832643"><span class="hs-identifier hs-var">attacker</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Payable '[&quot;Value&quot;] -&gt; TxSkelOut
 forall owner (els :: [Symbol]).
 (Show owner, Typeable owner, IsTxSkelOutAllowedOwner owner,
  ToCredential owner) =&gt;
@@ -196,25 +187,25 @@ owner -&gt; Payable els -&gt; TxSkelOut
 </span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-operator hs-var">`receives`</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Payable '[&quot;Value&quot;]
 forall a1. ToValue a1 =&gt; a1 -&gt; Payable '[&quot;Value&quot;]
 </span><a href="Cooked.Skeleton.Payable.html#Value"><span class="hs-identifier hs-var">Value</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820039"><span class="hs-identifier hs-var">addedValue</span></a></span><span>
-</span><span id="line-123"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">m ()
+</span><a href="#local-6989586621679832648"><span class="hs-identifier hs-var">addedValue</span></a></span><span>
+</span><span id="line-114"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">m ()
 forall (m :: * -&gt; *) a. MonadTweak m =&gt; m a
 </span><a href="Cooked.Tweak.Common.html#failingTweak"><span class="hs-identifier hs-var">failingTweak</span></a></span><span>
-</span><span id="line-124"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatLbl -&gt; m ()
+</span><span id="line-115"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatLbl
 </span><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span><span>
-</span><span id="line-125"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-126"></span><span>    </span><span class="hs-comment">-- for each triple of additional inputs, outputs, and mints,</span><span>
-</span><span id="line-127"></span><span>    </span><span class="hs-comment">-- calculate its balance</span><span>
-</span><span id="line-128"></span><span>    </span><span id="local-6989586621679819845"><span class="annot"><a href="#local-6989586621679820040"><span class="hs-identifier hs-type">deltaBalance</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819845"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679819845"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
-</span><span id="line-129"></span><span>    </span><span id="local-6989586621679820040"><span class="annot"><span class="annottext">deltaBalance :: forall (m :: * -&gt; *). MonadTweak m =&gt; DoubleSatDelta -&gt; m Value
-</span><a href="#local-6989586621679820040"><span class="hs-identifier hs-var hs-var">deltaBalance</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679820093"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679820093"><span class="hs-identifier hs-var">inputs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679820094"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679820094"><span class="hs-identifier hs-var">outputs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679820095"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679820095"><span class="hs-identifier hs-var">mints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-130"></span><span>      </span><span id="local-6989586621679820096"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820096"><span class="hs-identifier hs-var">inValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((TxOutRef, TxOut) -&gt; Value) -&gt; [(TxOutRef, TxOut)] -&gt; Value
+</span><span id="line-116"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-comment">-- for each triple of additional inputs, outputs, and mints,</span><span>
+</span><span id="line-118"></span><span>    </span><span class="hs-comment">-- calculate its balance</span><span>
+</span><span id="line-119"></span><span>    </span><span id="local-6989586621679832455"><span class="annot"><a href="#local-6989586621679832649"><span class="hs-identifier hs-type">deltaBalance</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679832455"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679832455"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-120"></span><span>    </span><span id="local-6989586621679832649"><span class="annot"><span class="annottext">deltaBalance :: forall (m :: * -&gt; *). MonadTweak m =&gt; DoubleSatDelta -&gt; m Value
+</span><a href="#local-6989586621679832649"><span class="hs-identifier hs-var hs-var">deltaBalance</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679832702"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679832702"><span class="hs-identifier hs-var">inputs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832703"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679832703"><span class="hs-identifier hs-var">outputs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832704"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679832704"><span class="hs-identifier hs-var">mints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-121"></span><span>      </span><span id="local-6989586621679832705"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679832705"><span class="hs-identifier hs-var">inValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((TxOutRef, TxOut) -&gt; Value) -&gt; [(TxOutRef, TxOut)] -&gt; Value
 forall m a. Monoid m =&gt; (a -&gt; m) -&gt; [a] -&gt; m
 forall (t :: * -&gt; *) m a.
 (Foldable t, Monoid m) =&gt;
@@ -240,7 +231,7 @@ forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [TxOutRef]
 forall k a. Map k a -&gt; [k]
 </span><span class="hs-identifier hs-var">Map.keys</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679820093"><span class="hs-identifier hs-var">inputs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; Bool)
+</span><a href="#local-6989586621679832702"><span class="hs-identifier hs-var">inputs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; Bool)
 -&gt; ((TxOutRef, TxOut) -&gt; TxOutRef) -&gt; (TxOutRef, TxOut) -&gt; Bool
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxOut) -&gt; TxOutRef
@@ -252,24 +243,24 @@ forall (m :: * -&gt; *).
 MonadBlockChainWithoutValidation m =&gt;
 m [(TxOutRef, TxOut)]
 </span><a href="Cooked.MockChain.BlockChain.html#allUtxos"><span class="hs-identifier hs-var">allUtxos</span></a></span><span>
-</span><span id="line-131"></span><span>      </span><span class="annot"><span class="annottext">Value -&gt; m Value
+</span><span id="line-122"></span><span>      </span><span class="annot"><span class="annottext">Value -&gt; m Value
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; m Value) -&gt; Value -&gt; m Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820096"><span class="hs-identifier hs-var">inValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679832705"><span class="hs-identifier hs-var">inValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">PlutusTx.negate</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820107"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679832716"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679820108"><span class="hs-identifier hs-var">mintValue</span></a></span><span>
-</span><span id="line-132"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-133"></span><span>        </span><span id="local-6989586621679820107"><span class="annot"><span class="annottext">outValue :: Value
-</span><a href="#local-6989586621679820107"><span class="hs-identifier hs-var hs-var">outValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] [TxSkelOut] Value -&gt; [TxSkelOut] -&gt; Value
+</span><a href="#local-6989586621679832717"><span class="hs-identifier hs-var">mintValue</span></a></span><span>
+</span><span id="line-123"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-124"></span><span>        </span><span id="local-6989586621679832716"><span class="annot"><span class="annottext">outValue :: Value
+</span><a href="#local-6989586621679832716"><span class="hs-identifier hs-var hs-var">outValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] [TxSkelOut] Value -&gt; [TxSkelOut] -&gt; Value
 forall k a (is :: IxList) s.
 (Is k A_Fold, Monoid a) =&gt;
 Optic' k is s a -&gt; s -&gt; a
@@ -307,20 +298,20 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkelOutValue TxSkelOutValue Value Value
 </span><a href="Cooked.Skeleton.Value.html#txSkelOutValueContentL"><span class="hs-identifier hs-var">txSkelOutValueContentL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679820094"><span class="hs-identifier hs-var">outputs</span></a></span><span>
-</span><span id="line-134"></span><span>        </span><span id="local-6989586621679820108"><span class="annot"><span class="annottext">mintValue :: Value
-</span><a href="#local-6989586621679820108"><span class="hs-identifier hs-var hs-var">mintValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
+</span><a href="#local-6989586621679832703"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><span id="line-125"></span><span>        </span><span id="local-6989586621679832717"><span class="annot"><span class="annottext">mintValue :: Value
+</span><a href="#local-6989586621679832717"><span class="hs-identifier hs-var hs-var">mintValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier hs-var">txSkelMintsValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679820095"><span class="hs-identifier hs-var">mints</span></a></span><span>
-</span><span id="line-135"></span><span>
-</span><span id="line-136"></span><span>    </span><span class="hs-comment">-- Helper tweak to add a 'DoubleSatDelta' to a transaction</span><span>
-</span><span id="line-137"></span><span>    </span><span id="local-6989586621679819844"><span class="annot"><a href="#local-6989586621679820038"><span class="hs-identifier hs-type">addDoubleSatDeltaTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819844"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679819844"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-138"></span><span>    </span><span id="local-6989586621679820038"><span class="annot"><span class="annottext">addDoubleSatDeltaTweak :: forall (m :: * -&gt; *). MonadTweak m =&gt; DoubleSatDelta -&gt; m ()
-</span><a href="#local-6989586621679820038"><span class="hs-identifier hs-var hs-var">addDoubleSatDeltaTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679820129"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679820129"><span class="hs-identifier hs-var">ins</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679820130"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679820130"><span class="hs-identifier hs-var">outs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679820131"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679820131"><span class="hs-identifier hs-var">mints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-139"></span><span>      </span><span class="annot"><span class="annottext">((TxOutRef, TxSkelRedeemer) -&gt; m ())
+</span><a href="#local-6989586621679832704"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span>    </span><span class="hs-comment">-- Helper tweak to add a 'DoubleSatDelta' to a transaction</span><span>
+</span><span id="line-128"></span><span>    </span><span id="local-6989586621679832454"><span class="annot"><a href="#local-6989586621679832647"><span class="hs-identifier hs-type">addDoubleSatDeltaTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679832454"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679832454"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-129"></span><span>    </span><span id="local-6989586621679832647"><span class="annot"><span class="annottext">addDoubleSatDeltaTweak :: forall (m :: * -&gt; *). MonadTweak m =&gt; DoubleSatDelta -&gt; m ()
+</span><a href="#local-6989586621679832647"><span class="hs-identifier hs-var hs-var">addDoubleSatDeltaTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679832738"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679832738"><span class="hs-identifier hs-var">ins</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832739"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679832739"><span class="hs-identifier hs-var">outs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832740"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679832740"><span class="hs-identifier hs-var">mints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-130"></span><span>      </span><span class="annot"><span class="annottext">((TxOutRef, TxSkelRedeemer) -&gt; m ())
 -&gt; [(TxOutRef, TxSkelRedeemer)] -&gt; m ()
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Foldable t, Monad m) =&gt;
@@ -335,8 +326,8 @@ TxOutRef -&gt; TxSkelRedeemer -&gt; m ()
 </span><a href="Cooked.Tweak.Inputs.html#addInputTweak"><span class="hs-identifier hs-var">addInputTweak</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679820129"><span class="hs-identifier hs-var">ins</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-140"></span><span>        </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+</span><a href="#local-6989586621679832738"><span class="hs-identifier hs-var">ins</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>        </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
 forall a b. m a -&gt; m b -&gt; m b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; m ()) -&gt; [TxSkelOut] -&gt; m ()
@@ -346,38 +337,32 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 </span><span class="hs-identifier hs-var">mapM_</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m ()
 forall (m :: * -&gt; *). MonadTweak m =&gt; TxSkelOut -&gt; m ()
 </span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var">addOutputTweak</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679820130"><span class="hs-identifier hs-var">outs</span></a></span><span>
-</span><span id="line-141"></span><span>        </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+</span><a href="#local-6989586621679832739"><span class="hs-identifier hs-var">outs</span></a></span><span>
+</span><span id="line-132"></span><span>        </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
 forall a b. m a -&gt; m b -&gt; m b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
-</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
- -&gt; m ())
--&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
--&gt; m ()
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(Mint -&gt; m ()) -&gt; [Mint] -&gt; m ()
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Foldable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m ()
-</span><span class="hs-identifier hs-var">mapM_</span></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
--&gt; m ()
-forall (m :: * -&gt; *).
-MonadTweak m =&gt;
-(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)
--&gt; m ()
-</span><a href="Cooked.Tweak.Mint.html#addMintTweak"><span class="hs-identifier hs-var">addMintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints
--&gt; [(Versioned MintingPolicy, TxSkelRedeemer, TokenName, Integer)]
+</span><span class="hs-identifier hs-var">mapM_</span></span><span> </span><span class="annot"><span class="annottext">Mint -&gt; m ()
+forall (m :: * -&gt; *). MonadTweak m =&gt; Mint -&gt; m ()
+</span><a href="Cooked.Tweak.Mint.html#addMintTweak"><span class="hs-identifier hs-var">addMintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints -&gt; [Mint]
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679820131"><span class="hs-identifier hs-var">mints</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-142"></span><span>
-</span><span id="line-143"></span><span>    </span><span class="hs-comment">-- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that</span><span>
-</span><span id="line-144"></span><span>    </span><span class="hs-comment">-- specifies eveything that is contained in the input.</span><span>
-</span><span id="line-145"></span><span>    </span><span class="annot"><a href="#local-6989586621679820037"><span class="hs-identifier hs-type">joinDoubleSatDeltas</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span>
-</span><span id="line-146"></span><span>    </span><span id="local-6989586621679820037"><span class="annot"><span class="annottext">joinDoubleSatDeltas :: [DoubleSatDelta] -&gt; DoubleSatDelta
-</span><a href="#local-6989586621679820037"><span class="hs-identifier hs-var hs-var">joinDoubleSatDeltas</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[DoubleSatDelta] -&gt; DoubleSatDelta
+</span><a href="#local-6989586621679832740"><span class="hs-identifier hs-var">mints</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span>    </span><span class="hs-comment">-- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies</span><span>
+</span><span id="line-135"></span><span>    </span><span class="hs-comment">-- eveything that is contained in the input.</span><span>
+</span><span id="line-136"></span><span>    </span><span class="annot"><a href="#local-6989586621679832646"><span class="hs-identifier hs-type">joinDoubleSatDeltas</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatDelta"><span class="hs-identifier hs-type">DoubleSatDelta</span></a></span><span>
+</span><span id="line-137"></span><span>    </span><span id="local-6989586621679832646"><span class="annot"><span class="annottext">joinDoubleSatDeltas :: [DoubleSatDelta] -&gt; DoubleSatDelta
+</span><a href="#local-6989586621679832646"><span class="hs-identifier hs-var hs-var">joinDoubleSatDeltas</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[DoubleSatDelta] -&gt; DoubleSatDelta
 forall a. Monoid a =&gt; [a] -&gt; a
 </span><span class="hs-identifier hs-var">mconcat</span></span><span>
-</span><span id="line-147"></span><span>
-</span><span id="line-148"></span><span class="hs-keyword">data</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span>
-</span><span id="line-149"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679820139"><span id="local-6989586621679820141"><span class="annot"><span class="annottext">DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+</span><span id="line-138"></span><span>
+</span><span id="line-139"></span><span class="hs-comment">-- | A label that is added to a 'TxSkel' that has successfully been modified by</span><span>
+</span><span id="line-140"></span><span class="hs-comment">-- the 'doubleSatAttack'</span><span>
+</span><span id="line-141"></span><span class="hs-keyword">data</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span>
+</span><span id="line-142"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679832749"><span id="local-6989586621679832751"><span class="annot"><span class="annottext">DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool)
 -&gt; (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool) -&gt; Eq DoubleSatLbl
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -385,7 +370,7 @@ $c== :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 == :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 $c/= :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 /= :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679820145"><span id="local-6989586621679820147"><span id="local-6989586621679820150"><span class="annot"><span class="annottext">Int -&gt; DoubleSatLbl -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832755"><span id="local-6989586621679832757"><span id="local-6989586621679832760"><span class="annot"><span class="annottext">Int -&gt; DoubleSatLbl -&gt; ShowS
 [DoubleSatLbl] -&gt; ShowS
 DoubleSatLbl -&gt; String
 (Int -&gt; DoubleSatLbl -&gt; ShowS)
@@ -400,7 +385,7 @@ $cshow :: DoubleSatLbl -&gt; String
 show :: DoubleSatLbl -&gt; String
 $cshowList :: [DoubleSatLbl] -&gt; ShowS
 showList :: [DoubleSatLbl] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679820156"><span id="local-6989586621679820158"><span id="local-6989586621679820160"><span id="local-6989586621679820163"><span id="local-6989586621679820166"><span id="local-6989586621679820169"><span id="local-6989586621679820172"><span class="annot"><span class="annottext">Eq DoubleSatLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679832766"><span id="local-6989586621679832768"><span id="local-6989586621679832770"><span id="local-6989586621679832773"><span id="local-6989586621679832776"><span id="local-6989586621679832779"><span id="local-6989586621679832782"><span class="annot"><span class="annottext">Eq DoubleSatLbl
 Eq DoubleSatLbl =&gt;
 (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Ordering)
 -&gt; (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool)
@@ -438,10 +423,10 @@ max :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; DoubleSatLbl
 $cmin :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; DoubleSatLbl
 min :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; DoubleSatLbl
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-150"></span><span>
-</span><span id="line-151"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679820177"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-type">DoubleSatLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-152"></span><span>  </span><span id="local-6989586621679820182"><span class="annot"><span class="annottext">prettyCooked :: DoubleSatLbl -&gt; DocCooked
-</span><a href="#local-6989586621679820182"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">DoubleSatLbl
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679832787"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-type">DoubleSatLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-145"></span><span>  </span><span id="local-6989586621679832792"><span class="annot"><span class="annottext">prettyCooked :: DoubleSatLbl -&gt; DocCooked
+</span><a href="#local-6989586621679832792"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">DoubleSatLbl
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;DoubleSat&quot;</span></span><span>
-</span><span id="line-153"></span></pre></body></html>
+</span><span id="line-146"></span></pre></body></html>
