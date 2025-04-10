@@ -29,7 +29,11 @@
   attacks or tweaks.
 - New helper `txSkelOutReferenceScript` to retrieve the optional reference script
   from an output.
-  
+- New testing helpers `isInWallets` and `isInWallet` to ensure wallets have the
+  right amount of certain tokens at the end of a mockchain run. New testing
+  helpers `happened` and `didNotHappen` to test for the occurrence of a specific
+  log event.
+
 ### Removed
 
 - Modules `Validators.hs` and `Currencies.hs`. Their content has been moved to
@@ -66,6 +70,7 @@
   (no longer needed type `Redeemer`) and it now contains locally an option to
   either automatically assign a reference input or not.
 - The CI now ensures the documentation is filled up properly.
+- The testing framework has been slightly improves and homogenized.
 
 ### Fixed
 
