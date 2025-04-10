@@ -2,7 +2,6 @@
 
 module Cooked.ReferenceInputsSpec where
 
-import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -14,7 +13,6 @@ import PlutusTx.Eq qualified as PlutusTx
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter qualified as PP
 import Test.Tasty qualified as Tasty
-import Test.Tasty.HUnit qualified as Tasty
 
 -- Foo, Bar and Baz are dummy scripts to test reference inputs. They serve no
 -- purpose and make no real sense.
@@ -113,14 +111,13 @@ trace1 = do
             ],
           txSkelSigners = [wallet 2]
         }
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelIns = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
-          txSkelInsReference = Set.singleton txOutRefFoo,
-          txSkelOuts = [wallet 4 `receives` Value (Script.ada 5)],
-          txSkelSigners = [wallet 3]
-        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelIns = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
+        txSkelInsReference = Set.singleton txOutRefFoo,
+        txSkelOuts = [wallet 4 `receives` Value (Script.ada 5)],
+        txSkelSigners = [wallet 3]
+      }
 
 trace2 :: (MonadBlockChain m) => m ()
 trace2 = do
@@ -134,18 +131,17 @@ trace2 = do
             txSkelSigners = [wallet 2]
           }
       )
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelSigners = [wallet 1],
-          txSkelIns = Map.singleton scriptORef (someTxSkelRedeemer ()),
-          txSkelInsReference = Set.singleton refORef
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSigners = [wallet 1],
+        txSkelIns = Map.singleton scriptORef (someTxSkelRedeemer ()),
+        txSkelInsReference = Set.singleton refORef
+      }
 
 tests :: Tasty.TestTree
 tests =
   Tasty.testGroup
     "Reference inputs"
-    [ Tasty.testCase "We can reference an input that can't be spent" $ testSucceeds trace1,
-      Tasty.testCase "We can decode the datum hash from a reference input" $ testSucceeds trace2
+    [ testCooked "We can reference an input that can't be spent" $ mustSucceedTest trace1,
+      testCooked "We can decode the datum hash from a reference input" $ mustSucceedTest trace2
     ]

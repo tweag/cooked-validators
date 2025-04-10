@@ -1,6 +1,5 @@
 module Cooked.ProposingScriptSpec where
 
-import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Plutus.Script.Utils.V3 qualified as Script
@@ -12,7 +11,6 @@ import PlutusTx.IsData qualified as PlutusTx
 import PlutusTx.TH qualified as PlutusTx
 import PlutusTx.Trace qualified as PlutusTx
 import Test.Tasty
-import Test.Tasty.HUnit
 
 {-# INLINEABLE checkParameterChangeProposingPurpose #-}
 checkParameterChangeProposingPurpose :: Script.ProposingPurposeType ()
@@ -53,12 +51,11 @@ alwaysTrueProposingValidator =
 
 testProposingScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
 testProposingScript script govAction =
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelSigners = [wallet 1],
-          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyTxSkelRedeemer)]
-        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelSigners = [wallet 1],
+        txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyTxSkelRedeemer)]
+      }
 
 testProposingRefScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
 testProposingRefScript script govAction = do
@@ -71,33 +68,32 @@ testProposingRefScript script govAction = do
             ],
           txSkelSigners = [wallet 1]
         }
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelSigners = [wallet 1],
-          txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyTxSkelRedeemer `withReferenceInput` pOutRef)]
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSigners = [wallet 1],
+        txSkelProposals = [simpleTxSkelProposal (wallet 1) govAction `withWitness` (script, emptyTxSkelRedeemer `withReferenceInput` pOutRef)]
+      }
 
 tests :: TestTree
 tests =
   testGroup
     "Proposing scripts"
-    [ testCase "The always True proposing script succeeds" $
-        testSucceeds $
+    [ testCooked "The always True proposing script succeeds" $
+        mustSucceedTest $
           testProposingScript alwaysTrueProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
-      testCase "The always True proposing script suceeds as a reference script" $
-        testSucceeds $
+      testCooked "The always True proposing script suceeds as a reference script" $
+        mustSucceedTest $
           testProposingRefScript alwaysTrueProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
-      testCase "The always False proposing script fails" $
-        testFailsInPhase2 $
+      testCooked "The always False proposing script fails" $
+        mustFailInPhase2Test $
           testProposingScript alwaysFalseProposingValidator (TxGovActionTreasuryWithdrawals Map.empty),
-      testCase "A more advanced proposing script can succeed" $
-        testSucceeds $
+      testCooked "A more advanced proposing script can succeed" $
+        mustSucceedTest $
           testProposingScript checkProposingScript (TxGovActionParameterChange [FeePerByte 100]),
-      testCase "A more advanced proposing script can succeed as a reference script" $
-        testSucceeds $
+      testCooked "A more advanced proposing script can succeed as a reference script" $
+        mustSucceedTest $
           testProposingRefScript checkProposingScript (TxGovActionParameterChange [FeePerByte 100]),
-      testCase "Proposing scripts are restricted to parameter changes or treasury withdrawals" $
-        testFailsInPhase1 $
+      testCooked "Proposing scripts are restricted to parameter changes or treasury withdrawals" $
+        mustFailInPhase1Test $
           testProposingScript alwaysFalseProposingValidator TxGovActionNoConfidence
     ]
