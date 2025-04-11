@@ -1,12 +1,10 @@
 module Cooked.MinAdaSpec where
 
-import Control.Monad
 import Cooked
 import Optics.Core ((^.))
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import Test.Tasty
-import Test.Tasty.HUnit
 
 heavyDatum :: [Integer]
 heavyDatum = take 100 [0 ..]
@@ -22,17 +20,16 @@ paymentWithMinAda = do
 
 paymentWithoutMinAda :: (MonadBlockChain m) => Integer -> m ()
 paymentWithoutMinAda paidLovelaces = do
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelOuts = [wallet 2 `receives` (FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum)],
-          txSkelSigners = [wallet 1]
-        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelOuts = [wallet 2 `receives` (FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum)],
+        txSkelSigners = [wallet 1]
+      }
 
 tests :: TestTree
 tests =
   testGroup
     "MinAda auto adjustment of transaction outputs"
-    [ testCase "adjusted transaction passes" $ testSucceeds paymentWithMinAda,
-      testCase "adjusted transaction contains minimal amount" $ testFailsInPhase1 $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
+    [ testCooked "adjusted transaction passes" $ mustSucceedTest paymentWithMinAda,
+      testCooked "adjusted transaction contains minimal amount" $ mustFailInPhase1Test $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
     ]
