@@ -70,7 +70,7 @@
   (no longer needed type `Redeemer`) and it now contains locally an option to
   either automatically assign a reference input or not.
 - The CI now ensures the documentation is filled up properly.
-- The testing framework has been slightly improves and homogenized.
+- The testing framework has been slightly improved and homogenized.
 
 ### Fixed
 
