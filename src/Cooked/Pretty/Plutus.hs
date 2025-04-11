@@ -51,7 +51,7 @@ instance PrettyCooked Api.Value where
       prettySingletons :: [DocCooked] -> DocCooked
       prettySingletons [] = "Empty value"
       prettySingletons [doc] = doc
-      prettySingletons docs = prettyItemize "Value:" "-" docs
+      prettySingletons docs = prettyItemize opts "Value:" "-" docs
       prettySingletonValue :: (Api.CurrencySymbol, Api.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
         prettyCookedOpt opts (Api.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount

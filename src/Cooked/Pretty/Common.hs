@@ -2,14 +2,17 @@
 -- cooked-validators
 module Cooked.Pretty.Common
   ( DocCooked,
+    DocCookedL,
+    DocCookedM,
     PrettyCooked (..),
+    PrettyCookedL (..),
+    PrettyCookedM (..),
     printCookedOpt,
     printCooked,
     renderString,
     prettyItemize,
     prettyItemizeNoTitle,
     prettyItemizeNonEmpty,
-    prettyEnumerate,
     prettyCooked,
     prettyHash,
   )
@@ -20,7 +23,10 @@ import Cooked.Pretty.Options
 import Data.ByteString qualified as ByteString
 import Data.Default
 import Data.Map qualified as Map
+import Data.Maybe (catMaybes)
 import Data.Ratio
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Numeric qualified
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prettyprinter (Doc, (<+>))
@@ -31,14 +37,40 @@ import Prettyprinter.Render.Text qualified as PP
 -- | A standard 'PP.Doc' without any annotation
 type DocCooked = Doc ()
 
+type DocCookedL = [DocCooked]
+
+type DocCookedM = Maybe DocCooked
+
 -- | Type class of things that can be pretty printed using options
 class PrettyCooked a where
   -- | Pretty prints an element based on some 'PrettyCookedOpts'
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
 
+instance PrettyCooked DocCooked where
+  prettyCookedOpt _ = id
+
 -- | Pretty prints an element without requiring some options
 prettyCooked :: (PrettyCooked a) => a -> DocCooked
 prettyCooked = prettyCookedOpt def
+
+class PrettyCookedL a where
+  prettyCookedOptL :: PrettyCookedOpts -> a -> DocCookedL
+  prettyCookedOptL opts = catMaybes . prettyCookedOptLM opts
+
+  prettyCookedOptLM :: PrettyCookedOpts -> a -> [DocCookedM]
+  prettyCookedOptLM opts = fmap Just . prettyCookedOptL opts
+
+instance (PrettyCooked a) => PrettyCookedL [a] where
+  prettyCookedOptL opts = fmap (prettyCookedOpt opts)
+
+instance (PrettyCooked a) => PrettyCookedL (Set a) where
+  prettyCookedOptL opts = prettyCookedOptL opts . Set.toList
+
+class PrettyCookedM a where
+  prettyCookedOptM :: PrettyCookedOpts -> a -> DocCookedM
+
+instance PrettyCookedM DocCookedM where
+  prettyCookedOptM _ = id
 
 -- | Use this in the REPL as an alternative to the default 'print' function when
 -- dealing with pretty-printable cooked values.
@@ -63,33 +95,21 @@ renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions
 --   - bar1
 --   - bar2
 --   - bar3
-prettyItemize :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
-prettyItemize title bullet items =
+prettyItemize :: (PrettyCookedL a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> DocCooked
+prettyItemize opts title bullet items =
   PP.vsep
     [ title,
-      PP.indent 2 . prettyItemizeNoTitle bullet $ items
+      PP.indent 2 . prettyItemizeNoTitle opts bullet $ items
     ]
 
 -- | Print an item list without a title
-prettyItemizeNoTitle :: DocCooked -> [DocCooked] -> DocCooked
-prettyItemizeNoTitle bullet = PP.vsep . map (bullet <+>)
+prettyItemizeNoTitle :: (PrettyCookedL a) => PrettyCookedOpts -> DocCooked -> a -> DocCooked
+prettyItemizeNoTitle opts bullet = PP.vsep . map (bullet <+>) . prettyCookedOptL opts
 
 -- | Print an item list with a title, but only when the list is non-empty
-prettyItemizeNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
-prettyItemizeNonEmpty _ _ [] = Nothing
-prettyItemizeNonEmpty title bullet items = Just $ prettyItemize title bullet items
-
--- | Print an enumerated item list with a title
-prettyEnumerate :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
-prettyEnumerate title bullet items =
-  PP.vsep
-    [ title,
-      PP.indent 2 . PP.vsep $
-        zipWith (\index item -> PP.pretty index <> bullet <+> PP.align item) [1 :: Int ..] items
-    ]
-
-instance {-# OVERLAPPABLE #-} (PrettyCooked a) => PrettyCooked [a] where
-  prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
+prettyItemizeNonEmpty :: (PrettyCookedL a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> DocCookedM
+prettyItemizeNonEmpty opts _ _ (prettyCookedOptL opts -> []) = Nothing
+prettyItemizeNonEmpty opts title bullet items = Just $ prettyItemize opts title bullet items
 
 -- * Pretty printing of hashable data types
 

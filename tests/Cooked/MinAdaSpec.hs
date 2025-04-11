@@ -5,11 +5,24 @@ import Cooked
 import Optics.Core ((^.))
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
+import PlutusTx qualified
+import PlutusTx.Eq qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 
-heavyDatum :: [Integer]
-heavyDatum = take 100 [0 ..]
+newtype HeavyDatum = HeavyDatum [Integer]
+  deriving (Show, Eq)
+
+PlutusTx.unstableMakeIsData ''HeavyDatum
+
+instance PlutusTx.Eq HeavyDatum where
+  (==) = (==)
+
+heavyDatum :: HeavyDatum
+heavyDatum = HeavyDatum (take 100 [0 ..])
+
+instance PrettyCooked HeavyDatum where
+  prettyCookedOpt opts (HeavyDatum ints) = prettyItemizeNoTitle opts "-" ints
 
 paymentWithMinAda :: (MonadBlockChain m) => m Integer
 paymentWithMinAda = do

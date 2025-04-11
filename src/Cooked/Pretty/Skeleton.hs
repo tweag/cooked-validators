@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module implements pretty-printing for Cooked structures such as
@@ -12,19 +13,7 @@
 -- Some structure require additional arguments to be pretty-printed and have
 -- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
 -- 'SkelContext').
-module Cooked.Pretty.Skeleton
-  ( prettyTxSkel,
-    prettySigners,
-    mPrettyTxOpts,
-    mPrettyTxSkelOutDatum,
-    prettyTxSkelIn,
-    prettyTxSkelInReference,
-    prettyAddressState,
-    prettyPayloadGrouped,
-    prettyPayload,
-    prettyReferenceScriptHash,
-  )
-where
+module Cooked.Pretty.Skeleton () where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
@@ -38,6 +27,7 @@ import Cooked.Wallet
 import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
+import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Set qualified as Set
@@ -68,6 +58,7 @@ instance PrettyCooked MockChainError where
   -- printed alongside the skeleton when a test fails
   prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue _) =
     prettyItemize
+      opts
       "Unbalanceable:"
       "-"
       [ prettyCookedOpt opts balWallet <+> "does not have enough funds",
@@ -77,41 +68,35 @@ instance PrettyCooked MockChainError where
       ]
   prettyCookedOpt opts (MCENoSuitableCollateral fee percentage colVal) =
     prettyItemize
+      opts
       "No suitable collateral"
       "-"
       [ "Fee was" <+> prettyCookedOpt opts fee,
         "Percentage in params was" <+> prettyCookedOpt opts percentage,
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
-  prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
+  prettyCookedOpt opts (MCEGenerationError (ToCardanoError msg cardanoError)) =
     prettyItemize
+      opts
       "Transaction generation error:"
       "-"
-      [PP.pretty msg, PP.pretty cardanoError]
-  prettyCookedOpt _ (MCEGenerationError (GenerateTxErrorGeneral msg)) =
-    prettyItemize
-      "Transaction generation error:"
-      "-"
-      [PP.pretty msg]
-  prettyCookedOpt _ (MCEGenerationError (TxBodyError msg err)) =
-    prettyItemize
-      "Transaction generation error:"
-      "-"
-      [PP.pretty msg, PP.viaShow err]
+      [PP.pretty msg :: DocCooked, PP.pretty cardanoError]
+  prettyCookedOpt opts (MCEGenerationError (GenerateTxErrorGeneral msgs)) =
+    prettyItemize opts "Transaction generation error:" "-" [PP.pretty msgs :: DocCooked]
+  prettyCookedOpt opts (MCEGenerationError (TxBodyError msg err)) =
+    prettyItemize opts "Transaction generation error:" "-" [PP.pretty msg :: DocCooked, PP.viaShow err]
   prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
-    prettyItemize
-      "Unknown transaction output ref:"
-      "-"
-      [PP.pretty msg, prettyCookedOpt opts txOutRef]
-  prettyCookedOpt _ (FailWith msg) =
-    "Failed with:" <+> PP.pretty msg
+    prettyItemize opts "Unknown transaction output ref:" "-" [PP.pretty msg, prettyCookedOpt opts txOutRef]
+  prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
   prettyCookedOpt opts (MCEUnknownValidator msg valHash) =
     prettyItemize
+      opts
       "Unknown validator hash:"
       "-"
       [PP.pretty msg, "hash:" <+> prettyHash opts valHash]
   prettyCookedOpt opts (MCEUnknownDatum msg dHash) =
     prettyItemize
+      opts
       "Unknown datum hash:"
       "-"
       [PP.pretty msg, "hash:" <+> prettyHash opts dHash]
@@ -119,17 +104,20 @@ instance PrettyCooked MockChainError where
 instance (Show a) => PrettyCooked (a, UtxoState) where
   prettyCookedOpt opts (res, state) =
     prettyItemize
+      opts
       "End state:"
       "-"
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
 instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
   prettyCookedOpt opts' (res, MockChainBook entries ((`addHashNames` opts') -> opts)) =
-    let mcLog = "📘" <+> prettyItemize "MockChain run log:" "⁍" (prettyCookedOpt opts <$> entries)
-        mcEndResult = case res of
+    let mcEndResult = case res of
           Left err -> "🔴" <+> prettyCookedOpt opts err
           Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
-     in PP.vsep $ if pcOptPrintLog opts then [mcLog, mcEndResult] else [mcEndResult]
+     in PP.vsep $ if pcOptPrintLog opts then [prettyCookedOpt opts entries, mcEndResult] else [mcEndResult]
+
+instance PrettyCooked [MockChainLogEntry] where
+  prettyCookedOpt opts = ("📘" <+>) . prettyItemize opts "MockChain run log:" "⁍"
 
 -- | This prints a 'MockChainLogEntry'. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
@@ -139,19 +127,20 @@ instance PrettyCooked MockChainLogEntry where
       <> prettyCookedOpt opts skelOut
       <> " has been automatically adjusted to "
       <> prettyCookedOpt opts (Script.toValue newAda)
-  prettyCookedOpt opts (MCLogSubmittedTxSkel skelContext skel) = prettyItemize "Submitted:" "-" [prettyTxSkel opts skelContext skel]
-  prettyCookedOpt opts (MCLogAdjustedTxSkel skelContext skel fee mCollaterals) =
+  prettyCookedOpt opts (MCLogSubmittedTxSkel outputs datums skel) = "Submitted:" <+> prettyCookedOpt opts (Contextualized outputs datums skel)
+  prettyCookedOpt opts (MCLogAdjustedTxSkel outputs datums skel fee mCollaterals) =
     let mCollateralsDoc =
           ( \(collaterals, returnWallet) ->
-              [ prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
+              [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs datums . CollateralInput <$> Set.toList collaterals),
                 "Return collateral target:" <+> prettyCookedOpt opts returnWallet
               ]
           )
             <$> mCollaterals
      in prettyItemize
+          opts
           "Adjusted:"
           "-"
-          $ [ prettyTxSkel opts skelContext skel,
+          $ [ prettyCookedOpt opts (Contextualized outputs datums skel),
               "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)
             ]
             ++ fromMaybe [] mCollateralsDoc
@@ -169,43 +158,51 @@ instance PrettyCooked MockChainLogEntry where
     "A reference script located in "
       <> prettyCookedOpt opts oRef
       <> " has been automatically associated to redeemer "
-      <> prettyItemizeNoTitle "-" (lPrettyTxSkelRedeemer opts red)
+      <> prettyItemizeNoTitle opts "-" red
       <> " for script "
       <> prettyHash opts sHash
 
--- | Prints a 'TxSkel' within a certain 'SkelContext'
-prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
-prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals) =
-  prettyItemize
-    "Transaction skeleton:"
-    "-"
-    ( catMaybes
-        [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
-          mPrettyTxOpts opts txopts,
-          prettyItemizeNonEmpty "Mints:" "-" (prettyCookedOpt opts <$> txSkelMintsToList mints),
-          Just $ "Validity interval:" <+> PP.pretty validityRange,
-          prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
-          prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
-          prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
-          prettyItemizeNonEmpty "Outputs:" "-" (prettyCookedOpt opts <$> outs),
-          prettyItemizeNonEmpty "Proposals:" "-" (prettyCookedOpt opts <$> proposals),
-          mPrettyWithdrawals opts withdrawals
-        ]
-    )
+data Contextualized a = Contextualized
+  { _ctxOutputs :: Map Api.TxOutRef Api.TxOut,
+    _ctxDatums :: Map Api.DatumHash TxSkelOutDatum,
+    ctxContent :: a
+  }
+  deriving (Functor)
 
--- | This prints a 'TxSkelWithdrawals' when it is not empty
-mPrettyWithdrawals :: PrettyCookedOpts -> TxSkelWithdrawals -> Maybe DocCooked
-mPrettyWithdrawals pcOpts withdrawals =
-  prettyItemizeNonEmpty "Withdrawals:" "-" $ prettyWithdrawal <$> Map.toList withdrawals
-  where
-    prettyWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> DocCooked
-    prettyWithdrawal (cred, (red, ada)) =
-      prettyItemizeNoTitle "-" $
-        ( case cred of
-            Left script -> prettyHash pcOpts script : lPrettyTxSkelRedeemer pcOpts red
-            Right pkh -> [prettyHash pcOpts pkh]
-        )
-          ++ [prettyCookedOpt pcOpts (Script.toValue ada)]
+-- | Prints a 'Contextualized' 'TxSkel'
+instance PrettyCooked (Contextualized TxSkel) where
+  prettyCookedOpt opts cTxSkel
+    | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals <- ctxContent cTxSkel =
+        prettyItemize
+          opts
+          "Transaction skeleton:"
+          "-"
+          $ catMaybes
+            [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
+              prettyItemizeNonEmpty opts "Options:" "-" txopts,
+              prettyItemizeNonEmpty opts "Mints:" "-" (txSkelMintsToList mints),
+              Just $ "Validity interval:" <+> PP.pretty validityRange,
+              prettyItemizeNonEmpty opts "Signers:" "-" (txopts, signers),
+              prettyItemizeNonEmpty opts "Inputs:" "-" ((<$ cTxSkel) . uncurry Input <$> Map.toList ins),
+              prettyItemizeNonEmpty opts "Reference inputs:" "-" $ mapMaybe (prettyCookedOptM opts . (<$ cTxSkel) . ReferenceInput) (Set.toList insReference),
+              prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
+              prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
+              prettyItemizeNonEmpty opts "Withdrawals:" "-" (mkWithdrawal <$> Map.toList withdrawals)
+            ]
+
+data Withdrawal = Withdrawal (Either (Script.Versioned Script.Script) Api.PubKeyHash) TxSkelRedeemer Api.Lovelace
+
+mkWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> Withdrawal
+mkWithdrawal (owner, (red, lv)) = Withdrawal owner red lv
+
+instance PrettyCooked Withdrawal where
+  prettyCookedOpt opts (Withdrawal cred red ada) =
+    prettyItemizeNoTitle opts "-" $
+      ( case cred of
+          Left script -> prettyHash opts script : prettyCookedOptL opts red
+          Right pkh -> [prettyHash opts pkh]
+      )
+        ++ [prettyCookedOpt opts (Script.toValue ada)]
 
 instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
@@ -225,6 +222,7 @@ instance PrettyCooked TxParameterChange where
   prettyCookedOpt _opts (CostModels _pv1 _pv2 _pv3) = "Cost models (unsupported)"
   prettyCookedOpt opts (Prices q r) =
     prettyItemize
+      opts
       "Prices:"
       "-"
       [ "Memory cost:" <+> prettyCookedOpt opts q,
@@ -232,6 +230,7 @@ instance PrettyCooked TxParameterChange where
       ]
   prettyCookedOpt opts (MaxTxExUnits n m) =
     prettyItemize
+      opts
       "Max transaction execution units:"
       "-"
       [ "Max memory:" <+> prettyCookedOpt opts n,
@@ -239,6 +238,7 @@ instance PrettyCooked TxParameterChange where
       ]
   prettyCookedOpt opts (MaxBlockExUnits n m) =
     prettyItemize
+      opts
       "Max block execution units:"
       "-"
       [ "Max memory:" <+> prettyCookedOpt opts n,
@@ -249,6 +249,7 @@ instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (MaxCollateralInputs n) = "Max number of collateral inputs:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (PoolVotingThresholds a b c d e) =
     prettyItemize
+      opts
       "Pool voting thresholds:"
       "-"
       [ "Motion no confidence:" <+> prettyCookedOpt opts a,
@@ -259,6 +260,7 @@ instance PrettyCooked TxParameterChange where
       ]
   prettyCookedOpt opts (DRepVotingThresholds a b c d e f g h i j) =
     prettyItemize
+      opts
       "DRep voting thresholds:"
       "-"
       [ "Motion no confidence:" <+> prettyCookedOpt opts a,
@@ -280,38 +282,36 @@ instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
 
 -- | Prints a list of docs corresponding to an instance of 'TxSkelRedeemer'
-lPrettyTxSkelRedeemer :: PrettyCookedOpts -> TxSkelRedeemer -> [DocCooked]
-lPrettyTxSkelRedeemer opts (TxSkelRedeemer red mRefScript _) =
-  catMaybes
+instance PrettyCookedL TxSkelRedeemer where
+  prettyCookedOptLM opts (TxSkelRedeemer red mRefScript _) =
     [ Just $ "Redeemer" <+> prettyCookedOpt opts red,
       ("Reference script at:" <+>) . prettyCookedOpt opts <$> mRefScript
     ]
 
-instance PrettyCooked TxSkelProposal where
-  prettyCookedOpt opts TxSkelProposal {..} =
-    prettyItemizeNoTitle "-" $
-      catMaybes
-        [ Just $ "Governance action:" <+> prettyCookedOpt opts txSkelProposalAction,
-          Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
-          (\(script, redeemer) -> prettyItemize "Witness:" "-" (prettyHash opts script : lPrettyTxSkelRedeemer opts redeemer)) <$> txSkelProposalWitness,
-          ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
-        ]
+instance PrettyCookedL TxSkelProposal where
+  prettyCookedOptLM opts TxSkelProposal {..} =
+    [ Just $ "Governance action:" <+> prettyCookedOpt opts txSkelProposalAction,
+      Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
+      (\(script, redeemer) -> prettyItemize opts "Witness:" "-" (prettyHash opts script : prettyCookedOptL opts redeemer)) <$> txSkelProposalWitness,
+      ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
+    ]
 
 instance PrettyCooked TxGovAction where
-  prettyCookedOpt opts (TxGovActionParameterChange params) = prettyItemize "Parameter changes:" "-" $ prettyCookedOpt opts <$> params
+  prettyCookedOpt opts (TxGovActionParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
   prettyCookedOpt opts (TxGovActionHardForkInitiation (Api.ProtocolVersion major minor)) =
     "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
   prettyCookedOpt opts (TxGovActionTreasuryWithdrawals withdrawals) =
-    prettyItemize "Withdrawals:" "-" $
+    prettyItemize opts "Withdrawals:" "-" $
       (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
   prettyCookedOpt _ TxGovActionNoConfidence = "No confidence"
   prettyCookedOpt opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
     prettyItemize
+      opts
       "Updates in committee:"
       "-"
-      [ prettyItemize "Credentials to remove:" "-" $
+      [ prettyItemize opts "Credentials to remove:" "-" $
           (\(Api.ColdCommitteeCredential cred) -> prettyCookedOpt opts cred) <$> toRemoveCreds,
-        prettyItemize "Credentials to add:" "-" $
+        prettyItemize opts "Credentials to add:" "-" $
           (\(Api.ColdCommitteeCredential cred, i) -> prettyCookedOpt opts cred <+> "->" <+> prettyCookedOpt opts i) <$> Map.toList toAddCreds,
         "Quorum:" <+> prettyCookedOpt opts (Api.toGHC quorum)
       ]
@@ -320,20 +320,14 @@ instance PrettyCooked TxGovAction where
     Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
-prettySigners :: PrettyCookedOpts -> TxOpts -> [Wallet] -> [DocCooked]
-prettySigners opts TxOpts {txOptBalancingPolicy = DoNotBalance} signers = prettyCookedOpt opts <$> signers
-prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner} (firstSigner : signers) =
-  prettyCookedOpt opts firstSigner <+> "[balancing]" : (prettyCookedOpt opts <$> signers)
-prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet} signers =
-  aux signers
-  where
-    aux :: [Wallet] -> [DocCooked]
-    aux [] = []
-    aux (s : ss)
-      | s == balancingWallet = prettyCookedOpt opts balancingWallet <+> "[balancing]" : aux ss
-      | otherwise = prettyCookedOpt opts s : aux ss
--- The following case should never happen for real transactions
-prettySigners _ _ [] = []
+instance PrettyCookedL (TxOpts, [Wallet]) where
+  prettyCookedOptL opts (TxOpts {txOptBalancingPolicy = DoNotBalance}, signers) = prettyCookedOptL opts signers
+  prettyCookedOptL opts (TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
+    prettyCookedOpt opts firstSigner <+> "[balancing]" : prettyCookedOptL opts signers
+  prettyCookedOptL opts (TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet}, signers) =
+    (\s -> if s == balancingWallet then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s) <$> signers
+  -- The following case should never happen for real transactions
+  prettyCookedOptL _ (_, []) = []
 
 -- | Prints a minting specification
 --
@@ -345,12 +339,13 @@ prettySigners _ _ [] = []
 --     - "Bar": 1000
 instance PrettyCooked Mint where
   prettyCookedOpt opts (Mint pol red tks) =
-    prettyItemize (prettyHash opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
-      lPrettyTxSkelRedeemer opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
+    prettyItemize opts (prettyHash opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
+      prettyCookedOptL opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
 instance PrettyCooked TxSkelOut where
   prettyCookedOpt opts (Pays output) =
     prettyItemize
+      opts
       ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
       "-"
       ( prettyCookedOpt opts (outputValue output)
@@ -376,78 +371,86 @@ instance PrettyCooked TxSkelOut where
 
 -- | Optionnally prints a 'TxSkelOutDatum' when its different from
 -- 'TxSkelOutNoDatum'
-mPrettyTxSkelOutDatum :: PrettyCookedOpts -> TxSkelOutDatum -> Maybe DocCooked
-mPrettyTxSkelOutDatum _ TxSkelOutNoDatum = Nothing
-mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
-  Just $
-    "Datum (inlined):"
-      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
-mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
-  Just $
-    "Datum (hashed)"
-      <+> "("
-      <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
-      <> "):"
-      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
-mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutDatum dat) =
-  Just $
-    "Datum (hashed)"
-      <+> "("
-      <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
-      <> "):"
-      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+instance PrettyCookedM TxSkelOutDatum where
+  prettyCookedOptM _ TxSkelOutNoDatum = Nothing
+  prettyCookedOptM opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
+    Just $
+      "Datum (inlined):"
+        <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+  prettyCookedOptM opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
+    Just $
+      "Datum (hashed)"
+        <+> "("
+        <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+        <> "):"
+        <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+  prettyCookedOptM opts txSkelOutDatum@(TxSkelOutDatum dat) =
+    Just $
+      "Datum (hashed)"
+        <+> "("
+        <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+        <> "):"
+        <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
 -- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
 -- address and value, and also builds a possibly empty list for its datum and
 -- reference script when they exist.
-utxoToPartsAsDocCooked :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe (DocCooked, DocCooked, [DocCooked])
-utxoToPartsAsDocCooked opts skelContext txOutRef =
+utxoToPartsAsDocCooked :: PrettyCookedOpts -> Contextualized Api.TxOutRef -> Maybe (DocCooked, DocCooked, [DocCooked])
+utxoToPartsAsDocCooked opts ctx =
   ( \(output, txSkelOutDatum) ->
       ( prettyCookedOpt opts (outputAddress output),
         prettyCookedOpt opts (outputValue output),
         catMaybes
-          [ mPrettyTxSkelOutDatum opts txSkelOutDatum,
+          [ prettyCookedOptM opts txSkelOutDatum,
             getReferenceScriptDoc opts output
           ]
       )
   )
-    <$> lookupOutput skelContext txOutRef
+    <$> lookupOutput ctx
 
--- | Prints a collateral input with a certain 'SkelContext'
-prettyCollateralIn :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> DocCooked
-prettyCollateralIn opts skelContext txOutRef =
-  case utxoToPartsAsDocCooked opts skelContext txOutRef of
-    Nothing -> prettyCookedOpt opts txOutRef <+> "(non resolved)"
-    Just (addressDoc, valueDoc, otherDocs) -> prettyItemize ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
+newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
 
--- | Prints an input within a certain 'SkelContext'
-prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked
-prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) =
-  case utxoToPartsAsDocCooked opts skelContext txOutRef of
-    Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
-    Just (addressDoc, valueDoc, otherDocs) ->
-      prettyItemize ("Spends from" <+> addressDoc) "-" (valueDoc : lPrettyTxSkelRedeemer opts txSkelRedeemer <> otherDocs)
+-- | Prints a collateral input within a certain 'SkelContext'
+instance PrettyCooked (Contextualized CollateralInput) where
+  prettyCookedOpt opts cColIn@(Contextualized _ _ (CollateralInput txOutRef)) =
+    case utxoToPartsAsDocCooked opts (unCollateralInput <$> cColIn) of
+      Nothing -> prettyCookedOpt opts txOutRef <+> "(non resolved)"
+      Just (addressDoc, valueDoc, otherDocs) -> prettyItemize opts ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
 
--- | Prints a reference input within a certain 'SkelContext'
-prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe DocCooked
-prettyTxSkelInReference opts skelContext txOutRef = do
-  (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
-  return $
-    prettyItemize
-      ("References output from" <+> prettyCookedOpt opts (outputAddress output))
-      "-"
-      ( prettyCookedOpt opts (outputValue output)
-          : catMaybes
-            [ mPrettyTxSkelOutDatum opts txSkelOutDatum,
-              getReferenceScriptDoc opts output
-            ]
-      )
+data Input = Input
+  { inputORef :: Api.TxOutRef,
+    inputRed :: TxSkelRedeemer
+  }
+
+instance PrettyCooked (Contextualized Input) where
+  prettyCookedOpt opts cIn@(Contextualized _ _ input) =
+    case utxoToPartsAsDocCooked opts (inputORef <$> cIn) of
+      Nothing -> "Spends" <+> prettyCookedOpt opts (inputORef input) <+> "(non resolved)"
+      Just (addressDoc, valueDoc, otherDocs) ->
+        prettyItemize opts ("Spends from" <+> addressDoc) "-" (valueDoc : prettyCookedOptL opts (inputRed input) <> otherDocs)
+
+newtype ReferenceInput = ReferenceInput {unReferenceInput :: Api.TxOutRef}
+
+instance PrettyCookedM (Contextualized ReferenceInput) where
+  prettyCookedOptM opts ctx = do
+    (output, txSkelOutDatum) <- lookupOutput (unReferenceInput <$> ctx)
+    return $
+      prettyItemize
+        opts
+        ("References output from" <+> prettyCookedOpt opts (outputAddress output))
+        "-"
+        ( prettyCookedOpt opts (outputValue output)
+            : catMaybes
+              [ prettyCookedOptM opts txSkelOutDatum,
+                getReferenceScriptDoc opts output
+              ]
+        )
 
 getReferenceScriptDoc :: (IsAbstractOutput output, Script.ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
-getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
+getReferenceScriptDoc opts output = ("Reference script hash:" <+>) . prettyHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
 
-lookupOutput :: SkelContext -> Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
-lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
+lookupOutput :: Contextualized Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
+lookupOutput (Contextualized managedTxOuts managedTxSkelOutDatums txOutRef) = do
   output <- Map.lookup txOutRef managedTxOuts
   return
     ( output,
@@ -458,83 +461,93 @@ lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
     )
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
--- option if its value is non-default. If no non-default options are in the
--- list, return nothing.
-mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
-mPrettyTxOpts
-  opts
-  TxOpts
-    { txOptAutoSlotIncrease,
-      txOptUnsafeModTx,
-      txOptBalanceOutputPolicy,
-      txOptFeePolicy,
-      txOptBalancingPolicy,
-      txOptBalancingUtxos,
-      txOptEmulatorParamsModification,
-      txOptCollateralUtxos,
-      txOptAnchorResolution
-    } =
-    prettyItemizeNonEmpty "Options:" "-" $
-      catMaybes
-        [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
-          prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
-          prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
-          prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
-          prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
-          prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
-          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
-          prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos,
-          prettyIfNot def prettyAnchorResolution txOptAnchorResolution
-        ]
-    where
-      prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
-      prettyIfNot defaultValue f x
-        | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
-        | otherwise = Just $ f x
-      prettyAutoSlotIncrease :: Bool -> DocCooked
-      prettyAutoSlotIncrease True = "Automatic slot increase"
-      prettyAutoSlotIncrease False = "No automatic slot increase"
-      prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
-      prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
-      prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
-      prettyBalancingPolicy :: BalancingPolicy -> DocCooked
-      prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
-      prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts w
-      prettyBalancingPolicy DoNotBalance = "Do not balance"
-      prettyUnsafeModTx :: [RawModTx] -> DocCooked
-      prettyUnsafeModTx [] = "No transaction modifications"
-      prettyUnsafeModTx (length -> n) = prettyCookedOpt opts n <+> "transaction" <+> PP.plural "modification" "modifications" n
-      prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
-      prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
-      prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
-      prettyCollateralUtxos :: CollateralUtxos -> DocCooked
-      prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
-        prettyItemize "Collateral policy:" "-" ["Use value-only utxos from balancing wallet", "Send return collaterals to balancing wallet"]
-      prettyCollateralUtxos (CollateralUtxosFromWallet w)
-        | prettyWallet <- prettyCookedOpt opts w =
-            prettyItemize "Collateral policy:" "-" ["Use value-only utxos from" <+> prettyWallet, "Send return collaterals to" <+> prettyWallet]
-      prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
-        prettyItemize
-          "Collateral policy:"
-          "-"
-          [ prettyItemize "Choose among the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs),
-            "Send return collaterals to" <+> prettyCookedOpt opts w
-          ]
-      prettyBalancingUtxos :: BalancingUtxos -> DocCooked
-      prettyBalancingUtxos BalancingUtxosFromBalancingWallet = "Balance with 'only value' utxos from the balancing wallet"
-      prettyBalancingUtxos (BalancingUtxosFromSet utxos) = prettyItemize "Balance with the following utxos:" "-" (prettyCookedOpt opts <$> Set.toList utxos)
-      prettyBalanceFeePolicy :: FeePolicy -> DocCooked
-      prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
-      prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> prettyCookedOpt opts fee
-      prettyAnchorResolution :: AnchorResolution -> DocCooked
-      prettyAnchorResolution AnchorResolutionHttp = "Resolve anchor url with an (unsafe) http connection"
-      prettyAnchorResolution (AnchorResolutionLocal urlMap) = prettyItemize "Resolve anchor url with the following table keys" "-" (PP.pretty <$> Map.keys urlMap)
+-- option if its value is non-default.
+instance PrettyCookedL TxOpts where
+  prettyCookedOptLM
+    opts
+    TxOpts
+      { txOptAutoSlotIncrease,
+        txOptUnsafeModTx,
+        txOptBalanceOutputPolicy,
+        txOptFeePolicy,
+        txOptBalancingPolicy,
+        txOptBalancingUtxos,
+        txOptEmulatorParamsModification,
+        txOptCollateralUtxos,
+        txOptAnchorResolution
+      } =
+      [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+        prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
+        prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
+        prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
+        prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
+        prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
+        prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
+        prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos,
+        prettyIfNot def prettyAnchorResolution txOptAnchorResolution
+      ]
+      where
+        prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
+        prettyIfNot defaultValue f x
+          | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
+          | otherwise = Just $ f x
+        prettyAutoSlotIncrease :: Bool -> DocCooked
+        prettyAutoSlotIncrease True = "Automatic slot increase"
+        prettyAutoSlotIncrease False = "No automatic slot increase"
+        prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
+        prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
+        prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
+        prettyBalancingPolicy :: BalancingPolicy -> DocCooked
+        prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
+        prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts w
+        prettyBalancingPolicy DoNotBalance = "Do not balance"
+        prettyUnsafeModTx :: [RawModTx] -> DocCooked
+        prettyUnsafeModTx [] = "No transaction modifications"
+        prettyUnsafeModTx (length -> n) = prettyCookedOpt opts n <+> "transaction" <+> PP.plural "modification" "modifications" n
+        prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
+        prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
+        prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
+        prettyCollateralUtxos :: CollateralUtxos -> DocCooked
+        prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
+          prettyItemize
+            opts
+            "Collateral policy:"
+            "-"
+            [ "Use value-only utxos from balancing wallet" :: DocCooked,
+              "Send return collaterals to balancing wallet"
+            ]
+        prettyCollateralUtxos (CollateralUtxosFromWallet w)
+          | prettyWallet <- prettyCookedOpt opts w =
+              prettyItemize
+                opts
+                "Collateral policy:"
+                "-"
+                [ "Use value-only utxos from" <+> prettyWallet,
+                  "Send return collaterals to" <+> prettyWallet
+                ]
+        prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
+          prettyItemize
+            opts
+            "Collateral policy:"
+            "-"
+            [ prettyItemize opts "Choose among the following TxOutRefs:" "-" txOutRefs,
+              "Send return collaterals to" <+> prettyCookedOpt opts w
+            ]
+        prettyBalancingUtxos :: BalancingUtxos -> DocCooked
+        prettyBalancingUtxos BalancingUtxosFromBalancingWallet = "Balance with 'only value' utxos from the balancing wallet"
+        prettyBalancingUtxos (BalancingUtxosFromSet utxos) = prettyItemize opts "Balance with the following utxos:" "-" utxos
+        prettyBalanceFeePolicy :: FeePolicy -> DocCooked
+        prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
+        prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> prettyCookedOpt opts fee
+        prettyAnchorResolution :: AnchorResolution -> DocCooked
+        prettyAnchorResolution AnchorResolutionHttp = "Resolve anchor url with an (unsafe) http connection"
+        prettyAnchorResolution (AnchorResolutionLocal urlMap) = prettyItemize @[DocCooked] opts "Resolve anchor url with the following table keys" "-" (PP.viaShow <$> Map.keys urlMap)
 
 -- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
 -- pubkeys, then scripts.
 instance PrettyCooked UtxoState where
   prettyCookedOpt opts =
-    prettyItemize "UTxO state:" "•"
+    prettyItemize opts "UTxO state:" "•"
       . map (uncurry (prettyAddressState opts))
       . List.sortBy addressOrdering
       . Map.toList
@@ -559,6 +572,7 @@ instance PrettyCooked UtxoState where
 prettyAddressState :: PrettyCookedOpts -> Api.Address -> UtxoPayloadSet -> DocCooked
 prettyAddressState opts address payloadSet =
   prettyItemize
+    opts
     (prettyCookedOpt opts address)
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
@@ -613,13 +627,9 @@ prettyPayload
           then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
           else Nothing,
         Just (prettyCookedOpt opts utxoPayloadValue),
-        mPrettyTxSkelOutDatum opts utxoPayloadSkelOutDatum,
-        prettyReferenceScriptHash opts <$> utxoPayloadReferenceScript
+        prettyCookedOptM opts utxoPayloadSkelOutDatum,
+        ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
       ] of
       [] -> Nothing
       [doc] -> Just $ PP.align doc
       docs -> Just . PP.align . PP.vsep $ docs
-
--- | Prints a reference script hash
-prettyReferenceScriptHash :: PrettyCookedOpts -> Script.ScriptHash -> DocCooked
-prettyReferenceScriptHash opts scriptHash = "Reference script hash:" <+> prettyHash opts scriptHash

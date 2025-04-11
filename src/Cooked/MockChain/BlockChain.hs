@@ -20,7 +20,6 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
-    SkelContext (..),
     AsTrans (..),
     currentTime,
     waitNSlots,
@@ -68,7 +67,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
-import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Plutus ()
@@ -130,10 +128,10 @@ data MockChainError
 -- provided here.
 data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
-    MCLogSubmittedTxSkel SkelContext TxSkel
+    MCLogSubmittedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash TxSkelOutDatum) TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral wallet.
-    MCLogAdjustedTxSkel SkelContext TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
+    MCLogAdjustedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash TxSkelOutDatum) TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
   | -- | Logging the appearance of a new transaction, after a skeleton has been
     -- successfully sent for validation.
     MCLogNewTx Api.TxId
