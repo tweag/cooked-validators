@@ -45,6 +45,7 @@ library
       Cooked.Pretty
       Cooked.Pretty.Common
       Cooked.Pretty.Hashable
+      Cooked.Pretty.MockChain
       Cooked.Pretty.Options
       Cooked.Pretty.Plutus
       Cooked.Pretty.Skeleton
