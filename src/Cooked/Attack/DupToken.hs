@@ -60,4 +60,4 @@ data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show, Ord)
 
 instance PrettyCooked DupTokenLbl where
-  prettyCooked _ = "DupToken"
+  prettyCookedOpt _ _ = "DupToken"

@@ -46,9 +46,5 @@ instance ToHash Api.DatumHash where
 instance ToHash Api.TxId where
   toHash = Api.getTxId
 
-instance ToHash Api.Address where
-  toHash (Api.Address (Api.PubKeyCredential pkh) _) = toHash pkh
-  toHash (Api.Address (Api.ScriptCredential vh) _) = toHash vh
-
 instance ToHash (Script.MultiPurposeScript a) where
   toHash = toHash . Script.toVersioned @Script.Script

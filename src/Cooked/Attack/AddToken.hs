@@ -50,4 +50,4 @@ addTokenAttack extraTokens attacker = do
 data AddTokenLbl = AddTokenLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked AddTokenLbl where
-  prettyCooked = PP.viaShow
+  prettyCookedOpt _ = PP.viaShow

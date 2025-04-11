@@ -71,6 +71,7 @@ import Control.Monad.Writer
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Hashable
+import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Kind

@@ -18,7 +18,7 @@ import Test.Tasty.HUnit
 data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show)
 
 instance PrettyCooked SimpleContractDatum where
-  prettyCooked = viaShow
+  prettyCookedOpt _ = viaShow
 
 instance PlutusTx.Eq SimpleContractDatum where
   FirstPaymentDatum == FirstPaymentDatum = True

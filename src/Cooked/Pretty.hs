@@ -46,8 +46,8 @@
 -- @MockChainReturn a UtxoState@.
 module Cooked.Pretty (module X) where
 
-import Cooked.Pretty.Class as X
 import Cooked.Pretty.Common as X
-import Cooked.Pretty.Cooked as X
 import Cooked.Pretty.Hashable as X
 import Cooked.Pretty.Options as X
+import Cooked.Pretty.Plutus as X ()
+import Cooked.Pretty.Skeleton as X

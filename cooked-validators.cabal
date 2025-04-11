@@ -43,11 +43,11 @@ library
       Cooked.MockChain.UtxoState
       Cooked.Output
       Cooked.Pretty
-      Cooked.Pretty.Class
       Cooked.Pretty.Common
-      Cooked.Pretty.Cooked
       Cooked.Pretty.Hashable
       Cooked.Pretty.Options
+      Cooked.Pretty.Plutus
+      Cooked.Pretty.Skeleton
       Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Skeleton.Datum

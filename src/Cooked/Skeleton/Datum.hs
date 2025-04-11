@@ -8,7 +8,7 @@ module Cooked.Skeleton.Datum
   )
 where
 
-import Cooked.Pretty.Class
+import Cooked.Pretty.Common
 import Data.Typeable (cast)
 import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V3 qualified as Api

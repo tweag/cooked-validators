@@ -30,7 +30,7 @@ import Test.Tasty.HUnit
 data ADatum = ADatum deriving (Show)
 
 instance PrettyCooked ADatum where
-  prettyCooked = viaShow
+  prettyCookedOpt _ = viaShow
 
 instance PlutusTx.Eq ADatum where
   ADatum == ADatum = True
@@ -47,7 +47,7 @@ instance PlutusTx.Eq ARedeemer where
   _ == _ = False
 
 instance PrettyCooked ARedeemer where
-  prettyCooked = viaShow
+  prettyCookedOpt _ = viaShow
 
 PlutusTx.makeLift ''ARedeemer
 PlutusTx.unstableMakeIsData ''ARedeemer
@@ -73,7 +73,7 @@ aValidator =
 data BDatum = BDatum deriving (Show)
 
 instance PrettyCooked BDatum where
-  prettyCooked = viaShow
+  prettyCookedOpt _ = viaShow
 
 instance PlutusTx.Eq BDatum where
   BDatum == BDatum = True
@@ -84,7 +84,7 @@ PlutusTx.unstableMakeIsData ''BDatum
 data BRedeemer = BRedeemer1 | BRedeemer2 deriving (Show)
 
 instance PrettyCooked BRedeemer where
-  prettyCooked = viaShow
+  prettyCookedOpt _ = viaShow
 
 instance PlutusTx.Eq BRedeemer where
   BRedeemer1 == BRedeemer1 = True

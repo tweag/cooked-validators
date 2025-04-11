@@ -12,9 +12,8 @@
 -- Some structure require additional arguments to be pretty-printed and have
 -- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
 -- 'SkelContext').
-module Cooked.Pretty.Cooked
+module Cooked.Pretty.Skeleton
   ( prettyTxSkel,
-    prettyBalancingWallet,
     prettySigners,
     mPrettyTxOpts,
     mPrettyTxSkelOutDatum,
@@ -31,10 +30,9 @@ import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Output
-import Cooked.Pretty.Class
 import Cooked.Pretty.Common
-import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
+import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
@@ -60,6 +58,9 @@ instance PrettyCooked TxSkelOutDatum where
   prettyCookedOpt opts (TxSkelOutDatum datum) = prettyCookedOpt opts datum
   prettyCookedOpt opts (TxSkelOutInlineDatum datum) = prettyCookedOpt opts datum
 
+instance PrettyCooked Wallet where
+  prettyCookedOpt opts = prettyHash opts . walletPKHash
+
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
@@ -69,7 +70,7 @@ instance PrettyCooked MockChainError where
     prettyItemize
       "Unbalanceable:"
       "-"
-      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "does not have enough funds",
+      [ prettyCookedOpt opts balWallet <+> "does not have enough funds",
         if missingValue == mempty
           then "Not enough funds to sustain the minimal ada of the return utxo"
           else "Unable to find" <+> prettyCookedOpt opts missingValue
@@ -108,12 +109,12 @@ instance PrettyCooked MockChainError where
     prettyItemize
       "Unknown validator hash:"
       "-"
-      [PP.pretty msg, "hash:" <+> prettyHash (pcOptHashes opts) (toHash valHash)]
+      [PP.pretty msg, "hash:" <+> prettyHash opts valHash]
   prettyCookedOpt opts (MCEUnknownDatum msg dHash) =
     prettyItemize
       "Unknown datum hash:"
       "-"
-      [PP.pretty msg, "hash:" <+> prettyHash (pcOptHashes opts) (toHash dHash)]
+      [PP.pretty msg, "hash:" <+> prettyHash opts dHash]
 
 instance (Show a) => PrettyCooked (a, UtxoState) where
   prettyCookedOpt opts (res, state) =
@@ -143,7 +144,7 @@ instance PrettyCooked MockChainLogEntry where
     let mCollateralsDoc =
           ( \(collaterals, returnWallet) ->
               [ prettyItemize "Collateral inputs:" "-" (prettyCollateralIn opts skelContext <$> Set.toList collaterals),
-                "Return collateral target:" <+> prettyCookedOpt opts (walletPKHash returnWallet)
+                "Return collateral target:" <+> prettyCookedOpt opts returnWallet
               ]
           )
             <$> mCollaterals
@@ -154,11 +155,11 @@ instance PrettyCooked MockChainLogEntry where
               "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)
             ]
             ++ fromMaybe [] mCollateralsDoc
-  prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyCookedOpt opts txId
+  prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyHash opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
   prettyCookedOpt opts (MCLogUnusedCollaterals (Left cWallet)) =
     "Specific request to fetch collateral utxos from "
-      <> prettyCookedOpt opts (walletPKHash cWallet)
+      <> prettyCookedOpt opts cWallet
       <> " has been disregarded because the transaction does not require collaterals"
   prettyCookedOpt opts (MCLogUnusedCollaterals (Right (length -> n))) =
     "Specific request to fetch collateral utxos from the given set of "
@@ -170,7 +171,7 @@ instance PrettyCooked MockChainLogEntry where
       <> " has been automatically associated to redeemer "
       <> prettyItemizeNoTitle "-" (lPrettyTxSkelRedeemer opts red)
       <> " for script "
-      <> prettyCookedOpt opts sHash
+      <> prettyHash opts sHash
 
 -- | Prints a 'TxSkel' within a certain 'SkelContext'
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
@@ -201,8 +202,8 @@ mPrettyWithdrawals pcOpts withdrawals =
     prettyWithdrawal (cred, (red, ada)) =
       prettyItemizeNoTitle "-" $
         ( case cred of
-            Left script -> prettyCookedOpt pcOpts script : lPrettyTxSkelRedeemer pcOpts red
-            Right pkh -> [prettyCookedOpt pcOpts pkh]
+            Left script -> prettyHash pcOpts script : lPrettyTxSkelRedeemer pcOpts red
+            Right pkh -> [prettyHash pcOpts pkh]
         )
           ++ [prettyCookedOpt pcOpts (Script.toValue ada)]
 
@@ -292,7 +293,7 @@ instance PrettyCooked TxSkelProposal where
       catMaybes
         [ Just $ "Governance action:" <+> prettyCookedOpt opts txSkelProposalAction,
           Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
-          (\(script, redeemer) -> prettyItemize "Witness:" "-" (prettyCookedOpt opts script : lPrettyTxSkelRedeemer opts redeemer)) <$> txSkelProposalWitness,
+          (\(script, redeemer) -> prettyItemize "Witness:" "-" (prettyHash opts script : lPrettyTxSkelRedeemer opts redeemer)) <$> txSkelProposalWitness,
           ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
         ]
 
@@ -316,27 +317,21 @@ instance PrettyCooked TxGovAction where
       ]
   prettyCookedOpt opts (TxGovActionNewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
     Nothing -> "Empty new constitution"
-    Just sHash -> "New constitution:" <+> prettyCookedOpt opts sHash
-
--- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix mentioning
--- this is the balancing wallet
-prettyBalancingWallet :: PrettyCookedOpts -> Wallet -> DocCooked
-prettyBalancingWallet opts w =
-  prettyCookedOpt opts (walletPKHash w) <+> "[Balancing]"
+    Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
 prettySigners :: PrettyCookedOpts -> TxOpts -> [Wallet] -> [DocCooked]
-prettySigners opts TxOpts {txOptBalancingPolicy = DoNotBalance} signers = prettyCookedOpt opts . walletPKHash <$> signers
+prettySigners opts TxOpts {txOptBalancingPolicy = DoNotBalance} signers = prettyCookedOpt opts <$> signers
 prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner} (firstSigner : signers) =
-  prettyBalancingWallet opts firstSigner : (prettyCookedOpt opts . walletPKHash <$> signers)
+  prettyCookedOpt opts firstSigner <+> "[balancing]" : (prettyCookedOpt opts <$> signers)
 prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet} signers =
   aux signers
   where
     aux :: [Wallet] -> [DocCooked]
     aux [] = []
     aux (s : ss)
-      | s == balancingWallet = prettyBalancingWallet opts balancingWallet : aux ss
-      | otherwise = prettyCookedOpt opts (walletPKHash s) : aux ss
+      | s == balancingWallet = prettyCookedOpt opts balancingWallet <+> "[balancing]" : aux ss
+      | otherwise = prettyCookedOpt opts s : aux ss
 -- The following case should never happen for real transactions
 prettySigners _ _ [] = []
 
@@ -350,7 +345,7 @@ prettySigners _ _ [] = []
 --     - "Bar": 1000
 instance PrettyCooked Mint where
   prettyCookedOpt opts (Mint pol red tks) =
-    prettyItemize (prettyCookedOpt opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
+    prettyItemize (prettyHash opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
       lPrettyTxSkelRedeemer opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
 instance PrettyCooked TxSkelOut where
@@ -370,7 +365,7 @@ instance PrettyCooked TxSkelOut where
                   Just $
                     "Datum (hashed)"
                       <+> "("
-                      <> prettyHash (pcOptHashes opts) (toHash dHash)
+                      <> prettyHash opts dHash
                       <> "):"
                       <+> (PP.align . prettyCookedOpt opts)
                         (output ^. outputDatumL)
@@ -391,14 +386,14 @@ mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutDatumHash dat) =
   Just $
     "Datum (hashed)"
       <+> "("
-      <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+      <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
       <> "):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 mPrettyTxSkelOutDatum opts txSkelOutDatum@(TxSkelOutDatum dat) =
   Just $
     "Datum (hashed)"
       <+> "("
-      <> prettyHash (pcOptHashes opts) (toHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+      <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
       <> "):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
@@ -504,7 +499,7 @@ mPrettyTxOpts
       prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
       prettyBalancingPolicy :: BalancingPolicy -> DocCooked
       prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
-      prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
+      prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts w
       prettyBalancingPolicy DoNotBalance = "Do not balance"
       prettyUnsafeModTx :: [RawModTx] -> DocCooked
       prettyUnsafeModTx [] = "No transaction modifications"
@@ -516,14 +511,14 @@ mPrettyTxOpts
       prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
         prettyItemize "Collateral policy:" "-" ["Use value-only utxos from balancing wallet", "Send return collaterals to balancing wallet"]
       prettyCollateralUtxos (CollateralUtxosFromWallet w)
-        | prettyWallet <- prettyCookedOpt opts (walletPKHash w) =
+        | prettyWallet <- prettyCookedOpt opts w =
             prettyItemize "Collateral policy:" "-" ["Use value-only utxos from" <+> prettyWallet, "Send return collaterals to" <+> prettyWallet]
       prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
         prettyItemize
           "Collateral policy:"
           "-"
           [ prettyItemize "Choose among the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs),
-            "Send return collaterals to" <+> prettyCookedOpt opts (walletPKHash w)
+            "Send return collaterals to" <+> prettyCookedOpt opts w
           ]
       prettyBalancingUtxos :: BalancingUtxos -> DocCooked
       prettyBalancingUtxos BalancingUtxosFromBalancingWallet = "Balance with 'only value' utxos from the balancing wallet"
@@ -627,6 +622,4 @@ prettyPayload
 
 -- | Prints a reference script hash
 prettyReferenceScriptHash :: PrettyCookedOpts -> Script.ScriptHash -> DocCooked
-prettyReferenceScriptHash opts scriptHash =
-  "Reference script hash:"
-    <+> prettyHash (pcOptHashes opts) (toHash scriptHash)
+prettyReferenceScriptHash opts scriptHash = "Reference script hash:" <+> prettyHash opts scriptHash
