@@ -3,7 +3,7 @@
 
 -- | This module implements 'PrettyCooked', 'PrettyCookedL' and 'PrettyCookedM'
 -- instances for 'TxSkel's and its components.
-module Cooked.Pretty.Skeleton (Contextualized (..), CollateralInput (..)) where
+module Cooked.Pretty.Skeleton (Contextualized (..)) where
 
 import Cooked.Output
 import Cooked.Pretty.Common
@@ -28,6 +28,9 @@ import Prettyprinter qualified as PP
 instance PrettyCooked Wallet where
   prettyCookedOpt opts = prettyHash opts . walletPKHash
 
+-- | Some elements of a skeleton can only be printed when they are associated
+-- with a context. This is typically the case for elements that need some
+-- 'Api.TxOutRef's and datums to be resolved.
 data Contextualized a = Contextualized
   { _ctxOutputs :: Map Api.TxOutRef Api.TxOut,
     _ctxDatums :: Map Api.DatumHash TxSkelOutDatum,
@@ -319,7 +322,8 @@ instance PrettyCookedL TxOpts where
         prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> prettyCookedOpt opts fee
         prettyAnchorResolution :: AnchorResolution -> DocCooked
         prettyAnchorResolution AnchorResolutionHttp = "Resolve anchor url with an (unsafe) http connection"
-        prettyAnchorResolution (AnchorResolutionLocal urlMap) = prettyItemize @[DocCooked] opts "Resolve anchor url with the following table keys" "-" (PP.viaShow <$> Map.keys urlMap)
+        prettyAnchorResolution (AnchorResolutionLocal urlMap) =
+          prettyItemize @[DocCooked] opts "Resolve anchor url with the following table keys" "-" (PP.viaShow <$> Map.keys urlMap)
 
 -- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
 -- address and value, and also builds a possibly empty list for its datum and
@@ -339,15 +343,6 @@ instance PrettyCookedL (Contextualized Api.TxOutRef) where
               ("Reference script hash:" <+>) . prettyHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
             ]
       )
-
-newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
-
-instance PrettyCooked (Contextualized CollateralInput) where
-  prettyCookedOpt opts cColIn@(Contextualized _ _ (CollateralInput txOutRef)) =
-    case prettyCookedOptL opts (unCollateralInput <$> cColIn) of
-      (addressDoc : valueDoc : otherDocs) ->
-        prettyItemize opts ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
-      _ -> "Uses" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
 
 data Input = Input
   { inputORef :: Api.TxOutRef,

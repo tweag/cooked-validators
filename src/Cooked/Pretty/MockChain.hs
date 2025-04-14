@@ -14,7 +14,7 @@ import Cooked.Wallet
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -133,7 +133,7 @@ instance PrettyCooked MockChainLogEntry where
 instance PrettyCooked UtxoState where
   prettyCookedOpt opts =
     prettyItemize opts "UTxO state:" "•"
-      . map (uncurry (prettyAddressState opts))
+      . map (\(addr, plSet) -> prettyItemize opts (prettyCookedOpt opts addr) "-" plSet)
       . List.sortBy addressOrdering
       . Map.toList
       . utxoState
@@ -154,67 +154,57 @@ instance PrettyCooked UtxoState where
 
 -- | Pretty prints the state of an address, that is the list of UTxOs (including
 -- value and datum), grouped
-prettyAddressState :: PrettyCookedOpts -> Api.Address -> UtxoPayloadSet -> DocCooked
-prettyAddressState opts address payloadSet =
-  prettyItemize
-    opts
-    (prettyCookedOpt opts address)
-    "-"
-    ( mapMaybe (prettyPayloadGrouped opts)
-        . group
-        . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
-        . utxoPayloadSet
-        $ payloadSet
-    )
-  where
-    similar :: UtxoPayload -> UtxoPayload -> Bool
-    similar
-      (UtxoPayload _ value1 skelOutDatum1 refScript1)
-      (UtxoPayload _ value2 skelOutDatum2 refScript2) =
-        value1 == value2
-          && skelOutDatum1 == skelOutDatum2
-          && refScript1 == refScript2
-    group :: [UtxoPayload] -> [[UtxoPayload]]
-    group =
-      case pcOptPrintTxOutRefs opts of
-        PCOptTxOutRefsFull -> map (: [])
-        _ -> List.groupBy similar
+instance PrettyCookedL UtxoPayloadSet where
+  prettyCookedOptLM opts =
+    (prettyPayloadGrouped <$>)
+      . group
+      . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
+      . utxoPayloadSet
+    where
+      similar :: UtxoPayload -> UtxoPayload -> Bool
+      similar
+        (UtxoPayload _ value1 skelOutDatum1 refScript1)
+        (UtxoPayload _ value2 skelOutDatum2 refScript2) =
+          value1 == value2
+            && skelOutDatum1 == skelOutDatum2
+            && refScript1 == refScript2
 
--- | Pretty prints payloads (datum and value corresponding to 1 UTxO) grouped
--- together when they carry same value and datum
-prettyPayloadGrouped :: PrettyCookedOpts -> [UtxoPayload] -> Maybe DocCooked
-prettyPayloadGrouped _ [] = Nothing
-prettyPayloadGrouped opts [payload] =
-  prettyPayload
-    opts
-    (pcOptPrintTxOutRefs opts /= PCOptTxOutRefsHidden)
-    payload
-prettyPayloadGrouped opts (payload : rest) =
-  let cardinality = 1 + length rest
-   in (PP.parens ("×" <> prettyCookedOpt opts cardinality) <+>)
-        <$> prettyPayload opts False payload
+      group :: [UtxoPayload] -> [[UtxoPayload]]
+      group =
+        case pcOptPrintTxOutRefs opts of
+          PCOptTxOutRefsFull -> map (: [])
+          _ -> List.groupBy similar
 
--- | Optionally prints a 'UtxoPayload' with an option piloting whether
--- 'Api.TxOutRef's should be shown.
-prettyPayload :: PrettyCookedOpts -> Bool -> UtxoPayload -> Maybe DocCooked
-prettyPayload
-  opts
-  showTxOutRef
-  ( UtxoPayload
-      { utxoPayloadTxOutRef,
-        utxoPayloadValue,
-        utxoPayloadSkelOutDatum,
-        utxoPayloadReferenceScript
-      }
-    ) =
-    case catMaybes
-      [ if showTxOutRef
-          then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
-          else Nothing,
-        Just (prettyCookedOpt opts utxoPayloadValue),
-        prettyCookedOptM opts utxoPayloadSkelOutDatum,
-        ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
-      ] of
-      [] -> Nothing
-      [doc] -> Just $ PP.align doc
-      docs -> Just . PP.align . PP.vsep $ docs
+      -- Pretty prints payloads (datum and value corresponding to 1 UTxO)
+      -- grouped together when they carry same value and datum
+      prettyPayloadGrouped :: [UtxoPayload] -> Maybe DocCooked
+      prettyPayloadGrouped [] = Nothing
+      prettyPayloadGrouped [payload] = prettyPayload (pcOptPrintTxOutRefs opts /= PCOptTxOutRefsHidden) payload
+      prettyPayloadGrouped (payload : rest) =
+        (PP.parens ("×" <> prettyCookedOpt opts (1 + length rest)) <+>)
+          <$> prettyPayload False payload
+
+      -- Optionally prints a 'UtxoPayload' with an option piloting whether
+      -- 'Api.TxOutRef's should be shown.
+      prettyPayload :: Bool -> UtxoPayload -> Maybe DocCooked
+      prettyPayload showTxOutRef UtxoPayload {..} =
+        case catMaybes
+          [ if showTxOutRef
+              then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
+              else Nothing,
+            Just (prettyCookedOpt opts utxoPayloadValue),
+            prettyCookedOptM opts utxoPayloadSkelOutDatum,
+            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
+          ] of
+          [] -> Nothing
+          [doc] -> Just $ PP.align doc
+          docs -> Just . PP.align . PP.vsep $ docs
+
+newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
+
+instance PrettyCooked (Contextualized CollateralInput) where
+  prettyCookedOpt opts cColIn@(Contextualized _ _ (CollateralInput txOutRef)) =
+    case prettyCookedOptL opts (unCollateralInput <$> cColIn) of
+      (addressDoc : valueDoc : otherDocs) ->
+        prettyItemize opts ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
+      _ -> "Uses" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
