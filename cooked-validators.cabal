@@ -36,7 +36,7 @@ library
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
-      Cooked.MockChain.MockChainSt
+      Cooked.MockChain.MockChainState
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch

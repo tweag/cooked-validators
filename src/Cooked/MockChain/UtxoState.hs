@@ -45,8 +45,9 @@ data UtxoPayload = UtxoPayload
     utxoPayloadTxOutRef :: Api.TxOutRef,
     -- | The value stored in this UTxO
     utxoPayloadValue :: Api.Value,
-    -- | The datum stored in this UTxO
-    utxoPayloadSkelOutDatum :: TxSkelOutDatum,
+    -- | The optional datum stored in this UTxO and whether it is hashed
+    -- ('True') or inline ('False')
+    utxoPayloadDatum :: Maybe (Api.Datum, Bool),
     -- | The optional reference script stored in this UTxO
     utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }

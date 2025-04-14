@@ -19,7 +19,7 @@ import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.MinAda
-import Cooked.MockChain.MockChainSt
+import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Hashable
@@ -45,7 +45,7 @@ import PlutusLedgerApi.V3 qualified as Api
 --
 -- A 'MockChain':
 --
--- - stores and updates a 'MockChainSt'
+-- - stores and updates a 'MockChainState'
 --
 -- - returns a 'UtxoState' when run
 --
@@ -72,11 +72,11 @@ instance Monoid MockChainBook where
 -- | A 'MockChainT' builds up a stack of monads on top of a given monad
 -- @m@ to reflect the requirements of the simulation.
 newtype MockChainT m a = MockChainT
-  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT MockChainBook m))) a}
+  {unMockChain :: (StateT MockChainState (ExceptT MockChainError (WriterT MockChainBook m))) a}
   deriving newtype
     ( Functor,
       Applicative,
-      MonadState MockChainSt,
+      MonadState MockChainState,
       MonadError MockChainError,
       MonadWriter MockChainBook
     )
@@ -116,18 +116,18 @@ type MockChainReturn a b = (Either MockChainError (a, b), MockChainBook)
 
 -- | Transforms a 'MockChainT' into another one
 mapMockChainT ::
-  (m (MockChainReturn a MockChainSt) -> n (MockChainReturn b MockChainSt)) ->
+  (m (MockChainReturn a MockChainState) -> n (MockChainReturn b MockChainState)) ->
   MockChainT m a ->
   MockChainT n b
 mapMockChainT f = MockChainT . mapStateT (mapExceptT (mapWriterT f)) . unMockChain
 
--- | Runs a 'MockChainT' from a default 'MockChainSt'
+-- | Runs a 'MockChainT' from a default 'MockChainState'
 runMockChainTRaw ::
   MockChainT m a ->
-  m (MockChainReturn a MockChainSt)
+  m (MockChainReturn a MockChainState)
 runMockChainTRaw = runWriterT . runExceptT . flip runStateT def . unMockChain
 
--- | Runs a 'MockChainT' from an initial 'MockChainSt' built from a given
+-- | Runs a 'MockChainT' from an initial 'MockChainState' built from a given
 -- 'InitialDistribution'. Returns a 'UtxoState'.
 runMockChainTFrom ::
   (Monad m) =>
@@ -136,7 +136,7 @@ runMockChainTFrom ::
   m (MockChainReturn a UtxoState)
 runMockChainTFrom i0 s =
   first (right (second mcstToUtxoState))
-    <$> runMockChainTRaw (mockChainSt0From i0 >>= put >> s)
+    <$> runMockChainTRaw (mockChainState0From i0 >>= put >> s)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
 runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a UtxoState)
