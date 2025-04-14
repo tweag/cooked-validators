@@ -47,15 +47,15 @@ instance PrettyCooked MockChainError where
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
   prettyCookedOpt opts (MCEGenerationError (ToCardanoError msg cardanoError)) =
-    prettyItemize
+    prettyItemize @[DocCooked]
       opts
       "Transaction generation error:"
       "-"
-      [PP.pretty msg :: DocCooked, PP.pretty cardanoError]
+      [PP.pretty msg, PP.pretty cardanoError]
   prettyCookedOpt opts (MCEGenerationError (GenerateTxErrorGeneral msgs)) =
-    prettyItemize opts "Transaction generation error:" "-" [PP.pretty msgs :: DocCooked]
+    prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msgs]
   prettyCookedOpt opts (MCEGenerationError (TxBodyError msg err)) =
-    prettyItemize opts "Transaction generation error:" "-" [PP.pretty msg :: DocCooked, PP.viaShow err]
+    prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msg, PP.viaShow err]
   prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
     prettyItemize opts "Unknown transaction output ref:" "-" [PP.pretty msg, prettyCookedOpt opts txOutRef]
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
