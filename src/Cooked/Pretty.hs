@@ -41,9 +41,9 @@
 -- automatically by the end-user functions provided in
 -- "Cooked.MockChain.Testing".
 --
--- To do it manually, use functions defined in 'Cooked.Pretty.Cooked' such as
--- 'prettyTxSkel' or instance of 'PrettyCooked' such as the one for
--- @MockChainReturn a UtxoState@.
+-- To do it manually, use instances of 'PrettyCooked', 'PrettyCookedL' or
+-- 'PrettyCookedM' defined in 'Cooked.Pretty.Skeleton' or
+-- 'Cooked.Pretty.MockChain' such as the one for @MockChainReturn a UtxoState@.
 module Cooked.Pretty (module X) where
 
 import Cooked.Pretty.Common as X

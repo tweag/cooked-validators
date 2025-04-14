@@ -37,11 +37,13 @@ import Prettyprinter.Render.Text qualified as PP
 -- | A standard 'PP.Doc' without any annotation
 type DocCooked = Doc ()
 
+-- | A list of 'DocCooked'
 type DocCookedL = [DocCooked]
 
+-- | An optional 'DocCooked'
 type DocCookedM = Maybe DocCooked
 
--- | Type class of things that can be pretty printed using options
+-- | Type class of things that can produce a document
 class PrettyCooked a where
   -- | Pretty prints an element based on some 'PrettyCookedOpts'
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
@@ -53,10 +55,13 @@ instance PrettyCooked DocCooked where
 prettyCooked :: (PrettyCooked a) => a -> DocCooked
 prettyCooked = prettyCookedOpt def
 
+-- | Type class of things that can produce a list of documents
 class PrettyCookedL a where
+  -- \| Pretty prints an element as a list on some 'PrettyCookedOpts'
   prettyCookedOptL :: PrettyCookedOpts -> a -> DocCookedL
   prettyCookedOptL opts = catMaybes . prettyCookedOptLM opts
 
+  -- \| Pretty prints an element as a list of optional documents
   prettyCookedOptLM :: PrettyCookedOpts -> a -> [DocCookedM]
   prettyCookedOptLM opts = fmap Just . prettyCookedOptL opts
 
@@ -66,7 +71,9 @@ instance (PrettyCooked a) => PrettyCookedL [a] where
 instance (PrettyCooked a) => PrettyCookedL (Set a) where
   prettyCookedOptL opts = prettyCookedOptL opts . Set.toList
 
+-- | Type class of things that can produce an optional document
 class PrettyCookedM a where
+  -- | Pretty prints an optional document on some 'PrettyCookedOpts'
   prettyCookedOptM :: PrettyCookedOpts -> a -> DocCookedM
 
 instance PrettyCookedM DocCookedM where
