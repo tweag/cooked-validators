@@ -44,25 +44,20 @@ data Contextualized a = Contextualized
   deriving (Functor)
 
 -- | Prints a 'Contextualized' 'TxSkel'
-instance PrettyCooked (Contextualized TxSkel) where
-  prettyCookedOpt opts cTxSkel
+instance PrettyCookedL (Contextualized TxSkel) where
+  prettyCookedOptLM opts cTxSkel
     | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals <- ctxContent cTxSkel =
-        prettyItemize
-          opts
-          "Transaction skeleton:"
-          "-"
-          $ catMaybes
-            [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
-              prettyItemizeNonEmpty opts "Options:" "-" txopts,
-              prettyItemizeNonEmpty opts "Mints:" "-" (txSkelMintsToList mints),
-              Just $ "Validity interval:" <+> PP.pretty validityRange,
-              prettyItemizeNonEmpty opts "Signers:" "-" (txopts, signers),
-              prettyItemizeNonEmpty opts "Inputs:" "-" ((<$ cTxSkel) . uncurry Input <$> Map.toList ins),
-              prettyItemizeNonEmpty opts "Reference inputs:" "-" $ mapMaybe (prettyCookedOptM opts . (<$ cTxSkel) . ReferenceInput) (Set.toList insReference),
-              prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
-              prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
-              prettyItemizeNonEmpty opts "Withdrawals:" "-" (mkWithdrawal <$> Map.toList withdrawals)
-            ]
+        [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
+          prettyItemizeNonEmpty opts "Mints:" "-" (txSkelMintsToList mints),
+          Just $ "Validity interval:" <+> PP.pretty validityRange,
+          prettyItemizeNonEmpty opts "Signers:" "-" (txopts, signers),
+          prettyItemizeNonEmpty opts "Inputs:" "-" ((<$ cTxSkel) . uncurry Input <$> Map.toList ins),
+          prettyItemizeNonEmpty opts "Reference inputs:" "-" $ mapMaybe (prettyCookedOptM opts . (<$ cTxSkel) . ReferenceInput) (Set.toList insReference),
+          prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
+          prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
+          prettyItemizeNonEmpty opts "Withdrawals:" "-" (mkWithdrawal <$> Map.toList withdrawals),
+          prettyItemizeNonEmpty opts "Options:" "-" txopts
+        ]
 
 data Withdrawal = Withdrawal (Either (Script.Versioned Script.Script) Api.PubKeyHash) TxSkelRedeemer Api.Lovelace
 

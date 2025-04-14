@@ -98,7 +98,7 @@ instance PrettyCooked MockChainLogEntry where
       <> prettyCookedOpt opts skelOut
       <> " has been automatically adjusted to "
       <> prettyCookedOpt opts (Script.toValue newAda)
-  prettyCookedOpt opts (MCLogSubmittedTxSkel outputs datums skel) = "Submitted:" <+> prettyCookedOpt opts (Contextualized outputs datums skel)
+  prettyCookedOpt opts (MCLogSubmittedTxSkel outputs datums skel) = prettyItemize opts "Submitted skeleton:" "-" $ Contextualized outputs datums skel
   prettyCookedOpt opts (MCLogAdjustedTxSkel outputs datums skel fee mCollaterals) =
     let mCollateralsDoc =
           ( \(collaterals, returnWallet) ->
@@ -107,14 +107,9 @@ instance PrettyCooked MockChainLogEntry where
               ]
           )
             <$> mCollaterals
-     in prettyItemize
-          opts
-          "Adjusted:"
-          "-"
-          $ [ prettyCookedOpt opts (Contextualized outputs datums skel),
-              "Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)
-            ]
-            ++ fromMaybe [] mCollateralsDoc
+     in prettyItemize opts "Adjusted skeleton:" "-" $
+          prettyCookedOptL opts (Contextualized outputs datums skel)
+            ++ (("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)) : fromMaybe [] mCollateralsDoc)
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyHash opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
   prettyCookedOpt opts (MCLogUnusedCollaterals (Left cWallet)) =
