@@ -66,6 +66,10 @@
   (no longer needed type `Redeemer`) and it now contains locally an option to
   either automatically assign a reference input or not.
 - The CI now ensures the documentation is filled up properly.
+- Modules under `Pretty.Cooked` have been revamped. All pretty functions are now
+  instances of either `PrettyCooked`, `PrettyCookedL` or `PrettyCookedM` and are
+  adequately placed in the `Pretty.Cooked.XXX` submodules. This offers both more
+  consistency and flexibility to define `Pretty` instances for cooked.
 
 ### Fixed
 
