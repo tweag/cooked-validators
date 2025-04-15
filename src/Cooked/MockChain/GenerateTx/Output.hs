@@ -31,11 +31,11 @@ toCardanoTxOut (Pays output) = do
       (Ledger.toCardanoValue oValue)
   datum <- case oDatum of
     TxSkelOutNoDatum -> return Cardano.TxOutDatumNone
-    TxSkelOutDatumHash datum ->
+    TxSkelOutSomeDatum datum HashedHiddenInTx ->
       throwOnToCardanoError
         "toCardanoTxOut: Unable to resolve/transate a datum hash."
         $ Cardano.TxOutDatumHash Cardano.AlonzoEraOnwardsConway
           <$> Ledger.toCardanoScriptDataHash (Script.datumHash $ Api.Datum $ Api.toBuiltinData datum)
-    TxSkelOutDatum datum -> return $ Cardano.TxOutSupplementalDatum Cardano.AlonzoEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
-    TxSkelOutInlineDatum datum -> return $ Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
+    TxSkelOutSomeDatum datum HashedVisibleInTx -> return $ Cardano.TxOutSupplementalDatum Cardano.AlonzoEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
+    TxSkelOutSomeDatum datum Inline -> return $ Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
   return $ Cardano.TxOut address value datum $ Ledger.toCardanoReferenceScript (Script.toVersioned <$> oRefScript)

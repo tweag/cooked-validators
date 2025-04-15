@@ -108,9 +108,9 @@ receives owner =
         (Nothing @(Script.Versioned Script.Script)) -- No reference script by default
   where
     go :: TxSkelOut -> Payable els -> TxSkelOut
-    go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatum dat
-    go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutInlineDatum dat
-    go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutDatumHash dat
+    go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) HashedVisibleInTx
+    go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) Inline
+    go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) HashedHiddenInTx
     go (Pays output) (FixedValue v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) False
     go (Pays output) (Value v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) True
     go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
@@ -120,7 +120,7 @@ receives owner =
 
     defaultTxSkelDatum = case toPKHOrValidator owner of
       -- V1 and V2 script always need a datum, even if empty
-      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> TxSkelOutDatumHash ()
+      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> TxSkelOutSomeDatum (DatumContent ()) HashedHiddenInTx
       -- V3 script and PKH do not necessarily need a datum
       _ -> TxSkelOutNoDatum
 
@@ -150,7 +150,7 @@ txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. ou
 txSkelOutReferenceScript :: TxSkelOut -> Maybe (Script.Versioned Script.Script)
 txSkelOutReferenceScript (Pays output) = Script.toVersioned <$> (output ^. outputReferenceScriptL)
 
--- | Decides if a transaction output has a certain owner and datum type.
+-- | Decides if a transaction output has a certain owner type.
 txSkelOutOwnerTypeP ::
   forall ownerType.
   (OwnerConstraints ownerType) =>
@@ -182,9 +182,8 @@ txSkelOutputDatumTypeAT =
             outputDatumL
             ( \case
                 TxSkelOutNoDatum -> TxSkelOutNoDatum
-                TxSkelOutDatum tyDatum -> TxSkelOutDatum $ fromMaybe tyDatum $ cast newTyDatum
-                TxSkelOutDatumHash tyDatum -> TxSkelOutDatumHash $ fromMaybe tyDatum $ cast newTyDatum
-                TxSkelOutInlineDatum tyDatum -> TxSkelOutInlineDatum $ fromMaybe tyDatum $ cast newTyDatum
+                TxSkelOutSomeDatum (DatumContent tyDatum) placement ->
+                  TxSkelOutSomeDatum (DatumContent $ fromMaybe tyDatum $ cast newTyDatum) placement
             )
             output
     )

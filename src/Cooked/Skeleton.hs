@@ -56,7 +56,6 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -156,21 +155,9 @@ txSkelTemplate =
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
 
--- | Returns all data on transaction outputs. This can contain duplicates, which
--- is intended.
-txSkelDataInOutputs :: TxSkel -> [(Api.DatumHash, TxSkelOutDatum)]
-txSkelDataInOutputs =
-  foldMapOf
-    ( txSkelOutsL
-        % folded
-        % txSkelOutDatumL
-    )
-    ( \txSkelOutDatum ->
-        maybe
-          []
-          (\datum -> [(Script.datumHash datum, txSkelOutDatum)])
-          (txSkelOutUntypedDatum txSkelOutDatum)
-    )
+-- | Returns all data on transaction outputs, with duplicates
+txSkelDataInOutputs :: TxSkel -> [DatumContent]
+txSkelDataInOutputs = foldMapOf (txSkelOutsL % folded % txSkelOutDatumL) (maybeToList . txSkelOutDatumContent)
 
 -- | All `Api.TxOutRef`s in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]

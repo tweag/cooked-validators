@@ -156,7 +156,7 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
   scriptFromHash sHash = gets $ Map.lookup sHash . mcstScripts
   txOutByRef outref = gets $ Map.lookup outref . getIndex . mcstIndex
-  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
+  datumFromHash datumHash = fmap (datumContentToDatum . fst) . Map.lookup datumHash <$> gets mcstDatums
   utxosAt addr = filter ((addr ==) . outputAddress . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 

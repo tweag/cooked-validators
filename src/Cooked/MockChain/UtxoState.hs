@@ -8,7 +8,7 @@ module Cooked.MockChain.UtxoState
   )
 where
 
-import Cooked.Skeleton (TxSkelOutDatum)
+import Cooked.Skeleton.Datum
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map.Strict (Map)
@@ -23,8 +23,7 @@ newtype UtxoState = UtxoState {utxoState :: Map Api.Address UtxoPayloadSet}
 
 -- | Total value accessible to what's pointed by the address.
 holdsInState :: Api.Address -> UtxoState -> Api.Value
-holdsInState address (UtxoState m) =
-  maybe mempty utxoPayloadSetTotal (Map.lookup address m)
+holdsInState address = maybe mempty utxoPayloadSetTotal . Map.lookup address . utxoState
 
 instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
@@ -47,7 +46,7 @@ data UtxoPayload = UtxoPayload
     utxoPayloadValue :: Api.Value,
     -- | The optional datum stored in this UTxO and whether it is hashed
     -- ('True') or inline ('False')
-    utxoPayloadDatum :: Maybe (Api.Datum, Bool),
+    utxoPayloadDatum :: Maybe (DatumContent, Bool),
     -- | The optional reference script stored in this UTxO
     utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }

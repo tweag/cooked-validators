@@ -128,10 +128,10 @@ data MockChainError
 -- provided here.
 data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
-    MCLogSubmittedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash TxSkelOutDatum) TxSkel
+    MCLogSubmittedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash DatumContent) TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral wallet.
-    MCLogAdjustedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash TxSkelOutDatum) TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
+    MCLogAdjustedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash DatumContent) TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
   | -- | Logging the appearance of a new transaction, after a skeleton has been
     -- successfully sent for validation.
     MCLogNewTx Api.TxId
@@ -172,7 +172,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Logs an event that occured during a BlockChain run
   logEvent :: MockChainLogEntry -> m ()
 
--- | This is the second layer of our block, which provides all the other
+-- | This is the second layer of our blockchain, which provides all the other
 -- blockchain primitives not needed for balancing, except transaction
 -- validation. This layers is the one where
 -- 'Cooked.MockChain.Tweak.Common.Tweak's are plugged to.
@@ -412,8 +412,8 @@ txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
     Api.NoOutputDatum -> return TxSkelOutNoDatum
     Api.OutputDatumHash hash -> do
       Just (Api.Datum dat') <- datumFromHash hash
-      return $ (if includeInTransactionBody then TxSkelOutDatum else TxSkelOutDatumHash) dat'
-    Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutInlineDatum dat'
+      return $ TxSkelOutSomeDatum (DatumContent dat') (if includeInTransactionBody then HashedVisibleInTx else HashedHiddenInTx)
+    Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutSomeDatum (DatumContent dat') Inline
   refScript <- case refS of
     Nothing -> return Nothing
     Just hash -> scriptFromHash hash

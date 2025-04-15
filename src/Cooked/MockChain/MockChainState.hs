@@ -1,5 +1,5 @@
 -- | This module exposes the internal state in which our direct simulation is
--- run, and functions to update and querry it.
+-- run, and functions to update and query it.
 module Cooked.MockChain.MockChainState where
 
 import Cardano.Api qualified as Cardano
@@ -41,7 +41,7 @@ data MockChainState = MockChainState
     -- that currently have the datum. This map is used to display the contents
     -- of the state to the user, and to recover datums for transaction
     -- generation.
-    mcstDatums :: Map Api.DatumHash (Api.Datum, Integer),
+    mcstDatums :: Map Api.DatumHash (DatumContent, Integer),
     mcstScripts :: Map Script.ScriptHash (Script.Versioned Script.Script),
     mcstCurrentSlot :: Ledger.Slot
   }
@@ -55,19 +55,13 @@ instance Default MockChainState where
 getIndex :: Ledger.UtxoIndex -> Map Api.TxOutRef Api.TxOut
 getIndex =
   Map.fromList
-    . map (bimap Ledger.fromCardanoTxIn (Ledger.fromCardanoTxOutToPV2TxInfoTxOut . toCtxTxTxOut))
+    . map
+      ( bimap
+          Ledger.fromCardanoTxIn
+          (Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Cardano.fromCtxUTxOTxOut)
+      )
     . Map.toList
     . Cardano.unUTxO
-  where
-    -- We need to convert a UTxO context TxOut to a Transaction context Tx out.
-    -- It's complicated because the datum type is indexed by the context.
-    toCtxTxTxOut :: Cardano.TxOut Cardano.CtxUTxO era -> Cardano.TxOut Cardano.CtxTx era
-    toCtxTxTxOut (Cardano.TxOut addr val d refS) =
-      let dat = case d of
-            Cardano.TxOutDatumNone -> Cardano.TxOutDatumNone
-            Cardano.TxOutDatumHash s h -> Cardano.TxOutDatumHash s h
-            Cardano.TxOutDatumInline s sd -> Cardano.TxOutDatumInline s sd
-       in Cardano.TxOut addr val dat refS
 
 -- | Builds a 'UtxoState' from a 'MockChainState'
 mcstToUtxoState :: MockChainState -> UtxoState
@@ -85,7 +79,7 @@ mcstToUtxoState MockChainState {mcstIndex, mcstDatums} =
     $ mcstIndex
   where
     extractPayload :: (Api.TxOutRef, Api.TxOut) -> Maybe (Api.Address, UtxoPayloadSet)
-    extractPayload (txOutRef, out@Api.TxOut {txOutAddress, txOutValue, txOutDatum}) =
+    extractPayload (txOutRef, Api.TxOut {txOutAddress, txOutValue, txOutDatum, txOutReferenceScript}) =
       do
         mTxOutDatum <-
           case txOutDatum of
@@ -94,7 +88,7 @@ mcstToUtxoState MockChainState {mcstIndex, mcstDatums} =
             Api.OutputDatumHash hash -> Just . (,True) . fst <$> Map.lookup hash mcstDatums
         return
           ( txOutAddress,
-            UtxoPayloadSet [UtxoPayload txOutRef txOutValue mTxOutDatum (outputReferenceScriptHash out)]
+            UtxoPayloadSet [UtxoPayload txOutRef txOutValue mTxOutDatum txOutReferenceScript]
           )
 
 -- | Generating an emulated state for the emulator from a mockchain state and
@@ -118,13 +112,13 @@ mcstToEmulatedLedgerState MockChainState {..} =
         }
 
 -- | Adds a list of pairs @(datumHash, datum)@ into a 'MockChainState'
-addDatums :: [(Api.DatumHash, TxSkelOutDatum)] -> MockChainState -> MockChainState
+addDatums :: [DatumContent] -> MockChainState -> MockChainState
 addDatums toAdd st@(MockChainState {mcstDatums}) =
   st
     { mcstDatums =
         foldl
-          ( \datumMap (dHash, dat) ->
-              Map.insertWith (\(d, n) (_, n') -> (d, n + n')) dHash (dat, 1) datumMap
+          ( \datumMap dat ->
+              Map.insertWith (\(d, n) (_, n') -> (d, n + n')) (datumContentToDatumHash dat) (dat, 1) datumMap
           )
           mcstDatums
           toAdd
@@ -186,18 +180,23 @@ scriptMap0From =
       return (Script.toScriptHash val, Script.toVersioned @Script.Script val)
 
 -- | Collects the datums paid in an 'InitialDistribution'
-datumMap0From :: InitialDistribution -> Map Api.DatumHash (TxSkelOutDatum, Integer)
-datumMap0From (InitialDistribution initDist) =
+datumMap0From :: InitialDistribution -> Map Api.DatumHash (DatumContent, Integer)
+datumMap0From =
   -- This concatenates singleton maps from inputs and accounts for the number of
   -- occurrences of similar datums
-  foldl' (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . unitMapFrom) Map.empty initDist
-  where
-    -- This takes a single output and creates an empty map if it contains no
-    -- datum, or a singleton map if it contains one
-    unitMapFrom :: TxSkelOut -> Map Api.DatumHash (TxSkelOutDatum, Integer)
-    unitMapFrom txSkelOut =
-      let datum = view txSkelOutDatumL txSkelOut
-       in maybe Map.empty (flip Map.singleton (datum, 1) . Script.datumHash) $ txSkelOutUntypedDatum datum
+  foldl'
+    ( \m ->
+        Map.unionWith
+          (\(d, n1) (_, n2) -> (d, n1 + n2))
+          m
+          . maybe
+            Map.empty
+            (\dat -> Map.singleton (datumContentToDatumHash dat) (dat, 1))
+          . txSkelOutDatumContent
+          . view txSkelOutDatumL
+    )
+    Map.empty
+    . unInitialDistribution
 
 -- | This creates the initial UtxoIndex from an initial distribution by
 -- submitting an initial transaction with the appropriate content:

@@ -103,9 +103,7 @@ malformDatumTweak change = do
         modifiedDat <- change typedDat
         return $ Pays $ setDatum out $ case dat of
           TxSkelOutNoDatum -> TxSkelOutNoDatum
-          TxSkelOutDatum _ -> TxSkelOutDatum modifiedDat
-          TxSkelOutDatumHash _ -> TxSkelOutDatumHash modifiedDat
-          TxSkelOutInlineDatum _ -> TxSkelOutInlineDatum modifiedDat
+          TxSkelOutSomeDatum _ shape -> TxSkelOutSomeDatum (DatumContent modifiedDat) shape
 
 -- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been
 -- successfully applied

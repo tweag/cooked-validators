@@ -2,7 +2,13 @@
 -- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Datum
   ( TxSkelOutDatumConstrs,
+    DatumContent (..),
+    datumContentToDatum,
+    datumContentToDatumHash,
+    DatumPlacement (..),
     TxSkelOutDatum (..),
+    txSkelOutDatumContent,
+    txSkelOutDatumHash,
     txSkelOutTypedDatum,
     txSkelOutUntypedDatum,
   )
@@ -15,7 +21,9 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 import Type.Reflection
 
--- | These are the type constraints that must be satisfied by the datum content
+-- * Type constraints on datums used in cooked-validators
+
+-- | Type constraints that must be satisfied by the datum content
 type TxSkelOutDatumConstrs a =
   ( Show a,
     PrettyCooked a,
@@ -24,91 +32,79 @@ type TxSkelOutDatumConstrs a =
     Typeable a
   )
 
--- | On transaction outputs, we have the options to use
---
--- 1. no datum
--- 2. only a datum hash
--- 3. a "normal" datum
--- 4. an inline datum
---
--- These four options are also what the type 'TxSkelOutDatum' records. The
--- following table explains their differences.
---
--- +------------------------+------------------+---------------------+-----------------------+
--- |                        | datum stored in  | datum resolved      | 'Api.OutputDatum'     |
--- |                        | in the simulated | on the              | constructor           |
--- |                        | chain state      | 'Api.txInfoData'    | seen by the validator |
--- +========================+==================+=====================+=======================+
--- | 'TxSkelOutNoDatum'     | no               | no                  | 'Api.NoOutputDatum'   |
--- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatumHash'   | yes              | no                  | 'Api.OutputDatumHash' |
--- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatum'       | yes              | yes                 | 'Api.OutputDatumHash' |
--- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutInlineDatum' | yes              | no                  | 'Api.OutputDatum'     |
--- +------------------------+------------------+---------------------+-----------------------+
---
--- That is:
---
--- - Whenever there is a datum, we'll store it in the state of our simulated
---   chain. This will make it possible to retrieve it later, using functions
---   such as 'Api.datumFromHash'.
---
--- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will
---   create an output that scripts see on the 'Api.txInfo' as having a datum
---   hash. The difference is whether that hash will be resolvable using
---   validator functions like 'Api.findDatum'.
+-- * Wrapping datums of arbitrary types satisfying 'TxSkelOutDatumConstrs'
+
+-- | Data type of wrapped datums satisfying 'TxSkelOutDatumConstrs'
+data DatumContent where
+  -- | Wraps an element satisfying 'TxSkelOutDatumConstrs'
+  DatumContent :: (TxSkelOutDatumConstrs a) => a -> DatumContent
+
+deriving instance Show DatumContent
+
+instance Api.ToData DatumContent where
+  toBuiltinData (DatumContent dat) = Api.toBuiltinData dat
+
+-- | Extracts the datum from a 'DatumContent'
+datumContentToDatum :: DatumContent -> Api.Datum
+datumContentToDatum = Api.Datum . Api.toBuiltinData
+
+-- | Extracts the datum hash from a 'DatumContent'
+datumContentToDatumHash :: DatumContent -> Api.DatumHash
+datumContentToDatumHash = Script.datumHash . datumContentToDatum
+
+instance Ord DatumContent where
+  compare (DatumContent d1) (DatumContent d2) =
+    case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
+      EQ -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
+      a -> a
+
+instance Eq DatumContent where
+  d1 == d2 = compare d1 d2 == EQ
+
+-- * Datum placement within a transaction
+
+-- | Options on how to include the datum in the transaction
+data DatumPlacement
+  = -- | Include the full datum directly in the UTxO
+    Inline
+  | -- | Only include the datum hash in the UTxO but provide the full datum in
+    -- the transaction field 'Api.txInfoData'
+    HashedVisibleInTx
+  | -- | Only include the datum hash in the UTxO and also hides the full datum
+    -- from the transaction
+    HashedHiddenInTx
+  deriving (Show, Eq, Ord)
+
+-- * 'TxSkel' datums
+
+-- | Datums to be placed in 'TxSkel' outputs
 data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
-  -- | only include the hash on the transaction
-  TxSkelOutDatumHash :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-  -- | use a 'Api.OutputDatumHash' on the transaction output, but generate the
-  -- transaction in such a way that the complete datum is included in the
-  -- 'Api.txInfoData' seen by validators
-  TxSkelOutDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-  -- | use an inline datum
-  TxSkelOutInlineDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-
-deriving instance Show TxSkelOutDatum
-
-instance Eq TxSkelOutDatum where
-  x == y = compare x y == EQ
-
-instance Ord TxSkelOutDatum where
-  compare = curry $ \case
-    (TxSkelOutNoDatum, TxSkelOutNoDatum) -> EQ
-    (TxSkelOutDatumHash d1, TxSkelOutDatumHash d2) -> compareDats d1 d2
-    (TxSkelOutDatum d1, TxSkelOutDatum d2) -> compareDats d1 d2
-    (TxSkelOutInlineDatum d1, TxSkelOutInlineDatum d2) -> compareDats d1 d2
-    (TxSkelOutDatumHash {}, TxSkelOutNoDatum) -> GT
-    (TxSkelOutDatum {}, TxSkelOutNoDatum) -> GT
-    (TxSkelOutDatum {}, TxSkelOutDatumHash {}) -> GT
-    (TxSkelOutInlineDatum {}, _) -> GT
-    (_, _) -> LT
-    where
-      compareDats d1 d2 = case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
-        EQ -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
-        a -> a
+  -- | use some datum content and associated placement
+  TxSkelOutSomeDatum :: DatumContent -> DatumPlacement -> TxSkelOutDatum
+  deriving (Eq, Show, Ord)
 
 instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum TxSkelOutNoDatum = Api.NoOutputDatum
-  toOutputDatum (TxSkelOutDatumHash datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutDatum datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutInlineDatum datum) = Api.OutputDatum . Api.Datum . Api.toBuiltinData $ datum
+  toOutputDatum (TxSkelOutSomeDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
+  toOutputDatum (TxSkelOutSomeDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
+
+-- | Retrieves the 'DatumContent' part of a 'TxSkelOutDatum' when it exists
+txSkelOutDatumContent :: TxSkelOutDatum -> Maybe DatumContent
+txSkelOutDatumContent TxSkelOutNoDatum = Nothing
+txSkelOutDatumContent (TxSkelOutSomeDatum dat _) = Just dat
 
 -- | Converts a 'TxSkelOutDatum' into a possible Plutus datum
 txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
-txSkelOutUntypedDatum = \case
-  TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> Just (Api.Datum $ Api.toBuiltinData x)
-  TxSkelOutDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
-  TxSkelOutInlineDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
+txSkelOutUntypedDatum = fmap datumContentToDatum . txSkelOutDatumContent
+
+-- | Converts a 'TxSkelOutDatum' into a possible Plutus datum hash
+txSkelOutDatumHash :: TxSkelOutDatum -> Maybe Api.DatumHash
+txSkelOutDatumHash = fmap datumContentToDatumHash . txSkelOutDatumContent
 
 -- | Attempts to cast the content of this 'TxSkelOutDatum' to a given type
 txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = \case
-  TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> cast x
-  TxSkelOutDatum x -> cast x
-  TxSkelOutInlineDatum x -> cast x
+txSkelOutTypedDatum txSkelOutDatum = do
+  DatumContent content <- txSkelOutDatumContent txSkelOutDatum
+  cast content

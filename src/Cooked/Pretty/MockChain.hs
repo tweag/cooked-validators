@@ -193,7 +193,7 @@ instance PrettyCookedL UtxoPayloadSet where
               then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
-            prettyCookedOptM opts utxoPayloadSkelOutDatum,
+            (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> prettyCookedOpt opts dat) <$> utxoPayloadDatum,
             ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
           ] of
           [] -> Nothing
