@@ -16,7 +16,7 @@
 </span><span id="line-16"></span><span>
 </span><span id="line-17"></span><span class="hs-comment">-- | Searches through the known utxos for a utxo containing a reference script</span><span>
 </span><span id="line-18"></span><span class="hs-comment">-- with a given script hash, and returns the first such utxo found, if any.</span><span>
-</span><span id="line-19"></span><span id="local-6989586621679825177"><span id="local-6989586621679825179"><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#retrieveReferenceScript"><span class="hs-identifier hs-type">retrieveReferenceScript</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825177"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToScriptHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679825179"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825179"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825177"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-19"></span><span id="local-6989586621679825431"><span id="local-6989586621679825433"><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#retrieveReferenceScript"><span class="hs-identifier hs-type">retrieveReferenceScript</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825431"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToScriptHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679825433"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825433"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825431"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">)</span></span></span><span>
 </span><span id="line-20"></span><span id="retrieveReferenceScript"><span class="annot"><span class="annottext">retrieveReferenceScript :: forall (m :: * -&gt; *) s.
 (MonadBlockChain m, ToScriptHash s) =&gt;
 s -&gt; m (Maybe TxOutRef)
@@ -86,33 +86,33 @@ s
 </span><span id="line-22"></span><span class="hs-comment">-- | Attempts to find in the index a utxo containing a reference script with the</span><span>
 </span><span id="line-23"></span><span class="hs-comment">-- given script hash, and attaches it to a redeemer when it does not yet have a</span><span>
 </span><span id="line-24"></span><span class="hs-comment">-- reference input and when it is allowed, in which case an event is logged.</span><span>
-</span><span id="line-25"></span><span id="local-6989586621679825211"><span id="local-6989586621679825212"><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-type">updateRedeemer</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825211"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToScriptHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679825212"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825212"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825211"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span></span></span><span>
+</span><span id="line-25"></span><span id="local-6989586621679825465"><span id="local-6989586621679825466"><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-type">updateRedeemer</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825465"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToScriptHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679825466"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825466"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825465"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span></span></span><span>
 </span><span id="line-26"></span><span id="updateRedeemer"><span class="annot"><span class="annottext">updateRedeemer :: forall (m :: * -&gt; *) s.
 (MonadBlockChain m, ToScriptHash s) =&gt;
 s -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
-</span><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var hs-var">updateRedeemer</span></a></span></span><span> </span><span id="local-6989586621679825340"><span class="annot"><span class="annottext">s
-</span><a href="#local-6989586621679825340"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span id="local-6989586621679825341"><span class="annot"><span class="annottext">txSkelRed :: TxSkelRedeemer
-</span><a href="#local-6989586621679825341"><span class="hs-identifier hs-var">txSkelRed</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">redeemer
+</span><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var hs-var">updateRedeemer</span></a></span></span><span> </span><span id="local-6989586621679825594"><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679825594"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span id="local-6989586621679825595"><span class="annot"><span class="annottext">txSkelRed :: TxSkelRedeemer
+</span><a href="#local-6989586621679825595"><span class="hs-identifier hs-var">txSkelRed</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">redeemer
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-27"></span><span>  </span><span id="local-6989586621679825352"><span class="annot"><span class="annottext">Maybe TxOutRef
-</span><a href="#local-6989586621679825352"><span class="hs-identifier hs-var">oRefM</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">s -&gt; m (Maybe TxOutRef)
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679825606"><span class="annot"><span class="annottext">Maybe TxOutRef
+</span><a href="#local-6989586621679825606"><span class="hs-identifier hs-var">oRefM</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">s -&gt; m (Maybe TxOutRef)
 forall (m :: * -&gt; *) s.
 (MonadBlockChain m, ToScriptHash s) =&gt;
 s -&gt; m (Maybe TxOutRef)
 </span><a href="Cooked.MockChain.AutoReferenceScripts.html#retrieveReferenceScript"><span class="hs-identifier hs-var">retrieveReferenceScript</span></a></span><span> </span><span class="annot"><span class="annottext">s
-</span><a href="#local-6989586621679825340"><span class="hs-identifier hs-var">script</span></a></span><span>
+</span><a href="#local-6989586621679825594"><span class="hs-identifier hs-var">script</span></a></span><span>
 </span><span id="line-28"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
-</span><a href="#local-6989586621679825352"><span class="hs-identifier hs-var">oRefM</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679825606"><span class="hs-identifier hs-var">oRefM</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-29"></span><span>    </span><span class="annot"><span class="annottext">Maybe TxOutRef
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; m TxSkelRedeemer
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825341"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span>
-</span><span id="line-30"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679825353"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825353"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="#local-6989586621679825595"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span>
+</span><span id="line-30"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679825607"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679825607"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-31"></span><span>      </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; m ()
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
@@ -121,11 +121,11 @@ MockChainLogEntry -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; TxOutRef -&gt; ScriptHash -&gt; MockChainLogEntry
 </span><a href="Cooked.MockChain.BlockChain.html#MCLogAddedReferenceScript"><span class="hs-identifier hs-var">MCLogAddedReferenceScript</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825341"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825353"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">s -&gt; ScriptHash
+</span><a href="#local-6989586621679825595"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679825607"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">s -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">s
-</span><a href="#local-6989586621679825340"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679825594"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-32"></span><span>      </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; m TxSkelRedeemer
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -133,26 +133,26 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825341"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; TxOutRef -&gt; TxSkelRedeemer
+</span><a href="#local-6989586621679825595"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; TxOutRef -&gt; TxSkelRedeemer
 </span><a href="Cooked.Skeleton.Redeemer.html#withReferenceInput"><span class="hs-operator hs-var">`withReferenceInput`</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825353"><span class="hs-identifier hs-var">oRef</span></a></span><span>
+</span><a href="#local-6989586621679825607"><span class="hs-identifier hs-var">oRef</span></a></span><span>
 </span><span id="line-33"></span><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var">updateRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">s
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679825358"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825358"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; m TxSkelRedeemer
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679825612"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825612"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; m TxSkelRedeemer
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825358"><span class="hs-identifier hs-var">redeemer</span></a></span><span>
+</span><a href="#local-6989586621679825612"><span class="hs-identifier hs-var">redeemer</span></a></span><span>
 </span><span id="line-34"></span><span>
 </span><span id="line-35"></span><span class="hs-comment">-- | Goes through the various parts of the skeleton where a redeemer can appear,</span><span>
 </span><span id="line-36"></span><span class="hs-comment">-- and attempts to attach a reference input to each of them, whenever it is</span><span>
 </span><span id="line-37"></span><span class="hs-comment">-- allowed and one has not already been set.</span><span>
-</span><span id="line-38"></span><span id="local-6989586621679825224"><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#toTxSkelWithReferenceScripts"><span class="hs-identifier hs-type">toTxSkelWithReferenceScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825224"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825224"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
+</span><span id="line-38"></span><span id="local-6989586621679825478"><span class="annot"><a href="Cooked.MockChain.AutoReferenceScripts.html#toTxSkelWithReferenceScripts"><span class="hs-identifier hs-type">toTxSkelWithReferenceScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825478"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825478"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
 </span><span id="line-39"></span><span id="toTxSkelWithReferenceScripts"><span class="annot"><span class="annottext">toTxSkelWithReferenceScripts :: forall (m :: * -&gt; *). MonadBlockChain m =&gt; TxSkel -&gt; m TxSkel
-</span><a href="Cooked.MockChain.AutoReferenceScripts.html#toTxSkelWithReferenceScripts"><span class="hs-identifier hs-var hs-var">toTxSkelWithReferenceScripts</span></a></span></span><span> </span><span id="local-6989586621679825438"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679825438"><span class="hs-identifier hs-var">txSkel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-40"></span><span>  </span><span id="local-6989586621679825439"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679825439"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Mint] -&gt; (Mint -&gt; m Mint) -&gt; m [Mint]
+</span><a href="Cooked.MockChain.AutoReferenceScripts.html#toTxSkelWithReferenceScripts"><span class="hs-identifier hs-var hs-var">toTxSkelWithReferenceScripts</span></a></span></span><span> </span><span id="local-6989586621679825692"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679825692"><span class="hs-identifier hs-var">txSkel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679825693"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679825693"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Mint] -&gt; (Mint -&gt; m Mint) -&gt; m [Mint]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
@@ -160,26 +160,26 @@ t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints -&gt; [Mint]) -&gt; TxSkelMints -&gt; [Mint]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679825438"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Optic' A_Lens NoIx TxSkel TxSkelMints -&gt; TxSkelMints
+</span><a href="#local-6989586621679825692"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Optic' A_Lens NoIx TxSkel TxSkelMints -&gt; TxSkelMints
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Mint -&gt; m Mint) -&gt; m [Mint]) -&gt; (Mint -&gt; m Mint) -&gt; m [Mint]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span id="local-6989586621679825453"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679825453"><span class="hs-identifier hs-var">mPol</span></a></span></span><span> </span><span id="local-6989586621679825454"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825454"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679825455"><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679825455"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-41"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679825456"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825456"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span id="local-6989586621679825707"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679825707"><span class="hs-identifier hs-var">mPol</span></a></span></span><span> </span><span id="local-6989586621679825708"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825708"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679825709"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679825709"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679825710"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825710"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
 forall a.
 ToVersioned MintingPolicy a =&gt;
 a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
 </span><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679825453"><span class="hs-identifier hs-var">mPol</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825456"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679825455"><span class="hs-identifier hs-var">tks</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; Mint) -&gt; m TxSkelRedeemer -&gt; m Mint
+</span><a href="#local-6989586621679825707"><span class="hs-identifier hs-var">mPol</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825710"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679825709"><span class="hs-identifier hs-var">tks</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; Mint) -&gt; m TxSkelRedeemer -&gt; m Mint
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
 forall (m :: * -&gt; *) s.
@@ -187,10 +187,10 @@ forall (m :: * -&gt; *) s.
 s -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
 </span><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var">updateRedeemer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall s a. ToVersioned s a =&gt; a -&gt; Versioned s
 </span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679825453"><span class="hs-identifier hs-var">mPol</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825454"><span class="hs-identifier hs-var">red</span></a></span><span>
-</span><span id="line-42"></span><span>  </span><span id="local-6989586621679825458"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679825458"><span class="hs-identifier hs-var">newInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679825707"><span class="hs-identifier hs-var">mPol</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825708"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679825712"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679825712"><span class="hs-identifier hs-var">newInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
 -&gt; ((TxOutRef, TxSkelRedeemer) -&gt; m (TxOutRef, TxSkelRedeemer))
 -&gt; m [(TxOutRef, TxSkelRedeemer)]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
@@ -202,7 +202,7 @@ forall k a. Map k a -&gt; [(k, a)]
 -&gt; Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679825438"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679825692"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 -&gt; Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; Map TxOutRef TxSkelRedeemer
 forall k s (is :: IxList) a.
@@ -214,16 +214,16 @@ s -&gt; Optic' k is s a -&gt; a
 -&gt; ((TxOutRef, TxSkelRedeemer) -&gt; m (TxOutRef, TxSkelRedeemer))
 -&gt; m [(TxOutRef, TxSkelRedeemer)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679825461"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825461"><span class="hs-identifier hs-var">oRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825462"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825462"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-43"></span><span>    </span><span id="local-6989586621679825463"><span class="annot"><span class="annottext">Maybe TxOut
-</span><a href="#local-6989586621679825463"><span class="hs-identifier hs-var">outputM</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; m (Maybe TxOut)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679825715"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679825715"><span class="hs-identifier hs-var">oRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825716"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825716"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>    </span><span id="local-6989586621679825717"><span class="annot"><span class="annottext">Maybe TxOut
+</span><a href="#local-6989586621679825717"><span class="hs-identifier hs-var">outputM</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; m (Maybe TxOut)
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxOutRef -&gt; m (Maybe TxOut)
 </span><a href="Cooked.MockChain.BlockChain.html#txOutByRef"><span class="hs-identifier hs-var">txOutByRef</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825461"><span class="hs-identifier hs-var">oRef</span></a></span><span>
+</span><a href="#local-6989586621679825715"><span class="hs-identifier hs-var">oRef</span></a></span><span>
 </span><span id="line-44"></span><span>    </span><span class="hs-comment">-- We retrieve the possible script hash of the current oRef</span><span>
 </span><span id="line-45"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ConcreteOutput ScriptHash OutputDatum Value ScriptHash
 -&gt; Optic'
@@ -253,7 +253,7 @@ forall o. IsAbstractOutput o =&gt; Lens' o (OwnerType o)
         (ConcreteOutput ScriptHash OutputDatum Value ScriptHash))
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe TxOut
-</span><a href="#local-6989586621679825463"><span class="hs-identifier hs-var">outputM</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOut
+</span><a href="#local-6989586621679825717"><span class="hs-identifier hs-var">outputM</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOut
 -&gt; (TxOut
     -&gt; Maybe (ConcreteOutput ScriptHash OutputDatum Value ScriptHash))
 -&gt; Maybe (ConcreteOutput ScriptHash OutputDatum Value ScriptHash)
@@ -286,11 +286,11 @@ out
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825461"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825462"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-48"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679825467"><span class="annot"><span class="annottext">OwnerType (ConcreteOutput ScriptHash OutputDatum Value ScriptHash)
-</span><a href="#local-6989586621679825467"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679825461"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
+</span><a href="#local-6989586621679825715"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825716"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679825721"><span class="annot"><span class="annottext">OwnerType (ConcreteOutput ScriptHash OutputDatum Value ScriptHash)
+</span><a href="#local-6989586621679825721"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679825715"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
 -&gt; m TxSkelRedeemer -&gt; m (TxOutRef, TxSkelRedeemer)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">OwnerType (ConcreteOutput ScriptHash OutputDatum Value ScriptHash)
@@ -299,16 +299,16 @@ forall (m :: * -&gt; *) s.
 (MonadBlockChain m, ToScriptHash s) =&gt;
 s -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
 </span><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var">updateRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">OwnerType (ConcreteOutput ScriptHash OutputDatum Value ScriptHash)
-</span><a href="#local-6989586621679825467"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825462"><span class="hs-identifier hs-var">red</span></a></span><span>
-</span><span id="line-49"></span><span>  </span><span id="local-6989586621679825468"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679825468"><span class="hs-identifier hs-var">newProposals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
+</span><a href="#local-6989586621679825721"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825716"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679825722"><span class="annot"><span class="annottext">[TxSkelProposal]
+</span><a href="#local-6989586621679825722"><span class="hs-identifier hs-var">newProposals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
 -&gt; (TxSkelProposal -&gt; m TxSkelProposal) -&gt; m [TxSkelProposal]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679825438"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679825692"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 -&gt; Optic' A_Lens NoIx TxSkel [TxSkelProposal] -&gt; [TxSkelProposal]
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
@@ -317,10 +317,10 @@ s -&gt; Optic' k is s a -&gt; a
 </span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((TxSkelProposal -&gt; m TxSkelProposal) -&gt; m [TxSkelProposal])
 -&gt; (TxSkelProposal -&gt; m TxSkelProposal) -&gt; m [TxSkelProposal]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679825470"><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679825470"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679825724"><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679825724"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-50"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679825470"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679825724"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
 -&gt; Optic'
      A_Lens
      NoIx
@@ -341,10 +341,10 @@ s -&gt; Optic' k is s a -&gt; a
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679825470"><span class="hs-identifier hs-var">prop</span></a></span><span>
-</span><span id="line-52"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679825472"><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679825472"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825473"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825473"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Maybe (Versioned Script, TxSkelRedeemer)
+</span><a href="#local-6989586621679825724"><span class="hs-identifier hs-var">prop</span></a></span><span>
+</span><span id="line-52"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679825726"><span class="annot"><span class="annottext">Versioned Script
+</span><a href="#local-6989586621679825726"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825727"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825727"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Maybe (Versioned Script, TxSkelRedeemer)
  -&gt; TxSkelProposal -&gt; TxSkelProposal)
 -&gt; TxSkelProposal
 -&gt; Maybe (Versioned Script, TxSkelRedeemer)
@@ -367,7 +367,7 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
   TxSkelProposal
   (Maybe (Versioned Script, TxSkelRedeemer))
 </span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalWitnessL"><span class="hs-identifier hs-var">txSkelProposalWitnessL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679825470"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (Versioned Script, TxSkelRedeemer) -&gt; TxSkelProposal)
+</span><a href="#local-6989586621679825724"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (Versioned Script, TxSkelRedeemer) -&gt; TxSkelProposal)
 -&gt; (TxSkelRedeemer -&gt; Maybe (Versioned Script, TxSkelRedeemer))
 -&gt; TxSkelRedeemer
 -&gt; TxSkelProposal
@@ -382,7 +382,7 @@ forall a. a -&gt; Maybe a
 -&gt; Maybe (Versioned Script, TxSkelRedeemer)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679825472"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; TxSkelProposal)
+</span><a href="#local-6989586621679825726"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; TxSkelProposal)
 -&gt; m TxSkelRedeemer -&gt; m TxSkelProposal
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Versioned Script -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
@@ -390,11 +390,11 @@ forall (m :: * -&gt; *) s.
 (MonadBlockChain m, ToScriptHash s) =&gt;
 s -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
 </span><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var">updateRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679825472"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825473"><span class="hs-identifier hs-var">red</span></a></span><span>
-</span><span id="line-53"></span><span>  </span><span id="local-6989586621679825476"><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
+</span><a href="#local-6989586621679825726"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825727"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679825730"><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
   (TxSkelRedeemer, Lovelace))]
-</span><a href="#local-6989586621679825476"><span class="hs-identifier hs-var">newWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
+</span><a href="#local-6989586621679825730"><span class="hs-identifier hs-var">newWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
   (TxSkelRedeemer, Lovelace))]
 -&gt; ((Either (Versioned Script) PubKeyHash,
      (TxSkelRedeemer, Lovelace))
@@ -420,7 +420,7 @@ forall k a. Map k a -&gt; [(k, a)]
      (TxSkelRedeemer, Lovelace))]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679825438"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679825692"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 -&gt; Optic'
      A_Lens
      NoIx
@@ -451,11 +451,11 @@ s -&gt; Optic' k is s a -&gt; a
 -&gt; m [(Either (Versioned Script) PubKeyHash,
        (TxSkelRedeemer, Lovelace))]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679825478"><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
-</span><a href="#local-6989586621679825478"><span class="hs-identifier hs-var">wit</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679825479"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825479"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825480"><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679825480"><span class="hs-identifier hs-var">quantity</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
-</span><a href="#local-6989586621679825478"><span class="hs-identifier hs-var">wit</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679825732"><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
+</span><a href="#local-6989586621679825732"><span class="hs-identifier hs-var">wit</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679825733"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825733"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825734"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679825734"><span class="hs-identifier hs-var">quantity</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
+</span><a href="#local-6989586621679825732"><span class="hs-identifier hs-var">wit</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-54"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
 -&gt; m (Either (Versioned Script) PubKeyHash,
@@ -463,14 +463,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
-</span><a href="#local-6989586621679825478"><span class="hs-identifier hs-var">wit</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825479"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679825480"><span class="hs-identifier hs-var">quantity</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-55"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679825481"><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679825481"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script -&gt; Either (Versioned Script) PubKeyHash
+</span><a href="#local-6989586621679825732"><span class="hs-identifier hs-var">wit</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825733"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679825734"><span class="hs-identifier hs-var">quantity</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679825735"><span class="annot"><span class="annottext">Versioned Script
+</span><a href="#local-6989586621679825735"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script -&gt; Either (Versioned Script) PubKeyHash
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679825481"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((TxSkelRedeemer, Lovelace)
+</span><a href="#local-6989586621679825735"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((TxSkelRedeemer, Lovelace)
  -&gt; (Either (Versioned Script) PubKeyHash,
      (TxSkelRedeemer, Lovelace)))
 -&gt; (TxSkelRedeemer -&gt; (TxSkelRedeemer, Lovelace))
@@ -479,7 +479,7 @@ forall a b. a -&gt; Either a b
     (TxSkelRedeemer, Lovelace))
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679825480"><span class="hs-identifier hs-var">quantity</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer
+</span><a href="#local-6989586621679825734"><span class="hs-identifier hs-var">quantity</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer
  -&gt; (Either (Versioned Script) PubKeyHash,
      (TxSkelRedeemer, Lovelace)))
 -&gt; m TxSkelRedeemer
@@ -491,8 +491,8 @@ forall (m :: * -&gt; *) s.
 (MonadBlockChain m, ToScriptHash s) =&gt;
 s -&gt; TxSkelRedeemer -&gt; m TxSkelRedeemer
 </span><a href="Cooked.MockChain.AutoReferenceScripts.html#updateRedeemer"><span class="hs-identifier hs-var">updateRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679825481"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679825479"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><a href="#local-6989586621679825735"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825733"><span class="hs-identifier hs-var">red</span></a></span><span>
 </span><span id="line-56"></span><span>  </span><span class="annot"><span class="annottext">TxSkel -&gt; m TxSkel
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -500,7 +500,7 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
 </span><span id="line-57"></span><span>    </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679825438"><span class="hs-identifier hs-var">txSkel</span></a></span><span>
+</span><a href="#local-6989586621679825692"><span class="hs-identifier hs-var">txSkel</span></a></span><span>
 </span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelMints
@@ -512,7 +512,7 @@ Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">[Mint] -&gt; TxSkelMints
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsFromList"><span class="hs-identifier hs-var">txSkelMintsFromList</span></a></span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679825439"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><a href="#local-6989586621679825693"><span class="hs-identifier hs-var">newMints</span></a></span><span>
 </span><span id="line-60"></span><span>      </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
@@ -525,7 +525,7 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)] -&gt; Map TxOutRef TxSkelRedeemer
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679825458"><span class="hs-identifier hs-var">newInputs</span></a></span><span>
+</span><a href="#local-6989586621679825712"><span class="hs-identifier hs-var">newInputs</span></a></span><span>
 </span><span id="line-62"></span><span>      </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
@@ -536,7 +536,7 @@ forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679825468"><span class="hs-identifier hs-var">newProposals</span></a></span><span>
+</span><a href="#local-6989586621679825722"><span class="hs-identifier hs-var">newProposals</span></a></span><span>
 </span><span id="line-64"></span><span>      </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic'
@@ -566,5 +566,5 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
   (TxSkelRedeemer, Lovelace))]
-</span><a href="#local-6989586621679825476"><span class="hs-identifier hs-var">newWithdrawals</span></a></span><span>
+</span><a href="#local-6989586621679825730"><span class="hs-identifier hs-var">newWithdrawals</span></a></span><span>
 </span><span id="line-66"></span></pre></body></html>
