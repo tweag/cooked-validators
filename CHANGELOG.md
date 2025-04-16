@@ -78,6 +78,9 @@
   in the set of reference inputs of the generated transaction.
 - A bug where hashes were not properly displayed by pretty cooked when involving
   leading zeros in the hexadecimal conversion of their digits.
+- Size of reference scripts is now taken into account when computing the maximal
+  possible fee for a transaction. As a consequence, our dychotomic balancing
+  mechanism now iterates within the proper fee bounds for Conway.
 
 ## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2025-03-17
 

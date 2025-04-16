@@ -11,6 +11,7 @@ where
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
+import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad
@@ -134,19 +135,30 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 -- based on the current protocol parameters
 getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Integer, Integer)
 getMinAndMaxFee = do
-  -- Parameters necessary to compute the maximum possible fee for a transaction
+  -- We retrieve the necessary parameters to compute the maximum possible fee
+  -- for a transaction. There are quite a few of them.
   params <- Emulator.pEmulatorPParams <$> getParams
   let maxTxSize = toInteger $ MicroLens.view Conway.ppMaxTxSizeL params
       Emulator.Coin txFeePerByte = MicroLens.view Conway.ppMinFeeAL params
       Emulator.Coin txFeeFixed = MicroLens.view Conway.ppMinFeeBL params
       Cardano.Prices (Cardano.unboundRational -> priceESteps) (Cardano.unboundRational -> priceEMem) = MicroLens.view Conway.ppPricesL params
       Cardano.ExUnits (toInteger -> eSteps) (toInteger -> eMem) = MicroLens.view Conway.ppMaxTxExUnitsL params
-  -- Final fee accounts for the size of the transaction and the units consumed
-  -- by the execution of scripts from the transaction
-  let sizeFees = txFeeFixed + (maxTxSize * txFeePerByte)
-      eStepsFees = (eSteps * Rat.numerator priceESteps) `div` Rat.denominator priceESteps
-      eMemFees = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
-  return (txFeeFixed, sizeFees + eStepsFees + eMemFees)
+      (Cardano.unboundRational -> refScriptFeePerByte) = MicroLens.view Conway.ppMinFeeRefScriptCostPerByteL params
+  -- We compute the components of the maximum possible fee, starting with the
+  -- maximum fee associated with the transaction size
+  let txSizeMaxFees = maxTxSize * txFeePerByte
+  -- maximum fee associated with the number of execution steps for scripts
+  let eStepsMaxFees = (eSteps * Rat.numerator priceESteps) `div` Rat.denominator priceESteps
+  -- maximum fee associated with the number of execution memory for scripts
+  let eMemMaxFees = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
+  -- maximum fee associated with the size of all reference scripts
+  let refScriptsMaxFees = (maxTxSize * Rat.numerator refScriptFeePerByte) `div` Rat.denominator refScriptFeePerByte
+  return
+    ( -- Minimal fee is just the fixed portion of the fee
+      txFeeFixed,
+      -- Maximal fee is the fixed portion plus all the other maximum fees
+      txFeeFixed + txSizeMaxFees + eStepsMaxFees + eMemMaxFees + refScriptsMaxFees
+    )
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
