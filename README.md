@@ -47,7 +47,7 @@ to get cardano-related packages and on
 [cardano-node-emulator](https://github.com/tweag/cardano-node-emulator-forked)
 directly. If you have no constraint on the version of this package, copy the
 file [`cabal.project`](./cabal.project) to your project and
-[adapt](https://cabal.readthedocs.io/en/stable/cabal-project.html#specifying-the-local-packages)
+[adapt](https://cabal.readthedocs.io/en/stable/cabal-project-description-file.html#specifying-the-local-packages)
 the `packages` stanza.
    
 2. Add the following stanza to the file `cabal.project`
