@@ -285,7 +285,7 @@ jobs:
       - name: Check for warnings in Haddock output
         run: |
           ## Edit this regexp if you wish to forbid other warnings
-          if grep -EC 5 "(is out of scope|Missing documentation for)" docs/cabal-haddock.out; then exit 1; fi
+          if grep -EC 5 "(is out of scope|Missing documentation for)" cabal-haddock.out; then exit 1; fi
 
   run-and-cache-flake-checks:
     name: Run and cache flake checks
