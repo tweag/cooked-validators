@@ -75,9 +75,10 @@ data DatumPlacement
     HashedHiddenInTx
   deriving (Show, Eq, Ord)
 
--- * 'TxSkel' datums
+-- * 'Cooked.Skeleton.TxSkel' datums
 
--- | Datums to be placed in 'TxSkel' outputs
+-- | Datums to be placed in 'Cooked.Skeleton.TxSkel' outputs, which are either
+-- empty, or composed of a datum content and its placement
 data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
