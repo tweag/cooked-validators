@@ -2,7 +2,6 @@
 -- to provide requirements on the the number and results of these runs.
 module Cooked.MockChain.Testing where
 
-import Control.Applicative (empty)
 import Control.Exception qualified as E
 import Control.Monad
 import Cooked.InitialDistribution
@@ -221,7 +220,7 @@ testToProp Test {..} =
           results
 
 -- | A convenience helper when using 'HU.Assertion' which allows to replace
--- 'testCase' with 'testCaseCooked' and thus avoid the use of 'testToProp'.
+-- 'HU.testCase' with 'testCooked' and thus avoid the use of 'testToProp'.
 -- Sadly we cannot generalise it with type classes on @prop@ to work for
 -- QuichCheck at GHC will never be able to instantiate @prop@.
 testCooked :: String -> Test a HU.Assertion -> HU.TestTree
@@ -240,7 +239,7 @@ mustSucceedTest trace =
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
-      testFailureProp = \opts _ res -> testFailureMsg $ renderString (prettyCookedOpt opts) res,
+      testFailureProp = \opts _ res -> testFailureMsg $ "Expected success, but got:" <> renderString (prettyCookedOpt opts) res,
       testSuccessProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def
     }
@@ -253,18 +252,7 @@ mustFailTest trace =
       testInitDist = def,
       testSizeProp = const testSuccess,
       testFailureProp = \_ _ _ -> testSuccess,
-      testSuccessProp = \opts _ a res -> testFailureMsg $ renderString (prettyCookedOpt opts) (a, res),
-      testPrettyOpts = def
-    }
-
-failingTest :: (IsProp prop) => Test a prop
-failingTest =
-  Test
-    { testTrace = empty,
-      testInitDist = def,
-      testSizeProp = const testSuccess,
-      testFailureProp = \_ _ _ -> testFailure,
-      testSuccessProp = \_ _ _ _ -> testFailure,
+      testSuccessProp = \opts _ a res -> testFailureMsg $ "Expected failure, but got:" <> renderString (prettyCookedOpt opts) (a, res),
       testPrettyOpts = def
     }
 
@@ -295,11 +283,11 @@ withSuccessProp test successProp =
     { testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. successProp opts journal val state
     }
 
--- | Same as 'withSucessProp' but only considers the returning value of the run
+-- | Same as 'withSuccessProp' but only considers the returning value of the run
 withResultProp :: (IsProp prop) => Test a prop -> (a -> prop) -> Test a prop
 withResultProp test p = withSuccessProp test (\_ _ res _ -> p res)
 
--- | Some as 'withSucessProp' but only considers the returning state of the run
+-- | Some as 'withSuccessProp' but only considers the returning state of the run
 withStateProp :: (IsProp prop) => Test a prop -> (UtxoState -> prop) -> Test a prop
 withStateProp test p = withSuccessProp test (\_ _ _ -> p)
 
