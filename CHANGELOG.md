@@ -80,6 +80,8 @@
 - Size of reference scripts is now taken into account when computing the maximal
   possible fee for a transaction. As a consequence, our dychotomic balancing
   mechanism now iterates within the proper fee bounds for Conway.
+- A bug where `awaitDurationFromUpperBound` would actually wait from the lower
+  bound of the slot, similarly to `awaitDurationFromLowerBound`.
 
 ## [[5.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v5.0.0) - 2025-03-17
 
