@@ -1,6 +1,6 @@
 # [Cooked Validators](https://github.com/tweag/cooked-validators/)
 
-Copyright Tweag I/O 2024
+Copyright Tweag I/O 2025
 
 `cooked-validators` is a Haskell library to conveniently and efficiently write
 off-chain code for Cardano smart contracts. This offchain code will be
@@ -44,10 +44,10 @@ To use `cooked-validators`, you need
 1. `cooked-validators` depends on
 [cardano-haskell-packages](https://github.com/input-output-hk/cardano-haskell-packages)
 to get cardano-related packages and on
-[cardano-node-emulator](https://github.com/IntersectMBO/cardano-node-emulator)
+[cardano-node-emulator](https://github.com/tweag/cardano-node-emulator-forked)
 directly. If you have no constraint on the version of this package, copy the
 file [`cabal.project`](./cabal.project) to your project and
-[adapt](https://cabal.readthedocs.io/en/stable/cabal-project.html#specifying-the-local-packages)
+[adapt](https://cabal.readthedocs.io/en/stable/cabal-project-description-file.html#specifying-the-local-packages)
 the `packages` stanza.
    
 2. Add the following stanza to the file `cabal.project`
@@ -63,7 +63,7 @@ the `packages` stanza.
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
 
-### Example
+## Example
    
 1. Make your project
    [depend](https://cabal.readthedocs.io/en/stable/getting-started.html#adding-dependencies)
@@ -74,10 +74,10 @@ the `packages` stanza.
    from wallet 1 to wallet 2:
    ```haskell
    > import Cooked
-   > import qualified Plutus.Script.Utils.Ada as Script
+   > import qualified Plutus.Script.Utils.Value as Script
    > printCooked . runMockChain . validateTxSkel $
          txSkelTemplate
-           { txSkelOuts = [wallet 2 `receives` Value (ada 10)],
+           { txSkelOuts = [wallet 2 `receives` Value (Script.ada 10)],
              txSkelSigners = [wallet 1]
            }
    [...]
@@ -101,9 +101,9 @@ the `packages` stanza.
   [here](https://tweag.github.io/cooked-validators/).
 
 - The [CHEATSHEET](doc/CHEATSHEET.md) contains many code snippets to quickly get
-an intuition of how to do things. Use it to discover or search for how to use
-features of `cooked-validators`. Note that this is not a tutorial nor a
-ready-to-use recipes book.
+  an intuition of how to do things. Use it to discover or search for how to use
+  features of `cooked-validators`. Note that this is not a tutorial nor a
+  ready-to-use recipes book.
 
 - The [IMPORTS](doc/IMPORTS.md) file describes and helps to understand our
   dependencies and naming conventions for imports.
@@ -112,13 +112,26 @@ ready-to-use recipes book.
   automated balancing mechanism and associated options (including options
   revolving around fees and collaterals).
 
-- The [CONWAY](doc/CONWAY.md) file describes the Conway features that are currently supported by `cooked-validators`.
+- The [CONWAY](doc/CONWAY.md) file describes the Conway features that are
+  currently supported by `cooked-validators`.
 
-- We also have a [repository](https://github.com/tweag/cooked-smart-contracts)
-of example contracts with offchain code and tests written using
-`cooked-validators`. Note that these examples are not maintained and thus written
-using older versions of cooked-validators.
+## Additional resources
+
+- We have a [repository](https://github.com/tweag/cooked-smart-contracts) of
+  example contracts with offchain code and tests written using
+  `cooked-validators`. Note that these examples are not maintained and thus
+  written using older versions of the library.
 
 - Feel free to visit our [issue
-tracker](https://github.com/tweag/cooked-validators/issues) to seek help about
-known problems, or report new issues!
+  tracker](https://github.com/tweag/cooked-validators/issues) to seek help about
+  known problems, or report new issues!
+
+- `cooked-validators` is regularly used to audit Cardano smart contracts. You
+  can see some of the products with have audited on [this
+  page](https://www.tweag.io/audits/) and can get access to a sample of our
+  audit reports on [this
+  repository](https://github.com/tweag/tweag-audit-reports).
+
+- `cooked-validators` comes with a [template
+  repository](https://github.com/tweag/cooked-template) which can be used to
+  develop offchain code and/or audit code with the tool.
