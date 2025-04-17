@@ -478,7 +478,7 @@ slotToTimeInterval slot = do
           ( if leftclosed then l else l + 1,
             if rightclosed then r else r - 1
           )
-    _ -> error "The time interval corresponding to a slot should be finite on both ends."
+    _ -> fail "Unexpected unbounded slot: please report a bug at https://github.com/tweag/cooked-validators/issues"
 
 -- | Return the slot that contains the given time. See 'slotToTimeInterval' for
 -- some satisfied equational properties.
@@ -499,7 +499,7 @@ awaitDurationFromLowerBound duration = currentTime >>= awaitEnclosingSlot . (+ f
 -- | Wait a given number of ms from the upper bound of the current slot and
 -- returns the current slot after waiting.
 awaitDurationFromUpperBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
-awaitDurationFromUpperBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
+awaitDurationFromUpperBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | The infinite range of slots ending before or at the given time
 slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange
