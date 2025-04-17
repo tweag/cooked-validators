@@ -41,10 +41,10 @@
 </span><span id="line-41"></span><span class="hs-comment">-- should be using lists of those (using 'txSkelMintsFromList') instead of</span><span>
 </span><span id="line-42"></span><span class="hs-comment">-- building a 'TxSkelMints' directly.</span><span>
 </span><span id="line-43"></span><span class="hs-keyword">data</span><span> </span><span id="Mint"><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-44"></span><span>  </span><span id="local-6989586621679816001"><span id="Mint"><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-45"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><a href="#local-6989586621679816001"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679815787"><span id="Mint"><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><a href="#local-6989586621679815787"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-46"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="txSkelMintMintingPolicy"><span class="annot"><span class="annottext">()
-</span><a href="Cooked.Skeleton.Mint.html#txSkelMintMintingPolicy"><span class="hs-identifier hs-var hs-var">txSkelMintMintingPolicy</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679816001"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintMintingPolicy"><span class="hs-identifier hs-var hs-var">txSkelMintMintingPolicy</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679815787"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-47"></span><span>      </span><span id="txSkelMintRedeemer"><span class="annot"><span class="annottext">Mint -&gt; TxSkelRedeemer
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintRedeemer"><span class="hs-identifier hs-var hs-var">txSkelMintRedeemer</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-48"></span><span>      </span><span id="txSkelMintTokens"><span class="annot"><span class="annottext">Mint -&gt; [(TokenName, Integer)]
@@ -54,42 +54,42 @@
 </span><span id="line-51"></span><span>
 </span><span id="line-52"></span><span class="hs-comment">-- | Additional helper to build some 'Mint' in the usual minting case where a</span><span>
 </span><span id="line-53"></span><span class="hs-comment">-- single type of token is minted for a given MP</span><span>
-</span><span id="line-54"></span><span id="local-6989586621679815898"><span class="annot"><a href="Cooked.Skeleton.Mint.html#mint"><span class="hs-identifier hs-type">mint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><a href="#local-6989586621679815898"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679815898"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span></span><span>
+</span><span id="line-54"></span><span id="local-6989586621679815684"><span class="annot"><a href="Cooked.Skeleton.Mint.html#mint"><span class="hs-identifier hs-type">mint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><a href="#local-6989586621679815684"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679815684"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span></span><span>
 </span><span id="line-55"></span><span id="mint"><span class="annot"><span class="annottext">mint :: forall a.
 ToVersioned MintingPolicy a =&gt;
 a -&gt; TxSkelRedeemer -&gt; TokenName -&gt; Integer -&gt; Mint
-</span><a href="Cooked.Skeleton.Mint.html#mint"><span class="hs-identifier hs-var hs-var">mint</span></a></span></span><span> </span><span id="local-6989586621679816010"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679816010"><span class="hs-identifier hs-var">mp</span></a></span></span><span> </span><span id="local-6989586621679816011"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816011"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679816012"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816012"><span class="hs-identifier hs-var">tn</span></a></span></span><span> </span><span id="local-6989586621679816013"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816013"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
+</span><a href="Cooked.Skeleton.Mint.html#mint"><span class="hs-identifier hs-var hs-var">mint</span></a></span></span><span> </span><span id="local-6989586621679815796"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679815796"><span class="hs-identifier hs-var">mp</span></a></span></span><span> </span><span id="local-6989586621679815797"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815797"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679815798"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815798"><span class="hs-identifier hs-var">tn</span></a></span></span><span> </span><span id="local-6989586621679815799"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815799"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
 forall a.
 ToVersioned MintingPolicy a =&gt;
 a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
 </span><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679816010"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816011"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816012"><span class="hs-identifier hs-var">tn</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816013"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679815796"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815797"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815798"><span class="hs-identifier hs-var">tn</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815799"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
 </span><span id="line-56"></span><span>
 </span><span id="line-57"></span><span class="annot"><span class="hs-comment">-- | Similar to 'mint' but deducing the tokens instead</span></span><span>
-</span><span id="line-58"></span><span id="local-6989586621679816014"><span class="annot"><a href="Cooked.Skeleton.Mint.html#burn"><span class="hs-identifier hs-type">burn</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><a href="#local-6989586621679816014"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679816014"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span></span><span>
+</span><span id="line-58"></span><span id="local-6989586621679815800"><span class="annot"><a href="Cooked.Skeleton.Mint.html#burn"><span class="hs-identifier hs-type">burn</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="annot"><a href="#local-6989586621679815800"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679815800"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span></span><span>
 </span><span id="line-59"></span><span id="burn"><span class="annot"><span class="annottext">burn :: forall a.
 ToVersioned MintingPolicy a =&gt;
 a -&gt; TxSkelRedeemer -&gt; TokenName -&gt; Integer -&gt; Mint
-</span><a href="Cooked.Skeleton.Mint.html#burn"><span class="hs-identifier hs-var hs-var">burn</span></a></span></span><span> </span><span id="local-6989586621679816018"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679816018"><span class="hs-identifier hs-var">mp</span></a></span></span><span> </span><span id="local-6989586621679816019"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816019"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679816020"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816020"><span class="hs-identifier hs-var">tn</span></a></span></span><span> </span><span id="local-6989586621679816021"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816021"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxSkelRedeemer -&gt; TokenName -&gt; Integer -&gt; Mint
+</span><a href="Cooked.Skeleton.Mint.html#burn"><span class="hs-identifier hs-var hs-var">burn</span></a></span></span><span> </span><span id="local-6989586621679815804"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679815804"><span class="hs-identifier hs-var">mp</span></a></span></span><span> </span><span id="local-6989586621679815805"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815805"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679815806"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815806"><span class="hs-identifier hs-var">tn</span></a></span></span><span> </span><span id="local-6989586621679815807"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815807"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; TxSkelRedeemer -&gt; TokenName -&gt; Integer -&gt; Mint
 forall a.
 ToVersioned MintingPolicy a =&gt;
 a -&gt; TxSkelRedeemer -&gt; TokenName -&gt; Integer -&gt; Mint
 </span><a href="Cooked.Skeleton.Mint.html#mint"><span class="hs-identifier hs-var">mint</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679816018"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816019"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816020"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816021"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679815804"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815805"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815806"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815807"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-60"></span><span>
 </span><span id="line-61"></span><span class="hs-comment">-- | For each pair (tokenName, amount) in the input list, either:</span><span>
 </span><span id="line-62"></span><span class="hs-comment">--</span><span>
@@ -105,36 +105,36 @@ a -&gt; TxSkelRedeemer -&gt; TokenName -&gt; Integer -&gt; Mint
 </span><span id="line-72"></span><span id="addTokens"><span class="annot"><span class="annottext">addTokens :: [(TokenName, Integer)]
 -&gt; NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
-</span><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var hs-var">addTokens</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679816023"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816023"><span class="hs-identifier hs-var">neMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var hs-var">addTokens</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679815809"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815809"><span class="hs-identifier hs-var">neMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816023"><span class="hs-identifier hs-var">neMap</span></a></span><span>
+</span><a href="#local-6989586621679815809"><span class="hs-identifier hs-var">neMap</span></a></span><span>
 </span><span id="line-73"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816024"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816024"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679816025"><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816025"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679816026"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816026"><span class="hs-identifier hs-var">neMap</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816024"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815810"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815810"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679815811"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679815811"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679815812"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815812"><span class="hs-identifier hs-var">neMap</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815810"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
 -&gt; NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 </span><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816025"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816026"><span class="hs-identifier hs-var">neMap</span></a></span><span>
-</span><span id="line-74"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679816027"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816027"><span class="hs-identifier hs-var">tn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816028"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816028"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679816029"><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816029"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679816030"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816030"><span class="hs-identifier hs-var">neMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679815811"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815812"><span class="hs-identifier hs-var">neMap</span></a></span><span>
+</span><span id="line-74"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679815813"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815813"><span class="hs-identifier hs-var">tn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815814"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815814"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679815815"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679815815"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679815816"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815816"><span class="hs-identifier hs-var">neMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
 -&gt; NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 </span><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816029"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816030"><span class="hs-identifier hs-var">neMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679815815"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815816"><span class="hs-identifier hs-var">neMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-75"></span><span>  </span><span class="annot"><span class="annottext">Maybe (NEMap TokenName (NonZero Integer))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
@@ -147,17 +147,17 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; NonZero Integer -&gt; NEMap TokenName (NonZero Integer)
 forall k a. k -&gt; a -&gt; NEMap k a
 </span><span class="hs-identifier hs-var">NEMap.singleton</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816027"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+</span><a href="#local-6989586621679815813"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
 forall a. a -&gt; NonZero a
 </span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816028"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679816033"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816033"><span class="hs-identifier hs-var">neMap'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815814"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679815819"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815819"><span class="hs-identifier hs-var">neMap'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TokenName
 -&gt; NEMap TokenName (NonZero Integer) -&gt; Maybe (NonZero Integer)
 forall k a. Ord k =&gt; k -&gt; NEMap k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">NEMap.lookup</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816027"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816033"><span class="hs-identifier hs-var">neMap'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679815813"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815819"><span class="hs-identifier hs-var">neMap'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-77"></span><span>    </span><span class="annot"><span class="annottext">Maybe (NonZero Integer)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
@@ -173,17 +173,17 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; NEMap TokenName (NonZero Integer)
 forall k a. Ord k =&gt; k -&gt; a -&gt; NEMap k a -&gt; NEMap k a
 </span><span class="hs-identifier hs-var">NEMap.insert</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816027"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+</span><a href="#local-6989586621679815813"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
 forall a. a -&gt; NonZero a
 </span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816028"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816033"><span class="hs-identifier hs-var">neMap'</span></a></span><span>
-</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679816036"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816036"><span class="hs-identifier hs-var">n'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816028"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679815814"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815819"><span class="hs-identifier hs-var">neMap'</span></a></span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679815822"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815822"><span class="hs-identifier hs-var">n'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815814"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816036"><span class="hs-identifier hs-var">n'</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679815822"><span class="hs-identifier hs-var">n'</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map TokenName (NonZero Integer)
@@ -199,10 +199,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map TokenName (NonZero Integer)
 forall k a. Ord k =&gt; k -&gt; NEMap k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">NEMap.delete</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816027"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816033"><span class="hs-identifier hs-var">neMap'</span></a></span><span>
-</span><span id="line-79"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679816039"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816039"><span class="hs-identifier hs-var">n'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815813"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815819"><span class="hs-identifier hs-var">neMap'</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679815825"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815825"><span class="hs-identifier hs-var">n'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(NEMap TokenName (NonZero Integer)
@@ -216,14 +216,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; NEMap TokenName (NonZero Integer)
 forall k a. Ord k =&gt; k -&gt; a -&gt; NEMap k a -&gt; NEMap k a
 </span><span class="hs-identifier hs-var">NEMap.insert</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816027"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+</span><a href="#local-6989586621679815813"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
 forall a. a -&gt; NonZero a
 </span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816028"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679815814"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816039"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816033"><span class="hs-identifier hs-var">neMap'</span></a></span><span>
+</span><a href="#local-6989586621679815825"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815819"><span class="hs-identifier hs-var">neMap'</span></a></span><span>
 </span><span id="line-80"></span><span>
 </span><span id="line-81"></span><span class="hs-comment">-- | Add a new entry to a 'TxSkelMints'. There are a few wrinkles:</span><span>
 </span><span id="line-82"></span><span class="hs-comment">--</span><span>
@@ -240,79 +240,79 @@ forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span id="line-93"></span><span class="hs-comment">-- values will be minted with a new redeemer.</span><span>
 </span><span id="line-94"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addMint"><span class="hs-identifier hs-type">addMint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span>
 </span><span id="line-95"></span><span id="addMint"><span class="annot"><span class="annottext">addMint :: TxSkelMints -&gt; Mint -&gt; TxSkelMints
-</span><a href="Cooked.Skeleton.Mint.html#addMint"><span class="hs-identifier hs-var hs-var">addMint</span></a></span></span><span> </span><span id="local-6989586621679816041"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816041"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="Cooked.Skeleton.Mint.html#addMint"><span class="hs-identifier hs-var hs-var">addMint</span></a></span></span><span> </span><span id="local-6989586621679815827"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815827"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">a
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816041"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
-</span><span id="line-96"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addMint"><span class="hs-identifier hs-var">addMint</span></a></span><span> </span><span id="local-6989586621679816043"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816043"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Versioned MintingPolicy
+</span><a href="#local-6989586621679815827"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><span id="line-96"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#addMint"><span class="hs-identifier hs-var">addMint</span></a></span><span> </span><span id="local-6989586621679815829"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815829"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Versioned MintingPolicy
 forall s a. ToVersioned s a =&gt; a -&gt; Versioned s
-</span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679816054"><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816054"><span class="hs-identifier hs-var">mp</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679816055"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816055"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679816056"><span class="annot"><span class="annottext">tks :: [(TokenName, Integer)]
-</span><a href="#local-6989586621679816056"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679816057"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816057"><span class="hs-identifier hs-var">tn</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
+</span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679815840"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679815840"><span class="hs-identifier hs-var">mp</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679815841"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815841"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679815842"><span class="annot"><span class="annottext">tks :: [(TokenName, Integer)]
+</span><a href="#local-6989586621679815842"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679815843"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815843"><span class="hs-identifier hs-var">tn</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; NonZero Integer
 forall a. a -&gt; NonZero a
-</span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679816058"><span class="annot"><span class="annottext">NonZero Integer
-</span><a href="#local-6989586621679816058"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679816059"><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816059"><span class="hs-identifier hs-var">tkxs</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679815844"><span class="annot"><span class="annottext">NonZero Integer
+</span><a href="#local-6989586621679815844"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679815845"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679815845"><span class="hs-identifier hs-var">tkxs</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-97"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; TxSkelMints
 -&gt; Maybe (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816054"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816043"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679815840"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815829"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-98"></span><span>    </span><span class="annot"><span class="annottext">Maybe (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
 -&gt; NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 </span><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816059"><span class="hs-identifier hs-var">tkxs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; NonZero Integer -&gt; NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815845"><span class="hs-identifier hs-var">tkxs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; NonZero Integer -&gt; NEMap TokenName (NonZero Integer)
 forall k a. k -&gt; a -&gt; NEMap k a
 </span><span class="hs-identifier hs-var">NEMap.singleton</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816057"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">NonZero Integer
-</span><a href="#local-6989586621679816058"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679815843"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">NonZero Integer
+</span><a href="#local-6989586621679815844"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-99"></span><span>      </span><span class="annot"><span class="annottext">Maybe (NEMap TokenName (NonZero Integer))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816043"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
-</span><span id="line-100"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679816061"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816061"><span class="hs-identifier hs-var">newSubmap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679815829"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><span id="line-100"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679815847"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815847"><span class="hs-identifier hs-var">newSubmap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelMints
 -&gt; TxSkelMints
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816054"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816055"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816061"><span class="hs-identifier hs-var">newSubmap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816043"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><a href="#local-6989586621679815840"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815841"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815847"><span class="hs-identifier hs-var">newSubmap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815829"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
 </span><span id="line-101"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816063"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816063"><span class="hs-identifier hs-var">subMap</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815849"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815849"><span class="hs-identifier hs-var">subMap</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
 -&gt; NEMap TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 </span><a href="Cooked.Skeleton.Mint.html#addTokens"><span class="hs-identifier hs-var">addTokens</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679816056"><span class="hs-identifier hs-var">tks</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816063"><span class="hs-identifier hs-var">subMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679815842"><span class="hs-identifier hs-var">tks</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815849"><span class="hs-identifier hs-var">subMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-102"></span><span>      </span><span class="annot"><span class="annottext">Maybe (NEMap TokenName (NonZero Integer))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; TxSkelMints -&gt; TxSkelMints
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816054"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816043"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
-</span><span id="line-103"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679816065"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816065"><span class="hs-identifier hs-var">newSubmap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679815840"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815829"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><span id="line-103"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679815851"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815851"><span class="hs-identifier hs-var">newSubmap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; (TxSkelRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelMints
 -&gt; TxSkelMints
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816054"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816055"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816065"><span class="hs-identifier hs-var">newSubmap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816043"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><a href="#local-6989586621679815840"><span class="hs-identifier hs-var">mp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815841"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815851"><span class="hs-identifier hs-var">newSubmap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815829"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
 </span><span id="line-104"></span><span>
 </span><span id="line-105"></span><span class="hs-comment">-- | Adds a list of 'Mint' to a 'TxSkelMints', by iterating over the list</span><span>
 </span><span id="line-106"></span><span class="hs-comment">-- and using 'addMint'</span><span>
@@ -341,18 +341,18 @@ Foldable t =&gt;
 </span><span id="line-121"></span><span class="hs-comment">--</span><span>
 </span><span id="line-122"></span><span class="hs-comment">-- In every case, if you add mints with a different redeemer for the same</span><span>
 </span><span id="line-123"></span><span class="hs-comment">-- policy, the redeemer used in the right argument takes precedence.</span><span>
-</span><span id="line-124"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679816069"><span id="local-6989586621679816073"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-125"></span><span>  </span><span id="local-6989586621679816078"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816078"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679816079"><span class="annot"><span class="annottext">&lt;&gt; :: TxSkelMints -&gt; TxSkelMints -&gt; TxSkelMints
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679816080"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816080"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; [Mint] -&gt; TxSkelMints
+</span><span id="line-124"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679815855"><span id="local-6989586621679815859"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679815864"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815864"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679815865"><span class="annot"><span class="annottext">&lt;&gt; :: TxSkelMints -&gt; TxSkelMints -&gt; TxSkelMints
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679815866"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815866"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; [Mint] -&gt; TxSkelMints
 </span><a href="Cooked.Skeleton.Mint.html#addMints"><span class="hs-identifier hs-var">addMints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816078"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints -&gt; [Mint]
+</span><a href="#local-6989586621679815864"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints -&gt; [Mint]
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816080"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679815866"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-126"></span><span>
-</span><span id="line-127"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679816085"><span id="local-6989586621679816088"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-128"></span><span>  </span><span id="local-6989586621679816091"><span class="annot"><span class="annottext">mempty :: TxSkelMints
+</span><span id="line-127"></span><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPING</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span id="local-6989586621679815871"><span id="local-6989586621679815874"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621679815877"><span class="annot"><span class="annottext">mempty :: TxSkelMints
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span>
@@ -368,17 +368,17 @@ forall k a. Map k a
      (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
 -&gt; [Mint]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679816093"><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816093"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679816094"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816094"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816095"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816095"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679815879"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679815879"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815880"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815880"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815881"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815881"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
 forall a.
 ToVersioned MintingPolicy a =&gt;
 a -&gt; TxSkelRedeemer -&gt; [(TokenName, Integer)] -&gt; Mint
 </span><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816093"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679816094"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">([(TokenName, Integer)] -&gt; Mint) -&gt; [(TokenName, Integer)] -&gt; Mint
+</span><a href="#local-6989586621679815879"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679815880"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">([(TokenName, Integer)] -&gt; Mint) -&gt; [(TokenName, Integer)] -&gt; Mint
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(NonZero Integer -&gt; Integer)
 -&gt; (TokenName, NonZero Integer) -&gt; (TokenName, Integer)
@@ -398,7 +398,7 @@ forall a. NonEmpty a -&gt; [a]
 -&gt; NonEmpty (TokenName, NonZero Integer)
 forall k a. NEMap k a -&gt; NonEmpty (k, a)
 </span><span class="hs-identifier hs-var">NEMap.toList</span></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816095"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy,
+</span><a href="#local-6989586621679815881"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy,
    (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
  -&gt; [Mint])
 -&gt; (TxSkelMints
@@ -424,8 +424,8 @@ forall a. Monoid a =&gt; a
 </span><span id="line-139"></span><span class="annot"><span class="hs-comment">-- | The value described by a 'TxSkelMints'</span></span><span>
 </span><span id="line-140"></span><span class="annot"><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier hs-type">txSkelMintsValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
 </span><span id="line-141"></span><span id="txSkelMintsValue"><span class="annot"><span class="annottext">txSkelMintsValue :: TxSkelMints -&gt; Value
-</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier hs-var hs-var">txSkelMintsValue</span></a></span></span><span> </span><span id="local-6989586621679816103"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816103"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsValue"><span class="hs-identifier hs-var hs-var">txSkelMintsValue</span></a></span></span><span> </span><span id="local-6989586621679815889"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679815889"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-142"></span><span>  </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 </span><span class="hs-identifier hs-var">Api.Value</span></span><span> </span><span class="annot"><span class="annottext">(Map CurrencySymbol (Map TokenName Integer) -&gt; Value)
 -&gt; Map CurrencySymbol (Map TokenName Integer) -&gt; Value
@@ -440,27 +440,27 @@ forall k v. [(k, v)] -&gt; Map k v
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-144"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679816106"><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816106"><span class="hs-identifier hs-var">mp</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816107"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816107"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-144"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679815892"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679815892"><span class="hs-identifier hs-var">mp</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815893"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><a href="#local-6989586621679815893"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-145"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; CurrencySymbol
 forall script.
 ToMintingPolicyHash script =&gt;
 script -&gt; CurrencySymbol
 </span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679816106"><span class="hs-identifier hs-var">mp</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679815892"><span class="hs-identifier hs-var">mp</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-146"></span><span>            </span><span class="annot"><span class="annottext">[(TokenName, Integer)] -&gt; Map TokenName Integer
 forall k v. [(k, v)] -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.unsafeFromList</span></span><span> </span><span class="annot"><span class="annottext">([(TokenName, Integer)] -&gt; Map TokenName Integer)
 -&gt; [(TokenName, Integer)] -&gt; Map TokenName Integer
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-147"></span><span>              </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679816109"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816109"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679816110"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816110"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679816109"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679816110"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-147"></span><span>              </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679815895"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815895"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679815896"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815896"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679815895"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679815896"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-148"></span><span>                </span><span class="annot"><span class="annottext">((TokenName, NonZero Integer) -&gt; (TokenName, Integer))
 -&gt; [(TokenName, NonZero Integer)] -&gt; [(TokenName, Integer)]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -471,7 +471,7 @@ forall a. NonEmpty a -&gt; [a]
 -&gt; NonEmpty (TokenName, NonZero Integer)
 forall k a. NEMap k a -&gt; NonEmpty (k, a)
 </span><span class="hs-identifier hs-var">NEMap.toList</span></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
-</span><a href="#local-6989586621679816107"><span class="hs-identifier hs-var">tks</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679815893"><span class="hs-identifier hs-var">tks</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-149"></span><span>          </span><span class="hs-special">)</span><span>
 </span><span id="line-150"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-151"></span><span>        </span><span class="annot"><span class="annottext">((Versioned MintingPolicy,
@@ -486,5 +486,5 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
      (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679816103"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><a href="#local-6989586621679815889"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
 </span><span id="line-152"></span></pre></body></html>
