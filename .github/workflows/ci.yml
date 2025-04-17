@@ -284,8 +284,26 @@ jobs:
           name: documentation
       - name: Check for warnings in Haddock output
         run: |
+          ## We want to allow grep to fail because we handle the error by hand afterwards
+          set +e
           ## Edit this regexp if you wish to forbid other warnings
-          if grep -EC 5 "(is out of scope|Missing documentation for)" docs/cabal-haddock.out; then exit 1; fi
+          grep -EC 5 "(is out of scope|Missing documentation for)" cabal-haddock.out
+          return_code=$?
+          set -e
+          case $return_code in
+            0)
+              echo "Failure: Undesired warnings when compiling documentation"
+              exit 1
+              ;;
+            1)
+              echo "Success"
+              exit 0
+              ;;
+            *)
+              echo "Failure: Error while searching Haddock log"
+              exit 1
+              ;;
+          esac
 
   run-and-cache-flake-checks:
     name: Run and cache flake checks
