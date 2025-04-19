@@ -1,8 +1,8 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module implements 'PrettyCooked', 'PrettyCookedList' and 'PrettyCookedMaybe'
--- instances for 'TxSkel's and its components.
+-- | This module implements 'PrettyCooked', 'PrettyCookedList' and
+-- 'PrettyCookedMaybe' instances for 'TxSkel's and its components.
 module Cooked.Pretty.Skeleton (Contextualized (..)) where
 
 import Cooked.Output
@@ -33,7 +33,7 @@ instance PrettyCooked Wallet where
 -- 'Api.TxOutRef's and datums to be resolved.
 data Contextualized a = Contextualized
   { _ctxOutputs :: Map Api.TxOutRef Api.TxOut,
-    _ctxDatums :: Map Api.DatumHash TxSkelOutDatum,
+    _ctxDatums :: Map Api.DatumHash DatumContent,
     ctxContent :: a
   }
   deriving (Functor)
@@ -222,24 +222,30 @@ instance PrettyCooked TxSkelOut where
 -- | Prints a 'TxSkelOutDatum' when different from 'TxSkelOutNoDatum'
 instance PrettyCookedMaybe TxSkelOutDatum where
   prettyCookedOptMaybe _ TxSkelOutNoDatum = Nothing
-  prettyCookedOptMaybe opts (TxSkelOutInlineDatum dat) =
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat Inline) =
     Just $
-      "Datum (inlined):"
-        <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutDatumHash dat) =
-    Just $
-      "Datum (hashed, invisible)"
+      "Datum (inline)"
         <+> "("
-        <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+        <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutDatum dat) =
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat HashedHiddenInTx) =
+    Just $
+      "Datum (hashed, hidden)"
+        <+> "("
+        <> prettyHash opts (Api.toBuiltinData dat)
+        <> "):"
+        <+> PP.align (prettyCookedOpt opts dat)
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat HashedVisibleInTx) =
     Just $
       "Datum (hashed, visible)"
         <+> "("
-        <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+        <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
+
+instance PrettyCooked DatumContent where
+  prettyCookedOpt opts (DatumContent dat) = prettyCookedOpt opts dat
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default.
@@ -325,21 +331,49 @@ instance PrettyCookedList TxOpts where
         prettyAnchorResolution (AnchorResolutionLocal urlMap) =
           prettyItemize @[DocCooked] opts "Resolve anchor url with the following table keys" "-" (PP.viaShow <$> Map.keys urlMap)
 
+instance PrettyCookedMaybe (Contextualized Api.OutputDatum) where
+  prettyCookedOptMaybe opts (Contextualized _ managedTxSkelOutDatums (Api.OutputDatum datum))
+    | Just dat <- Map.lookup (Script.datumHash datum) managedTxSkelOutDatums =
+        Just $
+          "Datum (inline)"
+            <+> "("
+            <> prettyHash opts (Api.toBuiltinData dat)
+            <> "):"
+            <+> PP.align (prettyCookedOpt opts dat)
+  prettyCookedOptMaybe opts (Contextualized _ _ (Api.OutputDatum (Api.toBuiltinData -> datum))) =
+    Just $
+      "Datum (inline, unresolved)"
+        <+> "("
+        <> prettyHash opts (Api.toBuiltinData datum)
+        <> "):"
+        <+> PP.align (prettyCookedOpt opts datum)
+  prettyCookedOptMaybe opts (Contextualized _ managedTxSkelOutDatums (Api.OutputDatumHash datumHash))
+    | Just dat <- Map.lookup datumHash managedTxSkelOutDatums =
+        Just $
+          "Datum (hashed)"
+            <+> "("
+            <> prettyHash opts (Api.toBuiltinData dat)
+            <> "):"
+            <+> PP.align (prettyCookedOpt opts dat)
+  prettyCookedOptMaybe opts (Contextualized _ _ (Api.OutputDatumHash datumHash)) =
+    Just $
+      "Datum (hashed, unresolved)"
+        <+> "("
+        <> prettyHash opts datumHash
+        <> ")"
+  prettyCookedOptMaybe _ (Contextualized _ _ Api.NoOutputDatum) = Nothing
+
 -- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
 -- address and value, and also builds a possibly empty list for its datum and
 -- reference script when they exist.
 instance PrettyCookedList (Contextualized Api.TxOutRef) where
-  prettyCookedOptList opts (Contextualized managedTxOuts managedTxSkelOutDatums txOutRef) = fromMaybe [] $ do
+  prettyCookedOptList opts ctx@(Contextualized managedTxOuts _ txOutRef) = fromMaybe [] $ do
     output <- Map.lookup txOutRef managedTxOuts
-    txSkelOutDatum <- case outputOutputDatum output of
-      Api.OutputDatum datum -> Map.lookup (Script.datumHash datum) managedTxSkelOutDatums
-      Api.OutputDatumHash datumHash -> Map.lookup datumHash managedTxSkelOutDatums
-      Api.NoOutputDatum -> return TxSkelOutNoDatum
     return
       ( prettyCookedOpt opts (outputAddress output)
           : prettyCookedOpt opts (outputValue output)
           : catMaybes
-            [ prettyCookedOptMaybe opts txSkelOutDatum,
+            [ prettyCookedOptMaybe opts (outputOutputDatum output <$ ctx),
               ("Reference script hash:" <+>) . prettyHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
             ]
       )

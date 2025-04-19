@@ -161,7 +161,7 @@ tests =
                       datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                         ( \(ConcreteOutput v _ d x _) ->
                             Script.toValidatorHash val1 == Script.toValidatorHash v
-                              && d == TxSkelOutInlineDatum SecondLock
+                              && d == TxSkelOutSomeDatum (DatumContent SecondLock) Inline
                               && bound `Api.geq` Script.toValue x
                         )
                         select
@@ -185,15 +185,15 @@ tests =
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? fst <$> skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ Right
-                    ( [ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x3 Nothing],
+                    ( [ConcreteOutput val1 Nothing (TxSkelOutSomeDatum (DatumContent SecondLock) Inline) x3 Nothing],
                       skelExpected thief val1
                     )
                 ]
                   @=? fst <$> skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
                 [ Right
-                    ( [ ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x3 Nothing,
-                        ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x2 Nothing
+                    ( [ ConcreteOutput val1 Nothing (TxSkelOutSomeDatum (DatumContent SecondLock) Inline) x3 Nothing,
+                        ConcreteOutput val1 Nothing (TxSkelOutSomeDatum (DatumContent SecondLock) Inline) x2 Nothing
                       ],
                       skelExpected thief thief
                     )
@@ -201,7 +201,7 @@ tests =
                   @=? fst <$> skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
                 [ Right
-                    ( [ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x2 Nothing],
+                    ( [ConcreteOutput val1 Nothing (TxSkelOutSomeDatum (DatumContent SecondLock) Inline) x2 Nothing],
                       skelExpected val1 thief
                     )
                 ]
@@ -213,7 +213,7 @@ tests =
             ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                 ( \(ConcreteOutput v _ d _ _) ->
                     Script.toValidatorHash v == Script.toValidatorHash carefulValidator
-                      && d == TxSkelOutInlineDatum SecondLock
+                      && d == TxSkelOutSomeDatum (DatumContent SecondLock) Inline
                 )
                 (const True)
                 thief
@@ -225,7 +225,7 @@ tests =
               ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                   ( \(ConcreteOutput v _ d _ _) ->
                       Script.toValidatorHash v == Script.toValidatorHash carelessValidator
-                        && d == TxSkelOutInlineDatum SecondLock
+                        && d == TxSkelOutSomeDatum (DatumContent SecondLock) Inline
                   )
                   (const True)
                   thief

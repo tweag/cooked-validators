@@ -8,7 +8,7 @@ module Cooked.MockChain.UtxoState
   )
 where
 
-import Cooked.Skeleton (TxSkelOutDatum)
+import Cooked.Skeleton.Datum
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map.Strict (Map)
@@ -46,8 +46,9 @@ data UtxoPayload = UtxoPayload
     utxoPayloadTxOutRef :: Api.TxOutRef,
     -- | The value stored in this UTxO
     utxoPayloadValue :: Api.Value,
-    -- | The datum stored in this UTxO
-    utxoPayloadSkelOutDatum :: TxSkelOutDatum,
+    -- | The optional datum stored in this UTxO and whether it is hashed
+    -- ('True') or inline ('False')
+    utxoPayloadDatum :: Maybe (DatumContent, Bool),
     -- | The optional reference script stored in this UTxO
     utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }
