@@ -33,7 +33,7 @@ data Foo
 newtype FooDatum = FooDatum Api.PubKeyHash deriving (Show)
 
 instance PrettyCooked FooDatum where
-  prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyCookedOpt opts pkh
+  prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyHash opts pkh
 
 instance PlutusTx.Eq FooDatum where
   FooDatum pkh1 == FooDatum pkh2 = pkh1 == pkh2

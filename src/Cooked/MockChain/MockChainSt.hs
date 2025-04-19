@@ -98,14 +98,6 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
             UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
 
--- | Generating a skeleton context from a mockchain state. This is dedicated to
--- allowing the pretty printer to resolve skeleton parts.
-mcstToSkelContext :: MockChainSt -> SkelContext
-mcstToSkelContext MockChainSt {..} =
-  SkelContext
-    (getIndex mcstIndex)
-    (Map.map fst mcstDatums)
-
 -- | Generating an emulated state for the emulator from a mockchain state and
 -- some parameters, based on a standard initial state
 mcstToEmulatedLedgerState :: MockChainSt -> Emulator.EmulatedLedgerState

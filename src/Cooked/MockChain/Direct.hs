@@ -170,8 +170,11 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do
-    -- We log the submitted skeleton
-    gets mcstToSkelContext >>= logEvent . (`MCLogSubmittedTxSkel` skelUnbal)
+    -- We retrieve the necessary logging data from the context
+    outputs <- gets (getIndex . mcstIndex)
+    datums <- gets (Map.map fst . mcstDatums)
+    -- We log the submission of a new skeleton
+    logEvent $ MCLogSubmittedTxSkel outputs datums skelUnbal
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -188,7 +191,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
     -- We log the adjusted skeleton
-    gets mcstToSkelContext >>= \ctx -> logEvent $ MCLogAdjustedTxSkel ctx skel fee mCollaterals
+    logEvent $ MCLogAdjustedTxSkel outputs datums skel fee mCollaterals
     -- We generate the transaction associated with the skeleton, and apply on it
     -- the modifications from the skeleton options
     cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals

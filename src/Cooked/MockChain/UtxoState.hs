@@ -5,7 +5,6 @@ module Cooked.MockChain.UtxoState
     UtxoPayloadSet (..),
     UtxoPayload (..),
     holdsInState,
-    SkelContext (..),
   )
 where
 
@@ -70,11 +69,3 @@ instance Monoid UtxoPayloadSet where
 -- | Computes the total value in a set
 utxoPayloadSetTotal :: UtxoPayloadSet -> Api.Value
 utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
-
--- | The missing information on a 'Cooked.Skeleton.TxSkel' that can only be
--- resolved by querying the state of the blockchain.
-data SkelContext = SkelContext
-  { skelContextTxOuts :: Map Api.TxOutRef Api.TxOut,
-    skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum
-  }
-  deriving (Show)
