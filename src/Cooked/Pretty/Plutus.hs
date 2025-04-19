@@ -3,7 +3,7 @@
 -- | This module provides 'PrettyCooked' instances of plutus types
 module Cooked.Pretty.Plutus where
 
-import Cooked.Pretty.Common
+import Cooked.Pretty.Class
 import Ledger.Index qualified as Ledger
 import Ledger.Scripts qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger

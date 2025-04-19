@@ -36,7 +36,7 @@ data MintingRed = MintToken Api.TxOutRef | BurnToken
   deriving (HS.Show, HS.Eq)
 
 instance PrettyCooked MintingRed where
-  prettyCookedOpt _ = PP.viaShow
+  prettyCooked = PP.viaShow
 
 instance Eq MintingRed where
   (==) = (HS.==)
@@ -48,7 +48,7 @@ data SpendingRed = Step | Close
   deriving (HS.Show, HS.Eq)
 
 instance PrettyCooked SpendingRed where
-  prettyCookedOpt _ = PP.viaShow
+  prettyCooked = PP.viaShow
 
 instance Eq SpendingRed where
   (==) = (HS.==)

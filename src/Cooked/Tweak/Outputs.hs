@@ -12,7 +12,7 @@ where
 
 import Control.Monad
 import Cooked.Output
-import Cooked.Pretty.Common
+import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
@@ -52,7 +52,7 @@ removeOutputTweak removePred = do
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked TamperDatumLbl where
-  prettyCookedOpt _ _ = "TamperDatum"
+  prettyCooked _ = "TamperDatum"
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. The tampering function
@@ -112,7 +112,7 @@ malformDatumTweak change = do
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked MalformDatumLbl where
-  prettyCookedOpt _ _ = "MalformDatum"
+  prettyCooked _ = "MalformDatum"
 
 -- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such
 -- that - @length c == length l@, and - for all @0 <= i < length c@, @elem (c !!

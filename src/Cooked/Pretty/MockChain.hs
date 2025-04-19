@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module implements 'PrettyCooked', 'PrettyCookedL' and 'PrettyCookedM'
--- instances for data types returned by a @MockChain@ run.
+-- | This module implements 'PrettyCooked', 'PrettyCookedList' and
+-- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Pretty.Common
+import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
 import Cooked.Wallet
@@ -108,7 +108,7 @@ instance PrettyCooked MockChainLogEntry where
           )
             <$> mCollaterals
      in prettyItemize opts "Adjusted skeleton:" "-" $
-          prettyCookedOptL opts (Contextualized outputs datums skel)
+          prettyCookedOptList opts (Contextualized outputs datums skel)
             ++ (("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)) : fromMaybe [] mCollateralsDoc)
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyHash opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
@@ -154,8 +154,8 @@ instance PrettyCooked UtxoState where
 
 -- | Pretty prints the state of an address, that is the list of UTxOs (including
 -- value and datum), grouped
-instance PrettyCookedL UtxoPayloadSet where
-  prettyCookedOptLM opts =
+instance PrettyCookedList UtxoPayloadSet where
+  prettyCookedOptListMaybe opts =
     (prettyPayloadGrouped <$>)
       . group
       . List.sortBy (compare `on` (Api.lovelaceValueOf . utxoPayloadValue))
@@ -193,7 +193,7 @@ instance PrettyCookedL UtxoPayloadSet where
               then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
-            prettyCookedOptM opts utxoPayloadSkelOutDatum,
+            prettyCookedOptMaybe opts utxoPayloadSkelOutDatum,
             ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
           ] of
           [] -> Nothing
@@ -204,7 +204,7 @@ newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
 
 instance PrettyCooked (Contextualized CollateralInput) where
   prettyCookedOpt opts cColIn@(Contextualized _ _ (CollateralInput txOutRef)) =
-    case prettyCookedOptL opts (unCollateralInput <$> cColIn) of
+    case prettyCookedOptList opts (unCollateralInput <$> cColIn) of
       (addressDoc : valueDoc : otherDocs) ->
         prettyItemize opts ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
       _ -> "Uses" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"

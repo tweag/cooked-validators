@@ -13,7 +13,7 @@ module Cooked.Skeleton.Redeemer
   )
 where
 
-import Cooked.Pretty.Common
+import Cooked.Pretty.Class
 import Data.Typeable (Typeable, cast)
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx

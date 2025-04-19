@@ -6,7 +6,7 @@ module Cooked.Skeleton.Label
   )
 where
 
-import Cooked.Pretty.Common
+import Cooked.Pretty.Class
 import Type.Reflection
 
 -- | These are type constraints that must be satisfied by labels

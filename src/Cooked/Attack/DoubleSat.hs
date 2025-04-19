@@ -142,4 +142,4 @@ data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show, Ord)
 
 instance PrettyCooked DoubleSatLbl where
-  prettyCookedOpt _ _ = "DoubleSat"
+  prettyCooked _ = "DoubleSat"
