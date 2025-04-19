@@ -1,6 +1,5 @@
 module Cooked.InlineDatumsSpec where
 
-import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe
@@ -144,12 +143,11 @@ spendOutputTestTrace ::
   m ()
 spendOutputTestTrace useInlineDatum validator = do
   (theTxOutRef, _) : _ <- listUtxosTestTrace useInlineDatum validator
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
-          txSkelSigners = [wallet 1]
-        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
+        txSkelSigners = [wallet 1]
+      }
 
 -- | This defines two traces of two transactions each: On the first transaction,
 -- a validator will be paid with an inline datum, on the second transaction,
@@ -168,23 +166,22 @@ continuingOutputTestTrace ::
   m ()
 continuingOutputTestTrace datumKindOnSecondPayment validator = do
   (theTxOutRef, theOutput) : _ <- listUtxosTestTrace True validator
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
-          txSkelOuts =
-            [ validator
-                `receives` ( Value (outputValue theOutput)
-                               <&&> ( case datumKindOnSecondPayment of
-                                        OnlyHash -> HiddenHashedDatum
-                                        Datum -> VisibleHashedDatum
-                                        Inline -> InlineDatum
-                                    )
-                                 SecondPaymentDatum
-                           )
-            ],
-          txSkelSigners = [wallet 1]
-        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
+        txSkelOuts =
+          [ validator
+              `receives` ( Value (outputValue theOutput)
+                             <&&> ( case datumKindOnSecondPayment of
+                                      OnlyHash -> HiddenHashedDatum
+                                      Datum -> VisibleHashedDatum
+                                      Inline -> InlineDatum
+                                  )
+                               SecondPaymentDatum
+                         )
+          ],
+        txSkelSigners = [wallet 1]
+      }
 
 tests :: TestTree
 tests =
@@ -198,22 +195,18 @@ tests =
         "from the MockChain's point of view on Transaction outputs (allUtxos)"
         -- The validator used in these test cases does not actually matter, we
         -- just need some script to pay to.
-        [ testCase "the datum is retrieved correctly" $
-            assertBool "... it's not" $
-              case fst $ runMockChain (listUtxosTestTrace True requireInlineDatumInInputValidator >> allUtxos) of
-                Right (utxos, _endState) ->
-                  case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom requireInlineDatumInInputValidator . snd) utxos of
-                    [Api.OutputDatum _] -> True
-                    _ -> False
-                _ -> False,
-          testCase "the datum hash is retrieved correctly" $
-            assertBool "... it's not" $
-              case fst $ runMockChain (listUtxosTestTrace False requireInlineDatumInInputValidator >> allUtxos) of
-                Right (utxos, _endState) ->
-                  case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom requireInlineDatumInInputValidator . snd) utxos of
-                    [Api.OutputDatumHash _] -> True
-                    _ -> False
-                _ -> False
+        [ testCooked "the datum is retrieved correctly" $
+            mustSucceedTest (listUtxosTestTrace True requireInlineDatumInInputValidator >> allUtxos)
+              `withResultProp` \utxos -> testBool $
+                case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom requireInlineDatumInInputValidator . snd) utxos of
+                  [Api.OutputDatum _] -> True
+                  _ -> False,
+          testCooked "the datum hash is retrieved correctly" $
+            mustSucceedTest (listUtxosTestTrace False requireInlineDatumInInputValidator >> allUtxos)
+              `withResultProp` \utxos -> testBool $
+                case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom requireInlineDatumInInputValidator . snd) utxos of
+                  [Api.OutputDatumHash _] -> True
+                  _ -> False
         ],
       testGroup
         "from the point of view of scripts"
@@ -221,20 +214,20 @@ tests =
             "looking at transaction inputs"
             [ testGroup
                 "validator expects an inline datum..."
-                [ testCase "...and gets an inline datum, expecting success" $
-                    testSucceeds $
+                [ testCooked "...and gets an inline datum, expecting success" $
+                    mustSucceedTest $
                       spendOutputTestTrace True requireInlineDatumInInputValidator,
-                  testCase "...and gets a datum hash, expecting script failure" $
-                    testFailsInPhase2 $
+                  testCooked "...and gets a datum hash, expecting script failure" $
+                    mustFailInPhase2Test $
                       spendOutputTestTrace False requireInlineDatumInInputValidator
                 ],
               testGroup
                 "validator expects a datum hash..."
-                [ testCase "...and gets an inline datum, expecting script failure" $
-                    testFailsInPhase2 $
+                [ testCooked "...and gets an inline datum, expecting script failure" $
+                    mustFailInPhase2Test $
                       spendOutputTestTrace True requireHashedDatumInInputValidator,
-                  testCase "...and gets a datum hash, expecting success" $
-                    testSucceeds $
+                  testCooked "...and gets a datum hash, expecting success" $
+                    mustSucceedTest $
                       spendOutputTestTrace False requireHashedDatumInInputValidator
                 ]
             ],
@@ -242,38 +235,38 @@ tests =
             "looking at transaction outputs"
             [ testGroup
                 "validator expects a regular datum..."
-                [ testCase "...and gets a regular datum, expecting success" $
-                    testSucceeds $
+                [ testCooked "...and gets a regular datum, expecting success" $
+                    mustSucceedTest $
                       continuingOutputTestTrace Datum requireHashedDatumInOutputValidator,
-                  testCase "...and gets an inline datum, expecting script failure" $
-                    testFailsInPhase2 $
+                  testCooked "...and gets an inline datum, expecting script failure" $
+                    mustFailInPhase2Test $
                       continuingOutputTestTrace Inline requireHashedDatumInOutputValidator,
-                  testCase "...and gets a datum hash, expecting script failure" $
-                    testFailsInPhase2 $
+                  testCooked "...and gets a datum hash, expecting script failure" $
+                    mustFailInPhase2Test $
                       continuingOutputTestTrace OnlyHash requireHashedDatumInOutputValidator
                 ],
               testGroup
                 "validator expects an inline datum..."
-                [ testCase "...and gets a regular datum, expecting script failure" $
-                    testFailsInPhase2 $
+                [ testCooked "...and gets a regular datum, expecting script failure" $
+                    mustFailInPhase2Test $
                       continuingOutputTestTrace Datum requireInlineDatumInOutputValidator,
-                  testCase "...and gets an inline datum, expecting success" $
-                    testSucceeds $
+                  testCooked "...and gets an inline datum, expecting success" $
+                    mustSucceedTest $
                       continuingOutputTestTrace Inline requireInlineDatumInOutputValidator,
-                  testCase "...and gets a datum hash, expecting script failure" $
-                    testFailsInPhase2 $
+                  testCooked "...and gets a datum hash, expecting script failure" $
+                    mustFailInPhase2Test $
                       continuingOutputTestTrace OnlyHash requireInlineDatumInOutputValidator
                 ],
               testGroup
                 "validator expects a datum hash..."
-                [ testCase "...and gets a regular datum, expecting script failure" $
-                    testFailsInPhase2 $
+                [ testCooked "...and gets a regular datum, expecting script failure" $
+                    mustFailInPhase2Test $
                       continuingOutputTestTrace Datum requireOnlyHashedDatumInOutputValidator,
-                  testCase "...and gets an inline datum, expecting script failure" $
-                    testFailsInPhase2 $
+                  testCooked "...and gets an inline datum, expecting script failure" $
+                    mustFailInPhase2Test $
                       continuingOutputTestTrace Inline requireOnlyHashedDatumInOutputValidator,
-                  testCase "...and gets a datum hash, expecting success" $
-                    testSucceeds $
+                  testCooked "...and gets a datum hash, expecting success" $
+                    mustSucceedTest $
                       continuingOutputTestTrace OnlyHash requireOnlyHashedDatumInOutputValidator
                 ]
             ]

@@ -24,7 +24,6 @@ import PlutusTx.Builtins.Internal qualified as PlutusTx
 import PlutusTx.Prelude
 import Prettyprinter qualified as PP
 import Test.Tasty
-import Test.Tasty.HUnit
 import Prelude qualified as HS
 
 instance Eq Api.ScriptPurpose where
@@ -222,36 +221,23 @@ tests :: TestTree
 tests =
   testGroup
     "Multi purpose scripts"
-    [ testCase "Using a script as minting and spending in the same scenario" $ testSucceeds runScript,
+    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript,
       testGroup
         "The Spending purpose behaves properly"
-        [ testCase "We cannot redirect any output to a private key"
-            $ testToProp
-            $ mustFailTest
-              ( somewhere
-                  (datumHijackingAttack @(Script.MultiPurposeScript MPTag) alice)
-                  runScript
-              )
-            `withExactSize` 6,
-          testCase "We cannot redirect any output to another script"
-            $ testToProp
-            $ mustFailTest
-              ( somewhere
-                  (datumHijackingAttack @(Script.MultiPurposeScript MPTag) (Script.trueSpendingMPScript @()))
-                  runScript
-              )
-            `withExactSize` 6
+        [ testCooked "We cannot redirect any output to a private key"
+            $ mustFailWithSizeTest 6
+            $ somewhere (datumHijackingAttack @(Script.MultiPurposeScript MPTag) alice) runScript,
+          testCooked "We cannot redirect any output to another script"
+            $ mustFailWithSizeTest 6
+            $ somewhere (datumHijackingAttack @(Script.MultiPurposeScript MPTag) (Script.trueSpendingMPScript @())) runScript
         ],
       testGroup
         "The Minting purpose behaves properly"
-        [ testCase "We cannot duplicate the tokens"
-            $ testToProp
-            $ mustFailTest (somewhere (dupTokenAttack (\_ n -> n + 1) alice) runScript)
-            `withExactSize` 6,
-          testCase
-            "We cannot mint additional tokens"
-            $ testToProp
-            $ mustFailTest (somewhere (addTokenAttack (const [(Api.TokenName "myToken", 1)]) alice) runScript)
-            `withExactSize` 6
+        [ testCooked "We cannot duplicate the tokens"
+            $ mustFailWithSizeTest 6
+            $ somewhere (dupTokenAttack (\_ n -> n + 1) alice) runScript,
+          testCooked "We cannot mint additional tokens"
+            $ mustFailWithSizeTest 6
+            $ somewhere (addTokenAttack (const [(Api.TokenName "myToken", 1)]) alice) runScript
         ]
     ]
