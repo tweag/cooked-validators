@@ -16,7 +16,7 @@
 </span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V1.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
 </span><span id="line-17"></span><span>
 </span><span id="line-18"></span><span class="annot"><span class="hs-comment">-- | Takes a 'TxSkelWithdrawals' and transforms it into a 'Cardano.TxWithdrawals'</span></span><span>
-</span><span id="line-19"></span><span id="local-6989586621679822696"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#toWithdrawals"><span class="hs-identifier hs-type">toWithdrawals</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679822696"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679822696"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxWithdrawals</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-19"></span><span id="local-6989586621679825191"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Withdrawals.html#toWithdrawals"><span class="hs-identifier hs-type">toWithdrawals</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679825191"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679825191"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxWithdrawals</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
 </span><span id="line-20"></span><span id="toWithdrawals"><span class="annot"><span class="annottext">toWithdrawals :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelWithdrawals -&gt; m (TxWithdrawals BuildTx ConwayEra)
@@ -35,9 +35,9 @@ forall build era. TxWithdrawals build era
 -&gt; [(Either (Versioned Script) PubKeyHash,
      (TxSkelRedeemer, Lovelace))]
 forall k a. Map k a -&gt; [(k, a)]
-</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679822809"><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679825304"><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
   (TxSkelRedeemer, Lovelace))]
-</span><a href="#local-6989586621679822809"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679825304"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-22"></span><span>  </span><span class="annot"><span class="annottext">([(StakeAddress, Coin,
    BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
  -&gt; TxWithdrawals BuildTx ConwayEra)
@@ -78,7 +78,7 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[(Either (Versioned Script) PubKeyHash,
   (TxSkelRedeemer, Lovelace))]
-</span><a href="#local-6989586621679822809"><span class="hs-identifier hs-var">withdrawals</span></a></span><span>
+</span><a href="#local-6989586621679825304"><span class="hs-identifier hs-var">withdrawals</span></a></span><span>
 </span><span id="line-25"></span><span>    </span><span class="annot"><span class="annottext">(((Either (Versioned Script) PubKeyHash,
    (TxSkelRedeemer, Lovelace))
   -&gt; m (StakeAddress, Coin,
@@ -92,20 +92,20 @@ t a -&gt; (a -&gt; m b) -&gt; m (t b)
 -&gt; m [(StakeAddress, Coin,
        BuildTxWith BuildTx (Witness WitCtxStake ConwayEra))]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679822812"><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
-</span><a href="#local-6989586621679822812"><span class="hs-identifier hs-var">staker</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679822813"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679822813"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span> </span><span id="local-6989586621679822815"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679822815"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679825307"><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
+</span><a href="#local-6989586621679825307"><span class="hs-identifier hs-var">staker</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679825308"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825308"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span> </span><span id="local-6989586621679825310"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679825310"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-26"></span><span>      </span><span class="hs-keyword">do</span><span>
-</span><span id="line-27"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679822816"><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
-</span><a href="#local-6989586621679822816"><span class="hs-identifier hs-var">witness</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679822817"><span class="annot"><span class="annottext">StakeCredential
-</span><a href="#local-6989586621679822817"><span class="hs-identifier hs-var">sCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-27"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679825311"><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679825311"><span class="hs-identifier hs-var">witness</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679825312"><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679825312"><span class="hs-identifier hs-var">sCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-28"></span><span>          </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
-</span><a href="#local-6989586621679822812"><span class="hs-identifier hs-var">staker</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-29"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679822818"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679822818"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-30"></span><span>              </span><span id="local-6989586621679822819"><span class="annot"><span class="annottext">StakeCredential
-</span><a href="#local-6989586621679822819"><span class="hs-identifier hs-var">sCred</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679825307"><span class="hs-identifier hs-var">staker</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-29"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679825313"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679825313"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>              </span><span id="local-6989586621679825314"><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679825314"><span class="hs-identifier hs-var">sCred</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-31"></span><span>                </span><span class="annot"><span class="annottext">String
 -&gt; Either ToCardanoError StakeCredential -&gt; m StakeCredential
 forall (m :: * -&gt; *) a.
@@ -123,7 +123,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Either ToCardanoError (Hash StakeKey)
 </span><span class="hs-identifier hs-var">Ledger.toCardanoStakeKeyHash</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679822818"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><a href="#local-6989586621679825313"><span class="hs-identifier hs-var">pkh</span></a></span><span>
 </span><span id="line-33"></span><span>              </span><span class="annot"><span class="annottext">(Witness WitCtxStake ConwayEra, StakeCredential)
 -&gt; m (Witness WitCtxStake ConwayEra, StakeCredential)
 forall a. a -&gt; m a
@@ -132,11 +132,11 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 forall witctx era. KeyWitnessInCtx witctx -&gt; Witness witctx era
 </span><span class="hs-identifier hs-var">Cardano.KeyWitness</span></span><span> </span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxStake
 </span><span class="hs-identifier hs-var">Cardano.KeyWitnessForStakeAddr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StakeCredential
-</span><a href="#local-6989586621679822819"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679822826"><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679822826"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-35"></span><span>              </span><span id="local-6989586621679822827"><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
-</span><a href="#local-6989586621679822827"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679825314"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679825321"><span class="annot"><span class="annottext">Versioned Script
+</span><a href="#local-6989586621679825321"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-35"></span><span>              </span><span id="local-6989586621679825322"><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679825322"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-36"></span><span>                </span><span class="annot"><span class="annottext">ScriptWitnessInCtx WitCtxStake
 -&gt; ScriptWitness WitCtxStake ConwayEra
 -&gt; Witness WitCtxStake ConwayEra
@@ -159,11 +159,11 @@ forall (m :: * -&gt; *) a b.
 a
 -&gt; TxSkelRedeemer -&gt; ScriptDatum b -&gt; m (ScriptWitness b ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679822826"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679822813"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
+</span><a href="#local-6989586621679825321"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679825308"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
 </span><span class="hs-identifier hs-var">Cardano.NoScriptDatumForStake</span></span><span>
-</span><span id="line-38"></span><span>              </span><span id="local-6989586621679822832"><span class="annot"><span class="annottext">StakeCredential
-</span><a href="#local-6989586621679822832"><span class="hs-identifier hs-var">sCred</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-38"></span><span>              </span><span id="local-6989586621679825327"><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679825327"><span class="hs-identifier hs-var">sCred</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-39"></span><span>                </span><span class="annot"><span class="annottext">String
 -&gt; Either ToCardanoError StakeCredential -&gt; m StakeCredential
 forall (m :: * -&gt; *) a.
@@ -183,16 +183,16 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">Ledger.toCardanoScriptHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679822826"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679825321"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-41"></span><span>              </span><span class="annot"><span class="annottext">(Witness WitCtxStake ConwayEra, StakeCredential)
 -&gt; m (Witness WitCtxStake ConwayEra, StakeCredential)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
-</span><a href="#local-6989586621679822827"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StakeCredential
-</span><a href="#local-6989586621679822832"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-42"></span><span>        </span><span id="local-6989586621679822836"><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679822836"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; NetworkId
+</span><a href="#local-6989586621679825322"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679825327"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>        </span><span id="local-6989586621679825331"><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679825331"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; NetworkId
 </span><span class="hs-identifier hs-var">Emulator.pNetworkId</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; NetworkId) -&gt; m Params -&gt; m NetworkId
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">m Params
@@ -206,12 +206,12 @@ forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NetworkId -&gt; StakeCredential -&gt; StakeAddress
 </span><span class="hs-identifier hs-var">Cardano.makeStakeAddress</span></span><span> </span><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679822836"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="annot"><span class="annottext">StakeCredential
-</span><a href="#local-6989586621679822817"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><a href="#local-6989586621679825331"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="annot"><span class="annottext">StakeCredential
+</span><a href="#local-6989586621679825312"><span class="hs-identifier hs-var">sCred</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 </span><span class="hs-identifier hs-var">Cardano.Coin</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679822815"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679825310"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
 -&gt; BuildTxWith BuildTx (Witness WitCtxStake ConwayEra)
 forall a. a -&gt; BuildTxWith BuildTx a
 </span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">Witness WitCtxStake ConwayEra
-</span><a href="#local-6989586621679822816"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679825311"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-44"></span></pre></body></html>
