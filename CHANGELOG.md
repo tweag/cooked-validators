@@ -29,7 +29,11 @@
   attacks or tweaks.
 - New helper `txSkelOutReferenceScript` to retrieve the optional reference script
   from an output.
-  
+- New testing helpers `isInWallets` and `isInWallet` to ensure wallets have the
+  right amount of certain tokens at the end of a mockchain run. New testing
+  helpers `happened` and `didNotHappen` to test for the occurrence of a specific
+  log event.
+
 ### Removed
 
 - Modules `Validators.hs` and `Currencies.hs`. Their content has been moved to
@@ -67,9 +71,10 @@
   either automatically assign a reference input or not.
 - The CI now ensures the documentation is filled up properly.
 - Modules under `Pretty.Cooked` have been revamped. All pretty functions are now
-  instances of either `PrettyCooked`, `PrettyCookedL` or `PrettyCookedM` and are
-  adequately placed in the `Pretty.Cooked.XXX` submodules. This offers both more
-  consistency and flexibility to define `Pretty` instances for cooked.
+  instances of either `PrettyCooked`, `PrettyCookedList` or `PrettyCookedMaybe`
+  and are adequately placed in the `Pretty.Cooked.XXX` submodules. This offers
+  both more consistency and flexibility to define `Pretty` instances for cooked.
+- The testing framework has been slightly improved and homogenized.
 
 ### Fixed
 

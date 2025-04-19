@@ -13,6 +13,7 @@ import Data.Function (on)
 import Data.List qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -22,8 +23,9 @@ newtype UtxoState = UtxoState {utxoState :: Map Api.Address UtxoPayloadSet}
   deriving (Eq)
 
 -- | Total value accessible to what's pointed by the address.
-holdsInState :: Api.Address -> UtxoState -> Api.Value
-holdsInState address = maybe mempty utxoPayloadSetTotal . Map.lookup address . utxoState
+holdsInState :: (Script.ToAddress a) => a -> UtxoState -> Api.Value
+holdsInState (Script.toAddress -> address) (UtxoState m) =
+  maybe mempty utxoPayloadSetTotal (Map.lookup address m)
 
 instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b

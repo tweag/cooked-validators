@@ -1,6 +1,5 @@
 module Cooked.BalancingSpec where
 
-import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
 import Data.Default
@@ -99,7 +98,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
             txSkelSigners = [alice]
           }
   (skel', fee, mCols) <- balanceTxSkel skel
-  void $ validateTxSkel skel
+  validateTxSkel_ skel
   nonOnlyValueUtxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
   return (skel, skel', fee, mCols, fst <$> nonOnlyValueUtxos)
 
@@ -137,18 +136,17 @@ noBalanceMaxFee :: (MonadBlockChain m) => m ()
 noBalanceMaxFee = do
   maxFee <- snd <$> getMinAndMaxFee
   ((txOutRef, _) : _) <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` ((== Script.ada 30) . Api.txOutValue)
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelOuts = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
-          txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
-          txSkelOpts =
-            def
-              { txOptBalancingPolicy = DoNotBalance,
-                txOptFeePolicy = AutoFeeComputation
-              },
-          txSkelSigners = [alice]
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelOuts = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
+        txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
+        txSkelOpts =
+          def
+            { txOptBalancingPolicy = DoNotBalance,
+              txOptFeePolicy = AutoFeeComputation
+            },
+        txSkelSigners = [alice]
+      }
 
 balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer)
 balanceReduceFee = do
@@ -173,16 +171,15 @@ balanceReduceFee = do
 reachingMagic :: (MonadBlockChain m) => m ()
 reachingMagic = do
   bananaOutRefs <- (fst <$>) <$> runUtxoSearch (utxosAtSearch alice `filterWithPred` \o -> banana 1 `Api.leq` Api.txOutValue o)
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
-          txSkelSigners = [alice],
-          txSkelOpts =
-            def
-              { txOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
-              }
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
+        txSkelSigners = [alice],
+        txSkelOpts =
+          def
+            { txOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
+            }
+      }
 
 type ResProp = TestBalancingOutcome -> Assertion
 
@@ -204,11 +201,10 @@ retOutsNb ros (_, _, _, _, refs) = testBool $ ros == length refs
 
 testBalancingSucceedsWith :: String -> [ResProp] -> StagedMockChain TestBalancingOutcome -> TestTree
 testBalancingSucceedsWith msg props run =
-  testCase msg $
-    testToProp $
-      mustSucceedTest run
-        `withInitDist` initialDistributionBalancing
-        `withValuePred` \res -> testConjoin (($ res) <$> props)
+  testCooked msg $
+    mustSucceedTest run
+      `withInitDist` initialDistributionBalancing
+      `withResultProp` \res -> testConjoin (($ res) <$> props)
 
 failsAtBalancingWith :: Api.Value -> Wallet -> MockChainError -> Assertion
 failsAtBalancingWith val' wal' (MCEUnbalanceable wal val _) = testBool $ val' == val && wal' == wal
@@ -244,11 +240,10 @@ failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree
 testBalancingFailsWith msg p smc =
-  testCase msg $
-    testToProp $
-      mustFailTest smc
-        `withInitDist` initialDistributionBalancing
-        `withErrorPred` p
+  testCooked msg $
+    mustFailTest smc
+      `withInitDist` initialDistributionBalancing
+      `withErrorProp` p
 
 tests :: TestTree
 tests =
@@ -366,9 +361,8 @@ tests =
             ],
           testGroup
             "Manual balancing with auto fee"
-            [ testCase "Auto fee with manual balancing yields maximum fee" $
-                testToProp $
-                  mustSucceedTest noBalanceMaxFee `withInitDist` initialDistributionBalancing
+            [ testCooked "Auto fee with manual balancing yields maximum fee" $
+                mustSucceedTest noBalanceMaxFee `withInitDist` initialDistributionBalancing
             ],
           testGroup
             "Auto balancing with auto fee"
@@ -408,72 +402,66 @@ tests =
                     id
                     False
                 ),
-              testCase "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
-                testToProp $
-                  mustSucceedTest balanceReduceFee
-                    `withInitDist` initialDistributionBalancing
-                    `withValuePred` \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') ->
-                      testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual,
-              testCase "The auto-fee process can sometimes recover from a temporary balancing error..." $
-                testToProp $
-                  mustSucceedTest
-                    ( simplePaymentToBob
-                        103_650_000
-                        0
-                        0
-                        0
-                        False
-                        id
-                        False
-                    )
-                    `withInitDist` initialDistributionBalancing,
-              testCase "... but not always" $
-                testToProp $
-                  mustFailTest
-                    ( simplePaymentToBob
-                        104_000_000
-                        0
-                        0
-                        0
-                        False
-                        id
-                        False
-                    )
-                    `withInitDist` initialDistributionBalancing
-                    `withErrorPred` failsAtBalancing,
-              testCase "The auto-fee process can recover from a temporary collateral error..." $
-                testToProp $
-                  mustSucceedTest
-                    ( testingBalancingTemplate
-                        (Script.ada 142)
-                        mempty
-                        emptySearch
-                        emptySearch
-                        (aliceNAdaUtxos 2)
-                        True
-                        id
-                        False
-                    )
-                    `withInitDist` initialDistributionBalancing,
-              testCase "... but not always" $
-                testToProp $
-                  mustFailTest
-                    ( testingBalancingTemplate
-                        (Script.ada 142)
-                        mempty
-                        (utxosAtSearch alice)
-                        emptySearch
-                        (aliceNAdaUtxos 1)
-                        True
-                        id
-                        False
-                    )
-                    `withInitDist` initialDistributionBalancing
-                    `withErrorPred` failsAtCollaterals,
-              testCase "Reaching magical spot with the exact balance during auto fee computation" $
-                testToProp $
-                  mustSucceedTest reachingMagic
-                    `withInitDist` initialDistributionBalancing
+              testCooked "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
+                mustSucceedTest balanceReduceFee
+                  `withInitDist` initialDistributionBalancing
+                  `withResultProp` \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') ->
+                    testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual,
+              testCooked "The auto-fee process can sometimes recover from a temporary balancing error..." $
+                mustSucceedTest
+                  ( simplePaymentToBob
+                      103_650_000
+                      0
+                      0
+                      0
+                      False
+                      id
+                      False
+                  )
+                  `withInitDist` initialDistributionBalancing,
+              testCooked "... but not always" $
+                mustFailTest
+                  ( simplePaymentToBob
+                      104_000_000
+                      0
+                      0
+                      0
+                      False
+                      id
+                      False
+                  )
+                  `withInitDist` initialDistributionBalancing
+                  `withErrorProp` failsAtBalancing,
+              testCooked "The auto-fee process can recover from a temporary collateral error..." $
+                mustSucceedTest
+                  ( testingBalancingTemplate
+                      (Script.ada 142)
+                      mempty
+                      emptySearch
+                      emptySearch
+                      (aliceNAdaUtxos 2)
+                      True
+                      id
+                      False
+                  )
+                  `withInitDist` initialDistributionBalancing,
+              testCooked "... but not always" $
+                mustFailTest
+                  ( testingBalancingTemplate
+                      (Script.ada 142)
+                      mempty
+                      (utxosAtSearch alice)
+                      emptySearch
+                      (aliceNAdaUtxos 1)
+                      True
+                      id
+                      False
+                  )
+                  `withInitDist` initialDistributionBalancing
+                  `withErrorProp` failsAtCollaterals,
+              testCooked "Reaching magical spot with the exact balance during auto fee computation" $
+                mustSucceedTest reachingMagic
+                  `withInitDist` initialDistributionBalancing
             ],
           testGroup
             "Auto balancing with manual fee"

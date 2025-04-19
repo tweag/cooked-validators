@@ -12,7 +12,7 @@ where
 
 import Control.Monad
 import Cooked.Output
-import Cooked.Pretty.Common
+import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels

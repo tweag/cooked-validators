@@ -1,20 +1,17 @@
 -- | This module provides common functions to help implement pretty-printers in
 -- cooked-validators
-module Cooked.Pretty.Common
+module Cooked.Pretty.Class
   ( DocCooked,
-    DocCookedL,
-    DocCookedM,
     PrettyCooked (..),
-    PrettyCookedL (..),
-    PrettyCookedM (..),
+    PrettyCookedList (..),
+    PrettyCookedMaybe (..),
     printCookedOpt,
     printCooked,
     renderString,
+    prettyHash,
     prettyItemize,
     prettyItemizeNoTitle,
     prettyItemizeNonEmpty,
-    prettyCooked,
-    prettyHash,
   )
 where
 
@@ -37,47 +34,55 @@ import Prettyprinter.Render.Text qualified as PP
 -- | A standard 'PP.Doc' without any annotation
 type DocCooked = Doc ()
 
--- | A list of 'DocCooked'
-type DocCookedL = [DocCooked]
-
--- | An optional 'DocCooked'
-type DocCookedM = Maybe DocCooked
-
--- | Type class of things that can produce a document
+-- | Type class of things that can be pretty printed as a single document. You
+-- need to implement either 'prettyCookedOpt' or 'prettyCooked' manually,
+-- otherwise calling either of them will resulting in a infinite loop.
 class PrettyCooked a where
   -- | Pretty prints an element based on some 'PrettyCookedOpts'
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
+  prettyCookedOpt _ = prettyCooked
+
+  -- | Pretty prints an element directly
+  prettyCooked :: a -> DocCooked
+  prettyCooked = prettyCookedOpt def
 
 instance PrettyCooked DocCooked where
   prettyCookedOpt _ = id
 
--- | Pretty prints an element without requiring some options
-prettyCooked :: (PrettyCooked a) => a -> DocCooked
-prettyCooked = prettyCookedOpt def
+-- | Type class of things that can be pretty printed as a list of
+-- documents. Similarly to 'PrettyCooked', at least of the functions from this
+-- class needs to be manually implemented to avoid infinite loops.
+class PrettyCookedList a where
+  -- | Pretty prints an element as a list on some 'PrettyCookedOpts'
+  prettyCookedOptList :: PrettyCookedOpts -> a -> [DocCooked]
+  prettyCookedOptList opts = catMaybes . prettyCookedOptListMaybe opts
 
--- | Type class of things that can produce a list of documents
-class PrettyCookedL a where
-  -- \| Pretty prints an element as a list on some 'PrettyCookedOpts'
-  prettyCookedOptL :: PrettyCookedOpts -> a -> DocCookedL
-  prettyCookedOptL opts = catMaybes . prettyCookedOptLM opts
+  -- | Pretty prints an element as a list of optional documents
+  prettyCookedOptListMaybe :: PrettyCookedOpts -> a -> [Maybe DocCooked]
+  prettyCookedOptListMaybe opts = fmap Just . prettyCookedOptList opts
 
-  -- \| Pretty prints an element as a list of optional documents
-  prettyCookedOptLM :: PrettyCookedOpts -> a -> [DocCookedM]
-  prettyCookedOptLM opts = fmap Just . prettyCookedOptL opts
+  -- | Pretty prints an elements as a list
+  prettyCookedList :: a -> [DocCooked]
+  prettyCookedList = prettyCookedOptList def
 
-instance (PrettyCooked a) => PrettyCookedL [a] where
-  prettyCookedOptL opts = fmap (prettyCookedOpt opts)
+instance (PrettyCooked a) => PrettyCookedList [a] where
+  prettyCookedOptList opts = fmap (prettyCookedOpt opts)
 
-instance (PrettyCooked a) => PrettyCookedL (Set a) where
-  prettyCookedOptL opts = prettyCookedOptL opts . Set.toList
+instance (PrettyCooked a) => PrettyCookedList (Set a) where
+  prettyCookedOptList opts = prettyCookedOptList opts . Set.toList
 
--- | Type class of things that can produce an optional document
-class PrettyCookedM a where
+-- | Type class of things that can be optionally pretty printed as a document
+class PrettyCookedMaybe a where
   -- | Pretty prints an optional document on some 'PrettyCookedOpts'
-  prettyCookedOptM :: PrettyCookedOpts -> a -> DocCookedM
+  prettyCookedOptMaybe :: PrettyCookedOpts -> a -> Maybe DocCooked
+  prettyCookedOptMaybe _ = prettyCookedMaybe
 
-instance PrettyCookedM DocCookedM where
-  prettyCookedOptM _ = id
+  -- | Pretty prints an option document
+  prettyCookedMaybe :: a -> Maybe DocCooked
+  prettyCookedMaybe = prettyCookedOptMaybe def
+
+instance PrettyCookedMaybe (Maybe DocCooked) where
+  prettyCookedOptMaybe _ = id
 
 -- | Use this in the REPL as an alternative to the default 'print' function when
 -- dealing with pretty-printable cooked values.
@@ -97,25 +102,25 @@ renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions
 
 -- | Print an item list with a title
 --
--- >>> prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
+-- >>> prettyCookedOpts opts "Foo" "-" ["bar1", "bar2", "bar3"]
 -- Foo
 --   - bar1
 --   - bar2
 --   - bar3
-prettyItemize :: (PrettyCookedL a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> DocCooked
+prettyItemize :: (PrettyCookedList a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> DocCooked
 prettyItemize opts title bullet items =
   PP.vsep
     [ title,
-      PP.indent 2 . prettyItemizeNoTitle opts bullet $ items
+      PP.indent 2 $ prettyItemizeNoTitle opts bullet items
     ]
 
 -- | Print an item list without a title
-prettyItemizeNoTitle :: (PrettyCookedL a) => PrettyCookedOpts -> DocCooked -> a -> DocCooked
-prettyItemizeNoTitle opts bullet = PP.vsep . map (bullet <+>) . prettyCookedOptL opts
+prettyItemizeNoTitle :: (PrettyCookedList a) => PrettyCookedOpts -> DocCooked -> a -> DocCooked
+prettyItemizeNoTitle opts bullet docs = PP.vsep $ map (bullet <+>) $ prettyCookedOptList opts docs
 
 -- | Print an item list with a title, but only when the list is non-empty
-prettyItemizeNonEmpty :: (PrettyCookedL a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> DocCookedM
-prettyItemizeNonEmpty opts _ _ (prettyCookedOptL opts -> []) = Nothing
+prettyItemizeNonEmpty :: (PrettyCookedList a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> Maybe DocCooked
+prettyItemizeNonEmpty opts _ _ (prettyCookedOptList opts -> []) = Nothing
 prettyItemizeNonEmpty opts title bullet items = Just $ prettyItemize opts title bullet items
 
 -- * Pretty printing of hashable data types

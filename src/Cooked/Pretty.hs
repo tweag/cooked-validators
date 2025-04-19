@@ -41,12 +41,12 @@
 -- automatically by the end-user functions provided in
 -- "Cooked.MockChain.Testing".
 --
--- To do it manually, use instances of 'PrettyCooked', 'PrettyCookedL' or
--- 'PrettyCookedM' defined in 'Cooked.Pretty.Skeleton' or
+-- To do it manually, use instances of 'PrettyCooked', 'PrettyCookedList' or
+-- 'PrettyCookedMaybe' defined in 'Cooked.Pretty.Skeleton' or
 -- 'Cooked.Pretty.MockChain' such as the one for @MockChainReturn a UtxoState@.
 module Cooked.Pretty (module X) where
 
-import Cooked.Pretty.Common as X
+import Cooked.Pretty.Class as X
 import Cooked.Pretty.Hashable as X
 import Cooked.Pretty.MockChain as X ()
 import Cooked.Pretty.Options as X

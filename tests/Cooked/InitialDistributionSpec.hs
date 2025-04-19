@@ -1,12 +1,10 @@
 module Cooked.InitialDistributionSpec where
 
-import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Plutus.Script.Utils.V3 qualified as Script
 import Test.Tasty
-import Test.Tasty.HUnit
 
 alice, bob :: Wallet
 (alice, bob) = (wallet 1, wallet 2)
@@ -40,25 +38,22 @@ spendReferenceAlwaysTrueValidator = do
         { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
           txSkelSigners = [bob]
         }
-  void $
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelOuts = [alice `receives` Value (Script.ada 2)],
-          txSkelIns = Map.singleton scriptTxOutRef $ someTxSkelRedeemer () `withReferenceInput` referenceScriptTxOutRef,
-          txSkelSigners = [bob]
-        }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelOuts = [alice `receives` Value (Script.ada 2)],
+        txSkelIns = Map.singleton scriptTxOutRef $ someTxSkelRedeemer () `withReferenceInput` referenceScriptTxOutRef,
+        txSkelSigners = [bob]
+      }
 
 tests :: TestTree
 tests =
   testGroup
     "Initial distributions"
-    [ testCase "Reading datums placed in the initial distribution, inlined or hashed" $
-        testToProp $
-          mustSucceedTest getValueFromInitialDatum
-            `withInitDist` initialDistributionWithDatum
-            `withValuePred` (testBool . (== [10, 10])),
-      testCase "Spending a script placed as a reference script in the initial distribution" $
-        testToProp $
-          mustSucceedTest spendReferenceAlwaysTrueValidator
-            `withInitDist` initialDistributionWithReferenceScript
+    [ testCooked "Reading datums placed in the initial distribution, inlined or hashed" $
+        mustSucceedTest getValueFromInitialDatum
+          `withInitDist` initialDistributionWithDatum
+          `withResultProp` (testBool . (== [10, 10])),
+      testCooked "Spending a script placed as a reference script in the initial distribution" $
+        mustSucceedTest spendReferenceAlwaysTrueValidator
+          `withInitDist` initialDistributionWithReferenceScript
     ]

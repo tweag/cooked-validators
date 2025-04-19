@@ -1,6 +1,5 @@
 module Cooked.Attack.DatumHijackingSpec (tests) where
 
-import Control.Monad
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -59,7 +58,7 @@ lockTxSkel o v =
 txLock :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m ()
 txLock v = do
   (oref, _) : _ <- runUtxoSearch $ utxosAtSearch (wallet 1) `filterWithPred` ((`Api.geq` lockValue) . outputValue)
-  void $ validateTxSkel $ lockTxSkel oref v
+  validateTxSkel_ $ lockTxSkel oref v
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
@@ -80,7 +79,7 @@ txRelock v = do
         `filterWith` resolveDatum
         `filterWithPure` isOutputWithInlineDatumOfType @LockDatum
         `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
-  void $ validateTxSkel $ relockTxSkel v oref
+  validateTxSkel_ $ relockTxSkel v oref
 
 datumHijackingTrace :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m ()
 datumHijackingTrace v = do
@@ -208,8 +207,8 @@ tests =
                 ]
                   @=? fst <$> skelOut x2 (1 ==)
             ],
-      testCase "careful validator" $
-        testFailsInPhase2 $
+      testCooked "careful validator" $
+        mustFailInPhase2Test $
           somewhere
             ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                 ( \(ConcreteOutput v _ d _ _) ->
@@ -220,16 +219,17 @@ tests =
                 thief
             )
             (datumHijackingTrace carefulValidator),
-      testCase "careless validator" $
-        testSucceeds $
-          somewhere
-            ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
-                ( \(ConcreteOutput v _ d _ _) ->
-                    Script.toValidatorHash v == Script.toValidatorHash carelessValidator
-                      && d == TxSkelOutSomeDatum (DatumContent SecondLock) Inline
-                )
-                (const True)
-                thief
-            )
-            (datumHijackingTrace carelessValidator)
+      testCooked "careless validator" $
+        mustSucceedTest
+          ( somewhere
+              ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
+                  ( \(ConcreteOutput v _ d _ _) ->
+                      Script.toValidatorHash v == Script.toValidatorHash carelessValidator
+                        && d == TxSkelOutSomeDatum (DatumContent SecondLock) Inline
+                  )
+                  (const True)
+                  thief
+              )
+              (datumHijackingTrace carelessValidator)
+          )
     ]
