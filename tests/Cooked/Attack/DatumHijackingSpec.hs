@@ -26,7 +26,7 @@ import Test.Tasty.HUnit
 data LockDatum = FirstLock | SecondLock deriving (Show, Eq)
 
 instance PrettyCooked LockDatum where
-  prettyCookedOpt _ = viaShow
+  prettyCooked = viaShow
 
 instance PlutusTx.Eq LockDatum where
   {-# INLINEABLE (==) #-}
