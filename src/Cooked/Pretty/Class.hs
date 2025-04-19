@@ -1,39 +1,88 @@
--- | This module provides the 'PrettyCooked' class and instances for common
--- Plutus types.  We don't rely on 'PP.Pretty' from "Prettyprinter" in order to
--- define better printers for Plutus types which already have instances of
--- 'PP.Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify
--- pretty printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
---
--- When defining a new 'PrettyCooked' instance, prefer implementing
--- 'prettyCookedOpt' and relay the option parameter to other printers.
+-- | This module provides common functions to help implement pretty-printers in
+-- cooked-validators
 module Cooked.Pretty.Class
-  ( PrettyCooked (..),
+  ( DocCooked,
+    PrettyCooked (..),
+    PrettyCookedList (..),
+    PrettyCookedMaybe (..),
     printCookedOpt,
     printCooked,
+    renderString,
+    prettyHash,
+    prettyItemize,
+    prettyItemizeNoTitle,
+    prettyItemizeNonEmpty,
   )
 where
 
-import Cooked.Pretty.Common
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
+import Data.ByteString qualified as ByteString
 import Data.Default
+import Data.Map qualified as Map
+import Data.Maybe (catMaybes)
 import Data.Ratio
-import Ledger.Index qualified as Ledger
-import Ledger.Scripts qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.Script.Utils.Scripts qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
-import PlutusLedgerApi.V3 qualified as Api
-import Prettyprinter ((<+>))
+import Data.Set (Set)
+import Data.Set qualified as Set
+import Numeric qualified
+import PlutusTx.Builtins.Internal qualified as PlutusTx
+import Prettyprinter (Doc, (<+>))
 import Prettyprinter qualified as PP
+import Prettyprinter.Render.String qualified as PP
 import Prettyprinter.Render.Text qualified as PP
 
--- | Type class of things within cooked-validators that can be pretty printed
+-- | A standard 'PP.Doc' without any annotation
+type DocCooked = Doc ()
+
+-- | Type class of things that can be pretty printed as a single document. You
+-- need to implement either 'prettyCookedOpt' or 'prettyCooked' manually,
+-- otherwise calling either of them will resulting in a infinite loop.
 class PrettyCooked a where
-  prettyCooked :: a -> DocCooked
-  prettyCooked = prettyCookedOpt def
+  -- | Pretty prints an element based on some 'PrettyCookedOpts'
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
   prettyCookedOpt _ = prettyCooked
+
+  -- | Pretty prints an element directly
+  prettyCooked :: a -> DocCooked
+  prettyCooked = prettyCookedOpt def
+
+instance PrettyCooked DocCooked where
+  prettyCookedOpt _ = id
+
+-- | Type class of things that can be pretty printed as a list of
+-- documents. Similarly to 'PrettyCooked', at least of the functions from this
+-- class needs to be manually implemented to avoid infinite loops.
+class PrettyCookedList a where
+  -- | Pretty prints an element as a list on some 'PrettyCookedOpts'
+  prettyCookedOptList :: PrettyCookedOpts -> a -> [DocCooked]
+  prettyCookedOptList opts = catMaybes . prettyCookedOptListMaybe opts
+
+  -- | Pretty prints an element as a list of optional documents
+  prettyCookedOptListMaybe :: PrettyCookedOpts -> a -> [Maybe DocCooked]
+  prettyCookedOptListMaybe opts = fmap Just . prettyCookedOptList opts
+
+  -- | Pretty prints an elements as a list
+  prettyCookedList :: a -> [DocCooked]
+  prettyCookedList = prettyCookedOptList def
+
+instance (PrettyCooked a) => PrettyCookedList [a] where
+  prettyCookedOptList opts = fmap (prettyCookedOpt opts)
+
+instance (PrettyCooked a) => PrettyCookedList (Set a) where
+  prettyCookedOptList opts = prettyCookedOptList opts . Set.toList
+
+-- | Type class of things that can be optionally pretty printed as a document
+class PrettyCookedMaybe a where
+  -- | Pretty prints an optional document on some 'PrettyCookedOpts'
+  prettyCookedOptMaybe :: PrettyCookedOpts -> a -> Maybe DocCooked
+  prettyCookedOptMaybe _ = prettyCookedMaybe
+
+  -- | Pretty prints an option document
+  prettyCookedMaybe :: a -> Maybe DocCooked
+  prettyCookedMaybe = prettyCookedOptMaybe def
+
+instance PrettyCookedMaybe (Maybe DocCooked) where
+  prettyCookedOptMaybe _ = id
 
 -- | Use this in the REPL as an alternative to the default 'print' function when
 -- dealing with pretty-printable cooked values.
@@ -46,92 +95,58 @@ printCookedOpt opts e = PP.putDoc $ prettyCookedOpt opts e <+> PP.line
 printCooked :: (PrettyCooked a) => a -> IO ()
 printCooked = printCookedOpt def
 
-instance PrettyCooked Api.TxId where
-  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
+-- | Use this to convert a pretty-printer to a regular show function using
+-- default layout options. This is used in "Testing" because Tasty uses strings.
+renderString :: (a -> DocCooked) -> a -> String
+renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 
-instance PrettyCooked Api.TxOutRef where
-  prettyCookedOpt opts (Api.TxOutRef txId index) =
-    prettyHash (pcOptHashes opts) (toHash txId) <> "!" <> prettyCookedOpt opts index
+-- | Print an item list with a title
+--
+-- >>> prettyCookedOpts opts "Foo" "-" ["bar1", "bar2", "bar3"]
+-- Foo
+--   - bar1
+--   - bar2
+--   - bar3
+prettyItemize :: (PrettyCookedList a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> DocCooked
+prettyItemize opts title bullet items =
+  PP.vsep
+    [ title,
+      PP.indent 2 $ prettyItemizeNoTitle opts bullet items
+    ]
 
-instance PrettyCooked (Script.Versioned Script.MintingPolicy) where
-  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
+-- | Print an item list without a title
+prettyItemizeNoTitle :: (PrettyCookedList a) => PrettyCookedOpts -> DocCooked -> a -> DocCooked
+prettyItemizeNoTitle opts bullet docs = PP.vsep $ map (bullet <+>) $ prettyCookedOptList opts docs
 
-instance PrettyCooked (Script.Versioned Script.Script) where
-  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
+-- | Print an item list with a title, but only when the list is non-empty
+prettyItemizeNonEmpty :: (PrettyCookedList a) => PrettyCookedOpts -> DocCooked -> DocCooked -> a -> Maybe DocCooked
+prettyItemizeNonEmpty opts _ _ (prettyCookedOptList opts -> []) = Nothing
+prettyItemizeNonEmpty opts title bullet items = Just $ prettyItemize opts title bullet items
 
-instance PrettyCooked Api.Address where
-  prettyCookedOpt opts (Api.Address addrCr Nothing) = prettyCookedOpt opts addrCr
-  prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingHash stakCr))) =
-    prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> prettyCookedOpt opts stakCr)
-  prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingPtr p1 p2 p3))) =
-    prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
+-- * Pretty printing of hashable data types
 
-instance PrettyCooked Api.PubKeyHash where
-  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
+-- | Pretty prints hashable elements based on 'pcOptHashes' in the
+-- 'PrettyCookedOpts'. This cannot be made an instance as it would be
+-- undecidable (the hope was @(ToHash a) => PrettyCooked a@)
+prettyHash :: (ToHash a) => PrettyCookedOpts -> a -> DocCooked
+prettyHash
+  (PrettyCookedOpts {pcOptHashes = PrettyCookedHashOpts {..}})
+  (toHash -> bbs@(PlutusTx.BuiltinByteString bs)) =
+    let hexRepresentation =
+          PP.pretty
+            . take pcOptHashLength
+            . concatMap
+              -- We pad the result of 'Numeric.showHex' to reach exactly
+              -- 2 characters as it might only have 1 in some occasions.
+              (\((`Numeric.showHex` "") -> res) -> if length res == 1 then '0' : res else res)
+            . ByteString.unpack
+            $ bs
+     in case Map.lookup bbs pcOptHashNames of
+          Nothing -> "#" <> hexRepresentation
+          Just name | pcOptHashVerbose -> "#" <> hexRepresentation <+> PP.parens (PP.pretty name)
+          Just name -> PP.pretty name
 
-instance PrettyCooked Api.Credential where
-  prettyCookedOpt opts (Api.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
-  prettyCookedOpt opts (Api.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
-
-instance PrettyCooked Api.Value where
-  -- Example output:
-  --
-  -- > Value:
-  -- >   - Lovelace: 45_000_000
-  -- >   - Quick "hello": 3
-  -- >   - #12bc3d "usertoken": 1
-  --
-  -- In case of an empty value (even though not an empty map):
-  -- > Empty value
-  prettyCookedOpt opts =
-    prettySingletons
-      . map prettySingletonValue
-      . filter (\(_, _, n) -> n /= 0)
-      . Api.flattenValue
-    where
-      prettySingletons :: [DocCooked] -> DocCooked
-      prettySingletons [] = "Empty value"
-      prettySingletons [doc] = doc
-      prettySingletons docs = prettyItemize "Value:" "-" docs
-      prettySingletonValue :: (Api.CurrencySymbol, Api.TokenName, Integer) -> DocCooked
-      prettySingletonValue (symbol, name, amount) =
-        prettyCookedOpt opts (Api.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
-
-instance PrettyCooked Api.CurrencySymbol where
-  prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
-
-instance PrettyCooked Api.TokenName where
-  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
-
-instance PrettyCooked Api.AssetClass where
-  prettyCookedOpt opts (Api.AssetClass (symbol, name)) =
-    prettyCookedOpt opts symbol
-      <+> if symbol /= Api.CurrencySymbol ""
-        then prettyCookedOpt opts name
-        else mempty
-
-instance PrettyCooked Ledger.ValidationPhase where
-  prettyCookedOpt _ Ledger.Phase1 = "Phase 1"
-  prettyCookedOpt _ Ledger.Phase2 = "Phase 2"
-
-instance PrettyCooked Ledger.ValidationError where
-  prettyCookedOpt opts (Ledger.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (Ledger.fromCardanoTxIn txIn)
-  prettyCookedOpt opts (Ledger.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
-  prettyCookedOpt _ (Ledger.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
-  prettyCookedOpt _ Ledger.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
-
-instance PrettyCooked Ledger.ScriptError where
-  prettyCookedOpt _ (Ledger.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
-  prettyCookedOpt _ (Ledger.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2
-
-instance PrettyCooked Api.POSIXTime where
-  prettyCookedOpt opts (Api.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
-
-instance PrettyCooked Ledger.ScriptHash where
-  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
-
-instance (PrettyCooked a) => PrettyCooked [a] where
-  prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
+-- * Pretty instances for some common base types
 
 instance PrettyCooked Int where
   prettyCookedOpt _ = PP.pretty
@@ -159,9 +174,6 @@ instance PrettyCooked Bool where
   prettyCookedOpt _ = PP.pretty
 
 instance PrettyCooked () where
-  prettyCookedOpt _ = PP.pretty
-
-instance PrettyCooked Api.BuiltinData where
   prettyCookedOpt _ = PP.pretty
 
 instance PrettyCooked Rational where
