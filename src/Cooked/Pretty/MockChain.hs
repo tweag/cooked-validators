@@ -56,13 +56,13 @@ instance PrettyCooked MockChainError where
     prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msgs]
   prettyCookedOpt opts (MCEGenerationError (TxBodyError msg err)) =
     prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msg, PP.viaShow err]
-  prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
+  prettyCookedOpt opts (MCEUnknownOutRef msg txOutRef) =
     prettyItemize opts "Unknown transaction output ref:" "-" [PP.pretty msg, prettyCookedOpt opts txOutRef]
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
-  prettyCookedOpt opts (MCEUnknownValidator msg valHash) =
+  prettyCookedOpt opts (MCEUnknownScript msg valHash) =
     prettyItemize
       opts
-      "Unknown validator hash:"
+      "Unknown script hash:"
       "-"
       [PP.pretty msg, "hash:" <+> prettyHash opts valHash]
   prettyCookedOpt opts (MCEUnknownDatum msg dHash) =

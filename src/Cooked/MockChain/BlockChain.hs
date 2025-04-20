@@ -24,6 +24,9 @@ module Cooked.MockChain.BlockChain
     currentTime,
     waitNSlots,
     utxosFromCardanoTx,
+    unsafeDatumFromHash,
+    unsafeTxOutByRef,
+    unsafeScriptFromHash,
     typedDatumFromTxOutRef,
     valueFromTxOutRef,
     outputDatumFromTxOutRef,
@@ -112,14 +115,22 @@ data MockChainError
   | -- | Thrown when an error occured during transaction generation
     MCEGenerationError GenerateTxError
   | -- | Thrown when an output reference is missing from the mockchain state
-    MCEUnknownOutRefError String Api.TxOutRef
-  | -- | Same as 'MCEUnknownOutRefError' for validators.
-    MCEUnknownValidator String Script.ValidatorHash
-  | -- | Same as 'MCEUnknownOutRefError' for datums.
+    MCEUnknownOutRef String Api.TxOutRef
+  | -- | Same as 'MCEUnknownOutRef' for scripts.
+    MCEUnknownScript String Script.ScriptHash
+  | -- | Same as 'MCEUnknownOutRef' for datums.
     MCEUnknownDatum String Api.DatumHash
   | -- | Used to provide 'MonadFail' instances.
     FailWith String
   deriving (Show, Eq)
+
+-- | Converts 'Nothing' to an error and applies a function otherwise
+maybeErrM :: (MonadError e m) => e -> (a -> b) -> m (Maybe a) -> m b
+maybeErrM err f = (maybe (throwError err) (return . f) =<<)
+
+-- | Converts 'Nothing' to an error and returns the value otherwise
+maybeErrMid :: (MonadError e m) => e -> m (Maybe a) -> m a
+maybeErrMid err = maybeErrM err id
 
 -- * Mockchain logs
 
@@ -172,6 +183,18 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
 
   -- | Logs an event that occured during a BlockChain run
   logEvent :: MockChainLogEntry -> m ()
+
+-- | Same as 'datumFromHash' but throws an error in case of missing datum hash
+unsafeDatumFromHash :: (MonadBlockChainBalancing m) => Api.DatumHash -> m Api.Datum
+unsafeDatumFromHash dHash = maybeErrMid (MCEUnknownDatum "Unknown datum hash" dHash) (datumFromHash dHash)
+
+-- | Same as 'scriptFromHash' but throws an error in case of missing script hash
+unsafeScriptFromHash :: (MonadBlockChainBalancing m) => Script.ScriptHash -> m (Script.Versioned Script.Script)
+unsafeScriptFromHash sHash = maybeErrMid (MCEUnknownScript "Unknown script hash" sHash) (scriptFromHash sHash)
+
+-- | Same as 'txOutByRef' but throws an error in case of missing utxo
+unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.TxOut
+unsafeTxOutByRef oRef = maybeErrMid (MCEUnknownOutRef "Unknown TxOutRef" oRef) (txOutByRef oRef)
 
 -- | This is the second layer of our blockchain, which provides all the other
 -- blockchain primitives not needed for balancing, except transaction
@@ -346,36 +369,25 @@ govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionD
 txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
 txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
 
--- | Converts 'Nothing' to an error
-maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b
-maybeErrM err f = (maybe (throwError err) (return . f) =<<)
-
--- | Returns all validators which protect transaction inputs
+-- | Returns all validators which guard transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Script.ValidatorHash (Script.Versioned Script.Validator))
-txSkelInputValidators skel = do
-  utxos <- Map.toList <$> lookupUtxos (Map.keys . txSkelIns $ skel)
-  Map.fromList . catMaybes
-    <$> mapM
-      ( \(_oref, out) -> case outputAddress out of
-          Api.Address (Api.ScriptCredential sHash) _ -> do
-            let valHash = Script.toValidatorHash sHash
-            maybeErrM
-              ( MCEUnknownValidator
-                  "txSkelInputValidators: unknown validator hash on transaction input"
-                  valHash
-              )
-              (Just . (valHash,))
-              (fmap Script.toVersioned <$> scriptFromHash sHash)
-          _ -> return Nothing
+txSkelInputValidators =
+  (lookupUtxos . Map.keys . txSkelIns)
+    >=> foldM
+      ( \m ->
+          ( \case
+              (_, Api.TxOut (Api.Address (Api.ScriptCredential sHash) _) _ _ _) ->
+                flip (Map.insert (Script.toValidatorHash sHash)) m . Script.toVersioned <$> unsafeScriptFromHash sHash
+              _ -> return m
+          )
       )
-      utxos
+      Map.empty
+      . Map.toList
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.
 lookupUtxos :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Api.TxOut)
-lookupUtxos =
-  (Map.fromList <$>)
-    . mapM (\oRef -> (oRef,) <$> maybeErrM (MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" oRef) id (txOutByRef oRef))
+lookupUtxos = foldM (\m oRef -> flip (Map.insert oRef) m <$> unsafeTxOutByRef oRef) Map.empty
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
