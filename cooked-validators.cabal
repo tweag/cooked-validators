@@ -164,12 +164,11 @@ test-suite spec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.MinAdaSpec
-      Cooked.MockChain.BlockChainSpec
-      Cooked.MockChainSpec
       Cooked.MultiPurposeSpec
       Cooked.ProposingScriptSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
+      Cooked.SlotSpec
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
       Cooked.Tweak.TamperDatumSpec
