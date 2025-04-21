@@ -2,52 +2,9 @@ module Cooked.ProposingScriptSpec where
 
 import Cooked
 import Data.Map qualified as Map
+import Plutus.ProposingScript
 import Plutus.Script.Utils.V3 qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.AssocMap qualified as PlutusTx
-import PlutusTx.Builtins qualified as PlutusTx hiding (head)
-import PlutusTx.Eq qualified as PlutusTx
-import PlutusTx.IsData qualified as PlutusTx
-import PlutusTx.TH qualified as PlutusTx
-import PlutusTx.Trace qualified as PlutusTx
 import Test.Tasty
-
-{-# INLINEABLE checkParameterChangeProposingPurpose #-}
-checkParameterChangeProposingPurpose :: Script.ProposingPurposeType ()
-checkParameterChangeProposingPurpose _ (Api.ProposalProcedure _ _ (Api.ParameterChange _ (Api.ChangedParameters dat) _)) _ _ =
-  let innerMap = PlutusTx.unsafeFromBuiltinData @(PlutusTx.Map PlutusTx.Integer PlutusTx.Integer) dat
-   in ((PlutusTx.toList innerMap PlutusTx.== [(0, 100)]) || PlutusTx.traceError "wrong map")
-checkParameterChangeProposingPurpose _ _ _ _ = PlutusTx.traceError "Wrong proposal procedure"
-
-checkProposingScript :: Script.Versioned Script.Script
-checkProposingScript =
-  Script.toVersioned $
-    Script.MultiPurposeScript @() $
-      Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $
-        Script.falseTypedMultiPurposeScript `Script.withProposingPurpose` checkParameterChangeProposingPurpose
-
--- | A dummy false proposing validator
-alwaysFalseProposingValidator :: Script.Versioned Script.Script
-alwaysFalseProposingValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @() $
-      Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script = Script.mkMultiPurposeScript Script.falseTypedMultiPurposeScript
-
--- | A dummy true proposing validator
-alwaysTrueProposingValidator :: Script.Versioned Script.Script
-alwaysTrueProposingValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @() $
-      Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $
-        Script.falseTypedMultiPurposeScript `Script.withProposingPurpose` (\_ _ () () -> True)
 
 testProposingScript :: (MonadBlockChain m) => Script.Versioned Script.Script -> TxGovAction -> m ()
 testProposingScript script govAction =
