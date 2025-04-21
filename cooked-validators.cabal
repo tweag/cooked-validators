@@ -176,6 +176,7 @@ test-suite spec
       Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
       Cooked.WithdrawalsSpec
+      Plutus.MultiPurpose
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
