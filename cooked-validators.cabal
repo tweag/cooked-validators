@@ -176,6 +176,9 @@ test-suite spec
       Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
       Cooked.WithdrawalsSpec
+      Plutus.Attack.DatumHijacking
+      Plutus.Attack.DoubleSat
+      Plutus.Attack.DupToken
       Plutus.InlineDatums
       Plutus.MultiPurpose
       Plutus.ProposingScript

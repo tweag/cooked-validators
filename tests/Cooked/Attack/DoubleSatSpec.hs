@@ -1,6 +1,6 @@
-{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.Attack.DoubleSatSpec where
+module Cooked.Attack.DoubleSatSpec (tests) where
 
 import Control.Arrow
 import Cooked
@@ -11,106 +11,25 @@ import Data.Maybe
 import Data.Set qualified as Set
 import Data.Tuple (swap)
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Attack.DoubleSat
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusLedgerApi.V3 qualified as V3
-import PlutusTx qualified
-import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- * Mock contracts for the double satisfaction attack
-
--- Scenario: There are two validators, one of type A, one of type B. We want to
--- add an input belonging to the B validator to a transaction that spends from
--- the A validator.
-
-data ADatum = ADatum deriving (Show)
-
 instance PrettyCooked ADatum where
   prettyCooked = viaShow
-
-instance PlutusTx.Eq ADatum where
-  ADatum == ADatum = True
-
-PlutusTx.makeLift ''ADatum
-PlutusTx.unstableMakeIsData ''ADatum
-
-data ARedeemer = ARedeemer1 | ARedeemer2 | ARedeemer3 deriving (Show)
-
-instance PlutusTx.Eq ARedeemer where
-  ARedeemer1 == ARedeemer1 = True
-  ARedeemer2 == ARedeemer2 = True
-  ARedeemer3 == ARedeemer3 = True
-  _ == _ = False
 
 instance PrettyCooked ARedeemer where
   prettyCooked = viaShow
 
-PlutusTx.makeLift ''ARedeemer
-PlutusTx.unstableMakeIsData ''ARedeemer
-
-data AContract
-
-instance Script.ValidatorTypes AContract where
-  type DatumType AContract = ADatum
-  type RedeemerType AContract = ARedeemer
-
-{-# INLINEABLE mkAValidator #-}
-mkAValidator :: ADatum -> ARedeemer -> Api.ScriptContext -> Bool
-mkAValidator _ _ _ = True
-
-aValidator :: Script.TypedValidator AContract
-aValidator =
-  Script.mkTypedValidator @AContract
-    $$(PlutusTx.compile [||mkAValidator||])
-    $$(PlutusTx.compile [||wrap||])
-  where
-    wrap = Script.mkUntypedValidator
-
-data BDatum = BDatum deriving (Show)
-
 instance PrettyCooked BDatum where
   prettyCooked = viaShow
 
-instance PlutusTx.Eq BDatum where
-  BDatum == BDatum = True
-
-PlutusTx.makeLift ''BDatum
-PlutusTx.unstableMakeIsData ''BDatum
-
-data BRedeemer = BRedeemer1 | BRedeemer2 deriving (Show)
-
 instance PrettyCooked BRedeemer where
   prettyCooked = viaShow
-
-instance PlutusTx.Eq BRedeemer where
-  BRedeemer1 == BRedeemer1 = True
-  BRedeemer2 == BRedeemer2 = True
-  _ == _ = False
-
-PlutusTx.makeLift ''BRedeemer
-PlutusTx.unstableMakeIsData ''BRedeemer
-
-data BContract
-
-instance Script.ValidatorTypes BContract where
-  type DatumType BContract = BDatum
-  type RedeemerType BContract = BRedeemer
-
-{-# INLINEABLE mkBValidator #-}
-mkBValidator :: BDatum -> BRedeemer -> Api.ScriptContext -> Bool
-mkBValidator _ _ _ = True
-
-bValidator :: Script.TypedValidator BContract
-bValidator =
-  Script.mkTypedValidator @BContract
-    $$(PlutusTx.compile [||mkBValidator||])
-    $$(PlutusTx.compile [||wrap||])
-  where
-    wrap = Script.mkUntypedValidator
 
 -- | In the initial state of the Mockchain, the A and B validators
 -- each own a few UTxOs, with different values
