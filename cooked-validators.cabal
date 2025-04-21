@@ -178,6 +178,7 @@ test-suite spec
       Cooked.WithdrawalsSpec
       Plutus.MultiPurpose
       Plutus.ProposingScript
+      Plutus.ReferenceScripts
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
