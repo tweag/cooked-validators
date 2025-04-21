@@ -1,117 +1,19 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Cooked.InlineDatumsSpec where
 
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe
+import Plutus.InlineDatums
 import Plutus.Script.Utils.V3 qualified as Script
-import PlutusCore.Version qualified as PlutusTx
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusLedgerApi.V3.Tx qualified as V3
-import PlutusTx qualified
-import PlutusTx.AssocMap qualified as PlutusTx (member)
-import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
-data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show)
-
 instance PrettyCooked SimpleContractDatum where
   prettyCooked = viaShow
-
-instance PlutusTx.Eq SimpleContractDatum where
-  FirstPaymentDatum == FirstPaymentDatum = True
-  SecondPaymentDatum == SecondPaymentDatum = True
-  _ == _ = False
-
-PlutusTx.unstableMakeIsData ''SimpleContractDatum
-
-data SimpleContract
-
-instance Script.MultiPurposeScriptTypes SimpleContract where
-  type SpendingDatumType SimpleContract = SimpleContractDatum
-
-{-# INLINEABLE inputDatumSpendingPurpose #-}
-inputDatumSpendingPurpose :: Bool -> Script.SpendingPurposeType SimpleContract
-inputDatumSpendingPurpose requireInlineDatum oRef _ _ Api.TxInfo {txInfoInputs} =
-  case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
-    Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) | requireInlineDatum -> case inDatum of
-      Api.OutputDatum _ -> True
-      Api.OutputDatumHash _ -> PlutusTx.trace "I want an inline datum, but I got a hash" False
-      Api.NoOutputDatum -> PlutusTx.trace "I want an inline datum, but I got neither a datum nor a hash" False
-    Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) -> case inDatum of
-      Api.OutputDatumHash _ -> True
-      Api.OutputDatum _ -> PlutusTx.trace "I want a datum hash, but I got an inline datum" False
-      Api.NoOutputDatum -> PlutusTx.trace "I want a datum hash, but I got neither a datum nor a hash" False
-    _ -> False
-
-compiledInputDatumSpendingPurpose :: PlutusTx.CompiledCode (Bool -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
-compiledInputDatumSpendingPurpose = $$(PlutusTx.compile [||script||])
-  where
-    script b = Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose b
-
-requireInlineDatumInInputValidator :: Script.Versioned Script.Validator
-requireInlineDatumInInputValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @SimpleContract $
-      Script.toScript $
-        compiledInputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 True
-
-requireHashedDatumInInputValidator :: Script.Versioned Script.Validator
-requireHashedDatumInInputValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @SimpleContract $
-      Script.toScript $
-        compiledInputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 False
-
-data OutputDatumKind = OnlyHash | Datum | Inline
-
-PlutusTx.makeLift ''OutputDatumKind
-
--- | This defines three validators: @outputDatumValidator OnlyHash@ is a
--- validator that only returns true if there's a continuing transaction output
--- that has a datum hash that's not included in the 'txInfoData', inline datum,
--- @outputDatumSpendingPurpose Datum@ requires an output datum with a hash that's in
--- the 'txInfoData', and @outputDatumSpendingPurpose Inline@ only returns true if the
--- output has an inline datum.
-{-# INLINEABLE outputDatumSpendingPurpose #-}
-outputDatumSpendingPurpose :: OutputDatumKind -> Script.SpendingPurposeType SimpleContract
-outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOutputs, txInfoData} =
-  case PlutusTx.find ((oRef PlutusTx.==) . Api.txInInfoOutRef) txInfoInputs of
-    Just (Api.TxInInfo _ Api.TxOut {txOutAddress})
-      | [Api.TxOut {txOutDatum}] <- PlutusTx.filter ((txOutAddress PlutusTx.==) . Api.txOutAddress) txInfoOutputs ->
-          case (datumKind, txOutDatum) of
-            (OnlyHash, Api.OutputDatumHash h) -> PlutusTx.not $ PlutusTx.member h txInfoData
-            (Datum, Api.OutputDatumHash h) -> PlutusTx.member h txInfoData
-            (Inline, Api.OutputDatum _) -> True
-            _ -> False
-    _ -> False
-
-compiledOutputDatumSpendingPurpose :: PlutusTx.CompiledCode (OutputDatumKind -> PlutusTx.BuiltinData -> PlutusTx.BuiltinUnit)
-compiledOutputDatumSpendingPurpose = $$(PlutusTx.compile [||script||])
-  where
-    script b = Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose b
-
-requireInlineDatumInOutputValidator :: Script.Versioned Script.Validator
-requireInlineDatumInOutputValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @() $
-      Script.toScript $
-        compiledOutputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 Inline
-
-requireHashedDatumInOutputValidator :: Script.Versioned Script.Validator
-requireHashedDatumInOutputValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @() $
-      Script.toScript $
-        compiledOutputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 Datum
-
-requireOnlyHashedDatumInOutputValidator :: Script.Versioned Script.Validator
-requireOnlyHashedDatumInOutputValidator =
-  Script.toVersioned $
-    Script.MultiPurposeScript @() $
-      Script.toScript $
-        compiledOutputDatumSpendingPurpose `PlutusTx.unsafeApplyCode` PlutusTx.liftCode PlutusTx.plcVersion110 OnlyHash
 
 -- | This defines two single-transaction traces: @listUtxosTestTrace True@ will
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use
@@ -120,7 +22,7 @@ listUtxosTestTrace ::
   (MonadBlockChain m) =>
   Bool ->
   Script.Versioned Script.Validator ->
-  m [(V3.TxOutRef, Api.TxOut)]
+  m [(Api.TxOutRef, Api.TxOut)]
 listUtxosTestTrace useInlineDatum validator =
   utxosFromCardanoTx
     <$> validateTxSkel

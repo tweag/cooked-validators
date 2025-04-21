@@ -5,7 +5,7 @@ module Plutus.ReferenceScripts where
 
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
-import PlutusTx qualified
+import PlutusTx
 import PlutusTx.Prelude
 
 -- | This validator ensures that the given public key signs the
@@ -13,8 +13,8 @@ import PlutusTx.Prelude
 requireSignerValidator :: Api.PubKeyHash -> Script.TypedValidator ()
 requireSignerValidator =
   Script.mkTypedValidatorParam
-    $$(PlutusTx.compile [||val||])
-    $$(PlutusTx.compile [||wrap||])
+    $$(compile [||val||])
+    $$(compile [||wrap||])
   where
     val :: Api.PubKeyHash -> () -> () -> Api.ScriptContext -> Bool
     val pkh _ _ (Api.ScriptContext txInfo _) =
@@ -28,8 +28,8 @@ requireSignerValidator =
 requireRefScriptValidator :: Api.ScriptHash -> Script.TypedValidator ()
 requireRefScriptValidator =
   Script.mkTypedValidatorParam
-    $$(PlutusTx.compile [||val||])
-    $$(PlutusTx.compile [||wrap||])
+    $$(compile [||val||])
+    $$(compile [||wrap||])
   where
     val :: Api.ScriptHash -> () -> () -> Api.ScriptContext -> Bool
     val expectedScriptHash _ _ (Api.ScriptContext txInfo _) =

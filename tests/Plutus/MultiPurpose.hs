@@ -16,9 +16,8 @@ module Plutus.MultiPurpose where
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx qualified
+import PlutusTx
 import PlutusTx.AssocMap qualified as Map
-import PlutusTx.Builtins.Internal qualified as PlutusTx
 import PlutusTx.Prelude
 import Prelude qualified as HS
 
@@ -52,7 +51,7 @@ txOutRefToToken (Api.TxOutRef (Api.TxId txId) n) = Api.TokenName $ sha2_256 (txI
 {-# INLINEABLE encodeInteger #-}
 encodeInteger :: Integer -> Api.BuiltinByteString
 encodeInteger x
-  | x < 256 = PlutusTx.consByteString x ""
+  | x < 256 = consByteString x ""
   | otherwise = consByteString (x `modulo` 256) $ encodeInteger (x `quotient` 256)
 
 data MPTag

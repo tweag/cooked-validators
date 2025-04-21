@@ -176,9 +176,12 @@ test-suite spec
       Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
       Cooked.WithdrawalsSpec
+      Plutus.InlineDatums
       Plutus.MultiPurpose
       Plutus.ProposingScript
+      Plutus.ReferenceInputs
       Plutus.ReferenceScripts
+      Plutus.Withdrawals
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
