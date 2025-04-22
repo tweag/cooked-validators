@@ -11,8 +11,8 @@
 ### Run a trace
 
 * In a test
-    * `Tasty.testCase "foo" $ C.testSucceeds foo`
-    * `Tasty.testCase "foo" $ C.testFails foo`
+    * `testCooked "foo" $ mustSucceedTest foo`
+    * `testCookedQC "foo" $ mustFailTest foo`
 * In the REPL
     * `printCooked $ interpretAndRun foo` for all traces
     * `printCooked $ runMockChain foo` for `MonadBlockChain` traces only

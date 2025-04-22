@@ -1,6 +1,5 @@
 module Cooked.Attack.DupTokenSpec (tests) where
 
-import Control.Monad
 import Cooked
 import Data.Set qualified as Set
 import Plutus.Script.Utils.V3 qualified as Script
@@ -39,7 +38,7 @@ carelessPolicy :: Script.Versioned Script.MintingPolicy
 carelessPolicy = Script.toVersioned Script.trueMintingMPScript
 
 dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Api.TokenName -> Integer -> Wallet -> m ()
-dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
+dupTokenTrace pol tName amount recipient = validateTxSkel_ skel
   where
     skel =
       let mints = txSkelMintsFromList [mint pol emptyTxSkelRedeemer tName amount]
@@ -103,20 +102,18 @@ tests =
               testCase "add tokens depending on the asset class" $
                 skelExpected 10 7 @=? fst <$> skelOut (\ac n -> if ac == ac1 then n + 5 else n)
             ],
-      testCase "careful minting policy" $
+      testCooked "careful minting policy" $
         let tName = Api.TokenName "MockToken"
             pol = carefulPolicy tName 1
-         in testFailsInPhase2 $
+         in mustFailInPhase2Test $
               somewhere
                 (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
-      testCase "careless minting policy" $
-        let tName = Api.TokenName "MockToken"
-            pol = carelessPolicy
-         in testSucceeds $
-              somewhere
-                (dupTokenAttack (\_ n -> n + 1) (wallet 6))
-                (dupTokenTrace pol tName 1 (wallet 1)),
+      testCooked "careless minting policy" $
+        mustSucceedTest $
+          somewhere
+            (dupTokenAttack (\_ n -> n + 1) (wallet 6))
+            (dupTokenTrace carelessPolicy (Api.TokenName "MockToken") 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
             pol = carelessPolicy
