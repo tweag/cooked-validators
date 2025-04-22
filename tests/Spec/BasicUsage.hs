@@ -1,4 +1,4 @@
-module Cooked.BasicUsageSpec where
+module Spec.BasicUsage where
 
 import Cooked
 import Data.Map qualified as Map

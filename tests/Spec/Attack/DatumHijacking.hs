@@ -1,51 +1,23 @@
-module Cooked.Attack.DatumHijackingSpec (tests) where
+{-# OPTIONS_GHC -Wno-orphans #-}
+
+module Spec.Attack.DatumHijacking (tests) where
 
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.Attack.DatumHijacking
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusLedgerApi.V3.Contexts qualified as Api
-import PlutusTx qualified
-import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- * Mock contract for the datum hijacking attack
-
--- This is a very simple contract: The first transaction locks some
--- Ada to the validator, using the datum 'FirstLock', the second
--- transaction then re-locks the same amount to the same validator,
--- using the datum 'SecondLock'. The datum hijacking attack should
--- target the second transaction, and substitute a different
--- recipient.
-
-data LockDatum = FirstLock | SecondLock deriving (Show, Eq)
-
 instance PrettyCooked LockDatum where
   prettyCooked = viaShow
 
-instance PlutusTx.Eq LockDatum where
-  {-# INLINEABLE (==) #-}
-  FirstLock == FirstLock = True
-  SecondLock == SecondLock = True
-  _ == _ = False
-
-PlutusTx.makeLift ''LockDatum
-PlutusTx.unstableMakeIsData ''LockDatum
-
-data DHContract
-
-instance Script.MultiPurposeScriptTypes DHContract where
-  type SpendingDatumType DHContract = LockDatum
-
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
-
-lockValue :: Api.Value
-lockValue = Script.lovelace 12345678
 
 lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
@@ -85,48 +57,6 @@ datumHijackingTrace :: (MonadBlockChain m) => Script.MultiPurposeScript DHContra
 datumHijackingTrace v = do
   txLock v
   txRelock v
-
--- * Validators for the datum hijacking attack
-
--- | Try to extract a datum from an output.
-{-# INLINEABLE outputDatum #-}
-outputDatum :: Api.TxInfo -> Api.TxOut -> Maybe LockDatum
-outputDatum txi o = case Api.txOutDatum o of
-  Api.NoOutputDatum -> Nothing
-  Api.OutputDatumHash h -> do
-    Api.Datum d <- Api.findDatum h txi
-    Api.fromBuiltinData d
-  Api.OutputDatum (Api.Datum d) -> Api.fromBuiltinData d
-
-{-# INLINEABLE mockValidatorSpendingPurpose #-}
-mockValidatorSpendingPurpose :: (Api.TxInfo -> [Api.TxOut]) -> Script.SpendingPurposeType DHContract
-mockValidatorSpendingPurpose getOutputs _ (Just FirstLock) _ txi =
-  case getOutputs txi of
-    o : _ ->
-      PlutusTx.traceIfFalse "not in 'SecondLock'-state after re-locking" (outputDatum txi o PlutusTx.== Just SecondLock)
-        && PlutusTx.traceIfFalse "not re-locking the right amout" (Api.txOutValue o == lockValue)
-    _ -> PlutusTx.trace "there must be a output re-locked" False
-mockValidatorSpendingPurpose _ _ _ _ _ = False
-
-carefulValidator :: Script.MultiPurposeScript DHContract
-carefulValidator =
-  Script.MultiPurposeScript $
-    Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $
-        Script.falseTypedMultiPurposeScript
-          `Script.withSpendingPurpose` mockValidatorSpendingPurpose (\txi -> Api.getContinuingOutputs $ Api.ScriptContext txi (PlutusTx.error ()) (PlutusTx.error ()))
-
-carelessValidator :: Script.MultiPurposeScript DHContract
-carelessValidator =
-  Script.MultiPurposeScript $
-    Script.toScript $$(PlutusTx.compile [||script||])
-  where
-    script =
-      Script.mkMultiPurposeScript $
-        Script.falseTypedMultiPurposeScript
-          `Script.withSpendingPurpose` mockValidatorSpendingPurpose Api.txInfoOutputs
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
 txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSigners = [wallet 1]}

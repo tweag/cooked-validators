@@ -1,4 +1,4 @@
-module Cooked.Tweak.CommonSpec (tests) where
+module Spec.Tweak.Common (tests) where
 
 import Cooked
 import Data.List (subsequences)

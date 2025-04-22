@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | Tests for 'Cooked.Tweak.TamperDatum'.
-module Cooked.Tweak.TamperDatumSpec where
+module Spec.Tweak.TamperDatum where
 
 import Cooked
 import Data.Set qualified as Set

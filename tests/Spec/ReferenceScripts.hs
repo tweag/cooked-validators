@@ -1,53 +1,16 @@
-{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
-
-module Cooked.ReferenceScriptsSpec where
+module Spec.ReferenceScripts where
 
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.ReferenceScripts
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusLedgerApi.V3 qualified as V3
-import PlutusTx qualified
-import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
-
--- | This validator ensures that the given public key signs the
--- transaction.
-requireSignerValidator :: Api.PubKeyHash -> Script.TypedValidator ()
-requireSignerValidator =
-  Script.mkTypedValidatorParam
-    $$(PlutusTx.compile [||val||])
-    $$(PlutusTx.compile [||wrap||])
-  where
-    val :: Api.PubKeyHash -> () -> () -> Api.ScriptContext -> Bool
-    val pkh _ _ (Api.ScriptContext txInfo _) =
-      PlutusTx.traceIfFalse "the required signer is missing"
-        PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
-
-    wrap = Script.mkUntypedValidator
-
--- | This validator ensures that there is a transaction input that has
--- a reference script with the given hash.
-requireRefScriptValidator :: Api.ScriptHash -> Script.TypedValidator ()
-requireRefScriptValidator =
-  Script.mkTypedValidatorParam
-    $$(PlutusTx.compile [||val||])
-    $$(PlutusTx.compile [||wrap||])
-  where
-    val :: Api.ScriptHash -> () -> () -> Api.ScriptContext -> Bool
-    val expectedScriptHash _ _ (Api.ScriptContext txInfo _) =
-      PlutusTx.traceIfFalse "there is no reference input with the correct script hash"
-        PlutusTx.$ PlutusTx.any
-          ( \(Api.TxInInfo _ (Api.TxOut _ _ _ mRefScriptHash)) ->
-              Just expectedScriptHash PlutusTx.== mRefScriptHash
-          )
-          (Api.txInfoReferenceInputs txInfo)
-
-    wrap = Script.mkUntypedValidator
 
 putRefScriptOnWalletOutput ::
   (MonadBlockChain m) =>

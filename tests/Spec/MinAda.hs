@@ -1,4 +1,4 @@
-module Cooked.MinAdaSpec where
+module Spec.MinAda where
 
 import Cooked
 import Optics.Core ((^.))

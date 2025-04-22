@@ -1,17 +1,17 @@
-import Cooked.AttackSpec qualified as AttackSpec
-import Cooked.BalancingSpec qualified as BalancingSpec
-import Cooked.BasicUsageSpec qualified as BasicUsageSpec
-import Cooked.InitialDistributionSpec qualified as InititalDistributionSpec
-import Cooked.InlineDatumsSpec qualified as InlineDatumsSpec
-import Cooked.LtlSpec qualified as LtlSpec
-import Cooked.MinAdaSpec qualified as MinAdaSpec
-import Cooked.MockChainSpec qualified as MockChainSpec
-import Cooked.MultiPurposeSpec qualified as MultiPurposeSpec
-import Cooked.ProposingScriptSpec qualified as ProposingScriptSpec
-import Cooked.ReferenceInputsSpec qualified as ReferenceInputsSpec
-import Cooked.ReferenceScriptsSpec qualified as ReferenceScriptsSpec
-import Cooked.TweakSpec qualified as TweakSpec
-import Cooked.WithdrawalsSpec qualified as WithdrawalsSpec
+import Spec.Attack qualified as Attack
+import Spec.Balancing qualified as Balancing
+import Spec.BasicUsage qualified as BasicUsage
+import Spec.InitialDistribution qualified as InititalDistribution
+import Spec.InlineDatums qualified as InlineDatums
+import Spec.Ltl qualified as Ltl
+import Spec.MinAda qualified as MinAda
+import Spec.MultiPurpose qualified as MultiPurpose
+import Spec.ProposingScript qualified as ProposingScript
+import Spec.ReferenceInputs qualified as ReferenceInputs
+import Spec.ReferenceScripts qualified as ReferenceScripts
+import Spec.Slot qualified as Slot
+import Spec.Tweak qualified as Tweak
+import Spec.Withdrawals qualified as Withdrawals
 import Test.Tasty
 
 main :: IO ()
@@ -19,18 +19,18 @@ main =
   defaultMain $
     testGroup
       "cooked-validators"
-      [ AttackSpec.tests,
-        BalancingSpec.tests,
-        BasicUsageSpec.tests,
-        InititalDistributionSpec.tests,
-        InlineDatumsSpec.tests,
-        LtlSpec.tests,
-        MinAdaSpec.tests,
-        MockChainSpec.tests,
-        MultiPurposeSpec.tests,
-        ProposingScriptSpec.tests,
-        ReferenceInputsSpec.tests,
-        ReferenceScriptsSpec.tests,
-        TweakSpec.tests,
-        WithdrawalsSpec.tests
+      [ Attack.tests,
+        Balancing.tests,
+        BasicUsage.tests,
+        InititalDistribution.tests,
+        InlineDatums.tests,
+        Ltl.tests,
+        MinAda.tests,
+        MultiPurpose.tests,
+        ProposingScript.tests,
+        ReferenceInputs.tests,
+        ReferenceScripts.tests,
+        Slot.tests,
+        Tweak.tests,
+        Withdrawals.tests
       ]

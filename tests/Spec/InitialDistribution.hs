@@ -1,4 +1,4 @@
-module Cooked.InitialDistributionSpec where
+module Spec.InitialDistribution where
 
 import Cooked
 import Data.Map qualified as Map

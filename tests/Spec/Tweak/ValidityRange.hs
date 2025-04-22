@@ -1,4 +1,4 @@
-module Cooked.Tweak.ValidityRangeSpec (tests) where
+module Spec.Tweak.ValidityRange (tests) where
 
 import Control.Monad
 import Cooked
