@@ -7,7 +7,6 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Shelley.API qualified as Shelley
 import Cardano.Ledger.Shelley.LedgerState qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Control.Monad
 import Control.Monad.Except
 import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
@@ -43,12 +42,13 @@ data MockChainState = MockChainState
     -- generation.
     mcstDatums :: Map Api.DatumHash (DatumContent, Integer),
     mcstScripts :: Map Script.ScriptHash (Script.Versioned Script.Script),
+    mcstOutputs :: Map Api.TxOutRef TxSkelOut,
     mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show, Eq)
 
 instance Default MockChainState where
-  def = MockChainState def (Ledger.initialise [[]]) Map.empty Map.empty 0
+  def = MockChainState def (Ledger.initialise [[]]) Map.empty Map.empty Map.empty 0
 
 -- | Converts a builtin UtxoIndex into our own usable map between utxos and
 -- associated outputs.
@@ -144,12 +144,21 @@ removeDatums toRemove st@(MockChainState {mcstDatums}) =
 addScript :: (Script.ToScriptHash s, Script.ToVersioned Script.Script s) => s -> MockChainState -> MockChainState
 addScript script st = st {mcstScripts = Map.insert (Script.toScriptHash script) (Script.toVersioned script) (mcstScripts st)}
 
+-- | Stores an output in a 'MockChainState'
+addOutput :: Api.TxOutRef -> TxSkelOut -> MockChainState -> MockChainState
+addOutput oRef txSkelOut st =
+  st
+    { mcstOutputs = Map.insert oRef txSkelOut (mcstOutputs st)
+    }
+
 -- * Initial `MockChainState` from an 'InitialDistribution'
 
 -- | Builds a 'MockChainState' from an 'InitialDistribution'. This lives in
 -- 'MonadBlockChainBalancing' because the creation of 'mcstIndex' is impure
 mockChainState0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m MockChainState
-mockChainState0From i0 = (\x -> MockChainState def x (datumMap0From i0) (referenceScriptMap0From i0 <> scriptMap0From i0) 0) <$> utxoIndex0From i0
+mockChainState0From i0 = do
+  (index, outputs) <- utxoIndex0From i0
+  return $ MockChainState def index (datumMap0From i0) (referenceScriptMap0From i0 <> scriptMap0From i0) outputs 0
 
 -- | Collects the reference scripts present in an 'InitialDistribution'
 referenceScriptMap0From :: InitialDistribution -> Map Script.ScriptHash (Script.Versioned Script.Script)
@@ -212,21 +221,27 @@ datumMap0From =
 --
 -- - The genesis key hash has been taken from
 --   https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
-utxoIndex0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m Ledger.UtxoIndex
+utxoIndex0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m (Ledger.UtxoIndex, Map Api.TxOutRef TxSkelOut)
 utxoIndex0From (InitialDistribution initDist) = do
   networkId <- Emulator.pNetworkId <$> getParams
   let genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
       inputs = [(Cardano.genesisUTxOPseudoTxIn networkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
-  outputs <- mapM (toTxSkelOutWithMinAda >=> toCardanoTxOut) initDist
-  Ledger.initialise . (: []) . (: []) . Emulator.unsafeMakeValid . Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
-    <$> either
-      (throwError . MCETxBodyError "generateTx :")
-      return
-      ( Cardano.createTransactionBody
-          Cardano.ShelleyBasedEraConway
-          (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs})
-      )
+  outputsMinAda <- mapM toTxSkelOutWithMinAda initDist
+  outputs <- mapM toCardanoTxOut outputsMinAda
+  cardanoTx <-
+    Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
+      <$> either
+        (throwError . MCETxBodyError "generateTx :")
+        return
+        ( Cardano.createTransactionBody
+            Cardano.ShelleyBasedEraConway
+            (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs})
+        )
+  return
+    ( Ledger.initialise [[Emulator.unsafeMakeValid cardanoTx]],
+      Map.fromList $ zip (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx) outputsMinAda
+    )
 
 -- | Same as 'utxoIndex0From' with the default 'InitialDistribution'
-utxoIndex0 :: (MonadBlockChainBalancing m) => m Ledger.UtxoIndex
+utxoIndex0 :: (MonadBlockChainBalancing m) => m (Ledger.UtxoIndex, Map Api.TxOutRef TxSkelOut)
 utxoIndex0 = utxoIndex0From def

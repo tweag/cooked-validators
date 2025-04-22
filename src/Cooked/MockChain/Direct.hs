@@ -21,7 +21,6 @@ import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState
-import Cooked.Output
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Data.Default
@@ -155,13 +154,13 @@ runMockChain = runIdentity . runMockChainT
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
   scriptFromHash sHash = gets $ Map.lookup sHash . mcstScripts
-  txOutByRef outref = gets $ Map.lookup outref . getIndex . mcstIndex
+  txOutByRef outref = gets $ Map.lookup outref . mcstOutputs
   datumFromHash datumHash = gets $ (fst <$>) . Map.lookup datumHash . mcstDatums
-  utxosAt addr = filter ((addr ==) . outputAddress . snd) <$> allUtxos
+  utxosAt addr = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
-  allUtxos = gets $ Map.toList . getIndex . mcstIndex
+  allUtxos = gets $ Map.toList . mcstOutputs
   setParams newParams = modify (\st -> st {mcstParams = newParams})
   currentSlot = gets mcstCurrentSlot
   awaitSlot slot = modify' (\st -> st {mcstCurrentSlot = max slot (mcstCurrentSlot st)}) >> currentSlot
@@ -233,6 +232,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     -- We return the parameters to their original state
     setParams oldParams
+    -- We retrieve the utxos created by the transaction
+    let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
+    -- We add the news utxos to the state
+    forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
     -- We log the validated transaction
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
     -- We return the validated transaction

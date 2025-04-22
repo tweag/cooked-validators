@@ -78,12 +78,12 @@ data MockChainBuiltin a where
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe Api.TxOut)
+  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe TxSkelOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
   DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe DatumContent)
-  AllUtxos :: MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
-  UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
+  AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
+  UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   ScriptFromHash :: Script.ScriptHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a

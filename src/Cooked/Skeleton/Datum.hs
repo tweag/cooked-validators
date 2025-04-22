@@ -6,7 +6,8 @@ module Cooked.Skeleton.Datum
     datumContentToDatum,
     datumContentToDatumHash,
     datumContentToTypedDatum,
-    DatumPlacement (..),
+    DatumResolved (..),
+    DatumKind (..),
     TxSkelOutDatum (..),
     txSkelOutDatumContent,
     txSkelOutDatumHash,
@@ -69,16 +70,21 @@ instance Eq DatumContent where
 
 -- * Datum placement within a transaction
 
+-- | Whether the datum should be resolved in the transaction
+data DatumResolved
+  = -- | Do not resolve the datum (absent from 'Api.txInfoData')
+    NotResolved
+  | -- | Resolve the datum (present from 'Api.txInfoData')
+    Resolved
+  deriving (Show, Eq, Ord)
+
 -- | Options on how to include the datum in the transaction
-data DatumPlacement
-  = -- | Include the full datum directly in the UTxO
+data DatumKind
+  = -- | Include the full datum in the UTxO
     Inline
-  | -- | Only include the datum hash in the UTxO but provide the full datum in
-    -- the transaction field 'Api.txInfoData'
-    HashedVisibleInTx
-  | -- | Only include the datum hash in the UTxO and also hides the full datum
-    -- from the transaction
-    HashedHiddenInTx
+  | -- | Only include the datum hash in the UTxO. Resolve, or do not resolve,
+    -- the full datum in the transaction body.
+    Hashed DatumResolved
   deriving (Show, Eq, Ord)
 
 -- * 'Cooked.Skeleton.TxSkel' datums
@@ -89,7 +95,7 @@ data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
   -- | use some datum content and associated placement
-  TxSkelOutSomeDatum :: DatumContent -> DatumPlacement -> TxSkelOutDatum
+  TxSkelOutSomeDatum :: DatumContent -> DatumKind -> TxSkelOutDatum
   deriving (Eq, Show, Ord)
 
 instance Script.ToOutputDatum TxSkelOutDatum where

@@ -47,8 +47,6 @@ module Cooked.MockChain.BlockChain
     validateTxSkel_,
     txSkelProposalsDeposit,
     govActionDeposit,
-    txOutRefToTxSkelOut,
-    txOutRefToTxSkelOut',
     defineM,
     unsafeOutputDatumFromTxOutRef,
     unsafeDatumFromTxOutRef,
@@ -69,7 +67,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
-import Cooked.Output
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
@@ -157,7 +154,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   getParams :: m Emulator.Params
 
   -- | Returns a list of all UTxOs at a certain address.
-  utxosAt :: Api.Address -> m [(Api.TxOutRef, Api.TxOut)]
+  utxosAt :: Api.Address -> m [(Api.TxOutRef, TxSkelOut)]
 
   -- | Returns the datum with the given hash if present.
   datumFromHash :: Api.DatumHash -> m (Maybe DatumContent)
@@ -167,7 +164,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   scriptFromHash :: Script.ScriptHash -> m (Maybe (Script.Versioned Script.Script))
 
   -- | Returns an output given a reference to it
-  txOutByRef :: Api.TxOutRef -> m (Maybe Api.TxOut)
+  txOutByRef :: Api.TxOutRef -> m (Maybe TxSkelOut)
 
   -- | Logs an event that occured during a BlockChain run
   logEvent :: MockChainLogEntry -> m ()
@@ -191,7 +188,7 @@ unsafeScriptFromHash sHash = maybeErrM (MCEUnknownScript sHash) (scriptFromHash 
 -- | Same as 'txOutByRef' but throws an error in case of missing utxo. Use this
 -- when you know the utxo is present, or when you want an error to be throw when
 -- it's not.
-unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.TxOut
+unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
 unsafeTxOutByRef oRef = maybeErrM (MCEUnknownOutRef oRef) (txOutByRef oRef)
 
 -- | This is the second layer of our blockchain, which provides all the other
@@ -200,7 +197,7 @@ unsafeTxOutByRef oRef = maybeErrM (MCEUnknownOutRef oRef) (txOutByRef oRef)
 -- 'Cooked.MockChain.Tweak.Common.Tweak's are plugged to.
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
-  allUtxos :: m [(Api.TxOutRef, Api.TxOut)]
+  allUtxos :: m [(Api.TxOutRef, TxSkelOut)]
 
   -- | Updates parameters
   setParams :: Emulator.Params -> m ()
@@ -259,12 +256,12 @@ utxosFromCardanoTx =
 
 -- | Extracts a potential 'Api.OutputDatum' from a given 'Api.TxOutRef'
 outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
-outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
+outputDatumFromTxOutRef = (fmap (Script.toOutputDatum . (^. txSkelOutDatumL)) <$>) . txOutByRef
 
 -- | Same as 'outputDatumFromTxOutRef' but throws an error when the utxo is
 -- missing
 unsafeOutputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.OutputDatum
-unsafeOutputDatumFromTxOutRef = fmap outputOutputDatum . unsafeTxOutByRef
+unsafeOutputDatumFromTxOutRef = fmap (Script.toOutputDatum . (^. txSkelOutDatumL)) . unsafeTxOutByRef
 
 -- | Extracts a potential 'Api.Datum' from a given 'Api.TxOutRef'
 datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe DatumContent)
@@ -296,18 +293,18 @@ unsafeTypedDatumFromTxOutRef = ((>>= datumContentToTypedDatum) <$>) . unsafeDatu
 
 -- | Resolves an 'Api.TxOutRef' and extracts the value it contains
 valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
-valueFromTxOutRef = ((outputValue <$>) <$>) . txOutByRef
+valueFromTxOutRef = ((txSkelOutValue <$>) <$>) . txOutByRef
 
 -- | Same as 'valueFromTxOutRef' but throws an error when the utxo is missing
 unsafeValueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.Value
-unsafeValueFromTxOutRef = (outputValue <$>) . unsafeTxOutByRef
+unsafeValueFromTxOutRef = (txSkelOutValue <$>) . unsafeTxOutByRef
 
 -- | Resolves all the inputs of a given 'Cooked.Skeleton.TxSkel'
-txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
+txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef TxSkelOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
 -- | Resolves all the reference inputs of a given 'Cooked.Skeleton.TxSkel'
-txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
+txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef TxSkelOut)
 txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
 
 -- | Retrieves the required deposit amount for issuing governance actions.
@@ -322,76 +319,27 @@ txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelPro
 -- | Returns all validators which guard transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Script.ValidatorHash (Script.Versioned Script.Validator))
 txSkelInputValidators =
-  (lookupUtxos . Map.keys . txSkelIns)
-    >=> foldM
-      ( \m ->
-          ( \case
-              (_, Api.TxOut (Api.Address (Api.ScriptCredential sHash) _) _ _ _) ->
-                flip (Map.insert (Script.toValidatorHash sHash)) m . Script.toVersioned <$> unsafeScriptFromHash sHash
-              _ -> return m
-          )
-      )
-      Map.empty
-      . Map.toList
+  fmap
+    ( Map.fromList
+        . mapMaybe (fmap (\val -> (Script.toValidatorHash val, val)) . txSkelOutValidator)
+    )
+    . mapM unsafeTxOutByRef
+    . Map.keys
+    . txSkelIns
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.
-lookupUtxos :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Api.TxOut)
+lookupUtxos :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef TxSkelOut)
 lookupUtxos = foldM (\m oRef -> flip (Map.insert oRef) m <$> unsafeTxOutByRef oRef) Map.empty
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
-txSkelInputValue = (foldMap Api.txOutValue <$>) . txSkelInputUtxos
+txSkelInputValue = (foldMap txSkelOutValue <$>) . txSkelInputUtxos
 
 -- | Looks up the data on UTxOs the transaction consumes and returns their
 -- hashes.
 txSkelInputDataAsHashes :: (MonadBlockChainBalancing m) => TxSkel -> m [Api.DatumHash]
-txSkelInputDataAsHashes skel = do
-  let outputToDatumHash output = case output ^. outputDatumL of
-        Api.OutputDatumHash dHash -> Just dHash
-        Api.OutputDatum datum -> Just $ Script.datumHash datum
-        Api.NoOutputDatum -> Nothing
-  (Map.elems -> inputTxOuts) <- txSkelInputUtxos skel
-  return $ mapMaybe outputToDatumHash inputTxOuts
-
--- | This creates a payment from an existing UTXO
-txOutRefToTxSkelOut ::
-  (MonadBlockChainBalancing m) =>
-  -- | The UTXO to translate
-  Api.TxOutRef ->
-  -- | Whether to include the datum in the transaction
-  Bool ->
-  -- | Whether to allow further adjustment of the Ada value
-  Bool ->
-  m TxSkelOut
-txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
-  txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- unsafeTxOutByRef oRef
-  target <- case cred of
-    Api.PubKeyCredential pkh -> return $ Left pkh
-    Api.ScriptCredential hash -> Right . Script.toVersioned @Script.Validator <$> unsafeScriptFromHash hash
-  datum <- case dat of
-    Api.NoOutputDatum -> return TxSkelOutNoDatum
-    Api.OutputDatumHash hash ->
-      (`TxSkelOutSomeDatum` if includeInTransactionBody then HashedVisibleInTx else HashedHiddenInTx) <$> unsafeDatumFromHash hash
-    Api.OutputDatum dat' ->
-      (`TxSkelOutSomeDatum` Inline) <$> unsafeDatumFromHash (Script.datumHash dat')
-  refScript <- case refS of
-    Nothing -> return Nothing
-    Just hash -> scriptFromHash hash
-  return $
-    Pays $
-      (fromAbstractOutput txOut)
-        { concreteOutputOwner = target,
-          concreteOutputValue = TxSkelOutValue value allowAdaAdjustment,
-          concreteOutputDatum = datum,
-          concreteOutputReferenceScript = refScript
-        }
-
--- | A default version of 'txOutRefToTxSkelOut' where we both include the datum
--- in the transaction if it was hashed in the 'Api.TxOut', and allow further ADA
--- adjustment in case changes in the output require it.
-txOutRefToTxSkelOut' :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
-txOutRefToTxSkelOut' oRef = txOutRefToTxSkelOut oRef True True
+txSkelInputDataAsHashes = fmap (mapMaybe (txSkelOutDatumHash . (^. txSkelOutDatumL)) . Map.elems) . txSkelInputUtxos
 
 -- * Slot and Time Management
 

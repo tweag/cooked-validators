@@ -13,6 +13,9 @@ module Cooked.Skeleton.Output
     txSkelOutReferenceScript,
     OwnerConstraints,
     ReferenceScriptConstraints,
+    txSkelOutAddress,
+    txSkelOutOutput,
+    txSkelOutPKHash,
   )
 where
 
@@ -27,6 +30,7 @@ import Data.Function
 import Data.Maybe (fromMaybe)
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V1.Typed qualified as Script (TypedValidator (..))
 import Plutus.Script.Utils.V3.Typed qualified as Script
@@ -55,21 +59,6 @@ instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script
 
 instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
   toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
-
--- | Type constraints over the owner of a 'TxSkelOut'
-type OwnerConstraints owner =
-  ( IsTxSkelOutAllowedOwner owner,
-    Script.ToCredential owner,
-    Typeable owner,
-    Show owner
-  )
-
--- | Type constraints over the reference script in a 'TxSkelOut'
-type ReferenceScriptConstraints refScript =
-  ( Script.ToVersioned Script.Script refScript,
-    Show refScript,
-    Typeable refScript
-  )
 
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use the 'receives' smart constructor in most cases.
@@ -108,9 +97,9 @@ receives owner =
         (Nothing @(Script.Versioned Script.Script)) -- No reference script by default
   where
     go :: TxSkelOut -> Payable els -> TxSkelOut
-    go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) HashedVisibleInTx
+    go (Pays output) (VisibleHashedDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) (Hashed Resolved)
     go (Pays output) (InlineDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) Inline
-    go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) HashedHiddenInTx
+    go (Pays output) (HiddenHashedDatum dat) = Pays $ setDatum output $ TxSkelOutSomeDatum (DatumContent dat) (Hashed NotResolved)
     go (Pays output) (FixedValue v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) False
     go (Pays output) (Value v) = Pays $ setValue output $ TxSkelOutValue (Script.toValue v) True
     go (Pays output) (ReferenceScript script) = Pays $ setReferenceScript output $ Script.toVersioned @Script.Script script
@@ -120,9 +109,26 @@ receives owner =
 
     defaultTxSkelDatum = case toPKHOrValidator owner of
       -- V1 and V2 script always need a datum, even if empty
-      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> TxSkelOutSomeDatum (DatumContent ()) HashedHiddenInTx
+      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> TxSkelOutSomeDatum (DatumContent ()) (Hashed NotResolved)
       -- V3 script and PKH do not necessarily need a datum
       _ -> TxSkelOutNoDatum
+
+-- | Retrieves the most generic 'ConcreteOutput' that can be built from a
+-- 'TxSkelOut'
+txSkelOutOutput ::
+  TxSkelOut ->
+  ConcreteOutput
+    (Either Api.PubKeyHash (Script.Versioned Script.Validator))
+    TxSkelOutDatum
+    TxSkelOutValue
+    (Script.Versioned Script.Script)
+txSkelOutOutput (Pays out) =
+  ConcreteOutput
+    (toPKHOrValidator (out ^. outputOwnerL))
+    (out ^. outputStakingCredentialL)
+    (out ^. outputDatumL)
+    (out ^. outputValueL)
+    (Script.toVersioned <$> out ^. outputReferenceScriptL)
 
 -- | A lens to get or set a 'TxSkelOutDatum' in a 'TxSkelOut'
 txSkelOutDatumL :: Lens' TxSkelOut TxSkelOutDatum
@@ -142,6 +148,10 @@ txSkelOutValueL =
 txSkelOutValue :: TxSkelOut -> Api.Value
 txSkelOutValue = (^. (txSkelOutValueL % txSkelOutValueContentL))
 
+-- | Returns the optional private key owning a given 'TxSkelOut'
+txSkelOutPKHash :: TxSkelOut -> Maybe Api.PubKeyHash
+txSkelOutPKHash (Pays output) = leftToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
+
 -- | Returns the optional validator owning a given 'TxSkelOut'
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
@@ -150,20 +160,25 @@ txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. ou
 txSkelOutReferenceScript :: TxSkelOut -> Maybe (Script.Versioned Script.Script)
 txSkelOutReferenceScript (Pays output) = Script.toVersioned <$> (output ^. outputReferenceScriptL)
 
+-- | Returns the address of this 'TxSkelOut'
+txSkelOutAddress :: TxSkelOut -> Api.Address
+txSkelOutAddress (Pays output) = outputAddress output
+
 -- | Decides if a transaction output has a certain owner type.
 txSkelOutOwnerTypeP ::
-  forall ownerType.
   (OwnerConstraints ownerType) =>
   Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum TxSkelOutValue (Script.Versioned Script.Script))
 txSkelOutOwnerTypeP =
   prism'
     Pays
     ( \(Pays output) ->
-        case typeOf (output ^. outputOwnerL) `eqTypeRep` typeRep @ownerType of
-          Just HRefl ->
+        cast (output ^. outputOwnerL)
+          <&> \x ->
             let cOut = fromAbstractOutput output
-             in Just $ cOut {concreteOutputReferenceScript = Script.toVersioned <$> concreteOutputReferenceScript cOut}
-          Nothing -> Nothing
+             in cOut
+                  { concreteOutputOwner = x,
+                    concreteOutputReferenceScript = Script.toVersioned <$> concreteOutputReferenceScript cOut
+                  }
     )
 
 -- | A traversal over datums of type @a@ in a 'TxSkelOut'
@@ -187,3 +202,53 @@ txSkelOutputDatumTypeAT =
             )
             output
     )
+
+-- | Type constraints over the owner of a 'TxSkelOut'
+type OwnerConstraints owner =
+  ( IsTxSkelOutAllowedOwner owner,
+    Script.ToCredential owner,
+    Typeable owner,
+    Show owner
+  )
+
+-- | Type constraints over the reference script in a 'TxSkelOut'
+type ReferenceScriptConstraints refScript =
+  ( Script.ToVersioned Script.Script refScript,
+    Show refScript,
+    Typeable refScript
+  )
+
+data TxSkelOutReferenceScript where
+  TxSkelOutNoReferenceScript :: TxSkelOutReferenceScript
+  TxSkelOutSomeReferenceScript :: (ReferenceScriptConstraints a) => a -> TxSkelOutReferenceScript
+
+toMaybeVersionedScript :: TxSkelOutReferenceScript -> Maybe (Script.Versioned Script.Script)
+toMaybeVersionedScript TxSkelOutNoReferenceScript = Nothing
+toMaybeVersionedScript (TxSkelOutSomeReferenceScript refScript) = Just (Script.toVersioned refScript)
+
+toMaybeScriptHash :: TxSkelOutReferenceScript -> Maybe Api.ScriptHash
+toMaybeScriptHash = fmap Script.toScriptHash . toMaybeVersionedScript
+
+data TxSkelOut' where
+  TxSkelOut' ::
+    ( OwnerConstraints owner,
+      Script.ToMaybeStakingCredential stakingCredential
+    ) =>
+    { tsoOwner :: owner,
+      tsoStakingCredential :: stakingCredential,
+      tsoDatum :: TxSkelOutDatum,
+      tsoValue :: TxSkelOutValue,
+      tsoReferenceScript :: TxSkelOutReferenceScript
+    } ->
+    TxSkelOut'
+
+txSkelOut'ToTxOut :: TxSkelOut' -> Api.TxOut
+txSkelOut'ToTxOut (TxSkelOut' owner stCred datum value refScript) =
+  Api.TxOut
+    ( Api.Address
+        (Script.toCredential owner)
+        (Script.toMaybeStakingCredential stCred)
+    )
+    (txSkelOutValueContent value)
+    (Script.toOutputDatum datum)
+    (toMaybeScriptHash refScript)

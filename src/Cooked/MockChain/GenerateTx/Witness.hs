@@ -12,10 +12,8 @@ import Cardano.Ledger.Credential qualified as Cardano
 import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
-import Cooked.Output
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -41,7 +39,7 @@ toRewardAccount cred =
 toPlutusScriptOrReferenceInput :: (MonadBlockChainBalancing m) => Script.Versioned Script.Script -> Maybe Api.TxOutRef -> m (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
-  ((^. outputReferenceScriptL) -> mScriptHash) <- unsafeTxOutByRef scriptOutRef
+  (fmap Script.toScriptHash . txSkelOutReferenceScript -> mScriptHash) <- unsafeTxOutByRef scriptOutRef
   case mScriptHash of
     Just scriptHash'
       | scriptHash == scriptHash' ->

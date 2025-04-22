@@ -20,7 +20,6 @@ module Cooked.Output
     outputReferenceScriptHash,
     outputTxOut,
     ConcreteOutput (..),
-    toOutputWithReferenceScriptHash,
     isOutputWithoutDatum,
     isOutputWithInlineDatum,
     isOutputWithDatumHash,
@@ -42,6 +41,8 @@ module Cooked.Output
   )
 where
 
+import Control.Monad (guard)
+import Data.Typeable
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Data qualified as Script
@@ -204,30 +205,40 @@ setReferenceScript o refScript = (fromAbstractOutput o) {concreteOutputReference
 
 -- | Test if there is no datum on an output.
 isOutputWithoutDatum :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) () (ValueType out) (ReferenceScriptType out))
-isOutputWithoutDatum out | Api.NoOutputDatum <- outputOutputDatum out = Just $ setDatum out ()
+isOutputWithoutDatum out
+  | Api.NoOutputDatum <- outputOutputDatum out =
+      Just $ setDatum out ()
 isOutputWithoutDatum _ = Nothing
 
 -- | Test if the output carries some inlined datum.
 isOutputWithInlineDatum :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) Api.Datum (ValueType out) (ReferenceScriptType out))
-isOutputWithInlineDatum out | Api.OutputDatum datum@(Api.Datum _) <- outputOutputDatum out = Just $ setDatum out datum
+isOutputWithInlineDatum out
+  | Api.OutputDatum datum@(Api.Datum _) <- outputOutputDatum out =
+      Just $ setDatum out datum
 isOutputWithInlineDatum _ = Nothing
 
 -- | Test if the output carries some inlined datum that can be parsed from
 -- builtin data on to something of a specific type.
 isOutputWithInlineDatumOfType :: (Api.FromData a, IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out))
-isOutputWithInlineDatumOfType out | Api.OutputDatum (Api.Datum datum) <- outputOutputDatum out = setDatum out <$> Api.fromBuiltinData datum
+isOutputWithInlineDatumOfType out
+  | Api.OutputDatum (Api.Datum datum) <- outputOutputDatum out =
+      setDatum out <$> Api.fromBuiltinData datum
 isOutputWithInlineDatumOfType _ = Nothing
 
 -- | Test if the output carries some datum hash.
 isOutputWithDatumHash :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) Api.DatumHash (ValueType out) (ReferenceScriptType out))
-isOutputWithDatumHash out | Api.OutputDatumHash hash <- outputOutputDatum out = Just $ setDatum out hash
+isOutputWithDatumHash out
+  | Api.OutputDatumHash hash <- outputOutputDatum out =
+      Just $ setDatum out hash
 isOutputWithDatumHash _ = Nothing
 
 -- ** Filtering on the owner
 
 -- | Test if the owner of an output is a script
 isScriptOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.ScriptHash (DatumType out) (ValueType out) (ReferenceScriptType out))
-isScriptOutput out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out = Just $ setOwner out scriptHash
+isScriptOutput out
+  | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out =
+      Just $ setOwner out scriptHash
 isScriptOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific script
@@ -240,7 +251,9 @@ isScriptOutputFrom validator out = do
 
 -- | Test if the owner of an output is a public key
 isPKOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
-isPKOutput out | Api.Address (Api.PubKeyCredential pkh) _ <- outputAddress out = Just $ setOwner out pkh
+isPKOutput out
+  | Api.Address (Api.PubKeyCredential pkh) _ <- outputAddress out =
+      Just $ setOwner out pkh
 isPKOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific public key
@@ -255,28 +268,39 @@ isPKOutputFrom pkh out = do
 
 -- | Test if the given output possesses a certain staking credential
 isStakingCredentialOutputFrom :: (IsTxInfoOutput out, Script.ToCredential cred) => cred -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
-isStakingCredentialOutputFrom cred out | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL, Script.toCredential cred == cred' = Just $ fromAbstractOutput out
+isStakingCredentialOutputFrom cred out
+  | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL,
+    Script.toCredential cred == cred' =
+      Just $ fromAbstractOutput out
 isStakingCredentialOutputFrom _ _ = Nothing
 
 -- | Test if the give output does not possess any staking credential
 isEmptyStakingCredentialOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
-isEmptyStakingCredentialOutput out | Nothing <- out ^. outputStakingCredentialL = Just $ fromAbstractOutput out
+isEmptyStakingCredentialOutput out
+  | Nothing <- out ^. outputStakingCredentialL =
+      Just $ fromAbstractOutput out
 isEmptyStakingCredentialOutput _ = Nothing
 
 -- ** Filtering on the value
 
 -- | Test if the value on an output contains only Ada.
 isOnlyAdaOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) Api.Lovelace (ReferenceScriptType out))
-isOnlyAdaOutput out | Script.isAdaOnlyValue (outputValue out) = Just $ setValue out $ Api.lovelaceValueOf $ outputValue out
+isOnlyAdaOutput out
+  | Script.isAdaOnlyValue (outputValue out) =
+      Just $ setValue out $ Api.lovelaceValueOf $ outputValue out
 isOnlyAdaOutput _ = Nothing
 
 -- ** Filtering on the reference script
 
--- | Convert the reference script type on the output to 'Api.ScriptHash'.
-toOutputWithReferenceScriptHash :: (IsTxInfoOutput out) => out -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash
-toOutputWithReferenceScriptHash out = (fromAbstractOutput out) {concreteOutputReferenceScript = Script.toScriptHash <$> out ^. outputReferenceScriptL}
-
--- | Test if the reference script in an output is a specific script
-isReferenceScriptOutputFrom :: (IsTxInfoOutput out, Script.ToScriptHash s) => s -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash)
-isReferenceScriptOutputFrom script out | Just x <- out ^. outputReferenceScriptL, Script.toScriptHash x == Script.toScriptHash script = Just $ toOutputWithReferenceScriptHash out
-isReferenceScriptOutputFrom _ _ = Nothing
+-- | Test if the reference script in an output of a specific script
+isReferenceScriptOutputFrom ::
+  forall out s.
+  (IsTxInfoOutput out, Script.ToScriptHash s, Typeable s, Typeable (ReferenceScriptType out)) =>
+  s ->
+  out ->
+  Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) s)
+isReferenceScriptOutputFrom script out = do
+  existingScript <- out ^. outputReferenceScriptL
+  castScript <- cast @_ @s existingScript
+  guard $ Script.toScriptHash castScript == Script.toScriptHash script
+  return $ setReferenceScript out script

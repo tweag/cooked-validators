@@ -33,6 +33,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Generates a body content from a skeleton
@@ -105,15 +106,12 @@ txBodyContentToTxBody txBodyContent skel = do
   -- in the future, cardano-api provides a way to add those data in the body
   -- directly without requiring this method, which somewhat feels like a hack.
 
-  -- We attempt to resolve the reference inputs used by the skeleton
-  refIns <- forM (txSkelReferenceTxOutRefs skel) unsafeTxOutByRef
-  -- We collect the datum hashes present at these outputs
-  let datumHashes = [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
-  -- We resolve those datum hashes from the context
-  additionalData <- forM datumHashes unsafeDatumFromHash
-  -- We compute the map from datum hash to datum of these additional required data
-  let additionalDataMap = Map.fromList [(Cardano.hashData dat, dat) | DatumContent (Cardano.Data . Api.toData -> dat) <- additionalData]
-  -- We retrieve a needed parameter to process difference plutus languages
+  -- We gather the datums of the reference input in the skeleton
+  refIns <- forM (txSkelReferenceTxOutRefs skel) $ fmap (view txSkelOutDatumL) . unsafeTxOutByRef
+  -- We collect the additional data of the hashed datums as a map
+  let additionalDataMap =
+        Map.fromList [(Cardano.hashData dat, dat) | TxSkelOutSomeDatum (Cardano.Data . Api.toData -> dat) (Hashed _) <- refIns]
+  -- -- We retrieve a needed parameter to process difference plutus languages
   toLangDepViewParam <- Conway.getLanguageView . Cardano.unLedgerProtocolParameters . Emulator.ledgerProtocolParameters <$> getParams
   -- We convert our data map into a 'TxDats'
   let txDats' = Alonzo.TxDats additionalDataMap

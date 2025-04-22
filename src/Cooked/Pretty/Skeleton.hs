@@ -229,14 +229,14 @@ instance PrettyCookedMaybe TxSkelOutDatum where
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat HashedHiddenInTx) =
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed NotResolved)) =
     Just $
       "Datum (hashed, hidden)"
         <+> "("
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat HashedVisibleInTx) =
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed Resolved)) =
     Just $
       "Datum (hashed, visible)"
         <+> "("

@@ -108,7 +108,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
             runUtxoSearch (txOutByRefSearch (Set.toList utxos))
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              >>= filterAndWarn (isJust . isPKOutput . snd) "They belong to scripts."
+              >>= filterAndWarn (isJust . txSkelOutPKHash . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
           >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."

@@ -5,6 +5,7 @@ import Cardano.Api qualified as Cardano
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
+import Cooked.Output
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
@@ -16,18 +17,16 @@ toTxInAndWitness ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   m (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  Api.TxOut (Api.Address cred _) _ datum _ <- unsafeTxOutByRef txOutRef
-  witness <- case cred of
-    Api.PubKeyCredential _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-    Api.ScriptCredential scriptHash -> do
-      validator <- unsafeScriptFromHash scriptHash
-      scriptDatum <- case datum of
-        Api.NoOutputDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
-        Api.OutputDatum _ -> return Cardano.InlineScriptDatum
-        Api.OutputDatumHash datumHash -> do
-          sDatum <- unsafeDatumFromHash datumHash
-          return $ Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData sDatum
-      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> toScriptWitness validator txSkelRedeemer scriptDatum
+  ConcreteOutput owner _ datum _ _ <- txSkelOutOutput <$> unsafeTxOutByRef txOutRef
+  witness <- case owner of
+    Left _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+    Right validator ->
+      fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
+        toScriptWitness validator txSkelRedeemer $
+          case datum of
+            TxSkelOutNoDatum -> Cardano.ScriptDatumForTxIn Nothing
+            TxSkelOutSomeDatum _ Inline -> Cardano.InlineScriptDatum
+            TxSkelOutSomeDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat
   throwOnToCardanoErrorOrApply
     "toTxInAndWitness: Unable to translate TxOutRef"
     (,Cardano.BuildTxWith witness)
