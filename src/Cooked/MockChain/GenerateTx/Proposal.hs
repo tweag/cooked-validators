@@ -10,6 +10,7 @@ import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad.Catch
+import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
@@ -93,13 +94,13 @@ toGovAction TxSkelProposal {..} = do
           SNothing -- TODO, should not be Nothing later on
           (foldl (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes)
           sHash
-    TxGovActionHardForkInitiation _ -> throwOnString "TxGovActionHardForkInitiation unsupported"
+    TxGovActionHardForkInitiation _ -> throwError $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
     TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
       cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
       return $ Conway.TreasuryWithdrawals cardanoMap sHash
     TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing -- TODO, should not be Nothing later on
-    TxGovActionUpdateCommittee {} -> throwOnString "TxGovActionUpdateCommittee unsupported"
-    TxGovActionNewConstitution _ -> throwOnString "TxGovActionNewConstitution unsupported"
+    TxGovActionUpdateCommittee {} -> throwError $ MCEUnsupportedFeature "TxGovActionUpdateCommittee"
+    TxGovActionNewConstitution _ -> throwError $ MCEUnsupportedFeature "TxGovActionNewConstitution"
 
 -- | Translates a skeleton proposal into a proposal procedure alongside a
 -- possible witness
@@ -121,11 +122,11 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
                   -- WARNING: very unsafe and unreproducible
                   unsafePerformIO
                     ( handle
-                        (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
+                        (return . fail . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
                         ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Network.getResponseBody)
                     )
                 AnchorResolutionLocal urls -> case Map.lookup anchor urls of
-                  Nothing -> throwOnString "Error when attempting to retrieve anchor url in the local anchor resolution map"
+                  Nothing -> fail "Error when attempting to retrieve anchor url in the local anchor resolution map"
                   Just x -> return x
         return $ Cardano.Anchor anchorUrl . Conway.hashAnnotated . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor

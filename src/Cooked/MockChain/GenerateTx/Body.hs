@@ -93,7 +93,7 @@ txBodyContentToTxBody txBodyContent skel = do
   -- We create the associated Shelley TxBody
   txBody@(Cardano.ShelleyTxBody a body c dats e f) <-
     either
-      (throwError . MCEGenerationError . TxBodyError "generateTx :")
+      (throwError . MCETxBodyError "generateTx :")
       return
       (Cardano.createTransactionBody Cardano.ShelleyBasedEraConway txBodyContent)
 

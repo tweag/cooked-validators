@@ -171,7 +171,7 @@ tests =
                       }
               )
               `withErrorProp` \case
-                MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Wrong reference script hash."
+                MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCooked "phase 1 - fail if using a reference script with 'someRedeemer'" $
             mustFailInPhase1Test $ do
@@ -206,12 +206,12 @@ tests =
           testCooked "fail if given the wrong reference minting policy" $
             mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
               `withErrorProp` \case
-                MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
+                MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCooked "fail if referencing the wrong utxo" $
             mustFailTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 1 False)
               `withErrorProp` \case
-                MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: No reference script found in utxo."
+                MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure
         ]
     ]

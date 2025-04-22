@@ -46,19 +46,25 @@ instance PrettyCooked MockChainError where
         "Percentage in params was" <+> prettyCookedOpt opts percentage,
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
-  prettyCookedOpt opts (MCEGenerationError (ToCardanoError msg cardanoError)) =
+  prettyCookedOpt opts (MCEToCardanoError msg cardanoError) =
     prettyItemize @[DocCooked]
       opts
       "Transaction generation error:"
       "-"
       [PP.pretty msg, PP.pretty cardanoError]
-  prettyCookedOpt opts (MCEGenerationError (GenerateTxErrorGeneral msgs)) =
-    prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msgs]
-  prettyCookedOpt opts (MCEGenerationError (TxBodyError msg err)) =
+  prettyCookedOpt opts (MCETxBodyError msg err) =
     prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msg, PP.viaShow err]
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
   prettyCookedOpt opts (MCEUnknownScript sHash) = "Unknown script hash:" <+> prettyHash opts sHash
   prettyCookedOpt opts (MCEUnknownDatum dHash) = "Unknown datum hash:" <+> prettyHash opts dHash
+  prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
+    "Unable to fetch the follwing reference script:"
+      <+> prettyHash opts expected
+      <+> "in the following UTxO:"
+      <+> prettyCookedOpt opts oRef
+      <+> "but instead got:"
+      <+> (case got of Nothing -> "none"; Just sHash -> prettyHash opts sHash)
+  prettyCookedOpt _ (MCEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
 
 instance (Show a) => PrettyCooked (a, UtxoState) where

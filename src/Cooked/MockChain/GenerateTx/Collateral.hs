@@ -16,7 +16,6 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
@@ -59,10 +58,6 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- We compute a return collateral value by subtracting the total collateral to
   -- the value in collateral inputs
   let returnCollateralValue = collateralInsValue <> PlutusTx.negate (Script.lovelace coinTotalCollateral)
-  -- This should never happen, as we always compute the collaterals for the
-  -- user, but we guard against having some negative elements in the value in
-  -- case we give more freedom to the users in the future
-  when (fst (Api.split returnCollateralValue) /= mempty) $ throwOnString "toCollateralTriplet: negative parts in return collateral value"
   -- The return collateral is then computed
   txReturnCollateral <-
     -- If the total collateral equal what the inputs provide, we return

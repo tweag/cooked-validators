@@ -220,7 +220,7 @@ utxoIndex0From (InitialDistribution initDist) = do
   outputs <- mapM (toTxSkelOutWithMinAda >=> toCardanoTxOut) initDist
   Ledger.initialise . (: []) . (: []) . Emulator.unsafeMakeValid . Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
     <$> either
-      (throwError . MCEGenerationError . TxBodyError "generateTx :")
+      (throwError . MCETxBodyError "generateTx :")
       return
       ( Cardano.createTransactionBody
           Cardano.ShelleyBasedEraConway

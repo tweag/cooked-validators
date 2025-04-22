@@ -9,6 +9,7 @@ import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Address qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Credential qualified as Cardano
+import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Output
@@ -42,13 +43,13 @@ toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothi
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
   ((^. outputReferenceScriptL) -> mScriptHash) <- unsafeTxOutByRef scriptOutRef
   case mScriptHash of
-    Nothing -> throwOnString "toPlutusScriptOrReferenceInput: No reference script found in utxo."
-    Just scriptHash' | scriptHash /= scriptHash' -> throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."
-    _ ->
-      Cardano.PReferenceScript
-        <$> throwOnToCardanoError
-          "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."
-          (Ledger.toCardanoTxIn scriptOutRef)
+    Just scriptHash'
+      | scriptHash == scriptHash' ->
+          Cardano.PReferenceScript
+            <$> throwOnToCardanoError
+              "toPlutusScriptOrReferenceInput: Unable to translate reference script utxo."
+              (Ledger.toCardanoTxIn scriptOutRef)
+    _ -> throwError $ MCEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.

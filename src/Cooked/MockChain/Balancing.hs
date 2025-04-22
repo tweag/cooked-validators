@@ -321,7 +321,7 @@ estimateTxSkelFee skel fee mCollaterals = do
         return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
   -- We retrieve the index when it was successfully created
   index <- case indexOrError of
-    Left err -> throwError $ MCEGenerationError $ ToCardanoError "estimateTxSkelFee: toCardanoError" err
+    Left err -> throwError $ MCEToCardanoError "estimateTxSkelFee: toCardanoError" err
     Right index' -> return index'
   -- We finally can the fee estimate function
   return . Emulator.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys

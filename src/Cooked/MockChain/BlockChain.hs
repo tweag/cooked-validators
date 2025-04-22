@@ -14,8 +14,7 @@
 -- In addition, you will find here many helpers functions which can be derived
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
-  ( GenerateTxError (..),
-    MockChainError (..),
+  ( MockChainError (..),
     MockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
@@ -93,33 +92,28 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- * Mockchain errors
 
--- | Errors that can arise during transaction generation
-data GenerateTxError
-  = -- | Error when translating a skeleton element to its Cardano counterpart
-    ToCardanoError String Ledger.ToCardanoError
-  | -- | Error when generating a Cardano transaction body
-    TxBodyError String Cardano.TxBodyError
-  | -- | Other generation error
-    GenerateTxErrorGeneral String
-  deriving (Show, Eq)
-
 -- | Errors that can be produced by the blockchain
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
-  | -- | Thrown when the balancing wallet does not have enough funds
+  | -- | The balancing wallet does not have enough funds
     MCEUnbalanceable Wallet Api.Value TxSkel
-  | -- | Thrown when not enough collateral are provided. Built upon the fee, the
-    -- percentage and the expected minimal collateral value.
+  | -- | No suitable collateral could be associated with a skeleton
     MCENoSuitableCollateral Integer Integer Api.Value
-  | -- | Thrown when an error occured during transaction generation
-    MCEGenerationError GenerateTxError
-  | -- | Thrown when an output reference is missing from the mockchain state
+  | -- | Translating a skeleton element to its Cardano counterpart failed
+    MCEToCardanoError String Ledger.ToCardanoError
+  | -- | Generating a Cardano transaction body failed
+    MCETxBodyError String Cardano.TxBodyError
+  | -- | The required reference script is missing from a witness utxo
+    MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
+  | -- | A UTxO is missing from the mockchain state
     MCEUnknownOutRef Api.TxOutRef
   | -- | Same as 'MCEUnknownOutRef' for scripts.
     MCEUnknownScript Script.ScriptHash
   | -- | Same as 'MCEUnknownOutRef' for datums.
     MCEUnknownDatum Api.DatumHash
+  | -- | An attempt to invoke an unsupported feature has been made
+    MCEUnsupportedFeature String
   | -- | Used to provide 'MonadFail' instances.
     FailWith String
   deriving (Show, Eq)
