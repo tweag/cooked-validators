@@ -56,21 +56,10 @@ instance PrettyCooked MockChainError where
     prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msgs]
   prettyCookedOpt opts (MCEGenerationError (TxBodyError msg err)) =
     prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msg, PP.viaShow err]
-  prettyCookedOpt opts (MCEUnknownOutRef msg txOutRef) =
-    prettyItemize opts "Unknown transaction output ref:" "-" [PP.pretty msg, prettyCookedOpt opts txOutRef]
+  prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
+  prettyCookedOpt opts (MCEUnknownScript sHash) = "Unknown script hash:" <+> prettyHash opts sHash
+  prettyCookedOpt opts (MCEUnknownDatum dHash) = "Unknown datum hash:" <+> prettyHash opts dHash
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
-  prettyCookedOpt opts (MCEUnknownScript msg valHash) =
-    prettyItemize
-      opts
-      "Unknown script hash:"
-      "-"
-      [PP.pretty msg, "hash:" <+> prettyHash opts valHash]
-  prettyCookedOpt opts (MCEUnknownDatum msg dHash) =
-    prettyItemize
-      opts
-      "Unknown datum hash:"
-      "-"
-      [PP.pretty msg, "hash:" <+> prettyHash opts dHash]
 
 instance (Show a) => PrettyCooked (a, UtxoState) where
   prettyCookedOpt opts (res, state) =

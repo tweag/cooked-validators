@@ -55,6 +55,10 @@ module Cooked.MockChain.BlockChain
     txOutRefToTxSkelOut,
     txOutRefToTxSkelOut',
     defineM,
+    unsafeOutputDatumFromTxOutRef,
+    unsafeDatumFromTxOutRef,
+    unsafeTypedDatumFromTxOutRef,
+    unsafeValueFromTxOutRef,
   )
 where
 
@@ -80,6 +84,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set (Set)
+import Data.Typeable (Typeable)
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -115,22 +120,14 @@ data MockChainError
   | -- | Thrown when an error occured during transaction generation
     MCEGenerationError GenerateTxError
   | -- | Thrown when an output reference is missing from the mockchain state
-    MCEUnknownOutRef String Api.TxOutRef
+    MCEUnknownOutRef Api.TxOutRef
   | -- | Same as 'MCEUnknownOutRef' for scripts.
-    MCEUnknownScript String Script.ScriptHash
+    MCEUnknownScript Script.ScriptHash
   | -- | Same as 'MCEUnknownOutRef' for datums.
-    MCEUnknownDatum String Api.DatumHash
+    MCEUnknownDatum Api.DatumHash
   | -- | Used to provide 'MonadFail' instances.
     FailWith String
   deriving (Show, Eq)
-
--- | Converts 'Nothing' to an error and applies a function otherwise
-maybeErrM :: (MonadError e m) => e -> (a -> b) -> m (Maybe a) -> m b
-maybeErrM err f = (maybe (throwError err) (return . f) =<<)
-
--- | Converts 'Nothing' to an error and returns the value otherwise
-maybeErrMid :: (MonadError e m) => e -> m (Maybe a) -> m a
-maybeErrMid err = maybeErrM err id
 
 -- * Mockchain logs
 
@@ -172,7 +169,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   utxosAt :: Api.Address -> m [(Api.TxOutRef, Api.TxOut)]
 
   -- | Returns the datum with the given hash if present.
-  datumFromHash :: Api.DatumHash -> m (Maybe Api.Datum)
+  datumFromHash :: Api.DatumHash -> m (Maybe DatumContent)
 
   -- | Returns the full validator corresponding to hash, if that validator owns
   -- something or if it is stored in the reference script field of some UTxO.
@@ -184,17 +181,27 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Logs an event that occured during a BlockChain run
   logEvent :: MockChainLogEntry -> m ()
 
--- | Same as 'datumFromHash' but throws an error in case of missing datum hash
-unsafeDatumFromHash :: (MonadBlockChainBalancing m) => Api.DatumHash -> m Api.Datum
-unsafeDatumFromHash dHash = maybeErrMid (MCEUnknownDatum "Unknown datum hash" dHash) (datumFromHash dHash)
+-- | Converts 'Nothing' to an error and returns the value otherwise
+maybeErrM :: (MonadError e m) => e -> m (Maybe a) -> m a
+maybeErrM err = (maybe (throwError err) return =<<)
 
--- | Same as 'scriptFromHash' but throws an error in case of missing script hash
+-- | Same as 'datumFromHash' but throws an error in case of missing datum
+-- hash. Use this when you know the datum is present, or when you want an error
+-- to be throw when it's not.
+unsafeDatumFromHash :: (MonadBlockChainBalancing m) => Api.DatumHash -> m DatumContent
+unsafeDatumFromHash dHash = maybeErrM (MCEUnknownDatum dHash) (datumFromHash dHash)
+
+-- | Same as 'scriptFromHash' but throws an error in case of missing script
+-- hash. Use this when you know the script is present, or when you want an error
+-- to be throw when it's not.
 unsafeScriptFromHash :: (MonadBlockChainBalancing m) => Script.ScriptHash -> m (Script.Versioned Script.Script)
-unsafeScriptFromHash sHash = maybeErrMid (MCEUnknownScript "Unknown script hash" sHash) (scriptFromHash sHash)
+unsafeScriptFromHash sHash = maybeErrM (MCEUnknownScript sHash) (scriptFromHash sHash)
 
--- | Same as 'txOutByRef' but throws an error in case of missing utxo
+-- | Same as 'txOutByRef' but throws an error in case of missing utxo. Use this
+-- when you know the utxo is present, or when you want an error to be throw when
+-- it's not.
 unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.TxOut
-unsafeTxOutByRef oRef = maybeErrMid (MCEUnknownOutRef "Unknown TxOutRef" oRef) (txOutByRef oRef)
+unsafeTxOutByRef oRef = maybeErrM (MCEUnknownOutRef oRef) (txOutByRef oRef)
 
 -- | This is the second layer of our blockchain, which provides all the other
 -- blockchain primitives not needed for balancing, except transaction
@@ -259,10 +266,10 @@ utxosFromCardanoTx =
 
 -- * Mockchain helpers
 
--- | Try to resolve the datum on the output: If there's an inline datum, take
--- that; if there's a datum hash, look the corresponding datum up (with
--- 'datumFromHash'), returning @Nothing@ if it can't be found; if there's no
--- datum or hash at all, return @Nothing@.
+-- | Try to resolve the datum on the output: If there's an inline datum or a
+-- datum hash, look the corresponding datum up (with 'datumFromHash'), returning
+-- @Nothing@ if it can't be found; if there's no datum or hash at all, return
+-- @Nothing@.
 resolveDatum ::
   ( IsAbstractOutput out,
     Script.ToOutputDatum (DatumType out),
@@ -272,18 +279,17 @@ resolveDatum ::
   m (Maybe (ConcreteOutput (OwnerType out) Api.Datum (ValueType out) (ReferenceScriptType out)))
 resolveDatum out = do
   mDatum <- case outputOutputDatum out of
-    Api.OutputDatumHash datumHash -> datumFromHash datumHash
-    Api.OutputDatum datum -> return $ Just datum
+    Api.OutputDatumHash datumHash -> Just . Api.Datum . Api.toBuiltinData <$> datumFromHash datumHash
+    Api.OutputDatum datum -> return (Just datum)
     Api.NoOutputDatum -> return Nothing
   return $ setDatum out <$> mDatum
 
--- | Like 'resolveDatum', but also tries to use 'Api.fromBuiltinData' to extract
--- a datum of the suitable type.
+-- | Like 'resolveDatum', but also tries to cast the inner datum to a given type
 resolveTypedDatum ::
   ( IsAbstractOutput out,
     Script.ToOutputDatum (DatumType out),
     MonadBlockChainBalancing m,
-    Api.FromData a
+    Typeable a
   ) =>
   out ->
   m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
@@ -291,7 +297,7 @@ resolveTypedDatum out = do
   mOut <- resolveDatum out
   return $ do
     out' <- mOut
-    setDatum out <$> Api.fromBuiltinData (Api.getDatum (out' ^. outputDatumL))
+    setDatum out <$> datumContentToTypedDatum (out' ^. outputDatumL)
 
 -- | Tries to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
@@ -333,24 +339,46 @@ resolveReferenceScript _ = return Nothing
 outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef = ((outputOutputDatum <$>) <$>) . txOutByRef
 
+-- | Same as 'outputDatumFromTxOutRef' but throws an error when the utxo is
+-- missing
+unsafeOutputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.OutputDatum
+unsafeOutputDatumFromTxOutRef = fmap outputOutputDatum . unsafeTxOutByRef
+
 -- | Extracts a potential 'Api.Datum' from a given 'Api.TxOutRef'
-datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Datum)
-datumFromTxOutRef oref = do
-  mOutputDatum <- outputDatumFromTxOutRef oref
+datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe DatumContent)
+datumFromTxOutRef oRef = do
+  mOutputDatum <- outputDatumFromTxOutRef oRef
   case mOutputDatum of
     Nothing -> return Nothing
     Just Api.NoOutputDatum -> return Nothing
-    Just (Api.OutputDatum datum) -> return $ Just datum
+    Just (Api.OutputDatum datum) -> datumFromHash (Script.datumHash datum)
     Just (Api.OutputDatumHash datumHash) -> datumFromHash datumHash
+
+-- | Same as 'datumFromTxOutRef' but throws an error when the utxo is missing
+unsafeDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe DatumContent)
+unsafeDatumFromTxOutRef oRef = do
+  outputDatum <- unsafeOutputDatumFromTxOutRef oRef
+  case outputDatum of
+    Api.NoOutputDatum -> return Nothing
+    (Api.OutputDatum datum) -> datumFromHash (Script.datumHash datum)
+    (Api.OutputDatumHash datumHash) -> datumFromHash datumHash
 
 -- | Like 'datumFromTxOutRef', but uses 'Api.fromBuiltinData' to attempt to
 -- deserialize this datum into a given type
-typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-typedDatumFromTxOutRef = ((>>= (\(Api.Datum datum) -> Api.fromBuiltinData datum)) <$>) . datumFromTxOutRef
+typedDatumFromTxOutRef :: (Typeable a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef = ((>>= datumContentToTypedDatum) <$>) . datumFromTxOutRef
+
+-- | Like 'typedDatumFromTxOutRef' but throws an error when the utxo is missing
+unsafeTypedDatumFromTxOutRef :: (Typeable a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
+unsafeTypedDatumFromTxOutRef = ((>>= datumContentToTypedDatum) <$>) . unsafeDatumFromTxOutRef
 
 -- | Resolves an 'Api.TxOutRef' and extracts the value it contains
 valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
 valueFromTxOutRef = ((outputValue <$>) <$>) . txOutByRef
+
+-- | Same as 'valueFromTxOutRef' but throws an error when the utxo is missing
+unsafeValueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.Value
+unsafeValueFromTxOutRef = (outputValue <$>) . unsafeTxOutByRef
 
 -- | Resolves all the inputs of a given 'Cooked.Skeleton.TxSkel'
 txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
@@ -415,7 +443,7 @@ txOutRefToTxSkelOut ::
   Bool ->
   m TxSkelOut
 txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
-  Just txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- txOutByRef oRef
+  txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- unsafeTxOutByRef oRef
   target <- case cred of
     Api.PubKeyCredential pkh -> return $ Left pkh
     Api.ScriptCredential hash -> do
@@ -423,10 +451,10 @@ txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
       return $ Right $ Script.toVersioned @Script.Validator val
   datum <- case dat of
     Api.NoOutputDatum -> return TxSkelOutNoDatum
-    Api.OutputDatumHash hash -> do
-      Just (Api.Datum dat') <- datumFromHash hash
-      return $ TxSkelOutSomeDatum (DatumContent dat') (if includeInTransactionBody then HashedVisibleInTx else HashedHiddenInTx)
-    Api.OutputDatum (Api.Datum dat') -> return $ TxSkelOutSomeDatum (DatumContent dat') Inline
+    Api.OutputDatumHash hash ->
+      (`TxSkelOutSomeDatum` if includeInTransactionBody then HashedVisibleInTx else HashedHiddenInTx) <$> unsafeDatumFromHash hash
+    Api.OutputDatum dat' ->
+      (`TxSkelOutSomeDatum` Inline) <$> unsafeDatumFromHash (Script.datumHash dat')
   refScript <- case refS of
     Nothing -> return Nothing
     Just hash -> scriptFromHash hash

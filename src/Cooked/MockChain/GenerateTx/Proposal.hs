@@ -124,8 +124,9 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
                         (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
                         ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Network.getResponseBody)
                     )
-                AnchorResolutionLocal urls ->
-                  throwOnMaybe "Error when attempting to retrieve anchor url in the local anchor resolution map" (Map.lookup anchor urls)
+                AnchorResolutionLocal urls -> case Map.lookup anchor urls of
+                  Nothing -> throwOnString "Error when attempting to retrieve anchor url in the local anchor resolution map"
+                  Just x -> return x
         return $ Cardano.Anchor anchorUrl . Conway.hashAnnotated . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor
   let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor

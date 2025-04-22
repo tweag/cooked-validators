@@ -1,8 +1,7 @@
 -- | Common utilities used to transfer generation errors raised by plutus-ledger
 -- into instances of 'MockChainError'
 module Cooked.MockChain.GenerateTx.Common
-  ( throwOnMaybe,
-    throwOnString,
+  ( throwOnString,
     throwOnToCardanoErrorOrApply,
     throwOnToCardanoError,
   )
@@ -15,10 +14,6 @@ import Ledger.Tx qualified as Ledger
 -- | Throws a general error from a String.
 throwOnString :: (MonadError MockChainError m) => String -> m a
 throwOnString = throwError . MCEGenerationError . GenerateTxErrorGeneral
-
--- | Lifts a 'Nothing' as an error with an associated message.
-throwOnMaybe :: (MonadError MockChainError m) => String -> Maybe a -> m a
-throwOnMaybe errorMsg = maybe (throwOnString errorMsg) return
 
 -- | Lifts a 'ToCardanoError' with an associated error message, or apply a
 -- function if a value exists.

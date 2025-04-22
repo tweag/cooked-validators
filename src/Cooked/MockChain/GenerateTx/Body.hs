@@ -106,15 +106,13 @@ txBodyContentToTxBody txBodyContent skel = do
   -- directly without requiring this method, which somewhat feels like a hack.
 
   -- We attempt to resolve the reference inputs used by the skeleton
-  refIns <- forM (txSkelReferenceTxOutRefs skel) $ \oRef ->
-    throwOnMaybe ("txSkelToCardanoTx: Unable to resolve TxOutRef " <> show oRef) =<< txOutByRef oRef
+  refIns <- forM (txSkelReferenceTxOutRefs skel) unsafeTxOutByRef
   -- We collect the datum hashes present at these outputs
   let datumHashes = [hash | (Api.TxOut _ _ (Api.OutputDatumHash hash) _) <- refIns]
   -- We resolve those datum hashes from the context
-  additionalData <- forM datumHashes $ \dHash ->
-    throwOnMaybe ("txSkelToCardanoTx: Unable to resolve datum hash " <> show dHash) =<< datumFromHash dHash
+  additionalData <- forM datumHashes unsafeDatumFromHash
   -- We compute the map from datum hash to datum of these additional required data
-  let additionalDataMap = Map.fromList [(Cardano.hashData dat, dat) | Api.Datum (Cardano.Data . Api.toData -> dat) <- additionalData]
+  let additionalDataMap = Map.fromList [(Cardano.hashData dat, dat) | DatumContent (Cardano.Data . Api.toData -> dat) <- additionalData]
   -- We retrieve a needed parameter to process difference plutus languages
   toLangDepViewParam <- Conway.getLanguageView . Cardano.unLedgerProtocolParameters . Emulator.ledgerProtocolParameters <$> getParams
   -- We convert our data map into a 'TxDats'

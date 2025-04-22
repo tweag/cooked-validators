@@ -40,8 +40,7 @@ toRewardAccount cred =
 toPlutusScriptOrReferenceInput :: (MonadBlockChainBalancing m) => Script.Versioned Script.Script -> Maybe Api.TxOutRef -> m (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
-  ((^. outputReferenceScriptL) -> mScriptHash) <-
-    throwOnMaybe "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo." =<< txOutByRef scriptOutRef
+  ((^. outputReferenceScriptL) -> mScriptHash) <- unsafeTxOutByRef scriptOutRef
   case mScriptHash of
     Nothing -> throwOnString "toPlutusScriptOrReferenceInput: No reference script found in utxo."
     Just scriptHash' | scriptHash /= scriptHash' -> throwOnString "toPlutusScriptOrReferenceInput: Wrong reference script hash."

@@ -5,6 +5,7 @@ module Cooked.Skeleton.Datum
     DatumContent (..),
     datumContentToDatum,
     datumContentToDatumHash,
+    datumContentToTypedDatum,
     DatumPlacement (..),
     TxSkelOutDatum (..),
     txSkelOutDatumContent,
@@ -14,6 +15,7 @@ module Cooked.Skeleton.Datum
   )
 where
 
+import Control.Monad
 import Cooked.Pretty.Class
 import Data.Typeable (cast)
 import Plutus.Script.Utils.Data qualified as Script
@@ -51,6 +53,10 @@ datumContentToDatum = Api.Datum . Api.toBuiltinData
 -- | Extracts the datum hash from a 'DatumContent'
 datumContentToDatumHash :: DatumContent -> Api.DatumHash
 datumContentToDatumHash = Script.datumHash . datumContentToDatum
+
+-- | Extracts a typed datum from a 'DatumContent'
+datumContentToTypedDatum :: (Typeable a) => DatumContent -> Maybe a
+datumContentToTypedDatum (DatumContent dat) = cast dat
 
 instance Ord DatumContent where
   compare (DatumContent d1) (DatumContent d2) =
@@ -106,6 +112,4 @@ txSkelOutDatumHash = fmap datumContentToDatumHash . txSkelOutDatumContent
 
 -- | Attempts to cast the content of this 'TxSkelOutDatum' to a given type
 txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum txSkelOutDatum = do
-  DatumContent content <- txSkelOutDatumContent txSkelOutDatum
-  cast content
+txSkelOutTypedDatum = txSkelOutDatumContent >=> datumContentToTypedDatum

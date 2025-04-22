@@ -81,7 +81,7 @@ data MockChainBuiltin a where
   TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe Api.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
-  DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe Api.Datum)
+  DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe DatumContent)
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
   UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
   ScriptFromHash :: Script.ScriptHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Script))
