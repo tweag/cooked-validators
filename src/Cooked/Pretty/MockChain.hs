@@ -25,9 +25,8 @@ import Prettyprinter qualified as PP
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
-  -- Here we don't print the skel because we lack its context and this error is
-  -- printed alongside the skeleton when a test fails
-  prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue _) =
+  prettyCookedOpt _ (MCEMissingBalancingWallet msg) = "Missing balancing wallet:" <+> PP.pretty msg
+  prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue) =
     prettyItemize
       opts
       "Unbalanceable:"

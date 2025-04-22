@@ -207,7 +207,7 @@ testBalancingSucceedsWith msg props run =
       `withResultProp` \res -> testConjoin (($ res) <$> props)
 
 failsAtBalancingWith :: Api.Value -> Wallet -> MockChainError -> Assertion
-failsAtBalancingWith val' wal' (MCEUnbalanceable wal val _) = testBool $ val' == val && wal' == wal
+failsAtBalancingWith val' wal' (MCEUnbalanceable wal val) = testBool $ val' == val && wal' == wal
 failsAtBalancingWith _ _ _ = testBool False
 
 failsAtBalancing :: MockChainError -> Assertion
@@ -235,7 +235,7 @@ failsAtCollaterals MCENoSuitableCollateral {} = testBool True
 failsAtCollaterals _ = testBool False
 
 failsLackOfCollateralWallet :: MockChainError -> Assertion
-failsLackOfCollateralWallet (FailWith msg) = testBool $ "Can't select collateral utxos from a balancing wallet because it does not exist." == msg
+failsLackOfCollateralWallet (MCEMissingBalancingWallet msg) = "Collateral utxos should be taken from the balancing wallet, but it does not exist." .==. msg
 failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree

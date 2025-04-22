@@ -53,7 +53,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- with the BalancingUtxosFromBalancingWallet policy
   balancingWallet <- case txOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSigner -> case txSkelSigners of
-      [] -> fail "Can't select a balancing wallet from the list of signers because it is empty."
+      [] -> throwError $ MCEMissingBalancingWallet "The list of signers is empty, but the balancing wallet is supposed to be the first signer."
       bw : _ -> return $ Just bw
     BalanceWith bWallet -> return $ Just bWallet
     DoNotBalance -> return Nothing
@@ -84,7 +84,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       (False, CollateralUtxosFromSet utxos rWallet) -> return $ Just (utxos, rWallet)
       (False, CollateralUtxosFromWallet cWallet) -> Just . (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
       (False, CollateralUtxosFromBalancingWallet) -> case balancingWallet of
-        Nothing -> fail "Can't select collateral utxos from a balancing wallet because it does not exist."
+        Nothing -> throwError $ MCEMissingBalancingWallet "Collateral utxos should be taken from the balancing wallet, but it does not exist."
         Just bWallet -> Just . (,bWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch bWallet)
 
   -- At this point, the presence (or absence) of balancing wallet dictates
@@ -359,7 +359,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   -- requested amount and the maximum amount provided by the balancing wallet
   let totalValue = mconcat $ Api.txOutValue . snd <$> balancingUtxos
       difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
-      balancingError = MCEUnbalanceable balancingWallet difference txSkel
+      balancingError = MCEUnbalanceable balancingWallet difference
   -- Which one of our candidates should be picked depends on three factors
   -- - Whether there exists a perfect candidate set with empty surplus value
   -- - The `BalancingOutputPolicy` in the skeleton options

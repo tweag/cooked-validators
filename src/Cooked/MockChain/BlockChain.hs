@@ -97,7 +97,9 @@ data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
   | -- | The balancing wallet does not have enough funds
-    MCEUnbalanceable Wallet Api.Value TxSkel
+    MCEUnbalanceable Wallet Api.Value
+  | -- | The balancing wallet is required but missing
+    MCEMissingBalancingWallet String
   | -- | No suitable collateral could be associated with a skeleton
     MCENoSuitableCollateral Integer Integer Api.Value
   | -- | Translating a skeleton element to its Cardano counterpart failed
@@ -366,9 +368,7 @@ txOutRefToTxSkelOut oRef includeInTransactionBody allowAdaAdjustment = do
   txOut@(Api.TxOut (Api.Address cred _) value dat refS) <- unsafeTxOutByRef oRef
   target <- case cred of
     Api.PubKeyCredential pkh -> return $ Left pkh
-    Api.ScriptCredential hash -> do
-      Just val <- scriptFromHash hash
-      return $ Right $ Script.toVersioned @Script.Validator val
+    Api.ScriptCredential hash -> Right . Script.toVersioned @Script.Validator <$> unsafeScriptFromHash hash
   datum <- case dat of
     Api.NoOutputDatum -> return TxSkelOutNoDatum
     Api.OutputDatumHash hash ->
