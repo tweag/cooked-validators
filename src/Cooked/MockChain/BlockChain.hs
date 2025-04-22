@@ -31,10 +31,6 @@ module Cooked.MockChain.BlockChain
     valueFromTxOutRef,
     outputDatumFromTxOutRef,
     datumFromTxOutRef,
-    resolveDatum,
-    resolveTypedDatum,
-    resolveValidator,
-    resolveReferenceScript,
     getEnclosingSlot,
     awaitEnclosingSlot,
     awaitDurationFromLowerBound,
@@ -91,7 +87,6 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -265,75 +260,6 @@ utxosFromCardanoTx =
     . Ledger.getCardanoTxOutRefs
 
 -- * Mockchain helpers
-
--- | Try to resolve the datum on the output: If there's an inline datum or a
--- datum hash, look the corresponding datum up (with 'datumFromHash'), returning
--- @Nothing@ if it can't be found; if there's no datum or hash at all, return
--- @Nothing@.
-resolveDatum ::
-  ( IsAbstractOutput out,
-    Script.ToOutputDatum (DatumType out),
-    MonadBlockChainBalancing m
-  ) =>
-  out ->
-  m (Maybe (ConcreteOutput (OwnerType out) Api.Datum (ValueType out) (ReferenceScriptType out)))
-resolveDatum out = do
-  mDatum <- case outputOutputDatum out of
-    Api.OutputDatumHash datumHash -> Just . Api.Datum . Api.toBuiltinData <$> datumFromHash datumHash
-    Api.OutputDatum datum -> return (Just datum)
-    Api.NoOutputDatum -> return Nothing
-  return $ setDatum out <$> mDatum
-
--- | Like 'resolveDatum', but also tries to cast the inner datum to a given type
-resolveTypedDatum ::
-  ( IsAbstractOutput out,
-    Script.ToOutputDatum (DatumType out),
-    MonadBlockChainBalancing m,
-    Typeable a
-  ) =>
-  out ->
-  m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
-resolveTypedDatum out = do
-  mOut <- resolveDatum out
-  return $ do
-    out' <- mOut
-    setDatum out <$> datumContentToTypedDatum (out' ^. outputDatumL)
-
--- | Tries to resolve the validator that owns an output: If the output is owned by
--- a public key, or if the validator's hash is not known (i.e. if
--- 'scriptFromHash' returns @Nothing@) return @Nothing@.
-resolveValidator ::
-  ( IsAbstractOutput out,
-    Script.ToCredential (OwnerType out),
-    MonadBlockChainBalancing m
-  ) =>
-  out ->
-  m (Maybe (ConcreteOutput (Script.Versioned Script.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
-resolveValidator out =
-  case Script.toCredential (out ^. outputOwnerL) of
-    Api.PubKeyCredential _ -> return Nothing
-    Api.ScriptCredential scriptHash -> do
-      mVal <- scriptFromHash scriptHash
-      return $ do
-        val <- mVal
-        return $ (fromAbstractOutput out) {concreteOutputOwner = Script.toVersioned val}
-
--- | Tries to resolve the reference script on an output: If the output has no
--- reference script, or if the reference script's hash is not known (i.e. if
--- 'scriptFromHash' returns 'Nothing'), this function will return 'Nothing'.
-resolveReferenceScript ::
-  ( IsAbstractOutput out,
-    Script.ToScriptHash (ReferenceScriptType out),
-    MonadBlockChainBalancing m
-  ) =>
-  out ->
-  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Script.Versioned Script.Validator)))
-resolveReferenceScript out | Just hash <- outputReferenceScriptHash out = do
-  mVal <- scriptFromHash hash
-  return $ do
-    val <- mVal
-    return $ (fromAbstractOutput out) {concreteOutputReferenceScript = Just $ Script.toVersioned val}
-resolveReferenceScript _ = return Nothing
 
 -- | Extracts a potential 'Api.OutputDatum' from a given 'Api.TxOutRef'
 outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)

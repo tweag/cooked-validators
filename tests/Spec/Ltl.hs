@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.LtlSpec (tests) where
+module Spec.Ltl (tests) where
 
 import Control.Monad
 import Control.Monad.State

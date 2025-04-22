@@ -1,4 +1,4 @@
-module Cooked.BalancingSpec where
+module Spec.Balancing where
 
 import Cooked
 import Cooked.MockChain.Staged
