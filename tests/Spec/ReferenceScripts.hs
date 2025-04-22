@@ -1,4 +1,4 @@
-module Cooked.ReferenceScriptsSpec where
+module Spec.ReferenceScripts where
 
 import Cooked
 import Data.Map qualified as Map

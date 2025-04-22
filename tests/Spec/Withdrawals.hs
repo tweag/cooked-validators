@@ -1,4 +1,4 @@
-module Cooked.WithdrawalsSpec where
+module Spec.Withdrawals where
 
 import Cooked
 import Plutus.Withdrawals

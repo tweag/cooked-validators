@@ -154,27 +154,6 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Cooked.Attack.DatumHijackingSpec
-      Cooked.Attack.DoubleSatSpec
-      Cooked.Attack.DupTokenSpec
-      Cooked.AttackSpec
-      Cooked.BalancingSpec
-      Cooked.BasicUsageSpec
-      Cooked.InitialDistributionSpec
-      Cooked.InlineDatumsSpec
-      Cooked.LtlSpec
-      Cooked.MinAdaSpec
-      Cooked.MultiPurposeSpec
-      Cooked.ProposingScriptSpec
-      Cooked.ReferenceInputsSpec
-      Cooked.ReferenceScriptsSpec
-      Cooked.SlotSpec
-      Cooked.Tweak.CommonSpec
-      Cooked.Tweak.OutPermutationsSpec
-      Cooked.Tweak.TamperDatumSpec
-      Cooked.Tweak.ValidityRangeSpec
-      Cooked.TweakSpec
-      Cooked.WithdrawalsSpec
       Plutus.Attack.DatumHijacking
       Plutus.Attack.DoubleSat
       Plutus.Attack.DupToken
@@ -184,6 +163,27 @@ test-suite spec
       Plutus.ReferenceInputs
       Plutus.ReferenceScripts
       Plutus.Withdrawals
+      Spec.Attack
+      Spec.Attack.DatumHijacking
+      Spec.Attack.DoubleSat
+      Spec.Attack.DupToken
+      Spec.Balancing
+      Spec.BasicUsage
+      Spec.InitialDistribution
+      Spec.InlineDatums
+      Spec.Ltl
+      Spec.MinAda
+      Spec.MultiPurpose
+      Spec.ProposingScript
+      Spec.ReferenceInputs
+      Spec.ReferenceScripts
+      Spec.Slot
+      Spec.Tweak
+      Spec.Tweak.Common
+      Spec.Tweak.OutPermutations
+      Spec.Tweak.TamperDatum
+      Spec.Tweak.ValidityRange
+      Spec.Withdrawals
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators

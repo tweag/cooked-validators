@@ -1,4 +1,4 @@
-module Cooked.Tweak.OutPermutationsSpec (tests) where
+module Spec.Tweak.OutPermutations (tests) where
 
 import Cooked
 import Cooked.Tweak.OutPermutations

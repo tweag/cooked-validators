@@ -1,4 +1,4 @@
-module Cooked.Attack.DupTokenSpec (tests) where
+module Spec.Attack.DupToken (tests) where
 
 import Cooked
 import Data.Set qualified as Set

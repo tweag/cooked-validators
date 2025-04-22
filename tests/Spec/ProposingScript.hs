@@ -1,4 +1,4 @@
-module Cooked.ProposingScriptSpec where
+module Spec.ProposingScript where
 
 import Cooked
 import Data.Map qualified as Map

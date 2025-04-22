@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.InlineDatumsSpec where
+module Spec.InlineDatums where
 
 import Cooked
 import Data.Map qualified as Map

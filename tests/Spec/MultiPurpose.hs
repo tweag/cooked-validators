@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MultiPurposeSpec where
+module Spec.MultiPurpose where
 
 import Cooked
 import Data.Map qualified as HMap

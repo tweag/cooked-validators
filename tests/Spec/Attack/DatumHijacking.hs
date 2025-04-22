@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.Attack.DatumHijackingSpec (tests) where
+module Spec.Attack.DatumHijacking (tests) where
 
 import Cooked
 import Data.Map qualified as Map

@@ -1,4 +1,4 @@
-module Cooked.SlotSpec (tests) where
+module Spec.Slot (tests) where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct

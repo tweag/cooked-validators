@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.ReferenceInputsSpec where
+module Spec.ReferenceInputs where
 
 import Cooked
 import Data.Map qualified as Map

@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.Attack.DoubleSatSpec (tests) where
+module Spec.Attack.DoubleSat (tests) where
 
 import Control.Arrow
 import Cooked
