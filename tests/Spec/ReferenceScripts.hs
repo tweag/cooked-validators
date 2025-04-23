@@ -108,14 +108,7 @@ tests =
               testCooked "on a script output" $
                 mustSucceedTest
                   (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= retrieveRefScriptHash)
-                  `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.)),
-              testCooked "retrieving the complete script from its hash" $
-                mustSucceedTest
-                  ( putRefScriptOnWalletOutput (wallet 3) theRefScript
-                      >>= retrieveRefScriptHash
-                      >>= maybe (return Nothing) ((Just <$>) . scriptFromHash)
-                  )
-                  `withResultProp` maybe testFailure (Just (Script.toVersioned @Script.Script theRefScript) .==.)
+                  `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.))
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"

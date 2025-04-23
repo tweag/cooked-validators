@@ -54,8 +54,6 @@ instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCETxBodyError msg err) =
     prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msg, PP.viaShow err]
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
-  prettyCookedOpt opts (MCEUnknownScript sHash) = "Unknown script hash:" <+> prettyHash opts sHash
-  prettyCookedOpt opts (MCEUnknownDatum dHash) = "Unknown datum hash:" <+> prettyHash opts dHash
   prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
     "Unable to fetch the follwing reference script:"
       <+> prettyHash opts expected

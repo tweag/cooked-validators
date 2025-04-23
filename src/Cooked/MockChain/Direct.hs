@@ -26,7 +26,6 @@ import Cooked.Skeleton
 import Data.Default
 import Data.Map (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe
 import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
@@ -153,9 +152,7 @@ runMockChain = runIdentity . runMockChainT
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
-  scriptFromHash sHash = gets $ Map.lookup sHash . mcstScripts
   txOutByRef outref = gets $ Map.lookup outref . mcstOutputs
-  datumFromHash datumHash = gets $ (fst <$>) . Map.lookup datumHash . mcstDatums
   utxosAt addr = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
@@ -218,25 +215,18 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Just err -> throwError (uncurry MCEValidationError err)
       -- Otherwise, we update known validators and datums.
       Nothing -> do
-        -- We add the script in outputs
-        forM_ (mapMaybe txSkelOutValidator (txSkelOuts skel)) $ modify' . addScript
-        forM_ (mapMaybe txSkelOutReferenceScript (txSkelOuts skel)) $ modify' . addScript
-        -- We remove the consumed datums
-        txSkelInputDataAsHashes skel >>= (modify' . removeDatums)
-        -- We add the created datums
-        (modify' . addDatums) (txSkelDataInOutputs skel)
+        -- We retrieve the utxos created by the transaction
+        let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
+        -- We add the news utxos to the state
+        forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
+        -- And remove the old ones
+        forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
     -- Now that we have computed a new index, we can update it
     modify' (\st -> st {mcstIndex = newUtxoIndex})
     -- We apply a change of slot when requested in the options
     when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     -- We return the parameters to their original state
     setParams oldParams
-    -- We retrieve the utxos created by the transaction
-    let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
-    -- We add the news utxos to the state
-    forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
-    -- And remove the old ones
-    forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
     -- We log the validated transaction
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
     -- We return the validated transaction

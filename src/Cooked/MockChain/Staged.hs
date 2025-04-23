@@ -37,7 +37,6 @@ import Cooked.Tweak.Common
 import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
-import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Interpreting and running 'StagedMockChain'
@@ -81,10 +80,8 @@ data MockChainBuiltin a where
   TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe TxSkelOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
-  DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe DatumContent)
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
-  ScriptFromHash :: Script.ScriptHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
   -- | The empty set of traces
@@ -136,8 +133,6 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
-  interpBuiltin (DatumFromHash h) = datumFromHash h
-  interpBuiltin (ScriptFromHash h) = scriptFromHash h
   interpBuiltin AllUtxos = allUtxos
   interpBuiltin (UtxosAt address) = utxosAt address
   interpBuiltin Empty = mzero
@@ -210,10 +205,8 @@ instance MonadError MockChainError StagedMockChain where
 
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
-  datumFromHash = singletonBuiltin . DatumFromHash
   txOutByRef = singletonBuiltin . TxOutByRef
   utxosAt = singletonBuiltin . UtxosAt
-  scriptFromHash = singletonBuiltin . ScriptFromHash
   logEvent = singletonBuiltin . LogEvent
 
 instance MonadBlockChainWithoutValidation StagedMockChain where

@@ -26,7 +26,6 @@ module Cooked.Skeleton
     txSkelOutsL,
     txSkelWithdrawalsL,
     txSkelTemplate,
-    txSkelDataInOutputs,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
     txSkelWithdrawalsScripts,
@@ -155,10 +154,6 @@ txSkelTemplate =
 -- | Returns the full value contained in the skeleton outputs
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
-
--- | Returns all data on transaction outputs, with duplicates
-txSkelDataInOutputs :: TxSkel -> [DatumContent]
-txSkelDataInOutputs = toListOf (txSkelOutsL % folded % txSkelOutDatumL % txSkelOutDatumContentAT)
 
 -- | All `Api.TxOutRef`s in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
