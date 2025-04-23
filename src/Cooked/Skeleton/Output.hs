@@ -66,6 +66,7 @@ type OwnerConstrs owner =
     Show owner
   )
 
+-- | A rich output to be put into a 'Cooked.Skeleton.TxSkel'
 data TxSkelOut where
   TxSkelOut ::
     (OwnerConstrs owner) =>
@@ -86,12 +87,16 @@ txSkelOutAddress (TxSkelOut owner stCred _ _ _) =
     (Script.toCredential owner)
     (Script.toMaybeStakingCredential stCred)
 
+-- | A lens to get or set the 'TxSkelOutDatum' from a 'TxSkelOut'
 makeLensesFor [("tsoDatum", "txSkelOutDatumL")] ''TxSkelOut
 
+-- | A lens to get or set the 'TxSkelOutValue' from a 'TxSkelOut'
 makeLensesFor [("tsoValue", "txSkelOutValueL")] ''TxSkelOut
 
+-- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
 makeLensesFor [("tsoRefSc", "txSkelOutReferenceScriptL")] ''TxSkelOut
 
+-- | A lens to get or set the 'Maybe Api.StakingCredential' from a 'TxSkelOut'
 makeLensesFor [("tsoSCred", "txSkelOutStakingCredentialL")] ''TxSkelOut
 
 -- | Attempts to retrieve or set a typed owner from this 'TxSkelOut'

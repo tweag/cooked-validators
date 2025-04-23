@@ -1,3 +1,5 @@
+-- | This module exposes the notion of reference scripts used in our
+-- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.ReferenceScript
   ( ReferenceScriptConstrs,
     TxSkelOutReferenceScript (..),
@@ -12,14 +14,15 @@ import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- | Type constraints over the reference script in a 'TxSkelOut'
+-- | Type constraints over the reference script in a
+-- 'Cooked.Skeleton.Ouput.TxSkelOut'
 type ReferenceScriptConstrs refScript =
   ( Script.ToVersioned Script.Script refScript,
     Show refScript,
     Typeable refScript
   )
 
--- | Reference scripts in 'TxSkelOut'
+-- | Reference scripts in 'Cooked.Skeleton.Ouput.TxSkelOut'
 data TxSkelOutReferenceScript where
   TxSkelOutNoReferenceScript :: TxSkelOutReferenceScript
   TxSkelOutSomeReferenceScript :: (ReferenceScriptConstrs a) => a -> TxSkelOutReferenceScript
