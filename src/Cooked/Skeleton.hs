@@ -43,6 +43,7 @@ import Cooked.Skeleton.Output as X
 import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.ReferenceScript as X
 import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
@@ -157,7 +158,7 @@ txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOu
 
 -- | Returns all data on transaction outputs, with duplicates
 txSkelDataInOutputs :: TxSkel -> [DatumContent]
-txSkelDataInOutputs = foldMapOf (txSkelOutsL % folded % txSkelOutDatumL) (maybeToList . txSkelOutDatumContent)
+txSkelDataInOutputs = toListOf (txSkelOutsL % folded % txSkelOutDatumL % txSkelOutDatumContentAT)
 
 -- | All `Api.TxOutRef`s in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]

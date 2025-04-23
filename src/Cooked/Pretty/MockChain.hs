@@ -92,17 +92,17 @@ instance PrettyCooked MockChainLogEntry where
       <> prettyCookedOpt opts skelOut
       <> " has been automatically adjusted to "
       <> prettyCookedOpt opts (Script.toValue newAda)
-  prettyCookedOpt opts (MCLogSubmittedTxSkel outputs datums skel) = prettyItemize opts "Submitted skeleton:" "-" $ Contextualized outputs datums skel
-  prettyCookedOpt opts (MCLogAdjustedTxSkel outputs datums skel fee mCollaterals) =
+  prettyCookedOpt opts (MCLogSubmittedTxSkel outputs skel) = prettyItemize opts "Submitted skeleton:" "-" $ Contextualized outputs skel
+  prettyCookedOpt opts (MCLogAdjustedTxSkel outputs skel fee mCollaterals) =
     let mCollateralsDoc =
           ( \(collaterals, returnWallet) ->
-              [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs datums . CollateralInput <$> Set.toList collaterals),
+              [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
                 "Return collateral target:" <+> prettyCookedOpt opts returnWallet
               ]
           )
             <$> mCollaterals
      in prettyItemize opts "Adjusted skeleton:" "-" $
-          prettyCookedOptList opts (Contextualized outputs datums skel)
+          prettyCookedOptList opts (Contextualized outputs skel)
             ++ (("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)) : fromMaybe [] mCollateralsDoc)
   prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyHash opts txId
   prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
@@ -197,8 +197,16 @@ instance PrettyCookedList UtxoPayloadSet where
 newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
 
 instance PrettyCooked (Contextualized CollateralInput) where
-  prettyCookedOpt opts cColIn@(Contextualized _ _ (CollateralInput txOutRef)) =
+  prettyCookedOpt opts cColIn@(Contextualized _ (CollateralInput txOutRef)) =
     case prettyCookedOptList opts (unCollateralInput <$> cColIn) of
-      (addressDoc : valueDoc : otherDocs) ->
-        prettyItemize opts ("Belonging to" <+> addressDoc) "-" (valueDoc : otherDocs)
+      (addressDoc : otherDocs) ->
+        prettyItemize
+          opts
+          ( "Uses"
+              <+> prettyCookedOpt opts txOutRef
+              <+> "belonging to"
+              <+> addressDoc
+          )
+          "-"
+          otherDocs
       _ -> "Uses" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"

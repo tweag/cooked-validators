@@ -76,7 +76,6 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set (Set)
-import Data.Typeable (Typeable)
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
@@ -124,10 +123,10 @@ data MockChainError
 -- provided here.
 data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
-    MCLogSubmittedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash DatumContent) TxSkel
+    MCLogSubmittedTxSkel (Map Api.TxOutRef TxSkelOut) TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral wallet.
-    MCLogAdjustedTxSkel (Map Api.TxOutRef Api.TxOut) (Map Api.DatumHash DatumContent) TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
+    MCLogAdjustedTxSkel (Map Api.TxOutRef TxSkelOut) TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
   | -- | Logging the appearance of a new transaction, after a skeleton has been
     -- successfully sent for validation.
     MCLogNewTx Api.TxId
@@ -231,7 +230,7 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
 -- | Validates a skeleton, and retuns the ordered list of produced output
 -- references
 validateTxSkel' :: (MonadBlockChain m) => TxSkel -> m [Api.TxOutRef]
-validateTxSkel' = (map fst . utxosFromCardanoTx <$>) . validateTxSkel
+validateTxSkel' = ((fmap fst <$>) . utxosFromCardanoTx) <=< validateTxSkel
 
 -- | Validates a skeleton, and erases the outputs
 validateTxSkel_ :: (MonadBlockChain m) => TxSkel -> m ()
@@ -242,13 +241,12 @@ validateTxSkel_ = void . validateTxSkel
 -- This is useful when writing endpoints and/or traces to fetch utxos of
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using 'allUtxos' or similar functions.
-utxosFromCardanoTx :: Ledger.CardanoTx -> [(Api.TxOutRef, Api.TxOut)]
+utxosFromCardanoTx :: (MonadBlockChainBalancing m) => Ledger.CardanoTx -> m [(Api.TxOutRef, TxSkelOut)]
 utxosFromCardanoTx =
-  map
-    ( \(txOut, txOutRef) ->
-        ( Ledger.fromCardanoTxIn txOutRef,
-          Ledger.fromCardanoTxOutToPV2TxInfoTxOut $ Ledger.getTxOut txOut
-        )
+  mapM
+    ( \(_, txIn) ->
+        let txOutRef = Ledger.fromCardanoTxIn txIn
+         in (txOutRef,) <$> unsafeTxOutByRef txOutRef
     )
     . Ledger.getCardanoTxOutRefs
 
@@ -284,12 +282,12 @@ unsafeDatumFromTxOutRef oRef = do
 
 -- | Like 'datumFromTxOutRef', but uses 'Api.fromBuiltinData' to attempt to
 -- deserialize this datum into a given type
-typedDatumFromTxOutRef :: (Typeable a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-typedDatumFromTxOutRef = ((>>= datumContentToTypedDatum) <$>) . datumFromTxOutRef
+typedDatumFromTxOutRef :: (DatumConstrs a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef = ((>>= preview datumContentTypedDatumAT) <$>) . datumFromTxOutRef
 
 -- | Like 'typedDatumFromTxOutRef' but throws an error when the utxo is missing
-unsafeTypedDatumFromTxOutRef :: (Typeable a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-unsafeTypedDatumFromTxOutRef = ((>>= datumContentToTypedDatum) <$>) . unsafeDatumFromTxOutRef
+unsafeTypedDatumFromTxOutRef :: (DatumConstrs a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
+unsafeTypedDatumFromTxOutRef = ((>>= preview datumContentTypedDatumAT) <$>) . unsafeDatumFromTxOutRef
 
 -- | Resolves an 'Api.TxOutRef' and extracts the value it contains
 valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)

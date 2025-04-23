@@ -170,10 +170,9 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do
     -- We retrieve the necessary logging data from the context
-    outputs <- gets (getIndex . mcstIndex)
-    datums <- gets (Map.map fst . mcstDatums)
+    outputs <- gets mcstOutputs
     -- We log the submission of a new skeleton
-    logEvent $ MCLogSubmittedTxSkel outputs datums skelUnbal
+    logEvent $ MCLogSubmittedTxSkel outputs skelUnbal
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -190,7 +189,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- the associated fee, collateral inputs and return collateral wallet
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
     -- We log the adjusted skeleton
-    logEvent $ MCLogAdjustedTxSkel outputs datums skel fee mCollaterals
+    logEvent $ MCLogAdjustedTxSkel outputs skel fee mCollaterals
     -- We generate the transaction associated with the skeleton, and apply on it
     -- the modifications from the skeleton options
     cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
@@ -236,6 +235,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
     -- We add the news utxos to the state
     forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
+    -- And remove the old ones
+    forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
     -- We log the validated transaction
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
     -- We return the validated transaction

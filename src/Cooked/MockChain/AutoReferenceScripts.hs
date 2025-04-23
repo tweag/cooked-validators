@@ -9,20 +9,19 @@ import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Maybe
-import Data.Typeable
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Searches through the known utxos for a utxo containing a reference script
 -- with a given script hash, and returns the first such utxo found, if any.
-retrieveReferenceScript :: (MonadBlockChain m, Script.ToScriptHash s, Typeable s) => s -> m (Maybe Api.TxOutRef)
+retrieveReferenceScript :: (MonadBlockChain m, Script.ToScriptHash s) => s -> m (Maybe Api.TxOutRef)
 retrieveReferenceScript = (listToMaybe . (fst <$>) <$>) . runUtxoSearch . referenceScriptOutputsSearch
 
 -- | Attempts to find in the index a utxo containing a reference script with the
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
-updateRedeemer :: (MonadBlockChain m, Script.ToScriptHash s, Typeable s) => s -> TxSkelRedeemer -> m TxSkelRedeemer
+updateRedeemer :: (MonadBlockChain m, Script.ToScriptHash s) => s -> TxSkelRedeemer -> m TxSkelRedeemer
 updateRedeemer script txSkelRed@(TxSkelRedeemer _ Nothing True) = do
   oRefM <- retrieveReferenceScript script
   case oRefM of

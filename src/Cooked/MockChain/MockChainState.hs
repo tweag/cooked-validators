@@ -14,7 +14,6 @@ import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoState
-import Cooked.Output
 import Cooked.Skeleton
 import Data.Bifunctor (bimap)
 import Data.Default
@@ -27,7 +26,7 @@ import Ledger.Orphans ()
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Optics.Core (view)
+import Optics.Core
 import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -151,6 +150,13 @@ addOutput oRef txSkelOut st =
     { mcstOutputs = Map.insert oRef txSkelOut (mcstOutputs st)
     }
 
+-- | Removes an output from the 'MockChainState'
+removeOutput :: Api.TxOutRef -> MockChainState -> MockChainState
+removeOutput oRef st =
+  st
+    { mcstOutputs = Map.delete oRef (mcstOutputs st)
+    }
+
 -- * Initial `MockChainState` from an 'InitialDistribution'
 
 -- | Builds a 'MockChainState' from an 'InitialDistribution'. This lives in
@@ -170,8 +176,8 @@ referenceScriptMap0From =
     -- This takes a single output and returns a possible map entry when it
     -- contains a reference script
     unitMaybeFrom :: TxSkelOut -> Maybe (Script.ScriptHash, Script.Versioned Script.Script)
-    unitMaybeFrom (Pays output) = do
-      vScript <- Script.toVersioned @Script.Script <$> view outputReferenceScriptL output
+    unitMaybeFrom output = do
+      vScript <- Script.toVersioned @Script.Script <$> txSkelOutReferenceScript output
       return (Script.toScriptHash vScript, vScript)
 
 -- | Collects the scripts paid to in an 'InitialDistribution'
@@ -201,8 +207,7 @@ datumMap0From =
           . maybe
             Map.empty
             (\dat -> Map.singleton (datumContentToDatumHash dat) (dat, 1))
-          . txSkelOutDatumContent
-          . view txSkelOutDatumL
+          . preview (txSkelOutDatumL % txSkelOutDatumContentAT)
     )
     Map.empty
     . unInitialDistribution

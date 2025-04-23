@@ -5,7 +5,6 @@ import Cardano.Api qualified as Cardano
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
-import Cooked.Output
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
@@ -17,7 +16,7 @@ toTxInAndWitness ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   m (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  ConcreteOutput owner _ datum _ _ <- txSkelOutOutput <$> unsafeTxOutByRef txOutRef
+  TxSkelOut (toPKHOrValidator -> owner) _ datum _ _ <- unsafeTxOutByRef txOutRef
   witness <- case owner of
     Left _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
     Right validator ->

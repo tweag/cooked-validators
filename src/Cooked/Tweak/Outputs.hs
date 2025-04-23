@@ -11,14 +11,12 @@ module Cooked.Tweak.Outputs
 where
 
 import Control.Monad
-import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
 import Data.List (partition)
 import Data.Maybe
-import Data.Typeable
 import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -60,9 +58,9 @@ instance PrettyCooked TamperDatumLbl where
 --
 -- The tweak returns a list of the modified datums, as they were *before* the
 -- modification was applied to them.
-tamperDatumTweak :: forall a m. (MonadTweak m, Api.FromData a, Typeable a) => (a -> Maybe a) -> m [a]
+tamperDatumTweak :: forall a m. (MonadTweak m, DatumConstrs a) => (a -> Maybe a) -> m [a]
 tamperDatumTweak change = do
-  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutputDatumTypeAT) change
+  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutTypedDatumAT) change
   guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
@@ -85,7 +83,7 @@ tamperDatumTweak change = do
 -- > == (k_1 + 1) * ... * (k_n + 1) - 1
 --
 -- modified transactions.
-malformDatumTweak :: forall a m. (MonadTweak m, Typeable a) => (a -> [Api.BuiltinData]) -> m ()
+malformDatumTweak :: forall a m. (MonadTweak m, DatumConstrs a) => (a -> [Api.BuiltinData]) -> m ()
 malformDatumTweak change = do
   outputs <- viewAllTweak (txSkelOutsL % traversed)
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs
@@ -96,14 +94,11 @@ malformDatumTweak change = do
   addLabelTweak MalformDatumLbl
   where
     changeOutput :: TxSkelOut -> [TxSkelOut]
-    changeOutput (Pays out) =
+    changeOutput txSkelOut =
       do
-        let dat = view outputDatumL out
-        typedDat <- maybeToList $ txSkelOutTypedDatum @a dat
+        typedDat <- maybeToList $ txSkelOut ^? txSkelOutDatumL % txSkelOutTypedDatumAT
         modifiedDat <- change typedDat
-        return $ Pays $ setDatum out $ case dat of
-          TxSkelOutNoDatum -> TxSkelOutNoDatum
-          TxSkelOutSomeDatum _ shape -> TxSkelOutSomeDatum (DatumContent modifiedDat) shape
+        return $ txSkelOut & txSkelOutDatumL % txSkelOutDatumContentAT .~ DatumContent modifiedDat
 
 -- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been
 -- successfully applied

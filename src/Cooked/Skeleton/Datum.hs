@@ -1,24 +1,24 @@
 -- | This module exposes the notion of datums as they are handled within a
 -- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Datum
-  ( TxSkelOutDatumConstrs,
+  ( DatumConstrs,
     DatumContent (..),
     datumContentToDatum,
     datumContentToDatumHash,
-    datumContentToTypedDatum,
     DatumResolved (..),
     DatumKind (..),
     TxSkelOutDatum (..),
-    txSkelOutDatumContent,
     txSkelOutDatumHash,
-    txSkelOutTypedDatum,
     txSkelOutUntypedDatum,
+    datumContentTypedDatumAT,
+    txSkelOutDatumContentAT,
+    txSkelOutTypedDatumAT,
   )
 where
 
-import Control.Monad
 import Cooked.Pretty.Class
 import Data.Typeable (cast)
+import Optics.Core
 import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
@@ -27,7 +27,7 @@ import Type.Reflection
 -- * Type constraints on datums used in cooked-validators
 
 -- | Type constraints that must be satisfied by the datum content
-type TxSkelOutDatumConstrs a =
+type DatumConstrs a =
   ( Show a,
     PrettyCooked a,
     Api.ToData a,
@@ -35,12 +35,12 @@ type TxSkelOutDatumConstrs a =
     Typeable a
   )
 
--- * Wrapping datums of arbitrary types satisfying 'TxSkelOutDatumConstrs'
+-- * Wrapping datums of arbitrary types satisfying 'DatumConstrs'
 
--- | Data type of wrapped datums satisfying 'TxSkelOutDatumConstrs'
+-- | Data type of wrapped datums satisfying 'DatumConstrs'
 data DatumContent where
-  -- | Wraps an element satisfying 'TxSkelOutDatumConstrs'
-  DatumContent :: (TxSkelOutDatumConstrs a) => a -> DatumContent
+  -- | Wraps an element satisfying 'DatumConstrs'
+  DatumContent :: (DatumConstrs a) => a -> DatumContent
 
 deriving instance Show DatumContent
 
@@ -55,9 +55,12 @@ datumContentToDatum = Api.Datum . Api.toBuiltinData
 datumContentToDatumHash :: DatumContent -> Api.DatumHash
 datumContentToDatumHash = Script.datumHash . datumContentToDatum
 
--- | Extracts a typed datum from a 'DatumContent'
-datumContentToTypedDatum :: (Typeable a) => DatumContent -> Maybe a
-datumContentToTypedDatum (DatumContent dat) = cast dat
+-- | Extracts a typed datum for a 'DatumContent' when of the right type
+datumContentTypedDatumAT :: (DatumConstrs a) => AffineTraversal' DatumContent a
+datumContentTypedDatumAT =
+  atraversal
+    (\c@(DatumContent content) -> maybe (Left c) Right (cast content))
+    (const DatumContent)
 
 instance Ord DatumContent where
   compare (DatumContent d1) (DatumContent d2) =
@@ -103,19 +106,29 @@ instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum (TxSkelOutSomeDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
   toOutputDatum (TxSkelOutSomeDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
 
--- | Retrieves the 'DatumContent' part of a 'TxSkelOutDatum' when it exists
-txSkelOutDatumContent :: TxSkelOutDatum -> Maybe DatumContent
-txSkelOutDatumContent TxSkelOutNoDatum = Nothing
-txSkelOutDatumContent (TxSkelOutSomeDatum dat _) = Just dat
+-- | Extracts or changes the 'DatumContent' of a 'TxSkelOutDatum'
+txSkelOutDatumContentAT :: AffineTraversal' TxSkelOutDatum DatumContent
+txSkelOutDatumContentAT =
+  atraversal
+    ( \case
+        TxSkelOutNoDatum -> Left TxSkelOutNoDatum
+        TxSkelOutSomeDatum content _ -> Right content
+    )
+    ( flip
+        ( \content -> \case
+            TxSkelOutNoDatum -> TxSkelOutNoDatum
+            TxSkelOutSomeDatum _ kind -> TxSkelOutSomeDatum content kind
+        )
+    )
 
 -- | Converts a 'TxSkelOutDatum' into a possible Plutus datum
 txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
-txSkelOutUntypedDatum = fmap datumContentToDatum . txSkelOutDatumContent
+txSkelOutUntypedDatum = fmap datumContentToDatum . preview txSkelOutDatumContentAT
 
 -- | Converts a 'TxSkelOutDatum' into a possible Plutus datum hash
 txSkelOutDatumHash :: TxSkelOutDatum -> Maybe Api.DatumHash
-txSkelOutDatumHash = fmap datumContentToDatumHash . txSkelOutDatumContent
+txSkelOutDatumHash = fmap datumContentToDatumHash . preview txSkelOutDatumContentAT
 
--- | Attempts to cast the content of this 'TxSkelOutDatum' to a given type
-txSkelOutTypedDatum :: (Typeable a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = txSkelOutDatumContent >=> datumContentToTypedDatum
+-- | Extracts or changes the inner typed datum of a 'TxSkelOutDatum'
+txSkelOutTypedDatumAT :: (DatumConstrs a) => AffineTraversal' TxSkelOutDatum a
+txSkelOutTypedDatumAT = txSkelOutDatumContentAT % datumContentTypedDatumAT

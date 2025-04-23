@@ -18,9 +18,9 @@ import Control.Monad
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
+import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoSearch
-import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Bifunctor
@@ -102,7 +102,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
+          BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
             runUtxoSearch (txOutByRefSearch (Set.toList utxos))
@@ -162,7 +162,7 @@ getMinAndMaxFee = do
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
-computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Integer -> Integer -> [(Api.TxOutRef, Api.TxOut)] -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet))
+computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Integer -> Integer -> [(Api.TxOutRef, TxSkelOut)] -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet))
 computeFeeAndBalance _ minFee maxFee _ _ _
   | minFee > maxFee =
       throwError $ FailWith "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
@@ -216,7 +216,7 @@ computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals s
 
 -- | Helper function to group the two real steps of the balancing: balance a
 -- skeleton around a given fee, and compute the associated collateral inputs
-attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (Maybe (Set Api.TxOutRef, Wallet), TxSkel)
+attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, TxSkelOut)] -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> TxSkel -> m (Maybe (Set Api.TxOutRef, Wallet), TxSkel)
 attemptBalancingAndCollaterals balancingWallet balancingUtxos fee mCollaterals skel = do
   adjustedCollateralIns <- collateralsFromFees fee mCollaterals
   attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skel fee
@@ -259,7 +259,7 @@ collateralsFromFees fee (Just (collateralIns, returnCollateralWallet)) =
 -- stops when the target is reached, not adding superfluous UTxOs. Despite
 -- optimizations, this function is theoretically in 2^n where n is the number of
 -- candidate UTxOs. Use with caution.
-reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [([(Api.TxOutRef, Api.TxOut)], Api.Value)]
+reachValue :: [(Api.TxOutRef, TxSkelOut)] -> Api.Value -> Integer -> [([(Api.TxOutRef, TxSkelOut)], Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
 reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
@@ -268,14 +268,14 @@ reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
 reachValue _ _ maxEls | maxEls == 0 = []
 -- The target is not reached, and cannot possibly be reached, as the remaining
 -- candidates do not sum up to the target.
-reachValue l target _ | not $ target `Api.leq` mconcat (Api.txOutValue . snd <$> l) = []
+reachValue l target _ | not $ target `Api.leq` mconcat (txSkelOutValue . snd <$> l) = []
 -- There is no more elements to go through and the target has not been
 -- reached. Encompassed by the previous case, but needed by GHC.
 reachValue [] _ _ = []
 -- Main recursive case, where we either pick or drop the head. We only pick the
 -- head if it contributes to reaching the target, i.e. if its intersection with
 -- the positive part of the target is not empty.
-reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
+reachValue (h@(_, txSkelOutValue -> hVal) : t) target maxEls =
   (++) (reachValue t target maxEls) $
     if snd (Api.split target) PlutusTx./\ hVal == mempty
       then []
@@ -284,7 +284,7 @@ reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
 -- | A helper function to grab an optimal candidate in terms of having a minimal
 -- enough amount of ada to sustain itself meant to be used after calling
 -- `reachValue`. This throws an error when there are no suitable candidates.
-getOptimalCandidate :: (MonadBlockChainBalancing m) => [([(Api.TxOutRef, Api.TxOut)], Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
+getOptimalCandidate :: (MonadBlockChainBalancing m) => [([(Api.TxOutRef, TxSkelOut)], Api.Value)] -> Wallet -> MockChainError -> m ([Api.TxOutRef], Api.Value)
 getOptimalCandidate candidates paymentTarget mceError = do
   -- We decorate the candidates with their current ada and min ada requirements
   candidatesDecorated <- forM candidates $ \(output, val) ->
@@ -315,9 +315,9 @@ estimateTxSkelFee skel fee mCollaterals = do
   -- We begin by retrieving the relevant utxos used in the skeleton
   (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> collateralIns)
   -- We then compute their Cardano counterparts
+  txOutL <- forM knownTxOuts toCardanoTxOut
   let indexOrError = do
         txInL <- forM knownTxORefs Ledger.toCardanoTxIn
-        txOutL <- forM knownTxOuts $ Ledger.toCardanoTxOut $ Emulator.pNetworkId params
         return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
   -- We retrieve the index when it was successfully created
   index <- case indexOrError of
@@ -329,7 +329,7 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
-computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> TxSkel -> Integer -> m TxSkel
+computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, TxSkelOut)] -> TxSkel -> Integer -> m TxSkel
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
@@ -357,7 +357,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   let candidatesRaw = second (<> missingRight') <$> reachValue balancingUtxos missingLeft' (toInteger $ length balancingUtxos)
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing wallet
-  let totalValue = mconcat $ Api.txOutValue . snd <$> balancingUtxos
+  let totalValue = mconcat $ txSkelOutValue . snd <$> balancingUtxos
       difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
       balancingError = MCEUnbalanceable balancingWallet difference
   -- Which one of our candidates should be picked depends on three factors
@@ -373,7 +373,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Nothing
-      | (before, txSkelOut : after) <- break (\(Pays o) -> Script.toCredential (o ^. outputOwnerL) == Script.toCredential balancingWallet) txSkelOuts,
+      | (before, txSkelOut : after) <- break (\(TxSkelOut {tsoOwner}) -> Script.toCredential tsoOwner == Script.toCredential balancingWallet) txSkelOuts,
         AdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected

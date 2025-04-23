@@ -5,7 +5,6 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
-import Cooked.Output
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
@@ -15,11 +14,11 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Converts a 'TxSkelOut' to the corresponding 'Cardano.TxOut'
 toCardanoTxOut :: (MonadBlockChainBalancing m) => TxSkelOut -> m (Cardano.TxOut Cardano.CtxTx Cardano.ConwayEra)
-toCardanoTxOut (Pays output) = do
-  let oAddress = outputAddress output
-      oValue = outputValue output
-      oDatum = output ^. outputDatumL
-      oRefScript = output ^. outputReferenceScriptL
+toCardanoTxOut output = do
+  let oAddress = txSkelOutAddress output
+      oValue = txSkelOutValue output
+      oDatum = output ^. txSkelOutDatumL
+      oRefScript = txSkelOutReferenceScript output
   networkId <- Emulator.pNetworkId <$> getParams
   address <-
     throwOnToCardanoError

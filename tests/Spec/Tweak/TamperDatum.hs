@@ -4,7 +4,10 @@
 module Spec.Tweak.TamperDatum where
 
 import Cooked
+import Data.Either
+import Data.Maybe (mapMaybe)
 import Data.Set qualified as Set
+import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
 import Prettyprinter (viaShow)
@@ -25,9 +28,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (52 :: Integer, 54 :: Integer)),
+                [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
                   alice `receives` Value (Script.lovelace 234),
-                  alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer))
+                  alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -39,9 +42,9 @@ tamperDatumTweakTest =
           )
           ( txSkelTemplate
               { txSkelOuts =
-                  [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (52 :: Integer, 53 :: Integer)),
+                  [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
                     alice `receives` Value (Script.lovelace 234),
-                    alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer))
+                    alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
           )
@@ -49,20 +52,20 @@ tamperDatumTweakTest =
 malformDatumTweakTest :: TestTree
 malformDatumTweakTest =
   testCase "malformDatumTweak" $
-    let txSkelWithDatums1And4 :: (PlutusTx.ToData a, PlutusTx.ToData b) => a -> b -> Either MockChainError ((), TxSkel)
-        txSkelWithDatums1And4 datum1 datum4 =
-          Right
-            ( (),
-              txSkelTemplate
-                { txSkelLabel = Set.singleton $ TxLabel MalformDatumLbl,
-                  txSkelOuts =
-                    [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (PlutusTx.toBuiltinData datum1)),
-                      alice `receives` Value (Script.lovelace 234),
-                      alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer)),
-                      alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (PlutusTx.toBuiltinData datum4))
-                    ]
-                }
+    let allBuiltinData :: TxSkel -> [PlutusTx.BuiltinData]
+        allBuiltinData txSkel =
+          mapMaybe
+            ( fmap PlutusTx.toBuiltinData
+                . preview (txSkelOutDatumL % txSkelOutDatumContentAT)
             )
+            (txSkelOuts txSkel)
+
+        txSkelWithDatums1And4 :: (PlutusTx.ToData a, PlutusTx.ToData b) => a -> b -> [PlutusTx.BuiltinData]
+        txSkelWithDatums1And4 datum1 datum4 =
+          [ PlutusTx.toBuiltinData datum1,
+            PlutusTx.toBuiltinData (76 :: Integer, 77 :: Integer),
+            PlutusTx.toBuiltinData datum4
+          ]
      in assertSameSets
           [ txSkelWithDatums1And4 (52 :: Integer, ()) (84 :: Integer, 85 :: Integer), -- datum1 changed, datum4 untouched
             txSkelWithDatums1And4 False (84 :: Integer, 85 :: Integer), -- datum1 changed, datum4 untouched
@@ -73,27 +76,28 @@ malformDatumTweakTest =
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) (84 :: Integer, ()), -- datum1 untouched, datum4 changed
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) False -- datum1 untouched, datum4 changed
           ]
-          ( fst
-              <$> runTweak
-                ( malformDatumTweak @(Integer, Integer)
-                    ( \(x, y) ->
-                        if y == 77
-                          then []
-                          else
-                            [ PlutusTx.toBuiltinData (x, ()),
-                              PlutusTx.toBuiltinData False
-                            ]
-                    )
-                )
-                ( txSkelTemplate
-                    { txSkelOuts =
-                        [ alice `receives` (Value (Script.lovelace 789) <&&> VisibleHashedDatum (52 :: Integer, 53 :: Integer)),
-                          alice `receives` Value (Script.lovelace 234),
-                          alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (76 :: Integer, 77 :: Integer)),
-                          alice `receives` (Value (Script.lovelace 567) <&&> VisibleHashedDatum (84 :: Integer, 85 :: Integer))
-                        ]
-                    }
-                )
+          ( fmap (allBuiltinData . snd) . rights $
+              fst
+                <$> runTweak
+                  ( malformDatumTweak @(Integer, Integer)
+                      ( \(x, y) ->
+                          if y == 77
+                            then []
+                            else
+                              [ PlutusTx.toBuiltinData (x, ()),
+                                PlutusTx.toBuiltinData False
+                              ]
+                      )
+                  )
+                  ( txSkelTemplate
+                      { txSkelOuts =
+                          [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
+                            alice `receives` Value (Script.lovelace 234),
+                            alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer),
+                            alice `receives` VisibleHashedDatum (84 :: Integer, 85 :: Integer)
+                          ]
+                      }
+                  )
           )
 
 tests :: TestTree
@@ -103,3 +107,14 @@ tests =
     [ tamperDatumTweakTest,
       malformDatumTweakTest
     ]
+
+-- x =
+--   [ [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
+--     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]]
+--   ]

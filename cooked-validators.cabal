@@ -41,7 +41,6 @@ library
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState
-      Cooked.Output
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable
@@ -59,6 +58,7 @@ library
       Cooked.Skeleton.Payable
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
+      Cooked.Skeleton.ReferenceScript
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
