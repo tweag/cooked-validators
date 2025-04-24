@@ -30,7 +30,7 @@ instance PrettyCooked Wallet where
 -- with a context. This is typically the case for elements that need some
 -- 'Api.TxOutRef's and datums to be resolved.
 data Contextualized a = Contextualized
-  { _ctxOutputs :: Map Api.TxOutRef TxSkelOut,
+  { _ctxOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
     ctxContent :: a
   }
   deriving (Functor)
@@ -335,7 +335,7 @@ instance PrettyCookedList TxOpts where
 -- reference script when they exist.
 instance PrettyCookedList (Contextualized Api.TxOutRef) where
   prettyCookedOptList opts (Contextualized managedTxOuts txOutRef) =
-    maybe [] (prettyCookedOptList opts) (Map.lookup txOutRef managedTxOuts)
+    maybe [] (prettyCookedOptList opts . fst) (Map.lookup txOutRef managedTxOuts)
 
 data Input = Input
   { inputORef :: Api.TxOutRef,

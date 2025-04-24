@@ -19,16 +19,21 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | A description of who owns what in a blockchain. Owners are addresses and
 -- they each own a 'UtxoPayloadSet'.
-newtype UtxoState = UtxoState {utxoState :: Map Api.Address UtxoPayloadSet}
+data UtxoState = UtxoState
+  { availableUtxos :: Map Api.Address UtxoPayloadSet,
+    consumedUtxos :: Map Api.Address UtxoPayloadSet
+  }
   deriving (Eq)
 
 -- | Total value accessible to what's pointed by the address.
 holdsInState :: (Script.ToAddress a) => a -> UtxoState -> Api.Value
-holdsInState (Script.toAddress -> address) (UtxoState m) =
-  maybe mempty utxoPayloadSetTotal (Map.lookup address m)
+holdsInState (Script.toAddress -> address) = maybe mempty utxoPayloadSetTotal . Map.lookup address . availableUtxos
 
 instance Semigroup UtxoState where
-  (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
+  (UtxoState a c) <> (UtxoState a' c') = UtxoState (Map.unionWith (<>) a a') (Map.unionWith (<>) c c')
+
+instance Monoid UtxoState where
+  mempty = UtxoState Map.empty Map.empty
 
 -- | Represents a /set/ of payloads.
 newtype UtxoPayloadSet = UtxoPayloadSet

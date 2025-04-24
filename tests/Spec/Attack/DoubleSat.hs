@@ -41,12 +41,12 @@ customInitDist =
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
-  case fst $ runMockChainFrom customInitDist $ do
+  case mcrValue $ runMockChainFrom customInitDist $ do
     [a1, a2, a3, a4] <- runUtxoSearch $ utxosOwnedBySearch aValidator
     [b1, b2] <- runUtxoSearch $ utxosOwnedBySearch bValidator
     return (a1, a2, a3, a4, b1, b2) of
     Left _ -> error "Initial distribution error"
-    Right (a, _) -> a
+    Right a -> a
 
 tests :: TestTree
 tests =
@@ -81,7 +81,7 @@ tests =
             skelsOut :: ([V3.TxOutRef] -> [[V3.TxOutRef]]) -> [(ARedeemer, V3.TxOutRef)] -> [TxSkel]
             skelsOut splitMode aInputs =
               mapMaybe
-                ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . fst)
+                ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . mcrValue)
                 ( runTweakFrom
                     customInitDist
                     ( doubleSatAttack

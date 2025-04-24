@@ -31,7 +31,10 @@ import PlutusLedgerApi.V3 qualified as Api
 data MockChainState = MockChainState
   { mcstParams :: Emulator.Params,
     mcstIndex :: Ledger.UtxoIndex,
-    mcstOutputs :: Map Api.TxOutRef TxSkelOut,
+    -- | For each 'Api.TxOutRef' associates the 'TxSkelOut' that produced it,
+    -- alongside a boolean to state whether this UTxO is still present in the
+    -- index ('True') or has already been consumed ('False').
+    mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
     mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show, Eq)
@@ -55,26 +58,26 @@ getIndex =
 -- | Builds a 'UtxoState' from a 'MockChainState'
 mcstToUtxoState :: MockChainState -> UtxoState
 mcstToUtxoState =
-  UtxoState
-    . foldr ((\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) . extractPayload) Map.empty
-    . Map.toList
-    . mcstOutputs
+  foldl extractPayload mempty . Map.toList . mcstOutputs
   where
-    extractPayload :: (Api.TxOutRef, TxSkelOut) -> (Api.Address, UtxoPayloadSet)
-    extractPayload (txOutRef, txSkelOut) =
-      ( txSkelOutAddress txSkelOut,
-        UtxoPayloadSet
-          [ UtxoPayload
-              txOutRef
-              (txSkelOutValue txSkelOut)
-              ( case txSkelOut ^. txSkelOutDatumL of
-                  TxSkelOutNoDatum -> Nothing
-                  TxSkelOutSomeDatum content Inline -> Just (content, False)
-                  TxSkelOutSomeDatum content _ -> Just (content, True)
-              )
-              (txSkelOutReferenceScriptHash txSkelOut)
-          ]
-      )
+    extractPayload :: UtxoState -> (Api.TxOutRef, (TxSkelOut, Bool)) -> UtxoState
+    extractPayload utxoState (txOutRef, (txSkelOut, bool)) =
+      let newAddress = txSkelOutAddress txSkelOut
+          newPayloadSet =
+            UtxoPayloadSet
+              [ UtxoPayload
+                  txOutRef
+                  (txSkelOutValue txSkelOut)
+                  ( case txSkelOut ^. txSkelOutDatumL of
+                      TxSkelOutNoDatum -> Nothing
+                      TxSkelOutSomeDatum content Inline -> Just (content, False)
+                      TxSkelOutSomeDatum content _ -> Just (content, True)
+                  )
+                  (txSkelOutReferenceScriptHash txSkelOut)
+              ]
+       in if bool
+            then utxoState {availableUtxos = Map.insertWith (<>) newAddress newPayloadSet (availableUtxos utxoState)}
+            else utxoState {consumedUtxos = Map.insertWith (<>) newAddress newPayloadSet (consumedUtxos utxoState)}
 
 -- | Generating an emulated state for the emulator from a mockchain state and
 -- some parameters, based on a standard initial state
@@ -100,14 +103,14 @@ mcstToEmulatedLedgerState MockChainState {..} =
 addOutput :: Api.TxOutRef -> TxSkelOut -> MockChainState -> MockChainState
 addOutput oRef txSkelOut st =
   st
-    { mcstOutputs = Map.insert oRef txSkelOut (mcstOutputs st)
+    { mcstOutputs = Map.insert oRef (txSkelOut, True) (mcstOutputs st)
     }
 
 -- | Removes an output from the 'MockChainState'
 removeOutput :: Api.TxOutRef -> MockChainState -> MockChainState
 removeOutput oRef st =
   st
-    { mcstOutputs = Map.delete oRef (mcstOutputs st)
+    { mcstOutputs = Map.update (\(output, _) -> Just (output, False)) oRef (mcstOutputs st)
     }
 
 -- * Initial `MockChainState` from an 'InitialDistribution'
@@ -133,7 +136,7 @@ mockChainState0From i0 = do
 --
 -- - The genesis key hash has been taken from
 --   https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
-utxoIndex0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m (Ledger.UtxoIndex, Map Api.TxOutRef TxSkelOut)
+utxoIndex0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m (Ledger.UtxoIndex, Map Api.TxOutRef (TxSkelOut, Bool))
 utxoIndex0From (InitialDistribution initDist) = do
   networkId <- Emulator.pNetworkId <$> getParams
   let genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
@@ -151,9 +154,13 @@ utxoIndex0From (InitialDistribution initDist) = do
         )
   return
     ( Ledger.initialise [[Emulator.unsafeMakeValid cardanoTx]],
-      Map.fromList $ zip (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx) outputsMinAda
+      Map.fromList $
+        zipWith
+          (\x y -> (x, (y, True)))
+          (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
+          outputsMinAda
     )
 
 -- | Same as 'utxoIndex0From' with the default 'InitialDistribution'
-utxoIndex0 :: (MonadBlockChainBalancing m) => m (Ledger.UtxoIndex, Map Api.TxOutRef TxSkelOut)
+utxoIndex0 :: (MonadBlockChainBalancing m) => m (Ledger.UtxoIndex, Map Api.TxOutRef (TxSkelOut, Bool))
 utxoIndex0 = utxoIndex0From def

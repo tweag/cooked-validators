@@ -35,7 +35,7 @@ tamperDatumTweakTest =
             }
         )
     ]
-      @=? fst
+      @=? mcrValue
         <$> runTweak
           ( tamperDatumTweak @(Integer, Integer)
               (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
@@ -77,7 +77,7 @@ malformDatumTweakTest =
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) False -- datum1 untouched, datum4 changed
           ]
           ( fmap (allBuiltinData . snd) . rights $
-              fst
+              mcrValue
                 <$> runTweak
                   ( malformDatumTweak @(Integer, Integer)
                       ( \(x, y) ->

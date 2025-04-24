@@ -22,9 +22,8 @@ import Cooked.MockChain.Staged as X hiding
   )
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.UtxoSearch as X
-import Cooked.MockChain.UtxoState as X (UtxoState)
 import Cooked.MockChain.UtxoState as X hiding
   ( UtxoPayload,
     UtxoPayloadSet,
-    UtxoState (UtxoState, utxoState),
+    UtxoState (UtxoState, availableUtxos, consumedUtxos),
   )

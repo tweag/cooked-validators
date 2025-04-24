@@ -13,6 +13,7 @@ import Cooked.Pretty.Skeleton
 import Cooked.Wallet
 import Data.Function (on)
 import Data.List qualified as List
+import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set qualified as Set
@@ -64,34 +65,30 @@ instance PrettyCooked MockChainError where
   prettyCookedOpt _ (MCEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
 
-instance (Show a) => PrettyCooked (a, UtxoState) where
-  prettyCookedOpt opts (res, state) =
-    prettyItemize
-      opts
-      "End state:"
-      "-"
-      ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
+instance (Show a) => PrettyCooked (MockChainReturn a) where
+  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
+    PP.vsep $
+      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts]
+        <> prettyCookedOptList opts utxoState
+        <> [ case res of
+               Left err -> "🔴" <+> prettyCookedOpt opts err
+               Right a -> "🟢" <+> PP.viaShow a
+           ]
 
-instance (Show a) => PrettyCooked (MockChainReturn a UtxoState) where
-  prettyCookedOpt opts' (res, MockChainBook entries ((`addHashNames` opts') -> opts)) =
-    let mcEndResult = case res of
-          Left err -> "🔴" <+> prettyCookedOpt opts err
-          Right (a, s) -> "🟢" <+> prettyCookedOpt opts (a, s)
-     in PP.vsep $ if pcOptPrintLog opts then [prettyCookedOpt opts entries, mcEndResult] else [mcEndResult]
-
-instance PrettyCooked [MockChainLogEntry] where
-  prettyCookedOpt opts = ("📘" <+>) . prettyItemize opts "MockChain run log:" "⁍"
+instance PrettyCooked (Contextualized [MockChainLogEntry]) where
+  prettyCookedOpt opts (Contextualized outputs entries) =
+    "📘" <+> prettyItemize opts "MockChain run log:" "⁍" (fmap (prettyCookedOpt opts . Contextualized outputs) entries)
 
 -- | This prints a 'MockChainLogEntry'. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
-instance PrettyCooked MockChainLogEntry where
-  prettyCookedOpt opts (MCLogAdjustedTxSkelOut skelOut newAda) =
+instance PrettyCooked (Contextualized MockChainLogEntry) where
+  prettyCookedOpt opts (Contextualized _ (MCLogAdjustedTxSkelOut skelOut newAda)) =
     "The ADA amount of "
       <> prettyCookedOpt opts skelOut
       <> " has been automatically adjusted to "
       <> prettyCookedOpt opts (Script.toValue newAda)
-  prettyCookedOpt opts (MCLogSubmittedTxSkel outputs skel) = prettyItemize opts "Submitted skeleton:" "-" $ Contextualized outputs skel
-  prettyCookedOpt opts (MCLogAdjustedTxSkel outputs skel fee mCollaterals) =
+  prettyCookedOpt opts (Contextualized outputs (MCLogSubmittedTxSkel skel)) = prettyItemize opts "Submitted skeleton:" "-" $ Contextualized outputs skel
+  prettyCookedOpt opts (Contextualized outputs (MCLogAdjustedTxSkel skel fee mCollaterals)) =
     let mCollateralsDoc =
           ( \(collaterals, returnWallet) ->
               [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
@@ -102,33 +99,36 @@ instance PrettyCooked MockChainLogEntry where
      in prettyItemize opts "Adjusted skeleton:" "-" $
           prettyCookedOptList opts (Contextualized outputs skel)
             ++ (("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)) : fromMaybe [] mCollateralsDoc)
-  prettyCookedOpt opts (MCLogNewTx txId) = "New transaction:" <+> prettyHash opts txId
-  prettyCookedOpt opts (MCLogDiscardedUtxos n s) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
-  prettyCookedOpt opts (MCLogUnusedCollaterals (Left cWallet)) =
+  prettyCookedOpt opts (Contextualized _ (MCLogNewTx txId)) = "New transaction:" <+> prettyHash opts txId
+  prettyCookedOpt opts (Contextualized _ (MCLogDiscardedUtxos n s)) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
+  prettyCookedOpt opts (Contextualized _ (MCLogUnusedCollaterals (Left cWallet))) =
     "Specific request to fetch collateral utxos from "
       <> prettyCookedOpt opts cWallet
       <> " has been disregarded because the transaction does not require collaterals"
-  prettyCookedOpt opts (MCLogUnusedCollaterals (Right (length -> n))) =
+  prettyCookedOpt opts (Contextualized _ (MCLogUnusedCollaterals (Right (length -> n)))) =
     "Specific request to fetch collateral utxos from the given set of "
       <> prettyCookedOpt opts n
       <> " elements has been disregarded because the transaction does not require collaterals"
-  prettyCookedOpt opts (MCLogAddedReferenceScript red oRef sHash) =
-    "A reference script located in "
+  prettyCookedOpt opts (Contextualized _ (MCLogAddedReferenceScript red oRef sHash)) =
+    "The following reference input:"
       <> prettyCookedOpt opts oRef
       <> " has been automatically associated to redeemer "
       <> prettyItemizeNoTitle opts "-" red
       <> " for script "
       <> prettyHash opts sHash
 
+instance PrettyCookedList UtxoState where
+  prettyCookedOptList opts (UtxoState available consumed) =
+    prettyCookedOpt opts available : [prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
+
 -- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
 -- pubkeys, then scripts.
-instance PrettyCooked UtxoState where
+instance PrettyCooked (Map Api.Address UtxoPayloadSet) where
   prettyCookedOpt opts =
     prettyItemize opts "UTxO state:" "•"
       . map (\(addr, plSet) -> prettyItemize opts (prettyCookedOpt opts addr) "-" plSet)
       . List.sortBy addressOrdering
       . Map.toList
-      . utxoState
     where
       addressOrdering :: (Api.Address, a) -> (Api.Address, a) -> Ordering
       addressOrdering

@@ -116,10 +116,10 @@ data MockChainError
 -- provided here.
 data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
-    MCLogSubmittedTxSkel (Map Api.TxOutRef TxSkelOut) TxSkel
+    MCLogSubmittedTxSkel TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral wallet.
-    MCLogAdjustedTxSkel (Map Api.TxOutRef TxSkelOut) TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
+    MCLogAdjustedTxSkel TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
   | -- | Logging the appearance of a new transaction, after a skeleton has been
     -- successfully sent for validation.
     MCLogNewTx Api.TxId

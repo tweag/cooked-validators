@@ -21,7 +21,6 @@ where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Arrow hiding ((<+>))
 import Control.Monad (MonadPlus (..), msum)
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -30,7 +29,6 @@ import Cooked.InitialDistribution
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Cooked.MockChain.UtxoState
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
@@ -52,7 +50,7 @@ interpretAndRunWith f smc = f $ interpret smc
 
 -- | Same as 'interpretAndRunWith' but using 'runMockChainT' as the default way
 -- to run the computation.
-interpretAndRun :: StagedMockChain a -> [MockChainReturn a UtxoState]
+interpretAndRun :: StagedMockChain a -> [MockChainReturn a]
 interpretAndRun = interpretAndRunWith runMockChainT
 
 -- | The semantic domain in which 'StagedMockChain' gets interpreted
@@ -60,12 +58,7 @@ type InterpMockChain = MockChainT []
 
 -- | The 'interpret' function gives semantics to our traces. One
 -- 'StagedMockChain' computation yields a potential list of 'MockChainT'
--- computations, which emit a description of their operation. Recall a
--- 'MockChainT' is a state and except monad composed:
---
---  >     MockChainT (WriterT TraceDescr []) a
---  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
---  > =~= st -> [(Either err (a, st) , TraceDescr)]
+-- computations.
 interpret :: StagedMockChain a -> InterpMockChain a
 interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
@@ -146,13 +139,13 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
 -- ** Helpers to run tweaks for use in tests for tweaks
 
 -- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
-runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
+runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn (a, TxSkel)]
 runTweak = runTweakFrom def
 
 -- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
 -- mockchain
-runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
-runTweakFrom initDist tweak = map (first (right fst)) . runMockChainTFrom initDist . runTweakInChain tweak
+runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn (a, TxSkel)]
+runTweakFrom initDist tweak = runMockChainTFrom initDist . runTweakInChain tweak
 
 -- ** Modalities
 

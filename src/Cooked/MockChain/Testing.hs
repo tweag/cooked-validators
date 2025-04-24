@@ -10,12 +10,14 @@ import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
+import Cooked.Pretty.Skeleton (Contextualized (..))
 import Cooked.Wallet
 import Data.Default
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Ledger qualified
 import PlutusLedgerApi.V1.Value qualified as Api
+import Prettyprinter qualified as PP
 import Test.QuickCheck qualified as QC
 import Test.Tasty qualified as HU
 import Test.Tasty.HUnit qualified as HU
@@ -164,7 +166,7 @@ assertSameSets l r =
 --}
 
 -- | Type of properties over failures
-type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> MockChainError -> prop
+type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> MockChainError -> UtxoState -> prop
 
 -- | Type of properties over successes
 type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoState -> prop
@@ -176,6 +178,9 @@ type SizeProp prop = Integer -> prop
 
 -- | Type of properties over the mockchain journal
 type JournalProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
+
+-- | Type of properties over the 'UtxoState'
+type UtxoStateProp prop = PrettyCookedOpts -> UtxoState -> prop
 
 -- | Data structure to test a mockchain trace. @a@ is the return typed of the
 -- tested trace, @prop@ is the domain in which the properties live. This is not
@@ -209,13 +214,13 @@ testToProp Test {..} =
   let results = interpretAndRunWith (runMockChainTFrom testInitDist) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \(outcome, MockChainBook mcLog names) ->
+          ( \(MockChainReturn outcome outputs state mcLog names) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testCounterexample
-                    (renderString (prettyCookedOpt pcOpts) mcLog)
+                    (renderString (prettyCookedOpt pcOpts) (Contextualized outputs mcLog))
                     $ case outcome of
-                      Left err -> testFailureProp pcOpts mcLog err
-                      Right (result, state) -> testSuccessProp pcOpts mcLog result state
+                      Left err -> testFailureProp pcOpts mcLog err state
+                      Right result -> testSuccessProp pcOpts mcLog result state
           )
           results
 
@@ -239,7 +244,7 @@ mustSucceedTest trace =
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
-      testFailureProp = \opts _ res -> testFailureMsg $ "Expected success, but got:" <> renderString (prettyCookedOpt opts) res,
+      testFailureProp = \opts _ err _ -> testFailureMsg $ "Expected success, but got:" <> renderString (prettyCookedOpt opts) err,
       testSuccessProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def
     }
@@ -251,8 +256,8 @@ mustFailTest trace =
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
-      testFailureProp = \_ _ _ -> testSuccess,
-      testSuccessProp = \opts _ a res -> testFailureMsg $ "Expected failure, but got:" <> renderString (prettyCookedOpt opts) (a, res),
+      testFailureProp = \_ _ _ _ -> testSuccess,
+      testSuccessProp = \_ _ a _ -> testFailureMsg $ "Expected failure, but got:" <> renderString PP.viaShow a,
       testPrettyOpts = def
     }
 
@@ -271,8 +276,15 @@ withPrettyOpts test opts = test {testPrettyOpts = opts}
 withJournalProp :: (IsProp prop) => Test a prop -> JournalProp prop -> Test a prop
 withJournalProp test journalProp =
   test
-    { testFailureProp = \opts journal err -> testFailureProp test opts journal err .&&. journalProp opts journal,
+    { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. journalProp opts journal,
       testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. journalProp opts journal
+    }
+
+withStateProp :: (IsProp prop) => Test a prop -> UtxoStateProp prop -> Test a prop
+withStateProp test stateProp =
+  test
+    { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. stateProp opts state,
+      testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. stateProp opts state
     }
 
 -- | Appends a requirement over the resulting value and state of the mockchain
@@ -287,10 +299,6 @@ withSuccessProp test successProp =
 withResultProp :: (IsProp prop) => Test a prop -> (a -> prop) -> Test a prop
 withResultProp test p = withSuccessProp test (\_ _ res _ -> p res)
 
--- | Some as 'withSuccessProp' but only considers the returning state of the run
-withStateProp :: (IsProp prop) => Test a prop -> (UtxoState -> prop) -> Test a prop
-withStateProp test p = withSuccessProp test (\_ _ _ -> p)
-
 -- | Appends a requirement over the resulting number of outcomes of the run
 withSizeProp :: (IsProp prop) => Test a prop -> SizeProp prop -> Test a prop
 withSizeProp test reqSize =
@@ -301,33 +309,33 @@ withSizeProp test reqSize =
 -- | Appends a requirement over the resulting value and state of the mockchain
 -- run which will need to be satisfied if the run is successful
 withFailureProp :: (IsProp prop) => Test a prop -> FailureProp prop -> Test a prop
-withFailureProp test failureProp = test {testFailureProp = \opts journal err -> testFailureProp test opts journal err .&&. failureProp opts journal err}
+withFailureProp test failureProp = test {testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. failureProp opts journal err state}
 
 -- | Same as 'withFailureProp' but only considers the returning error of the run
 withErrorProp :: (IsProp prop) => Test a prop -> (MockChainError -> prop) -> Test a prop
-withErrorProp test errorProp = withFailureProp test (\_ _ -> errorProp)
+withErrorProp test errorProp = withFailureProp test (\_ _ err _ -> errorProp err)
 
 -- * Specific properties around failures
 
 -- | A property to ensure a phase 1 failure
 isPhase1Failure :: (IsProp prop) => FailureProp prop
-isPhase1Failure _ _ (MCEValidationError Ledger.Phase1 _) = testSuccess
-isPhase1Failure pcOpts _ e = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase1Failure _ _ (MCEValidationError Ledger.Phase1 _) _ = testSuccess
+isPhase1Failure pcOpts _ e _ = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | A property to ensure a phase 2 failure
 isPhase2Failure :: (IsProp prop) => FailureProp prop
-isPhase2Failure _ _ (MCEValidationError Ledger.Phase2 _) = testSuccess
-isPhase2Failure pcOpts _ e = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase2Failure _ _ (MCEValidationError Ledger.Phase2 _) _ = testSuccess
+isPhase2Failure pcOpts _ e _ = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'isPhase1Failure' with an added predicate on the text error
 isPhase1FailureWithMsg :: (IsProp prop) => String -> FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) | T.pack s == text = testSuccess
-isPhase1FailureWithMsg _ pcOpts _ e = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) _ | T.pack s == text = testSuccess
+isPhase1FailureWithMsg _ pcOpts _ e _ = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'isPhase2Failure' with an added predicate over the text error
 isPhase2FailureWithMsg :: (IsProp prop) => String -> FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) | T.pack s `elem` texts = testSuccess
-isPhase2FailureWithMsg _ pcOpts _ e = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) _ | T.pack s `elem` texts = testSuccess
+isPhase2FailureWithMsg _ pcOpts _ e _ = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- * Specific properties around number of outcomes
 
