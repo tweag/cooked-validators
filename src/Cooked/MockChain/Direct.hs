@@ -116,10 +116,15 @@ combineMockChainT f ma mb = MockChainT $
 -- and filtering of the natural returned type @((Either MockChainError a,
 -- MockChainState), MockChainBook)@, which is much easier to query.
 data MockChainReturn a = MockChainReturn
-  { mcrValue :: Either MockChainError a,
+  { -- | The returned value of the run
+    mcrValue :: Either MockChainError a,
+    -- | All the outputs used throughout the run
     mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+    -- | The resulting 'UtxoState' of the run
     mcrUtxoState :: UtxoState,
+    -- | The log entries emitted during the run
     mcrJournal :: [MockChainLogEntry],
+    -- | The aliases defined during the run
     mcrAliases :: Map Api.BuiltinByteString String
   }
 

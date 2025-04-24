@@ -180,7 +180,7 @@ type SizeProp prop = Integer -> prop
 type JournalProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
 
 -- | Type of properties over the 'UtxoState'
-type UtxoStateProp prop = PrettyCookedOpts -> UtxoState -> prop
+type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
 
 -- | Data structure to test a mockchain trace. @a@ is the return typed of the
 -- tested trace, @prop@ is the domain in which the properties live. This is not
@@ -280,7 +280,9 @@ withJournalProp test journalProp =
       testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. journalProp opts journal
     }
 
-withStateProp :: (IsProp prop) => Test a prop -> UtxoStateProp prop -> Test a prop
+-- | Appends a requirements over the resulting 'UtxoState', which will need to
+-- be satisfied both in case of success or failure of the run.
+withStateProp :: (IsProp prop) => Test a prop -> StateProp prop -> Test a prop
 withStateProp test stateProp =
   test
     { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. stateProp opts state,
