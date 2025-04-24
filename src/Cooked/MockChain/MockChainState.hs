@@ -31,7 +31,7 @@ import PlutusLedgerApi.V3 qualified as Api
 data MockChainState = MockChainState
   { mcstParams :: Emulator.Params,
     mcstIndex :: Ledger.UtxoIndex,
-    -- | For each 'Api.TxOutRef' associates the 'TxSkelOut' that produced it,
+    -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
     -- alongside a boolean to state whether this UTxO is still present in the
     -- index ('True') or has already been consumed ('False').
     mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),

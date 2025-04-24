@@ -35,8 +35,6 @@ module Cooked.MockChain.BlockChain
     slotRangeBefore,
     slotRangeAfter,
     slotToTimeInterval,
-    txSkelInputUtxos,
-    txSkelReferenceInputUtxos,
     txSkelInputValidators,
     txSkelInputValue,
     lookupUtxos,
@@ -256,14 +254,6 @@ valueFromTxOutRef = ((txSkelOutValue <$>) <$>) . txOutByRef
 unsafeValueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.Value
 unsafeValueFromTxOutRef = (txSkelOutValue <$>) . unsafeTxOutByRef
 
--- | Resolves all the inputs of a given 'Cooked.Skeleton.TxSkel'
-txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef TxSkelOut)
-txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
-
--- | Resolves all the reference inputs of a given 'Cooked.Skeleton.TxSkel'
-txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef TxSkelOut)
-txSkelReferenceInputUtxos = lookupUtxos . txSkelReferenceTxOutRefs
-
 -- | Retrieves the required deposit amount for issuing governance actions.
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
 govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
@@ -274,15 +264,8 @@ txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovela
 txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
 
 -- | Returns all validators which guard transaction inputs
-txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Script.ValidatorHash (Script.Versioned Script.Validator))
-txSkelInputValidators =
-  fmap
-    ( Map.fromList
-        . mapMaybe (fmap (\val -> (Script.toValidatorHash val, val)) . txSkelOutValidator)
-    )
-    . mapM unsafeTxOutByRef
-    . Map.keys
-    . txSkelIns
+txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Validator]
+txSkelInputValidators = fmap (mapMaybe txSkelOutValidator) . mapM unsafeTxOutByRef . Map.keys . txSkelIns
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.
@@ -291,7 +274,7 @@ lookupUtxos = foldM (\m oRef -> flip (Map.insert oRef) m <$> unsafeTxOutByRef oR
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
-txSkelInputValue = (foldMap txSkelOutValue <$>) . txSkelInputUtxos
+txSkelInputValue = fmap mconcat . mapM unsafeValueFromTxOutRef . Map.keys . txSkelIns
 
 -- * Slot and Time Management
 

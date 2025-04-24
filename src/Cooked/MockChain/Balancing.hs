@@ -75,7 +75,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     let noScriptInvolved =
           Map.null txSkelMints
             && null (mapMaybe txSkelProposalWitness txSkelProposals)
-            && Map.null spendingScripts
+            && null spendingScripts
             && null (txSkelWithdrawalsScripts skelUnbal)
     case (noScriptInvolved, txOptCollateralUtxos txSkelOpts) of
       (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
