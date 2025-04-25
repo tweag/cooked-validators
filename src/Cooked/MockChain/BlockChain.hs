@@ -118,9 +118,9 @@ data MockChainLogEntry
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral wallet.
     MCLogAdjustedTxSkel TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
-  | -- | Logging the appearance of a new transaction, after a skeleton has been
-    -- successfully sent for validation.
-    MCLogNewTx Api.TxId
+  | -- | Logging the successful validation of a new transaction, with its id and
+    -- number of produced outputs.
+    MCLogNewTx Api.TxId Integer
   | -- | Logging the fact that utxos provided by the user for balancing have to be
     -- discarded for a specific reason.
     MCLogDiscardedUtxos Integer String

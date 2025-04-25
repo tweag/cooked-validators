@@ -253,6 +253,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction
-    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
+    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return cardanoTx

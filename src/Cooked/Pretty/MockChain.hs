@@ -15,13 +15,23 @@ import Data.Function (on)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
+
+instance (Show a) => PrettyCooked (MockChainReturn a) where
+  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
+    PP.vsep $
+      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts]
+        <> prettyCookedOptList opts utxoState
+        <> [ case res of
+               Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
+               Right a -> "🟢 Returned value:" <+> PP.viaShow a
+           ]
 
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
@@ -65,61 +75,81 @@ instance PrettyCooked MockChainError where
   prettyCookedOpt _ (MCEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
 
-instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
-    PP.vsep $
-      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts]
-        <> prettyCookedOptList opts utxoState
-        <> [ case res of
-               Left err -> "🔴" <+> prettyCookedOpt opts err
-               Right a -> "🟢" <+> PP.viaShow a
-           ]
-
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where
   prettyCookedOpt opts (Contextualized outputs entries) =
-    "📘" <+> prettyItemize opts "MockChain run log:" "⁍" (fmap (prettyCookedOpt opts . Contextualized outputs) entries)
+    prettyItemize opts "📖 MockChain run log:" "⁍" (fmap (prettyCookedOpt opts . Contextualized outputs) entries)
 
 -- | This prints a 'MockChainLogEntry'. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked (Contextualized MockChainLogEntry) where
   prettyCookedOpt opts (Contextualized _ (MCLogAdjustedTxSkelOut skelOut newAda)) =
-    "The ADA amount of "
-      <> prettyCookedOpt opts skelOut
-      <> " has been automatically adjusted to "
-      <> prettyCookedOpt opts (Script.toValue newAda)
-  prettyCookedOpt opts (Contextualized outputs (MCLogSubmittedTxSkel skel)) = prettyItemize opts "Submitted skeleton:" "-" $ Contextualized outputs skel
+    prettyItemize
+      opts
+      ("New ADA adjustment of" <> prettyCookedOpt opts (Script.toValue newAda) <> "performed for output:")
+      "-"
+      skelOut
+  prettyCookedOpt opts (Contextualized outputs (MCLogSubmittedTxSkel skel)) =
+    prettyItemize
+      opts
+      "New raw skeleton submitted to the adjustment pipeline:"
+      "-"
+      (Contextualized outputs skel)
   prettyCookedOpt opts (Contextualized outputs (MCLogAdjustedTxSkel skel fee mCollaterals)) =
-    let mCollateralsDoc =
-          ( \(collaterals, returnWallet) ->
-              [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
-                "Return collateral target:" <+> prettyCookedOpt opts returnWallet
-              ]
-          )
-            <$> mCollaterals
-     in prettyItemize opts "Adjusted skeleton:" "-" $
-          prettyCookedOptList opts (Contextualized outputs skel)
-            ++ (("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee)) : fromMaybe [] mCollateralsDoc)
-  prettyCookedOpt opts (Contextualized _ (MCLogNewTx txId)) = "New transaction:" <+> prettyHash opts txId
-  prettyCookedOpt opts (Contextualized _ (MCLogDiscardedUtxos n s)) = prettyCookedOpt opts n <+> "balancing utxos were discarded:" <+> PP.pretty s
-  prettyCookedOpt opts (Contextualized _ (MCLogUnusedCollaterals (Left cWallet))) =
-    "Specific request to fetch collateral utxos from "
-      <> prettyCookedOpt opts cWallet
-      <> " has been disregarded because the transaction does not require collaterals"
-  prettyCookedOpt opts (Contextualized _ (MCLogUnusedCollaterals (Right (length -> n)))) =
-    "Specific request to fetch collateral utxos from the given set of "
-      <> prettyCookedOpt opts n
-      <> " elements has been disregarded because the transaction does not require collaterals"
+    prettyItemize
+      opts
+      "New adjusted skeleton submitted for validation:"
+      "-"
+      ( prettyCookedOptList opts (Contextualized outputs skel)
+          ++ ( ("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee))
+                 : maybe
+                   ["No collateral required"]
+                   ( \(collaterals, returnWallet) ->
+                       [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
+                         "Return collateral target:" <+> prettyCookedOpt opts returnWallet
+                       ]
+                   )
+                   mCollaterals
+             )
+      )
+  prettyCookedOpt opts (Contextualized _ (MCLogNewTx txId nb)) =
+    prettyItemize
+      opts
+      "New transaction successfully validated:"
+      "-"
+      [ "Transaction id:" <+> prettyHash opts txId,
+        "Number of new outputs:" <+> PP.pretty nb
+      ]
+  prettyCookedOpt opts (Contextualized _ (MCLogDiscardedUtxos n s)) =
+    prettyItemize @[DocCooked]
+      opts
+      "Warning:"
+      "-"
+      [ PP.pretty n <+> "balancing UTxOs were discarded",
+        PP.pretty s
+      ]
+  prettyCookedOpt opts (Contextualized _ (MCLogUnusedCollaterals source)) =
+    prettyItemize
+      opts
+      "Warning"
+      "-"
+      [ "Request for using specific collateral inputs was disregarded",
+        "Source:" <+> either (prettyCookedOpt opts) (("Given set of size" <+>) . PP.pretty . length) source,
+        "The transaction does not require any collateral"
+      ]
   prettyCookedOpt opts (Contextualized _ (MCLogAddedReferenceScript red oRef sHash)) =
-    "The following reference input:"
-      <> prettyCookedOpt opts oRef
-      <> " has been automatically associated to redeemer "
-      <> prettyItemizeNoTitle opts "-" red
-      <> " for script "
-      <> prettyHash opts sHash
+    prettyItemize
+      opts
+      "New automated attachment of a reference script"
+      "-"
+      ( [ "Input" <+> prettyCookedOpt opts oRef,
+          "Script:" <+> prettyHash opts sHash
+        ]
+          ++ prettyCookedOptList opts red
+      )
 
 instance PrettyCookedList UtxoState where
   prettyCookedOptList opts (UtxoState available consumed) =
-    prettyCookedOpt opts available : [prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
+    "✅" <+> prettyCookedOpt opts available : ["❎" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
 
 -- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
 -- pubkeys, then scripts.
