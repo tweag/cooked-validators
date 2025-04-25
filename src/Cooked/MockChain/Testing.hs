@@ -10,14 +10,12 @@ import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
-import Cooked.Pretty.Skeleton (Contextualized (..))
 import Cooked.Wallet
 import Data.Default
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Ledger qualified
 import PlutusLedgerApi.V1.Value qualified as Api
-import Prettyprinter qualified as PP
 import Test.QuickCheck qualified as QC
 import Test.Tasty qualified as HU
 import Test.Tasty.HUnit qualified as HU
@@ -209,15 +207,15 @@ data Test a prop = Test
 -- the nature of these outcomes, either calls 'testFailureProp' or
 -- 'testSuccessProp'. It also uses the aliases emitted during the mockchain run
 -- to pretty print messages when applicable.
-testToProp :: (IsProp prop) => Test a prop -> prop
+testToProp :: (IsProp prop, Show a) => Test a prop -> prop
 testToProp Test {..} =
   let results = interpretAndRunWith (runMockChainTFrom testInitDist) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \(MockChainReturn outcome outputs state mcLog names) ->
+          ( \ret@(MockChainReturn outcome _ state mcLog names) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testCounterexample
-                    (renderString (prettyCookedOpt pcOpts) (Contextualized outputs mcLog))
+                    (renderString (prettyCookedOpt pcOpts) ret)
                     $ case outcome of
                       Left err -> testFailureProp pcOpts mcLog err state
                       Right result -> testSuccessProp pcOpts mcLog result state
@@ -228,11 +226,11 @@ testToProp Test {..} =
 -- 'HU.testCase' with 'testCooked' and thus avoid the use of 'testToProp'.
 -- Sadly we cannot generalise it with type classes on @prop@ to work for
 -- QuichCheck at GHC will never be able to instantiate @prop@.
-testCooked :: String -> Test a HU.Assertion -> HU.TestTree
+testCooked :: (Show a) => String -> Test a HU.Assertion -> HU.TestTree
 testCooked name = HU.testCase name . testToProp
 
 -- | Same as 'testCooked', but for 'QC.Property'
-testCookedQC :: String -> Test a QC.Property -> HU.TestTree
+testCookedQC :: (Show a) => String -> Test a QC.Property -> HU.TestTree
 testCookedQC name = QC.testProperty name . testToProp
 
 -- * Simple test templates
@@ -244,20 +242,20 @@ mustSucceedTest trace =
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
-      testFailureProp = \opts _ err _ -> testFailureMsg $ "Expected success, but got:" <> renderString (prettyCookedOpt opts) err,
+      testFailureProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected failure!",
       testSuccessProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def
     }
 
 -- | A test template which expects a failure from a trace
-mustFailTest :: (IsProp prop, Show a) => StagedMockChain a -> Test a prop
+mustFailTest :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailTest trace =
   Test
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
       testFailureProp = \_ _ _ _ -> testSuccess,
-      testSuccessProp = \_ _ a _ -> testFailureMsg $ "Expected failure, but got:" <> renderString PP.viaShow a,
+      testSuccessProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected success!",
       testPrettyOpts = def
     }
 
@@ -414,19 +412,19 @@ isInWallet (w, ac, n) = isInWallets [(w, [(ac, (== n))])]
 --}
 
 -- | A test template which expects a Phase 2 failure
-mustFailInPhase2Test :: (IsProp prop, Show a) => StagedMockChain a -> Test a prop
+mustFailInPhase2Test :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailInPhase2Test run = mustFailTest run `withFailureProp` isPhase2Failure
 
 -- | A test template which expects a specific phase 2 error message
-mustFailInPhase2WithMsgTest :: (IsProp prop, Show a) => String -> StagedMockChain a -> Test a prop
+mustFailInPhase2WithMsgTest :: (IsProp prop) => String -> StagedMockChain a -> Test a prop
 mustFailInPhase2WithMsgTest msg run = mustFailTest run `withFailureProp` isPhase2FailureWithMsg msg
 
 -- | A test template which expects a Phase 1 failure
-mustFailInPhase1Test :: (IsProp prop, Show a) => StagedMockChain a -> Test a prop
+mustFailInPhase1Test :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailInPhase1Test run = mustFailTest run `withFailureProp` isPhase1Failure
 
 -- | A test template which expects a specific phase 1 error message
-mustFailInPhase1WithMsgTest :: (IsProp prop, Show a) => String -> StagedMockChain a -> Test a prop
+mustFailInPhase1WithMsgTest :: (IsProp prop) => String -> StagedMockChain a -> Test a prop
 mustFailInPhase1WithMsgTest msg run = mustFailTest run `withFailureProp` isPhase1FailureWithMsg msg
 
 -- | A test template which expects a certain number of successful outcomes
@@ -434,5 +432,5 @@ mustSucceedWithSizeTest :: (IsProp prop) => Integer -> StagedMockChain a -> Test
 mustSucceedWithSizeTest size run = mustSucceedTest run `withSizeProp` (testBool . (== size))
 
 -- | A test template which expects a certain number of unsuccessful outcomes
-mustFailWithSizeTest :: (IsProp prop, Show a) => Integer -> StagedMockChain a -> Test a prop
+mustFailWithSizeTest :: (IsProp prop) => Integer -> StagedMockChain a -> Test a prop
 mustFailWithSizeTest size run = mustFailTest run `withSizeProp` isOfSize size

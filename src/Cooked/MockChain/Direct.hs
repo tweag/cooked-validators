@@ -30,6 +30,7 @@ import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Direct Emulation
@@ -179,9 +180,12 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
         (\(oRef, (txSkelOut, isAvailable)) -> if isAvailable then Just (oRef, txSkelOut) else Nothing)
         . Map.toList
         . mcstOutputs
-  setParams newParams = modify (\st -> st {mcstParams = newParams})
-  currentSlot = gets mcstCurrentSlot
-  awaitSlot slot = modify' (\st -> st {mcstCurrentSlot = max slot (mcstCurrentSlot st)}) >> currentSlot
+  setParams = modify . set mcstParamsL
+  currentSlot = gets (Emulator.getSlot . mcstLedgerState)
+  awaitSlot slot = do
+    cs <- currentSlot
+    when (slot > cs) $ modify' (over mcstLedgerStateL (Emulator.updateSlot (const (Ledger.toCardanoSlotNo slot))))
+    return $ max slot cs
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
 
 -- | Most of the logic of the direct emulation happens here
@@ -210,46 +214,50 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- the modifications from the skeleton options
     cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
-    eLedgerState <- gets mcstToEmulatedLedgerState
-    -- We finally run the emulated validation, and we only care about the
-    -- validation result, as we update our own internal state
-    let (_, mValidationResult) = Emulator.validateCardanoTx newParams eLedgerState cardanoTx
-    -- We retrieve our current utxo index to perform modifications associated
-    -- with the validated transaction.
-    utxoIndex <- gets mcstIndex
-    -- We update our internal state based on the validation result, and throw an
-    -- error if this fails. If at some point we want to allows mockchain runs
-    -- with validation errors, the caller will need to catch those errors and do
-    -- something with them.
-    case mValidationResult of
+    eLedgerState <- gets mcstLedgerState
+    -- We finally run the emulated validation. We update our internal state
+    -- based on the validation result, and throw an error if this fails. If at
+    -- some point we want to allows mockchain runs with validation errors, the
+    -- caller will need to catch those errors and do something with them.
+    case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
-      Ledger.FailPhase1 _ err -> throwError $ MCEValidationError Ledger.Phase1 err
-      Ledger.FailPhase2 _ err _ | Just (utxos, _) <- mCollaterals -> do
-        -- We update the index by consuming the collateral utoxs (and yes,
-        -- despite its name, 'insertCollateral' actually takes the collaterals
-        -- away from the index)
-        modify' (\st -> st {mcstIndex = Ledger.insertCollateral cardanoTx utxoIndex})
+      (_, Ledger.FailPhase1 _ err) -> throwError $ MCEValidationError Ledger.Phase1 err
+      (Just newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, _) <- mCollaterals -> do
+        -- We update the emulated ledger state
+        -- modify' (set mcstLedgerStateL newELedgerState)
+        modify' $
+          over
+            mcstLedgerStateL
+            ( \st ->
+                let oldIndex = Ledger.toPlutusIndex $ Emulator.getUtxo st
+                 in Emulator.setUtxo (Ledger.fromPlutusIndex (Ledger.insertCollateral cardanoTx oldIndex)) st
+            )
         -- We remove the collateral utxos from our own stored outputs
-        forM_ utxos $ modify' . removeOutput
+        forM_ colInputs $ modify' . removeOutput
         -- We throw a mockchain error
         throwError $ MCEValidationError Ledger.Phase2 err
-      -- This case should never happen. If we generate no collateral but the
-      -- transaction would fail in phase 2 (thus execute scripts) the ledger
-      -- will throw a Phase 1 failure instead for missing collaterals.
-      Ledger.FailPhase2 {} -> throwError $ FailWith "Unreachable case: Phase 2 failure with empty collaterals."
       -- In case of success, we update the index with all inputs and outputs
       -- contained in the transaction
-      Ledger.Success {} -> do
+      (Just newELedgerState, Ledger.Success {}) -> do
         -- We update the index with the utxos consumed and produced by the tx
-        modify' (\st -> st {mcstIndex = Ledger.insert cardanoTx utxoIndex})
+        -- modify' (set mcstLedgerStateL newELedgerState)
+        modify' $
+          over
+            mcstLedgerStateL
+            ( \st ->
+                let oldIndex = Ledger.toPlutusIndex $ Emulator.getUtxo st
+                 in Emulator.setUtxo (Ledger.fromPlutusIndex (Ledger.insert cardanoTx oldIndex)) st
+            )
         -- We retrieve the utxos created by the transaction
         let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
         -- We add the news utxos to the state
         forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
         -- And remove the old ones
         forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
+      -- No other case should occur
+      _ -> throwError $ FailWith "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
-    when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    when txOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction

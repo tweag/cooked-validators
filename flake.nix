@@ -57,6 +57,7 @@
             pkgs.zlib
             pkgs.libsodium
             pkgs.secp256k1
+            pkgs.lmdb
             hpkgs.ghc
             hpkgs.cabal-install
           ];
