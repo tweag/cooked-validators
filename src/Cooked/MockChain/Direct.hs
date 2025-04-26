@@ -4,6 +4,7 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
+import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Monad
@@ -20,12 +21,14 @@ import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
+import Cooked.Pretty.Class (PrettyCooked (prettyCookedOpt), renderString)
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Data.Default
 import Data.Map (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (mapMaybe)
+import Debug.Trace
 import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
@@ -210,7 +213,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
     -- We log the adjusted skeleton
     logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
-    -- We generate the transaction associated with the skeleton, and apply on it
+    -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
     cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
@@ -222,9 +225,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
       (_, Ledger.FailPhase1 _ err) -> throwError $ MCEValidationError Ledger.Phase1 err
-      (Just newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, _) <- mCollaterals -> do
+      (Just newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColWallet) <- mCollaterals -> do
         -- We update the emulated ledger state
-        -- modify' (set mcstLedgerStateL newELedgerState)
         modify' $
           over
             mcstLedgerStateL
@@ -232,15 +234,42 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
                 let oldIndex = Ledger.toPlutusIndex $ Emulator.getUtxo st
                  in Emulator.setUtxo (Ledger.fromPlutusIndex (Ledger.insertCollateral cardanoTx oldIndex)) st
             )
+        ls <- gets mcstLedgerState
+        let utxosInMcst =
+              fmap (renderString (prettyCookedOpt def) . Ledger.fromCardanoTxIn . fst)
+                . Map.toList
+                . Cardano.unUTxO
+                . Ledger.toPlutusIndex
+                . Emulator.getUtxo
+                $ ls
+        traceM $ "Current mockchain state UTxO (" <> show (length utxosInMcst) <> ")"
+        forM_ utxosInMcst traceShowM
+        let utxosInLS =
+              fmap (renderString (prettyCookedOpt def) . Ledger.fromCardanoTxIn . fst)
+                . Map.toList
+                . Cardano.unUTxO
+                . Ledger.toPlutusIndex
+                . Emulator.getUtxo
+                $ newELedgerState
+        traceM $ "Current ledger state UTxO (" <> show (length utxosInLS) <> ")"
+        modify' (set mcstLedgerStateL newELedgerState)
+
+        forM_ utxosInLS traceShowM
         -- We remove the collateral utxos from our own stored outputs
         forM_ colInputs $ modify' . removeOutput
+        -- We add the returned collateral to our outputs (in practice this map
+        -- either contains no element, or a single one)
+        forM_ (Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) $ \(txIn, txOut) ->
+          modify' $
+            addOutput
+              (Ledger.fromCardanoTxIn txIn)
+              (retColWallet `receives` Value (Api.txOutValue . Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut $ txOut))
         -- We throw a mockchain error
         throwError $ MCEValidationError Ledger.Phase2 err
       -- In case of success, we update the index with all inputs and outputs
       -- contained in the transaction
       (Just newELedgerState, Ledger.Success {}) -> do
         -- We update the index with the utxos consumed and produced by the tx
-        -- modify' (set mcstLedgerStateL newELedgerState)
         modify' $
           over
             mcstLedgerStateL
@@ -248,6 +277,27 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
                 let oldIndex = Ledger.toPlutusIndex $ Emulator.getUtxo st
                  in Emulator.setUtxo (Ledger.fromPlutusIndex (Ledger.insert cardanoTx oldIndex)) st
             )
+        ls <- gets mcstLedgerState
+        let utxosInMcst =
+              fmap (renderString (prettyCookedOpt def) . Ledger.fromCardanoTxIn . fst)
+                . Map.toList
+                . Cardano.unUTxO
+                . Ledger.toPlutusIndex
+                . Emulator.getUtxo
+                $ ls
+        traceM $ "Current mockchain state UTxO (" <> show (length utxosInMcst) <> ")"
+        forM_ utxosInMcst traceShowM
+        let utxosInLS =
+              fmap (renderString (prettyCookedOpt def) . Ledger.fromCardanoTxIn . fst)
+                . Map.toList
+                . Cardano.unUTxO
+                . Ledger.toPlutusIndex
+                . Emulator.getUtxo
+                $ newELedgerState
+        traceM $ "Current ledger state UTxO (" <> show (length utxosInLS) <> ")"
+        modify' (set mcstLedgerStateL newELedgerState)
+
+        forM_ utxosInLS traceShowM
         -- We retrieve the utxos created by the transaction
         let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
         -- We add the news utxos to the state
@@ -264,3 +314,24 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return cardanoTx
+
+--   - Inputs:
+--     - Spends #c9ffdae!0 from pubkey wallet 1
+--       - Redeemer ()
+--       - Lovelace: 3_000_000
+--   - Outputs:
+--     - Pays to script My multipurpose script
+--       - Value:
+--         - My multipurpose script #0f9f1b4: 1
+--         - Lovelace: 1_180_940
+--       - Datum (inline) (#03170a2): 0
+--     - Pays to pubkey wallet 1
+--       - Lovelace: 1_167_227
+--   - Fee: Lovelace: 651_833
+--   - Collateral inputs:
+--     - Uses #c9ffdae!1 belonging to pubkey wallet 1
+--       - Lovelace: 5_000_000
+--   - Return collateral target: wallet 1
+-- ⁍ New transaction successfully validated:
+--   - Transaction id: #6bb496d
+--   - Number of new outputs: 2
