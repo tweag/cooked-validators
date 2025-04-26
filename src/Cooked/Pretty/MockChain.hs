@@ -23,6 +23,9 @@ import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
+instance (Show a) => PrettyCooked [MockChainReturn a] where
+  prettyCookedOpt opts = prettyItemize opts "Results:" "-"
+
 instance (Show a) => PrettyCooked (MockChainReturn a) where
   prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
     PP.vsep $
@@ -85,7 +88,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
   prettyCookedOpt opts (Contextualized _ (MCLogAdjustedTxSkelOut skelOut newAda)) =
     prettyItemize
       opts
-      ("New ADA adjustment of" <> prettyCookedOpt opts (Script.toValue newAda) <> "performed for output:")
+      ("New ADA adjustment of" <+> prettyCookedOpt opts (Script.toValue newAda) <+> "performed for output:")
       "-"
       skelOut
   prettyCookedOpt opts (Contextualized outputs (MCLogSubmittedTxSkel skel)) =

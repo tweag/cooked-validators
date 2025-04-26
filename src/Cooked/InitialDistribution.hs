@@ -41,9 +41,9 @@ data InitialDistribution where
     {unInitialDistribution :: [TxSkelOut]} ->
     InitialDistribution
 
--- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
+-- | 4 UTxOs with 100 Ada each, for each of the first 4 'knownWallets'
 instance Default InitialDistribution where
-  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ Script.ada 100
+  def = distributionFromList . zip (take 4 knownWallets) . repeat . replicate 4 $ Script.ada 100
 
 instance Semigroup InitialDistribution where
   i <> j = InitialDistribution (unInitialDistribution i <> unInitialDistribution j)
