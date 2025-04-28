@@ -137,7 +137,7 @@ bothPaymentsToBobAndAlice val =
 
 noBalanceMaxFee :: (MonadBlockChain m) => m ()
 noBalanceMaxFee = do
-  maxFee <- snd <$> getMinAndMaxFee
+  maxFee <- snd <$> getMinAndMaxFee 0
   ((txOutRef, _) : _) <- runUtxoSearch $ utxosOwnedBySearch alice `filterWithValuePred` (== Script.ada 30)
   validateTxSkel_ $
     txSkelTemplate

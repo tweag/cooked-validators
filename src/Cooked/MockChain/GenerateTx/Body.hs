@@ -8,6 +8,7 @@ module Cooked.MockChain.GenerateTx.Body
 where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Alonzo.Tx qualified as Alonzo
 import Cardano.Ledger.Alonzo.TxBody qualified as Alonzo
@@ -73,16 +74,16 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs 
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
-  let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Emulator.Coin fee
+  let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
   txProposalProcedures <-
     Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
       <$> Proposal.toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts)
   txWithdrawals <- Withdrawals.toWithdrawals txSkelWithdrawals
-  let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
-      txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
-      txUpdateProposal = Cardano.TxUpdateProposalNone -- That's what plutus-apps does as well
-      txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
-      txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
+  let txMetadata = Cardano.TxMetadataNone
+      txAuxScripts = Cardano.TxAuxScriptsNone
+      txUpdateProposal = Cardano.TxUpdateProposalNone
+      txCertificates = Cardano.TxCertificatesNone
+      txScriptValidity = Cardano.TxScriptValidityNone
       txVotingProcedures = Nothing
       txCurrentTreasuryValue = Nothing
       txTreasuryDonation = Nothing

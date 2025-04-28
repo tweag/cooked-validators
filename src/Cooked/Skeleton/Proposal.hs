@@ -125,7 +125,7 @@ data TxParameterChange where
   -- their @Active@ status.
   DRepActivity :: Integer -> TxParameterChange
   -- Reference scripts fee for the minimum fee calculation
-  -- will exist later on MinFeeRefScriptCostPerByte :: Integer -> TxParameterChange
+  MinFeeRefScriptCostPerByte :: Rational -> TxParameterChange
   deriving (Show, Eq)
 
 -- | This lists the various possible governance actions

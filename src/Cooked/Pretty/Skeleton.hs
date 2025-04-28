@@ -141,6 +141,7 @@ instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (GovActionDeposit n) = "Governance action deposit:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (DRepRegistrationDeposit n) = "DRep registration deposit:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (MinFeeRefScriptCostPerByte q) = "Min fee per byto of reference script:" <+> prettyCookedOpt opts q
 
 -- | Prints a list of docs corresponding to an instance of 'TxSkelRedeemer'
 instance PrettyCookedList TxSkelRedeemer where

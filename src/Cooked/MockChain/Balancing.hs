@@ -13,7 +13,6 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
-import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
@@ -58,9 +57,12 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     BalanceWith bWallet -> return $ Just bWallet
     DoNotBalance -> return Nothing
 
+  -- We retrieve the number of scripts involved in the transaction
+  nbOfScripts <- fromIntegral . length <$> txSkelAllScripts skelUnbal
+
   -- The protocol parameters indirectly dictate a minimal and maximal value for a
   -- single transaction fee, which we retrieve.
-  (minFee, maxFee) <- getMinAndMaxFee
+  (minFee, maxFee) <- getMinAndMaxFee nbOfScripts
 
   -- We collect collateral inputs candidates. They might be directly provided in
   -- the skeleton, or should be retrieved from a given wallet. They are
@@ -69,15 +71,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- transaction does not involve script and should not have any kind of
   -- collaterals attached to it.
   mCollaterals <- do
-    -- We retrieve the various kinds of scripts
-    spendingScripts <- txSkelInputValidators skelUnbal
     -- The transaction will only require collaterals when involving scripts
-    let noScriptInvolved =
-          Map.null txSkelMints
-            && null (mapMaybe txSkelProposalWitness txSkelProposals)
-            && null spendingScripts
-            && null (txSkelWithdrawalsScripts skelUnbal)
-    case (noScriptInvolved, txOptCollateralUtxos txSkelOpts) of
+    case (nbOfScripts == 0, txOptCollateralUtxos txSkelOpts) of
       (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
       (True, CollateralUtxosFromWallet cWallet) -> logEvent (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
       (True, CollateralUtxosFromBalancingWallet) -> return Nothing
@@ -133,14 +128,14 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters
-getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Integer, Integer)
-getMinAndMaxFee = do
+getMinAndMaxFee :: (MonadBlockChainBalancing m) => Integer -> m (Integer, Integer)
+getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
   -- for a transaction. There are quite a few of them.
   params <- Emulator.pEmulatorPParams <$> getParams
   let maxTxSize = toInteger $ MicroLens.view Conway.ppMaxTxSizeL params
-      Emulator.Coin txFeePerByte = MicroLens.view Conway.ppMinFeeAL params
-      Emulator.Coin txFeeFixed = MicroLens.view Conway.ppMinFeeBL params
+      Cardano.Coin txFeePerByte = MicroLens.view Conway.ppMinFeeAL params
+      Cardano.Coin txFeeFixed = MicroLens.view Conway.ppMinFeeBL params
       Cardano.Prices (Cardano.unboundRational -> priceESteps) (Cardano.unboundRational -> priceEMem) = MicroLens.view Conway.ppPricesL params
       Cardano.ExUnits (toInteger -> eSteps) (toInteger -> eMem) = MicroLens.view Conway.ppMaxTxExUnitsL params
       (Cardano.unboundRational -> refScriptFeePerByte) = MicroLens.view Conway.ppMinFeeRefScriptCostPerByteL params
@@ -157,7 +152,7 @@ getMinAndMaxFee = do
     ( -- Minimal fee is just the fixed portion of the fee
       txFeeFixed,
       -- Maximal fee is the fixed portion plus all the other maximum fees
-      txFeeFixed + txSizeMaxFees + eStepsMaxFees + eMemMaxFees + refScriptsMaxFees
+      txFeeFixed + txSizeMaxFees + nbOfScripts * (eStepsMaxFees + eMemMaxFees) + refScriptsMaxFees
     )
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
@@ -324,7 +319,7 @@ estimateTxSkelFee skel fee mCollaterals = do
     Left err -> throwError $ MCEToCardanoError "estimateTxSkelFee: toCardanoError" err
     Right index' -> return index'
   -- We finally can the fee estimate function
-  return . Emulator.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
+  return . Cardano.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted

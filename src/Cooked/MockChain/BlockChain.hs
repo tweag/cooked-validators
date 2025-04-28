@@ -47,6 +47,7 @@ module Cooked.MockChain.BlockChain
     unsafeDatumFromTxOutRef,
     unsafeTypedDatumFromTxOutRef,
     unsafeValueFromTxOutRef,
+    txSkelAllScripts,
   )
 where
 
@@ -266,6 +267,12 @@ txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelPro
 -- | Returns all validators which guard transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Validator]
 txSkelInputValidators = fmap (mapMaybe txSkelOutValidator) . mapM unsafeTxOutByRef . Map.keys . txSkelIns
+
+-- | Returns all scripts involved in this 'TxSkel'
+txSkelAllScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Script]
+txSkelAllScripts txSkel = do
+  txSkelSpendingScripts <- fmap Script.toVersioned <$> txSkelInputValidators txSkel
+  return (txSkelMintingScripts txSkel <> txSkelWithdrawingScripts txSkel <> txSkelProposingScripts txSkel <> txSkelSpendingScripts)
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.

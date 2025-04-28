@@ -3,6 +3,7 @@
 module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
@@ -54,7 +55,7 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- percentage. We add 1 because the ledger apparently rounds up this value.
   let coinTotalCollateral = 1 + (fee * collateralPercentage) `div` 100
   -- We create the total collateral based on the computed value
-  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Emulator.Coin coinTotalCollateral
+  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Cardano.Coin coinTotalCollateral
   -- We compute a return collateral value by subtracting the total collateral to
   -- the value in collateral inputs
   let returnCollateralValue = collateralInsValue <> PlutusTx.negate (Script.lovelace coinTotalCollateral)

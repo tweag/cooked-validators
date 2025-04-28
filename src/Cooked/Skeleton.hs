@@ -28,9 +28,11 @@ module Cooked.Skeleton
     txSkelTemplate,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
-    txSkelWithdrawalsScripts,
+    txSkelWithdrawingScripts,
     txSkelValueInOutputs,
     txSkelReferenceTxOutRefs,
+    txSkelProposingScripts,
+    txSkelMintingScripts,
   )
 where
 
@@ -182,5 +184,13 @@ txSkelWithdrawnValue :: TxSkel -> Api.Value
 txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelWithdrawingScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+
+-- | Returns all the scripts involved in proposals in this 'TxSkel'
+txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelProposingScripts = mapMaybe (fmap fst . txSkelProposalWitness) . txSkelProposals
+
+-- | Returns all the scripts involved in minting in this 'TxSkel'
+txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelMintingScripts = fmap txSkelMintVersionedScript . txSkelMintsToList . txSkelMints
