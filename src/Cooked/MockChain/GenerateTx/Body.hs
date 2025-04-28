@@ -92,12 +92,13 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs 
 -- | Generates a transaction body from a body content
 txBodyContentToTxBody :: (MonadBlockChainBalancing m) => Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra -> TxSkel -> m (Cardano.TxBody Cardano.ConwayEra)
 txBodyContentToTxBody txBodyContent skel = do
+  params <- getParams
   -- We create the associated Shelley TxBody
   txBody@(Cardano.ShelleyTxBody a body c dats e f) <-
     either
-      (throwError . MCETxBodyError "generateTx :")
+      (throwError . MCEToCardanoError "generateTx :")
       return
-      (Cardano.createTransactionBody Cardano.ShelleyBasedEraConway txBodyContent)
+      (Emulator.createTransactionBody params (Ledger.CardanoBuildTx txBodyContent))
 
   -- There is a chance that the body is in need of additional data. This happens
   -- when the set of reference inputs contains hashed datums that will need to
