@@ -17,6 +17,7 @@ import Cardano.Api qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Shelley.API qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Control.Lens qualified as Lens
 import Control.Monad.Except
 import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
@@ -97,20 +98,17 @@ removeOutput oRef = over mcstOutputsL (Map.update (\(output, _) -> Just (output,
 -- https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
 mockChainState0From :: (MonadBlockChainBalancing m) => InitialDistribution -> m MockChainState
 mockChainState0From (InitialDistribution initDist) = do
-  networkId <- Emulator.pNetworkId <$> getParams
+  params <- getParams
   let genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
-      inputs = [(Cardano.genesisUTxOPseudoTxIn networkId genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
+      inputs = [(Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
   outputsMinAda <- mapM toTxSkelOutWithMinAda initDist
   outputs <- mapM toCardanoTxOut outputsMinAda
   cardanoTx <-
     Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
       <$> either
-        (throwError . MCETxBodyError "generateTx :")
+        (throwError . MCEToCardanoError "generateTx :")
         return
-        ( Cardano.createTransactionBody
-            Cardano.ShelleyBasedEraConway
-            (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs})
-        )
+        (Emulator.createTransactionBody params $ Ledger.CardanoBuildTx (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs, Cardano.txIns = inputs}))
   let index = Ledger.fromPlutusIndex $ Ledger.initialise [[Emulator.unsafeMakeValid cardanoTx]]
       outputsMap =
         Map.fromList $
@@ -118,7 +116,7 @@ mockChainState0From (InitialDistribution initDist) = do
             (\x y -> (x, (y, True)))
             (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
             outputsMinAda
-  return $ MockChainState def (Emulator.setUtxo index (Emulator.initialState def)) outputsMap
+  return $ MockChainState def (Lens.set Emulator.elsUtxoL index (Emulator.initialState def)) outputsMap
 
 -- | Same as 'mockChainState0From' with the default 'InitialDistribution'
 mockChainState0 :: (MonadBlockChainBalancing m) => m MockChainState

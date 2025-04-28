@@ -2,11 +2,11 @@
 module Cooked.MockChain.GenerateTx.Proposal (toProposalProcedures) where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
-import Cardano.Ledger.Core qualified as Cardano (emptyPParamsStrictMaybe)
-import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
+import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad.Catch
@@ -41,7 +41,6 @@ toPParamsUpdate pChange =
       -- Helper to set one of the param update with a lens
       setL l = MicroLens.set l . SJust
    in case pChange of
-        -- will exist later on: MinFeeRefScriptCostPerByte n -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromIntegral n
         FeePerByte n -> setL Conway.ppuMinFeeAL $ fromIntegral n
         FeeFixed n -> setL Conway.ppuMinFeeBL $ fromIntegral n
         MaxBlockBodySize n -> setL Conway.ppuMaxBBSizeL $ fromIntegral n
@@ -75,6 +74,7 @@ toPParamsUpdate pChange =
         GovActionDeposit n -> setL Conway.ppuGovActionDepositL $ fromIntegral n
         DRepRegistrationDeposit n -> setL Conway.ppuDRepDepositL $ fromIntegral n
         DRepActivity n -> setL Conway.ppuDRepActivityL $ Cardano.EpochInterval $ fromIntegral n
+        MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ Cardano.boundRational q
 
 -- | Translates a given skeleton proposal into a governance action
 toGovAction :: (MonadBlockChainBalancing m) => TxSkelProposal -> m (Conway.GovAction Emulator.EmulatorEra)
@@ -96,7 +96,7 @@ toGovAction TxSkelProposal {..} = do
           sHash
     TxGovActionHardForkInitiation _ -> throwError $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
     TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
-      cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
+      cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Cardano.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
       return $ Conway.TreasuryWithdrawals cardanoMap sHash
     TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing -- TODO, should not be Nothing later on
     TxGovActionUpdateCommittee {} -> throwError $ MCEUnsupportedFeature "TxGovActionUpdateCommittee"
@@ -110,7 +110,7 @@ toProposalProcedureAndWitness ::
   AnchorResolution ->
   m (Conway.ProposalProcedure Emulator.EmulatorEra, Cardano.BuildTxWith Cardano.BuildTx (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra)))
 toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolution = do
-  minDeposit <- Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
+  minDeposit <- Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
   cred <- toRewardAccount $ Script.toCredential txSkelProposalAddress
   govAction <- toGovAction txSkelProposal
   let proposalAnchor = do
@@ -130,7 +130,7 @@ toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} anchorResolutio
                   Just x -> return x
         return $ Cardano.Anchor anchorUrl . Conway.hashAnnotated . Cardano.AnchorData <$> anchorDataHash
   anchor <- fromMaybe (return def) proposalAnchor
-  let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
+  let conwayProposalProcedure = Conway.ProposalProcedure (Cardano.Coin minDeposit) cred govAction anchor
   (conwayProposalProcedure,) . Cardano.BuildTxWith <$> case txSkelProposalWitness of
     Nothing -> return Nothing
     Just (script, redeemer) -> Just <$> toScriptWitness script redeemer Cardano.NoScriptDatumForStake

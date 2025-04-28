@@ -5,15 +5,16 @@ module Cooked.MockChain.GenerateTx.Witness
   )
 where
 
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
-import Cardano.Ledger.Address qualified as Cardano
-import Cardano.Ledger.BaseTypes qualified as Cardano
-import Cardano.Ledger.Credential qualified as Cardano
+import Cardano.Ledger.Conway.Core qualified as Conway
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -52,15 +53,17 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness.
 toScriptWitness :: (MonadBlockChainBalancing m, Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (Script.toVersioned -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum =
-  let scriptData = Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
-   in case version of
-        Script.PlutusV1 ->
-          (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
-        Script.PlutusV2 ->
-          (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
-        Script.PlutusV3 ->
-          (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
-            <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
+toScriptWitness (Script.toVersioned -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum = do
+  Cardano.ExUnits eSteps eMem <- MicroLens.view Conway.ppMaxTxExUnitsL . Emulator.pEmulatorPParams <$> getParams
+  let maxExecutionUnits = Cardano.ExecutionUnits eMem eSteps
+      scriptData = Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
+  case version of
+    Script.PlutusV1 ->
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData maxExecutionUnits)
+        <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
+    Script.PlutusV2 ->
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData maxExecutionUnits)
+        <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
+    Script.PlutusV3 ->
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData maxExecutionUnits)
+        <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
