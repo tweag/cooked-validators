@@ -51,7 +51,6 @@ module Cooked.MockChain.BlockChain
   )
 where
 
-import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator qualified as Emulator
@@ -96,8 +95,6 @@ data MockChainError
     MCENoSuitableCollateral Integer Integer Api.Value
   | -- | Translating a skeleton element to its Cardano counterpart failed
     MCEToCardanoError String Ledger.ToCardanoError
-  | -- | Generating a Cardano transaction body failed
-    MCETxBodyError String Cardano.TxBodyError
   | -- | The required reference script is missing from a witness utxo
     MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
   | -- | A UTxO is missing from the mockchain state

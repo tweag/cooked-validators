@@ -65,11 +65,9 @@ instance PrettyCooked MockChainError where
       "Transaction generation error:"
       "-"
       [PP.pretty msg, PP.pretty cardanoError]
-  prettyCookedOpt opts (MCETxBodyError msg err) =
-    prettyItemize @[DocCooked] opts "Transaction generation error:" "-" [PP.pretty msg, PP.viaShow err]
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
   prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
-    "Unable to fetch the follwing reference script:"
+    "Unable to fetch the following reference script:"
       <+> prettyHash opts expected
       <+> "in the following UTxO:"
       <+> prettyCookedOpt opts oRef
