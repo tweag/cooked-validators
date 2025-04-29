@@ -181,6 +181,9 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- while registering its alias for printing purposes.
   define :: (ToHash a) => String -> a -> m a
 
+  -- | Sets the current script to act as the official constitution script
+  setConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> m ()
+
 -- | Like 'define', but binds the result of a monadic computation instead
 defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
 defineM name comp = comp >>= define name
@@ -399,6 +402,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
   define name = lift . define name
+  setConstitutionScript = lift . setConstitutionScript
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
@@ -442,6 +446,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidatio
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
   define name = lift . define name
+  setConstitutionScript = lift . setConstitutionScript
 
 instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel

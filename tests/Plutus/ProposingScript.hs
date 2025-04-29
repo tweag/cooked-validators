@@ -33,7 +33,10 @@ alwaysFalseProposingValidator =
     $ Script.MultiPurposeScript @()
     $ Script.toScript $$(compile [||script||])
   where
-    script = Script.mkMultiPurposeScript Script.falseTypedMultiPurposeScript
+    script =
+      Script.mkMultiPurposeScript
+        $ Script.falseTypedMultiPurposeScript
+        `Script.withProposingPurpose` (\_ _ () () -> False)
 
 -- | A dummy true proposing validator
 alwaysTrueProposingValidator :: Script.Versioned Script.Script

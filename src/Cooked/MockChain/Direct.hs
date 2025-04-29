@@ -4,6 +4,8 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
+import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Lens qualified as Lens
@@ -32,6 +34,7 @@ import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Direct Emulation
@@ -190,6 +193,15 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
     when (slot > cs) $ modify' (over mcstLedgerStateL (Lens.set Emulator.elsSlotL (Ledger.toCardanoSlotNo slot)))
     return $ max slot cs
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
+  setConstitutionScript =
+    modify'
+      . over mcstLedgerStateL
+      . Lens.set Emulator.elsConstitutionScriptL
+      . ( Cardano.SJust
+            . Cardano.toShelleyScriptHash
+            . Script.toCardanoScriptHash
+            . Script.toVersioned @Script.Script
+        )
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
