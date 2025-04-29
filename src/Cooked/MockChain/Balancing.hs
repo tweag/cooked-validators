@@ -17,7 +17,6 @@ import Control.Monad
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
-import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
@@ -30,7 +29,6 @@ import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
@@ -297,23 +295,10 @@ estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe 
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
-  let collateralIns = case mCollaterals of
-        Nothing -> []
-        Just (s, _) -> Set.toList s
-  -- We create the transaction body and send
+  -- We build the index known to the skeleton
+  index <- txSkelToIndex skel mCollaterals
+  -- We build the transaction body
   txBody <- txSkelToTxBody skel fee mCollaterals
-  -- We need to reconstruct an index to pass to the fee estimate function
-  -- We begin by retrieving the relevant utxos used in the skeleton
-  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> collateralIns)
-  -- We then compute their Cardano counterparts
-  txOutL <- forM knownTxOuts toCardanoTxOut
-  let indexOrError = do
-        txInL <- forM knownTxORefs Ledger.toCardanoTxIn
-        return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
-  -- We retrieve the index when it was successfully created
-  index <- case indexOrError of
-    Left err -> throwError $ MCEToCardanoError "estimateTxSkelFee: toCardanoError" err
-    Right index' -> return index'
   -- We finally can the fee estimate function
   return $
     Cardano.unCoin $

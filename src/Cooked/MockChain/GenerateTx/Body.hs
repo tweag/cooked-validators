@@ -4,10 +4,12 @@ module Cooked.MockChain.GenerateTx.Body
   ( txSkelToTxBody,
     txBodyContentToTxBody,
     txSkelToTxBodyContent,
+    txSkelToIndex,
   )
 where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Internal.Fees qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Alonzo.Tx qualified as Alonzo
@@ -27,6 +29,7 @@ import Cooked.MockChain.GenerateTx.Mint qualified as Mint
 import Cooked.MockChain.GenerateTx.Output qualified as Output
 import Cooked.MockChain.GenerateTx.Proposal qualified as Proposal
 import Cooked.MockChain.GenerateTx.Withdrawals qualified as Withdrawals
+import Cooked.MockChain.GenerateTx.Witness (toKeyWitness)
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Map qualified as Map
@@ -142,9 +145,61 @@ txBodyContentToTxBody txBodyContent skel = do
       Cardano.PlutusScriptV2 -> Cardano.PlutusV2
       Cardano.PlutusScriptV3 -> Cardano.PlutusV3
 
+-- | Generates an index with utxos known to a 'TxSkel'
+txSkelToIndex :: (MonadBlockChainBalancing m) => TxSkel -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.UTxO Cardano.ConwayEra)
+txSkelToIndex txSkel mCollaterals = do
+  -- We build the index of UTxOs which are known to this skeleton. This includes
+  -- collateral inputs, inputs and reference inputs.
+  let collateralIns = case mCollaterals of
+        Nothing -> []
+        Just (s, _) -> Set.toList s
+  -- We retrieve all the outputs known to the skeleton
+  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs txSkel <> collateralIns)
+  -- We then compute their Cardano counterparts
+  txOutL <- forM knownTxOuts Output.toCardanoTxOut
+  -- We build the index and handle the possible error
+  case do
+    txInL <- forM knownTxORefs Ledger.toCardanoTxIn
+    return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL of
+    Left err -> throwError $ MCEToCardanoError "txSkelToIndex:" err
+    Right index' -> return index'
+
 -- | Generates a transaction body from a 'TxSkel' and associated fee and
--- collateral information
+-- collateral information. This transaction body accounts for the actual
+-- execution units of each of the scripts involved in the skeleton.
 txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra)
-txSkelToTxBody skel fee mCollaterals = do
-  txBodyContent <- txSkelToTxBodyContent skel fee mCollaterals
-  txBodyContentToTxBody txBodyContent skel
+txSkelToTxBody txSkel fee mCollaterals = do
+  index <- txSkelToIndex txSkel mCollaterals
+  -- We create a first body content and body, without execution units
+  txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
+  txBody' <- txBodyContentToTxBody txBodyContent' txSkel
+  -- We create a full transaction from the body
+  let tx' = Cardano.Tx txBody' (toKeyWitness txBody' <$> txSkelSigners txSkel)
+  -- We retrieve the parameters
+  params <- getParams
+  -- We retrieve the execution units associated with the transaction
+  case Emulator.getTxExUnitsWithLogs params (Ledger.fromPlutusIndex index) tx' of
+    -- Computing the execution units can result in all kinds of validation
+    -- errors except for the ones related to the execution units themselves.
+    Left err -> throwError $ uncurry MCEValidationError err
+    -- When no error arises, we get an execution unit for each script usage. We
+    -- then update the body content to account for those usages.
+    Right (Map.toList -> exUnitsList) -> case Cardano.substituteExecutionUnits
+      ( Map.fromList $
+          fmap
+            (\(x, (_, Cardano.ExUnits mem steps)) -> (fromPlutusPurpose x, Cardano.ExecutionUnits steps mem))
+            exUnitsList
+      )
+      txBodyContent' of
+      -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
+      Left _ -> throwError $ FailWith "Error while assigning execution units"
+      -- We now have a body content with proper execution units and can create
+      -- the final body from it
+      Right txBody -> txBodyContentToTxBody txBody txSkel
+  where
+    fromPlutusPurpose (Cardano.ConwaySpending (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexTxIn n
+    fromPlutusPurpose (Cardano.ConwayMinting (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexMint n
+    fromPlutusPurpose (Cardano.ConwayCertifying (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexCertificate n
+    fromPlutusPurpose (Cardano.ConwayRewarding (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexWithdrawal n
+    fromPlutusPurpose (Cardano.ConwayVoting (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexVoting n
+    fromPlutusPurpose (Cardano.ConwayProposing (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexProposing n

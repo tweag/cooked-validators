@@ -9,22 +9,15 @@ where
 import Cardano.Api.Shelley qualified as Cardano
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
+import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Set (Set)
-import Ledger.Address qualified as Ledger
-import Ledger.Tx qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Generates a Cardano transaction and signs it
 txSignersAndBodyToCardanoTx :: [Wallet] -> Cardano.TxBody Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
-txSignersAndBodyToCardanoTx signers txBody =
-  Ledger.getEmulatorEraTx $
-    foldl
-      (flip Ledger.addCardanoTxWitness)
-      (Ledger.CardanoEmulatorEraTx $ txBody `Cardano.Tx` [])
-      (Ledger.toWitness . Ledger.PaymentPrivateKey . walletSK <$> signers)
+txSignersAndBodyToCardanoTx signers txBody = Cardano.Tx txBody (toKeyWitness txBody <$> signers)
 
 -- | Generates a full Cardano transaction from a skeleton, fees and collaterals
 txSkelToCardanoTx :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.Tx Cardano.ConwayEra)
