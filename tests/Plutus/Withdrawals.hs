@@ -18,11 +18,9 @@ checkWithdrawalPurpose cred quantity (Api.TxInfo {txInfoWdrl}) =
         else traceError "Wrong credential."
     _ -> traceError "Wrong withdrawal."
 
-checkWithdrawalVersionedScript :: Script.Versioned Script.Script
+checkWithdrawalVersionedScript :: Script.MultiPurposeScript ()
 checkWithdrawalVersionedScript =
-  Script.toVersioned
-    $ Script.MultiPurposeScript @()
-    $ Script.toScript $$(PlutusTx.compile [||script||])
+  Script.MultiPurposeScript $ Script.toScript $$(PlutusTx.compile [||script||])
   where
     script =
       Script.mkMultiPurposeScript

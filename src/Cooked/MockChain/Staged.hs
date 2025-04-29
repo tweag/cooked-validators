@@ -35,6 +35,7 @@ import Cooked.Tweak.Common
 import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Interpreting and running 'StagedMockChain'
@@ -77,6 +78,7 @@ data MockChainBuiltin a where
   UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
+  SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -135,6 +137,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
   interpBuiltin (LogEvent entry) = logEvent entry
   interpBuiltin (Define name hash) = define name hash
+  interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -208,6 +211,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
   define name = singletonBuiltin . Define name
+  setConstitutionScript = singletonBuiltin . SetConstitutionScript
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

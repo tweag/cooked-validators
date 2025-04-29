@@ -23,9 +23,9 @@ type TxSkelWithdrawals =
     (TxSkelRedeemer, Api.Lovelace)
 
 -- | Creates a 'TxSkelWithdrawals' from a private key hash and amount
-pkWithdrawal :: (Script.ToPubKeyHash pkh) => pkh -> Api.Lovelace -> TxSkelWithdrawals
-pkWithdrawal pkh amount = Map.singleton (Right $ Script.toPubKeyHash pkh) (emptyTxSkelRedeemer, amount)
+pkWithdrawal :: (Script.ToPubKeyHash pkh) => pkh -> Integer -> TxSkelWithdrawals
+pkWithdrawal pkh amount = Map.singleton (Right $ Script.toPubKeyHash pkh) (emptyTxSkelRedeemer, Api.Lovelace amount)
 
 -- | Creates a 'TxSkelWithdrawals' from a script, redeemer and amount
-scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Api.Lovelace -> TxSkelWithdrawals
-scriptWithdrawal script red amount = Map.singleton (Left $ Script.toVersioned script) (red, amount)
+scriptWithdrawal :: (Script.ToVersioned Script.Script script) => script -> TxSkelRedeemer -> Integer -> TxSkelWithdrawals
+scriptWithdrawal script red amount = Map.singleton (Left $ Script.toVersioned script) (red, Api.Lovelace amount)
