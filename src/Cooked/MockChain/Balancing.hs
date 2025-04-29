@@ -127,7 +127,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
--- based on the current protocol parameters
+-- based on the current protocol parameters and its number of scripts.
 getMinAndMaxFee :: (MonadBlockChainBalancing m) => Integer -> m (Integer, Integer)
 getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
@@ -291,7 +291,7 @@ getOptimalCandidate candidates paymentTarget mceError = do
     [] -> throwError mceError
     (_, ret) : _ -> return ret
 
--- | This function is essentially a copy of
+-- | This function was originally inspired by
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m Integer
 estimateTxSkelFee skel fee mCollaterals = do
@@ -300,12 +300,8 @@ estimateTxSkelFee skel fee mCollaterals = do
   let collateralIns = case mCollaterals of
         Nothing -> []
         Just (s, _) -> Set.toList s
-  -- We generate the transaction body content, handling errors in the meantime
-  txBodyContent <- txSkelToTxBodyContent skel fee mCollaterals
-  -- We create the actual body and send if for validation
-  txBody <- txBodyContentToTxBody txBodyContent skel
-  -- We retrieve the estimate number of required witness in the transaction
-  let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
+  -- We create the transaction body and send
+  txBody <- txSkelToTxBody skel fee mCollaterals
   -- We need to reconstruct an index to pass to the fee estimate function
   -- We begin by retrieving the relevant utxos used in the skeleton
   (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs skel <> collateralIns)
@@ -319,7 +315,10 @@ estimateTxSkelFee skel fee mCollaterals = do
     Left err -> throwError $ MCEToCardanoError "estimateTxSkelFee: toCardanoError" err
     Right index' -> return index'
   -- We finally can the fee estimate function
-  return . Cardano.unCoin $ Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody nkeys
+  return $
+    Cardano.unCoin $
+      Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody $
+        fromIntegral (length $ txSkelSigners skel)
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
