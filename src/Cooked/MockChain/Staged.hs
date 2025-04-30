@@ -35,6 +35,7 @@ import Cooked.Tweak.Common
 import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -75,11 +76,12 @@ data MockChainBuiltin a where
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
-  UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
+  UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
   SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
   GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
+  RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -140,6 +142,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (Define name hash) = define name hash
   interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
   interpBuiltin GetConstitutionScript = getConstitutionScript
+  interpBuiltin (RegisterStakingCred cred reward deposit) = registerStakingCred cred reward deposit
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -215,6 +218,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   define name = singletonBuiltin . Define name
   setConstitutionScript = singletonBuiltin . SetConstitutionScript
   getConstitutionScript = singletonBuiltin GetConstitutionScript
+  registerStakingCred cred reward deposit = singletonBuiltin $ RegisterStakingCred cred reward deposit
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

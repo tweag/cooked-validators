@@ -77,6 +77,7 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -142,7 +143,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   getParams :: m Emulator.Params
 
   -- | Returns a list of all UTxOs at a certain address.
-  utxosAt :: Api.Address -> m [(Api.TxOutRef, TxSkelOut)]
+  utxosAt :: (Script.ToAddress a) => a -> m [(Api.TxOutRef, TxSkelOut)]
 
   -- | Returns an output given a reference to it
   txOutByRef :: Api.TxOutRef -> m (Maybe TxSkelOut)
@@ -186,6 +187,9 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
 
   -- | Gets the current official constitution script
   getConstitutionScript :: m (Maybe (Script.Versioned Script.Script))
+
+  -- | Registers a staking credential with a given reward and deposit
+  registerStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> m ()
 
 -- | Like 'define', but binds the result of a monadic computation instead
 defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
@@ -407,6 +411,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
   define name = lift . define name
   setConstitutionScript = lift . setConstitutionScript
   getConstitutionScript = lift getConstitutionScript
+  registerStakingCred cred reward deposit = lift $ registerStakingCred cred reward deposit
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
@@ -452,6 +457,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidatio
   define name = lift . define name
   setConstitutionScript = lift . setConstitutionScript
   getConstitutionScript = lift getConstitutionScript
+  registerStakingCred cred reward deposit = lift $ registerStakingCred cred reward deposit
 
 instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel
