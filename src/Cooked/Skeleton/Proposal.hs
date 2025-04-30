@@ -11,12 +11,14 @@ module Cooked.Skeleton.Proposal
     simpleTxSkelProposal,
     withWitness,
     withAnchor,
+    withConstitution,
+    updateConstitution,
   )
 where
 
 import Cooked.Skeleton.Redeemer as X
 import Data.Map (Map)
-import Optics.Core ((&), (?~))
+import Optics.Core ((&), (.~), (?~), (^.))
 import Optics.TH
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -154,7 +156,9 @@ data TxSkelProposal where
       txSkelProposalWitness :: Maybe (Script.Versioned Script.Script, TxSkelRedeemer),
       -- | An optional anchor to be given as additional data. It should
       -- correspond to the URL of a web page
-      txSkelProposalAnchor :: Maybe String
+      txSkelProposalAnchor :: Maybe String,
+      -- | A flag to turn on/off the auto assignement of the constitution script
+      txSkelProposalAutoConstitution :: Bool
     } ->
     TxSkelProposal
   deriving (Show, Eq)
@@ -171,14 +175,32 @@ makeLensesFor [("txSkelProposalWitness", "txSkelProposalWitnessL")] ''TxSkelProp
 -- | A lens to get or set the anchor of a 'TxSkelProposal'
 makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelProposal
 
+-- | A lens to get or set the anchor of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalAutoConstitution", "txSkelProposalAutoConstitutionL")] ''TxSkelProposal
+
 -- | Builds a 'TxSkelProposal' from an address and a 'TxGovAction'
 simpleTxSkelProposal :: (Script.ToAddress a) => a -> TxGovAction -> TxSkelProposal
-simpleTxSkelProposal a govAction = TxSkelProposal (Script.toAddress a) govAction Nothing Nothing
+simpleTxSkelProposal a govAction = TxSkelProposal (Script.toAddress a) govAction Nothing Nothing True
 
--- | Assigns a witness to a 'TxSkelProposal'
+-- | Assigns a witness to a 'TxSkelProposal'. Also turns off the auto
+-- constitution flag, so that this witness is not overridden.
 withWitness :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) = prop & txSkelProposalWitnessL ?~ (Script.toVersioned s, red)
+withWitness prop (s, red) =
+  prop
+    & txSkelProposalWitnessL
+    ?~ (Script.toVersioned s, red)
+    & txSkelProposalAutoConstitutionL
+    .~ False
+
+-- | Assigns the constitution script with an empty redeemer
+withConstitution :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> Maybe a -> TxSkelProposal
+withConstitution prop sM = prop & txSkelProposalWitnessL .~ ((,emptyTxSkelRedeemer) . Script.toVersioned <$> sM)
 
 -- | Assigns an anchor to a 'TxSkelProposal'
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop & txSkelProposalAnchorL ?~ url
+
+-- | Updates the constitution if 'txSkelProposalAutoConstitution' is 'True'
+updateConstitution :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> Maybe a -> TxSkelProposal
+updateConstitution prop sM | prop ^. txSkelProposalAutoConstitutionL = prop `withConstitution` sM
+updateConstitution prop _ = prop
