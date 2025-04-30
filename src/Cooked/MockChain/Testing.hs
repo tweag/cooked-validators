@@ -12,6 +12,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Wallet
 import Data.Default
+import Data.List (isInfixOf)
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Ledger qualified
@@ -329,12 +330,12 @@ isPhase2Failure pcOpts _ e _ = testFailureMsg $ "Expected phase 2 evaluation fai
 
 -- | Same as 'isPhase1Failure' with an added predicate on the text error
 isPhase1FailureWithMsg :: (IsProp prop) => String -> FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) _ | T.pack s == text = testSuccess
+isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) _ | s `isInfixOf` T.unpack text = testSuccess
 isPhase1FailureWithMsg _ pcOpts _ e _ = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'isPhase2Failure' with an added predicate over the text error
 isPhase2FailureWithMsg :: (IsProp prop) => String -> FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) _ | T.pack s `elem` texts = testSuccess
+isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) _ | any (isInfixOf s . T.unpack) texts = testSuccess
 isPhase2FailureWithMsg _ pcOpts _ e _ = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- * Specific properties around number of outcomes

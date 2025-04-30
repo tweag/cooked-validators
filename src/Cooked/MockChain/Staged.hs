@@ -79,6 +79,7 @@ data MockChainBuiltin a where
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
   SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
+  GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -138,6 +139,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (LogEvent entry) = logEvent entry
   interpBuiltin (Define name hash) = define name hash
   interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
+  interpBuiltin GetConstitutionScript = getConstitutionScript
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -212,6 +214,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   awaitSlot = singletonBuiltin . AwaitSlot
   define name = singletonBuiltin . Define name
   setConstitutionScript = singletonBuiltin . SetConstitutionScript
+  getConstitutionScript = singletonBuiltin GetConstitutionScript
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

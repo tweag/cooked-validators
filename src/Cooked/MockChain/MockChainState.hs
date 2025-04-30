@@ -5,6 +5,7 @@ module Cooked.MockChain.MockChainState
     mcstParamsL,
     mcstLedgerStateL,
     mcstOutputsL,
+    mcstConstitutionL,
     mcstToUtxoState,
     addOutput,
     removeOutput,
@@ -35,6 +36,7 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | The state used to run the simulation in 'Cooked.MockChain.Direct'
@@ -44,7 +46,9 @@ data MockChainState = MockChainState
     -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
     -- alongside a boolean to state whether this UTxO is still present in the
     -- index ('True') or has already been consumed ('False').
-    mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool)
+    mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+    -- | The constitution script to be used with proposals
+    mcstConstitution :: Maybe (Script.Versioned Script.Script)
   }
   deriving (Show)
 
@@ -57,8 +61,11 @@ makeLensesFor [("mcstLedgerState", "mcstLedgerStateL")] ''MockChainState
 -- | A lens to set or get the outputs of the 'MockChainState'
 makeLensesFor [("mcstOutputs", "mcstOutputsL")] ''MockChainState
 
+-- | A lens to set or get the constitution script of the 'MockChainState'
+makeLensesFor [("mcstConstitution", "mcstConstitutionL")] ''MockChainState
+
 instance Default MockChainState where
-  def = MockChainState def (Emulator.initialState def) Map.empty
+  def = MockChainState def (Emulator.initialState def) Map.empty Nothing
 
 -- | Builds a 'UtxoState' from a 'MockChainState'
 mcstToUtxoState :: MockChainState -> UtxoState
@@ -116,7 +123,7 @@ mockChainState0From (InitialDistribution initDist) = do
             (\x y -> (x, (y, True)))
             (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
             outputsMinAda
-  return $ MockChainState def (Lens.set Emulator.elsUtxoL index (Emulator.initialState def)) outputsMap
+  return $ MockChainState def (Lens.set Emulator.elsUtxoL index (Emulator.initialState def)) outputsMap Nothing
 
 -- | Same as 'mockChainState0From' with the default 'InitialDistribution'
 mockChainState0 :: (MonadBlockChainBalancing m) => m MockChainState

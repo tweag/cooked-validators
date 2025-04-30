@@ -193,15 +193,14 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
     when (slot > cs) $ modify' (over mcstLedgerStateL (Lens.set Emulator.elsSlotL (Ledger.toCardanoSlotNo slot)))
     return $ max slot cs
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
-  setConstitutionScript =
-    modify'
-      . over mcstLedgerStateL
-      . Lens.set Emulator.elsConstitutionScriptL
-      . ( Cardano.SJust
-            . Cardano.toShelleyScriptHash
-            . Script.toCardanoScriptHash
-            . Script.toVersioned @Script.Script
-        )
+  setConstitutionScript (Script.toVersioned -> cScript) = do
+    modify' (mcstConstitutionL ?~ cScript)
+    modify' $
+      over mcstLedgerStateL $
+        Lens.set Emulator.elsConstitutionScriptL $
+          (Cardano.SJust . Cardano.toShelleyScriptHash . Script.toCardanoScriptHash)
+            cScript
+  getConstitutionScript = gets (view mcstConstitutionL)
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
@@ -217,12 +216,16 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
     minAdaSkelUnbal <- toTxSkelWithMinAda skelUnbal
+    -- We retrieve the official constitution script
+    constitution <- getConstitutionScript
+    -- We attach the script to each proposal that requires it
+    let minAdaSkelUnbalWithConst = over (txSkelProposalsL % traversed) (`updateConstitution` constitution) minAdaSkelUnbal
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are allowed to be auto filled
-    minAdaRefScriptsSkelUnbal <- toTxSkelWithReferenceScripts minAdaSkelUnbal
+    minAdaRefScriptsSkelUnbalWithConst <- toTxSkelWithReferenceScripts minAdaSkelUnbalWithConst
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
-    (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
+    (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbalWithConst
     -- We log the adjusted skeleton
     logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
     -- We generate the transaction asscoiated with the skeleton, and apply on it

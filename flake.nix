@@ -69,6 +69,10 @@
             pkgs.openssl_3_4
             pkgs.postgresql # For cardano-node-emulator
             pkgs.openldap # For freer-extras‽
+            pkgs.libsodium
+            pkgs.secp256k1
+            pkgs.lmdb
+            blst-portable
           ];
 
           LANG = "C.UTF-8";
