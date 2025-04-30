@@ -6,6 +6,7 @@ module Cooked.MockChain.Direct where
 
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Ledger.Coin qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Lens qualified as Lens
@@ -34,6 +35,7 @@ import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -174,7 +176,7 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
     return $ case res of
       Just (txSkelOut, True) -> Just txSkelOut
       _ -> Nothing
-  utxosAt addr = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
+  utxosAt (Script.toAddress -> addr) = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
@@ -201,6 +203,18 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
           (Cardano.SJust . Cardano.toShelleyScriptHash . Script.toCardanoScriptHash)
             cScript
   getConstitutionScript = gets (view mcstConstitutionL)
+  registerStakingCred (Script.toCredential -> cred) reward deposit = do
+    stakeCredential <- case Ledger.toCardanoStakeCredential cred of
+      Left err -> throwError $ MCEToCardanoError "Unable to convert staking credential" err
+      Right cred' -> return $ Cardano.toShelleyStakeCredential cred'
+    modify' $
+      over
+        mcstLedgerStateL
+        ( Emulator.registerStakeCredential
+            stakeCredential
+            (Cardano.Coin reward)
+            (Cardano.Coin deposit)
+        )
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where

@@ -57,13 +57,10 @@ mkWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkel
 mkWithdrawal (owner, (red, lv)) = Withdrawal owner red lv
 
 instance PrettyCooked Withdrawal where
-  prettyCookedOpt opts (Withdrawal cred red ada) =
-    prettyItemizeNoTitle opts "-" $
-      ( case cred of
-          Left script -> prettyHash opts script : prettyCookedOptList opts red
-          Right pkh -> [prettyHash opts pkh]
-      )
-        ++ [prettyCookedOpt opts (Script.toValue ada)]
+  prettyCookedOpt opts (Withdrawal (Left script) red lv) =
+    prettyItemize opts (prettyHash opts script) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
+  prettyCookedOpt opts (Withdrawal (Right pkh) _ lv) =
+    prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
 instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
