@@ -10,8 +10,10 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Internal.Fees qualified as Cardano
+import Cardano.Api.Internal.ProtocolParameters qualified as Cardano
+import Cardano.Api.Internal.Script qualified as Cardano
+import Cardano.Api.Internal.Tx.Body qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Alonzo.Tx qualified as Alonzo
 import Cardano.Ledger.Alonzo.TxBody qualified as Alonzo
 import Cardano.Ledger.Alonzo.TxWits qualified as Alonzo
@@ -29,7 +31,7 @@ import Cooked.MockChain.GenerateTx.Mint qualified as Mint
 import Cooked.MockChain.GenerateTx.Output qualified as Output
 import Cooked.MockChain.GenerateTx.Proposal qualified as Proposal
 import Cooked.MockChain.GenerateTx.Withdrawals qualified as Withdrawals
-import Cooked.MockChain.GenerateTx.Witness (toKeyWitness)
+import Cooked.MockChain.GenerateTx.Witness qualified as Witness
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Map qualified as Map
@@ -105,45 +107,44 @@ txBodyContentToTxBody txBodyContent skel = do
 
   -- There is a chance that the body is in need of additional data. This happens
   -- when the set of reference inputs contains hashed datums that will need to
-  -- be resolved during phase 2 validation. All that follows until the
-  -- definition of "txBody'" aims at doing just that. In the process, we have to
-  -- reconstruct the body with the new data and the associated hash. Hopefully,
-  -- in the future, cardano-api provides a way to add those data in the body
-  -- directly without requiring this method, which somewhat feels like a hack.
+  -- be resolved during phase 2 validation. All that follows aims at doing just
+  -- that. In the process, we have to reconstruct the body with the new data and
+  -- the associated hash. Hopefully, in the future, cardano-api provides a way
+  -- to add those data in the body directly without requiring this method, which
+  -- somewhat feels like a hack.
 
-  -- We gather the datums of the reference input in the skeleton
+  -- We gather the datums of the reference inputs in the skeleton
   refIns <- forM (txSkelReferenceTxOutRefs skel) $ fmap (view txSkelOutDatumL) . unsafeTxOutByRef
   -- We collect the additional data of the hashed datums as a map
   let additionalDataMap =
         Map.fromList [(Cardano.hashData dat, dat) | TxSkelOutSomeDatum (Cardano.Data . Api.toData -> dat) (Hashed _) <- refIns]
-  -- -- We retrieve a needed parameter to process difference plutus languages
-  toLangDepViewParam <- Conway.getLanguageView . Cardano.unLedgerProtocolParameters . Emulator.ledgerProtocolParameters <$> getParams
-  -- We convert our data map into a 'TxDats'
-  let txDats' = Alonzo.TxDats additionalDataMap
-      -- We compute the new era, datums and redeemers based on the current dats
-      -- in the body and the additional data to include in the body.
-      (era, datums, redeemers) = case dats of
-        Cardano.TxBodyNoScriptData -> (Cardano.AlonzoEraOnwardsConway, txDats', Alonzo.Redeemers Map.empty)
-        Cardano.TxBodyScriptData era' txDats reds -> (era', txDats <> txDats', reds)
-      -- We collect the various witnesses in the body
-      witnesses = Cardano.collectTxBodyScriptWitnesses Cardano.ShelleyBasedEraConway txBodyContent
-      -- We collect their associated languages
-      languages = [toCardanoLanguage v | (_, Cardano.AnyScriptWitness (Cardano.PlutusScriptWitness _ v _ _ _ _)) <- witnesses]
-      -- We compute the new script integrity hash with the added data
-      scriptIntegrityHash =
-        Cardano.alonzoEraOnwardsConstraints era $
-          Alonzo.hashScriptIntegrity (Set.fromList $ toLangDepViewParam <$> languages) redeemers datums
-      -- We wrap all of this in the new body
-      body' = body Lens.& Alonzo.scriptIntegrityHashTxBodyL Lens..~ scriptIntegrityHash
-      txBody' = Cardano.ShelleyTxBody a body' c (Cardano.TxBodyScriptData era datums redeemers) e f
-
-  return $ if null additionalDataMap then txBody else txBody'
-  where
-    toCardanoLanguage :: Cardano.PlutusScriptVersion lang -> Cardano.Language
-    toCardanoLanguage = \case
-      Cardano.PlutusScriptV1 -> Cardano.PlutusV1
-      Cardano.PlutusScriptV2 -> Cardano.PlutusV2
-      Cardano.PlutusScriptV3 -> Cardano.PlutusV3
+  -- We return the body directly if no additional data is required
+  if null additionalDataMap
+    then return txBody
+    else do
+      -- We retrieve a needed parameter to process difference plutus languages
+      toLangDepViewParam <- Conway.getLanguageView . Cardano.unLedgerProtocolParameters . Emulator.ledgerProtocolParameters <$> getParams
+      -- We convert our data map into a 'TxDats'
+      let txDats' = Alonzo.TxDats additionalDataMap
+          -- We compute the new era, datums and redeemers based on the current dats
+          -- in the body and the additional data to include in the body.
+          (era, datums, redeemers) = case dats of
+            Cardano.TxBodyNoScriptData -> (Cardano.AlonzoEraOnwardsConway, txDats', Alonzo.Redeemers Map.empty)
+            Cardano.TxBodyScriptData era' txDats reds -> (era', txDats <> txDats', reds)
+          -- We collect the various witnesses in the body
+          witnesses = Cardano.collectTxBodyScriptWitnesses Cardano.ShelleyBasedEraConway txBodyContent
+          -- We collect their languages and convert them to Ledger languages
+          languages =
+            [ Cardano.toAlonzoScriptLanguage (Cardano.AnyPlutusScriptVersion v)
+              | (_, Cardano.AnyScriptWitness (Cardano.PlutusScriptWitness _ v _ _ _ _)) <- witnesses
+            ]
+          -- We compute the new script integrity hash with the added data
+          scriptIntegrityHash =
+            Cardano.alonzoEraOnwardsConstraints era $
+              Alonzo.hashScriptIntegrity (Set.fromList $ toLangDepViewParam <$> languages) redeemers datums
+          -- We wrap all of this in the new body
+          body' = body & Alonzo.scriptIntegrityHashTxBodyL Lens..~ scriptIntegrityHash
+      return $ Cardano.ShelleyTxBody a body' c (Cardano.TxBodyScriptData era datums redeemers) e f
 
 -- | Generates an index with utxos known to a 'TxSkel'
 txSkelToIndex :: (MonadBlockChainBalancing m) => TxSkel -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.UTxO Cardano.ConwayEra)
@@ -158,24 +159,22 @@ txSkelToIndex txSkel mCollaterals = do
   -- We then compute their Cardano counterparts
   txOutL <- forM knownTxOuts Output.toCardanoTxOut
   -- We build the index and handle the possible error
-  case do
+  either (throwError . MCEToCardanoError "txSkelToIndex:") return $ do
     txInL <- forM knownTxORefs Ledger.toCardanoTxIn
-    return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL of
-    Left err -> throwError $ MCEToCardanoError "txSkelToIndex:" err
-    Right index' -> return index'
+    return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
 
 -- | Generates a transaction body from a 'TxSkel' and associated fee and
 -- collateral information. This transaction body accounts for the actual
 -- execution units of each of the scripts involved in the skeleton.
 txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra)
 txSkelToTxBody txSkel fee mCollaterals = do
-  index <- txSkelToIndex txSkel mCollaterals
   -- We create a first body content and body, without execution units
   txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
   txBody' <- txBodyContentToTxBody txBodyContent' txSkel
   -- We create a full transaction from the body
-  let tx' = Cardano.Tx txBody' (toKeyWitness txBody' <$> txSkelSigners txSkel)
-  -- We retrieve the parameters
+  let tx' = Cardano.Tx txBody' (Witness.toKeyWitness txBody' <$> txSkelSigners txSkel)
+  -- We retrieve the index and parameters to feed to @getTxExUnitsWithLogs@
+  index <- txSkelToIndex txSkel mCollaterals
   params <- getParams
   -- We retrieve the execution units associated with the transaction
   case Emulator.getTxExUnitsWithLogs params (Ledger.fromPlutusIndex index) tx' of
@@ -183,23 +182,12 @@ txSkelToTxBody txSkel fee mCollaterals = do
     -- errors except for the ones related to the execution units themselves.
     Left err -> throwError $ uncurry MCEValidationError err
     -- When no error arises, we get an execution unit for each script usage. We
-    -- then update the body content to account for those usages.
-    Right (Map.toList -> exUnitsList) -> case Cardano.substituteExecutionUnits
-      ( Map.fromList $
-          fmap
-            (\(x, (_, Cardano.ExUnits mem steps)) -> (fromPlutusPurpose x, Cardano.ExecutionUnits steps mem))
-            exUnitsList
-      )
-      txBodyContent' of
-      -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
-      Left _ -> throwError $ FailWith "Error while assigning execution units"
-      -- We now have a body content with proper execution units and can create
-      -- the final body from it
-      Right txBody -> txBodyContentToTxBody txBody txSkel
-  where
-    fromPlutusPurpose (Cardano.ConwaySpending (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexTxIn n
-    fromPlutusPurpose (Cardano.ConwayMinting (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexMint n
-    fromPlutusPurpose (Cardano.ConwayCertifying (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexCertificate n
-    fromPlutusPurpose (Cardano.ConwayRewarding (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexWithdrawal n
-    fromPlutusPurpose (Cardano.ConwayVoting (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexVoting n
-    fromPlutusPurpose (Cardano.ConwayProposing (Cardano.AsIx n)) = Cardano.ScriptWitnessIndexProposing n
+    -- first have to transform this Ledger map to a cardano API map.
+    Right (Map.mapKeysMonotonic (Cardano.toScriptIndex Cardano.AlonzoEraOnwardsConway) . fmap (Cardano.fromAlonzoExUnits . snd) -> exUnits) ->
+      -- We can then assign the right execution units to the body content
+      case Cardano.substituteExecutionUnits exUnits txBodyContent' of
+        -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
+        Left _ -> throwError $ FailWith "Error while assigning execution units"
+        -- We now have a body content with proper execution units and can create
+        -- the final body from it
+        Right txBody -> txBodyContentToTxBody txBody txSkel
