@@ -16,6 +16,7 @@ import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -24,7 +25,7 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
 instance PrettyCooked Wallet where
-  prettyCookedOpt opts = prettyHash opts . walletPKHash
+  prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
 
 -- | Some elements of a skeleton can only be printed when they are associated
 -- with a context. This is typically the case for elements that need some

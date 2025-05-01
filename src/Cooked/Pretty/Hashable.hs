@@ -4,6 +4,7 @@
 module Cooked.Pretty.Hashable where
 
 import Cooked.Wallet
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V1.Typed qualified as Script
@@ -27,7 +28,7 @@ instance ToHash Api.PubKeyHash where
   toHash = Api.getPubKeyHash
 
 instance ToHash Wallet where
-  toHash = toHash . walletPKHash
+  toHash = toHash . Script.toPubKeyHash
 
 instance ToHash (Script.Versioned Script.MintingPolicy) where
   toHash = toHash . Script.toCurrencySymbol

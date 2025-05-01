@@ -182,10 +182,10 @@ tests =
                   },
           testCooked "fail if reference script's requirement is violated" $
             mustFailInPhase2WithMsgTest "the required signer is missing" $
-              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ walletPKHash $ wallet 2),
+              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 2),
           testCooked "succeed if reference script's requirement is met" $
             mustSucceedTest $
-              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ walletPKHash $ wallet 1)
+              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 1)
         ],
       testGroup
         "referencing minting policies"

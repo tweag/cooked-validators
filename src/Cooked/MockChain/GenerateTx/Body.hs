@@ -40,6 +40,7 @@ import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Generates a body content from a skeleton
@@ -77,7 +78,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals | txSkelReferenceInputs 
         throwOnToCardanoErrorOrApply
           "txSkelToBodyContent: Unable to translate the required signers"
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
-          $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
+          $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSigners
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
   let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
   txProposalProcedures <-

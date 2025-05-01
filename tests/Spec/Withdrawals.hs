@@ -29,5 +29,11 @@ tests =
       testCooked "We cannot withdraw if we are not registered" $
         mustFailInPhase1WithMsgTest "WithdrawalsNotInRewardsCERTS" $
           testWithdrawingScript 2 2 2 2
-            `withTweak` setTweak txSkelWithdrawalsL (scriptWithdrawal trueWithdrawalMPScript (someTxSkelRedeemer (2_000 :: Integer)) 2_000)
+            `withTweak` setTweak txSkelWithdrawalsL (scriptWithdrawal trueWithdrawalMPScript (someTxSkelRedeemer (2_000 :: Integer)) 2_000),
+      testCooked "A wallet can also make a withdrawal" $
+        mustSucceedTest $
+          testWithdrawingScript 2 2 2 2
+            `withTweak` do
+              registerStakingCred (wallet 1) 2_000 0
+              setTweak txSkelWithdrawalsL (pkWithdrawal (wallet 1) 2_000)
     ]

@@ -10,11 +10,9 @@ module Cooked.Wallet
     walletPKHashToWallet,
     walletPK,
     walletStakingPK,
-    walletPKHash,
     walletStakingPKHash,
     walletSK,
     walletStakingSK,
-    walletStakingCredential,
     Wallet,
   )
 where
@@ -64,7 +62,7 @@ wallet j
 --
 -- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@
 walletPKHashToId :: Api.PubKeyHash -> Maybe Int
-walletPKHashToId = (succ <$>) . flip elemIndex (walletPKHash <$> knownWallets)
+walletPKHashToId = (succ <$>) . flip elemIndex (Script.toPubKeyHash <$> knownWallets)
 
 -- | Retrieves the known wallet that corresponds to a public key hash
 walletPKHashToWallet :: Api.PubKeyHash -> Maybe Wallet
@@ -79,25 +77,25 @@ walletStakingPK :: Wallet -> Maybe Ledger.PubKey
 walletStakingPK = fmap Ledger.toPublicKey . walletStakingSK
 
 -- | Retrieves a wallet's public key hash
-walletPKHash :: Wallet -> Api.PubKeyHash
-walletPKHash = Ledger.pubKeyHash . walletPK
+instance Script.ToPubKeyHash Wallet where
+  toPubKeyHash = Ledger.pubKeyHash . walletPK
 
 -- | Retrieves a wallet's public staking key hash, if any
 walletStakingPKHash :: Wallet -> Maybe Api.PubKeyHash
 walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
 
 instance Script.ToCredential Wallet where
-  toCredential = Api.PubKeyCredential . walletPKHash
+  toCredential = Api.PubKeyCredential . Script.toPubKeyHash
 
 -- | Retrieves a wallet's staking credential
-walletStakingCredential :: Wallet -> Maybe Api.StakingCredential
-walletStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
+instance Script.ToMaybeStakingCredential Wallet where
+  toMaybeStakingCredential = (Api.StakingHash . Api.PubKeyCredential <$>) . walletStakingPKHash
 
 instance Script.ToAddress Wallet where
   toAddress w =
     Api.Address
       (Script.toCredential w)
-      (walletStakingCredential w)
+      (Script.toMaybeStakingCredential w)
 
 -- | Retrieves a wallet private key (secret key SK)
 walletSK :: Wallet -> Crypto.XPrv

@@ -44,7 +44,7 @@ instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrValidator = Left
 
 instance IsTxSkelOutAllowedOwner Wallet where
-  toPKHOrValidator = Left . walletPKHash
+  toPKHOrValidator = Left . Script.toPubKeyHash
 
 instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
   toPKHOrValidator = Right
