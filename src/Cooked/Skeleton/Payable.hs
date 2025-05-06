@@ -10,10 +10,10 @@ module Cooked.Skeleton.Payable
 where
 
 import Cooked.Skeleton.Datum
+import Cooked.Skeleton.ReferenceScript
 import Data.Kind (Constraint, Type)
 import GHC.TypeLits
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 
 -- | Constraint that a given type does not appear in a list of types
@@ -38,13 +38,13 @@ type family (∪) (xs :: [a]) (ys :: [a]) :: [a] where
 -- element of Type @Payable els@ we are sure that something was in fact paid.
 data Payable :: [Symbol] -> Type where
   -- | Hashed datums visible in the transaction are payable
-  VisibleHashedDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
+  VisibleHashedDatum :: (DatumConstrs a) => a -> Payable '["Datum"]
   -- | Inline datums are payable
-  InlineDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
+  InlineDatum :: (DatumConstrs a) => a -> Payable '["Datum"]
   -- | Hashed datums hidden from the transaction are payable
-  HiddenHashedDatum :: (TxSkelOutDatumConstrs a) => a -> Payable '["Datum"]
+  HiddenHashedDatum :: (DatumConstrs a) => a -> Payable '["Datum"]
   -- | Reference scripts are payable
-  ReferenceScript :: (Script.ToVersioned Script.Script s) => s -> Payable '["Reference Script"]
+  ReferenceScript :: (ReferenceScriptConstrs s) => s -> Payable '["Reference Script"]
   -- | Values are payable and are subject to min ada adjustment
   Value :: (Script.ToValue a) => a -> Payable '["Value"]
   -- | Fixed Values are payable but are NOT subject to min ada adjustment

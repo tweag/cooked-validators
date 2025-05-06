@@ -10,7 +10,6 @@ module Cooked.Attack.DoubleSat
 where
 
 import Cooked.MockChain.BlockChain
-import Cooked.Output
 import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
@@ -118,7 +117,7 @@ doubleSatAttack groupings optic change attacker = do
     -- calculate its balance
     deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Api.Value
     deltaBalance (inputs, outputs, mints) = do
-      inValue <- foldMap (outputValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
+      inValue <- foldMap (txSkelOutValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate outValue <> mintValue
       where
         outValue = foldOf (traversed % txSkelOutValueL % txSkelOutValueContentL) outputs

@@ -1,11 +1,10 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module implements 'PrettyCooked', 'PrettyCookedList' and 'PrettyCookedMaybe'
--- instances for 'TxSkel's and its components.
+-- | This module implements 'PrettyCooked', 'PrettyCookedList' and
+-- 'PrettyCookedMaybe' instances for 'TxSkel's and its components.
 module Cooked.Pretty.Skeleton (Contextualized (..)) where
 
-import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Plutus ()
@@ -14,10 +13,10 @@ import Cooked.Wallet
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Data qualified as Script
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -26,14 +25,13 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
 instance PrettyCooked Wallet where
-  prettyCookedOpt opts = prettyHash opts . walletPKHash
+  prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
 
 -- | Some elements of a skeleton can only be printed when they are associated
 -- with a context. This is typically the case for elements that need some
 -- 'Api.TxOutRef's and datums to be resolved.
 data Contextualized a = Contextualized
-  { _ctxOutputs :: Map Api.TxOutRef Api.TxOut,
-    _ctxDatums :: Map Api.DatumHash TxSkelOutDatum,
+  { _ctxOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
     ctxContent :: a
   }
   deriving (Functor)
@@ -60,13 +58,10 @@ mkWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkel
 mkWithdrawal (owner, (red, lv)) = Withdrawal owner red lv
 
 instance PrettyCooked Withdrawal where
-  prettyCookedOpt opts (Withdrawal cred red ada) =
-    prettyItemizeNoTitle opts "-" $
-      ( case cred of
-          Left script -> prettyHash opts script : prettyCookedOptList opts red
-          Right pkh -> [prettyHash opts pkh]
-      )
-        ++ [prettyCookedOpt opts (Script.toValue ada)]
+  prettyCookedOpt opts (Withdrawal (Left script) red lv) =
+    prettyItemize opts (prettyHash opts script) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
+  prettyCookedOpt opts (Withdrawal (Right pkh) _ lv) =
+    prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
 instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
@@ -144,6 +139,7 @@ instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (GovActionDeposit n) = "Governance action deposit:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (DRepRegistrationDeposit n) = "DRep registration deposit:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
+  prettyCookedOpt opts (MinFeeRefScriptCostPerByte q) = "Min fee per byto of reference script:" <+> prettyCookedOpt opts q
 
 -- | Prints a list of docs corresponding to an instance of 'TxSkelRedeemer'
 instance PrettyCookedList TxSkelRedeemer where
@@ -206,40 +202,48 @@ instance PrettyCooked Mint where
     prettyItemize opts (prettyHash opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
       prettyCookedOptList opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
+instance PrettyCookedList TxSkelOut where
+  prettyCookedOptList opts output =
+    [ prettyCookedOpt opts (txSkelOutAddress output),
+      prettyCookedOpt opts (txSkelOutValue output)
+    ]
+      ++ catMaybes
+        [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),
+          ("Reference script hash:" <+>) . prettyHash opts <$> txSkelOutRefScriptHash (output ^. txSkelOutReferenceScriptL)
+        ]
+
 instance PrettyCooked TxSkelOut where
-  prettyCookedOpt opts (Pays output) =
-    prettyItemize
-      opts
-      ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
-      "-"
-      ( prettyCookedOpt opts (outputValue output)
-          : catMaybes
-            [ prettyCookedOptMaybe opts (output ^. outputDatumL),
-              ("Reference script hash:" <+>) . prettyHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
-            ]
-      )
+  prettyCookedOpt opts output =
+    let txSkelOutList = prettyCookedOptList opts output
+     in prettyItemize opts ("Pays to" <+> head txSkelOutList) "-" (tail txSkelOutList)
 
 -- | Prints a 'TxSkelOutDatum' when different from 'TxSkelOutNoDatum'
 instance PrettyCookedMaybe TxSkelOutDatum where
   prettyCookedOptMaybe _ TxSkelOutNoDatum = Nothing
-  prettyCookedOptMaybe opts (TxSkelOutInlineDatum dat) =
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat Inline) =
     Just $
-      "Datum (inlined):"
-        <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutDatumHash dat) =
-    Just $
-      "Datum (hashed, invisible)"
+      "Datum (inline)"
         <+> "("
-        <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+        <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutDatum dat) =
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed NotResolved)) =
+    Just $
+      "Datum (hashed, hidden)"
+        <+> "("
+        <> prettyHash opts (Api.toBuiltinData dat)
+        <> "):"
+        <+> PP.align (prettyCookedOpt opts dat)
+  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed Resolved)) =
     Just $
       "Datum (hashed, visible)"
         <+> "("
-        <> prettyHash opts (Script.datumHash $ Api.Datum $ Api.toBuiltinData dat)
+        <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
+
+instance PrettyCooked DatumContent where
+  prettyCookedOpt opts (DatumContent dat) = prettyCookedOpt opts dat
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default.
@@ -329,20 +333,8 @@ instance PrettyCookedList TxOpts where
 -- address and value, and also builds a possibly empty list for its datum and
 -- reference script when they exist.
 instance PrettyCookedList (Contextualized Api.TxOutRef) where
-  prettyCookedOptList opts (Contextualized managedTxOuts managedTxSkelOutDatums txOutRef) = fromMaybe [] $ do
-    output <- Map.lookup txOutRef managedTxOuts
-    txSkelOutDatum <- case outputOutputDatum output of
-      Api.OutputDatum datum -> Map.lookup (Script.datumHash datum) managedTxSkelOutDatums
-      Api.OutputDatumHash datumHash -> Map.lookup datumHash managedTxSkelOutDatums
-      Api.NoOutputDatum -> return TxSkelOutNoDatum
-    return
-      ( prettyCookedOpt opts (outputAddress output)
-          : prettyCookedOpt opts (outputValue output)
-          : catMaybes
-            [ prettyCookedOptMaybe opts txSkelOutDatum,
-              ("Reference script hash:" <+>) . prettyHash opts . Script.toScriptHash <$> output ^. outputReferenceScriptL
-            ]
-      )
+  prettyCookedOptList opts (Contextualized managedTxOuts txOutRef) =
+    maybe [] (prettyCookedOptList opts . fst) (Map.lookup txOutRef managedTxOuts)
 
 data Input = Input
   { inputORef :: Api.TxOutRef,
@@ -350,17 +342,33 @@ data Input = Input
   }
 
 instance PrettyCooked (Contextualized Input) where
-  prettyCookedOpt opts cIn@(Contextualized _ _ input) =
+  prettyCookedOpt opts cIn@(Contextualized _ input) =
     case prettyCookedOptList opts (inputORef <$> cIn) of
-      (addressDoc : valueDoc : otherDocs) ->
-        prettyItemize opts ("Spends from" <+> addressDoc) "-" (valueDoc : prettyCookedOptList opts (inputRed input) <> otherDocs)
+      (addressDoc : otherDocs) ->
+        prettyItemize
+          opts
+          ( "Spends"
+              <+> prettyCookedOpt opts (inputORef input)
+              <+> "from"
+              <+> addressDoc
+          )
+          "-"
+          (prettyCookedOptList opts (inputRed input) <> otherDocs)
       _ -> "Spends" <+> prettyCookedOpt opts (inputORef input) <+> "(non resolved)"
 
 newtype ReferenceInput = ReferenceInput {unReferenceInput :: Api.TxOutRef}
 
 instance PrettyCooked (Contextualized ReferenceInput) where
-  prettyCookedOpt opts cRefIn@(Contextualized _ _ (ReferenceInput txOutRef)) =
+  prettyCookedOpt opts cRefIn@(Contextualized _ (ReferenceInput txOutRef)) =
     case prettyCookedOptList opts (unReferenceInput <$> cRefIn) of
-      (addressDoc : valueDoc : otherDocs) ->
-        prettyItemize opts ("References output from" <+> addressDoc) "-" (valueDoc : otherDocs)
+      (addressDoc : otherDocs) ->
+        prettyItemize
+          opts
+          ( "References output"
+              <+> prettyCookedOpt opts txOutRef
+              <+> "from"
+              <+> addressDoc
+          )
+          "-"
+          otherDocs
       _ -> "References" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"

@@ -21,7 +21,6 @@ where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Arrow hiding ((<+>))
 import Control.Monad (MonadPlus (..), msum)
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -30,13 +29,13 @@ import Cooked.InitialDistribution
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Cooked.MockChain.UtxoState
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -53,7 +52,7 @@ interpretAndRunWith f smc = f $ interpret smc
 
 -- | Same as 'interpretAndRunWith' but using 'runMockChainT' as the default way
 -- to run the computation.
-interpretAndRun :: StagedMockChain a -> [MockChainReturn a UtxoState]
+interpretAndRun :: StagedMockChain a -> [MockChainReturn a]
 interpretAndRun = interpretAndRunWith runMockChainT
 
 -- | The semantic domain in which 'StagedMockChain' gets interpreted
@@ -61,12 +60,7 @@ type InterpMockChain = MockChainT []
 
 -- | The 'interpret' function gives semantics to our traces. One
 -- 'StagedMockChain' computation yields a potential list of 'MockChainT'
--- computations, which emit a description of their operation. Recall a
--- 'MockChainT' is a state and except monad composed:
---
---  >     MockChainT (WriterT TraceDescr []) a
---  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
---  > =~= st -> [(Either err (a, st) , TraceDescr)]
+-- computations.
 interpret :: StagedMockChain a -> InterpMockChain a
 interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
@@ -78,15 +72,16 @@ data MockChainBuiltin a where
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe Api.TxOut)
+  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe TxSkelOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
-  DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe Api.Datum)
-  AllUtxos :: MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
-  UtxosAt :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Api.TxOut)]
-  ScriptFromHash :: Script.ScriptHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Script))
+  AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
+  UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
+  SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
+  GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
+  RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -136,8 +131,6 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
-  interpBuiltin (DatumFromHash h) = datumFromHash h
-  interpBuiltin (ScriptFromHash h) = scriptFromHash h
   interpBuiltin AllUtxos = allUtxos
   interpBuiltin (UtxosAt address) = utxosAt address
   interpBuiltin Empty = mzero
@@ -147,17 +140,20 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
   interpBuiltin (LogEvent entry) = logEvent entry
   interpBuiltin (Define name hash) = define name hash
+  interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
+  interpBuiltin GetConstitutionScript = getConstitutionScript
+  interpBuiltin (RegisterStakingCred cred reward deposit) = registerStakingCred cred reward deposit
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
 -- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
-runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
+runTweak :: Tweak InterpMockChain a -> TxSkel -> [MockChainReturn (a, TxSkel)]
 runTweak = runTweakFrom def
 
 -- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
 -- mockchain
-runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn a TxSkel]
-runTweakFrom initDist tweak = map (first (right fst)) . runMockChainTFrom initDist . runTweakInChain tweak
+runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn (a, TxSkel)]
+runTweakFrom initDist tweak = runMockChainTFrom initDist . runTweakInChain tweak
 
 -- ** Modalities
 
@@ -210,10 +206,8 @@ instance MonadError MockChainError StagedMockChain where
 
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
-  datumFromHash = singletonBuiltin . DatumFromHash
   txOutByRef = singletonBuiltin . TxOutByRef
   utxosAt = singletonBuiltin . UtxosAt
-  scriptFromHash = singletonBuiltin . ScriptFromHash
   logEvent = singletonBuiltin . LogEvent
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
@@ -222,6 +216,9 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
   define name = singletonBuiltin . Define name
+  setConstitutionScript = singletonBuiltin . SetConstitutionScript
+  getConstitutionScript = singletonBuiltin GetConstitutionScript
+  registerStakingCred cred reward deposit = singletonBuiltin $ RegisterStakingCred cred reward deposit
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

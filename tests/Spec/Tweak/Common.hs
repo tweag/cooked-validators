@@ -22,7 +22,7 @@ tests =
         let skel = mkSkel [123, 234, 345]
          in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test
                 [Right ([], skel)]
-                  @=? fst
+                  @=? mcrValue
                     <$> runTweak
                       ( overMaybeSelectingTweak
                           (txSkelOutsL % traversed % txSkelOutValueL)
@@ -32,7 +32,7 @@ tests =
                       skel,
               testCase "select applied modification by index" $
                 [Right ([Script.lovelace 345], mkSkel [123, 234, 789])]
-                  @=? fst
+                  @=? mcrValue
                     <$> runTweak
                       ( overMaybeSelectingTweak
                           (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
@@ -46,7 +46,7 @@ tests =
                       skel,
               testCase "return unmodified foci in the right order" $
                 [Right ([Script.lovelace 123, Script.lovelace 345], mkSkel [789, 234, 789])]
-                  @=? fst
+                  @=? mcrValue
                     <$> runTweak
                       ( overMaybeSelectingTweak
                           (txSkelOutsL % traversed % txSkelOutValueL % txSkelOutValueContentL)
@@ -90,7 +90,7 @@ tests =
                     skelOut 2 2 1,
                     skelOut 2 2 2
                   ]
-                  ( fst
+                  ( mcrValue
                       <$> runTweak
                         ( combineModsTweak
                             (tail . subsequences)
@@ -109,7 +109,7 @@ tests =
                     skelOut 0 0 1,
                     skelOut 0 0 2
                   ]
-                  ( fst
+                  ( mcrValue
                       <$> runTweak
                         ( combineModsTweak
                             (map (: []))

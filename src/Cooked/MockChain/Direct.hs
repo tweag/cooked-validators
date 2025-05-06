@@ -4,9 +4,12 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
+import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Ledger.Coin qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
-import Control.Arrow
+import Control.Lens qualified as Lens
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Identity
@@ -19,19 +22,21 @@ import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.MinAda
-import Cooked.MockChain.MockChainSt
-import Cooked.MockChain.UtxoState
-import Cooked.Output
+import Cooked.MockChain.MockChainState
+import Cooked.MockChain.UtxoState (UtxoState)
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Data.Default
 import Data.Map (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe
+import Data.Maybe (mapMaybe)
 import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Direct Emulation
@@ -45,7 +50,7 @@ import PlutusLedgerApi.V3 qualified as Api
 --
 -- A 'MockChain':
 --
--- - stores and updates a 'MockChainSt'
+-- - stores and updates a 'MockChainState'
 --
 -- - returns a 'UtxoState' when run
 --
@@ -69,14 +74,16 @@ instance Semigroup MockChainBook where
 instance Monoid MockChainBook where
   mempty = MockChainBook mempty mempty
 
--- | A 'MockChainT' builds up a stack of monads on top of a given monad
--- @m@ to reflect the requirements of the simulation.
+-- | A 'MockChainT' builds up a stack of monads on top of a given monad @m@ to
+-- reflect the requirements of the simulation. It writes a 'MockChainBook',
+-- updates and reads from a 'MockChainState' and throws possible
+-- 'MockChainError's.
 newtype MockChainT m a = MockChainT
-  {unMockChain :: (StateT MockChainSt (ExceptT MockChainError (WriterT MockChainBook m))) a}
+  {unMockChain :: (ExceptT MockChainError (StateT MockChainState (WriterT MockChainBook m))) a}
   deriving newtype
     ( Functor,
       Applicative,
-      MonadState MockChainSt,
+      MonadState MockChainState,
       MonadError MockChainError,
       MonadWriter MockChainBook
     )
@@ -96,7 +103,7 @@ instance MonadTrans MockChainT where
   lift = MockChainT . lift . lift . lift
 
 instance (Monad m, Alternative m) => Alternative (MockChainT m) where
-  empty = MockChainT $ StateT $ const $ ExceptT $ WriterT empty
+  empty = MockChainT $ ExceptT $ StateT $ const $ WriterT empty
   (<|>) = combineMockChainT (<|>)
 
 -- | Combines two 'MockChainT' together
@@ -106,75 +113,114 @@ combineMockChainT ::
   MockChainT m x ->
   MockChainT m x
 combineMockChainT f ma mb = MockChainT $
-  StateT $ \s ->
-    let resA = runWriterT $ runExceptT $ runStateT (unMockChain ma) s
-        resB = runWriterT $ runExceptT $ runStateT (unMockChain mb) s
-     in ExceptT $ WriterT $ f resA resB
+  ExceptT $
+    StateT $ \s ->
+      let resA = runWriterT $ runStateT (runExceptT (unMockChain ma)) s
+          resB = runWriterT $ runStateT (runExceptT (unMockChain mb)) s
+       in WriterT $ f resA resB
 
--- | A generic return type for a 'MockChain' run
-type MockChainReturn a b = (Either MockChainError (a, b), MockChainBook)
+-- | The returned type when running a 'MockChainT'. This is both a reorganizing
+-- and filtering of the natural returned type @((Either MockChainError a,
+-- MockChainState), MockChainBook)@, which is much easier to query.
+data MockChainReturn a = MockChainReturn
+  { -- | The returned value of the run
+    mcrValue :: Either MockChainError a,
+    -- | All the outputs used throughout the run
+    mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+    -- | The resulting 'UtxoState' of the run
+    mcrUtxoState :: UtxoState,
+    -- | The log entries emitted during the run
+    mcrJournal :: [MockChainLogEntry],
+    -- | The aliases defined during the run
+    mcrAliases :: Map Api.BuiltinByteString String
+  }
 
--- | Transforms a 'MockChainT' into another one
-mapMockChainT ::
-  (m (MockChainReturn a MockChainSt) -> n (MockChainReturn b MockChainSt)) ->
-  MockChainT m a ->
-  MockChainT n b
-mapMockChainT f = MockChainT . mapStateT (mapExceptT (mapWriterT f)) . unMockChain
-
--- | Runs a 'MockChainT' from a default 'MockChainSt'
+-- | Runs a 'MockChainT' from a default 'MockChainState'
 runMockChainTRaw ::
+  (Monad m) =>
   MockChainT m a ->
-  m (MockChainReturn a MockChainSt)
-runMockChainTRaw = runWriterT . runExceptT . flip runStateT def . unMockChain
+  m (MockChainReturn a)
+runMockChainTRaw = fmap mkMockChainReturn . runWriterT . flip runStateT def . runExceptT . unMockChain
+  where
+    mkMockChainReturn ((val, st), MockChainBook journal aliases) =
+      MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases
 
--- | Runs a 'MockChainT' from an initial 'MockChainSt' built from a given
--- 'InitialDistribution'. Returns a 'UtxoState'.
+-- | Runs a 'MockChainT' from an initial 'MockChainState' built from a given
+-- 'InitialDistribution'.
 runMockChainTFrom ::
   (Monad m) =>
   InitialDistribution ->
   MockChainT m a ->
-  m (MockChainReturn a UtxoState)
+  m (MockChainReturn a)
 runMockChainTFrom i0 s =
-  first (right (second mcstToUtxoState))
-    <$> runMockChainTRaw (mockChainSt0From i0 >>= put >> s)
+  runMockChainTRaw (mockChainState0From i0 >>= put >> s)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
-runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a UtxoState)
+runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
 runMockChainT = runMockChainTFrom def
 
 -- | See 'runMockChainTFrom'
-runMockChainFrom :: InitialDistribution -> MockChain a -> MockChainReturn a UtxoState
+runMockChainFrom :: InitialDistribution -> MockChain a -> MockChainReturn a
 runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
 
 -- | See 'runMockChainT'
-runMockChain :: MockChain a -> MockChainReturn a UtxoState
+runMockChain :: MockChain a -> MockChainReturn a
 runMockChain = runIdentity . runMockChainT
 
 -- * Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
-  scriptFromHash sHash = gets $ Map.lookup sHash . mcstScripts
-  txOutByRef outref = gets $ Map.lookup outref . getIndex . mcstIndex
-  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
-  utxosAt addr = filter ((addr ==) . outputAddress . snd) <$> allUtxos
+  txOutByRef outref = do
+    res <- gets $ Map.lookup outref . mcstOutputs
+    return $ case res of
+      Just (txSkelOut, True) -> Just txSkelOut
+      _ -> Nothing
+  utxosAt (Script.toAddress -> addr) = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
-  allUtxos = gets $ Map.toList . getIndex . mcstIndex
-  setParams newParams = modify (\st -> st {mcstParams = newParams})
-  currentSlot = gets mcstCurrentSlot
-  awaitSlot slot = modify' (\st -> st {mcstCurrentSlot = max slot (mcstCurrentSlot st)}) >> currentSlot
+  allUtxos =
+    gets $
+      mapMaybe
+        (\(oRef, (txSkelOut, isAvailable)) -> if isAvailable then Just (oRef, txSkelOut) else Nothing)
+        . Map.toList
+        . mcstOutputs
+  setParams params = do
+    modify $ set mcstParamsL params
+    modify $ over mcstLedgerStateL (Emulator.updateStateParams params)
+  currentSlot = gets (Emulator.getSlot . mcstLedgerState)
+  awaitSlot slot = do
+    cs <- currentSlot
+    when (slot > cs) $ modify' (over mcstLedgerStateL (Lens.set Emulator.elsSlotL (Ledger.toCardanoSlotNo slot)))
+    return $ max slot cs
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
+  setConstitutionScript (Script.toVersioned -> cScript) = do
+    modify' (mcstConstitutionL ?~ cScript)
+    modify' $
+      over mcstLedgerStateL $
+        Lens.set Emulator.elsConstitutionScriptL $
+          (Cardano.SJust . Cardano.toShelleyScriptHash . Script.toCardanoScriptHash)
+            cScript
+  getConstitutionScript = gets (view mcstConstitutionL)
+  registerStakingCred (Script.toCredential -> cred) reward deposit = do
+    stakeCredential <- case Ledger.toCardanoStakeCredential cred of
+      Left err -> throwError $ MCEToCardanoError "Unable to convert staking credential" err
+      Right cred' -> return $ Cardano.toShelleyStakeCredential cred'
+    modify' $
+      over
+        mcstLedgerStateL
+        ( Emulator.registerStakeCredential
+            stakeCredential
+            (Cardano.Coin reward)
+            (Cardano.Coin deposit)
+        )
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do
-    -- We retrieve the necessary logging data from the context
-    outputs <- gets (getIndex . mcstIndex)
-    datums <- gets (Map.map fst . mcstDatums)
     -- We log the submission of a new skeleton
-    logEvent $ MCLogSubmittedTxSkel outputs datums skelUnbal
+    logEvent $ MCLogSubmittedTxSkel skelUnbal
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -184,56 +230,66 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
     minAdaSkelUnbal <- toTxSkelWithMinAda skelUnbal
+    -- We retrieve the official constitution script
+    constitution <- getConstitutionScript
+    -- We attach the script to each proposal that requires it
+    let minAdaSkelUnbalWithConst = over (txSkelProposalsL % traversed) (`updateConstitution` constitution) minAdaSkelUnbal
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are allowed to be auto filled
-    minAdaRefScriptsSkelUnbal <- toTxSkelWithReferenceScripts minAdaSkelUnbal
+    minAdaRefScriptsSkelUnbalWithConst <- toTxSkelWithReferenceScripts minAdaSkelUnbalWithConst
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral wallet
-    (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbal
+    (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbalWithConst
     -- We log the adjusted skeleton
-    logEvent $ MCLogAdjustedTxSkel outputs datums skel fee mCollaterals
-    -- We generate the transaction associated with the skeleton, and apply on it
+    logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
+    -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
     cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
-    eLedgerState <- gets mcstToEmulatedLedgerState
-    -- We finally run the emulated validation, and we only care about the
-    -- validation result, as we update our own internal state
-    let (_, mValidationResult) = Emulator.validateCardanoTx newParams eLedgerState cardanoTx
-    -- We retrieve our current utxo index to perform modifications associated
-    -- with the validated transaction.
-    utxoIndex <- gets mcstIndex
-    -- We create a new utxo index with an error when validation failed
-    let (newUtxoIndex, valError) = case mValidationResult of
-          -- In case of a phase 1 error, we give back the same index
-          Ledger.FailPhase1 _ err -> (utxoIndex, Just (Ledger.Phase1, err))
-          -- In case of a phase 2 error, we retrieve the collaterals (and yes,
-          -- despite its name, 'insertCollateral' actually takes the collaterals
-          -- away from the index)
-          Ledger.FailPhase2 _ err _ -> (Ledger.insertCollateral cardanoTx utxoIndex, Just (Ledger.Phase2, err))
-          -- In case of success, we update the index with all inputs and outputs
-          -- contained in the transaction
-          Ledger.Success {} -> (Ledger.insert cardanoTx utxoIndex, Nothing)
-    case valError of
-      -- When validation failed for any reason, we throw an error. TODO: This
-      -- behavior could be subject to change in the future.
-      Just err -> throwError (uncurry MCEValidationError err)
-      -- Otherwise, we update known validators and datums.
-      Nothing -> do
-        -- We add the script in outputs
-        forM_ (mapMaybe txSkelOutValidator (txSkelOuts skel)) $ modify' . addScript
-        forM_ (mapMaybe txSkelOutReferenceScript (txSkelOuts skel)) $ modify' . addScript
-        -- We remove the consumed datums
-        txSkelInputDataAsHashes skel >>= (modify' . removeDatums)
-        -- We add the created datums
-        (modify' . addDatums) (txSkelDataInOutputs skel)
-    -- Now that we have computed a new index, we can update it
-    modify' (\st -> st {mcstIndex = newUtxoIndex})
+    eLedgerState <- gets mcstLedgerState
+    -- We finally run the emulated validation. We update our internal state
+    -- based on the validation result, and throw an error if this fails. If at
+    -- some point we want to allows mockchain runs with validation errors, the
+    -- caller will need to catch those errors and do something with them.
+    case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
+      -- In case of a phase 1 error, we give back the same index
+      (_, Ledger.FailPhase1 _ err) -> throwError $ MCEValidationError Ledger.Phase1 err
+      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColWallet) <- mCollaterals -> do
+        -- We update the emulated ledger state
+        modify' (set mcstLedgerStateL newELedgerState)
+        -- We remove the collateral utxos from our own stored outputs
+        forM_ colInputs $ modify' . removeOutput
+        -- We add the returned collateral to our outputs (in practice this map
+        -- either contains no element, or a single one)
+        forM_ (Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) $ \(txIn, txOut) ->
+          modify' $
+            addOutput
+              (Ledger.fromCardanoTxIn txIn)
+              (retColWallet `receives` Value (Api.txOutValue . Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut $ txOut))
+        -- We throw a mockchain error
+        throwError $ MCEValidationError Ledger.Phase2 err
+      -- In case of success, we update the index with all inputs and outputs
+      -- contained in the transaction
+      (newELedgerState, Ledger.Success {}) -> do
+        -- We update the index with the utxos consumed and produced by the tx
+        modify' (set mcstLedgerStateL newELedgerState)
+        -- We retrieve the utxos created by the transaction
+        let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
+        -- We add the news utxos to the state
+        forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
+        -- And remove the old ones
+        forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
+      -- This is a theoretical unreachable case. Since we fail in Phase 2, it
+      -- means the transaction involved script, and thus we must have generated
+      -- collaterals.
+      (_, Ledger.FailPhase2 {})
+        | Nothing <- mCollaterals ->
+            throwError $ FailWith "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
-    when txOptAutoSlotIncrease $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    when txOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction
-    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx)
+    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return cardanoTx

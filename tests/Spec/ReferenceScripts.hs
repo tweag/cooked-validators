@@ -2,9 +2,7 @@ module Spec.ReferenceScripts where
 
 import Cooked
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Set qualified as Set
-import Optics.Core
 import Plutus.ReferenceScripts
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -39,7 +37,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
         }
 
 retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
-retrieveRefScriptHash = (maybe Nothing (^. outputReferenceScriptL) <$>) . txOutByRef
+retrieveRefScriptHash = (txSkelOutReferenceScriptHash <$>) . unsafeTxOutByRef
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
@@ -110,11 +108,7 @@ tests =
               testCooked "on a script output" $
                 mustSucceedTest
                   (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= retrieveRefScriptHash)
-                  `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.)),
-              testCooked "retrieving the complete script from its hash" $
-                mustSucceedTest
-                  (putRefScriptOnWalletOutput (wallet 3) theRefScript >>= fmap fromJust . txOutByRef >>= resolveReferenceScript)
-                  `withResultProp` maybe testFailure ((Just (Script.toVersioned theRefScript) .==.) . (^. outputReferenceScriptL))
+                  `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.))
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"
@@ -134,8 +128,8 @@ tests =
               ( do
                   (consumedOref, _) : _ <-
                     runUtxoSearch $
-                      utxosAtSearch (wallet 1)
-                        `filterWithPred` ((`Api.geq` Script.lovelace 42_000_000) . outputValue)
+                      utxosOwnedBySearch (wallet 1)
+                        `filterWithPred` ((`Api.geq` Script.lovelace 42_000_000) . txSkelOutValue)
                   oref : _ <-
                     validateTxSkel'
                       txSkelTemplate
@@ -150,7 +144,7 @@ tests =
                       }
               )
               `withErrorProp` \case
-                MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Can't resolve reference script utxo."
+                MCEUnknownOutRef _ -> testSuccess
                 _ -> testFailure,
           testCooked "fail from transaction generation for mismatching reference scripts" $
             mustFailTest
@@ -169,7 +163,7 @@ tests =
                       }
               )
               `withErrorProp` \case
-                MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toPlutusScriptOrReferenceInput: Wrong reference script hash."
+                MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCooked "phase 1 - fail if using a reference script with 'someRedeemer'" $
             mustFailInPhase1Test $ do
@@ -188,10 +182,10 @@ tests =
                   },
           testCooked "fail if reference script's requirement is violated" $
             mustFailInPhase2WithMsgTest "the required signer is missing" $
-              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ walletPKHash $ wallet 2),
+              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 2),
           testCooked "succeed if reference script's requirement is met" $
             mustSucceedTest $
-              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ walletPKHash $ wallet 1)
+              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 1)
         ],
       testGroup
         "referencing minting policies"
@@ -204,12 +198,12 @@ tests =
           testCooked "fail if given the wrong reference minting policy" $
             mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
               `withErrorProp` \case
-                MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: Wrong reference script hash."
+                MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCooked "fail if referencing the wrong utxo" $
             mustFailTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 1 False)
               `withErrorProp` \case
-                MCEGenerationError (GenerateTxErrorGeneral err) -> err .==. "toPlutusScriptOrReferenceInput: No reference script found in utxo."
+                MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure
         ]
     ]

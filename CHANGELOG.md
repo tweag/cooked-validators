@@ -4,11 +4,126 @@
 
 ### Added
 
+- Module `Cooked.Skeleton.ReferenceScript`, exposing `ReferenceScriptConstrs`
+  (type constraints for reference scripts), `TxSkelOutReferenceScript` (type of
+  references scripts, with constructors `TxSkelOutNoReferenceScript` and
+  `TxSkelOutSomeReferenceScript`), and functions `txSkelOutTypedRefScriptAT`,
+  `txSkelOutRefScriptVersioned` and `txSkelOutRefScriptHash`.
+- New mockchain error `MCEMissingBalancingWallet` which is thrown when a
+  balancing wallet is required but cannot be found (empty signers list).
+- Function `txSkelToIndex` which builds the index of UTxOs known by a given
+  skeleton. This computation is no longer performed in `Balancing.hs` only.
+- Function `unsafeTxOutByRef` which throw an error when `txOutByRef` failed to
+  retrieve an output (it returned `Nothing`).
+- Functions `unsafeOutputDatumFromTxOutRef`, `unsafeDatumFromTxOutRef`,
+  `unsafeTypedDatumFromTxOutRef`, and `unsafeValueFromTxOutRef` which rely on
+  `unsafeTxOutByRef` under the hood.
+- Function `txSkelAllScripts` which extracts all scripts from a `TxSkel`.
+- Error `UnsupportedFeature`, which is more informative than `FailWith`. The
+  monadfail instance usage is now limited to the bare minimum.
+- Full support for constitution (proposing) scripts. This is achieved through
+  primitives `setConstitutionScript` and `getConstitutionScript`.
+- Proposal now have an option `txSkelProposalAutoConstitution` which allows the
+  current official constitution to be automatically attached to the proposal.
+- The automated attachment of constitution scripts is performed on all proposals
+  when required in function `validateTxSkel`.
+- Full support for rewarding (withdrawing) scripts. This is achieved through
+  primitive `registerStakingCred`.
+- `MinFeeRefScriptCostPerByte` has been added to possible changed parameters.
+- Function `toKeyWitness` which creates a key witness from a credential. This
+  homogenizes witness creation with the rest of the generation API.
+- Instances of `ToHash` for `BuiltinByteString`, `Datum` and `BuiltinData`.
+- New pretty printed option `pcOptPrintConsumedUTxOs` which allows to print a
+  second utxo state with consumed utxos, `False` by default.
+- Functions `txSkelWithdrawingScripts`, `txSkelProposingScripts` and
+  `txSkelMintingScripts` to collect certain kinds of scripts from a skeleton.
+- `txSkelMintVersionedScript` to retrieve the script from a mint constraint.
+- Functions `txSkelOutReferenceScriptL`, `txSkelOutStakingCredentialL`,
+  `txSkelOutReferenceScriptHash`, `txSkelOutAddress`, `txSkelOutPKHash` and
+  `txSkelOutTypedOwnerAT` to manipulate `TxSkelOut`s.
+- Functions `txSkelProposalAutoConstitutionL`, `withConstitution` and
+  `updateConsitution` to work with the constitution script of a
+  `TxSkelProposal`.
+
 ### Removed
+
+- Module `Cooked.Output` and all its content.
+- Primitives `datumFromHash` and `scriptFromHash` are gone, as it is no longer
+  necessary to resolve datums and scripts, since we carry them around fully in
+  `TxSkelOut`s and don't translate it back from `TxOut`. Their associated errors
+  `MCEUnknownValidator` and `MCEUnknownDatum` are gone too.
+- Functions `resolvedDatum`, `resolvedTypedDatum`, `resolveValidator`,
+  `resolveReferenceScript` as they are no longer relevant.
+- Functions `txSkelInputUtxos`, `txSkelReferenceInputUtxos`,
+  `txSkelInputDataAsHashes` as they are no longer relevant.
+- Functions `txOutRefToTxSkelOut` and `txOutRefToTxSkelOut` as `TxSkelOut`s are
+  directly stored and no longer need to be rebuilt from `TxOut`s.
+- Function `txSkelDataInOutputs` as it is no longer relevant.
+- Functions `txSkelOutOwnerTypeP` and `txSkelOutputDatumTypeAT`.
 
 ### Changed
 
+- `MockChainSt` (the type and constructor) have been renamed `MockChainState`
+  while `mockChainSt0From` has been renamed `mockChainState0From`.
+- The content of `MockChainState` has been fully updated. It now relies directly
+  on an `EmulatedLedgerState` that is automatically updated by the emulator
+  (`mcstLedgerState`); it still contains the emulator parameters (`mcstParams`);
+  it not longer contains a slot which is handled by the emulator; it now
+  contains a map from `TxOutRef` to `TxSkelOut` alongside a boolean stating if
+  this output is already consumed or not (`mcstOutputs`); and it now contains
+  the current constitution script (`mcstConstitution`).
+- The whole computation of the initial state is done through function
+  `mockChainState0From` instead of various function such as `scriptMap0From`
+  which no longer exist.
+- All occurrences of `ConcreteOutput` have been replaced by `TxSkelOut` while
+  constraints `IsTxInOutput` and `IsAbstractOutput` have been replaced by
+  dedicated constraints on outputs parts such as `OwnerConstrs`.
+- Default initial distributions have been lightened to 4 wallets and 4 utxos per
+  wallet. This provides a more concise default `UtxoState` to pretty print.
+- `UtxoState` now contains a map of available UTxO `availableUtxos` and already
+  consumed ones `consumedUtxos`. These replace `utxoState`.
+- `GenerateTxError` is replaced by native `MCEToCardanoError` as `TxBodyError`
+  can no longer occur, and `GenerateTxErrorGeneral` has been replaced either by
+  dedicated errors or by calls to `FailWith`.
+- Error `MCEUnbalanceable` no longer takes a `TxSkel` as parameter as it was
+  never used by the caller (in practice the pretty printer).
+- The return type of our direct mockchain `MockChainReturn` is no longer a
+  simple alias to a type but is now more informative. It contains the returned
+  value, the final map of `TxSkelOut` (consumed, or not), the final `UtxoState`
+  built from this map, the final log entries emitted during the run and the
+  dynamic aliases registered by the user. They are now named fields: `mcrValue`,
+  `mcrOutputs`, `mcrUtxoState`, `mcrJournal` and `mcrAliases`.
+- A mockchain run now always return a `UtxoState`, not only in case of a
+  successful run. This means that it is not possible, when conducting tests, to
+  predicate over the resulting state in case of failure. In the test API, this
+  is reflected by type `StateProp` and by function `withStateProp`.
+- `utxosAtSearch` has been replaced by `utxosOwnedBySearch` and all utxo
+  searches have be reworked to return `TxSkelOut`s and be more accessible and
+  relevant.
+- The pretty printer has been heavily improved and now directly receives all
+  outputs (consumed or not) when pretty printing a `MockChainReturn`. This means
+  that skeleton emitted in journal events can have their context recreated from
+  said `MockChainReturn`.
+- `TxSkelOutDatum`s have been heavily refactored, to split their content (now
+  called `DatumContent`) from their transaction generation options (now called
+  `DatumKind`). The module exposes a variety of new functions to extract
+  information from these new components. The `DatumContent` is now directly fed
+  to the `UtxoState` from the `MockChainReturn`.
+- `TxSkelOut` has been fully reworked, no longer relying on an abstract output,
+  but instead having dedicated types for each of its components (`tsoOwner`,
+  `tsoSCred`, `tsoDatum`, `tsoValue` and `tsoRefSc`).
+- Functions `walletPKHash` and `walletStakingCredential` have been replaced by
+  instances of `ToPubKeyHash` and `ToMaybeStakingCredential` respectively.
+- Tests for withdrawals and proposals have been updated.
+
 ### Fixed
+
+- A bug where the maximum execution units from the protocol parameters (and thus
+  maximal fees) were not scaled to the number of scripts a skeleton uses.
+- An imprecision where the required number of signers for a skeleton was
+  estimated by cardano-api while it is in fact found in the skeleton itself.
+- A bug where the execution units of the scripts were not computed and fed to
+  the transaction body.
 
 ## [[6.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v6.0.0) - 2025-05-15
 

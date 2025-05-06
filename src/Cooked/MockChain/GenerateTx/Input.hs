@@ -16,18 +16,16 @@ toTxInAndWitness ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   m (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  Api.TxOut (Api.Address cred _) _ datum _ <- throwOnMaybe "toCollateralTriplet: unresolved txOutRefs" =<< txOutByRef txOutRef
-  witness <- case cred of
-    Api.PubKeyCredential _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-    Api.ScriptCredential scriptHash -> do
-      validator <- throwOnMaybe "toTxInAndWitness: Unknown validator" =<< scriptFromHash scriptHash
-      scriptDatum <- case datum of
-        Api.NoOutputDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
-        Api.OutputDatum _ -> return Cardano.InlineScriptDatum
-        Api.OutputDatumHash datumHash -> do
-          sDatum <- throwOnMaybe "toTxInAndWitness: Unknown datum hash" =<< datumFromHash datumHash
-          return $ Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.getDatum sDatum
-      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> toScriptWitness validator txSkelRedeemer scriptDatum
+  TxSkelOut (toPKHOrValidator -> owner) _ datum _ _ <- unsafeTxOutByRef txOutRef
+  witness <- case owner of
+    Left _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+    Right validator ->
+      fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
+        toScriptWitness validator txSkelRedeemer $
+          case datum of
+            TxSkelOutNoDatum -> Cardano.ScriptDatumForTxIn Nothing
+            TxSkelOutSomeDatum _ Inline -> Cardano.InlineScriptDatum
+            TxSkelOutSomeDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat
   throwOnToCardanoErrorOrApply
     "toTxInAndWitness: Unable to translate TxOutRef"
     (,Cardano.BuildTxWith witness)

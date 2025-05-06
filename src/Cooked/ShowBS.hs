@@ -13,10 +13,10 @@
 module Cooked.ShowBS (ShowBS (..)) where
 
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.AssocMap qualified as PlutusTx
-import PlutusTx.Builtins qualified as PlutusTx
-import PlutusTx.Prelude hiding (toList)
-import PlutusTx.Ratio qualified as PlutusTx hiding (negate)
+import PlutusTx.AssocMap qualified as Map
+import PlutusTx.Builtins
+import PlutusTx.Prelude
+import PlutusTx.Ratio hiding (negate)
 
 -- | analogue of Haskell's 'Prelude.Show' class to be use in Plutus scripts.
 class ShowBS a where
@@ -104,9 +104,9 @@ instance (ShowBS a) => ShowBS (Maybe a) where
   showBS Nothing = "Nothing"
   showBS (Just x) = application1 "Just" x
 
-instance (ShowBS k, ShowBS v) => ShowBS (PlutusTx.Map k v) where
+instance (ShowBS k, ShowBS v) => ShowBS (Map.Map k v) where
   {-# INLINEABLE showBS #-}
-  showBS m = application1 "fromList" (PlutusTx.toList m)
+  showBS m = application1 "fromList" (Map.toList m)
 
 instance ShowBS BuiltinByteString where
   -- base16 representation
@@ -190,7 +190,7 @@ instance ShowBS BuiltinData where
 {-# INLINEABLE showData #-}
 showData :: BuiltinData -> BuiltinString
 showData d =
-  PlutusTx.matchData
+  matchData
     d
     (\i ds -> showBSParen $ "Constr " <> showBS i <> " " <> catList "[" "," "]" showData ds)
     (\alist -> showBSParen $ "Map " <> catList "[" "," "]" (\(a, b) -> "(" <> showData a <> "," <> showData b <> ")") alist)
@@ -334,9 +334,9 @@ instance ShowBS Api.Lovelace where
   {-# INLINEABLE showBS #-}
   showBS (Api.Lovelace amount) = application1 "Lovelace" amount
 
-instance ShowBS PlutusTx.Rational where
+instance ShowBS Rational where
   {-# INLINEABLE showBS #-}
-  showBS rat = application2 "Rational" (PlutusTx.numerator rat) (PlutusTx.denominator rat)
+  showBS rat = application2 "Rational" (numerator rat) (denominator rat)
 
 instance ShowBS Api.GovernanceAction where
   {-# INLINEABLE showBS #-}

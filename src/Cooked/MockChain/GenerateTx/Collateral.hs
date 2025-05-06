@@ -3,6 +3,7 @@
 module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
@@ -16,7 +17,6 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
@@ -46,7 +46,7 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- Retrieving the total value in collateral inputs. This fails if one of the
   -- collateral inputs has not been successfully resolved.
   collateralInsValue <-
-    foldM (\val -> ((val <>) <$>) . (throwOnMaybe "toCollateralTriplet: unresolved txOutRefs" <=< valueFromTxOutRef)) mempty collateralInsList
+    foldM (\val -> ((val <>) <$>) . unsafeValueFromTxOutRef) mempty collateralInsList
   -- We retrieve the collateral percentage compared to fees. By default, we use
   -- 150% which is the current value in the parameters, although the default
   -- value should never be used here, as the call is supposed to always succeed.
@@ -55,14 +55,10 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- percentage. We add 1 because the ledger apparently rounds up this value.
   let coinTotalCollateral = 1 + (fee * collateralPercentage) `div` 100
   -- We create the total collateral based on the computed value
-  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Emulator.Coin coinTotalCollateral
+  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Cardano.Coin coinTotalCollateral
   -- We compute a return collateral value by subtracting the total collateral to
   -- the value in collateral inputs
   let returnCollateralValue = collateralInsValue <> PlutusTx.negate (Script.lovelace coinTotalCollateral)
-  -- This should never happen, as we always compute the collaterals for the
-  -- user, but we guard against having some negative elements in the value in
-  -- case we give more freedom to the users in the future
-  when (fst (Api.split returnCollateralValue) /= mempty) $ throwOnString "toCollateralTriplet: negative parts in return collateral value"
   -- The return collateral is then computed
   txReturnCollateral <-
     -- If the total collateral equal what the inputs provide, we return

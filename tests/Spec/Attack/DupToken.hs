@@ -67,11 +67,11 @@ tests =
                       )
                   ]
          in [ testCase "add one token in every asset class" $
-                skelExpected 6 8 @=? fst <$> skelOut (\_ n -> n + 1),
+                skelExpected 6 8 @=? mcrValue <$> skelOut (\_ n -> n + 1),
               testCase "no modified transaction if no increase in value specified" $
-                [] @=? fst <$> skelOut (\_ n -> n),
+                [] @=? mcrValue <$> skelOut (\_ n -> n),
               testCase "add tokens depending on the asset class" $
-                skelExpected 10 7 @=? fst <$> skelOut (\ac n -> if ac == ac1 then n + 5 else n)
+                skelExpected 10 7 @=? mcrValue <$> skelOut (\ac n -> if ac == ac1 then n + 5 else n)
             ],
       testCooked "careful minting policy" $
         let tName = Api.TokenName "MockToken"
@@ -112,5 +112,5 @@ tests =
                   )
               ]
             skelOut = runTweak (dupTokenAttack (\_ i -> i + 1) attacker) skelIn
-         in skelExpected @=? fst <$> skelOut
+         in skelExpected @=? mcrValue <$> skelOut
     ]

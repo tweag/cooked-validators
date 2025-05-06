@@ -8,7 +8,7 @@ module Cooked.MockChain.UtxoState
   )
 where
 
-import Cooked.Skeleton (TxSkelOutDatum)
+import Cooked.Skeleton.Datum
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map.Strict (Map)
@@ -19,16 +19,21 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | A description of who owns what in a blockchain. Owners are addresses and
 -- they each own a 'UtxoPayloadSet'.
-newtype UtxoState = UtxoState {utxoState :: Map Api.Address UtxoPayloadSet}
+data UtxoState = UtxoState
+  { availableUtxos :: Map Api.Address UtxoPayloadSet,
+    consumedUtxos :: Map Api.Address UtxoPayloadSet
+  }
   deriving (Eq)
 
 -- | Total value accessible to what's pointed by the address.
 holdsInState :: (Script.ToAddress a) => a -> UtxoState -> Api.Value
-holdsInState (Script.toAddress -> address) (UtxoState m) =
-  maybe mempty utxoPayloadSetTotal (Map.lookup address m)
+holdsInState (Script.toAddress -> address) = maybe mempty utxoPayloadSetTotal . Map.lookup address . availableUtxos
 
 instance Semigroup UtxoState where
-  (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
+  (UtxoState a c) <> (UtxoState a' c') = UtxoState (Map.unionWith (<>) a a') (Map.unionWith (<>) c c')
+
+instance Monoid UtxoState where
+  mempty = UtxoState Map.empty Map.empty
 
 -- | Represents a /set/ of payloads.
 newtype UtxoPayloadSet = UtxoPayloadSet
@@ -46,8 +51,9 @@ data UtxoPayload = UtxoPayload
     utxoPayloadTxOutRef :: Api.TxOutRef,
     -- | The value stored in this UTxO
     utxoPayloadValue :: Api.Value,
-    -- | The datum stored in this UTxO
-    utxoPayloadSkelOutDatum :: TxSkelOutDatum,
+    -- | The optional datum stored in this UTxO and whether it is hashed
+    -- ('True') or inline ('False')
+    utxoPayloadDatum :: Maybe (DatumContent, Bool),
     -- | The optional reference script stored in this UTxO
     utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }

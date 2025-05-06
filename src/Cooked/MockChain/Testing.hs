@@ -12,6 +12,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Wallet
 import Data.Default
+import Data.List (isInfixOf)
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Ledger qualified
@@ -164,7 +165,7 @@ assertSameSets l r =
 --}
 
 -- | Type of properties over failures
-type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> MockChainError -> prop
+type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> MockChainError -> UtxoState -> prop
 
 -- | Type of properties over successes
 type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoState -> prop
@@ -177,6 +178,9 @@ type SizeProp prop = Integer -> prop
 -- | Type of properties over the mockchain journal
 type JournalProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
 
+-- | Type of properties over the 'UtxoState'
+type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
+
 -- | Data structure to test a mockchain trace. @a@ is the return typed of the
 -- tested trace, @prop@ is the domain in which the properties live. This is not
 -- enforced here, but it will often be assumed that @prop@ satisfies 'IsProp'.
@@ -186,7 +190,7 @@ data Test a prop = Test
     -- | The initial distribution from which the trace should be run
     testInitDist :: InitialDistribution,
     -- | The requirement on the number of results, as 'StagedMockChain' is a
-    -- 'Contro.Monad.MonadPlus'
+    -- 'Control.Monad.MonadPlus'
     testSizeProp :: SizeProp prop,
     -- | The property that should hold in case of failure over the resulting
     -- error and the logs emitted during the run
@@ -204,18 +208,18 @@ data Test a prop = Test
 -- the nature of these outcomes, either calls 'testFailureProp' or
 -- 'testSuccessProp'. It also uses the aliases emitted during the mockchain run
 -- to pretty print messages when applicable.
-testToProp :: (IsProp prop) => Test a prop -> prop
+testToProp :: (IsProp prop, Show a) => Test a prop -> prop
 testToProp Test {..} =
   let results = interpretAndRunWith (runMockChainTFrom testInitDist) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \(outcome, MockChainBook mcLog names) ->
+          ( \ret@(MockChainReturn outcome _ state mcLog names) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testCounterexample
-                    (renderString (prettyCookedOpt pcOpts) mcLog)
+                    (renderString (prettyCookedOpt pcOpts) ret)
                     $ case outcome of
-                      Left err -> testFailureProp pcOpts mcLog err
-                      Right (result, state) -> testSuccessProp pcOpts mcLog result state
+                      Left err -> testFailureProp pcOpts mcLog err state
+                      Right result -> testSuccessProp pcOpts mcLog result state
           )
           results
 
@@ -223,11 +227,11 @@ testToProp Test {..} =
 -- 'HU.testCase' with 'testCooked' and thus avoid the use of 'testToProp'.
 -- Sadly we cannot generalise it with type classes on @prop@ to work for
 -- QuichCheck at GHC will never be able to instantiate @prop@.
-testCooked :: String -> Test a HU.Assertion -> HU.TestTree
+testCooked :: (Show a) => String -> Test a HU.Assertion -> HU.TestTree
 testCooked name = HU.testCase name . testToProp
 
 -- | Same as 'testCooked', but for 'QC.Property'
-testCookedQC :: String -> Test a QC.Property -> HU.TestTree
+testCookedQC :: (Show a) => String -> Test a QC.Property -> HU.TestTree
 testCookedQC name = QC.testProperty name . testToProp
 
 -- * Simple test templates
@@ -239,20 +243,20 @@ mustSucceedTest trace =
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
-      testFailureProp = \opts _ res -> testFailureMsg $ "Expected success, but got:" <> renderString (prettyCookedOpt opts) res,
+      testFailureProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected failure!",
       testSuccessProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def
     }
 
 -- | A test template which expects a failure from a trace
-mustFailTest :: (IsProp prop, Show a) => StagedMockChain a -> Test a prop
+mustFailTest :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailTest trace =
   Test
     { testTrace = trace,
       testInitDist = def,
       testSizeProp = const testSuccess,
-      testFailureProp = \_ _ _ -> testSuccess,
-      testSuccessProp = \opts _ a res -> testFailureMsg $ "Expected failure, but got:" <> renderString (prettyCookedOpt opts) (a, res),
+      testFailureProp = \_ _ _ _ -> testSuccess,
+      testSuccessProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected success!",
       testPrettyOpts = def
     }
 
@@ -271,8 +275,17 @@ withPrettyOpts test opts = test {testPrettyOpts = opts}
 withJournalProp :: (IsProp prop) => Test a prop -> JournalProp prop -> Test a prop
 withJournalProp test journalProp =
   test
-    { testFailureProp = \opts journal err -> testFailureProp test opts journal err .&&. journalProp opts journal,
+    { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. journalProp opts journal,
       testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. journalProp opts journal
+    }
+
+-- | Appends a requirements over the resulting 'UtxoState', which will need to
+-- be satisfied both in case of success or failure of the run.
+withStateProp :: (IsProp prop) => Test a prop -> StateProp prop -> Test a prop
+withStateProp test stateProp =
+  test
+    { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. stateProp opts state,
+      testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. stateProp opts state
     }
 
 -- | Appends a requirement over the resulting value and state of the mockchain
@@ -287,10 +300,6 @@ withSuccessProp test successProp =
 withResultProp :: (IsProp prop) => Test a prop -> (a -> prop) -> Test a prop
 withResultProp test p = withSuccessProp test (\_ _ res _ -> p res)
 
--- | Some as 'withSuccessProp' but only considers the returning state of the run
-withStateProp :: (IsProp prop) => Test a prop -> (UtxoState -> prop) -> Test a prop
-withStateProp test p = withSuccessProp test (\_ _ _ -> p)
-
 -- | Appends a requirement over the resulting number of outcomes of the run
 withSizeProp :: (IsProp prop) => Test a prop -> SizeProp prop -> Test a prop
 withSizeProp test reqSize =
@@ -301,33 +310,33 @@ withSizeProp test reqSize =
 -- | Appends a requirement over the resulting value and state of the mockchain
 -- run which will need to be satisfied if the run is successful
 withFailureProp :: (IsProp prop) => Test a prop -> FailureProp prop -> Test a prop
-withFailureProp test failureProp = test {testFailureProp = \opts journal err -> testFailureProp test opts journal err .&&. failureProp opts journal err}
+withFailureProp test failureProp = test {testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. failureProp opts journal err state}
 
 -- | Same as 'withFailureProp' but only considers the returning error of the run
 withErrorProp :: (IsProp prop) => Test a prop -> (MockChainError -> prop) -> Test a prop
-withErrorProp test errorProp = withFailureProp test (\_ _ -> errorProp)
+withErrorProp test errorProp = withFailureProp test (\_ _ err _ -> errorProp err)
 
 -- * Specific properties around failures
 
 -- | A property to ensure a phase 1 failure
 isPhase1Failure :: (IsProp prop) => FailureProp prop
-isPhase1Failure _ _ (MCEValidationError Ledger.Phase1 _) = testSuccess
-isPhase1Failure pcOpts _ e = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase1Failure _ _ (MCEValidationError Ledger.Phase1 _) _ = testSuccess
+isPhase1Failure pcOpts _ e _ = testFailureMsg $ "Expected phase 1 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | A property to ensure a phase 2 failure
 isPhase2Failure :: (IsProp prop) => FailureProp prop
-isPhase2Failure _ _ (MCEValidationError Ledger.Phase2 _) = testSuccess
-isPhase2Failure pcOpts _ e = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase2Failure _ _ (MCEValidationError Ledger.Phase2 _) _ = testSuccess
+isPhase2Failure pcOpts _ e _ = testFailureMsg $ "Expected phase 2 evaluation failure, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'isPhase1Failure' with an added predicate on the text error
 isPhase1FailureWithMsg :: (IsProp prop) => String -> FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) | T.pack s == text = testSuccess
-isPhase1FailureWithMsg _ pcOpts _ e = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) _ | s `isInfixOf` T.unpack text = testSuccess
+isPhase1FailureWithMsg _ pcOpts _ e _ = testFailureMsg $ "Expected phase 1 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Same as 'isPhase2Failure' with an added predicate over the text error
 isPhase2FailureWithMsg :: (IsProp prop) => String -> FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) | T.pack s `elem` texts = testSuccess
-isPhase2FailureWithMsg _ pcOpts _ e = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
+isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) _ | any (isInfixOf s . T.unpack) texts = testSuccess
+isPhase2FailureWithMsg _ pcOpts _ e _ = testFailureMsg $ "Expected phase 2 evaluation failure with constrained messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- * Specific properties around number of outcomes
 
@@ -404,19 +413,19 @@ isInWallet (w, ac, n) = isInWallets [(w, [(ac, (== n))])]
 --}
 
 -- | A test template which expects a Phase 2 failure
-mustFailInPhase2Test :: (IsProp prop, Show a) => StagedMockChain a -> Test a prop
+mustFailInPhase2Test :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailInPhase2Test run = mustFailTest run `withFailureProp` isPhase2Failure
 
 -- | A test template which expects a specific phase 2 error message
-mustFailInPhase2WithMsgTest :: (IsProp prop, Show a) => String -> StagedMockChain a -> Test a prop
+mustFailInPhase2WithMsgTest :: (IsProp prop) => String -> StagedMockChain a -> Test a prop
 mustFailInPhase2WithMsgTest msg run = mustFailTest run `withFailureProp` isPhase2FailureWithMsg msg
 
 -- | A test template which expects a Phase 1 failure
-mustFailInPhase1Test :: (IsProp prop, Show a) => StagedMockChain a -> Test a prop
+mustFailInPhase1Test :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailInPhase1Test run = mustFailTest run `withFailureProp` isPhase1Failure
 
 -- | A test template which expects a specific phase 1 error message
-mustFailInPhase1WithMsgTest :: (IsProp prop, Show a) => String -> StagedMockChain a -> Test a prop
+mustFailInPhase1WithMsgTest :: (IsProp prop) => String -> StagedMockChain a -> Test a prop
 mustFailInPhase1WithMsgTest msg run = mustFailTest run `withFailureProp` isPhase1FailureWithMsg msg
 
 -- | A test template which expects a certain number of successful outcomes
@@ -424,5 +433,5 @@ mustSucceedWithSizeTest :: (IsProp prop) => Integer -> StagedMockChain a -> Test
 mustSucceedWithSizeTest size run = mustSucceedTest run `withSizeProp` (testBool . (== size))
 
 -- | A test template which expects a certain number of unsuccessful outcomes
-mustFailWithSizeTest :: (IsProp prop, Show a) => Integer -> StagedMockChain a -> Test a prop
+mustFailWithSizeTest :: (IsProp prop) => Integer -> StagedMockChain a -> Test a prop
 mustFailWithSizeTest size run = mustFailTest run `withSizeProp` isOfSize size

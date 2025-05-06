@@ -13,7 +13,6 @@ import Data.Tuple (swap)
 import Optics.Core
 import Plutus.Attack.DoubleSat
 import Plutus.Script.Utils.V2 qualified as Script
-import PlutusLedgerApi.V2 qualified as Api
 import PlutusLedgerApi.V3 qualified as V3
 import Prettyprinter
 import Test.Tasty
@@ -40,14 +39,14 @@ customInitDist =
     <> InitialDistribution ((\n -> bValidator `receives` (VisibleHashedDatum BDatum <&&> Value (Script.ada n))) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
-aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, Api.TxOut)
+aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
-  case fst $ runMockChainFrom customInitDist $ do
-    [a1, a2, a3, a4] <- runUtxoSearch $ utxosAtSearch aValidator
-    [b1, b2] <- runUtxoSearch $ utxosAtSearch bValidator
+  case mcrValue $ runMockChainFrom customInitDist $ do
+    [a1, a2, a3, a4] <- runUtxoSearch $ utxosOwnedBySearch aValidator
+    [b1, b2] <- runUtxoSearch $ utxosOwnedBySearch bValidator
     return (a1, a2, a3, a4, b1, b2) of
     Left _ -> error "Initial distribution error"
-    Right (a, _) -> a
+    Right a -> a
 
 tests :: TestTree
 tests =
@@ -82,20 +81,20 @@ tests =
             skelsOut :: ([V3.TxOutRef] -> [[V3.TxOutRef]]) -> [(ARedeemer, V3.TxOutRef)] -> [TxSkel]
             skelsOut splitMode aInputs =
               mapMaybe
-                ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . fst)
+                ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . mcrValue)
                 ( runTweakFrom
                     customInitDist
                     ( doubleSatAttack
                         splitMode
                         (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
                         ( \aOref _aRedeemer -> do
-                            bUtxos <- runUtxoSearch $ scriptOutputsSearch bValidator
+                            bUtxos <- runUtxoSearch $ utxosOwnedBySearch bValidator
                             if
                               | aOref == fst aUtxo1 ->
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
                                       | (bOref, bOut) <- bUtxos,
-                                        outputValue bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        txSkelOutValue bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
@@ -132,7 +131,7 @@ tests =
             -- 'bValidator' UTxOs with the specified redeemers,
             -- while redirecting the value of the inputs from
             -- the 'bValidator' to wallet 6
-            skelExpected :: [(ARedeemer, V3.TxOutRef)] -> [(BRedeemer, (V3.TxOutRef, Api.TxOut))] -> TxSkel
+            skelExpected :: [(ARedeemer, V3.TxOutRef)] -> [(BRedeemer, (V3.TxOutRef, TxSkelOut))] -> TxSkel
             skelExpected aInputs bInputs =
               txSkelTemplate
                 { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
@@ -151,15 +150,15 @@ tests =
                         ),
                   txSkelOuts =
                     [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
-                      wallet 6 `receives` Value (foldMap (outputValue . snd . snd) bInputs)
+                      wallet 6 `receives` Value (foldMap (txSkelOutValue . snd . snd) bInputs)
                     ],
                   txSkelSigners = [wallet 1]
                 }
          in [ testGroup "with separate skeletons for each modification" $
                 let thePredicate ::
-                      [(ARedeemer, (V3.TxOutRef, Api.TxOut))] ->
-                      [ ( [(ARedeemer, (V3.TxOutRef, Api.TxOut))],
-                          [(BRedeemer, (V3.TxOutRef, Api.TxOut))]
+                      [(ARedeemer, (V3.TxOutRef, TxSkelOut))] ->
+                      [ ( [(ARedeemer, (V3.TxOutRef, TxSkelOut))],
+                          [(BRedeemer, (V3.TxOutRef, TxSkelOut))]
                         )
                       ] ->
                       Assertion
@@ -226,9 +225,9 @@ tests =
                     ],
               testGroup "trying all combinations of modifications" $
                 let thePredicate ::
-                      [(ARedeemer, (V3.TxOutRef, Api.TxOut))] ->
-                      [ ( [(ARedeemer, (V3.TxOutRef, Api.TxOut))],
-                          [(BRedeemer, (V3.TxOutRef, Api.TxOut))]
+                      [(ARedeemer, (V3.TxOutRef, TxSkelOut))] ->
+                      [ ( [(ARedeemer, (V3.TxOutRef, TxSkelOut))],
+                          [(BRedeemer, (V3.TxOutRef, TxSkelOut))]
                         )
                       ] ->
                       Assertion

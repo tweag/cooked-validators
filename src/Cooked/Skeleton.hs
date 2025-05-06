@@ -26,12 +26,13 @@ module Cooked.Skeleton
     txSkelOutsL,
     txSkelWithdrawalsL,
     txSkelTemplate,
-    txSkelDataInOutputs,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
-    txSkelWithdrawalsScripts,
+    txSkelWithdrawingScripts,
     txSkelValueInOutputs,
     txSkelReferenceTxOutRefs,
+    txSkelProposingScripts,
+    txSkelMintingScripts,
   )
 where
 
@@ -43,6 +44,7 @@ import Cooked.Skeleton.Output as X
 import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.ReferenceScript as X
 import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
@@ -56,7 +58,6 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -156,22 +157,6 @@ txSkelTemplate =
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
 
--- | Returns all data on transaction outputs. This can contain duplicates, which
--- is intended.
-txSkelDataInOutputs :: TxSkel -> [(Api.DatumHash, TxSkelOutDatum)]
-txSkelDataInOutputs =
-  foldMapOf
-    ( txSkelOutsL
-        % folded
-        % txSkelOutDatumL
-    )
-    ( \txSkelOutDatum ->
-        maybe
-          []
-          (\datum -> [(Script.datumHash datum, txSkelOutDatum)])
-          (txSkelOutUntypedDatum txSkelOutDatum)
-    )
-
 -- | All `Api.TxOutRef`s in reference inputs
 txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelReferenceTxOutRefs TxSkel {..} =
@@ -199,5 +184,13 @@ txSkelWithdrawnValue :: TxSkel -> Api.Value
 txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawalsScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawalsScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelWithdrawingScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+
+-- | Returns all the scripts involved in proposals in this 'TxSkel'
+txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelProposingScripts = mapMaybe (fmap fst . txSkelProposalWitness) . txSkelProposals
+
+-- | Returns all the scripts involved in minting in this 'TxSkel'
+txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
+txSkelMintingScripts = fmap txSkelMintVersionedScript . txSkelMintsToList . txSkelMints

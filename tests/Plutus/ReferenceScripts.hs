@@ -6,6 +6,7 @@ module Plutus.ReferenceScripts where
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx
+import PlutusTx.List
 import PlutusTx.Prelude
 
 -- | This validator ensures that the given public key signs the

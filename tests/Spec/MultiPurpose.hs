@@ -3,6 +3,7 @@
 module Spec.MultiPurpose where
 
 import Cooked
+import Data.Default
 import Data.Map qualified as HMap
 import Plutus.MultiPurpose
 import Plutus.Script.Utils.V3 qualified as Script
@@ -100,7 +101,7 @@ tests :: TestTree
 tests =
   testGroup
     "Multi purpose scripts"
-    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript,
+    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript `withPrettyOpts` def {pcOptPrintTxOutRefs = PCOptTxOutRefsFull},
       testGroup
         "The Spending purpose behaves properly"
         [ testCooked "We cannot redirect any output to a private key" $

@@ -7,6 +7,7 @@ import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx
 import PlutusTx.AssocMap qualified as Map
+import PlutusTx.List
 import PlutusTx.Prelude
 import Prelude qualified as HS
 
