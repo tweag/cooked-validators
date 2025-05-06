@@ -8,6 +8,7 @@ module Cooked.Skeleton.Proposal
     txSkelProposalActionL,
     txSkelProposalWitnessL,
     txSkelProposalAnchorL,
+    txSkelProposalAutoConstitutionL,
     simpleTxSkelProposal,
     withWitness,
     withAnchor,
