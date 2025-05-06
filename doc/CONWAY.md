@@ -17,18 +17,20 @@ supported.
 
 It is currently possible to describe proposal procedures and attach an arbitrary
 number of those in transaction skeletons. The balancing mechanism will take into
-account the required deposit for each of these procedures.
+account the required deposit for each of these procedures. If those proposal
+procedure involve scripts (i.e. they proposal a withdrawal or a parameter
+change) those script will be ran during the validation process. However, the
+proposal will not be enacted.
 
-### Parameter changes
+## Multipurpose scripts
 
-It is possible to issue proposal procedures with a request for changes in
-parameters. If a script witness is attached to this proposal (typically the
-constitution script), it will be ran against the proposal. All kinds of
-parameter changes are supported, except for the cost models, which contain too
-many values and are not even yet taken into account by the current constitution.
+Multipurpose scripts, from
+[CIP-0069](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0069) are
+fully supported by cooked-validators.
 
-### Treasury withdrawals
+## Withdrawals
 
-It is possible to issue proposal procedures with a request for treasury
-withdrawals. If a script witness is attached to this proposal (typically the
-constitution script), it will be ran against the proposal.
+It is currently possible to register a staking credential with a certain deposit
+and reward (either a script or a wallet) and to later on withdraw this
+reward. If the reward is associated with a script, this script will be ran
+during the validation process.
