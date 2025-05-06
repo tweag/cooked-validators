@@ -4,6 +4,16 @@
 
 ### Added
 
+### Removed
+
+### Changed
+
+### Fixed
+
+## [[6.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v6.0.0) - 2025-05-15
+
+### Added
+
 - Module `Cooked.Pretty.Hashable` has been brought back from
   `Cooked.Conversion.ToHash` since it has no purpose being in
   `plutus-script-utils`.
