@@ -151,12 +151,6 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Logs an event that occured during a BlockChain run
   logEvent :: MockChainLogEntry -> m ()
 
--- | Same as 'txOutByRef' but throws an error in case of missing utxo. Use this
--- when you know the utxo is present, or when you want an error to be throw when
--- it's not.
-unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
-unsafeTxOutByRef oRef = maybe (throwError (MCEUnknownOutRef oRef)) return =<< txOutByRef oRef
-
 -- | This is the second layer of our blockchain, which provides all the other
 -- blockchain primitives not needed for balancing, except transaction
 -- validation. This layers is the one where
@@ -191,10 +185,6 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Registers a staking credential with a given reward and deposit
   registerStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> m ()
 
--- | Like 'define', but binds the result of a monadic computation instead
-defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
-defineM name comp = comp >>= define name
-
 -- | The final layer of our blockchain, adding transaction validation to the
 -- mix. This is the only primitive that actually modifies the ledger state.
 class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
@@ -202,6 +192,14 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- returns the validated transaction and updates the state of the
   -- blockchain.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
+
+-- * Mockchain helpers
+
+-- | Same as 'txOutByRef' but throws an error in case of missing utxo. Use this
+-- when you know the utxo is present, or when you want an error to be throw when
+-- it's not.
+unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
+unsafeTxOutByRef oRef = maybe (throwError (MCEUnknownOutRef oRef)) return =<< txOutByRef oRef
 
 -- | Validates a skeleton, and retuns the ordered list of produced output
 -- references
@@ -226,7 +224,9 @@ utxosFromCardanoTx =
     )
     . Ledger.getCardanoTxOutRefs
 
--- * Mockchain helpers
+-- | Like 'define', but binds the result of a monadic computation instead
+defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
+defineM name = (define name =<<)
 
 -- | Extracts a potential 'TxSkelOutDatum' from a given 'Api.TxOutRef'
 datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe TxSkelOutDatum)

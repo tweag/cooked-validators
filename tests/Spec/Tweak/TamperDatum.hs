@@ -107,14 +107,3 @@ tests =
     [ tamperDatumTweakTest,
       malformDatumTweakTest
     ]
-
--- x =
---   [ [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]],
---     [Constr 0 [I 52, I 53], Constr 0 [I 76, I 77], Constr 0 [I 84, I 85]]
---   ]
