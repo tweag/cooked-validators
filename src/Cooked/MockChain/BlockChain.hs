@@ -20,21 +20,22 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
     AsTrans (..),
-    currentTime,
-    waitNSlots,
+    currentMSRange,
     utxosFromCardanoTx,
     unsafeTxOutByRef,
     typedDatumFromTxOutRef,
     valueFromTxOutRef,
     outputDatumFromTxOutRef,
     datumFromTxOutRef,
+    currentSlot,
+    awaitSlot,
     getEnclosingSlot,
     awaitEnclosingSlot,
-    awaitDurationFromLowerBound,
-    awaitDurationFromUpperBound,
+    waitNMSFromSlotLowerBound,
+    waitNMSFromSlotUpperBound,
     slotRangeBefore,
     slotRangeAfter,
-    slotToTimeInterval,
+    slotToMSRange,
     txSkelInputValidators,
     txSkelInputValue,
     lookupUtxos,
@@ -100,6 +101,8 @@ data MockChainError
     MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
   | -- | A UTxO is missing from the mockchain state
     MCEUnknownOutRef Api.TxOutRef
+  | -- | A jump in time would result in a past slot
+    MCEPastSlot Ledger.Slot Ledger.Slot
   | -- | An attempt to invoke an unsupported feature has been made
     MCEUnsupportedFeature String
   | -- | Used to provide 'MonadFail' instances.
@@ -162,15 +165,9 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Updates parameters
   setParams :: Emulator.Params -> m ()
 
-  -- | Returns the current slot number
-  currentSlot :: m Ledger.Slot
-
-  -- | Waits until the current slot becomes greater or equal to the given slot,
-  -- and returns the current slot after waiting.
-  --
-  -- Note that it might not wait for anything if the current slot is large
-  -- enough.
-  awaitSlot :: Ledger.Slot -> m Ledger.Slot
+  -- | Wait a certain amount of slot. Throws 'MCEPastSlot' if the input integer
+  -- is negative. Returns the slot after jumping in time.
+  waitNSlots :: (Integral i) => i -> m Ledger.Slot
 
   -- | Binds a hashable quantity of type @a@ to a variable in the mockchain,
   -- while registering its alias for printing purposes.
@@ -302,31 +299,32 @@ txSkelInputValue = fmap mconcat . mapM unsafeValueFromTxOutRef . Map.keys . txSk
 -- certain branches of certain validators; make sure you also read the docs on
 -- 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
 
--- | Moves n slots fowards
-waitNSlots :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
-waitNSlots n =
-  if n < 0
-    then fail "waitNSlots: negative argument"
-    else currentSlot >>= awaitSlot . (+ fromIntegral n)
+-- | Returns the current slot number
+currentSlot :: (MonadBlockChainWithoutValidation m) => m Ledger.Slot
+currentSlot = waitNSlots @_ @Int 0
+
+-- | Wait for a certain slot, or throws an error if the slot is already past
+awaitSlot :: (MonadBlockChainWithoutValidation m, Integral i) => i -> m Ledger.Slot
+awaitSlot slot = currentSlot >>= waitNSlots . (slot -) . fromIntegral
 
 -- | Returns the closed ms interval corresponding to the current slot
-currentTime :: (MonadBlockChainWithoutValidation m) => m (Api.POSIXTime, Api.POSIXTime)
-currentTime = slotToTimeInterval =<< currentSlot
+currentMSRange :: (MonadBlockChainWithoutValidation m) => m (Api.POSIXTime, Api.POSIXTime)
+currentMSRange = slotToMSRange =<< currentSlot
 
 -- | Returns the closed ms interval corresponding to the slot with the given
 -- number. It holds that
 --
--- > slotToTimeInterval (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
+-- > slotToMSRange (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
 --
 -- and
 --
--- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
+-- > slotToMSRange n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
 --
 -- and
 --
--- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot (a-1) == n-1 && getEnclosingSlot (b+1) == n+1
-slotToTimeInterval :: (MonadBlockChainWithoutValidation m) => Ledger.Slot -> m (Api.POSIXTime, Api.POSIXTime)
-slotToTimeInterval slot = do
+-- > slotToMSRange n == (a, b)   ==>   getEnclosingSlot (a-1) == n-1 && getEnclosingSlot (b+1) == n+1
+slotToMSRange :: (MonadBlockChainWithoutValidation m, Integral i) => i -> m (Api.POSIXTime, Api.POSIXTime)
+slotToMSRange (fromIntegral -> slot) = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
   case Emulator.slotToPOSIXTimeRange slotConfig slot of
     Api.Interval
@@ -338,7 +336,7 @@ slotToTimeInterval slot = do
           )
     _ -> fail "Unexpected unbounded slot: please report a bug at https://github.com/tweag/cooked-validators/issues"
 
--- | Return the slot that contains the given time. See 'slotToTimeInterval' for
+-- | Return the slot that contains the given time. See 'slotToMSRange' for
 -- some satisfied equational properties.
 getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 getEnclosingSlot t = (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotConfig <$> getParams
@@ -351,19 +349,19 @@ awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
 -- | Wait a given number of ms from the lower bound of the current slot and
 -- returns the current slot after waiting.
-awaitDurationFromLowerBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
-awaitDurationFromLowerBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
+waitNMSFromSlotLowerBound :: (MonadBlockChainWithoutValidation m, Integral i) => i -> m Ledger.Slot
+waitNMSFromSlotLowerBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | Wait a given number of ms from the upper bound of the current slot and
 -- returns the current slot after waiting.
-awaitDurationFromUpperBound :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
-awaitDurationFromUpperBound duration = currentTime >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
+waitNMSFromSlotUpperBound :: (MonadBlockChainWithoutValidation m, Integral i) => i -> m Ledger.Slot
+waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | The infinite range of slots ending before or at the given time
 slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
-  (_, b) <- slotToTimeInterval n
+  (_, b) <- slotToMSRange n
   -- If the given time @t@ happens to be the last ms of its slot, we can include
   -- the whole slot. Otherwise, the only way to be sure that the returned slot
   -- range contains no time after @t@ is to go to the preceding slot.
@@ -373,7 +371,7 @@ slotRangeBefore t = do
 slotRangeAfter :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange
 slotRangeAfter t = do
   n <- getEnclosingSlot t
-  (a, _) <- slotToTimeInterval n
+  (a, _) <- slotToMSRange n
   return $ Api.from $ if t == a then n else n + 1
 
 -- * Deriving further 'MonadBlockChain' instances
@@ -406,8 +404,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxos = lift allUtxos
   setParams = lift . setParams
-  currentSlot = lift currentSlot
-  awaitSlot = lift . awaitSlot
+  waitNSlots = lift . waitNSlots
   define name = lift . define name
   setConstitutionScript = lift . setConstitutionScript
   getConstitutionScript = lift getConstitutionScript
@@ -452,8 +449,7 @@ instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) wher
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxos = lift allUtxos
   setParams = lift . setParams
-  currentSlot = lift currentSlot
-  awaitSlot = lift . awaitSlot
+  waitNSlots = lift . waitNSlots
   define name = lift . define name
   setConstitutionScript = lift . setConstitutionScript
   getConstitutionScript = lift getConstitutionScript
