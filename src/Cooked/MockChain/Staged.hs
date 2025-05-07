@@ -73,8 +73,7 @@ data MockChainBuiltin a where
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
   TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe TxSkelOut)
-  GetCurrentSlot :: MockChainBuiltin Ledger.Slot
-  AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
+  WaitNSlots :: (Integral i) => i -> MockChainBuiltin Ledger.Slot
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
@@ -129,8 +128,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         put later
         validateTxSkel skel'
   interpBuiltin (TxOutByRef o) = txOutByRef o
-  interpBuiltin GetCurrentSlot = currentSlot
-  interpBuiltin (AwaitSlot s) = awaitSlot s
+  interpBuiltin (WaitNSlots s) = waitNSlots s
   interpBuiltin AllUtxos = allUtxos
   interpBuiltin (UtxosAt address) = utxosAt address
   interpBuiltin Empty = mzero
@@ -213,8 +211,7 @@ instance MonadBlockChainBalancing StagedMockChain where
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxos = singletonBuiltin AllUtxos
   setParams = singletonBuiltin . SetParams
-  currentSlot = singletonBuiltin GetCurrentSlot
-  awaitSlot = singletonBuiltin . AwaitSlot
+  waitNSlots = singletonBuiltin . WaitNSlots
   define name = singletonBuiltin . Define name
   setConstitutionScript = singletonBuiltin . SetConstitutionScript
   getConstitutionScript = singletonBuiltin GetConstitutionScript

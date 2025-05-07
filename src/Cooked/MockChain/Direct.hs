@@ -21,6 +21,7 @@ import Cooked.MockChain.AutoReferenceScripts
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
@@ -189,11 +190,15 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   setParams params = do
     modify $ set mcstParamsL params
     modify $ over mcstLedgerStateL (Emulator.updateStateParams params)
-  currentSlot = gets (Emulator.getSlot . mcstLedgerState)
-  awaitSlot slot = do
-    cs <- currentSlot
-    when (slot > cs) $ modify' (over mcstLedgerStateL (Lens.set Emulator.elsSlotL (Ledger.toCardanoSlotNo slot)))
-    return $ max slot cs
+  waitNSlots n = do
+    cs <- gets (Emulator.getSlot . mcstLedgerState)
+    if
+      | n == 0 -> return cs
+      | n > 0 -> do
+          let newSlot = cs + fromIntegral n
+          modify' (over mcstLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot)
+          return newSlot
+      | otherwise -> throwError $ MCEPastSlot cs (cs + fromIntegral n)
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
   setConstitutionScript (Script.toVersioned -> cScript) = do
     modify' (mcstConstitutionL ?~ cScript)
@@ -204,9 +209,11 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
             cScript
   getConstitutionScript = gets (view mcstConstitutionL)
   registerStakingCred (Script.toCredential -> cred) reward deposit = do
-    stakeCredential <- case Ledger.toCardanoStakeCredential cred of
-      Left err -> throwError $ MCEToCardanoError "Unable to convert staking credential" err
-      Right cred' -> return $ Cardano.toShelleyStakeCredential cred'
+    stakeCredential <-
+      throwOnToCardanoErrorOrApply
+        "Unable to convert staking credential"
+        Cardano.toShelleyStakeCredential
+        (Ledger.toCardanoStakeCredential cred)
     modify' $
       over
         mcstLedgerStateL
@@ -284,7 +291,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       -- collaterals.
       (_, Ledger.FailPhase2 {})
         | Nothing <- mCollaterals ->
-            throwError $ FailWith "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
+            fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
     when txOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
     -- We return the parameters to their original state

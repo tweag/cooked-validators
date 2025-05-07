@@ -74,6 +74,11 @@ instance PrettyCooked MockChainError where
       <+> "but instead got:"
       <+> (case got of Nothing -> "none"; Just sHash -> prettyHash opts sHash)
   prettyCookedOpt _ (MCEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
+  prettyCookedOpt _ (MCEPastSlot current target) =
+    "Unable to move back in time; current slot:"
+      <+> PP.viaShow current
+      <+> "; target slot:"
+      <+> PP.viaShow target
   prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
 
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where
