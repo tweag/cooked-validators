@@ -152,12 +152,6 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
         ]
           ++ prettyCookedOptList opts red
       )
-  prettyCookedOpt opts (Contextualized _ (MCLogDiscardedReferenceInputs orefs)) =
-    prettyItemize
-      opts
-      "Discarding the following utxos from reference inputs in redeemers because they exist as regular inputs:"
-      "-"
-      orefs
 
 instance PrettyCookedList UtxoState where
   prettyCookedOptList opts (UtxoState available consumed) =

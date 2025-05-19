@@ -44,9 +44,7 @@
 - Functions `txSkelProposalAutoConstitutionL`, `withConstitution` and
   `updateConsitution` to work with the constitution script of a
   `TxSkelProposal`.
-- Log even `MCLogDiscardedReferenceInputs` when reference inputs used for
-  reference scripts are discarded because they also appear in inputs.
-
+  
 ### Removed
 
 - Module `Cooked.Output` and all its content.

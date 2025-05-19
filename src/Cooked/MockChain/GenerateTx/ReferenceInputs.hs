@@ -1,7 +1,6 @@
 module Cooked.MockChain.GenerateTx.ReferenceInputs (toInsReference) where
 
 import Cardano.Api qualified as Cardano
-import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Skeleton
@@ -18,7 +17,6 @@ toInsReference skel = do
   let indirectReferenceInputs = txSkelInsReferenceInRedeemers skel
       redundantReferenceInputs = indirectReferenceInputs `Set.intersection` Map.keysSet (txSkelIns skel)
       refInputs = Set.toList (txSkelInsReference skel <> indirectReferenceInputs `Set.difference` redundantReferenceInputs)
-  unless (null redundantReferenceInputs) $ logEvent $ MCLogDiscardedReferenceInputs redundantReferenceInputs
   if null refInputs
     then return Cardano.TxInsReferenceNone
     else do

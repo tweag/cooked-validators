@@ -135,9 +135,6 @@ data MockChainLogEntry
     MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
     MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
-  | -- | Logging the automatic removal of extraneous reference inputs in
-    -- redeemers which already appear in regular inputs
-    MCLogDiscardedReferenceInputs (Set Api.TxOutRef)
   deriving (Show)
 
 -- * Mockchain layers
