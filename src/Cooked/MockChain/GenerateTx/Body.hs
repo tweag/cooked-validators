@@ -49,7 +49,7 @@ txSkelToTxBodyContent ::
   m (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   txIns <- mapM toTxInAndWitness $ Map.toList txSkelIns
-  txInsReference <- toInsReference $ txSkelReferenceTxOutRefs skel
+  txInsReference <- toInsReference skel
   (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet fee mCollaterals
   txOuts <- mapM toCardanoTxOut txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
@@ -66,12 +66,12 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSigners
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
-  let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
   txProposalProcedures <-
     Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
       <$> toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts)
   txWithdrawals <- toWithdrawals txSkelWithdrawals
-  let txMetadata = Cardano.TxMetadataNone
+  let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
+      txMetadata = Cardano.TxMetadataNone
       txAuxScripts = Cardano.TxAuxScriptsNone
       txUpdateProposal = Cardano.TxUpdateProposalNone
       txCertificates = Cardano.TxCertificatesNone
@@ -100,7 +100,7 @@ txSkelToIndex txSkel mCollaterals = do
         Nothing -> []
         Just (s, _) -> Set.toList s
   -- We retrieve all the outputs known to the skeleton
-  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (txSkelKnownTxOutRefs txSkel <> collateralIns)
+  (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (Set.toList (txSkelKnownTxOutRefs txSkel) <> collateralIns)
   -- We then compute their Cardano counterparts
   txOutL <- forM knownTxOuts toCardanoTxOut
   -- We build the index and handle the possible error
