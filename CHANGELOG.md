@@ -115,6 +115,15 @@
 - Functions `walletPKHash` and `walletStakingCredential` have been replaced by
   instances of `ToPubKeyHash` and `ToMaybeStakingCredential` respectively.
 - Tests for withdrawals and proposals have been updated.
+- functions `currentTime`, `awaitDurationFromLowerBound`,
+  `awaitDurationFromUpperBound` and `slotToTimeInterval` have been replaced
+  respectively by `currentMSRange`, `waitNMSFromSlotLowerBound`,
+  `waitNMSFromSlotUpperBound` and `slotToMSRange`.
+- `currentSlot` and `awaitSlot` are not longer primitives from the mockchain,
+  instead they are derived from `waitNSlots` which has become a primitive
+  itself.
+- A new mockchain error, `MCEPastSlot`, is thrown when attempting to jump back
+  in time.
 
 ### Fixed
 
