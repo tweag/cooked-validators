@@ -33,6 +33,7 @@ library
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output
       Cooked.MockChain.GenerateTx.Proposal
+      Cooked.MockChain.GenerateTx.ReferenceInputs
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
