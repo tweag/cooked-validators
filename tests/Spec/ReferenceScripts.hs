@@ -73,6 +73,21 @@ useReferenceScript spendingSubmitter theScript = do
         txSkelSigners = [spendingSubmitter]
       }
 
+useReferenceScriptInInputs :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
+useReferenceScriptInInputs spendingSubmitter theScript = do
+  scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
+  oref : _ <-
+    validateTxSkel'
+      txSkelTemplate
+        { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
+          txSkelSigners = [wallet 1]
+        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelIns = Map.fromList [(oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref), (scriptOref, emptyTxSkelRedeemer)],
+        txSkelSigners = [spendingSubmitter]
+      }
+
 referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
 referenceMint mp1 mp2 n autoRefScript = do
   ((!! n) -> mpOutRef) <-
@@ -185,7 +200,11 @@ tests =
               useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 2),
           testCooked "succeed if reference script's requirement is met" $
             mustSucceedTest $
-              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 1)
+              useReferenceScript (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 1),
+          testCooked "succeed if the reference script is in one of the inputs" $
+            mustSucceedTest
+              (useReferenceScriptInInputs (wallet 1) (Script.toVersioned $ requireSignerValidator $ Script.toPubKeyHash $ wallet 1))
+              `withJournalProp` happened "MCLogDiscardedReferenceInputs"
         ],
       testGroup
         "referencing minting policies"
