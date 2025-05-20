@@ -92,8 +92,8 @@ data TxSkel where
       txSkelIns :: Map Api.TxOutRef TxSkelRedeemer,
       -- | All outputs directly referenced by the transaction. Note that
       -- additional reference inputs can be found within the various redeemers
-      -- of this skeleton. Function 'txSkelReferenceTxOutRefs' collects them
-      -- all.
+      -- of this skeleton to host reference scripts. Function
+      -- 'txSkelInsReferenceInRedeemers' collects them all.
       txSkelInsReference :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.

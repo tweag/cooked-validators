@@ -1,3 +1,4 @@
+-- | This module allows the generation of Cardano reference inputs
 module Cooked.MockChain.GenerateTx.ReferenceInputs (toInsReference) where
 
 import Cardano.Api qualified as Cardano
@@ -9,6 +10,11 @@ import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 
+-- | Takes a 'TxSkel' and generates the associated 'Cardano.TxInsReference' from
+-- its content. These reference inputs can be found in two place, either in
+-- direct reference inputs 'txSkelInsReference' or scattered in the various
+-- redeemers of the transaction, which can be gathered with
+-- 'txSkelInsReferenceInRedeemers'.
 toInsReference :: (MonadBlockChainBalancing m) => TxSkel -> m (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
 toInsReference skel = do
   -- As regular inputs can be used to hold scripts as if in reference inputs, we
