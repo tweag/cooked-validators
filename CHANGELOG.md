@@ -44,7 +44,7 @@
 - Functions `txSkelProposalAutoConstitutionL`, `withConstitution` and
   `updateConsitution` to work with the constitution script of a
   `TxSkelProposal`.
-  
+
 ### Removed
 
 - Module `Cooked.Output` and all its content.
