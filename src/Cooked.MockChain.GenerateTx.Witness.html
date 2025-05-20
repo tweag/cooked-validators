@@ -2,40 +2,40 @@
 </span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.GenerateTx.Witness</span><span>
 </span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toRewardAccount"><span class="hs-identifier">toRewardAccount</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-4"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier">toScriptWitness</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-5"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
-</span><span id="line-7"></span><span>
-</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Shelley</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Testnet</span></span><span class="hs-special">)</span><span>
-</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.BaseTypes</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Credential</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toKeyWitness"><span class="hs-identifier">toKeyWitness</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Ledger</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Shelley</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Testnet</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">throwError</span></span><span class="hs-special">)</span><span>
 </span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html"><span class="hs-identifier">Cooked.MockChain.BlockChain</span></a></span><span>
 </span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Common</span></a></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Output.html"><span class="hs-identifier">Cooked.Output</span></a></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
 </span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
 </span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
 </span><span id="line-20"></span><span>
 </span><span id="line-21"></span><span class="annot"><span class="hs-comment">-- | Translates a given credential to a reward account.</span></span><span>
-</span><span id="line-22"></span><span id="local-6989586621679831437"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toRewardAccount"><span class="hs-identifier hs-type">toRewardAccount</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679831437"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679831437"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.RewardAccount</span></span></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679822629"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toRewardAccount"><span class="hs-identifier hs-type">toRewardAccount</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679822629"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679822629"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.RewardAccount</span></span></span><span>
 </span><span id="line-23"></span><span id="toRewardAccount"><span class="annot"><span class="annottext">toRewardAccount :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 Credential -&gt; m RewardAccount
-</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toRewardAccount"><span class="hs-identifier hs-var hs-var">toRewardAccount</span></a></span></span><span> </span><span id="local-6989586621679831567"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679831567"><span class="hs-identifier hs-var">cred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toRewardAccount"><span class="hs-identifier hs-var hs-var">toRewardAccount</span></a></span></span><span> </span><span id="local-6989586621679822760"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679822760"><span class="hs-identifier hs-var">cred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-24"></span><span>  </span><span class="annot"><span class="annottext">Network -&gt; Credential 'Staking -&gt; RewardAccount
 </span><span class="hs-identifier hs-var">Cardano.RewardAccount</span></span><span> </span><span class="annot"><span class="annottext">Network
 </span><span class="hs-identifier hs-var">Cardano.Testnet</span></span><span> </span><span class="annot"><span class="annottext">(Credential 'Staking -&gt; RewardAccount)
 -&gt; m (Credential 'Staking) -&gt; m RewardAccount
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679831567"><span class="hs-identifier hs-var">cred</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-25"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptCredential</span></span><span> </span><span id="local-6989586621679831572"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831572"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-26"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptHash</span></span><span> </span><span id="local-6989586621679831574"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831574"><span class="hs-identifier hs-var">cHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679822760"><span class="hs-identifier hs-var">cred</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptCredential</span></span><span> </span><span id="local-6989586621679822765"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822765"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-26"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptHash</span></span><span> </span><span id="local-6989586621679822767"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822767"><span class="hs-identifier hs-var">cHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-27"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; Either ToCardanoError ScriptHash -&gt; m ScriptHash
 forall (m :: * -&gt; *) a.
 MonadError MockChainError m =&gt;
@@ -45,7 +45,7 @@ String -&gt; Either ToCardanoError a -&gt; m a
 </span><span class="hs-string">&quot;toRewardAccount: Unable to convert script hash.&quot;</span></span><span>
 </span><span id="line-29"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; Either ToCardanoError ScriptHash
 </span><span class="hs-identifier hs-var">Ledger.toCardanoScriptHash</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831572"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679822765"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-30"></span><span>      </span><span class="annot"><span class="annottext">Credential 'Staking -&gt; m (Credential 'Staking)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -55,11 +55,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; Credential 'Staking
 forall (kr :: KeyRole). ScriptHash -&gt; Credential kr
 </span><span class="hs-identifier hs-var">Cardano.ScriptHashObj</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831574"><span class="hs-identifier hs-var">cHash</span></a></span><span>
-</span><span id="line-31"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyCredential</span></span><span> </span><span id="local-6989586621679831579"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679831579"><span class="hs-identifier hs-var">pubkeyHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-32"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.StakeKeyHash</span></span><span> </span><span id="local-6989586621679831581"><span class="annot"><span class="annottext">KeyHash 'Staking
-</span><a href="#local-6989586621679831581"><span class="hs-identifier hs-var">pkHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679822767"><span class="hs-identifier hs-var">cHash</span></a></span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyCredential</span></span><span> </span><span id="local-6989586621679822772"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679822772"><span class="hs-identifier hs-var">pubkeyHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-32"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.StakeKeyHash</span></span><span> </span><span id="local-6989586621679822774"><span class="annot"><span class="annottext">KeyHash 'Staking
+</span><a href="#local-6989586621679822774"><span class="hs-identifier hs-var">pkHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-33"></span><span>        </span><span class="annot"><span class="annottext">String
 -&gt; Either ToCardanoError (Hash StakeKey) -&gt; m (Hash StakeKey)
 forall (m :: * -&gt; *) a.
@@ -70,7 +70,7 @@ String -&gt; Either ToCardanoError a -&gt; m a
 </span><span class="hs-string">&quot;toRewardAccount: Unable to convert private key hash.&quot;</span></span><span>
 </span><span id="line-35"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Either ToCardanoError (Hash StakeKey)
 </span><span class="hs-identifier hs-var">Ledger.toCardanoStakeKeyHash</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679831579"><span class="hs-identifier hs-var">pubkeyHash</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679822772"><span class="hs-identifier hs-var">pubkeyHash</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-36"></span><span>      </span><span class="annot"><span class="annottext">Credential 'Staking -&gt; m (Credential 'Staking)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -80,17 +80,17 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">KeyHash 'Staking -&gt; Credential 'Staking
 forall (kr :: KeyRole). KeyHash kr -&gt; Credential kr
 </span><span class="hs-identifier hs-var">Cardano.KeyHashObj</span></span><span> </span><span class="annot"><span class="annottext">KeyHash 'Staking
-</span><a href="#local-6989586621679831581"><span class="hs-identifier hs-var">pkHash</span></a></span><span>
+</span><a href="#local-6989586621679822774"><span class="hs-identifier hs-var">pkHash</span></a></span><span>
 </span><span id="line-37"></span><span>
 </span><span id="line-38"></span><span class="hs-comment">-- | Translates a script and a reference script utxo into either a plutus script</span><span>
 </span><span id="line-39"></span><span class="hs-comment">-- or a reference input containing the right script</span><span>
-</span><span id="line-40"></span><span id="local-6989586621679831471"><span id="local-6989586621679831475"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-type">toPlutusScriptOrReferenceInput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679831471"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679831471"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.PlutusScriptOrReferenceInput</span></span><span> </span><span class="annot"><a href="#local-6989586621679831475"><span class="hs-identifier hs-type">lang</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679822663"><span id="local-6989586621679822667"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-type">toPlutusScriptOrReferenceInput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679822663"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679822663"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.PlutusScriptOrReferenceInput</span></span><span> </span><span class="annot"><a href="#local-6989586621679822667"><span class="hs-identifier hs-type">lang</span></a></span><span class="hs-special">)</span></span></span><span>
 </span><span id="line-41"></span><span id="toPlutusScriptOrReferenceInput"><span class="annot"><span class="annottext">toPlutusScriptOrReferenceInput :: forall (m :: * -&gt; *) lang.
 MonadBlockChainBalancing m =&gt;
 Versioned Script
 -&gt; Maybe TxOutRef -&gt; m (PlutusScriptOrReferenceInput lang)
-</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-var hs-var">toPlutusScriptOrReferenceInput</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span id="local-6989586621679831612"><span class="annot"><span class="annottext">SerialisedScript
-</span><a href="#local-6989586621679831612"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-var hs-var">toPlutusScriptOrReferenceInput</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span id="local-6989586621679822801"><span class="annot"><span class="annottext">SerialisedScript
+</span><a href="#local-6989586621679822801"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput lang
 -&gt; m (PlutusScriptOrReferenceInput lang)
@@ -109,63 +109,44 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SerialisedScript -&gt; PlutusScript lang
 forall lang. SerialisedScript -&gt; PlutusScript lang
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptSerialised</span></span><span> </span><span class="annot"><span class="annottext">SerialisedScript
-</span><a href="#local-6989586621679831612"><span class="hs-identifier hs-var">script</span></a></span><span>
+</span><a href="#local-6989586621679822801"><span class="hs-identifier hs-var">script</span></a></span><span>
 </span><span id="line-42"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-var">toPlutusScriptOrReferenceInput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
-</span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679831616"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831616"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679831617"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679831617"><span class="hs-identifier hs-var">scriptOutRef</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-43"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOut
--&gt; Optic' A_Lens NoIx TxOut (Maybe ScriptHash) -&gt; Maybe ScriptHash
-forall k s (is :: IxList) a.
-Is k A_Getter =&gt;
-s -&gt; Optic' k is s a -&gt; a
-</span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxOut (Maybe ScriptHash)
-Lens' TxOut (Maybe (ReferenceScriptType TxOut))
-forall o.
-IsAbstractOutput o =&gt;
-Lens' o (Maybe (ReferenceScriptType o))
-</span><a href="Cooked.Output.html#outputReferenceScriptL"><span class="hs-identifier hs-var">outputReferenceScriptL</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679831620"><span class="annot"><span class="annottext">Maybe ScriptHash
-</span><a href="#local-6989586621679831620"><span class="hs-identifier hs-var">mScriptHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-44"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; Maybe TxOut -&gt; m TxOut
-forall (m :: * -&gt; *) a.
-MonadError MockChainError m =&gt;
-String -&gt; Maybe a -&gt; m a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnMaybe"><span class="hs-identifier hs-var">throwOnMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><span class="hs-string">&quot;toPlutusScriptOrReferenceInput: Can't resolve reference script utxo.&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Maybe TxOut -&gt; m TxOut) -&gt; m (Maybe TxOut) -&gt; m TxOut
-forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
-</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; m (Maybe TxOut)
+</span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679822805"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822805"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679822806"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679822806"><span class="hs-identifier hs-var">scriptOutRef</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Versioned Script -&gt; ScriptHash)
+-&gt; Maybe (Versioned Script) -&gt; Maybe ScriptHash
+forall a b. (a -&gt; b) -&gt; Maybe a -&gt; Maybe b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">Versioned Script -&gt; ScriptHash
+forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
+</span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (Versioned Script) -&gt; Maybe ScriptHash)
+-&gt; (TxSkelOut -&gt; Maybe (Versioned Script))
+-&gt; TxSkelOut
+-&gt; Maybe ScriptHash
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe (Versioned Script)
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutReferenceScript"><span class="hs-identifier hs-var">txSkelOutReferenceScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679822809"><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><a href="#local-6989586621679822809"><span class="hs-identifier hs-var">mScriptHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; m TxSkelOut
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
-TxOutRef -&gt; m (Maybe TxOut)
-</span><a href="Cooked.MockChain.BlockChain.html#txOutByRef"><span class="hs-identifier hs-var">txOutByRef</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679831617"><span class="hs-identifier hs-var">scriptOutRef</span></a></span><span>
-</span><span id="line-45"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
-</span><a href="#local-6989586621679831620"><span class="hs-identifier hs-var">mScriptHash</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">Maybe ScriptHash
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; m (PlutusScriptOrReferenceInput lang)
-forall (m :: * -&gt; *) a.
-MonadError MockChainError m =&gt;
-String -&gt; m a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var">throwOnString</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><span class="hs-string">&quot;toPlutusScriptOrReferenceInput: No reference script found in utxo.&quot;</span></span><span>
-</span><span id="line-47"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679831625"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831625"><span class="hs-identifier hs-var">scriptHash'</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831616"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; ScriptHash -&gt; Bool
+TxOutRef -&gt; m TxSkelOut
+</span><a href="Cooked.MockChain.BlockChain.html#unsafeTxOutByRef"><span class="hs-identifier hs-var">unsafeTxOutByRef</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679822806"><span class="hs-identifier hs-var">scriptOutRef</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><a href="#local-6989586621679822809"><span class="hs-identifier hs-var">mScriptHash</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679822811"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822811"><span class="hs-identifier hs-var">scriptHash'</span></a></span></span><span>
+</span><span id="line-46"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822805"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; ScriptHash -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679831625"><span class="hs-identifier hs-var">scriptHash'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; m (PlutusScriptOrReferenceInput lang)
-forall (m :: * -&gt; *) a.
-MonadError MockChainError m =&gt;
-String -&gt; m a
-</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnString"><span class="hs-identifier hs-var">throwOnString</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><span class="hs-string">&quot;toPlutusScriptOrReferenceInput: Wrong reference script hash.&quot;</span></span><span>
-</span><span id="line-48"></span><span>    </span><span class="annot"><span class="annottext">Maybe ScriptHash
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-49"></span><span>      </span><span class="annot"><span class="annottext">TxIn -&gt; PlutusScriptOrReferenceInput lang
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822811"><span class="hs-identifier hs-var">scriptHash'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-47"></span><span>          </span><span class="annot"><span class="annottext">TxIn -&gt; PlutusScriptOrReferenceInput lang
 forall lang. TxIn -&gt; PlutusScriptOrReferenceInput lang
 </span><span class="hs-identifier hs-var">Cardano.PReferenceScript</span></span><span>
-</span><span id="line-50"></span><span>        </span><span class="annot"><span class="annottext">(TxIn -&gt; PlutusScriptOrReferenceInput lang)
+</span><span id="line-48"></span><span>            </span><span class="annot"><span class="annottext">(TxIn -&gt; PlutusScriptOrReferenceInput lang)
 -&gt; m TxIn -&gt; m (PlutusScriptOrReferenceInput lang)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Either ToCardanoError TxIn -&gt; m TxIn
@@ -173,25 +154,40 @@ forall (m :: * -&gt; *) a.
 MonadError MockChainError m =&gt;
 String -&gt; Either ToCardanoError a -&gt; m a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var">throwOnToCardanoError</span></a></span><span>
-</span><span id="line-51"></span><span>          </span><span class="annot"><span class="annottext">String
+</span><span id="line-49"></span><span>              </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;toPlutusScriptOrReferenceInput: Unable to translate reference script utxo.&quot;</span></span><span>
-</span><span id="line-52"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
+</span><span id="line-50"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Ledger.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679831617"><span class="hs-identifier hs-var">scriptOutRef</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-53"></span><span>
-</span><span id="line-54"></span><span class="hs-comment">-- | Translates a script with its associated redeemer and datum to a script</span><span>
-</span><span id="line-55"></span><span class="hs-comment">-- witness.</span><span>
-</span><span id="line-56"></span><span id="local-6989586621679831512"><span id="local-6989586621679831513"><span id="local-6989586621679831516"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-type">toScriptWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679831512"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span class="annot"><a href="#local-6989586621679831513"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679831513"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptDatum</span></span><span> </span><span class="annot"><a href="#local-6989586621679831516"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679831512"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptWitness</span></span><span> </span><span class="annot"><a href="#local-6989586621679831516"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span></span></span><span>
-</span><span id="line-57"></span><span id="toScriptWitness"><span class="annot"><span class="annottext">toScriptWitness :: forall (m :: * -&gt; *) a b.
+</span><a href="#local-6989586621679822806"><span class="hs-identifier hs-var">scriptOutRef</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; m (PlutusScriptOrReferenceInput lang)
+forall a. MockChainError -&gt; m a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; m (PlutusScriptOrReferenceInput lang))
+-&gt; MockChainError -&gt; m (PlutusScriptOrReferenceInput lang)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; ScriptHash -&gt; Maybe ScriptHash -&gt; MockChainError
+</span><a href="Cooked.MockChain.BlockChain.html#MCEWrongReferenceScriptError"><span class="hs-identifier hs-var">MCEWrongReferenceScriptError</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679822806"><span class="hs-identifier hs-var">scriptOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679822805"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><a href="#local-6989586621679822809"><span class="hs-identifier hs-var">mScriptHash</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- | Translates a script with its associated redeemer and datum to a script</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- witness. Note on the usage of 'Ledger.zeroExecutionUnits': at this stage of</span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- the transaction create, we cannot know the execution units used by the</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- script. They will be filled out later on once the full body has been</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- generated. So, for now, we temporarily leave them to 0.</span><span>
+</span><span id="line-58"></span><span id="local-6989586621679822693"><span id="local-6989586621679822694"><span id="local-6989586621679822697"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-type">toScriptWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679822693"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span class="annot"><a href="#local-6989586621679822694"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679822694"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptDatum</span></span><span> </span><span class="annot"><a href="#local-6989586621679822697"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679822693"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptWitness</span></span><span> </span><span class="annot"><a href="#local-6989586621679822697"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-59"></span><span id="toScriptWitness"><span class="annot"><span class="annottext">toScriptWitness :: forall (m :: * -&gt; *) a b.
 (MonadBlockChainBalancing m, ToVersioned Script a) =&gt;
 a
 -&gt; TxSkelRedeemer -&gt; ScriptDatum b -&gt; m (ScriptWitness b ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var hs-var">toScriptWitness</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Versioned Script
 forall s a. ToVersioned s a =&gt; a -&gt; Versioned s
-</span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679831637"><span class="annot"><span class="annottext">script :: Versioned Script
-</span><a href="#local-6989586621679831637"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Script
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679831638"><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679831638"><span class="hs-identifier hs-var">version</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679831655"><span id="local-6989586621679831656"><span id="local-6989586621679831657"><span class="annot"><span class="annottext">redeemer
+</span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679822824"><span class="annot"><span class="annottext">script :: Versioned Script
+</span><a href="#local-6989586621679822824"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Script
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679822825"><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679822825"><span class="hs-identifier hs-var">version</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679822842"><span id="local-6989586621679822843"><span id="local-6989586621679822844"><span class="annot"><span class="annottext">redeemer
 Bool
 Maybe TxOutRef
 txSkelRedeemerContent :: redeemer
@@ -200,23 +196,23 @@ txSkelRedeemerAutoFill :: Bool
 txSkelRedeemerContent :: ()
 txSkelRedeemerReferenceInput :: TxSkelRedeemer -&gt; Maybe TxOutRef
 txSkelRedeemerAutoFill :: TxSkelRedeemer -&gt; Bool
-</span><a href="#local-6989586621679831655"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679831661"><span class="annot"><span class="annottext">ScriptDatum b
-</span><a href="#local-6989586621679831661"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-58"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679831662"><span class="annot"><span class="annottext">scriptData :: HashableScriptData
-</span><a href="#local-6989586621679831662"><span class="hs-identifier hs-var hs-var">scriptData</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; HashableScriptData
+</span><a href="#local-6989586621679822842"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679822848"><span class="annot"><span class="annottext">ScriptDatum b
+</span><a href="#local-6989586621679822848"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679822849"><span class="annot"><span class="annottext">scriptData :: HashableScriptData
+</span><a href="#local-6989586621679822849"><span class="hs-identifier hs-var hs-var">scriptData</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; HashableScriptData
 </span><span class="hs-identifier hs-var">Ledger.toCardanoScriptData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; HashableScriptData)
 -&gt; BuiltinData -&gt; HashableScriptData
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">redeemer -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679831655"><span class="hs-identifier hs-var">txSkelRedeemerContent</span></a></span><span>
-</span><span id="line-59"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679831638"><span class="hs-identifier hs-var">version</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-60"></span><span>        </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679822842"><span class="hs-identifier hs-var">txSkelRedeemerContent</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679822825"><span class="hs-identifier hs-var">version</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Script.PlutusV1</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-61"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679831666"><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV1
-</span><a href="#local-6989586621679831666"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV1 ConwayEra
+</span><span id="line-63"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679822853"><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV1
+</span><a href="#local-6989586621679822853"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV1 ConwayEra
 -&gt; PlutusScriptVersion PlutusScriptV1
 -&gt; PlutusScriptOrReferenceInput PlutusScriptV1
 -&gt; ScriptDatum b
@@ -235,11 +231,11 @@ ScriptLanguageInEra lang era
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptWitness</span></span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV1 ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptV1InConway</span></span><span> </span><span class="annot"><span class="annottext">PlutusScriptVersion PlutusScriptV1
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptV1</span></span><span> </span><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV1
-</span><a href="#local-6989586621679831666"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum b
-</span><a href="#local-6989586621679831661"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">HashableScriptData
-</span><a href="#local-6989586621679831662"><span class="hs-identifier hs-var">scriptData</span></a></span><span> </span><span class="annot"><span class="annottext">ExecutionUnits
+</span><a href="#local-6989586621679822853"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum b
+</span><a href="#local-6989586621679822848"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">HashableScriptData
+</span><a href="#local-6989586621679822849"><span class="hs-identifier hs-var">scriptData</span></a></span><span> </span><span class="annot"><span class="annottext">ExecutionUnits
 </span><span class="hs-identifier hs-var">Ledger.zeroExecutionUnits</span></span><span class="hs-special">)</span><span>
-</span><span id="line-62"></span><span>            </span><span class="annot"><span class="annottext">(PlutusScriptOrReferenceInput PlutusScriptV1
+</span><span id="line-64"></span><span>        </span><span class="annot"><span class="annottext">(PlutusScriptOrReferenceInput PlutusScriptV1
  -&gt; ScriptWitness b ConwayEra)
 -&gt; m (PlutusScriptOrReferenceInput PlutusScriptV1)
 -&gt; m (ScriptWitness b ConwayEra)
@@ -252,12 +248,12 @@ MonadBlockChainBalancing m =&gt;
 Versioned Script
 -&gt; Maybe TxOutRef -&gt; m (PlutusScriptOrReferenceInput lang)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-var">toPlutusScriptOrReferenceInput</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679831637"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
-</span><a href="#local-6989586621679831656"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span>
-</span><span id="line-63"></span><span>        </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679822824"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
+</span><a href="#local-6989586621679822843"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Script.PlutusV2</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-64"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679831672"><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV2
-</span><a href="#local-6989586621679831672"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV2 ConwayEra
+</span><span id="line-66"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679822858"><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV2
+</span><a href="#local-6989586621679822858"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV2 ConwayEra
 -&gt; PlutusScriptVersion PlutusScriptV2
 -&gt; PlutusScriptOrReferenceInput PlutusScriptV2
 -&gt; ScriptDatum b
@@ -276,11 +272,11 @@ ScriptLanguageInEra lang era
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptWitness</span></span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV2 ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptV2InConway</span></span><span> </span><span class="annot"><span class="annottext">PlutusScriptVersion PlutusScriptV2
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptV2</span></span><span> </span><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV2
-</span><a href="#local-6989586621679831672"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum b
-</span><a href="#local-6989586621679831661"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">HashableScriptData
-</span><a href="#local-6989586621679831662"><span class="hs-identifier hs-var">scriptData</span></a></span><span> </span><span class="annot"><span class="annottext">ExecutionUnits
+</span><a href="#local-6989586621679822858"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum b
+</span><a href="#local-6989586621679822848"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">HashableScriptData
+</span><a href="#local-6989586621679822849"><span class="hs-identifier hs-var">scriptData</span></a></span><span> </span><span class="annot"><span class="annottext">ExecutionUnits
 </span><span class="hs-identifier hs-var">Ledger.zeroExecutionUnits</span></span><span class="hs-special">)</span><span>
-</span><span id="line-65"></span><span>            </span><span class="annot"><span class="annottext">(PlutusScriptOrReferenceInput PlutusScriptV2
+</span><span id="line-67"></span><span>        </span><span class="annot"><span class="annottext">(PlutusScriptOrReferenceInput PlutusScriptV2
  -&gt; ScriptWitness b ConwayEra)
 -&gt; m (PlutusScriptOrReferenceInput PlutusScriptV2)
 -&gt; m (ScriptWitness b ConwayEra)
@@ -293,12 +289,12 @@ MonadBlockChainBalancing m =&gt;
 Versioned Script
 -&gt; Maybe TxOutRef -&gt; m (PlutusScriptOrReferenceInput lang)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-var">toPlutusScriptOrReferenceInput</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679831637"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
-</span><a href="#local-6989586621679831656"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span>
-</span><span id="line-66"></span><span>        </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679822824"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
+</span><a href="#local-6989586621679822843"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Script.PlutusV3</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-67"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679831676"><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV3
-</span><a href="#local-6989586621679831676"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV3 ConwayEra
+</span><span id="line-69"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679822862"><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV3
+</span><a href="#local-6989586621679822862"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV3 ConwayEra
 -&gt; PlutusScriptVersion PlutusScriptV3
 -&gt; PlutusScriptOrReferenceInput PlutusScriptV3
 -&gt; ScriptDatum b
@@ -317,11 +313,11 @@ ScriptLanguageInEra lang era
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptWitness</span></span><span> </span><span class="annot"><span class="annottext">ScriptLanguageInEra PlutusScriptV3 ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptV3InConway</span></span><span> </span><span class="annot"><span class="annottext">PlutusScriptVersion PlutusScriptV3
 </span><span class="hs-identifier hs-var">Cardano.PlutusScriptV3</span></span><span> </span><span class="annot"><span class="annottext">PlutusScriptOrReferenceInput PlutusScriptV3
-</span><a href="#local-6989586621679831676"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum b
-</span><a href="#local-6989586621679831661"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">HashableScriptData
-</span><a href="#local-6989586621679831662"><span class="hs-identifier hs-var">scriptData</span></a></span><span> </span><span class="annot"><span class="annottext">ExecutionUnits
+</span><a href="#local-6989586621679822862"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum b
+</span><a href="#local-6989586621679822848"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">HashableScriptData
+</span><a href="#local-6989586621679822849"><span class="hs-identifier hs-var">scriptData</span></a></span><span> </span><span class="annot"><span class="annottext">ExecutionUnits
 </span><span class="hs-identifier hs-var">Ledger.zeroExecutionUnits</span></span><span class="hs-special">)</span><span>
-</span><span id="line-68"></span><span>            </span><span class="annot"><span class="annottext">(PlutusScriptOrReferenceInput PlutusScriptV3
+</span><span id="line-70"></span><span>        </span><span class="annot"><span class="annottext">(PlutusScriptOrReferenceInput PlutusScriptV3
  -&gt; ScriptWitness b ConwayEra)
 -&gt; m (PlutusScriptOrReferenceInput PlutusScriptV3)
 -&gt; m (ScriptWitness b ConwayEra)
@@ -334,6 +330,42 @@ MonadBlockChainBalancing m =&gt;
 Versioned Script
 -&gt; Maybe TxOutRef -&gt; m (PlutusScriptOrReferenceInput lang)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toPlutusScriptOrReferenceInput"><span class="hs-identifier hs-var">toPlutusScriptOrReferenceInput</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Script
-</span><a href="#local-6989586621679831637"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
-</span><a href="#local-6989586621679831656"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span>
-</span><span id="line-69"></span></pre></body></html>
+</span><a href="#local-6989586621679822824"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
+</span><a href="#local-6989586621679822843"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="annot"><span class="hs-comment">-- | Generates a list of witnesses for a given wallet and body</span></span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html#toKeyWitness"><span class="hs-identifier hs-type">toKeyWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxBody</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.KeyWitness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span>
+</span><span id="line-74"></span><span id="toKeyWitness"><span class="annot"><span class="annottext">toKeyWitness :: TxBody ConwayEra -&gt; Wallet -&gt; KeyWitness ConwayEra
+</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toKeyWitness"><span class="hs-identifier hs-var hs-var">toKeyWitness</span></a></span></span><span> </span><span id="local-6989586621679822865"><span class="annot"><span class="annottext">TxBody ConwayEra
+</span><a href="#local-6989586621679822865"><span class="hs-identifier hs-var">txBody</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
+-&gt; TxBody ConwayEra
+-&gt; ShelleyWitnessSigningKey
+-&gt; KeyWitness ConwayEra
+forall era.
+ShelleyBasedEra era
+-&gt; TxBody era -&gt; ShelleyWitnessSigningKey -&gt; KeyWitness era
+</span><span class="hs-identifier hs-var">Cardano.makeShelleyKeyWitness</span></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
+</span><span class="hs-identifier hs-var">Cardano.ShelleyBasedEraConway</span></span><span> </span><span class="annot"><span class="annottext">TxBody ConwayEra
+</span><a href="#local-6989586621679822865"><span class="hs-identifier hs-var">txBody</span></a></span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="annottext">(ShelleyWitnessSigningKey -&gt; KeyWitness ConwayEra)
+-&gt; (Wallet -&gt; ShelleyWitnessSigningKey)
+-&gt; Wallet
+-&gt; KeyWitness ConwayEra
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PaymentPrivateKey -&gt; ShelleyWitnessSigningKey
+forall a. ToWitness a =&gt; a -&gt; ShelleyWitnessSigningKey
+</span><span class="hs-identifier hs-var">Ledger.toWitness</span></span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><span class="annottext">(PaymentPrivateKey -&gt; ShelleyWitnessSigningKey)
+-&gt; (Wallet -&gt; PaymentPrivateKey)
+-&gt; Wallet
+-&gt; ShelleyWitnessSigningKey
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; PaymentPrivateKey
+</span><span class="hs-identifier hs-var">Ledger.PaymentPrivateKey</span></span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="annottext">(XPrv -&gt; PaymentPrivateKey)
+-&gt; (Wallet -&gt; XPrv) -&gt; Wallet -&gt; PaymentPrivateKey
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; XPrv
+</span><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span>
+</span><span id="line-79"></span></pre></body></html>

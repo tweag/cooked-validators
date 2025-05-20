@@ -25,7 +25,7 @@
 </span><a href="Cooked.Skeleton.Value.html#txSkelOutValueAutoAdjust"><span class="hs-identifier hs-var hs-var">txSkelOutValueAutoAdjust</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
 </span><span id="line-24"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-25"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Value.html#TxSkelOutValue"><span class="hs-identifier hs-type">TxSkelOutValue</span></a></span><span>
-</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679821169"><span id="local-6989586621679821177"><span id="local-6989586621679821181"><span class="annot"><span class="annottext">Int -&gt; TxSkelOutValue -&gt; ShowS
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679812888"><span id="local-6989586621679812896"><span id="local-6989586621679812900"><span class="annot"><span class="annottext">Int -&gt; TxSkelOutValue -&gt; ShowS
 [TxSkelOutValue] -&gt; ShowS
 TxSkelOutValue -&gt; String
 (Int -&gt; TxSkelOutValue -&gt; ShowS)
@@ -40,7 +40,7 @@ $cshow :: TxSkelOutValue -&gt; String
 show :: TxSkelOutValue -&gt; String
 $cshowList :: [TxSkelOutValue] -&gt; ShowS
 showList :: [TxSkelOutValue] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679821185"><span id="local-6989586621679821191"><span class="annot"><span class="annottext">TxSkelOutValue -&gt; TxSkelOutValue -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679812904"><span id="local-6989586621679812910"><span class="annot"><span class="annottext">TxSkelOutValue -&gt; TxSkelOutValue -&gt; Bool
 (TxSkelOutValue -&gt; TxSkelOutValue -&gt; Bool)
 -&gt; (TxSkelOutValue -&gt; TxSkelOutValue -&gt; Bool) -&gt; Eq TxSkelOutValue
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -51,8 +51,8 @@ $c/= :: TxSkelOutValue -&gt; TxSkelOutValue -&gt; Bool
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-27"></span><span>
 </span><span id="line-28"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToValue</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Value.html#TxSkelOutValue"><span class="hs-identifier hs-type">TxSkelOutValue</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-29"></span><span>  </span><span id="local-6989586621679821198"><span class="annot"><span class="annottext">toValue :: TxSkelOutValue -&gt; Value
-</span><a href="#local-6989586621679821198"><span class="hs-identifier hs-var hs-var hs-var hs-var">toValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOutValue -&gt; Value
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679812917"><span class="annot"><span class="annottext">toValue :: TxSkelOutValue -&gt; Value
+</span><a href="#local-6989586621679812917"><span class="hs-identifier hs-var hs-var hs-var hs-var">toValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOutValue -&gt; Value
 </span><a href="Cooked.Skeleton.Value.html#txSkelOutValueContent"><span class="hs-identifier hs-var">txSkelOutValueContent</span></a></span><span>
 </span><span id="line-30"></span><span>
 </span><span id="line-31"></span><span class="annot"><span class="hs-comment">-- | A lens to get or set the inner value of a 'TxSkelOutValue'</span></span><span>

@@ -10,36 +10,34 @@
 </span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier">walletPKHashToWallet</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletPK"><span class="hs-identifier">walletPK</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPK"><span class="hs-identifier">walletStakingPK</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier">walletPKHash</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier">walletStakingPKHash</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier">walletSK</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletStakingSK"><span class="hs-identifier">walletStakingSK</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-17"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletStakingCredential"><span class="hs-identifier">walletStakingCredential</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier">Wallet</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-20"></span><span class="hs-keyword">where</span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Crypto.Wallet</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Crypto</span></span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">on</span></span><span class="hs-special">)</span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">elemIndex</span></span><span class="hs-special">)</span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.CardanoWallet</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Crypto</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier">walletStakingPKHash</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier">walletSK</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#walletStakingSK"><span class="hs-identifier">walletStakingSK</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier">Wallet</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Crypto.Wallet</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Crypto</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">on</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">elemIndex</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.CardanoWallet</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Crypto</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><span class="hs-comment">-- * MockChain Wallets</span></span><span>
 </span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="annot"><span class="hs-comment">-- * MockChain Wallets</span></span><span>
-</span><span id="line-32"></span><span>
-</span><span id="line-33"></span><span class="hs-comment">-- $mockchainwallets</span><span>
-</span><span id="line-34"></span><span class="hs-comment">--</span><span>
-</span><span id="line-35"></span><span class="hs-comment">-- Because mock wallets from plutus-ledger change often, we provide our own</span><span>
-</span><span id="line-36"></span><span class="hs-comment">-- wrapper on top of them to ensure that we can easily deal changes from Plutus.</span><span>
-</span><span id="line-37"></span><span>
-</span><span id="line-38"></span><span class="annot"><span class="hs-comment">-- | A 'Wallet' is a 'Ledger.MockWallet' from plutus-ledger</span></span><span>
-</span><span id="line-39"></span><span class="hs-keyword">type</span><span> </span><span id="Wallet"><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-var">Wallet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.MockWallet</span></span><span>
-</span><span id="line-40"></span><span>
-</span><span id="line-41"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679821297"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-42"></span><span>  </span><span id="local-6989586621679821303"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
+</span><span id="line-31"></span><span class="hs-comment">-- $mockchainwallets</span><span>
+</span><span id="line-32"></span><span class="hs-comment">--</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- Because mock wallets from plutus-ledger change often, we provide our own</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- wrapper on top of them to ensure that we can easily deal changes from Plutus.</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="annot"><span class="hs-comment">-- | A 'Wallet' is a 'Ledger.MockWallet' from plutus-ledger</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">type</span><span> </span><span id="Wallet"><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-var">Wallet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.MockWallet</span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813019"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679813025"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool)
@@ -47,59 +45,59 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><span class="hs-identifier hs-var">Ledger.mwWalletId</span></span><span>
-</span><span id="line-43"></span><span>
-</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679821309"><span id="local-6989586621679821313"><span id="local-6989586621679821316"><span id="local-6989586621679821319"><span id="local-6989586621679821322"><span id="local-6989586621679821325"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-45"></span><span>  </span><span id="local-6989586621679821330"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
-</span><a href="#local-6989586621679821330"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813031"><span id="local-6989586621679813035"><span id="local-6989586621679813038"><span id="local-6989586621679813041"><span id="local-6989586621679813044"><span id="local-6989586621679813047"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679813052"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
+</span><a href="#local-6989586621679813052"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering)
 -&gt; (Wallet -&gt; Digest Blake2b_160) -&gt; Wallet -&gt; Wallet -&gt; Ordering
 forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><span class="hs-identifier hs-var">Ledger.mwWalletId</span></span><span>
-</span><span id="line-46"></span><span>
-</span><span id="line-47"></span><span class="hs-comment">-- | All the wallets corresponding to known Plutus mock wallets. This is a list</span><span>
-</span><span id="line-48"></span><span class="hs-comment">-- of 10 wallets which will</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- | All the wallets corresponding to known Plutus mock wallets. This is a list</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- of 10 wallets which will</span><span>
+</span><span id="line-47"></span><span class="hs-comment">--</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- - receive funds in the standard initial distribution of cooked-validators,</span><span>
 </span><span id="line-49"></span><span class="hs-comment">--</span><span>
-</span><span id="line-50"></span><span class="hs-comment">-- - receive funds in the standard initial distribution of cooked-validators,</span><span>
-</span><span id="line-51"></span><span class="hs-comment">--</span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- - be pretty-printed as part the final state after running a few transactions.</span><span>
-</span><span id="line-53"></span><span class="annot"><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-type">knownWallets</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-54"></span><span id="knownWallets"><span class="annot"><span class="annottext">knownWallets :: [Wallet]
+</span><span id="line-50"></span><span class="hs-comment">-- - be pretty-printed as part the final state after running a few transactions.</span><span>
+</span><span id="line-51"></span><span class="annot"><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-type">knownWallets</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-52"></span><span id="knownWallets"><span class="annot"><span class="annottext">knownWallets :: [Wallet]
 </span><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-var hs-var">knownWallets</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Wallet]
 </span><span class="hs-identifier hs-var">Ledger.knownMockWallets</span></span><span>
-</span><span id="line-55"></span><span>
-</span><span id="line-56"></span><span class="hs-comment">-- | Wallet corresponding to a given wallet number (or wallet ID) with an offset</span><span>
-</span><span id="line-57"></span><span class="hs-comment">-- of 1 to start at 1 instead of 0</span><span>
-</span><span id="line-58"></span><span class="annot"><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
-</span><span id="line-59"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Integer -&gt; Wallet
-</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679821333"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679821333"><span class="hs-identifier hs-var">j</span></a></span></span><span>
-</span><span id="line-60"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679821333"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- | Wallet corresponding to a given wallet number (or wallet ID) with an offset</span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- of 1 to start at 1 instead of 0</span><span>
+</span><span id="line-56"></span><span class="annot"><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
+</span><span id="line-57"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Integer -&gt; Wallet
+</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679813055"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679813055"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679813055"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679821333"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679813055"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Wallet
 </span><span class="hs-identifier hs-var">Ledger.knownMockWallet</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679821333"><span class="hs-identifier hs-var">j</span></a></span><span>
-</span><span id="line-61"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679813055"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WalletNumber -&gt; Wallet
 </span><span class="hs-identifier hs-var">Ledger.fromWalletNumber</span></span><span> </span><span class="annot"><span class="annottext">(WalletNumber -&gt; Wallet) -&gt; WalletNumber -&gt; Wallet
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; WalletNumber
 </span><span class="hs-identifier hs-var">Ledger.WalletNumber</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679821333"><span class="hs-identifier hs-var">j</span></a></span><span>
-</span><span id="line-62"></span><span>
-</span><span id="line-63"></span><span class="hs-comment">-- | Retrieves the id of the known wallet that corresponds to a public key hash</span><span>
-</span><span id="line-64"></span><span class="hs-comment">--</span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@</span><span>
-</span><span id="line-66"></span><span class="annot"><a href="Cooked.Wallet.html#walletPKHashToId"><span class="hs-identifier hs-type">walletPKHashToId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
-</span><span id="line-67"></span><span id="walletPKHashToId"><span class="annot"><span class="annottext">walletPKHashToId :: PubKeyHash -&gt; Maybe Int
+</span><a href="#local-6989586621679813055"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | Retrieves the id of the known wallet that corresponds to a public key hash</span><span>
+</span><span id="line-62"></span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@</span><span>
+</span><span id="line-64"></span><span class="annot"><a href="Cooked.Wallet.html#walletPKHashToId"><span class="hs-identifier hs-type">walletPKHashToId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-65"></span><span id="walletPKHashToId"><span class="annot"><span class="annottext">walletPKHashToId :: PubKeyHash -&gt; Maybe Int
 </span><a href="Cooked.Wallet.html#walletPKHashToId"><span class="hs-identifier hs-var hs-var">walletPKHashToId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
 forall a. Enum a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">succ</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Maybe Int -&gt; Maybe Int
@@ -113,16 +111,17 @@ forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; [PubKeyHash] -&gt; Maybe Int
 forall a. Eq a =&gt; a -&gt; [a] -&gt; Maybe Int
 </span><span class="hs-identifier hs-var">elemIndex</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
-</span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Wallet -&gt; PubKeyHash) -&gt; [Wallet] -&gt; [PubKeyHash]
+forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="annot"><span class="annottext">(Wallet -&gt; PubKeyHash) -&gt; [Wallet] -&gt; [PubKeyHash]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[Wallet]
 </span><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-var">knownWallets</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-68"></span><span>
-</span><span id="line-69"></span><span class="annot"><span class="hs-comment">-- | Retrieves the known wallet that corresponds to a public key hash</span></span><span>
-</span><span id="line-70"></span><span class="annot"><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-type">walletPKHashToWallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
-</span><span id="line-71"></span><span id="walletPKHashToWallet"><span class="annot"><span class="annottext">walletPKHashToWallet :: PubKeyHash -&gt; Maybe Wallet
-</span><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-var hs-var">walletPKHashToWallet</span></a></span></span><span> </span><span id="local-6989586621679821344"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679821344"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Wallet
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="annot"><span class="hs-comment">-- | Retrieves the known wallet that corresponds to a public key hash</span></span><span>
+</span><span id="line-68"></span><span class="annot"><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-type">walletPKHashToWallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
+</span><span id="line-69"></span><span id="walletPKHashToWallet"><span class="annot"><span class="annottext">walletPKHashToWallet :: PubKeyHash -&gt; Maybe Wallet
+</span><a href="Cooked.Wallet.html#walletPKHashToWallet"><span class="hs-identifier hs-var hs-var">walletPKHashToWallet</span></a></span></span><span> </span><span id="local-6989586621679813067"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679813067"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Wallet
 </span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var">wallet</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Wallet) -&gt; (Int -&gt; Integer) -&gt; Int -&gt; Wallet
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
@@ -131,21 +130,21 @@ forall a b. (Integral a, Num b) =&gt; a -&gt; b
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Maybe Int
 </span><a href="Cooked.Wallet.html#walletPKHashToId"><span class="hs-identifier hs-var">walletPKHashToId</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679821344"><span class="hs-identifier hs-var">pkh</span></a></span><span>
-</span><span id="line-72"></span><span>
-</span><span id="line-73"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet public key (PK)</span></span><span>
-</span><span id="line-74"></span><span class="annot"><a href="Cooked.Wallet.html#walletPK"><span class="hs-identifier hs-type">walletPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.PubKey</span></span><span>
-</span><span id="line-75"></span><span id="walletPK"><span class="annot"><span class="annottext">walletPK :: Wallet -&gt; PubKey
+</span><a href="#local-6989586621679813067"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet public key (PK)</span></span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Cooked.Wallet.html#walletPK"><span class="hs-identifier hs-type">walletPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.PubKey</span></span><span>
+</span><span id="line-73"></span><span id="walletPK"><span class="annot"><span class="annottext">walletPK :: Wallet -&gt; PubKey
 </span><a href="Cooked.Wallet.html#walletPK"><span class="hs-identifier hs-var hs-var">walletPK</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PaymentPubKey -&gt; PubKey
 </span><span class="hs-identifier hs-var">Ledger.unPaymentPubKey</span></span><span> </span><span class="annot"><span class="annottext">(PaymentPubKey -&gt; PubKey)
 -&gt; (Wallet -&gt; PaymentPubKey) -&gt; Wallet -&gt; PubKey
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PaymentPubKey
 </span><span class="hs-identifier hs-var">Ledger.paymentPubKey</span></span><span>
-</span><span id="line-76"></span><span>
-</span><span id="line-77"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's public staking key (PK), if any</span></span><span>
-</span><span id="line-78"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPK"><span class="hs-identifier hs-type">walletStakingPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.PubKey</span></span><span>
-</span><span id="line-79"></span><span id="walletStakingPK"><span class="annot"><span class="annottext">walletStakingPK :: Wallet -&gt; Maybe PubKey
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's public staking key (PK), if any</span></span><span>
+</span><span id="line-76"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPK"><span class="hs-identifier hs-type">walletStakingPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.PubKey</span></span><span>
+</span><span id="line-77"></span><span id="walletStakingPK"><span class="annot"><span class="annottext">walletStakingPK :: Wallet -&gt; Maybe PubKey
 </span><a href="Cooked.Wallet.html#walletStakingPK"><span class="hs-identifier hs-var hs-var">walletStakingPK</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(XPrv -&gt; PubKey) -&gt; Maybe XPrv -&gt; Maybe PubKey
 forall a b. (a -&gt; b) -&gt; Maybe a -&gt; Maybe b
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -155,20 +154,20 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe XPrv
 </span><a href="Cooked.Wallet.html#walletStakingSK"><span class="hs-identifier hs-var">walletStakingSK</span></a></span><span>
-</span><span id="line-80"></span><span>
-</span><span id="line-81"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's public key hash</span></span><span>
-</span><span id="line-82"></span><span class="annot"><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-type">walletPKHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span>
-</span><span id="line-83"></span><span id="walletPKHash"><span class="annot"><span class="annottext">walletPKHash :: Wallet -&gt; PubKeyHash
-</span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var hs-var">walletPKHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKey -&gt; PubKeyHash
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's public key hash</span></span><span>
+</span><span id="line-80"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679813073"><span class="annot"><span class="annottext">toPubKeyHash :: Wallet -&gt; PubKeyHash
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toPubKeyHash</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKey -&gt; PubKeyHash
 </span><span class="hs-identifier hs-var">Ledger.pubKeyHash</span></span><span> </span><span class="annot"><span class="annottext">(PubKey -&gt; PubKeyHash)
 -&gt; (Wallet -&gt; PubKey) -&gt; Wallet -&gt; PubKeyHash
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKey
 </span><a href="Cooked.Wallet.html#walletPK"><span class="hs-identifier hs-var">walletPK</span></a></span><span>
-</span><span id="line-84"></span><span>
-</span><span id="line-85"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's public staking key hash, if any</span></span><span>
-</span><span id="line-86"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-type">walletStakingPKHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span>
-</span><span id="line-87"></span><span id="walletStakingPKHash"><span class="annot"><span class="annottext">walletStakingPKHash :: Wallet -&gt; Maybe PubKeyHash
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's public staking key hash, if any</span></span><span>
+</span><span id="line-84"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-type">walletStakingPKHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span>
+</span><span id="line-85"></span><span id="walletStakingPKHash"><span class="annot"><span class="annottext">walletStakingPKHash :: Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var hs-var">walletStakingPKHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(PubKey -&gt; PubKeyHash) -&gt; Maybe PubKey -&gt; Maybe PubKeyHash
 forall a b. (a -&gt; b) -&gt; Maybe a -&gt; Maybe b
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -178,20 +177,21 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKey
 </span><a href="Cooked.Wallet.html#walletStakingPK"><span class="hs-identifier hs-var">walletStakingPK</span></a></span><span>
-</span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToCredential</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-90"></span><span>  </span><span id="local-6989586621679821352"><span class="annot"><span class="annottext">toCredential :: Wallet -&gt; Credential
-</span><a href="#local-6989586621679821352"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCredential</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToCredential</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-88"></span><span>  </span><span id="local-6989586621679813079"><span class="annot"><span class="annottext">toCredential :: Wallet -&gt; Credential
+</span><a href="#local-6989586621679813079"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCredential</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
 </span><span class="hs-identifier hs-var">Api.PubKeyCredential</span></span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; Credential)
 -&gt; (Wallet -&gt; PubKeyHash) -&gt; Wallet -&gt; Credential
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
-</span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span>
-</span><span id="line-91"></span><span>
-</span><span id="line-92"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's staking credential</span></span><span>
-</span><span id="line-93"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingCredential"><span class="hs-identifier hs-type">walletStakingCredential</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.StakingCredential</span></span><span>
-</span><span id="line-94"></span><span id="walletStakingCredential"><span class="annot"><span class="annottext">walletStakingCredential :: Wallet -&gt; Maybe StakingCredential
-</span><a href="Cooked.Wallet.html#walletStakingCredential"><span class="hs-identifier hs-var hs-var">walletStakingCredential</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
+forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's staking credential</span></span><span>
+</span><span id="line-91"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToMaybeStakingCredential</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-92"></span><span>  </span><span id="local-6989586621679813086"><span class="annot"><span class="annottext">toMaybeStakingCredential :: Wallet -&gt; Maybe StakingCredential
+</span><a href="#local-6989586621679813086"><span class="hs-identifier hs-var hs-var hs-var hs-var">toMaybeStakingCredential</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><span class="hs-identifier hs-var">Api.StakingHash</span></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (PubKeyHash -&gt; Credential) -&gt; PubKeyHash -&gt; StakingCredential
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -206,34 +206,37 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var">walletStakingPKHash</span></a></span><span>
-</span><span id="line-95"></span><span>
-</span><span id="line-96"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToAddress</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-97"></span><span>  </span><span id="local-6989586621679821360"><span class="annot"><span class="annottext">toAddress :: Wallet -&gt; Address
-</span><a href="#local-6989586621679821360"><span class="hs-identifier hs-var hs-var hs-var hs-var">toAddress</span></a></span></span><span> </span><span id="local-6989586621679821362"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679821362"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-98"></span><span>    </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToAddress</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621679813094"><span class="annot"><span class="annottext">toAddress :: Wallet -&gt; Address
+</span><a href="#local-6989586621679813094"><span class="hs-identifier hs-var hs-var hs-var hs-var">toAddress</span></a></span></span><span> </span><span id="local-6989586621679813096"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679813096"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-96"></span><span>    </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><span class="hs-identifier hs-var">Api.Address</span></span><span>
-</span><span id="line-99"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Credential
+</span><span id="line-97"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
 </span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679821362"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-100"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Maybe StakingCredential
-</span><a href="Cooked.Wallet.html#walletStakingCredential"><span class="hs-identifier hs-var">walletStakingCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679821362"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-101"></span><span>
-</span><span id="line-102"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet private key (secret key SK)</span></span><span>
-</span><span id="line-103"></span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Crypto.XPrv</span></span><span>
-</span><span id="line-104"></span><span id="walletSK"><span class="annot"><span class="annottext">walletSK :: Wallet -&gt; XPrv
+</span><a href="#local-6989586621679813096"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-98"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Maybe StakingCredential
+forall a.
+ToMaybeStakingCredential a =&gt;
+a -&gt; Maybe StakingCredential
+</span><span class="hs-identifier hs-var">Script.toMaybeStakingCredential</span></span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679813096"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet private key (secret key SK)</span></span><span>
+</span><span id="line-101"></span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Crypto.XPrv</span></span><span>
+</span><span id="line-102"></span><span id="walletSK"><span class="annot"><span class="annottext">walletSK :: Wallet -&gt; XPrv
 </span><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-var hs-var">walletSK</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PaymentPrivateKey -&gt; XPrv
 </span><span class="hs-identifier hs-var">Ledger.unPaymentPrivateKey</span></span><span> </span><span class="annot"><span class="annottext">(PaymentPrivateKey -&gt; XPrv)
 -&gt; (Wallet -&gt; PaymentPrivateKey) -&gt; Wallet -&gt; XPrv
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PaymentPrivateKey
 </span><span class="hs-identifier hs-var">Ledger.paymentPrivateKey</span></span><span>
-</span><span id="line-105"></span><span>
-</span><span id="line-106"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's private staking key (secret key SK), if any</span></span><span>
-</span><span id="line-107"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingSK"><span class="hs-identifier hs-type">walletStakingSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Crypto.XPrv</span></span><span>
-</span><span id="line-108"></span><span id="walletStakingSK"><span class="annot"><span class="annottext">walletStakingSK :: Wallet -&gt; Maybe XPrv
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="annot"><span class="hs-comment">-- | Retrieves a wallet's private staking key (secret key SK), if any</span></span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Cooked.Wallet.html#walletStakingSK"><span class="hs-identifier hs-type">walletStakingSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Crypto.XPrv</span></span><span>
+</span><span id="line-106"></span><span id="walletStakingSK"><span class="annot"><span class="annottext">walletStakingSK :: Wallet -&gt; Maybe XPrv
 </span><a href="Cooked.Wallet.html#walletStakingSK"><span class="hs-identifier hs-var hs-var">walletStakingSK</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(StakePrivateKey -&gt; XPrv) -&gt; Maybe StakePrivateKey -&gt; Maybe XPrv
 forall a b. (a -&gt; b) -&gt; Maybe a -&gt; Maybe b
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -243,4 +246,4 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe StakePrivateKey
 </span><span class="hs-identifier hs-var">Ledger.stakePrivateKey</span></span><span>
-</span><span id="line-109"></span></pre></body></html>
+</span><span id="line-107"></span></pre></body></html>

@@ -4,42 +4,51 @@
 </span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Pretty.Hashable</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-5"></span><span>
 </span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
-</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V1.Typed</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V3.Typed</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
-</span><span id="line-11"></span><span>
-</span><span id="line-12"></span><span class="annot"><span class="hs-comment">-- | Hashable elements can be transformed to 'Api.BuiltinByteString'</span></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">class</span><span> </span><span id="ToHash"><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-var">ToHash</span></a></span></span><span> </span><span id="local-6989586621679821949"><span class="annot"><a href="#local-6989586621679821949"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-14"></span><span>  </span><span id="toHash"><span class="annot"><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-type">toHash</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679821949"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinByteString</span></span><span>
-</span><span id="line-15"></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.CurrencySymbol</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-17"></span><span>  </span><span id="local-6989586621679821987"><span class="annot"><span class="annottext">toHash :: CurrencySymbol -&gt; BuiltinByteString
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Data</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V1.Typed</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V3.Typed</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="annot"><span class="hs-comment">-- | Hashable elements can be transformed to 'Api.BuiltinByteString'</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">class</span><span> </span><span id="ToHash"><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-var">ToHash</span></a></span></span><span> </span><span id="local-6989586621679813682"><span class="annot"><a href="#local-6989586621679813682"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>  </span><span id="toHash"><span class="annot"><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-type">toHash</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679813682"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinByteString</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinByteString</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679813726"><span class="annot"><span class="annottext">toHash :: BuiltinByteString -&gt; BuiltinByteString
+</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinByteString -&gt; BuiltinByteString
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.CurrencySymbol</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679813730"><span class="annot"><span class="annottext">toHash :: CurrencySymbol -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; BuiltinByteString
 </span><span class="hs-identifier hs-var">Api.unCurrencySymbol</span></span><span>
-</span><span id="line-18"></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-20"></span><span>  </span><span id="local-6989586621679821991"><span class="annot"><span class="annottext">toHash :: TokenName -&gt; BuiltinByteString
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679813734"><span class="annot"><span class="annottext">toHash :: TokenName -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; BuiltinByteString
 </span><span class="hs-identifier hs-var">Api.unTokenName</span></span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-23"></span><span>  </span><span id="local-6989586621679821995"><span class="annot"><span class="annottext">toHash :: PubKeyHash -&gt; BuiltinByteString
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>  </span><span id="local-6989586621679813738"><span class="annot"><span class="annottext">toHash :: PubKeyHash -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; BuiltinByteString
 </span><span class="hs-identifier hs-var">Api.getPubKeyHash</span></span><span>
-</span><span id="line-24"></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-26"></span><span>  </span><span id="local-6989586621679822000"><span class="annot"><span class="annottext">toHash :: Wallet -&gt; BuiltinByteString
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-31"></span><span>  </span><span id="local-6989586621679813745"><span class="annot"><span class="annottext">toHash :: Wallet -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; BuiltinByteString)
 -&gt; (Wallet -&gt; PubKeyHash) -&gt; Wallet -&gt; BuiltinByteString
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
-</span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span>
-</span><span id="line-27"></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-29"></span><span>  </span><span id="local-6989586621679822008"><span class="annot"><span class="annottext">toHash :: Versioned MintingPolicy -&gt; BuiltinByteString
+forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621679813753"><span class="annot"><span class="annottext">toHash :: Versioned MintingPolicy -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(CurrencySymbol -&gt; BuiltinByteString)
@@ -52,9 +61,9 @@ forall script.
 ToMintingPolicyHash script =&gt;
 script -&gt; CurrencySymbol
 </span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span>
-</span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-32"></span><span>  </span><span id="local-6989586621679822018"><span class="annot"><span class="annottext">toHash :: Versioned Script -&gt; BuiltinByteString
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679813763"><span class="annot"><span class="annottext">toHash :: Versioned Script -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; BuiltinByteString)
@@ -65,19 +74,19 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Versioned Script -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span>
-</span><span id="line-33"></span><span>
-</span><span id="line-34"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ScriptHash</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-35"></span><span>  </span><span id="local-6989586621679822021"><span class="annot"><span class="annottext">toHash :: ScriptHash -&gt; BuiltinByteString
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ScriptHash</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679813766"><span class="annot"><span class="annottext">toHash :: ScriptHash -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; BuiltinByteString
 </span><span class="hs-identifier hs-var">Script.getScriptHash</span></span><span>
-</span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ValidatorHash</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-38"></span><span>  </span><span id="local-6989586621679822025"><span class="annot"><span class="annottext">toHash :: ValidatorHash -&gt; BuiltinByteString
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ValidatorHash</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679813770"><span class="annot"><span class="annottext">toHash :: ValidatorHash -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ValidatorHash -&gt; BuiltinByteString
 </span><span class="hs-identifier hs-var">Script.getValidatorHash</span></span><span>
-</span><span id="line-39"></span><span>
-</span><span id="line-40"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679821969"><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679821969"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-41"></span><span>  </span><span id="local-6989586621679822030"><span class="annot"><span class="annottext">toHash :: TypedValidator a -&gt; BuiltinByteString
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813706"><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679813706"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679813775"><span class="annot"><span class="annottext">toHash :: TypedValidator a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ValidatorHash -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(ValidatorHash -&gt; BuiltinByteString)
@@ -88,20 +97,42 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; ValidatorHash
 forall a. TypedValidator a -&gt; ValidatorHash
 </span><span class="hs-identifier hs-var">Script.tvValidatorHash</span></span><span>
-</span><span id="line-42"></span><span>
-</span><span id="line-43"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.DatumHash</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-44"></span><span>  </span><span id="local-6989586621679822034"><span class="annot"><span class="annottext">toHash :: DatumHash -&gt; BuiltinByteString
-</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DatumHash</span></span><span> </span><span id="local-6989586621679822036"><span class="annot"><span class="annottext">BuiltinByteString
-</span><a href="#local-6989586621679822036"><span class="hs-identifier hs-var">hash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinByteString
-</span><a href="#local-6989586621679822036"><span class="hs-identifier hs-var">hash</span></a></span><span>
-</span><span id="line-45"></span><span>
-</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxId</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-47"></span><span>  </span><span id="local-6989586621679822039"><span class="annot"><span class="annottext">toHash :: TxId -&gt; BuiltinByteString
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.DatumHash</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679813779"><span class="annot"><span class="annottext">toHash :: DatumHash -&gt; BuiltinByteString
+</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DatumHash</span></span><span> </span><span id="local-6989586621679813781"><span class="annot"><span class="annottext">BuiltinByteString
+</span><a href="#local-6989586621679813781"><span class="hs-identifier hs-var">hash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinByteString
+</span><a href="#local-6989586621679813781"><span class="hs-identifier hs-var">hash</span></a></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Datum</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679813785"><span class="annot"><span class="annottext">toHash :: Datum -&gt; BuiltinByteString
+</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; BuiltinByteString
+forall a. ToHash a =&gt; a -&gt; BuiltinByteString
+</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(DatumHash -&gt; BuiltinByteString)
+-&gt; (Datum -&gt; DatumHash) -&gt; Datum -&gt; BuiltinByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Datum -&gt; DatumHash
+</span><span class="hs-identifier hs-var">Script.datumHash</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679813790"><span class="annot"><span class="annottext">toHash :: BuiltinData -&gt; BuiltinByteString
+</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinByteString -&gt; BuiltinByteString
+forall a. ToHash a =&gt; a -&gt; BuiltinByteString
+</span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; BuiltinByteString)
+-&gt; (BuiltinData -&gt; BuiltinByteString)
+-&gt; BuiltinData
+-&gt; BuiltinByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; BuiltinByteString
+</span><span class="hs-identifier hs-var">Script.dataHash</span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxId</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679813794"><span class="annot"><span class="annottext">toHash :: TxId -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxId -&gt; BuiltinByteString
 </span><span class="hs-identifier hs-var">Api.getTxId</span></span><span>
-</span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679821977"><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.MultiPurposeScript</span></span><span> </span><span class="annot"><a href="#local-6989586621679821977"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-50"></span><span>  </span><span id="local-6989586621679822046"><span class="annot"><span class="annottext">toHash :: MultiPurposeScript a -&gt; BuiltinByteString
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813716"><span class="annot"><a href="Cooked.Pretty.Hashable.html#ToHash"><span class="hs-identifier hs-type">ToHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.MultiPurposeScript</span></span><span> </span><span class="annot"><a href="#local-6989586621679813716"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621679813801"><span class="annot"><span class="annottext">toHash :: MultiPurposeScript a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">toHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Script -&gt; BuiltinByteString
 forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 </span><a href="Cooked.Pretty.Hashable.html#toHash"><span class="hs-identifier hs-var">toHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Versioned Script -&gt; BuiltinByteString)
@@ -111,4 +142,4 @@ forall a. ToHash a =&gt; a -&gt; BuiltinByteString
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall s a. ToVersioned s a =&gt; a -&gt; Versioned s
 </span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span>
-</span><span id="line-51"></span></pre></body></html>
+</span><span id="line-62"></span></pre></body></html>
