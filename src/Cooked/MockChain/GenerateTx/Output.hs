@@ -5,7 +5,6 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
-import Cooked.Output
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
@@ -15,11 +14,11 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Converts a 'TxSkelOut' to the corresponding 'Cardano.TxOut'
 toCardanoTxOut :: (MonadBlockChainBalancing m) => TxSkelOut -> m (Cardano.TxOut Cardano.CtxTx Cardano.ConwayEra)
-toCardanoTxOut (Pays output) = do
-  let oAddress = outputAddress output
-      oValue = outputValue output
-      oDatum = output ^. outputDatumL
-      oRefScript = output ^. outputReferenceScriptL
+toCardanoTxOut output = do
+  let oAddress = txSkelOutAddress output
+      oValue = txSkelOutValue output
+      oDatum = output ^. txSkelOutDatumL
+      oRefScript = txSkelOutReferenceScript output
   networkId <- Emulator.pNetworkId <$> getParams
   address <-
     throwOnToCardanoError
@@ -31,11 +30,11 @@ toCardanoTxOut (Pays output) = do
       (Ledger.toCardanoValue oValue)
   datum <- case oDatum of
     TxSkelOutNoDatum -> return Cardano.TxOutDatumNone
-    TxSkelOutDatumHash datum ->
+    TxSkelOutSomeDatum datum (Hashed NotResolved) ->
       throwOnToCardanoError
         "toCardanoTxOut: Unable to resolve/transate a datum hash."
         $ Cardano.TxOutDatumHash Cardano.AlonzoEraOnwardsConway
           <$> Ledger.toCardanoScriptDataHash (Script.datumHash $ Api.Datum $ Api.toBuiltinData datum)
-    TxSkelOutDatum datum -> return $ Cardano.TxOutSupplementalDatum Cardano.AlonzoEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
-    TxSkelOutInlineDatum datum -> return $ Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
+    TxSkelOutSomeDatum datum (Hashed Resolved) -> return $ Cardano.TxOutSupplementalDatum Cardano.AlonzoEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
+    TxSkelOutSomeDatum datum Inline -> return $ Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $ Ledger.toCardanoScriptData $ Api.toBuiltinData datum
   return $ Cardano.TxOut address value datum $ Ledger.toCardanoReferenceScript (Script.toVersioned <$> oRefScript)

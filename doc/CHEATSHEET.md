@@ -42,7 +42,7 @@
   ```
 #### Usage
 
-* In a test `Tasty.testCase "foo" $ testSucceedsFrom def initDist foo`
+* In a test ``testCooked "foo" $ mustSucceedTest foo `withInitDist` myInitiDist``
 * In the REPL `printCooked $ interpretAndRunWith (runMockChainTFrom initDist) foo`
 
 ### Give human-readable names to pubkey/script/minting hashes
@@ -50,38 +50,35 @@
 * Outside the mockchain, for static names in the pretty options direclty:
 
 ```haskell
+walletNames :: [(Wallet, String)]
+walletNames = [(wallet 1, "Alice"), (wallet 2, "Bob"), (wallet 3, "Carie")]
+
+mintingPolicyNames :: [(Wallet, MintingPolicy)]
+mintingPolicyNames = [(nftCurrencySymbol, "NFT"), (customCoinsCurrencySymbol, "Custom Coins")]
+
+validatorNames :: [(Wallet, Validator)]
+validatorNames = [(fooValidator, "Foo") ]
+
 pcOpts :: C.PrettyCookedOpts
 pcOpts =
-  def
-    { C.pcOptHashes =
-        def
-          { C.pcOptHashNames =
-                C.hashNamesFromList
-                  [ (wallet 1, "Alice"),
-                    (wallet 2, "Bob"),
-                    (wallet 3, "Carie")
-                  ]
-                <> C.hashNamesFromList
-                  [ (nftCurrencySymbol, "NFT"),
-                    (customCoinsCurrencySymbol, "Custom Coins")
-                  ]
-                <> C.hashNamesFromList
-                  [ (fooValidator, "Foo")
-                  ]
-                <> C.defaultHashNames -- IMPORTANT: must be the last element
-          }
-    }
-```
-
-```haskell
-pcOpts :: C.PrettyCookedOpts
-pcOpts = addHashNames (C.hashNamesFromList [...] <> ...) def
+  addHashNames
+    ( C.hashNamesFromList walletNames
+        <> C.hashNamesFromList mintingPolicyNames
+        <> C.hashNamesFromList validatorNames
+    )
+    def
 ```
 
 * Inside the mockchain, for dynamic names (depending on on-chain data, such as `TxOutRef`s):
 
 ```haskell
 myScript <- define "myScript" $ generateScript txOutRef
+```
+
+```haskell
+myScript <- defineM "myValidator" $ do
+  ...
+  return $ generateScript txOutRef
 ```
 
 ### Write a trace or endpoint
@@ -95,6 +92,15 @@ foo = do
 ```
 
 ### Get the current time
+
+```haskell
+foo :: MonadBlockChain m => m ()
+foo = do
+    ...
+    slot <- currentSlot
+    ...
+```
+
 
 ```haskell
 foo :: MonadBlockChain m => m ()
@@ -161,7 +167,7 @@ foo = do
 
 * 10 wallets: `wallet 1` to `wallet 10`
 * `walletAddress (wallet 3)`
-* `walletPKHash (wallet 2)`
+* `Script.toPubKeyHash (wallet 2)`
 
 ### Sign a transaction with one or more wallets
 
@@ -239,12 +245,20 @@ txSkelTemplate
     return (txOutRef1, txOutRef2)
   ```
 
-### Resolve a `TxOutRef` (get the corresponding `TxOut`)
+### Resolve a `TxOutRef` (get the corresponding `TxSkelOut`)
 
+* Use the `MonadFail` instance of `MonadBlockChain`
 ```haskell
 foo :: MonadBlockChain m => Api.TxOutRef -> m ()
 foo txOutRef = do
-    Just txOut <- txOutByRef txOutRef
+    Just txSkelOut <- txOutByRef txOutRef
+```
+
+* Use the `MonadError MockChainError` instance of `MonadBlockChain`
+```haskell
+foo :: MonadBlockChain m => Api.TxOutRef -> m ()
+foo txOutRef = do
+    txSkelOut <- unsafeTxOutByRef txOutRef -- will throw a MCEUnknownOutRef if not found
 ```
 
 ### Resolve the address, value, and datum of a `TxOutRef`
@@ -252,9 +266,12 @@ foo txOutRef = do
 ```haskell
 foo :: MonadBlockChain m => Api.TxOutRef -> m ()
 foo txOutRef = do
-    Just address <- outputAddress <$> txOutByRef txOutRef
+    Just address <- (txSkelOutAddress <$>) <$> txOutByRef txOutRef
+	address' <- txSkelOutAddress <$> unsafeTxOutByRef txOutRef
     Just value <- valueFromTxOutRef txOutRef
+	value' <- unsafeValueFromTxOutRef txOutRef
     Just datum <- typedDatumFromTxOutRef @typeOfDatum txOutRef
+	Just datum' <- unsafeTypedDatumFromTxOutRef @typeOfDatum txOutRef
 ```
 
 ### Mint or burn tokens
@@ -375,7 +392,7 @@ txSkelTemplate
 foo :: MonadBlockChain m => m ()
 foo = do
     ...
-    -- searchResults :: [(Api.TxOutRef, Api.TxOut)]
+    -- searchResults :: [(Api.TxOutRef, TxSkelOut)]
     searchResults <- runUtxoSearch $ allUtxos
     ...
 ```
@@ -386,8 +403,9 @@ foo = do
 foo :: MonadBlockChain m => m () 
 foo = do                  
     ...
-    -- searchResults :: [(Api.TxOutRef, Api.TxOut)]
-    searchResults <- runUtxoSearch $ utxosAtSearch (walletAddress (wallet 2))
+    -- searchResults, searchResults' :: [(Api.TxOutRef, TxSkelOut)]
+    searchResults <- runUtxoSearch $ utxosOwnedBy (wallet 2)
+	searchResults' <- runUtxoSearch $ utxosOwnerBy myValidator
     ...
 ```
 
@@ -399,7 +417,7 @@ foo = do
     ...
     searchResults <-
       runUtxoSearch $
-        allUtxos `filterWithPred` ((== ada 10) . outputValue)
+        allUtxos `filterWithPred` ((== ada 10) . txSkelOutValue)
     ...
 ```
 
@@ -409,7 +427,7 @@ foo = do
 foo :: MonadBlockChain m => m ()
 foo = do
     ...
-    searchResults <- runUtxoSearch $ allUtxos `filterWithPure` isOutputWithoutDatum
+    searchResults <- runUtxoSearch $ allUtxos `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumContentAT)
     ...
 ```
 
@@ -421,9 +439,9 @@ foo = do
     ...
     searchResults <-
       runUtxoSearch $
-        utxosAtSearch (walletAddress (wallet 2))
-          `filterWithPure` isOutputWithoutDatum
-          `filterWithPred` ((== ada 10) . outputValue)
+        utxosOwnedBy (wallet 2)
+		  `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumContentAT)
+          `filterWithPred` ((== ada 10) . txSkelOutValue)
     ...
 ```
 
@@ -476,6 +494,26 @@ foo = do
 
 ## Proposal procedures
 
+### Tamper with the official constitution script
+
+* Set the official constitution scripts
+
+```haskell
+do
+  ...
+  setConstitutionScript myScript
+  ...
+```
+
+* Retrieve the official constitution script
+
+```haskell
+do
+  ...
+  currentConstitution <- getConstitutionScript
+  ...
+```
+
 ### Attach a Proposal Procedure to a transaction
 
 * Using the builtin constructor for proposals.
@@ -492,8 +530,9 @@ txSkelTemplate
                   [ (toCredential $ wallet 1, Api.Lovelace 100),
                     (toCredential $ wallet 2, Api.Lovelace 10_000)
                   ],
-            txSkelProposalWitness = (toScript myScript, myTxSkelRedeemer),
-            txSkelProposalAnchor = Nothing
+            txSkelProposalWitness = Just (myConstitutionScript, myTxSkelRedeemer),
+            txSkelProposalAnchor = Nothing,
+			txSkelProposalAutoConstitution = False
           }
       ]
     ...
@@ -514,6 +553,12 @@ txSkelTemplate
       ]
     ...
   } 
+```
+
+* Enable auto filling of the current offical constitution script.
+
+```haskell 
+   txSkelProposalAutoConstitution = True
 ```
 
 ### Anchor resolution policy
@@ -537,12 +582,20 @@ txSkelTemplate
 
 ## Withdrawals
 
-Withdrawals allow to execute scripts with the "rewarding" purpose but do not
-work properly in terms of withdrawn values.
+* Register a certain credential as a staker with a certain amount of deposit and reward
+
+```haskell 
+do
+  ...
+  registerStakingCred myWithdrawingScript myReward myDeposit
+  ...
+```	
+
+* Withdraw the reward
 
 ```haskell 
     txSkelTemplate
-      { txSkelWithdrawals = scriptWithdrawal withdrawalScript myTxSkelRedeemer someAdaValue,
+      { txSkelWithdrawals = scriptWithdrawal myWithdrawingScript myTxSkelRedeemer myReward,
 	    ...
       }
 ```	

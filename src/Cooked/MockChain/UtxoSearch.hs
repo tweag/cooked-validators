@@ -5,7 +5,7 @@ module Cooked.MockChain.UtxoSearch
   ( UtxoSearch,
     runUtxoSearch,
     allUtxosSearch,
-    utxosAtSearch,
+    utxosOwnedBySearch,
     utxosFromCardanoTxSearch,
     txOutByRefSearch,
     filterWith,
@@ -18,14 +18,14 @@ module Cooked.MockChain.UtxoSearch
     onlyValueOutputsAtSearch,
     vanillaOutputsAtSearch,
     filterWithAlways,
-    scriptOutputsSearch,
     referenceScriptOutputsSearch,
+    filterWithPureRev,
   )
 where
 
 import Control.Monad
 import Cooked.MockChain.BlockChain
-import Cooked.Output
+import Cooked.Skeleton
 import Data.Maybe
 import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))
@@ -33,6 +33,7 @@ import ListT qualified
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -50,26 +51,27 @@ runUtxoSearch = ListT.toList
 
 -- | Search all currently known 'Api.TxOutRef's together with their corresponding
 -- 'Api.TxOut'.
-allUtxosSearch :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
+allUtxosSearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 allUtxosSearch = allUtxos >>= ListT.fromFoldable
 
 -- | Search all 'Api.TxOutRef's at a certain address, together with their
--- 'Api.TxOut'.
-utxosAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m Api.TxOut
-utxosAtSearch = utxosAt . Script.toAddress >=> ListT.fromFoldable
-
--- | Search all 'Api.TxOutRef's of a transaction, together with their
--- 'Api.TxOut'.
-utxosFromCardanoTxSearch :: (Monad m) => Ledger.CardanoTx -> UtxoSearch m Api.TxOut
-utxosFromCardanoTxSearch = ListT.fromFoldable . utxosFromCardanoTx
+-- 'Api.TxOut'. This will attempt to cast the owner of the 'TxSkelOut' to @addr@
+-- so be careful how you use it.
+utxosOwnedBySearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
+utxosOwnedBySearch = utxosAt . Script.toAddress >=> ListT.fromFoldable
 
 -- | Search all 'Api.TxOut's corresponding to given the list of
 -- 'Api.TxOutRef's. Any 'Api.TxOutRef' that doesn't correspond to a known output
 -- will be filtered out.
-txOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m Api.TxOut
+txOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m TxSkelOut
 txOutByRefSearch orefs =
   ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
     `filterWith` txOutByRef
+
+-- | Search all 'Api.TxOutRef's of a transaction, together with their
+-- 'Api.TxOut'.
+utxosFromCardanoTxSearch :: (MonadBlockChainBalancing m) => Ledger.CardanoTx -> UtxoSearch m TxSkelOut
+utxosFromCardanoTxSearch = utxosFromCardanoTx >=> ListT.fromFoldable
 
 -- * filtering UTxO searches
 
@@ -103,63 +105,45 @@ filterWithOptic as optic = filterWithPure as (^? optic)
 filterWithPred :: (Monad m) => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
 filterWithPred as f = filterWithPure as $ \a -> if f a then Just a else Nothing
 
+-- | Same as 'filterWithPure' but inverses the predicate
+filterWithPureRev :: (Monad m) => UtxoSearch m a -> (a -> Maybe b) -> UtxoSearch m a
+filterWithPureRev as = filterWithPred as . (isNothing .)
+
 -- | A specific version of 'filterWithPred' where outputs must me of type
--- 'Api.TxOut' and the predicate only relies on their value
-filterWithValuePred :: (Monad m) => UtxoSearch m Api.TxOut -> (Api.Value -> Bool) -> UtxoSearch m Api.Value
-filterWithValuePred as = filterWithPred (filterWithAlways as Api.txOutValue)
+-- 'TxSkelOut' and the predicate only relies on their value
+filterWithValuePred :: (Monad m) => UtxoSearch m TxSkelOut -> (Api.Value -> Bool) -> UtxoSearch m TxSkelOut
+filterWithValuePred as f = filterWithPred as (f . txSkelOutValue)
 
--- | A specific version of 'filterWithValuePred' when 'Api.TxOut's are only kept
+-- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
 -- when they contain only ADA
-filterWithOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
-filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Api.flattenValue
+filterWithOnlyAda :: (Monad m) => UtxoSearch m TxSkelOut -> UtxoSearch m TxSkelOut
+filterWithOnlyAda as = filterWithValuePred as Script.isAdaOnlyValue
 
--- | A specific version of 'filterWithValuePred' when 'Api.TxOut's are only kept
+-- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
 -- when they contain non-ADA assets
-filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
-filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Api.flattenValue
+filterWithNotOnlyAda :: (Monad m) => UtxoSearch m TxSkelOut -> UtxoSearch m TxSkelOut
+filterWithNotOnlyAda as = filterWithValuePred as (not . Script.isAdaOnlyValue)
 
 -- * Useful composite UTxO searches with filters already applied
 
 -- | Search for UTxOs at a specific address, which only carry address and value
 -- information (no datum, staking credential, or reference script).
-onlyValueOutputsAtSearch ::
-  (MonadBlockChainBalancing m, Script.ToAddress addr) =>
-  addr ->
-  UtxoSearch m (ConcreteOutput Api.Credential () Api.Value Api.ScriptHash)
+onlyValueOutputsAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
 onlyValueOutputsAtSearch addr =
-  utxosAtSearch addr
-    `filterWithAlways` fromAbstractOutput
-    `filterWithPure` isOutputWithoutDatum
-    `filterWithPure` isEmptyStakingCredentialOutput
-    `filterWithPred` (isNothing . view outputReferenceScriptL)
+  utxosOwnedBySearch addr
+    `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumContentAT)
+    `filterWithPureRev` view txSkelOutStakingCredentialL
+    `filterWithPureRev` txSkelOutReferenceScript
 
 -- | Same as 'onlyValueOutputsAtSearch', but also ensures the returned outputs
 -- do not contain non-ADA assets. These "vanilla" outputs are perfect candidates
 -- to be used for balancing transaction and attaching collaterals.
-vanillaOutputsAtSearch ::
-  (MonadBlockChainBalancing m, Script.ToAddress addr) =>
-  addr ->
-  UtxoSearch m (ConcreteOutput Api.Credential () Api.Lovelace Api.ScriptHash)
-vanillaOutputsAtSearch addr =
-  onlyValueOutputsAtSearch addr
-    `filterWithPure` isOnlyAdaOutput
-
--- | Searches for all outputs belonging to a given script
-scriptOutputsSearch ::
-  (MonadBlockChain m, Script.ToScriptHash s) =>
-  s ->
-  UtxoSearch m (ConcreteOutput s Api.OutputDatum Api.Value Api.ScriptHash)
-scriptOutputsSearch s =
-  allUtxosSearch
-    `filterWithAlways` fromAbstractOutput
-    `filterWithPure` isScriptOutputFrom s
+vanillaOutputsAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
+vanillaOutputsAtSearch = filterWithOnlyAda . onlyValueOutputsAtSearch
 
 -- | Searches for all outputs containing a given script as reference script
 referenceScriptOutputsSearch ::
-  (MonadBlockChain m, Script.ToScriptHash s) =>
-  s ->
-  UtxoSearch m (ConcreteOutput Api.Credential Api.OutputDatum Api.Value Api.ScriptHash)
+  (MonadBlockChain m, Script.ToScriptHash s) => s -> UtxoSearch m TxSkelOut
 referenceScriptOutputsSearch s =
   allUtxosSearch
-    `filterWithAlways` fromAbstractOutput
-    `filterWithPure` isReferenceScriptOutputFrom s
+    `filterWithPred` ((Just (Script.toScriptHash s) ==) . (Script.toScriptHash <$>) . txSkelOutReferenceScript)

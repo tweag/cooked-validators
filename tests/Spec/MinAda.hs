@@ -24,12 +24,13 @@ instance PrettyCooked HeavyDatum where
 
 paymentWithMinAda :: (MonadBlockChain m) => m Integer
 paymentWithMinAda = do
-  Api.getLovelace . (^. Script.adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
-    <$> validateTxSkel
+  tx <-
+    validateTxSkel
       txSkelTemplate
         { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
           txSkelSigners = [wallet 1]
         }
+  Api.getLovelace . (^. Script.adaL) . txSkelOutValue . snd . (!! 0) <$> utxosFromCardanoTx tx
 
 paymentWithoutMinAda :: (MonadBlockChain m) => Integer -> m ()
 paymentWithoutMinAda paidLovelaces = do

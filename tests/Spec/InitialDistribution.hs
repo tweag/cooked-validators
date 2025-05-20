@@ -26,12 +26,12 @@ initialDistributionWithReferenceScript =
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
 getValueFromInitialDatum = do
-  aliceUtxos <- runUtxoSearch $ utxosAtSearch alice
+  aliceUtxos <- runUtxoSearch $ utxosOwnedBySearch alice
   catMaybes <$> mapM (typedDatumFromTxOutRef @Integer . fst) aliceUtxos
 
 spendReferenceAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 spendReferenceAlwaysTrueValidator = do
-  [(referenceScriptTxOutRef, _)] <- runUtxoSearch $ utxosAtSearch alice
+  [(referenceScriptTxOutRef, _)] <- runUtxoSearch $ utxosOwnedBySearch alice
   (scriptTxOutRef : _) <-
     validateTxSkel' $
       txSkelTemplate

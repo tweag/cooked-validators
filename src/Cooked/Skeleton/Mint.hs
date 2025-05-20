@@ -12,6 +12,7 @@ module Cooked.Skeleton.Mint
     txSkelMintsToList,
     txSkelMintsFromList,
     txSkelMintsValue,
+    txSkelMintVersionedScript,
   )
 where
 
@@ -48,6 +49,10 @@ data Mint where
       txSkelMintTokens :: [(Api.TokenName, Integer)]
     } ->
     Mint
+
+-- | Retrieves the versioned script contained in this 'Mint'
+txSkelMintVersionedScript :: Mint -> Script.Versioned Script.Script
+txSkelMintVersionedScript (Mint mp _ _) = Script.toVersioned @Script.Script $ Script.toVersioned @Script.MintingPolicy mp
 
 -- | Additional helper to build some 'Mint' in the usual minting case where a
 -- single type of token is minted for a given MP

@@ -2,9 +2,9 @@
 
 module Spec.InlineDatums where
 
-import Cooked
+import Cooked hiding (Inline)
 import Data.Map qualified as Map
-import Data.Maybe
+import Optics.Core
 import Plutus.InlineDatums
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -22,10 +22,10 @@ listUtxosTestTrace ::
   (MonadBlockChain m) =>
   Bool ->
   Script.Versioned Script.Validator ->
-  m [(Api.TxOutRef, Api.TxOut)]
+  m (Api.TxOutRef, TxSkelOut)
 listUtxosTestTrace useInlineDatum validator =
-  utxosFromCardanoTx
-    <$> validateTxSkel
+  (\oref -> (oref,) <$> unsafeTxOutByRef oref) . head
+    =<< validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
           txSkelSigners = [wallet 1]
@@ -44,7 +44,7 @@ spendOutputTestTrace ::
   Script.Versioned Script.Validator ->
   m ()
 spendOutputTestTrace useInlineDatum validator = do
-  (theTxOutRef, _) : _ <- listUtxosTestTrace useInlineDatum validator
+  (theTxOutRef, _) <- listUtxosTestTrace useInlineDatum validator
   validateTxSkel_
     txSkelTemplate
       { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
@@ -67,13 +67,13 @@ continuingOutputTestTrace ::
   Script.Versioned Script.Validator ->
   m ()
 continuingOutputTestTrace datumKindOnSecondPayment validator = do
-  (theTxOutRef, theOutput) : _ <- listUtxosTestTrace True validator
+  (theTxOutRef, theOutput) <- listUtxosTestTrace True validator
   validateTxSkel_
     txSkelTemplate
       { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
         txSkelOuts =
           [ validator
-              `receives` ( Value (outputValue theOutput)
+              `receives` ( Value (txSkelOutValue theOutput)
                              <&&> ( case datumKindOnSecondPayment of
                                       OnlyHash -> HiddenHashedDatum
                                       Datum -> VisibleHashedDatum
@@ -98,17 +98,15 @@ tests =
         -- The validator used in these test cases does not actually matter, we
         -- just need some script to pay to.
         [ testCooked "the datum is retrieved correctly" $
-            mustSucceedTest (listUtxosTestTrace True requireInlineDatumInInputValidator >> allUtxos)
-              `withResultProp` \utxos -> testBool $
-                case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom requireInlineDatumInInputValidator . snd) utxos of
-                  [Api.OutputDatum _] -> True
-                  _ -> False,
+            mustSucceedTest (listUtxosTestTrace True requireInlineDatumInInputValidator)
+              `withResultProp` \(_, output) -> case Script.toOutputDatum (output ^. txSkelOutDatumL) of
+                Api.OutputDatum _ -> testSuccess
+                _ -> testFailure,
           testCooked "the datum hash is retrieved correctly" $
-            mustSucceedTest (listUtxosTestTrace False requireInlineDatumInInputValidator >> allUtxos)
-              `withResultProp` \utxos -> testBool $
-                case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom requireInlineDatumInInputValidator . snd) utxos of
-                  [Api.OutputDatumHash _] -> True
-                  _ -> False
+            mustSucceedTest (listUtxosTestTrace False requireInlineDatumInInputValidator)
+              `withResultProp` \(_, output) -> case Script.toOutputDatum (output ^. txSkelOutDatumL) of
+                Api.OutputDatumHash _ -> testSuccess
+                _ -> testFailure
         ],
       testGroup
         "from the point of view of scripts"

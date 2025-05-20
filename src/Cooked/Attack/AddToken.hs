@@ -20,7 +20,7 @@ import Prettyprinter qualified as PP
 --
 -- This attack adds an 'AddTokenLbl' label.
 addTokenAttack ::
-  (MonadTweak m, OwnerConstraints o) =>
+  (MonadTweak m, OwnerConstrs o) =>
   -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
   (Script.Versioned Script.MintingPolicy -> [(Api.TokenName, Integer)]) ->

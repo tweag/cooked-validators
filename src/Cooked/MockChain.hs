@@ -11,9 +11,9 @@ import Cooked.MockChain.Direct as X hiding
   ( MockChainReturn,
   )
 import Cooked.MockChain.MinAda as X
-import Cooked.MockChain.MockChainSt as X
-  ( MockChainSt (..),
-    mockChainSt0From,
+import Cooked.MockChain.MockChainState as X
+  ( MockChainState (..),
+    mockChainState0From,
   )
 import Cooked.MockChain.Staged as X hiding
   ( InterpMockChain,
@@ -22,9 +22,8 @@ import Cooked.MockChain.Staged as X hiding
   )
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.UtxoSearch as X
-import Cooked.MockChain.UtxoState as X (UtxoState)
 import Cooked.MockChain.UtxoState as X hiding
   ( UtxoPayload,
     UtxoPayloadSet,
-    UtxoState (UtxoState, utxoState),
+    UtxoState (UtxoState, availableUtxos, consumedUtxos),
   )

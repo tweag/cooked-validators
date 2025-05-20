@@ -16,7 +16,7 @@ import PlutusLedgerApi.V1.Value qualified as Api
 -- transaction using 'addLabelTweak'. Returns the 'Value' by which the minted
 -- value was increased.
 dupTokenAttack ::
-  (MonadTweak m, OwnerConstraints o) =>
+  (MonadTweak m, OwnerConstrs o) =>
   -- | A function describing how the amount of tokens specified by a 'Mint'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy

@@ -6,7 +6,6 @@ module Cooked.MockChain.AutoReferenceScripts (toTxSkelWithReferenceScripts) wher
 import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.UtxoSearch
-import Cooked.Output
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Maybe
@@ -40,10 +39,8 @@ toTxSkelWithReferenceScripts txSkel = do
   newMints <- forM (txSkelMintsToList $ txSkel ^. txSkelMintsL) $ \(Mint mPol red tks) ->
     (\x -> Mint mPol x tks) <$> updateRedeemer (Script.toVersioned @Script.MintingPolicy mPol) red
   newInputs <- forM (Map.toList $ txSkel ^. txSkelInsL) $ \(oRef, red) -> do
-    outputM <- txOutByRef oRef
-    -- We retrieve the possible script hash of the current oRef
-    case (^. outputOwnerL) <$> (outputM >>= isScriptOutput) of
-      -- Either the txOutRef is unknown, or it belongs to a private key
+    validatorM <- txSkelOutValidator <$> unsafeTxOutByRef oRef
+    case validatorM of
       Nothing -> return (oRef, red)
       Just scriptHash -> (oRef,) <$> updateRedeemer scriptHash red
   newProposals <- forM (txSkel ^. txSkelProposalsL) $ \prop ->
