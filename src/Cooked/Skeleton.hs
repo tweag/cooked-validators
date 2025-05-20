@@ -90,10 +90,11 @@ data TxSkel where
       -- - On 'Api.TxOutRef's referencing UTxOs belonging to scripts, use
       --   the 'Cooked.Skeleton.Redeemer.someTxSkelRedeemer' smart constructor.
       txSkelIns :: Map Api.TxOutRef TxSkelRedeemer,
-      -- | All outputs directly referenced by the transaction. Note that
-      -- additional reference inputs can be found within the various redeemers
-      -- of this skeleton to host reference scripts. Function
-      -- 'txSkelInsReferenceInRedeemers' collects them all.
+      -- | All outputs directly referenced by the transaction. Each of them will
+      -- be directly translated into a Cardano reference input. Additional
+      -- reference inputs can be found within the various redeemers of the
+      -- skeleton to host reference scripts. Function
+      -- 'txSkelInsReferenceInRedeemers' collects those all.
       txSkelInsReference :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
