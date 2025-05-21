@@ -12,10 +12,8 @@ import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Map qualified as Map
-import Data.Maybe (fromMaybe)
 import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
-import Type.Reflection (Typeable)
 
 -- | Ensure that a given 'Api.TxOutRef' is being spent with a given
 -- 'TxSkelRedeemer'. The return value will be @Just@ the added data, if anything
@@ -46,12 +44,11 @@ removeInputTweak removePred = do
   setTweak txSkelInsL kept
   return $ Map.toList removed
 
--- | Applies an optional modification to all spend redeemers of type a
-modifySpendRedeemersOfTypeTweak :: forall a b m. (Typeable a, RedeemerConstrs b, MonadTweak m) => (a -> Maybe b) -> m ()
-modifySpendRedeemersOfTypeTweak f = do
-  presentInputs <- Map.toList <$> viewTweak txSkelInsL
-  setTweak txSkelInsL $
-    Map.fromList $
-      presentInputs <&> \(oRef, red) -> (oRef,) . fromMaybe red $ do
-        typedRedeemer <- getTypedRedeemer red
-        (`setTypedRedeemer` red) <$> f typedRedeemer
+-- | Applies an optional modification to all spend redeemers of type a. Returns
+-- the list of modified spending redemeers, as they were before being modified.
+modifySpendRedeemersOfTypeTweak :: forall a b m. (RedeemerConstrs a, RedeemerConstrs b, MonadTweak m) => (a -> Maybe b) -> m [TxSkelRedeemer]
+modifySpendRedeemersOfTypeTweak f =
+  overMaybeTweak (txSkelInsL % iso Map.toList Map.fromList % traversed % _2) $ \red -> do
+    typedRedeemer <- red ^? txSkelTypedRedeemerAT
+    typedRedeemerModified <- f typedRedeemer
+    return $ red & txSkelTypedRedeemerAT .~ typedRedeemerModified
