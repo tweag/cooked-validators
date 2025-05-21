@@ -97,7 +97,7 @@ waitUntilValidTweak = do
       guard $ not $ Api.isEmpty vRange
       later <- case Api.ivFrom vRange of
         Api.LowerBound (Api.Finite left) isClosed ->
-          return $ left + Ledger.Slot (toInteger $ fromEnum $ not isClosed)
-        _ -> error "this should never happen: left-finite interval without left border"
+          return $ left + fromIntegral (fromEnum $ not isClosed)
+        _ -> fail "Unexpected left-finite interval without left border: please report a bug at https://github.com/tweag/cooked-validators/issues"
       void $ awaitSlot later
       return later
