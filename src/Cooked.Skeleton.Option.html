@@ -47,7 +47,7 @@
 </span><span id="line-47"></span><span>    </span><span class="hs-comment">-- will be attempted around this fee, which might lead to failure if it is</span><span>
 </span><span id="line-48"></span><span>    </span><span class="hs-comment">-- too low, otherwise, this fee will be given to transaction generation.</span><span>
 </span><span id="line-49"></span><span>    </span><span id="ManualFee"><span class="annot"><a href="Cooked.Skeleton.Option.html#ManualFee"><span class="hs-identifier hs-var">ManualFee</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
-</span><span id="line-50"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813182"><span id="local-6989586621679813186"><span class="annot"><span class="annottext">FeePolicy -&gt; FeePolicy -&gt; Bool
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815707"><span id="local-6989586621679815711"><span class="annot"><span class="annottext">FeePolicy -&gt; FeePolicy -&gt; Bool
 (FeePolicy -&gt; FeePolicy -&gt; Bool)
 -&gt; (FeePolicy -&gt; FeePolicy -&gt; Bool) -&gt; Eq FeePolicy
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -55,7 +55,7 @@ $c== :: FeePolicy -&gt; FeePolicy -&gt; Bool
 == :: FeePolicy -&gt; FeePolicy -&gt; Bool
 $c/= :: FeePolicy -&gt; FeePolicy -&gt; Bool
 /= :: FeePolicy -&gt; FeePolicy -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813193"><span id="local-6989586621679813197"><span id="local-6989586621679813200"><span id="local-6989586621679813204"><span id="local-6989586621679813207"><span id="local-6989586621679813210"><span id="local-6989586621679813213"><span class="annot"><span class="annottext">Eq FeePolicy
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815718"><span id="local-6989586621679815722"><span id="local-6989586621679815725"><span id="local-6989586621679815729"><span id="local-6989586621679815732"><span id="local-6989586621679815735"><span id="local-6989586621679815738"><span class="annot"><span class="annottext">Eq FeePolicy
 Eq FeePolicy =&gt;
 (FeePolicy -&gt; FeePolicy -&gt; Ordering)
 -&gt; (FeePolicy -&gt; FeePolicy -&gt; Bool)
@@ -92,7 +92,7 @@ $cmax :: FeePolicy -&gt; FeePolicy -&gt; FeePolicy
 max :: FeePolicy -&gt; FeePolicy -&gt; FeePolicy
 $cmin :: FeePolicy -&gt; FeePolicy -&gt; FeePolicy
 min :: FeePolicy -&gt; FeePolicy -&gt; FeePolicy
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813217"><span id="local-6989586621679813223"><span id="local-6989586621679813227"><span class="annot"><span class="annottext">Int -&gt; FeePolicy -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815742"><span id="local-6989586621679815748"><span id="local-6989586621679815752"><span class="annot"><span class="annottext">Int -&gt; FeePolicy -&gt; ShowS
 [FeePolicy] -&gt; ShowS
 FeePolicy -&gt; String
 (Int -&gt; FeePolicy -&gt; ShowS)
@@ -110,8 +110,8 @@ showList :: [FeePolicy] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-51"></span><span>
 </span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#FeePolicy"><span class="hs-identifier hs-type">FeePolicy</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-53"></span><span>  </span><span id="local-6989586621679813233"><span class="annot"><span class="annottext">def :: FeePolicy
-</span><a href="#local-6989586621679813233"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FeePolicy
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679815758"><span class="annot"><span class="annottext">def :: FeePolicy
+</span><a href="#local-6989586621679815758"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FeePolicy
 </span><a href="Cooked.Skeleton.Option.html#AutoFeeComputation"><span class="hs-identifier hs-var">AutoFeeComputation</span></a></span><span>
 </span><span id="line-54"></span><span>
 </span><span id="line-55"></span><span class="hs-comment">-- | Whether to adjust a potentially existing output to the balancing wallet</span><span>
@@ -122,7 +122,7 @@ showList :: [FeePolicy] -&gt; ShowS
 </span><span id="line-60"></span><span>    </span><span id="AdjustExistingOutput"><span class="annot"><a href="Cooked.Skeleton.Option.html#AdjustExistingOutput"><span class="hs-identifier hs-var">AdjustExistingOutput</span></a></span></span><span>
 </span><span id="line-61"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Do not change the existing outputs, always create a new change output.</span></span><span>
 </span><span id="line-62"></span><span>    </span><span id="DontAdjustExistingOutput"><span class="annot"><a href="Cooked.Skeleton.Option.html#DontAdjustExistingOutput"><span class="hs-identifier hs-var">DontAdjustExistingOutput</span></a></span></span><span>
-</span><span id="line-63"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813238"><span id="local-6989586621679813240"><span class="annot"><span class="annottext">BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815763"><span id="local-6989586621679815765"><span class="annot"><span class="annottext">BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool
 (BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool)
 -&gt; (BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool)
 -&gt; Eq BalanceOutputPolicy
@@ -131,7 +131,7 @@ $c== :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool
 == :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool
 $c/= :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool
 /= :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813246"><span id="local-6989586621679813248"><span id="local-6989586621679813250"><span id="local-6989586621679813254"><span id="local-6989586621679813257"><span id="local-6989586621679813260"><span id="local-6989586621679813263"><span class="annot"><span class="annottext">Eq BalanceOutputPolicy
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815771"><span id="local-6989586621679815773"><span id="local-6989586621679815775"><span id="local-6989586621679815779"><span id="local-6989586621679815782"><span id="local-6989586621679815785"><span id="local-6989586621679815788"><span class="annot"><span class="annottext">Eq BalanceOutputPolicy
 Eq BalanceOutputPolicy =&gt;
 (BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Ordering)
 -&gt; (BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; Bool)
@@ -170,7 +170,7 @@ $cmax :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; BalanceOutputPolicy
 max :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; BalanceOutputPolicy
 $cmin :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; BalanceOutputPolicy
 min :: BalanceOutputPolicy -&gt; BalanceOutputPolicy -&gt; BalanceOutputPolicy
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813266"><span id="local-6989586621679813268"><span id="local-6989586621679813272"><span class="annot"><span class="annottext">Int -&gt; BalanceOutputPolicy -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815791"><span id="local-6989586621679815793"><span id="local-6989586621679815797"><span class="annot"><span class="annottext">Int -&gt; BalanceOutputPolicy -&gt; ShowS
 [BalanceOutputPolicy] -&gt; ShowS
 BalanceOutputPolicy -&gt; String
 (Int -&gt; BalanceOutputPolicy -&gt; ShowS)
@@ -188,7 +188,7 @@ showList :: [BalanceOutputPolicy] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-64"></span><span>
 </span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#BalanceOutputPolicy"><span class="hs-identifier hs-type">BalanceOutputPolicy</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-66"></span><span>  </span><span id="local-6989586621679813276"><span class="annot"><span class="annottext">def :: BalanceOutputPolicy
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679815801"><span class="annot"><span class="annottext">def :: BalanceOutputPolicy
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BalanceOutputPolicy
 </span><a href="Cooked.Skeleton.Option.html#AdjustExistingOutput"><span class="hs-identifier hs-var">AdjustExistingOutput</span></a></span><span>
 </span><span id="line-67"></span><span>
@@ -202,7 +202,7 @@ showList :: [BalanceOutputPolicy] -&gt; ShowS
 </span><span id="line-75"></span><span>    </span><span id="BalancingUtxosFromBalancingWallet"><span class="annot"><a href="Cooked.Skeleton.Option.html#BalancingUtxosFromBalancingWallet"><span class="hs-identifier hs-var">BalancingUtxosFromBalancingWallet</span></a></span></span><span>
 </span><span id="line-76"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out</span></span><span>
 </span><span id="line-77"></span><span>    </span><span id="BalancingUtxosFromSet"><span class="annot"><a href="Cooked.Skeleton.Option.html#BalancingUtxosFromSet"><span class="hs-identifier hs-var">BalancingUtxosFromSet</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">)</span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813280"><span id="local-6989586621679813285"><span class="annot"><span class="annottext">BalancingUtxos -&gt; BalancingUtxos -&gt; Bool
+</span><span id="line-78"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815805"><span id="local-6989586621679815810"><span class="annot"><span class="annottext">BalancingUtxos -&gt; BalancingUtxos -&gt; Bool
 (BalancingUtxos -&gt; BalancingUtxos -&gt; Bool)
 -&gt; (BalancingUtxos -&gt; BalancingUtxos -&gt; Bool) -&gt; Eq BalancingUtxos
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -210,7 +210,7 @@ $c== :: BalancingUtxos -&gt; BalancingUtxos -&gt; Bool
 == :: BalancingUtxos -&gt; BalancingUtxos -&gt; Bool
 $c/= :: BalancingUtxos -&gt; BalancingUtxos -&gt; Bool
 /= :: BalancingUtxos -&gt; BalancingUtxos -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813292"><span id="local-6989586621679813297"><span id="local-6989586621679813301"><span id="local-6989586621679813305"><span id="local-6989586621679813308"><span id="local-6989586621679813311"><span id="local-6989586621679813314"><span class="annot"><span class="annottext">Eq BalancingUtxos
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815817"><span id="local-6989586621679815822"><span id="local-6989586621679815826"><span id="local-6989586621679815830"><span id="local-6989586621679815833"><span id="local-6989586621679815836"><span id="local-6989586621679815839"><span class="annot"><span class="annottext">Eq BalancingUtxos
 Eq BalancingUtxos =&gt;
 (BalancingUtxos -&gt; BalancingUtxos -&gt; Ordering)
 -&gt; (BalancingUtxos -&gt; BalancingUtxos -&gt; Bool)
@@ -247,7 +247,7 @@ $cmax :: BalancingUtxos -&gt; BalancingUtxos -&gt; BalancingUtxos
 max :: BalancingUtxos -&gt; BalancingUtxos -&gt; BalancingUtxos
 $cmin :: BalancingUtxos -&gt; BalancingUtxos -&gt; BalancingUtxos
 min :: BalancingUtxos -&gt; BalancingUtxos -&gt; BalancingUtxos
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813318"><span id="local-6989586621679813324"><span id="local-6989586621679813328"><span class="annot"><span class="annottext">Int -&gt; BalancingUtxos -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815843"><span id="local-6989586621679815849"><span id="local-6989586621679815853"><span class="annot"><span class="annottext">Int -&gt; BalancingUtxos -&gt; ShowS
 [BalancingUtxos] -&gt; ShowS
 BalancingUtxos -&gt; String
 (Int -&gt; BalancingUtxos -&gt; ShowS)
@@ -265,7 +265,7 @@ showList :: [BalancingUtxos] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-79"></span><span>
 </span><span id="line-80"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#BalancingUtxos"><span class="hs-identifier hs-type">BalancingUtxos</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-81"></span><span>  </span><span id="local-6989586621679813333"><span class="annot"><span class="annottext">def :: BalancingUtxos
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679815858"><span class="annot"><span class="annottext">def :: BalancingUtxos
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BalancingUtxos
 </span><a href="Cooked.Skeleton.Option.html#BalancingUtxosFromBalancingWallet"><span class="hs-identifier hs-var">BalancingUtxosFromBalancingWallet</span></a></span><span>
 </span><span id="line-82"></span><span>
@@ -278,7 +278,7 @@ showList :: [BalancingUtxos] -&gt; ShowS
 </span><span id="line-89"></span><span>    </span><span id="BalanceWith"><span class="annot"><a href="Cooked.Skeleton.Option.html#BalanceWith"><span class="hs-identifier hs-var">BalanceWith</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-90"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Do not perform balancing at all</span></span><span>
 </span><span id="line-91"></span><span>    </span><span id="DoNotBalance"><span class="annot"><a href="Cooked.Skeleton.Option.html#DoNotBalance"><span class="hs-identifier hs-var">DoNotBalance</span></a></span></span><span>
-</span><span id="line-92"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813338"><span id="local-6989586621679813342"><span class="annot"><span class="annottext">BalancingPolicy -&gt; BalancingPolicy -&gt; Bool
+</span><span id="line-92"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815863"><span id="local-6989586621679815867"><span class="annot"><span class="annottext">BalancingPolicy -&gt; BalancingPolicy -&gt; Bool
 (BalancingPolicy -&gt; BalancingPolicy -&gt; Bool)
 -&gt; (BalancingPolicy -&gt; BalancingPolicy -&gt; Bool)
 -&gt; Eq BalancingPolicy
@@ -287,7 +287,7 @@ $c== :: BalancingPolicy -&gt; BalancingPolicy -&gt; Bool
 == :: BalancingPolicy -&gt; BalancingPolicy -&gt; Bool
 $c/= :: BalancingPolicy -&gt; BalancingPolicy -&gt; Bool
 /= :: BalancingPolicy -&gt; BalancingPolicy -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813348"><span id="local-6989586621679813352"><span id="local-6989586621679813355"><span id="local-6989586621679813359"><span id="local-6989586621679813362"><span id="local-6989586621679813365"><span id="local-6989586621679813368"><span class="annot"><span class="annottext">Eq BalancingPolicy
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815873"><span id="local-6989586621679815877"><span id="local-6989586621679815880"><span id="local-6989586621679815884"><span id="local-6989586621679815887"><span id="local-6989586621679815890"><span id="local-6989586621679815893"><span class="annot"><span class="annottext">Eq BalancingPolicy
 Eq BalancingPolicy =&gt;
 (BalancingPolicy -&gt; BalancingPolicy -&gt; Ordering)
 -&gt; (BalancingPolicy -&gt; BalancingPolicy -&gt; Bool)
@@ -324,7 +324,7 @@ $cmax :: BalancingPolicy -&gt; BalancingPolicy -&gt; BalancingPolicy
 max :: BalancingPolicy -&gt; BalancingPolicy -&gt; BalancingPolicy
 $cmin :: BalancingPolicy -&gt; BalancingPolicy -&gt; BalancingPolicy
 min :: BalancingPolicy -&gt; BalancingPolicy -&gt; BalancingPolicy
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813371"><span id="local-6989586621679813376"><span id="local-6989586621679813380"><span class="annot"><span class="annottext">Int -&gt; BalancingPolicy -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815896"><span id="local-6989586621679815901"><span id="local-6989586621679815905"><span class="annot"><span class="annottext">Int -&gt; BalancingPolicy -&gt; ShowS
 [BalancingPolicy] -&gt; ShowS
 BalancingPolicy -&gt; String
 (Int -&gt; BalancingPolicy -&gt; ShowS)
@@ -342,7 +342,7 @@ showList :: [BalancingPolicy] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-93"></span><span>
 </span><span id="line-94"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#BalancingPolicy"><span class="hs-identifier hs-type">BalancingPolicy</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-95"></span><span>  </span><span id="local-6989586621679813384"><span class="annot"><span class="annottext">def :: BalancingPolicy
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621679815909"><span class="annot"><span class="annottext">def :: BalancingPolicy
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BalancingPolicy
 </span><a href="Cooked.Skeleton.Option.html#BalanceWithFirstSigner"><span class="hs-identifier hs-var">BalanceWithFirstSigner</span></a></span><span>
 </span><span id="line-96"></span><span>
@@ -354,16 +354,16 @@ showList :: [BalancingPolicy] -&gt; ShowS
 </span><span id="line-102"></span><span>
 </span><span id="line-103"></span><span class="hs-comment">-- This instance always returns @False@, which is no problem, because 'Eq</span><span>
 </span><span id="line-104"></span><span class="hs-comment">-- TxSkel' is only used for tests that never depend on this comparison</span><span>
-</span><span id="line-105"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813388"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-105"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679815913"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-106"></span><span>  </span><span class="annot"><span class="annottext">RawModTx
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679813391"><span class="annot"><span class="annottext">== :: RawModTx -&gt; RawModTx -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679815916"><span class="annot"><span class="annottext">== :: RawModTx -&gt; RawModTx -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="annot"><span class="annottext">RawModTx
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
 </span><span id="line-107"></span><span>
-</span><span id="line-108"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813393"><span id="local-6989586621679813398"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-109"></span><span>  </span><span id="local-6989586621679813400"><span class="annot"><span class="annottext">show :: RawModTx -&gt; String
-</span><a href="#local-6989586621679813400"><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
+</span><span id="line-108"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679815918"><span id="local-6989586621679815923"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-109"></span><span>  </span><span id="local-6989586621679815925"><span class="annot"><span class="annottext">show :: RawModTx -&gt; String
+</span><a href="#local-6989586621679815925"><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;RawModTxAfterBalancing&quot;</span></span><span>
 </span><span id="line-110"></span><span>
@@ -381,14 +381,14 @@ forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
-</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679813402"><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
-</span><a href="#local-6989586621679813402"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span><span> </span><span id="local-6989586621679813403"><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
-</span><a href="#local-6989586621679813403"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
-</span><a href="#local-6989586621679813402"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; Tx ConwayEra)
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679815927"><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
+</span><a href="#local-6989586621679815927"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Option.html#RawModTx"><span class="hs-identifier hs-type">RawModTx</span></a></span><span> </span><span id="local-6989586621679815928"><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
+</span><a href="#local-6989586621679815928"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
+</span><a href="#local-6989586621679815927"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; Tx ConwayEra)
 -&gt; (Tx ConwayEra -&gt; Tx ConwayEra) -&gt; Tx ConwayEra -&gt; Tx ConwayEra
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
-</span><a href="#local-6989586621679813403"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
+</span><a href="#local-6989586621679815928"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
 forall a. a -&gt; a
 </span><span class="hs-identifier hs-var">id</span></span><span>
 </span><span id="line-115"></span><span>
@@ -398,24 +398,24 @@ forall a. a -&gt; a
 </span><span id="line-119"></span><span>
 </span><span id="line-120"></span><span class="hs-comment">-- | This instance always returns @False@, which is no problem, because 'Eq</span><span>
 </span><span id="line-121"></span><span class="hs-comment">-- TxSkel' is only used for tests that never depend on this comparison</span><span>
-</span><span id="line-122"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813409"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-122"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679815934"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-123"></span><span>  </span><span class="annot"><span class="annottext">EmulatorParamsModification
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679813412"><span class="annot"><span class="annottext">== :: EmulatorParamsModification -&gt; EmulatorParamsModification -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679815937"><span class="annot"><span class="annottext">== :: EmulatorParamsModification -&gt; EmulatorParamsModification -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="annot"><span class="annottext">EmulatorParamsModification
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
 </span><span id="line-124"></span><span>
-</span><span id="line-125"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679813414"><span id="local-6989586621679813419"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-126"></span><span>  </span><span id="local-6989586621679813421"><span class="annot"><span class="annottext">show :: EmulatorParamsModification -&gt; String
+</span><span id="line-125"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679815939"><span id="local-6989586621679815944"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-126"></span><span>  </span><span id="local-6989586621679815946"><span class="annot"><span class="annottext">show :: EmulatorParamsModification -&gt; String
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;EmulatorParamsModification &lt;function&gt;&quot;</span></span><span>
 </span><span id="line-127"></span><span>
 </span><span id="line-128"></span><span class="annot"><span class="hs-comment">-- | Performs an 'EmulatorParamsModification' over an 'Emulator.Params'</span></span><span>
 </span><span id="line-129"></span><span class="annot"><a href="Cooked.Skeleton.Option.html#applyEmulatorParamsModification"><span class="hs-identifier hs-type">applyEmulatorParamsModification</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span>
 </span><span id="line-130"></span><span id="applyEmulatorParamsModification"><span class="annot"><span class="annottext">applyEmulatorParamsModification :: Maybe EmulatorParamsModification -&gt; Params -&gt; Params
-</span><a href="Cooked.Skeleton.Option.html#applyEmulatorParamsModification"><span class="hs-identifier hs-var hs-var">applyEmulatorParamsModification</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span><span> </span><span id="local-6989586621679813422"><span class="annot"><span class="annottext">Params -&gt; Params
-</span><a href="#local-6989586621679813422"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params -&gt; Params
-</span><a href="#local-6989586621679813422"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><a href="Cooked.Skeleton.Option.html#applyEmulatorParamsModification"><span class="hs-identifier hs-var hs-var">applyEmulatorParamsModification</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Option.html#EmulatorParamsModification"><span class="hs-identifier hs-type">EmulatorParamsModification</span></a></span><span> </span><span id="local-6989586621679815947"><span class="annot"><span class="annottext">Params -&gt; Params
+</span><a href="#local-6989586621679815947"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params -&gt; Params
+</span><a href="#local-6989586621679815947"><span class="hs-identifier hs-var">f</span></a></span><span>
 </span><span id="line-131"></span><span class="annot"><a href="Cooked.Skeleton.Option.html#applyEmulatorParamsModification"><span class="hs-identifier hs-var">applyEmulatorParamsModification</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe EmulatorParamsModification
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params -&gt; Params
 forall a. a -&gt; a
@@ -432,7 +432,7 @@ forall a. a -&gt; a
 </span><span id="line-141"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Manually provide a set of candidate UTxOs to be used as collaterals</span><span>
 </span><span id="line-142"></span><span>    </span><span class="hs-comment">-- alongside a wallet to send return collaterals back to.</span><span>
 </span><span id="line-143"></span><span>    </span><span id="CollateralUtxosFromSet"><span class="annot"><a href="Cooked.Skeleton.Option.html#CollateralUtxosFromSet"><span class="hs-identifier hs-var">CollateralUtxosFromSet</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
-</span><span id="line-144"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813427"><span id="local-6989586621679813433"><span class="annot"><span class="annottext">CollateralUtxos -&gt; CollateralUtxos -&gt; Bool
+</span><span id="line-144"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815952"><span id="local-6989586621679815958"><span class="annot"><span class="annottext">CollateralUtxos -&gt; CollateralUtxos -&gt; Bool
 (CollateralUtxos -&gt; CollateralUtxos -&gt; Bool)
 -&gt; (CollateralUtxos -&gt; CollateralUtxos -&gt; Bool)
 -&gt; Eq CollateralUtxos
@@ -441,7 +441,7 @@ $c== :: CollateralUtxos -&gt; CollateralUtxos -&gt; Bool
 == :: CollateralUtxos -&gt; CollateralUtxos -&gt; Bool
 $c/= :: CollateralUtxos -&gt; CollateralUtxos -&gt; Bool
 /= :: CollateralUtxos -&gt; CollateralUtxos -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813437"><span id="local-6989586621679813445"><span id="local-6989586621679813449"><span class="annot"><span class="annottext">Int -&gt; CollateralUtxos -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815962"><span id="local-6989586621679815970"><span id="local-6989586621679815974"><span class="annot"><span class="annottext">Int -&gt; CollateralUtxos -&gt; ShowS
 [CollateralUtxos] -&gt; ShowS
 CollateralUtxos -&gt; String
 (Int -&gt; CollateralUtxos -&gt; ShowS)
@@ -459,7 +459,7 @@ showList :: [CollateralUtxos] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-145"></span><span>
 </span><span id="line-146"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#CollateralUtxos"><span class="hs-identifier hs-type">CollateralUtxos</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-147"></span><span>  </span><span id="local-6989586621679813453"><span class="annot"><span class="annottext">def :: CollateralUtxos
+</span><span id="line-147"></span><span>  </span><span id="local-6989586621679815978"><span class="annot"><span class="annottext">def :: CollateralUtxos
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CollateralUtxos
 </span><a href="Cooked.Skeleton.Option.html#CollateralUtxosFromBalancingWallet"><span class="hs-identifier hs-var">CollateralUtxosFromBalancingWallet</span></a></span><span>
 </span><span id="line-148"></span><span>
@@ -471,7 +471,7 @@ showList :: [CollateralUtxos] -&gt; ShowS
 </span><span id="line-154"></span><span>    </span><span class="hs-comment">-- this option is unsafe, as it requires a web connection and inherently</span><span>
 </span><span id="line-155"></span><span>    </span><span class="hs-comment">-- prevents guarantees of reproducibily. Use at your own discretion.</span><span>
 </span><span id="line-156"></span><span>    </span><span id="AnchorResolutionHttp"><span class="annot"><a href="Cooked.Skeleton.Option.html#AnchorResolutionHttp"><span class="hs-identifier hs-var">AnchorResolutionHttp</span></a></span></span><span>
-</span><span id="line-157"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813457"><span id="local-6989586621679813463"><span class="annot"><span class="annottext">AnchorResolution -&gt; AnchorResolution -&gt; Bool
+</span><span id="line-157"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679815982"><span id="local-6989586621679815988"><span class="annot"><span class="annottext">AnchorResolution -&gt; AnchorResolution -&gt; Bool
 (AnchorResolution -&gt; AnchorResolution -&gt; Bool)
 -&gt; (AnchorResolution -&gt; AnchorResolution -&gt; Bool)
 -&gt; Eq AnchorResolution
@@ -480,7 +480,7 @@ $c== :: AnchorResolution -&gt; AnchorResolution -&gt; Bool
 == :: AnchorResolution -&gt; AnchorResolution -&gt; Bool
 $c/= :: AnchorResolution -&gt; AnchorResolution -&gt; Bool
 /= :: AnchorResolution -&gt; AnchorResolution -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813471"><span id="local-6989586621679813478"><span id="local-6989586621679813482"><span class="annot"><span class="annottext">Int -&gt; AnchorResolution -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679815996"><span id="local-6989586621679816003"><span id="local-6989586621679816007"><span class="annot"><span class="annottext">Int -&gt; AnchorResolution -&gt; ShowS
 [AnchorResolution] -&gt; ShowS
 AnchorResolution -&gt; String
 (Int -&gt; AnchorResolution -&gt; ShowS)
@@ -498,7 +498,7 @@ showList :: [AnchorResolution] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-158"></span><span>
 </span><span id="line-159"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#AnchorResolution"><span class="hs-identifier hs-type">AnchorResolution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-160"></span><span>  </span><span id="local-6989586621679813490"><span class="annot"><span class="annottext">def :: AnchorResolution
+</span><span id="line-160"></span><span>  </span><span id="local-6989586621679816015"><span class="annot"><span class="annottext">def :: AnchorResolution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map String ByteString -&gt; AnchorResolution
 </span><a href="Cooked.Skeleton.Option.html#AnchorResolutionLocal"><span class="hs-identifier hs-var">AnchorResolutionLocal</span></a></span><span> </span><span class="annot"><span class="annottext">Map String ByteString
 forall k a. Map k a
@@ -587,7 +587,7 @@ forall k a. Map k a
 </span><span id="line-234"></span><span>    </span><span id="txOptAnchorResolution"><span class="annot"><span class="annottext">TxOpts -&gt; AnchorResolution
 </span><a href="Cooked.Skeleton.Option.html#txOptAnchorResolution"><span class="hs-identifier hs-var hs-var">txOptAnchorResolution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#AnchorResolution"><span class="hs-identifier hs-type">AnchorResolution</span></a></span><span>
 </span><span id="line-235"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-236"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679813503"><span id="local-6989586621679813518"><span class="annot"><span class="annottext">TxOpts -&gt; TxOpts -&gt; Bool
+</span><span id="line-236"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679816028"><span id="local-6989586621679816043"><span class="annot"><span class="annottext">TxOpts -&gt; TxOpts -&gt; Bool
 (TxOpts -&gt; TxOpts -&gt; Bool)
 -&gt; (TxOpts -&gt; TxOpts -&gt; Bool) -&gt; Eq TxOpts
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -595,7 +595,7 @@ $c== :: TxOpts -&gt; TxOpts -&gt; Bool
 == :: TxOpts -&gt; TxOpts -&gt; Bool
 $c/= :: TxOpts -&gt; TxOpts -&gt; Bool
 /= :: TxOpts -&gt; TxOpts -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813522"><span id="local-6989586621679813538"><span id="local-6989586621679813542"><span class="annot"><span class="annottext">Int -&gt; TxOpts -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679816047"><span id="local-6989586621679816063"><span id="local-6989586621679816067"><span class="annot"><span class="annottext">Int -&gt; TxOpts -&gt; ShowS
 [TxOpts] -&gt; ShowS
 TxOpts -&gt; String
 (Int -&gt; TxOpts -&gt; ShowS)
@@ -638,7 +638,7 @@ showList :: [TxOpts] -&gt; ShowS
 </span><span id="line-263"></span><span id="txOptAnchorResolutionL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txOptAnchorResolution&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txOptAnchorResolutionL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxOpts</span></span><span>
 </span><span id="line-264"></span><span>
 </span><span id="line-265"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#TxOpts"><span class="hs-identifier hs-type">TxOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-266"></span><span>  </span><span id="local-6989586621679813679"><span class="annot"><span class="annottext">def :: TxOpts
+</span><span id="line-266"></span><span>  </span><span id="local-6989586621679816204"><span class="annot"><span class="annottext">def :: TxOpts
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-267"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Option.html#TxOpts"><span class="hs-identifier hs-type">TxOpts</span></a></span><span>
 </span><span id="line-268"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">txOptAutoSlotIncrease :: Bool

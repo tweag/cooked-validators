@@ -21,14 +21,14 @@
 </span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V1.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
 </span><span id="line-22"></span><span>
 </span><span id="line-23"></span><span class="annot"><span class="hs-comment">-- | Compute the required minimal ADA for a given output</span></span><span>
-</span><span id="line-24"></span><span id="local-6989586621679823892"><span class="annot"><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-type">getTxSkelOutMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823892"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679823892"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-24"></span><span id="local-6989586621679826437"><span class="annot"><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-type">getTxSkelOutMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679826437"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679826437"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
 </span><span id="line-25"></span><span id="getTxSkelOutMinAda"><span class="annot"><span class="annottext">getTxSkelOutMinAda :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m Integer
-</span><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var hs-var">getTxSkelOutMinAda</span></a></span></span><span> </span><span id="local-6989586621679824013"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824013"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-26"></span><span>  </span><span id="local-6989586621679824014"><span class="annot"><span class="annottext">PParams
-</span><a href="#local-6989586621679824014"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; PParams
+</span><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var hs-var">getTxSkelOutMinAda</span></a></span></span><span> </span><span id="local-6989586621679826558"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679826558"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679826559"><span class="annot"><span class="annottext">PParams
+</span><a href="#local-6989586621679826559"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; PParams
 </span><span class="hs-identifier hs-var">Emulator.pEmulatorPParams</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; PParams) -&gt; m Params -&gt; m PParams
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">m Params
@@ -44,7 +44,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PParams -&gt; TxOut EmulatorEra -&gt; Coin
 forall era. EraTxOut era =&gt; PParams era -&gt; TxOut era -&gt; Coin
 </span><span class="hs-identifier hs-var">Shelley.getMinCoinTxOut</span></span><span> </span><span class="annot"><span class="annottext">PParams
-</span><a href="#local-6989586621679824014"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><a href="#local-6989586621679826559"><span class="hs-identifier hs-var">params</span></a></span><span>
 </span><span id="line-29"></span><span>    </span><span class="annot"><span class="annottext">(BabbageTxOut EmulatorEra -&gt; Coin)
 -&gt; (TxOut CtxTx ConwayEra -&gt; BabbageTxOut EmulatorEra)
 -&gt; TxOut CtxTx ConwayEra
@@ -73,19 +73,19 @@ forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m (TxOut CtxTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Output.html#toCardanoTxOut"><span class="hs-identifier hs-var">toCardanoTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824013"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679826558"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-32"></span><span>
 </span><span id="line-33"></span><span class="hs-comment">-- | This transforms an output into another output which contains the minimal</span><span>
 </span><span id="line-34"></span><span class="hs-comment">-- required ada. If the previous quantity of ADA was sufficient, it remains</span><span>
 </span><span id="line-35"></span><span class="hs-comment">-- unchanged. This can require a few iterations to converge, as the added ADA</span><span>
 </span><span id="line-36"></span><span class="hs-comment">-- will increase the size of the UTXO which in turn might need more ADA.</span><span>
-</span><span id="line-37"></span><span id="local-6989586621679823929"><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-type">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823929"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679823929"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
+</span><span id="line-37"></span><span id="local-6989586621679826474"><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-type">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679826474"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679826474"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
 </span><span id="line-38"></span><span class="hs-comment">-- The auto adjustment is disabled so nothing is done here</span><span>
 </span><span id="line-39"></span><span id="toTxSkelOutWithMinAda"><span class="annot"><span class="annottext">toTxSkelOutWithMinAda :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m TxSkelOut
-</span><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelOutWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679824048"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
-</span><a href="#local-6989586621679824048"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Bool -&gt; Bool
+</span><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelOutWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679826593"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
+</span><a href="#local-6989586621679826593"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Bool -&gt; Bool
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
@@ -103,30 +103,30 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824048"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679826593"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-40"></span><span class="hs-comment">-- The auto adjustment is enabled</span><span>
-</span><span id="line-41"></span><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span id="local-6989586621679824053"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824053"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-42"></span><span>  </span><span id="local-6989586621679824054"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824054"><span class="hs-identifier hs-var">txSkelOut'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
+</span><span id="line-41"></span><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span id="local-6989586621679826598"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679826598"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679826599"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679826599"><span class="hs-identifier hs-var">txSkelOut'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m TxSkelOut
-</span><a href="#local-6989586621679824055"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824053"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-43"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679824056"><span class="annot"><span class="annottext">originalAda :: Lovelace
-</span><a href="#local-6989586621679824056"><span class="hs-identifier hs-var hs-var">originalAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Value
+</span><a href="#local-6989586621679826600"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679826598"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679826601"><span class="annot"><span class="annottext">originalAda :: Lovelace
+</span><a href="#local-6989586621679826601"><span class="hs-identifier hs-var hs-var">originalAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValue"><span class="hs-identifier hs-var">txSkelOutValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824053"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Optic' A_Lens NoIx Value Lovelace -&gt; Lovelace
+</span><a href="#local-6989586621679826598"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Optic' A_Lens NoIx Value Lovelace -&gt; Lovelace
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx Value Lovelace
 </span><span class="hs-identifier hs-var">Script.adaL</span></span><span>
-</span><span id="line-44"></span><span>      </span><span id="local-6989586621679824059"><span class="annot"><span class="annottext">updatedAda :: Lovelace
-</span><a href="#local-6989586621679824059"><span class="hs-identifier hs-var hs-var">updatedAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Value
+</span><span id="line-44"></span><span>      </span><span id="local-6989586621679826604"><span class="annot"><span class="annottext">updatedAda :: Lovelace
+</span><a href="#local-6989586621679826604"><span class="hs-identifier hs-var hs-var">updatedAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValue"><span class="hs-identifier hs-var">txSkelOutValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824054"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Optic' A_Lens NoIx Value Lovelace -&gt; Lovelace
+</span><a href="#local-6989586621679826599"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Optic' A_Lens NoIx Value Lovelace -&gt; Lovelace
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
@@ -135,10 +135,10 @@ s -&gt; Optic' k is s a -&gt; a
 </span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679824056"><span class="hs-identifier hs-var">originalAda</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Bool
+</span><a href="#local-6989586621679826601"><span class="hs-identifier hs-var">originalAda</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679824059"><span class="hs-identifier hs-var">updatedAda</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+</span><a href="#local-6989586621679826604"><span class="hs-identifier hs-var">updatedAda</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; m ()
 forall (m :: * -&gt; *).
@@ -148,33 +148,33 @@ MockChainLogEntry -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Lovelace -&gt; MockChainLogEntry
 </span><a href="Cooked.MockChain.BlockChain.html#MCLogAdjustedTxSkelOut"><span class="hs-identifier hs-var">MCLogAdjustedTxSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824053"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679824059"><span class="hs-identifier hs-var">updatedAda</span></a></span><span>
+</span><a href="#local-6989586621679826598"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679826604"><span class="hs-identifier hs-var">updatedAda</span></a></span><span>
 </span><span id="line-46"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824054"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><a href="#local-6989586621679826599"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
 </span><span id="line-47"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-48"></span><span>    </span><span id="local-6989586621679824064"><span class="annot"><a href="#local-6989586621679824055"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679824064"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679824064"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
-</span><span id="line-49"></span><span>    </span><span id="local-6989586621679824055"><span class="annot"><span class="annottext">go :: forall (m :: * -&gt; *).
+</span><span id="line-48"></span><span>    </span><span id="local-6989586621679826609"><span class="annot"><a href="#local-6989586621679826600"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679826609"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679826609"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
+</span><span id="line-49"></span><span>    </span><span id="local-6989586621679826600"><span class="annot"><span class="annottext">go :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m TxSkelOut
-</span><a href="#local-6989586621679824055"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679824094"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824094"><span class="hs-identifier hs-var">skelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="#local-6989586621679826600"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679826639"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679826639"><span class="hs-identifier hs-var">skelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-50"></span><span>      </span><span class="hs-comment">-- Computing the required minimal amount of ADA in this output</span><span>
-</span><span id="line-51"></span><span>      </span><span id="local-6989586621679824095"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679824095"><span class="hs-identifier hs-var">requiredAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m Integer
+</span><span id="line-51"></span><span>      </span><span id="local-6989586621679826640"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679826640"><span class="hs-identifier hs-var">requiredAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m Integer
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m Integer
 </span><a href="Cooked.MockChain.MinAda.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var">getTxSkelOutMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824094"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
+</span><a href="#local-6989586621679826639"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
 </span><span id="line-52"></span><span>      </span><span class="hs-comment">-- If this amount is sufficient, we return Nothing, otherwise, we adjust the</span><span>
 </span><span id="line-53"></span><span>      </span><span class="hs-comment">-- output and possibly iterate</span><span>
 </span><span id="line-54"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Integer
 </span><span class="hs-identifier hs-var">Api.getLovelace</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824094"><span class="hs-identifier hs-var">skelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Lovelace -&gt; Lovelace
+</span><a href="#local-6989586621679826639"><span class="hs-identifier hs-var">skelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Lovelace -&gt; Lovelace
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
@@ -198,20 +198,20 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-identifier hs-var">Script.adaL</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679824095"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
+</span><a href="#local-6989586621679826640"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
 </span><span id="line-55"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824094"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
+</span><a href="#local-6989586621679826639"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
 </span><span id="line-56"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelOut -&gt; m TxSkelOut
-</span><a href="#local-6989586621679824055"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; m TxSkelOut) -&gt; TxSkelOut -&gt; m TxSkelOut
+</span><a href="#local-6989586621679826600"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; m TxSkelOut) -&gt; TxSkelOut -&gt; m TxSkelOut
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679824094"><span class="hs-identifier hs-var">skelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
+</span><a href="#local-6989586621679826639"><span class="hs-identifier hs-var">skelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutValue
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutValue
@@ -237,19 +237,19 @@ Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Lovelace
 </span><span class="hs-identifier hs-var">Api.Lovelace</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679824095"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
+</span><a href="#local-6989586621679826640"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
 </span><span id="line-57"></span><span>
 </span><span id="line-58"></span><span class="hs-comment">-- | This goes through all the `TxSkelOut`s of the given skeleton and updates</span><span>
 </span><span id="line-59"></span><span class="hs-comment">-- their ada value when requested by the user and required by the protocol</span><span>
 </span><span id="line-60"></span><span class="hs-comment">-- parameters.</span><span>
-</span><span id="line-61"></span><span id="local-6989586621679823983"><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-type">toTxSkelWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823983"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679823983"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
+</span><span id="line-61"></span><span id="local-6989586621679826528"><span class="annot"><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-type">toTxSkelWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679826528"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679826528"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
 </span><span id="line-62"></span><span id="toTxSkelWithMinAda"><span class="annot"><span class="annottext">toTxSkelWithMinAda :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkel -&gt; m TxSkel
-</span><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679824114"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679824114"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679824115"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679824115"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679824114"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
+</span><a href="Cooked.MockChain.MinAda.html#toTxSkelWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679826659"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679826659"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679826660"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679826660"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679826659"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut] -&gt; [TxSkelOut] -&gt; TxSkel -&gt; TxSkel
@@ -257,14 +257,14 @@ forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679824115"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; TxSkel) -&gt; m [TxSkelOut] -&gt; m TxSkel
+</span><a href="#local-6989586621679826660"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; TxSkel) -&gt; m [TxSkelOut] -&gt; m TxSkel
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; (TxSkelOut -&gt; m TxSkelOut) -&gt; m [TxSkelOut]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679824114"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Lens' TxSkel [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679826659"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Lens' TxSkel [TxSkelOut] -&gt; [TxSkelOut]
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
