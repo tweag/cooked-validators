@@ -51,8 +51,8 @@ constraints:
   
 source-repository-package
     type: git
-    location: https://github.com/tweag/cardano-node-emulator-forked
-    tag: 7c445804eb45bc487ff1aa971037920e074ae44f
+    location: https://github.com/intersectMBO/cardano-node-emulator
+    tag: 6d65996418d2b00fa791407ec47e2fe77c208790
     subdir:
       plutus-script-utils
       plutus-ledger
