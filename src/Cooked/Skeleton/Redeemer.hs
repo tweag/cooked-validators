@@ -36,7 +36,9 @@ data TxSkelRedeemer where
     (RedeemerConstrs redeemer) =>
     { -- | The redeemer data with which the script will be executed
       txSkelRedeemerContent :: redeemer,
-      -- | An optional reference input containing the script to execute
+      -- | An optional reference input containing the script to execute. During
+      -- transaction generation, this reference input will only be translated
+      -- into a Cardano reference input if it does not appear in regular inputs.
       txSkelRedeemerReferenceInput :: Maybe Api.TxOutRef,
       -- | Whether the reference input can be automatically assigned. This will
       -- only trigger if 'txSkelRedeemerReferenceInput' is 'Nothing'

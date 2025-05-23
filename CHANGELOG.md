@@ -133,6 +133,8 @@
   estimated by cardano-api while it is in fact found in the skeleton itself.
 - A bug where the execution units of the scripts were not computed and fed to
   the transaction body.
+- An imprecision where reference inputs in redeemers that also appear in inputs
+  would be kept in the reference inputs list during generation.
 
 ## [[6.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v6.0.0) - 2025-05-15
 
