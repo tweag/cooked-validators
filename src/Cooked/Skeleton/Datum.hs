@@ -9,10 +9,11 @@ module Cooked.Skeleton.Datum
     DatumKind (..),
     TxSkelOutDatum (..),
     txSkelOutDatumHash,
-    txSkelOutUntypedDatum,
     datumContentTypedDatumP,
+    txSkelOutDatumAF,
     txSkelOutDatumContentAT,
     txSkelOutTypedDatumAT,
+    txSkelOutDatumKindAT,
   )
 where
 
@@ -121,13 +122,28 @@ txSkelOutDatumContentAT =
         )
     )
 
+-- | Extracts or changes the 'DatumKind' of a 'TxSKelOutDatum'
+txSkelOutDatumKindAT :: AffineTraversal' TxSkelOutDatum DatumKind
+txSkelOutDatumKindAT =
+  atraversal
+    ( \case
+        TxSkelOutNoDatum -> Left TxSkelOutNoDatum
+        TxSkelOutSomeDatum _ kind -> Right kind
+    )
+    ( flip
+        ( \kind -> \case
+            TxSkelOutNoDatum -> TxSkelOutNoDatum
+            TxSkelOutSomeDatum content _ -> TxSkelOutSomeDatum content kind
+        )
+    )
+
 -- | Converts a 'TxSkelOutDatum' into a possible Plutus datum
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
-txSkelOutUntypedDatum = preview (txSkelOutDatumContentAT % datumContentDatumG)
+txSkelOutDatumAF :: AffineFold TxSkelOutDatum Api.Datum
+txSkelOutDatumAF = txSkelOutDatumContentAT % datumContentDatumG
 
 -- | Converts a 'TxSkelOutDatum' into a possible Plutus datum hash
-txSkelOutDatumHash :: TxSkelOutDatum -> Maybe Api.DatumHash
-txSkelOutDatumHash = preview (txSkelOutDatumContentAT % datumContentDatumHashG)
+txSkelOutDatumHash :: AffineFold TxSkelOutDatum Api.DatumHash
+txSkelOutDatumHash = txSkelOutDatumContentAT % datumContentDatumHashG
 
 -- | Extracts or changes the inner typed datum of a 'TxSkelOutDatum'
 txSkelOutTypedDatumAT :: (DatumConstrs a) => AffineTraversal' TxSkelOutDatum a
