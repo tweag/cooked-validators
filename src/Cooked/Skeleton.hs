@@ -30,7 +30,7 @@ module Cooked.Skeleton
     txSkelWithdrawnValue,
     txSkelWithdrawingScripts,
     txSkelValueInOutputs,
-    txSkelReferenceTxOutRefs,
+    txSkelInsReferenceInRedeemers,
     txSkelProposingScripts,
     txSkelMintingScripts,
   )
@@ -90,10 +90,11 @@ data TxSkel where
       -- - On 'Api.TxOutRef's referencing UTxOs belonging to scripts, use
       --   the 'Cooked.Skeleton.Redeemer.someTxSkelRedeemer' smart constructor.
       txSkelIns :: Map Api.TxOutRef TxSkelRedeemer,
-      -- | All outputs directly referenced by the transaction. Note that
-      -- additional reference inputs can be found within the various redeemers
-      -- of this skeleton. Function 'txSkelReferenceTxOutRefs' collects them
-      -- all.
+      -- | All outputs directly referenced by the transaction. Each of them will
+      -- be directly translated into a Cardano reference input. Additional
+      -- reference inputs can be found within the various redeemers of the
+      -- skeleton to host reference scripts. Function
+      -- 'txSkelInsReferenceInRedeemers' collects those all.
       txSkelInsReference :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
@@ -157,27 +158,26 @@ txSkelTemplate =
 txSkelValueInOutputs :: TxSkel -> Api.Value
 txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
 
--- | All `Api.TxOutRef`s in reference inputs
-txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
-txSkelReferenceTxOutRefs TxSkel {..} =
-  -- direct reference inputs
-  Set.toList txSkelInsReference
-    -- reference inputs in inputs redeemers
-    <> mapMaybe txSkelRedeemerReferenceInput (Map.elems txSkelIns)
-    -- reference inputs in proposals redeemers
-    <> mapMaybe (txSkelRedeemerReferenceInput . snd) (mapMaybe txSkelProposalWitness txSkelProposals)
-    -- reference inputs in mints redeemers
-    <> mapMaybe (txSkelRedeemerReferenceInput . fst . snd) (Map.toList txSkelMints)
-    -- reference inputs in withdrawals redeemers
-    <> mapMaybe (txSkelRedeemerReferenceInput . fst . snd) (Map.toList txSkelWithdrawals)
+-- | All 'Api.TxOutRef's in reference inputs from redeemers
+txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
+txSkelInsReferenceInRedeemers TxSkel {..} =
+  Set.fromList $
+    mapMaybe txSkelRedeemerReferenceInput $
+      Map.elems txSkelIns
+        <> (snd <$> mapMaybe txSkelProposalWitness txSkelProposals)
+        <> (fst <$> Map.elems txSkelMints)
+        <> (fst <$> Map.elems txSkelWithdrawals)
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
 -- inputs of the skeleton.  This does not include additional possible
 -- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
-txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
-txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.keys txSkelIns
+txSkelKnownTxOutRefs :: TxSkel -> Set Api.TxOutRef
+txSkelKnownTxOutRefs skel@TxSkel {..} =
+  txSkelInsReferenceInRedeemers skel
+    <> Map.keysSet txSkelIns
+    <> txSkelInsReference
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value

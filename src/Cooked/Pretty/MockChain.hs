@@ -145,7 +145,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
   prettyCookedOpt opts (Contextualized _ (MCLogAddedReferenceScript red oRef sHash)) =
     prettyItemize
       opts
-      "New automated attachment of a reference script"
+      "New automated attachment of a reference script:"
       "-"
       ( [ "Input" <+> prettyCookedOpt opts oRef,
           "Script:" <+> prettyHash opts sHash
