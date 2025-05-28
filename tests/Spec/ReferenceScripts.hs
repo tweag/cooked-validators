@@ -1,8 +1,11 @@
 module Spec.ReferenceScripts where
 
+import Cardano.Api.Internal.Tx.Body qualified as Cardano
+import Cardano.Api.Internal.Tx.Sign qualified as Cardano
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
+import Ledger.Tx qualified as Ledger
 import Plutus.ReferenceScripts
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -58,8 +61,12 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
         txSkelSigners = [wallet 1]
       }
 
-useReferenceScript :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
-useReferenceScript spendingSubmitter theScript = do
+-- The boolean states whether or not the input hosting the reference script
+-- should be consumed in the transaction or not. If it should, then at
+-- transaction generation no reference input should appear, as inputs also act
+-- as reference inputs.
+useReferenceScript :: (MonadBlockChain m) => Wallet -> Bool -> Script.Versioned Script.Validator -> m Ledger.CardanoTx
+useReferenceScript spendingSubmitter consumeScriptOref theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
   oref : _ <-
     validateTxSkel'
@@ -67,25 +74,13 @@ useReferenceScript spendingSubmitter theScript = do
         { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
           txSkelSigners = [wallet 1]
         }
-  validateTxSkel_
+  validateTxSkel
     txSkelTemplate
-      { txSkelIns = Map.singleton oref $ emptyTxSkelRedeemer `withReferenceInput` scriptOref,
-        txSkelSigners = [spendingSubmitter]
-      }
-
-useReferenceScriptInInputs :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
-useReferenceScriptInInputs spendingSubmitter theScript = do
-  scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
-  oref : _ <-
-    validateTxSkel'
-      txSkelTemplate
-        { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
-          txSkelSigners = [wallet 1]
-        }
-  validateTxSkel_
-    txSkelTemplate
-      { txSkelIns = Map.fromList [(oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref), (scriptOref, emptyTxSkelRedeemer)],
-        txSkelSigners = [spendingSubmitter]
+      { txSkelIns =
+          Map.fromList $
+            (oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref)
+              : [(scriptOref, emptyTxSkelRedeemer) | consumeScriptOref],
+        txSkelSigners = spendingSubmitter : [wallet 3 | consumeScriptOref]
       }
 
 referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
@@ -197,25 +192,36 @@ tests =
                   },
           testCooked "fail if reference script's requirement is violated" $
             mustFailInPhase2WithMsgTest "the required signer is missing" $
-              useReferenceScript (wallet 1) $
+              useReferenceScript (wallet 1) False $
                 Script.toVersioned $
                   requireSignerValidator $
                     Script.toPubKeyHash $
                       wallet 2,
           testCooked "succeed if reference script's requirement is met" $
-            mustSucceedTest $
-              useReferenceScript (wallet 1) $
-                Script.toVersioned $
-                  requireSignerValidator $
-                    Script.toPubKeyHash $
-                      wallet 1,
+            mustSucceedTest
+              ( useReferenceScript (wallet 1) False $
+                  Script.toVersioned $
+                    requireSignerValidator $
+                      Script.toPubKeyHash $
+                        wallet 1
+              )
+              `withSuccessProp` \_ _ (Ledger.CardanoEmulatorEraTx (Cardano.Tx (Cardano.getTxBodyContent -> bodyContent) _)) _ ->
+                case Cardano.txInsReference bodyContent of
+                  Cardano.TxInsReference _ [_] _ -> testSuccess
+                  _ -> testFailure,
           testCooked "succeed if the reference script is in one of the inputs" $
-            mustSucceedTest $
-              useReferenceScriptInInputs (wallet 1) $
-                Script.toVersioned $
-                  requireSignerValidator $
-                    Script.toPubKeyHash $
-                      wallet 1
+            mustSucceedTest
+              ( useReferenceScript (wallet 1) True $
+                  Script.toVersioned $
+                    requireSignerValidator $
+                      Script.toPubKeyHash $
+                        wallet 1
+              )
+              `withSuccessProp` \_ _ (Ledger.CardanoEmulatorEraTx (Cardano.Tx (Cardano.getTxBodyContent -> bodyContent) _)) _ ->
+                case Cardano.txInsReference bodyContent of
+                  -- We get this from cardano-api instead of TxInsReferenceNone
+                  Cardano.TxInsReference _ [] _ -> testSuccess
+                  _ -> testFailure
         ],
       testGroup
         "referencing minting policies"
