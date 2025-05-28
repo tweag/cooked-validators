@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="annot"><span class="hs-comment">-- | This module allows the generation of Cardano reference inputs</span></span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.GenerateTx.ReferenceInputs</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier">toInsReference</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html"><span class="hs-identifier">Cooked.MockChain.BlockChain</span></a></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Common.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Common</span></a></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- | Takes a 'TxSkel' and generates the associated 'Cardano.TxInsReference' from</span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- its content. These reference inputs can be found in two places, either in</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- direct reference inputs 'txSkelInsReference' or scattered in the various</span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- redeemers of the transaction, which can be gathered with</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- 'txSkelInsReferenceInRedeemers'.</span><span>
+</span><span id="line-18"></span><span id="local-6989586621679806655"><span class="annot"><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier hs-type">toInsReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679806655"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679806655"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxInsReference</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-19"></span><span id="toInsReference"><span class="annot"><span class="annottext">toInsReference :: forall (m :: * -&gt; *).
+MonadBlockChainBalancing m =&gt;
+TxSkel -&gt; m (TxInsReference BuildTx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier hs-var hs-var">toInsReference</span></a></span></span><span> </span><span id="local-6989586621679806743"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679806743"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-comment">-- As regular inputs can be used to hold scripts as if in reference inputs, we</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-comment">-- need to remove from the reference inputs stored in redeemers the ones that</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-comment">-- already appear in the inputs to avoid validation errors.</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679806744"><span class="annot"><span class="annottext">indirectReferenceInputs :: Set TxOutRef
+</span><a href="#local-6989586621679806744"><span class="hs-identifier hs-var hs-var">indirectReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
+</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679806743"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-24"></span><span>      </span><span id="local-6989586621679806745"><span class="annot"><span class="annottext">redundantReferenceInputs :: Set TxOutRef
+</span><a href="#local-6989586621679806745"><span class="hs-identifier hs-var hs-var">redundantReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="#local-6989586621679806744"><span class="hs-identifier hs-var">indirectReferenceInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+forall a. Ord a =&gt; Set a -&gt; Set a -&gt; Set a
+</span><span class="hs-operator hs-var">`Set.intersection`</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; Set TxOutRef
+forall k a. Map k a -&gt; Set k
+</span><span class="hs-identifier hs-var">Map.keysSet</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Map TxOutRef TxSkelRedeemer
+</span><a href="Cooked.Skeleton.html#txSkelIns"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679806743"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>      </span><span id="local-6989586621679806749"><span class="annot"><span class="annottext">refInputs :: [TxOutRef]
+</span><a href="#local-6989586621679806749"><span class="hs-identifier hs-var hs-var">refInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
+forall a. Set a -&gt; [a]
+</span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
+</span><a href="Cooked.Skeleton.html#txSkelInsReference"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679806743"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="#local-6989586621679806744"><span class="hs-identifier hs-var">indirectReferenceInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+forall a. Ord a =&gt; Set a -&gt; Set a -&gt; Set a
+</span><span class="hs-operator hs-var">`Set.difference`</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="#local-6989586621679806745"><span class="hs-identifier hs-var">redundantReferenceInputs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Bool
+forall a. [a] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679806749"><span class="hs-identifier hs-var">refInputs</span></a></span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
+-&gt; m (TxInsReference BuildTx ConwayEra)
+forall a. a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
+forall build era. TxInsReference build era
+</span><span class="hs-identifier hs-var">Cardano.TxInsReferenceNone</span></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-29"></span><span>      </span><span id="local-6989586621679806754"><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679806754"><span class="hs-identifier hs-var">cardanoRefInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-30"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; Either ToCardanoError [TxIn] -&gt; m [TxIn]
+forall (m :: * -&gt; *) a.
+MonadError MockChainError m =&gt;
+String -&gt; Either ToCardanoError a -&gt; m a
+</span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var">throwOnToCardanoError</span></a></span><span>
+</span><span id="line-31"></span><span>          </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;toInsReference: Unable to translate reference inputs.&quot;</span></span><span>
+</span><span id="line-32"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxOutRef -&gt; Either ToCardanoError TxIn)
+-&gt; [TxOutRef] -&gt; Either ToCardanoError [TxIn]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
+</span><span class="hs-identifier hs-var">Ledger.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679806749"><span class="hs-identifier hs-var">refInputs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>      </span><span id="local-6989586621679806758"><span class="annot"><span class="annottext">[TxSkelOutDatum]
+</span><a href="#local-6989586621679806758"><span class="hs-identifier hs-var">resolvedOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; m TxSkelOutDatum) -&gt; [TxOutRef] -&gt; m [TxSkelOutDatum]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; m TxSkelOutDatum
+forall (m :: * -&gt; *).
+MonadBlockChainBalancing m =&gt;
+TxOutRef -&gt; m TxSkelOutDatum
+</span><a href="Cooked.MockChain.BlockChain.html#unsafeDatumFromTxOutRef"><span class="hs-identifier hs-var">unsafeDatumFromTxOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679806749"><span class="hs-identifier hs-var">refInputs</span></a></span><span>
+</span><span id="line-34"></span><span>      </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
+-&gt; m (TxInsReference BuildTx ConwayEra)
+forall a. a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(TxInsReference BuildTx ConwayEra
+ -&gt; m (TxInsReference BuildTx ConwayEra))
+-&gt; TxInsReference BuildTx ConwayEra
+-&gt; m (TxInsReference BuildTx ConwayEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-35"></span><span>        </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
+-&gt; [TxIn]
+-&gt; TxInsReferenceDatums BuildTx
+-&gt; TxInsReference BuildTx ConwayEra
+forall era build.
+BabbageEraOnwards era
+-&gt; [TxIn] -&gt; TxInsReferenceDatums build -&gt; TxInsReference build era
+</span><span class="hs-identifier hs-var">Cardano.TxInsReference</span></span><span> </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
+</span><span class="hs-identifier hs-var">Cardano.BabbageEraOnwardsConway</span></span><span> </span><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679806754"><span class="hs-identifier hs-var">cardanoRefInputs</span></a></span><span> </span><span class="annot"><span class="annottext">(TxInsReferenceDatums BuildTx -&gt; TxInsReference BuildTx ConwayEra)
+-&gt; TxInsReferenceDatums BuildTx -&gt; TxInsReference BuildTx ConwayEra
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-36"></span><span>          </span><span class="annot"><span class="annottext">Set HashableScriptData -&gt; TxInsReferenceDatums BuildTx
+forall a. a -&gt; BuildTxWith BuildTx a
+</span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">(Set HashableScriptData -&gt; TxInsReferenceDatums BuildTx)
+-&gt; Set HashableScriptData -&gt; TxInsReferenceDatums BuildTx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-37"></span><span>            </span><span class="annot"><span class="annottext">[HashableScriptData] -&gt; Set HashableScriptData
+forall a. Ord a =&gt; [a] -&gt; Set a
+</span><span class="hs-identifier hs-var">Set.fromList</span></span><span>
+</span><span id="line-38"></span><span>              </span><span class="hs-special">[</span><span class="annot"><span class="annottext">BuiltinData -&gt; HashableScriptData
+</span><span class="hs-identifier hs-var">Ledger.toCardanoScriptData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; HashableScriptData)
+-&gt; BuiltinData -&gt; HashableScriptData
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DatumContent -&gt; BuiltinData
+forall a. ToData a =&gt; a -&gt; BuiltinData
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">DatumContent
+</span><a href="#local-6989586621679806765"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutSomeDatum"><span class="hs-identifier hs-type">TxSkelOutSomeDatum</span></a></span><span> </span><span id="local-6989586621679806765"><span class="annot"><span class="annottext">DatumContent
+</span><a href="#local-6989586621679806765"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-type">Hashed</span></a></span><span> </span><span class="annot"><span class="annottext">DatumResolved
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelOutDatum]
+</span><a href="#local-6989586621679806758"><span class="hs-identifier hs-var">resolvedOutputs</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-39"></span></pre></body></html>
