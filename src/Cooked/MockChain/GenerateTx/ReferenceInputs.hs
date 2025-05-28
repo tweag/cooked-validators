@@ -11,7 +11,7 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Takes a 'TxSkel' and generates the associated 'Cardano.TxInsReference' from
--- its content. These reference inputs can be found in two place, either in
+-- its content. These reference inputs can be found in two places, either in
 -- direct reference inputs 'txSkelInsReference' or scattered in the various
 -- redeemers of the transaction, which can be gathered with
 -- 'txSkelInsReferenceInRedeemers'.
