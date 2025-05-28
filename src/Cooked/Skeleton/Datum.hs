@@ -122,7 +122,7 @@ txSkelOutDatumContentAT =
         )
     )
 
--- | Extracts or changes the 'DatumKind' of a 'TxSKelOutDatum'
+-- | Extracts or changes the 'DatumKind' of a 'TxSkelOutDatum'
 txSkelOutDatumKindAT :: AffineTraversal' TxSkelOutDatum DatumKind
 txSkelOutDatumKindAT =
   atraversal
