@@ -2,8 +2,6 @@
 module Cooked.MockChain.GenerateTx.Withdrawals (toWithdrawals) where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.BlockChain

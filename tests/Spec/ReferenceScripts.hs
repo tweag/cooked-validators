@@ -1,7 +1,6 @@
 module Spec.ReferenceScripts where
 
-import Cardano.Api.Internal.Tx.Body qualified as Cardano
-import Cardano.Api.Internal.Tx.Sign qualified as Cardano
+import Cardano.Api qualified as Cardano
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set

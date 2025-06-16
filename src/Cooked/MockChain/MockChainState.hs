@@ -15,8 +15,7 @@ module Cooked.MockChain.MockChainState
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
-import Cardano.Ledger.Shelley.API qualified as Shelley
+import Cardano.Ledger.Shelley.API.Types qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad.Except

@@ -6,8 +6,9 @@ module Cooked.MockChain.GenerateTx.Witness
   )
 where
 
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
+import Cardano.Api qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as C.Ledger
+import Cardano.Ledger.Shelley.API qualified as C.Ledger
 import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
@@ -19,21 +20,21 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Translates a given credential to a reward account.
-toRewardAccount :: (MonadBlockChainBalancing m) => Api.Credential -> m Cardano.RewardAccount
+toRewardAccount :: (MonadBlockChainBalancing m) => Api.Credential -> m C.Ledger.RewardAccount
 toRewardAccount cred =
-  Cardano.RewardAccount Cardano.Testnet <$> case cred of
+  C.Ledger.RewardAccount C.Ledger.Testnet <$> case cred of
     Api.ScriptCredential scriptHash -> do
       Cardano.ScriptHash cHash <-
         throwOnToCardanoError
           "toRewardAccount: Unable to convert script hash."
           (Ledger.toCardanoScriptHash scriptHash)
-      return $ Cardano.ScriptHashObj cHash
+      return $ C.Ledger.ScriptHashObj cHash
     Api.PubKeyCredential pubkeyHash -> do
       Cardano.StakeKeyHash pkHash <-
         throwOnToCardanoError
           "toRewardAccount: Unable to convert private key hash."
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
-      return $ Cardano.KeyHashObj pkHash
+      return $ C.Ledger.KeyHashObj pkHash
 
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script

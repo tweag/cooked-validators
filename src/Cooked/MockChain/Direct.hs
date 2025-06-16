@@ -4,9 +4,8 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
-import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Api qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
-import Cardano.Ledger.Coin qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Lens qualified as Lens

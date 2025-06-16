@@ -1,7 +1,7 @@
 -- | This modules exposes the generation of transaction outputs
 module Cooked.MockChain.GenerateTx.Output (toCardanoTxOut) where
 
-import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common

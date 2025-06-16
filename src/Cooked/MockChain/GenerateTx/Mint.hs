@@ -30,7 +30,7 @@ toMintValue mints = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMa
     return
       ( policyId,
         ( fromList
-            [ (Cardano.AssetName name, Cardano.Quantity quantity)
+            [ (Cardano.UnsafeAssetName name, Cardano.Quantity quantity)
               | (Api.TokenName (PlutusTx.BuiltinByteString name), NonZero quantity) <- assets
             ],
           mintWitness

@@ -24,7 +24,7 @@ repository cardano-haskell-packages
 
 index-state:
   , hackage.haskell.org 2025-04-16T16:04:13Z
-  , cardano-haskell-packages 2025-05-16T15:25:35Z
+  , cardano-haskell-packages 2025-06-11T08:32:56Z
     
 -- We never, ever, want this.
 write-ghc-environment-files: never
@@ -47,12 +47,12 @@ package cardano-crypto-praos
   flags: -external-libsodium-vrf
   
 constraints:
-  cardano-api == 10.16.1.0
+  cardano-api == 10.17.0.0
   
 source-repository-package
     type: git
     location: https://github.com/intersectMBO/cardano-node-emulator
-    tag: 6d65996418d2b00fa791407ec47e2fe77c208790
+    tag: 477620219a8e94c8f34cb50dbce07c22ccde8226
     subdir:
       plutus-script-utils
       plutus-ledger

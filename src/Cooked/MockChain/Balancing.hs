@@ -8,10 +8,11 @@ module Cooked.MockChain.Balancing
   )
 where
 
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Api qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Control.Monad.Except

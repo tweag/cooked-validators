@@ -8,8 +8,6 @@ module Cooked.MockChain.MinAda
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Shelley.Core qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad

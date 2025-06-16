@@ -9,10 +9,6 @@ module Cooked.MockChain.GenerateTx.Body
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Internal.Fees qualified as Cardano
-import Cardano.Api.Internal.Script qualified as Cardano
-import Cardano.Api.Internal.Tx.Body qualified as Cardano
-import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
