@@ -4,6 +4,9 @@
 
 ### Added
 
+- New `forceOutputs` primitives to force the creation of new utxos from a list
+  of `TxSkel`. Initial distributions are now handled using this primitive.
+
 ### Removed
 
 ### Changed

@@ -4,9 +4,8 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
-import Cardano.Ledger.BaseTypes qualified as Cardano
-import Cardano.Ledger.Coin qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Lens qualified as Lens
@@ -22,6 +21,7 @@ import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.GenerateTx.Common
+import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
@@ -153,8 +153,7 @@ runMockChainTFrom ::
   InitialDistribution ->
   MockChainT m a ->
   m (MockChainReturn a)
-runMockChainTFrom i0 s =
-  runMockChainTRaw (mockChainState0From i0 >>= put >> s)
+runMockChainTFrom (InitialDistribution i0) = runMockChainTRaw . (forceOutputs i0 >>)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
 runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
@@ -300,3 +299,49 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return cardanoTx
+
+  forceOutputs outputs = do
+    -- We retrieve the protocol parameters
+    params <- getParams
+    -- The emulator takes for granted transactions with a single pseudo input,
+    -- which we build to force transaction validation
+    let inputs =
+          [ ( Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) $
+                Cardano.GenesisUTxOKeyHash $
+                  Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
+              Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+            )
+          ]
+    -- We adjust the outputs for the minimal required ADA if needed
+    outputsMinAda <- mapM toTxSkelOutWithMinAda outputs
+    -- We transform these outputs to Cardano outputs
+    outputs' <- mapM toCardanoTxOut outputsMinAda
+    -- We create our transaction body, which only consists of the dummy input
+    -- and the outputs to force. This create might result in an error.
+    let transactionBody =
+          Emulator.createTransactionBody params $
+            Ledger.CardanoBuildTx
+              ( Ledger.emptyTxBodyContent
+                  { Cardano.txOuts = outputs',
+                    Cardano.txIns = inputs
+                  }
+              )
+    -- We retrieve the forcefully validated transaction associated with the
+    -- body, handling errors in the process.
+    cardanoTx <-
+      Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
+        <$> either (throwError . MCEToCardanoError "forceOutputs :") return transactionBody
+    -- We need to adjust our internal state to account for the forced
+    -- transaction. We beging by computing the new map of outputs.
+    let outputsMap =
+          Map.fromList $
+            zipWith
+              (\x y -> (x, (y, True)))
+              (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
+              outputsMinAda
+    -- We update the index, which effectively receives the new utxos
+    modify' (over mcstLedgerStateL $ Lens.over Emulator.elsUtxoL (Ledger.fromPlutusIndex . Ledger.insert cardanoTx . Ledger.toPlutusIndex))
+    -- We update our internal map by adding the new outputs
+    modify' (over mcstOutputsL (<> outputsMap))
+    -- Finally, we return the created utxos
+    fmap fst <$> utxosFromCardanoTx cardanoTx

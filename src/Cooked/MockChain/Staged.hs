@@ -81,6 +81,7 @@ data MockChainBuiltin a where
   SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
   GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
+  ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -141,6 +142,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
   interpBuiltin GetConstitutionScript = getConstitutionScript
   interpBuiltin (RegisterStakingCred cred reward deposit) = registerStakingCred cred reward deposit
+  interpBuiltin (ForceOutputs outs) = forceOutputs outs
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -219,3 +221,4 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
+  forceOutputs = singletonBuiltin . ForceOutputs

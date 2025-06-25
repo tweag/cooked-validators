@@ -190,6 +190,9 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- blockchain.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
+  -- | Forces the generation of utxos corresponding to certain 'TxSkelOut'
+  forceOutputs :: [TxSkelOut] -> m [Api.TxOutRef]
+
 -- * Mockchain helpers
 
 -- | Same as 'txOutByRef' but throws an error in case of missing utxo. Use this
@@ -412,6 +415,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
+  forceOutputs = lift . forceOutputs
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainBalancing m) => MonadBlockChainBalancing (WriterT w m)
 
@@ -457,3 +461,4 @@ instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidatio
 
 instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel
+  forceOutputs = lift . forceOutputs
