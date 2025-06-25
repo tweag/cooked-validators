@@ -4,6 +4,7 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
+import Cardano.Api.Ledger qualified as Shelley
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Coin qualified as Cardano
@@ -22,6 +23,7 @@ import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.GenerateTx.Common
+import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
@@ -153,8 +155,7 @@ runMockChainTFrom ::
   InitialDistribution ->
   MockChainT m a ->
   m (MockChainReturn a)
-runMockChainTFrom i0 s =
-  runMockChainTRaw (mockChainState0From i0 >>= put >> s)
+runMockChainTFrom (InitialDistribution i0) = runMockChainTRaw . (forceOutputs i0 >>)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
 runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
@@ -300,3 +301,24 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return cardanoTx
+  forceOutputs outputs = do
+    params <- getParams
+    let genesisKeyHash = Cardano.GenesisUTxOKeyHash $ Shelley.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
+        inputs = [(Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) genesisKeyHash, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending)]
+    outputsMinAda <- mapM toTxSkelOutWithMinAda outputs
+    outputs' <- mapM toCardanoTxOut outputsMinAda
+    cardanoTx <-
+      Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
+        <$> either
+          (throwError . MCEToCardanoError "forceOutputs :")
+          return
+          (Emulator.createTransactionBody params $ Ledger.CardanoBuildTx (Ledger.emptyTxBodyContent {Cardano.txOuts = outputs', Cardano.txIns = inputs}))
+    let outputsMap =
+          Map.fromList $
+            zipWith
+              (\x y -> (x, (y, True)))
+              (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
+              outputsMinAda
+    modify' (over mcstLedgerStateL $ Lens.over Emulator.elsUtxoL (Ledger.fromPlutusIndex . Ledger.insert cardanoTx . Ledger.toPlutusIndex))
+    modify' (over mcstOutputsL (<> outputsMap))
+    fmap fst <$> utxosFromCardanoTx cardanoTx
