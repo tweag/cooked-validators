@@ -11,10 +11,12 @@ module Cooked.Skeleton.Redeemer
     txSkelTypedRedeemerAT,
     someTxSkelRedeemerNoAutoFill,
     emptyTxSkelRedeemerNoAutoFill,
+    txSkelBuiltinDataRedeemerL,
   )
 where
 
 import Cooked.Pretty.Class
+import Cooked.Pretty.Plutus ()
 import Data.Typeable (Typeable, cast)
 import Optics.Core
 import Optics.TH
@@ -28,6 +30,7 @@ import PlutusTx.Prelude qualified as PlutusTx
 -- redeemer during during validation
 type RedeemerConstrs redeemer =
   ( Api.ToData redeemer,
+    Api.FromData redeemer,
     Show redeemer,
     PrettyCooked redeemer,
     PlutusTx.Eq redeemer,
@@ -71,12 +74,28 @@ makeLensesFor [("txSkelRedeemerAutoFill", "txSkelRedeemerAutoFillL")] ''TxSkelRe
 withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
 withReferenceInput red ref = red & txSkelRedeemerReferenceInputL ?~ ref
 
--- | Extracts, or sets, the redeemer content of a redeemer of a given type
+-- | Extracts, or sets, the redeemer content of a redeemer of a given type. This
+-- is attempted in two ways: first, we try to simply cast the content, and then,
+-- if it fails, we serialise the content and then attempt to deserialise it to
+-- the right type. This second case is specifically useful when the current
+-- content is an `Api.BuiltinData` itself directly, but it can also be used in
+-- the cornercase when both types have compatible serialized representation.
 txSkelTypedRedeemerAT :: (RedeemerConstrs a) => AffineTraversal' TxSkelRedeemer a
 txSkelTypedRedeemerAT =
   atraversal
-    (\r@(TxSkelRedeemer content _ _) -> maybe (Left r) Right (cast content))
+    ( \case
+        (TxSkelRedeemer content _ _) | Just content' <- cast content -> Right content'
+        (TxSkelRedeemer content _ _) | Just content' <- Api.fromBuiltinData $ Api.toBuiltinData content -> Right content'
+        txSkelRed -> Left txSkelRed
+    )
     (\red content -> red {txSkelRedeemerContent = content})
+
+-- | Extracts, or sets, the redeemer content as an `Api.BuiltinData`
+txSkelBuiltinDataRedeemerL :: Lens' TxSkelRedeemer Api.BuiltinData
+txSkelBuiltinDataRedeemerL =
+  lens
+    (\(TxSkelRedeemer content _ _) -> Api.toBuiltinData content)
+    (\txSkelRed bData -> txSkelRed {txSkelRedeemerContent = bData})
 
 -- * Building 'TxSkelRedeemer's
 
