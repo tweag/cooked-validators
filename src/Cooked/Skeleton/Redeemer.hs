@@ -11,7 +11,7 @@ module Cooked.Skeleton.Redeemer
     txSkelTypedRedeemerAT,
     someTxSkelRedeemerNoAutoFill,
     emptyTxSkelRedeemerNoAutoFill,
-    txSkelBuiltinDataRedeemerL,
+    txSkelRedeemerBuiltinDataL,
   )
 where
 
@@ -74,12 +74,12 @@ makeLensesFor [("txSkelRedeemerAutoFill", "txSkelRedeemerAutoFillL")] ''TxSkelRe
 withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
 withReferenceInput red ref = red & txSkelRedeemerReferenceInputL ?~ ref
 
--- | Extracts, or sets, the redeemer content of a redeemer of a given type. This
--- is attempted in two ways: first, we try to simply cast the content, and then,
--- if it fails, we serialise the content and then attempt to deserialise it to
--- the right type. This second case is specifically useful when the current
--- content is an `Api.BuiltinData` itself directly, but it can also be used in
--- the cornercase when both types have compatible serialized representation.
+-- | Extracts, or sets, the typed redeemer of a 'TxSkelRedeemer'. This is
+-- attempted in two ways: first, we try to simply cast the content, and then, if
+-- it fails, we serialise the content and then attempt to deserialise it to the
+-- right type. This second case is specifically useful when the current content
+-- is an 'Api.BuiltinData' itself directly, but it can also be used in the
+-- cornercase when both types have compatible serialized representation.
 txSkelTypedRedeemerAT :: (RedeemerConstrs a) => AffineTraversal' TxSkelRedeemer a
 txSkelTypedRedeemerAT =
   atraversal
@@ -91,8 +91,8 @@ txSkelTypedRedeemerAT =
     (\red content -> red {txSkelRedeemerContent = content})
 
 -- | Extracts, or sets, the redeemer content as an `Api.BuiltinData`
-txSkelBuiltinDataRedeemerL :: Lens' TxSkelRedeemer Api.BuiltinData
-txSkelBuiltinDataRedeemerL =
+txSkelRedeemerBuiltinDataL :: Lens' TxSkelRedeemer Api.BuiltinData
+txSkelRedeemerBuiltinDataL =
   lens
     (\(TxSkelRedeemer content _ _) -> Api.toBuiltinData content)
     (\txSkelRed bData -> txSkelRed {txSkelRedeemerContent = bData})

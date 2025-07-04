@@ -3,21 +3,26 @@
 module Cooked.Skeleton.Datum
   ( DatumConstrs,
     DatumContent (..),
-    datumContentDatumG,
+    datumContentDatumI,
     datumContentDatumHashG,
     DatumResolved (..),
     DatumKind (..),
     TxSkelOutDatum (..),
-    txSkelOutDatumHash,
+    txSkelOutDatumHashAF,
     datumContentTypedDatumP,
-    txSkelOutDatumAF,
+    txSkelOutDatumAT,
     txSkelOutDatumContentAT,
     txSkelOutTypedDatumAT,
     txSkelOutDatumKindAT,
+    datumContentBuiltinDataI,
+    datumKindResolvedP,
+    txSkelOutDatumResolvedAT,
+    txSkelOutDatumBuiltinDataAT,
   )
 where
 
 import Cooked.Pretty.Class
+import Cooked.Pretty.Plutus ()
 import Data.Typeable (cast)
 import Optics.Core
 import Plutus.Script.Utils.Data qualified as Script
@@ -28,12 +33,13 @@ import Type.Reflection
 -- * Type constraints on datums used in cooked-validators
 
 -- | Type constraints that must be satisfied by the datum content
-type DatumConstrs a =
-  ( Show a,
-    PrettyCooked a,
-    Api.ToData a,
-    PlutusTx.Eq a,
-    Typeable a
+type DatumConstrs datum =
+  ( Show datum,
+    PrettyCooked datum,
+    Api.ToData datum,
+    Api.FromData datum,
+    PlutusTx.Eq datum,
+    Typeable datum
   )
 
 -- * Wrapping datums of arbitrary types satisfying 'DatumConstrs'
@@ -48,20 +54,39 @@ deriving instance Show DatumContent
 instance Api.ToData DatumContent where
   toBuiltinData (DatumContent dat) = Api.toBuiltinData dat
 
--- | Extracts the datum from a 'DatumContent'
-datumContentDatumG :: Getter DatumContent Api.Datum
-datumContentDatumG = to (Api.Datum . Api.toBuiltinData)
+-- | Transforms a 'DatumContent' into a 'Api.Datum' and vice versa
+datumContentDatumI :: Iso' DatumContent Api.Datum
+datumContentDatumI =
+  iso
+    (Api.Datum . view datumContentBuiltinDataI)
+    (\(Api.Datum bData) -> review datumContentBuiltinDataI bData)
 
 -- | Extracts the datum hash from a 'DatumContent'
 datumContentDatumHashG :: Getter DatumContent Api.DatumHash
-datumContentDatumHashG = datumContentDatumG % to Script.datumHash
+datumContentDatumHashG = datumContentDatumI % to Script.datumHash
 
--- | Extracts a typed datum for a 'DatumContent' when of the right type
+-- | Transforms a 'DatumContent' into a 'Api.BuiltinData' and vice versa
+datumContentBuiltinDataI :: Iso' DatumContent Api.BuiltinData
+datumContentBuiltinDataI =
+  iso
+    (\(DatumContent dat) -> Api.toBuiltinData dat)
+    DatumContent
+
+-- | Extracts, or sets, the typed datum of a 'DatumContent'. This is attempted
+-- in two ways: first, we try to simply cast the content, and then, if it fails,
+-- we serialise the content and then attempt to deserialise it to the right
+-- type. This second case is specifically useful when the current content is an
+-- 'Api.BuiltinData' itself directly, but it can also be used in the cornercase
+-- when both types have compatible serialized representation.
 datumContentTypedDatumP :: (DatumConstrs a) => Prism' DatumContent a
 datumContentTypedDatumP =
   prism
     DatumContent
-    (\c@(DatumContent content) -> maybe (Left c) Right (cast content))
+    ( \case
+        (DatumContent content) | Just content' <- cast content -> Right content'
+        (DatumContent content) | Just content' <- Api.fromBuiltinData $ Api.toBuiltinData content -> Right content'
+        dc -> Left dc
+    )
 
 instance Ord DatumContent where
   compare (DatumContent d1) (DatumContent d2) =
@@ -90,6 +115,16 @@ data DatumKind
     -- the full datum in the transaction body.
     Hashed DatumResolved
   deriving (Show, Eq, Ord)
+
+-- | Builds a 'DatumKind' from a 'DatumResolved' or optionally retrieves it
+datumKindResolvedP :: Prism' DatumKind DatumResolved
+datumKindResolvedP =
+  prism
+    Hashed
+    ( \case
+        Inline -> Left Inline
+        Hashed resolved -> Right resolved
+    )
 
 -- * 'Cooked.Skeleton.TxSkel' datums
 
@@ -137,13 +172,21 @@ txSkelOutDatumKindAT =
         )
     )
 
--- | Converts a 'TxSkelOutDatum' into a possible Plutus datum
-txSkelOutDatumAF :: AffineFold TxSkelOutDatum Api.Datum
-txSkelOutDatumAF = txSkelOutDatumContentAT % datumContentDatumG
+-- | Extracts or changes the 'DatumResolved' of a 'TxSkelOutDatum'
+txSkelOutDatumResolvedAT :: AffineTraversal' TxSkelOutDatum DatumResolved
+txSkelOutDatumResolvedAT = txSkelOutDatumKindAT % datumKindResolvedP
+
+-- | Converts a 'TxSkelOutDatum' into a possible 'Api.Datum'
+txSkelOutDatumAT :: AffineTraversal' TxSkelOutDatum Api.Datum
+txSkelOutDatumAT = txSkelOutDatumContentAT % datumContentDatumI
+
+-- | Converts a 'TxSkelOutDatum' into a possible 'Api.BuiltinData'
+txSkelOutDatumBuiltinDataAT :: AffineTraversal' TxSkelOutDatum Api.BuiltinData
+txSkelOutDatumBuiltinDataAT = txSkelOutDatumContentAT % datumContentBuiltinDataI
 
 -- | Converts a 'TxSkelOutDatum' into a possible Plutus datum hash
-txSkelOutDatumHash :: AffineFold TxSkelOutDatum Api.DatumHash
-txSkelOutDatumHash = txSkelOutDatumContentAT % datumContentDatumHashG
+txSkelOutDatumHashAF :: AffineFold TxSkelOutDatum Api.DatumHash
+txSkelOutDatumHashAF = txSkelOutDatumContentAT % datumContentDatumHashG
 
 -- | Extracts or changes the inner typed datum of a 'TxSkelOutDatum'
 txSkelOutTypedDatumAT :: (DatumConstrs a) => AffineTraversal' TxSkelOutDatum a
