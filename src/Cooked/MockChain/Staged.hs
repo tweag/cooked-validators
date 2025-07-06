@@ -172,12 +172,7 @@ everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
 there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
-there n = modifyLtl . mkLtlFormula n
-  where
-    mkLtlFormula x =
-      if x == 0
-        then LtlAtom . UntypedTweak
-        else LtlNext . mkLtlFormula (x - 1)
+there n = modifyLtl . ltlDelay n . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
