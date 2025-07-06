@@ -64,7 +64,7 @@ testingBalancingTemplate ::
   -- Whether to consum the script utxo
   Bool ->
   -- Option modifications
-  (TxOpts -> TxOpts) ->
+  (TxSkelOpts -> TxSkelOpts) ->
   -- Wether to adjust the output with min ada
   Bool ->
   m TestBalancingOutcome
@@ -86,11 +86,11 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
             txSkelOpts =
               optionsMod
                 def
-                  { txOptBalancingUtxos =
+                  { txSkelOptBalancingUtxos =
                       if List.null toBalanceUtxos
                         then BalancingUtxosFromBalancingWallet
                         else BalancingUtxosFromSet $ Set.fromList toBalanceUtxos,
-                    txOptCollateralUtxos =
+                    txSkelOptCollateralUtxos =
                       if List.null toCollateralUtxos
                         then CollateralUtxosFromBalancingWallet
                         else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
@@ -117,7 +117,7 @@ aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` \o -> isJust (tx
 emptySearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 emptySearch = ListT.fromFoldable []
 
-simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxOpts -> TxOpts) -> Bool -> m TestBalancingOutcome
+simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> m TestBalancingOutcome
 simplePaymentToBob lv apples oranges bananas =
   testingBalancingTemplate
     (Script.lovelace lv <> apple apples <> orange oranges <> banana bananas)
@@ -126,7 +126,7 @@ simplePaymentToBob lv apples oranges bananas =
     emptySearch
     emptySearch
 
-bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxOpts -> TxOpts) -> Bool -> m TestBalancingOutcome
+bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> m TestBalancingOutcome
 bothPaymentsToBobAndAlice val =
   testingBalancingTemplate
     (Script.lovelace val)
@@ -145,8 +145,8 @@ noBalanceMaxFee = do
         txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
         txSkelOpts =
           def
-            { txOptBalancingPolicy = DoNotBalance,
-              txOptFeePolicy = AutoFeeComputation
+            { txSkelOptBalancingPolicy = DoNotBalance,
+              txSkelOptFeePolicy = AutoFeeComputation
             },
         txSkelSigners = [alice]
       }
@@ -164,7 +164,7 @@ balanceReduceFee = do
         skelAutoFee
           { txSkelOpts =
               def
-                { txOptFeePolicy = ManualFee (feeBalanced - 1)
+                { txSkelOptFeePolicy = ManualFee (feeBalanced - 1)
                 }
           }
   (skelBalancedManual, feeBalancedManual, mColsManual) <- balanceTxSkel skelManualFee
@@ -180,7 +180,7 @@ reachingMagic = do
         txSkelSigners = [alice],
         txSkelOpts =
           def
-            { txOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
+            { txSkelOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
             }
       }
 
@@ -250,10 +250,10 @@ testBalancingFailsWith msg p smc =
 
 tests :: TestTree
 tests =
-  let setFixedFee fee txOpts = txOpts {txOptFeePolicy = ManualFee fee}
-      setDontAdjustOutput txOpts = txOpts {txOptBalanceOutputPolicy = DontAdjustExistingOutput}
-      setDontBalance txOpts = txOpts {txOptBalancingPolicy = DoNotBalance}
-      setCollateralWallet wallet' txOpts = txOpts {txOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
+  let setFixedFee fee txSkelOpts = txSkelOpts {txSkelOptFeePolicy = ManualFee fee}
+      setDontAdjustOutput txSkelOpts = txSkelOpts {txSkelOptBalanceOutputPolicy = DontAdjustExistingOutput}
+      setDontBalance txSkelOpts = txSkelOpts {txSkelOptBalancingPolicy = DoNotBalance}
+      setCollateralWallet wallet' txSkelOpts = txSkelOpts {txSkelOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
    in testGroup
         "Balancing"
         [ testGroup

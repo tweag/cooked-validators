@@ -17,7 +17,6 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
-import PlutusTx.List qualified as PlutusTx
 
 -- | A bundle arond an 'Api.Value' to be stored in a
 -- 'Cooked.Skeleton.TxSkel'. This bundles offers the possibility to mark a value
@@ -49,17 +48,17 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
   lens
     (`Api.assetClassValueOf` Api.assetClass cs tk)
     ( \v@(Api.Value val) i -> case PMap.lookup cs val of
-        -- No previous cs entry, and nothing to add
+        -- No previous cs entry and nothing to add.
         Nothing | i == 0 -> v
-        -- No previous cs entry, and something to add
+        -- No previous cs entry, and something to add.
         Nothing -> Api.Value $ PMap.insert cs (PMap.singleton tk i) val
-        -- A previous cs entry, no previous tk entry, and nothing to add
-        Just tokenMap | i == 0, Nothing <- PMap.lookup tk tokenMap -> v
+        -- A previous cs entry, no previous tk entry and notion to add.
+        Just (PMap.lookup tk -> Nothing) | i == 0 -> v
         -- A previous cs and tk entry, which needs to be removed and the whole
         -- cs entry as well because it only contained this tk
-        Just tokenMap | i == 0, Just _ <- PMap.lookup tk tokenMap, PlutusTx.length (PMap.toList tokenMap) == 1 -> Api.Value $ PMap.delete cs val
+        Just (PMap.toList -> [(tk', _)]) | i == 0, tk == tk' -> Api.Value $ PMap.delete cs val
         -- A previous cs and tk entry, which needs to be removed, but the whole
-        -- cs entry has other tokens and thus is kept
+        -- cs entry has other tokens and thus is kept.
         Just tokenMap | i == 0 -> Api.Value $ PMap.insert cs (PMap.delete tk tokenMap) val
         -- A previous cs entry, in which we insert the new tk (regarless of
         -- whether the tk was already present).

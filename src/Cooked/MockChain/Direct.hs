@@ -225,13 +225,13 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do
+  validateTxSkel skelUnbal | TxSkelOpts {..} <- txSkelOpts skelUnbal = do
     -- We log the submission of a new skeleton
     logEvent $ MCLogSubmittedTxSkel skelUnbal
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
-    let newParams = applyEmulatorParamsModification txOptEmulatorParamsModification oldParams
+    let newParams = txSkelOptModParams oldParams
     -- We change the parameters for the duration of the validation process
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
@@ -251,7 +251,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
     -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
-    cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
+    cardanoTx <- Ledger.CardanoEmulatorEraTx . txSkelOptModTx <$> txSkelToCardanoTx skel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
     -- We finally run the emulated validation. We update our internal state
@@ -293,7 +293,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         | Nothing <- mCollaterals ->
             fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
-    when txOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
+    when txSkelOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction

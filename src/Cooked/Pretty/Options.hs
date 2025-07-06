@@ -31,7 +31,7 @@ data PrettyCookedOpts = PrettyCookedOpts
     pcOptPrintTxOutRefs :: PCOptTxOutRefs,
     -- | Whether to print tx options that have not been modified from their
     -- default. By default: False
-    pcOptPrintDefaultTxOpts :: Bool,
+    pcOptPrintDefaultTxSkelOpts :: Bool,
     -- | Whether to print big integers with numeric underscores. For example
     -- @53_000_000@ instead of @53000000@. By default: True
     pcOptNumericUnderscores :: Bool,
@@ -49,7 +49,7 @@ instance Default PrettyCookedOpts where
     PrettyCookedOpts
       { pcOptPrintTxHashes = False,
         pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
-        pcOptPrintDefaultTxOpts = False,
+        pcOptPrintDefaultTxSkelOpts = False,
         pcOptNumericUnderscores = True,
         pcOptHashes = def,
         pcOptPrintLog = True,

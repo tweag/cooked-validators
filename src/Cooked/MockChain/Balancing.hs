@@ -48,7 +48,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
   -- redirected to them, and utxos will be taken from their wallet if associated
   -- with the BalancingUtxosFromBalancingWallet policy
-  balancingWallet <- case txOptBalancingPolicy txSkelOpts of
+  balancingWallet <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSigner -> case txSkelSigners of
       [] -> throwError $ MCEMissingBalancingWallet "The list of signers is empty, but the balancing wallet is supposed to be the first signer."
       bw : _ -> return $ Just bw
@@ -70,7 +70,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- collaterals attached to it.
   mCollaterals <- do
     -- The transaction will only require collaterals when involving scripts
-    case (nbOfScripts == 0, txOptCollateralUtxos txSkelOpts) of
+    case (nbOfScripts == 0, txSkelOptCollateralUtxos txSkelOpts) of
       (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
       (True, CollateralUtxosFromWallet cWallet) -> logEvent (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
       (True, CollateralUtxosFromBalancingWallet) -> return Nothing
@@ -86,7 +86,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     Nothing ->
       -- The balancing should not be performed. We still adjust the collaterals
       -- though around a provided fee, or the maximum fee.
-      let fee = case txOptFeePolicy txSkelOpts of
+      let fee = case txSkelOptFeePolicy txSkelOpts of
             AutoFeeComputation -> maxFee
             ManualFee fee' -> fee'
        in (skelUnbal,fee,) <$> collateralsFromFees fee mCollaterals
@@ -94,7 +94,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- The balancing should be performed. We collect the candidates balancing
       -- utxos based on the associated policy
       balancingUtxos <-
-        case txOptBalancingUtxos txSkelOpts of
+        case txSkelOptBalancingUtxos txSkelOpts of
           BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
@@ -106,7 +106,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           -- skeleton, throwing a warning if any was actually discarded
           >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
 
-      case txOptFeePolicy txSkelOpts of
+      case txSkelOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
         -- is full auto mode, the most powerful but time-consuming.
         AutoFeeComputation ->
@@ -353,7 +353,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- policy allows us to adjust it with additional value.
     Nothing
       | (before, txSkelOut : after) <- break (\(TxSkelOut {tsoOwner}) -> Script.toCredential tsoOwner == Script.toCredential balancingWallet) txSkelOuts,
-        AdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> do
+        AdjustExistingOutput <- txSkelOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected
           -- output. We keep intact the orders of those outputs.

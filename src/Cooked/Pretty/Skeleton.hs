@@ -180,11 +180,11 @@ instance PrettyCooked TxGovAction where
     Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
-instance PrettyCookedList (TxOpts, [Wallet]) where
-  prettyCookedOptList opts (TxOpts {txOptBalancingPolicy = DoNotBalance}, signers) = prettyCookedOptList opts signers
-  prettyCookedOptList opts (TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
+instance PrettyCookedList (TxSkelOpts, [Wallet]) where
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = DoNotBalance}, signers) = prettyCookedOptList opts signers
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
     prettyCookedOpt opts firstSigner <+> "[balancing]" : prettyCookedOptList opts signers
-  prettyCookedOptList opts (TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet}, signers) =
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWith balancingWallet}, signers) =
     (\s -> if s == balancingWallet then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s) <$> signers
   -- The following case should never happen for real transactions
   prettyCookedOptList _ (_, []) = []
@@ -247,34 +247,32 @@ instance PrettyCooked DatumContent where
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default.
-instance PrettyCookedList TxOpts where
+instance PrettyCookedList TxSkelOpts where
   prettyCookedOptListMaybe
     opts
-    TxOpts
-      { txOptAutoSlotIncrease,
-        txOptUnsafeModTx,
-        txOptBalanceOutputPolicy,
-        txOptFeePolicy,
-        txOptBalancingPolicy,
-        txOptBalancingUtxos,
-        txOptEmulatorParamsModification,
-        txOptCollateralUtxos,
-        txOptAnchorResolution
-      } =
-      [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
-        prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
-        prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
-        prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
-        prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
-        prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
-        prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
-        prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos,
-        prettyIfNot def prettyAnchorResolution txOptAnchorResolution
+    ( TxSkelOpts
+        txSkelOptAutoSlotIncrease
+        _
+        txSkelOptBalancingPolicy
+        txSkelOptFeePolicy
+        txSkelOptBalanceOutputPolicy
+        txSkelOptBalancingUtxos
+        _
+        txSkelOptCollateralUtxos
+        txSkelOptAnchorResolution
+      ) =
+      [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
+        prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
+        prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
+        prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
+        prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
+        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
+        prettyIfNot def prettyAnchorResolution txSkelOptAnchorResolution
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
         prettyIfNot defaultValue f x
-          | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
+          | x == defaultValue && not (pcOptPrintDefaultTxSkelOpts opts) = Nothing
           | otherwise = Just $ f x
         prettyAutoSlotIncrease :: Bool -> DocCooked
         prettyAutoSlotIncrease True = "Automatic slot increase"
@@ -286,12 +284,6 @@ instance PrettyCookedList TxOpts where
         prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
         prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts w
         prettyBalancingPolicy DoNotBalance = "Do not balance"
-        prettyUnsafeModTx :: [RawModTx] -> DocCooked
-        prettyUnsafeModTx [] = "No transaction modifications"
-        prettyUnsafeModTx (length -> n) = prettyCookedOpt opts n <+> "transaction" <+> PP.plural "modification" "modifications" n
-        prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
-        prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
-        prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
         prettyCollateralUtxos :: CollateralUtxos -> DocCooked
         prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
           prettyItemize

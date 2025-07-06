@@ -92,7 +92,7 @@ tests =
             skelExpected a b =
               txSkelTemplate
                 { txSkelLabel =
-                    Set.singleton . TxLabel . DatumHijackingLbl $ Script.toCredential $ Script.toVersioned @Script.Script thief,
+                    Set.singleton . TxSkelLabel . DatumHijackingLbl $ Script.toCredential $ Script.toVersioned @Script.Script thief,
                   txSkelOuts =
                     [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
                       a `receives` (InlineDatum SecondLock <&&> Value x3),

@@ -134,7 +134,7 @@ tests =
             skelExpected :: [(ARedeemer, V3.TxOutRef)] -> [(BRedeemer, (V3.TxOutRef, TxSkelOut))] -> TxSkel
             skelExpected aInputs bInputs =
               txSkelTemplate
-                { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
+                { txSkelLabel = Set.singleton $ TxSkelLabel DoubleSatLbl,
                   txSkelIns =
                     Map.fromList
                       ( ( \(bRedeemer, (bOref, _)) ->

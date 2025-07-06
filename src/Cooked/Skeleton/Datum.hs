@@ -65,7 +65,7 @@ datumContentDatumI =
 datumContentDatumHashG :: Getter DatumContent Api.DatumHash
 datumContentDatumHashG = datumContentDatumI % to Script.datumHash
 
--- | Transforms a 'DatumContent' into a 'Api.BuiltinData' and vice versa
+-- | Transforms a 'DatumContent' into aV 'Api.BuiltinData' and vice versa
 datumContentBuiltinDataI :: Iso' DatumContent Api.BuiltinData
 datumContentBuiltinDataI =
   iso

@@ -69,9 +69,9 @@ data TxSkel where
     { -- | Labels do not influence the transaction generation at all; they are
       -- pretty-printed whenever cooked-validators prints a transaction, and can
       -- therefore make the output more informative (and greppable).
-      txSkelLabel :: Set TxLabel,
+      txSkelLabel :: Set TxSkelLabel,
       -- | Some options that control transaction generation.
-      txSkelOpts :: TxOpts,
+      txSkelOpts :: TxSkelOpts,
       -- | Any value minted or burned by the transaction. You'll probably want
       -- to use 'Cooked.Skeleton.Mint.txSkelMintsFromList' to construct this.
       txSkelMints :: TxSkelMints,
