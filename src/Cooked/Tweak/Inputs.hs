@@ -49,6 +49,6 @@ removeInputTweak removePred = do
 modifySpendRedeemersOfTypeTweak :: forall a b m. (RedeemerConstrs a, RedeemerConstrs b, MonadTweak m) => (a -> Maybe b) -> m [TxSkelRedeemer]
 modifySpendRedeemersOfTypeTweak f =
   overMaybeTweak (txSkelInsL % iso Map.toList Map.fromList % traversed % _2) $ \red -> do
-    typedRedeemer <- red ^? txSkelTypedRedeemerAT
+    typedRedeemer <- red ^? txSkelRedeemerTypedAT
     typedRedeemerModified <- f typedRedeemer
-    return $ red & txSkelTypedRedeemerAT .~ typedRedeemerModified
+    return $ red & txSkelRedeemerTypedAT .~ typedRedeemerModified

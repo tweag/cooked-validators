@@ -8,7 +8,7 @@ module Cooked.Skeleton.Redeemer
     emptyTxSkelRedeemer,
     txSkelRedeemerReferenceInputL,
     txSkelRedeemerAutoFillL,
-    txSkelTypedRedeemerAT,
+    txSkelRedeemerTypedAT,
     someTxSkelRedeemerNoAutoFill,
     emptyTxSkelRedeemerNoAutoFill,
     txSkelRedeemerBuiltinDataL,
@@ -80,8 +80,8 @@ withReferenceInput red ref = red & txSkelRedeemerReferenceInputL ?~ ref
 -- right type. This second case is specifically useful when the current content
 -- is an 'Api.BuiltinData' itself directly, but it can also be used in the
 -- cornercase when both types have compatible serialized representation.
-txSkelTypedRedeemerAT :: (RedeemerConstrs a) => AffineTraversal' TxSkelRedeemer a
-txSkelTypedRedeemerAT =
+txSkelRedeemerTypedAT :: (RedeemerConstrs a) => AffineTraversal' TxSkelRedeemer a
+txSkelRedeemerTypedAT =
   atraversal
     ( \case
         (TxSkelRedeemer content _ _) | Just content' <- cast content -> Right content'
