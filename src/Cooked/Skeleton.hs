@@ -193,4 +193,4 @@ txSkelProposingScripts = mapMaybe (fmap fst . txSkelProposalWitness) . txSkelPro
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
 txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelMintingScripts = fmap txSkelMintVersionedScript . txSkelMintsToList . txSkelMints
+txSkelMintingScripts = fmap (view mintVersionedScriptL) . txSkelMintsToList . txSkelMints

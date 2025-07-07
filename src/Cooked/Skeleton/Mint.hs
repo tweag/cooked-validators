@@ -14,7 +14,6 @@ module Cooked.Skeleton.Mint
     txSkelMintsToList,
     txSkelMintsFromList,
     txSkelMintsValue,
-    txSkelMintVersionedScript,
     txSkelMintsListI,
     mintVersionedScriptL,
   )
@@ -68,10 +67,6 @@ mintVersionedScriptL =
   lens
     (\(Mint mp _ _) -> Script.toScript <$> Script.toVersioned @Script.MintingPolicy mp)
     (\m mp -> m {mintMintingPolicy = mp})
-
--- | Retrieves the versioned script contained in this 'Mint'
-txSkelMintVersionedScript :: Mint -> Script.Versioned Script.Script
-txSkelMintVersionedScript (Mint mp _ _) = Script.toVersioned @Script.Script $ Script.toVersioned @Script.MintingPolicy mp
 
 -- | Additional helper to build some 'Mint' in the usual minting case where a
 -- single type of token is minted for a given MP
