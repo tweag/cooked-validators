@@ -13,6 +13,7 @@ module Cooked.Skeleton.Mint
     txSkelMintsFromList,
     txSkelMintsValue,
     txSkelMintVersionedScript,
+    txSkelMintsListI,
   )
 where
 
@@ -23,6 +24,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
 import Data.Map.NonEmpty qualified as NEMap
+import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
@@ -132,14 +134,20 @@ instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
 instance {-# OVERLAPPING #-} Monoid TxSkelMints where
   mempty = Map.empty
 
+-- | Seing a 'TxSkelMints' as a list of 'Mint'
+txSkelMintsListI :: Iso' TxSkelMints [Mint]
+txSkelMintsListI =
+  iso
+    (map (\(p, (r, m)) -> Mint p r $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList)
+    (addMints mempty)
+
 -- | Convert from 'TxSkelMints' to a list of 'Mint'
 txSkelMintsToList :: TxSkelMints -> [Mint]
-txSkelMintsToList =
-  map (\(p, (r, m)) -> Mint p r $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList
+txSkelMintsToList = view txSkelMintsListI
 
 -- | A smart constructor for 'TxSkelMints'
 txSkelMintsFromList :: [Mint] -> TxSkelMints
-txSkelMintsFromList = addMints mempty
+txSkelMintsFromList = review txSkelMintsListI
 
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Api.Value
