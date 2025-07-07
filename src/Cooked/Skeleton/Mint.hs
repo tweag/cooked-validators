@@ -5,6 +5,8 @@
 module Cooked.Skeleton.Mint
   ( TxSkelMints,
     Mint (..),
+    mintRedeemerL,
+    mintTokensL,
     mint,
     burn,
     addMint,
@@ -14,6 +16,7 @@ module Cooked.Skeleton.Mint
     txSkelMintsValue,
     txSkelMintVersionedScript,
     txSkelMintsListI,
+    mintVersionedScriptL,
   )
 where
 
@@ -25,6 +28,7 @@ import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
 import Data.Map.NonEmpty qualified as NEMap
 import Optics.Core
+import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
@@ -46,11 +50,24 @@ type TxSkelMints =
 data Mint where
   Mint ::
     (Script.ToVersioned Script.MintingPolicy a) =>
-    { txSkelMintMintingPolicy :: a,
-      txSkelMintRedeemer :: TxSkelRedeemer,
-      txSkelMintTokens :: [(Api.TokenName, Integer)]
+    { mintMintingPolicy :: a,
+      mintRedeemer :: TxSkelRedeemer,
+      mintTokens :: [(Api.TokenName, Integer)]
     } ->
     Mint
+
+-- | A lens to set or get the redeemer of a 'Mint'
+makeLensesFor [("mintRedeemer", "mintRedeemerL")] ''Mint
+
+-- | A lens to set or get the token list of a 'Mint'
+makeLensesFor [("mintTokens", "mintTokensL")] ''Mint
+
+-- | A lens to set or get the versioned script of a 'Mint'
+mintVersionedScriptL :: Lens' Mint (Script.Versioned Script.Script)
+mintVersionedScriptL =
+  lens
+    (\(Mint mp _ _) -> Script.toScript <$> Script.toVersioned @Script.MintingPolicy mp)
+    (\m mp -> m {mintMintingPolicy = mp})
 
 -- | Retrieves the versioned script contained in this 'Mint'
 txSkelMintVersionedScript :: Mint -> Script.Versioned Script.Script
