@@ -217,7 +217,7 @@ instance PrettyCooked TxSkelOut where
     let txSkelOutList = prettyCookedOptList opts output
      in prettyItemize opts ("Pays to" <+> head txSkelOutList) "-" (tail txSkelOutList)
 
--- | Prints a 'TxSkelOutDatum' when different from 'TxSkelOutNoDatum'
+-- | Prints a 'TxSkelOutDatum' when different from 'NoTxSkelOutDatum'
 instance PrettyCookedMaybe TxSkelOutDatum where
   prettyCookedOptMaybe _ NoTxSkelOutDatum = Nothing
   prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat Inline) =
