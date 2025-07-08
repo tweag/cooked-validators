@@ -51,4 +51,4 @@ modifySpendRedeemersOfTypeTweak f =
   overMaybeTweak (txSkelInsL % iso Map.toList Map.fromList % traversed % _2) $ \red -> do
     typedRedeemer <- red ^? txSkelRedeemerTypedAT
     typedRedeemerModified <- f typedRedeemer
-    return $ red & txSkelRedeemerTypedAT .~ typedRedeemerModified
+    return $ red & txSkelRedeemerTypedAT @a .~ typedRedeemerModified

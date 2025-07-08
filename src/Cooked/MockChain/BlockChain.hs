@@ -227,7 +227,7 @@ defineM name = (define name =<<)
 
 -- | Extracts a potential 'TxSkelOutDatum' from a given 'Api.TxOutRef'
 datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe TxSkelOutDatum)
-datumFromTxOutRef = ((view txSkelOutDatumL <$>) <$>) . txOutByRef
+datumFromTxOutRef = (fmap (view txSkelOutDatumL) <$>) . txOutByRef
 
 -- | Same as 'datumFromTxOutRef' but throws an error when the utxo is missing
 unsafeDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOutDatum
@@ -245,19 +245,19 @@ unsafeOutputDatumFromTxOutRef = fmap Script.toOutputDatum . unsafeDatumFromTxOut
 -- | Like 'datumFromTxOutRef', but uses 'Api.fromBuiltinData' to attempt to
 -- deserialize this datum into a given type
 typedDatumFromTxOutRef :: (DatumConstrs a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-typedDatumFromTxOutRef = ((>>= preview txSkelOutTypedDatumAT) <$>) . datumFromTxOutRef
+typedDatumFromTxOutRef = ((>>= preview txSkelOutDatumTypedAT) <$>) . datumFromTxOutRef
 
 -- | Like 'typedDatumFromTxOutRef' but throws an error when the utxo is missing
 unsafeTypedDatumFromTxOutRef :: (DatumConstrs a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-unsafeTypedDatumFromTxOutRef = (preview txSkelOutTypedDatumAT <$>) . unsafeDatumFromTxOutRef
+unsafeTypedDatumFromTxOutRef = (preview txSkelOutDatumTypedAT <$>) . unsafeDatumFromTxOutRef
 
 -- | Resolves an 'Api.TxOutRef' and extracts the value it contains
 valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
-valueFromTxOutRef = ((txSkelOutValue <$>) <$>) . txOutByRef
+valueFromTxOutRef = (fmap (view (txSkelOutValueL % txSkelOutValueContentL)) <$>) . txOutByRef
 
 -- | Same as 'valueFromTxOutRef' but throws an error when the utxo is missing
 unsafeValueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.Value
-unsafeValueFromTxOutRef = (txSkelOutValue <$>) . unsafeTxOutByRef
+unsafeValueFromTxOutRef = (view (txSkelOutValueL % txSkelOutValueContentL) <$>) . unsafeTxOutByRef
 
 -- | Retrieves the required deposit amount for issuing governance actions.
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
@@ -270,7 +270,7 @@ txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelPro
 
 -- | Returns all validators which guard transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Validator]
-txSkelInputValidators = fmap (mapMaybe txSkelOutValidator) . mapM unsafeTxOutByRef . Map.keys . txSkelIns
+txSkelInputValidators = fmap (mapMaybe (preview txSkelOutValidatorAT)) . mapM unsafeTxOutByRef . Map.keys . txSkelIns
 
 -- | Returns all scripts involved in this 'TxSkel'
 txSkelAllScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Script]

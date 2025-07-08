@@ -177,7 +177,7 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
     return $ case res of
       Just (txSkelOut, True) -> Just txSkelOut
       _ -> Nothing
-  utxosAt (Script.toAddress -> addr) = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
+  utxosAt (Script.toAddress -> addr) = filter ((addr ==) . view txSkelOutAddressG . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where

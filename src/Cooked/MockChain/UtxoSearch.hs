@@ -112,7 +112,7 @@ filterWithPureRev as = filterWithPred as . (isNothing .)
 -- | A specific version of 'filterWithPred' where outputs must me of type
 -- 'TxSkelOut' and the predicate only relies on their value
 filterWithValuePred :: (Monad m) => UtxoSearch m TxSkelOut -> (Api.Value -> Bool) -> UtxoSearch m TxSkelOut
-filterWithValuePred as f = filterWithPred as (f . txSkelOutValue)
+filterWithValuePred as f = filterWithPred as (f . view (txSkelOutValueL % txSkelOutValueContentL))
 
 -- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
 -- when they contain only ADA
@@ -131,9 +131,9 @@ filterWithNotOnlyAda as = filterWithValuePred as (not . Script.isAdaOnlyValue)
 onlyValueOutputsAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
 onlyValueOutputsAtSearch addr =
   utxosOwnedBySearch addr
-    `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumContentAT)
+    `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumKindAT)
     `filterWithPureRev` view txSkelOutStakingCredentialL
-    `filterWithPureRev` txSkelOutReferenceScript
+    `filterWithPureRev` preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP)
 
 -- | Same as 'onlyValueOutputsAtSearch', but also ensures the returned outputs
 -- do not contain non-ADA assets. These "vanilla" outputs are perfect candidates
@@ -146,4 +146,4 @@ referenceScriptOutputsSearch ::
   (MonadBlockChain m, Script.ToScriptHash s) => s -> UtxoSearch m TxSkelOut
 referenceScriptOutputsSearch s =
   allUtxosSearch
-    `filterWithPred` ((Just (Script.toScriptHash s) ==) . (Script.toScriptHash <$>) . txSkelOutReferenceScript)
+    `filterWithPred` ((Just (Script.toScriptHash s) ==) . preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF))

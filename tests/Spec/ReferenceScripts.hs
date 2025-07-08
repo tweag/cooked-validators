@@ -6,6 +6,7 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Tx qualified as Ledger
+import Optics.Core
 import Plutus.ReferenceScripts
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -40,7 +41,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
         }
 
 retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
-retrieveRefScriptHash = (txSkelOutReferenceScriptHash <$>) . unsafeTxOutByRef
+retrieveRefScriptHash = (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) <$>) . unsafeTxOutByRef
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
@@ -154,7 +155,7 @@ tests =
                   (consumedOref, _) : _ <-
                     runUtxoSearch $
                       utxosOwnedBySearch (wallet 1)
-                        `filterWithPred` ((`Api.geq` Script.lovelace 42_000_000) . txSkelOutValue)
+                        `filterWithValuePred` (`Api.geq` Script.lovelace 42_000_000)
                   oref : _ <-
                     validateTxSkel'
                       txSkelTemplate

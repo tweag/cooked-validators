@@ -40,8 +40,8 @@ toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueL % txSkelOutValueAutoAdjustL
 -- The auto adjustment is enabled
 toTxSkelOutWithMinAda txSkelOut = do
   txSkelOut' <- go txSkelOut
-  let originalAda = txSkelOutValue txSkelOut ^. Script.adaL
-      updatedAda = txSkelOutValue txSkelOut' ^. Script.adaL
+  let originalAda = view (txSkelOutValueL % txSkelOutValueContentL % Script.adaL) txSkelOut
+      updatedAda = view (txSkelOutValueL % txSkelOutValueContentL % Script.adaL) txSkelOut'
   when (originalAda /= updatedAda) $ logEvent $ MCLogAdjustedTxSkelOut txSkelOut updatedAda
   return txSkelOut'
   where

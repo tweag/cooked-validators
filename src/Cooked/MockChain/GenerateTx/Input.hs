@@ -23,9 +23,9 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
       fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
         toScriptWitness validator txSkelRedeemer $
           case datum of
-            TxSkelOutNoDatum -> Cardano.ScriptDatumForTxIn Nothing
-            TxSkelOutSomeDatum _ Inline -> Cardano.InlineScriptDatum
-            TxSkelOutSomeDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat
+            NoTxSkelOutDatum -> Cardano.ScriptDatumForTxIn Nothing
+            SomeTxSkelOutDatum _ Inline -> Cardano.InlineScriptDatum
+            SomeTxSkelOutDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat
   throwOnToCardanoErrorOrApply
     "toTxInAndWitness: Unable to translate TxOutRef"
     (,Cardano.BuildTxWith witness)

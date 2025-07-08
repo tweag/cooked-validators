@@ -6,13 +6,13 @@ import Data.Default
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Set
 import Data.Set qualified as Set
 import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
 import ListT
 import Optics.Core
+import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -105,14 +105,14 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 aliceNonOnlyValueUtxos =
   utxosOwnedBySearch alice `filterWithPred` \o ->
-    isJust (txSkelOutReferenceScript o)
-      || isJust (preview (txSkelOutDatumL % txSkelOutDatumContentAT) o)
+    is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP) o
+      || is (txSkelOutDatumL % txSkelOutDatumKindAT) o
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m TxSkelOut
-aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` (\v -> Api.lovelaceValueOf v == Api.Lovelace (n * 1_000_000))
+aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` ((== Api.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` \o -> isJust (txSkelOutReferenceScript o)
+aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP)
 
 emptySearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 emptySearch = ListT.fromFoldable []
@@ -193,7 +193,7 @@ additionalOutsNb :: Int -> ResProp
 additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
 
 insNb :: Int -> ResProp
-insNb is (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == is
+insNb n (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == n
 
 colInsNb :: Int -> ResProp
 colInsNb cis (_, _, _, Nothing, _) = testBool $ cis == 0

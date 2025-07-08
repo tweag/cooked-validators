@@ -80,7 +80,7 @@ withReferenceInput red ref = red & txSkelRedeemerReferenceInputL ?~ ref
 -- right type. This second case is specifically useful when the current content
 -- is an 'Api.BuiltinData' itself directly, but it can also be used in the
 -- cornercase when both types have compatible serialized representation.
-txSkelRedeemerTypedAT :: (RedeemerConstrs a) => AffineTraversal' TxSkelRedeemer a
+txSkelRedeemerTypedAT :: (RedeemerConstrs a, RedeemerConstrs b) => AffineTraversal TxSkelRedeemer TxSkelRedeemer a b
 txSkelRedeemerTypedAT =
   atraversal
     ( \case

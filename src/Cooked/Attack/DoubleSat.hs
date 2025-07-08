@@ -117,7 +117,7 @@ doubleSatAttack groupings optic change attacker = do
     -- calculate its balance
     deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Api.Value
     deltaBalance (inputs, outputs, mints) = do
-      inValue <- foldMap (txSkelOutValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
+      inValue <- foldMap (view (txSkelOutValueL % txSkelOutValueContentL) . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate outValue <> mintValue
       where
         outValue = foldOf (traversed % txSkelOutValueL % txSkelOutValueContentL) outputs

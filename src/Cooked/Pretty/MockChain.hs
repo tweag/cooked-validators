@@ -221,12 +221,16 @@ instance PrettyCookedList UtxoPayloadSet where
               then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
-            (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> prettyCookedOpt opts dat) <$> utxoPayloadDatum,
+            (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> dat) <$> splitDatum utxoPayloadDatum,
             ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
           ] of
           [] -> Nothing
           [doc] -> Just $ PP.align doc
           docs -> Just . PP.align . PP.vsep $ docs
+
+      splitDatum :: UtxoPayloadDatum -> Maybe (DocCooked, Bool)
+      splitDatum NoUtxoPayloadDatum = Nothing
+      splitDatum (SomeUtxoPayloadDatum dat b) = Just (prettyCookedOpt opts dat, b)
 
 newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
 

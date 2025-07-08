@@ -35,4 +35,4 @@ toInsReference skel = do
         Cardano.TxInsReference Cardano.BabbageEraOnwardsConway cardanoRefInputs $
           Cardano.BuildTxWith $
             Set.fromList
-              [Ledger.toCardanoScriptData $ Api.toBuiltinData dat | TxSkelOutSomeDatum dat (Hashed _) <- resolvedOutputs]
+              [Ledger.toCardanoScriptData $ Api.toBuiltinData dat | SomeTxSkelOutDatum dat (Hashed _) <- resolvedOutputs]

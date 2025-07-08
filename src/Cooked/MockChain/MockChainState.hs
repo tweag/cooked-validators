@@ -74,18 +74,17 @@ mcstToUtxoState =
   where
     extractPayload :: UtxoState -> (Api.TxOutRef, (TxSkelOut, Bool)) -> UtxoState
     extractPayload utxoState (txOutRef, (txSkelOut, bool)) =
-      let newAddress = txSkelOutAddress txSkelOut
+      let newAddress = view txSkelOutAddressG txSkelOut
           newPayloadSet =
             UtxoPayloadSet
               [ UtxoPayload
                   txOutRef
-                  (txSkelOutValue txSkelOut)
+                  (view (txSkelOutValueL % txSkelOutValueContentL) txSkelOut)
                   ( case txSkelOut ^. txSkelOutDatumL of
-                      TxSkelOutNoDatum -> Nothing
-                      TxSkelOutSomeDatum content Inline -> Just (content, False)
-                      TxSkelOutSomeDatum content _ -> Just (content, True)
+                      NoTxSkelOutDatum -> NoUtxoPayloadDatum
+                      SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)
                   )
-                  (txSkelOutReferenceScriptHash txSkelOut)
+                  (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) txSkelOut)
               ]
        in if bool
             then utxoState {availableUtxos = Map.insertWith (<>) newAddress newPayloadSet (availableUtxos utxoState)}

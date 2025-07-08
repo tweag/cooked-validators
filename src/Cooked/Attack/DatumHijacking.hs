@@ -49,7 +49,7 @@ redirectOutputTweakAll outputPred indexPred = do
     go (out : l) n =
       case preview (txSkelOutTypedOwnerAT @owner) out >> outputPred out of
         Nothing -> (Nothing, out) : go l n
-        Just newOwner | indexPred n -> (Just out, out {tsoOwner = newOwner}) : go l (n + 1)
+        Just newOwner | indexPred n -> (Just out, out & txSkelOutTypedOwnerAT @owner .~ newOwner) : go l (n + 1)
         _ -> (Nothing, out) : go l (n + 1)
 
 -- | A version of 'redirectOutputTweakAll' where, instead of modifying all the
@@ -73,7 +73,7 @@ redirectOutputTweakAny outputPred indexPred = viewTweak txSkelOutsL >>= go [] 0
                 newOwner <- outputPred out
                 return $
                   mplus
-                    (setTweak txSkelOutsL (l' ++ out {tsoOwner = newOwner} : l) >> return out)
+                    (setTweak txSkelOutsL (l' ++ (out & txSkelOutTypedOwnerAT @owner .~ newOwner) : l) >> return out)
                     (go (l' ++ [out]) (n + 1) l)
             )
     go l' n (out : l) = go (l' ++ [out]) n l

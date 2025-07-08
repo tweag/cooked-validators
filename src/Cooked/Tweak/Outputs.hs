@@ -60,7 +60,7 @@ instance PrettyCooked TamperDatumLbl where
 -- modification was applied to them.
 tamperDatumTweak :: forall a m. (MonadTweak m, DatumConstrs a) => (a -> Maybe a) -> m [a]
 tamperDatumTweak change = do
-  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutTypedDatumAT) change
+  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
   guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
@@ -96,9 +96,9 @@ malformDatumTweak change = do
     changeOutput :: TxSkelOut -> [TxSkelOut]
     changeOutput txSkelOut =
       do
-        typedDat <- maybeToList $ txSkelOut ^? txSkelOutDatumL % txSkelOutTypedDatumAT
+        typedDat <- maybeToList $ txSkelOut ^? txSkelOutDatumL % txSkelOutDatumTypedAT
         modifiedDat <- change typedDat
-        return $ txSkelOut & txSkelOutDatumL % txSkelOutDatumContentAT .~ DatumContent modifiedDat
+        return $ txSkelOut & txSkelOutDatumL % txSkelOutDatumTypedAT @a .~ modifiedDat
 
 -- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been
 -- successfully applied

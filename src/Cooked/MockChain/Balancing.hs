@@ -25,12 +25,12 @@ import Data.Bifunctor
 import Data.Function
 import Data.List (find, partition, sortBy)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
+import Optics.Core.Extras
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -101,7 +101,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
             runUtxoSearch (txOutByRefSearch (Set.toList utxos))
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              >>= filterAndWarn (isJust . txSkelOutPKHash . snd) "They belong to scripts."
+              >>= filterAndWarn (is txSkelOutPKHashAT . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
           >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
@@ -261,14 +261,14 @@ reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
 reachValue _ _ maxEls | maxEls == 0 = []
 -- The target is not reached, and cannot possibly be reached, as the remaining
 -- candidates do not sum up to the target.
-reachValue l target _ | not $ target `Api.leq` mconcat (txSkelOutValue . snd <$> l) = []
+reachValue l target _ | not $ target `Api.leq` mconcat (view (txSkelOutValueL % txSkelOutValueContentL) . snd <$> l) = []
 -- There is no more elements to go through and the target has not been
 -- reached. Encompassed by the previous case, but needed by GHC.
 reachValue [] _ _ = []
 -- Main recursive case, where we either pick or drop the head. We only pick the
 -- head if it contributes to reaching the target, i.e. if its intersection with
 -- the positive part of the target is not empty.
-reachValue (h@(_, txSkelOutValue -> hVal) : t) target maxEls =
+reachValue (h@(_, view (txSkelOutValueL % txSkelOutValueContentL) -> hVal) : t) target maxEls =
   (++) (reachValue t target maxEls) $
     if snd (Api.split target) PlutusTx./\ hVal == mempty
       then []
@@ -336,7 +336,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   let candidatesRaw = second (<> missingRight') <$> reachValue balancingUtxos missingLeft' (toInteger $ length balancingUtxos)
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing wallet
-  let totalValue = mconcat $ txSkelOutValue . snd <$> balancingUtxos
+  let totalValue = mconcat $ view (txSkelOutValueL % txSkelOutValueContentL) . snd <$> balancingUtxos
       difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
       balancingError = MCEUnbalanceable balancingWallet difference
   -- Which one of our candidates should be picked depends on three factors
@@ -352,7 +352,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Nothing
-      | (before, txSkelOut : after) <- break (\(TxSkelOut {tsoOwner}) -> Script.toCredential tsoOwner == Script.toCredential balancingWallet) txSkelOuts,
+      | (before, txSkelOut : after) <- break ((== Script.toCredential balancingWallet) . view txSkelOutCredentialG) txSkelOuts,
         AdjustExistingOutput <- txSkelOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected

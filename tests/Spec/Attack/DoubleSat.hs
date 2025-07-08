@@ -94,7 +94,7 @@ tests =
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
                                       | (bOref, bOut) <- bUtxos,
-                                        txSkelOutValue bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        view (txSkelOutValueL % txSkelOutValueContentL) bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
@@ -150,7 +150,7 @@ tests =
                         ),
                   txSkelOuts =
                     [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
-                      wallet 6 `receives` Value (foldMap (txSkelOutValue . snd . snd) bInputs)
+                      wallet 6 `receives` Value (foldMap (view (txSkelOutValueL % txSkelOutValueContentL) . snd . snd) bInputs)
                     ],
                   txSkelSigners = [wallet 1]
                 }

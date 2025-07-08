@@ -5,7 +5,6 @@ module Spec.Tweak.TamperDatum where
 
 import Cooked
 import Data.Either
-import Data.Maybe (mapMaybe)
 import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
@@ -53,12 +52,7 @@ malformDatumTweakTest :: TestTree
 malformDatumTweakTest =
   testCase "malformDatumTweak" $
     let allBuiltinData :: TxSkel -> [PlutusTx.BuiltinData]
-        allBuiltinData txSkel =
-          mapMaybe
-            ( fmap PlutusTx.toBuiltinData
-                . preview (txSkelOutDatumL % txSkelOutDatumContentAT)
-            )
-            (txSkelOuts txSkel)
+        allBuiltinData = toListOf (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT)
 
         txSkelWithDatums1And4 :: (PlutusTx.ToData a, PlutusTx.ToData b) => a -> b -> [PlutusTx.BuiltinData]
         txSkelWithDatums1And4 datum1 datum4 =

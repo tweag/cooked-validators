@@ -204,12 +204,12 @@ instance PrettyCooked Mint where
 
 instance PrettyCookedList TxSkelOut where
   prettyCookedOptList opts output =
-    [ prettyCookedOpt opts (txSkelOutAddress output),
-      prettyCookedOpt opts (txSkelOutValue output)
+    [ prettyCookedOpt opts (view txSkelOutAddressG output),
+      prettyCookedOpt opts (view (txSkelOutValueL % txSkelOutValueContentL) output)
     ]
       ++ catMaybes
         [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),
-          ("Reference script hash:" <+>) . prettyHash opts <$> txSkelOutRefScriptHash (output ^. txSkelOutReferenceScriptL)
+          ("Reference script hash:" <+>) . prettyHash opts <$> preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) output
         ]
 
 instance PrettyCooked TxSkelOut where
@@ -219,31 +219,28 @@ instance PrettyCooked TxSkelOut where
 
 -- | Prints a 'TxSkelOutDatum' when different from 'TxSkelOutNoDatum'
 instance PrettyCookedMaybe TxSkelOutDatum where
-  prettyCookedOptMaybe _ TxSkelOutNoDatum = Nothing
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat Inline) =
+  prettyCookedOptMaybe _ NoTxSkelOutDatum = Nothing
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat Inline) =
     Just $
       "Datum (inline)"
         <+> "("
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed NotResolved)) =
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat (Hashed NotResolved)) =
     Just $
       "Datum (hashed, hidden)"
         <+> "("
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed Resolved)) =
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat (Hashed Resolved)) =
     Just $
       "Datum (hashed, visible)"
         <+> "("
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-
-instance PrettyCooked DatumContent where
-  prettyCookedOpt opts (DatumContent dat) = prettyCookedOpt opts dat
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default.
