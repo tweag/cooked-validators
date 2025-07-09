@@ -58,7 +58,6 @@ import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A transaction skeleton. This is cooked-validators's variant of transaction
@@ -180,7 +179,7 @@ txSkelKnownTxOutRefs skel@TxSkel {..} =
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = Script.toValue . foldOf (txSkelWithdrawalsL % to Map.toList % traversed % _2 % _2)
+txSkelWithdrawnValue = review valueLovelaceP . foldOf (txSkelWithdrawalsL % to Map.toList % traversed % _2 % _2)
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
 txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]

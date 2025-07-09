@@ -7,7 +7,9 @@ module Cooked.Skeleton.Value
     txSkelOutValueContentL,
     txSkelOutValueAutoAdjustL,
     valueAssetClassAmountL,
-    txSkelOutValueAssetClassAmountL,
+    valueLovelaceL,
+    valueAssetClassAmountP,
+    valueLovelaceP,
   )
 where
 
@@ -63,7 +65,29 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
         Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
     )
 
--- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'
--- from a given 'TxSkelOutValue'. The removes the entry if the new amount is 0.
-txSkelOutValueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' TxSkelOutValue Integer
-txSkelOutValueAssetClassAmountL mp tk = txSkelOutValueContentL % valueAssetClassAmountL mp tk
+-- | Isomorphism between 'Api.Lovelace' and integers
+lovelaceIntegerI :: Iso' Api.Lovelace Integer
+lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
+
+-- | Focus the Lovelace part in a value.
+valueLovelaceL :: Lens' Api.Value Api.Lovelace
+valueLovelaceL = valueAssetClassAmountL Api.adaSymbol Api.adaToken % re lovelaceIntegerI
+
+-- | A prism to build a value from an asset class and amount, or retrieves the
+-- amount from this asset class if it is not zero
+valueAssetClassAmountP :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Prism' Api.Value Integer
+valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
+  | ac <- Api.assetClass cs tk =
+      prism
+        ( \case
+            i | i == 0 -> mempty
+            i -> Api.assetClassValue ac i
+        )
+        ( \val -> case val `Api.assetClassValueOf` ac of
+            i | i == 0 -> Left val
+            i -> Right i
+        )
+
+-- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'
+valueLovelaceP :: Prism' Api.Value Api.Lovelace
+valueLovelaceP = valueAssetClassAmountP Api.adaSymbol Api.adaToken % re lovelaceIntegerI
