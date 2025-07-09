@@ -153,9 +153,7 @@ txSkelMintsListI =
 --
 -- > Map.fromList [(pol, (red', NEMap.fromList [(tName, -1)]))]
 --
--- will combine to become the empty 'TxSkelMints' (and similar examples, where
--- the values add up to zero, see the comment at the definition of
--- 'addMint').
+-- will combine to become the empty 'TxSkelMints'
 --
 -- In every case, if you add mints with a different redeemer for the same
 -- policy, the redeemer used in the right argument takes precedence.

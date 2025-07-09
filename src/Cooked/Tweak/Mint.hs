@@ -10,9 +10,8 @@ import Cooked.Tweak.Common
 import Data.List (partition)
 import Optics.Core
 
--- | Adds a new entry to the 'TxSkelMints' of the transaction skeleton under
--- modification. As this is implemented in terms of 'addMint', the same caveats
--- apply as do to that function!
+-- | Adds new entries to the 'TxSkelMints' of the transaction skeleton under
+-- modification.
 addMintsTweak :: (MonadTweak m) => [Mint] -> m ()
 addMintsTweak newMints = overTweak (txSkelMintsL % txSkelMintsListI) (++ newMints)
 
