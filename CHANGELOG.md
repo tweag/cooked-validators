@@ -4,6 +4,16 @@
 
 ### Added
 
+### Removed
+
+### Changed
+
+### Fixed
+
+## [[7.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v7.0.0) - 2025-07-08
+
+### Added
+
 - Module `Cooked.Skeleton.ReferenceScript`, exposing `ReferenceScriptConstrs`
   (type constraints for reference scripts), `TxSkelOutReferenceScript` (type of
   references scripts, with constructors `TxSkelOutNoReferenceScript` and
