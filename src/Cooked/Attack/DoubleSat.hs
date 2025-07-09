@@ -121,14 +121,14 @@ doubleSatAttack groupings optic change attacker = do
       return $ inValue <> PlutusTx.negate outValue <> mintValue
       where
         outValue = foldOf (traversed % txSkelOutValueL % txSkelOutValueContentL) outputs
-        mintValue = txSkelMintsValue mints
+        mintValue = view txSkelMintsValueG mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
     addDoubleSatDeltaTweak :: (MonadTweak m) => DoubleSatDelta -> m ()
     addDoubleSatDeltaTweak (ins, outs, mints) =
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs
-        >> mapM_ addMintTweak (txSkelMintsToList mints)
+        >> addMintsTweak (view txSkelMintsListI mints)
 
     -- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
     -- eveything that is contained in the input.

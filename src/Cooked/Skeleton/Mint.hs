@@ -9,13 +9,12 @@ module Cooked.Skeleton.Mint
     mintTokensL,
     mint,
     burn,
-    addMint,
-    addMints,
-    txSkelMintsToList,
-    txSkelMintsFromList,
-    txSkelMintsValue,
+    txSkelMintsValueG,
     txSkelMintsListI,
     mintVersionedScriptL,
+    txSkelMintsAssetClassAmountL,
+    txSkelMintsFromList,
+    txSkelMintsValue,
   )
 where
 
@@ -26,6 +25,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
 import Data.Map.NonEmpty qualified as NEMap
+import Data.Maybe
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -42,6 +42,41 @@ type TxSkelMints =
   Map
     (Script.Versioned Script.MintingPolicy)
     (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
+
+-- | Sets or gets the amount of tokens minted for a certain asset class,
+-- represented by a token name and a versioned minting policy. This removes the
+-- appropriate entries (the token entry, and possible the mp entry if it would
+-- leave it empty) when setting the amount to 0. This function is very similar
+-- to 'Cooked.Skeleton.Value.valueAssetClassAmountL' but it also involves the
+-- 'TxSkelRedeemer' associated with the minting policy.
+txSkelMintsAssetClassAmountL :: (Script.ToVersioned Script.MintingPolicy mp) => mp -> Api.TokenName -> Lens' TxSkelMints (Maybe TxSkelRedeemer, Integer)
+txSkelMintsAssetClassAmountL (Script.toVersioned @Script.MintingPolicy -> mp) tk =
+  lens
+    ( maybe
+        (Nothing, 0)
+        ( \(red, tokenMap) ->
+            (Just red, maybe 0 getNonZero $ NEMap.lookup tk tokenMap)
+        )
+        . Map.lookup mp
+    )
+    ( \mint (newRed, i) -> case Map.lookup mp mint of
+        -- No previous mp entry and nothing to add
+        Nothing | i == 0 -> mint
+        -- No previous mp entry and something to add by no redeemer to attach
+        Nothing | Nothing <- newRed -> mint
+        -- No previous mp entry, something to add and a redeemer to attach
+        Nothing | Just newRed' <- newRed -> Map.insert mp (newRed', NEMap.singleton tk (NonZero i)) mint
+        -- A previous mp and tk entry, which needs to be removed and the whole
+        -- mp entry as well because it only containes this tk.
+        Just (NEMap.nonEmptyMap . NEMap.delete tk . snd -> Nothing) | i == 0 -> Map.delete mp mint
+        -- A prevous mp and tk entry, which needs to be removed, but the whole
+        -- mp entry has other tokens and thus is kept with the new redeemer if
+        -- it exists. If it does not, the previous one is kept.
+        Just (prevRed, NEMap.nonEmptyMap . NEMap.delete tk -> Just tokenMap) | i == 0 -> Map.insert mp (fromMaybe prevRed newRed, tokenMap) mint
+        -- A previous mp entry, in which we insert the new tk, regardless if
+        -- it's already there or not, with the new redeemer.
+        Just (prevRed, tokenMap) -> Map.insert mp (fromMaybe prevRed newRed, NEMap.insert tk (NonZero i) tokenMap) mint
+    )
 
 -- | A description of a new entry to be added in a 'TxSkelMints'. The users
 -- should be using lists of those (using 'txSkelMintsFromList') instead of
@@ -77,55 +112,6 @@ mint mp red tn n = Mint mp red [(tn, n)]
 burn :: (Script.ToVersioned Script.MintingPolicy a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
 burn mp red tn n = mint mp red tn (-n)
 
--- | For each pair (tokenName, amount) in the input list, either:
---
--- - adds this new entry in the map if tokenName was not already a key
---
--- - updates the existing number of tokens associated with tokenName by adding
--- amount. Since amount can be negative, this addition can result in lowering
--- the amount of tokens present in the map. If it reaches exactly 0, the entry
--- is removed. As a consequences, if all inputs happen to cancel the existing
--- number of tokens for each tokenName, this will remove all entries in the map,
--- which is why the return value is wrapped in 'Maybe'.
-addTokens :: [(Api.TokenName, Integer)] -> NEMap Api.TokenName (NonZero Integer) -> Maybe (NEMap Api.TokenName (NonZero Integer))
-addTokens [] neMap = Just neMap
-addTokens ((_, n) : l) neMap | n == 0 = addTokens l neMap
-addTokens ((tn, n) : l) neMap = case addTokens l neMap of
-  Nothing -> Just $ NEMap.singleton tn (NonZero n)
-  Just neMap' -> case NEMap.lookup tn neMap' of
-    Nothing -> Just $ NEMap.insert tn (NonZero n) neMap'
-    Just (NonZero n') | n - n' == 0 -> NEMap.nonEmptyMap $ NEMap.delete tn neMap'
-    Just (NonZero n') -> Just $ NEMap.insert tn (NonZero (n + n')) neMap'
-
--- | Add a new entry to a 'TxSkelMints'. There are a few wrinkles:
---
--- (1) If for a given policy, redeemer, and token name, there are @n@ tokens in
--- the argument 'TxSkelMints', and you add @-n@ tokens, the corresponding entry
--- in the "inner map" of the policy will disappear (obviously, because all of
--- its values have to be non-zero). If that also means that the inner map
--- becomes empty, the policy will disappear from the 'TxSkelMints' altogether.
---
--- (2) If a policy is already present on the argument 'TxSkelMints' with a
--- redeemer @a@, and you add a mint with a different redeemer @b@, the old
--- redeemer is thrown away. The values associated with the token names of that
--- policy are added as described above, though. This means that any pre-existing
--- values will be minted with a new redeemer.
-addMint :: TxSkelMints -> Mint -> TxSkelMints
-addMint txSkelMints (Mint _ _ []) = txSkelMints
-addMint txSkelMints (Mint (Script.toVersioned -> mp) red tks@((tn, NonZero -> n) : tkxs)) =
-  case Map.lookup mp txSkelMints of
-    Nothing -> case addTokens tkxs (NEMap.singleton tn n) of
-      Nothing -> txSkelMints
-      Just newSubmap -> Map.insert mp (red, newSubmap) txSkelMints
-    Just (_, subMap) -> case addTokens tks subMap of
-      Nothing -> Map.delete mp txSkelMints
-      Just newSubmap -> Map.insert mp (red, newSubmap) txSkelMints
-
--- | Adds a list of 'Mint' to a 'TxSkelMints', by iterating over the list
--- and using 'addMint'
-addMints :: TxSkelMints -> [Mint] -> TxSkelMints
-addMints = foldl addMint
-
 -- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
 --
 -- > Map.fromList [(pol, (red, NEMap.fromList [(tName, 1)]))]
@@ -141,29 +127,34 @@ addMints = foldl addMint
 -- In every case, if you add mints with a different redeemer for the same
 -- policy, the redeemer used in the right argument takes precedence.
 instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
-  a <> b = addMints a (txSkelMintsToList b)
+  a <> b = review txSkelMintsListI $ view txSkelMintsListI a ++ view txSkelMintsListI b
 
 instance {-# OVERLAPPING #-} Monoid TxSkelMints where
   mempty = Map.empty
 
--- | Seing a 'TxSkelMints' as a list of 'Mint'
+-- | Seeing a 'TxSkelMints' as a list of 'Mint'
 txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
     (map (\(p, (r, m)) -> Mint p r $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList)
-    (addMints mempty)
+    ( foldl
+        ( \mints (Mint mp red tks) ->
+            foldl
+              (\mints' (tk, n) -> mints' & txSkelMintsAssetClassAmountL mp tk %~ (\(_, n') -> (Just red, n + n')))
+              mints
+              tks
+        )
+        mempty
+    )
 
--- | Convert from 'TxSkelMints' to a list of 'Mint'
-txSkelMintsToList :: TxSkelMints -> [Mint]
-txSkelMintsToList = view txSkelMintsListI
-
--- | A smart constructor for 'TxSkelMints'
+-- | This builds a 'TxSkelMints' from a list of 'Mint', which should be the main
+-- way of declaring minted values in a 'Cooked.Skeleton.TxSkel'.
 txSkelMintsFromList :: [Mint] -> TxSkelMints
 txSkelMintsFromList = review txSkelMintsListI
 
 -- | The value described by a 'TxSkelMints'
-txSkelMintsValue :: TxSkelMints -> Api.Value
-txSkelMintsValue txSkelMints =
+txSkelMintsValueG :: Getter TxSkelMints Api.Value
+txSkelMintsValueG = to $ \txSkelMints ->
   Api.Value $
     PMap.unsafeFromList $
       ( \(mp, (_, tks)) ->
@@ -174,3 +165,7 @@ txSkelMintsValue txSkelMints =
           )
       )
         <$> Map.toList txSkelMints
+
+-- | This retrieves the 'Api.Value' from a 'TxSkelMints'
+txSkelMintsValue :: TxSkelMints -> Api.Value
+txSkelMintsValue = view txSkelMintsValueG

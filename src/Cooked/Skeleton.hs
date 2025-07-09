@@ -49,7 +49,6 @@ import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
-import Data.Either
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -181,16 +180,16 @@ txSkelKnownTxOutRefs skel@TxSkel {..} =
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawnValue = Script.toValue . foldOf (txSkelWithdrawalsL % to Map.toList % traversed % _2 % _2)
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
 txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawingScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traversed % _1 % _Left)
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelProposingScripts = mapMaybe (fmap fst . txSkelProposalWitness) . txSkelProposals
+txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalWitnessL % _Just % _1)
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
 txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelMintingScripts = fmap (view mintVersionedScriptL) . txSkelMintsToList . txSkelMints
+txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintVersionedScriptL)

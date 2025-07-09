@@ -28,7 +28,7 @@ addTokenAttack ::
   o ->
   m Api.Value
 addTokenAttack extraTokens attacker = do
-  oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
+  oldMintsList <- viewTweak $ txSkelMintsL % txSkelMintsListI
   let (newMintsList, totalIncrement) =
         foldl
           ( \(newMs, addVal) (Mint mp@(Script.toVersioned @Script.MintingPolicy -> mp') red tks) ->
@@ -40,7 +40,7 @@ addTokenAttack extraTokens attacker = do
           ([], mempty)
           oldMintsList
   guard (totalIncrement /= mempty)
-  setTweak txSkelMintsL $ txSkelMintsFromList newMintsList
+  setTweak (txSkelMintsL % txSkelMintsListI) newMintsList
   addOutputTweak $ attacker `receives` Value totalIncrement
   addLabelTweak AddTokenLbl
   return totalIncrement

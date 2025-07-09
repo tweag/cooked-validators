@@ -41,7 +41,7 @@ instance PrettyCookedList (Contextualized TxSkel) where
   prettyCookedOptListMaybe opts cTxSkel
     | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals <- ctxContent cTxSkel =
         [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
-          prettyItemizeNonEmpty opts "Mints:" "-" (txSkelMintsToList mints),
+          prettyItemizeNonEmpty opts "Mints:" "-" (view txSkelMintsListI mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty opts "Signers:" "-" (txopts, signers),
           prettyItemizeNonEmpty opts "Inputs:" "-" ((<$ cTxSkel) . uncurry Input <$> Map.toList ins),
