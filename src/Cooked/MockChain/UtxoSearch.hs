@@ -7,7 +7,7 @@ module Cooked.MockChain.UtxoSearch
     allUtxosSearch,
     utxosOwnedBySearch,
     utxosFromCardanoTxSearch,
-    txOutByRefSearch,
+    txSkelOutByRefSearch,
     filterWith,
     filterWithPure,
     filterWithOptic,
@@ -60,13 +60,13 @@ allUtxosSearch = allUtxos >>= ListT.fromFoldable
 utxosOwnedBySearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
 utxosOwnedBySearch = utxosAt . Script.toAddress >=> ListT.fromFoldable
 
--- | Search all 'Api.TxOut's corresponding to given the list of
+-- | Search all 'Cooked.Skelelton.Output.TxSkelOut's corresponding to given the list of
 -- 'Api.TxOutRef's. Any 'Api.TxOutRef' that doesn't correspond to a known output
 -- will be filtered out.
-txOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m TxSkelOut
-txOutByRefSearch orefs =
+txSkelOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m TxSkelOut
+txSkelOutByRefSearch orefs =
   ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
-    `filterWith` txOutByRef
+    `filterWith` ((Just <$>) . txSkelOutByRef)
 
 -- | Search all 'Api.TxOutRef's of a transaction, together with their
 -- 'Api.TxOut'.

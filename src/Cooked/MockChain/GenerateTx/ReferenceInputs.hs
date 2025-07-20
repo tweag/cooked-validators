@@ -30,7 +30,7 @@ toInsReference skel = do
         throwOnToCardanoError
           "toInsReference: Unable to translate reference inputs."
           (mapM Ledger.toCardanoTxIn refInputs)
-      resolvedDatums <- mapM (unsafeViewByRef txSkelOutDatumL) refInputs
+      resolvedDatums <- mapM (viewByRef txSkelOutDatumL) refInputs
       return $
         Cardano.TxInsReference Cardano.BabbageEraOnwardsConway cardanoRefInputs $
           Cardano.BuildTxWith $

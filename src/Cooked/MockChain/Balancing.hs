@@ -98,7 +98,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            runUtxoSearch (txOutByRefSearch (Set.toList utxos))
+            runUtxoSearch (txSkelOutByRefSearch (Set.toList utxos))
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
               >>= filterAndWarn (is txSkelOutPKHashAT . snd) "They belong to scripts."
@@ -233,7 +233,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
+  collateralTxOuts <- runUtxoSearch (txSkelOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
   let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
   -- Preparing a possible collateral error

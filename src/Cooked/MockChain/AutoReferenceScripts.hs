@@ -44,7 +44,7 @@ toTxSkelWithReferenceScripts txSkel@TxSkel {..} = do
   newMints <- forM (view txSkelMintsListI txSkelMints) $ \(Mint mPol red tks) ->
     (\x -> Mint mPol x tks) <$> updateRedeemer (Script.toVersioned @Script.MintingPolicy mPol) inputs red
   newInputs <- forM (Map.toList txSkelIns) $ \(oRef, red) -> do
-    validatorM <- preview txSkelOutValidatorAT <$> unsafeTxOutByRef oRef
+    validatorM <- previewByRef txSkelOutValidatorAT oRef
     case validatorM of
       Nothing -> return (oRef, red)
       Just scriptHash -> (oRef,) <$> updateRedeemer scriptHash inputs red

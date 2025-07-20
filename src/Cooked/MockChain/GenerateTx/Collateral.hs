@@ -48,7 +48,7 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- Retrieving the total value in collateral inputs. This fails if one of the
   -- collateral inputs has not been successfully resolved.
   collateralInsValue <-
-    foldM (\val -> ((val <>) <$>) . unsafeViewByRef (txSkelOutValueL % txSkelOutValueContentL)) mempty collateralInsList
+    foldM (\val -> ((val <>) <$>) . viewByRef (txSkelOutValueL % txSkelOutValueContentL)) mempty collateralInsList
   -- We retrieve the collateral percentage compared to fees. By default, we use
   -- 150% which is the current value in the parameters, although the default
   -- value should never be used here, as the call is supposed to always succeed.

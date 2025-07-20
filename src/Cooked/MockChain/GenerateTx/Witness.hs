@@ -41,7 +41,7 @@ toRewardAccount cred =
 toPlutusScriptOrReferenceInput :: (MonadBlockChainBalancing m) => Script.Versioned Script.Script -> Maybe Api.TxOutRef -> m (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
-  (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) -> mScriptHash) <- unsafeTxOutByRef scriptOutRef
+  (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) -> mScriptHash) <- txSkelOutByRef scriptOutRef
   case mScriptHash of
     Just scriptHash'
       | scriptHash == scriptHash' ->

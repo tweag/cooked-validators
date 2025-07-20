@@ -72,7 +72,7 @@ data MockChainBuiltin a where
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe TxSkelOut)
+  TxSkelOutByRef :: Api.TxOutRef -> MockChainBuiltin TxSkelOut
   WaitNSlots :: (Integral i) => i -> MockChainBuiltin Ledger.Slot
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
@@ -127,7 +127,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         (_, skel') <- lift $ runTweakInChain now skel
         put later
         validateTxSkel skel'
-  interpBuiltin (TxOutByRef o) = txOutByRef o
+  interpBuiltin (TxSkelOutByRef o) = txSkelOutByRef o
   interpBuiltin (WaitNSlots s) = waitNSlots s
   interpBuiltin AllUtxos = allUtxos
   interpBuiltin (UtxosAt address) = utxosAt address
@@ -199,7 +199,7 @@ instance MonadError MockChainError StagedMockChain where
 
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
-  txOutByRef = singletonBuiltin . TxOutByRef
+  txSkelOutByRef = singletonBuiltin . TxSkelOutByRef
   utxosAt = singletonBuiltin . UtxosAt
   logEvent = singletonBuiltin . LogEvent
 

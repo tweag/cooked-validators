@@ -41,7 +41,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
         }
 
 retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
-retrieveRefScriptHash = (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) <$>) . unsafeTxOutByRef
+retrieveRefScriptHash = previewByRef (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF)
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>

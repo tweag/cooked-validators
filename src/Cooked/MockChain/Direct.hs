@@ -172,11 +172,11 @@ runMockChain = runIdentity . runMockChainT
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
-  txOutByRef outref = do
-    res <- gets $ Map.lookup outref . mcstOutputs
-    return $ case res of
-      Just (txSkelOut, True) -> Just txSkelOut
-      _ -> Nothing
+  txSkelOutByRef oRef = do
+    res <- gets $ Map.lookup oRef . mcstOutputs
+    case res of
+      Just (txSkelOut, True) -> return txSkelOut
+      _ -> throwError $ MCEUnknownOutRef oRef
   utxosAt (Script.toAddress -> addr) = filter ((addr ==) . view txSkelOutAddressG . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
