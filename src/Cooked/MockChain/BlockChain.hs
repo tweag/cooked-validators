@@ -23,10 +23,6 @@ module Cooked.MockChain.BlockChain
     currentMSRange,
     utxosFromCardanoTx,
     unsafeTxOutByRef,
-    typedDatumFromTxOutRef,
-    valueFromTxOutRef,
-    outputDatumFromTxOutRef,
-    datumFromTxOutRef,
     currentSlot,
     awaitSlot,
     getEnclosingSlot,
@@ -44,11 +40,11 @@ module Cooked.MockChain.BlockChain
     txSkelProposalsDeposit,
     govActionDeposit,
     defineM,
-    unsafeOutputDatumFromTxOutRef,
-    unsafeDatumFromTxOutRef,
-    unsafeTypedDatumFromTxOutRef,
-    unsafeValueFromTxOutRef,
     txSkelAllScripts,
+    unsafePreviewByRef,
+    unsafeViewByRef,
+    previewByRef,
+    viewByRef,
   )
 where
 
@@ -79,7 +75,6 @@ import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -192,11 +187,23 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
 
 -- * Mockchain helpers
 
+viewByRef :: (MonadBlockChainBalancing m, Is g A_Getter) => Optic' g is TxSkelOut c -> Api.TxOutRef -> m (Maybe c)
+viewByRef optic = (fmap (view optic) <$>) . txOutByRef
+
+previewByRef :: (MonadBlockChainBalancing m, Is af An_AffineFold) => Optic' af is TxSkelOut c -> Api.TxOutRef -> m (Maybe c)
+previewByRef optic = ((>>= preview optic) <$>) . txOutByRef
+
 -- | Same as 'txOutByRef' but throws an error in case of missing utxo. Use this
 -- when you know the utxo is present, or when you want an error to be throw when
 -- it's not.
 unsafeTxOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOut
 unsafeTxOutByRef oRef = maybe (throwError (MCEUnknownOutRef oRef)) return =<< txOutByRef oRef
+
+unsafeViewByRef :: (MonadBlockChainBalancing m, Is g A_Getter) => Optic' g is TxSkelOut c -> Api.TxOutRef -> m c
+unsafeViewByRef optic = (view optic <$>) . unsafeTxOutByRef
+
+unsafePreviewByRef :: (MonadBlockChainBalancing m, Is af An_AffineFold) => Optic' af is TxSkelOut c -> Api.TxOutRef -> m (Maybe c)
+unsafePreviewByRef optic = (preview optic <$>) . unsafeTxOutByRef
 
 -- | Validates a skeleton, and retuns the ordered list of produced output
 -- references
@@ -225,40 +232,6 @@ utxosFromCardanoTx =
 defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
 defineM name = (define name =<<)
 
--- | Extracts a potential 'TxSkelOutDatum' from a given 'Api.TxOutRef'
-datumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe TxSkelOutDatum)
-datumFromTxOutRef = (fmap (view txSkelOutDatumL) <$>) . txOutByRef
-
--- | Same as 'datumFromTxOutRef' but throws an error when the utxo is missing
-unsafeDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m TxSkelOutDatum
-unsafeDatumFromTxOutRef = (view txSkelOutDatumL <$>) . unsafeTxOutByRef
-
--- | Extracts a potential 'Api.OutputDatum' from a given 'Api.TxOutRef'
-outputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
-outputDatumFromTxOutRef = (fmap Script.toOutputDatum <$>) . datumFromTxOutRef
-
--- | Same as 'outputDatumFromTxOutRef' but throws an error when the utxo is
--- missing
-unsafeOutputDatumFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.OutputDatum
-unsafeOutputDatumFromTxOutRef = fmap Script.toOutputDatum . unsafeDatumFromTxOutRef
-
--- | Like 'datumFromTxOutRef', but uses 'Api.fromBuiltinData' to attempt to
--- deserialize this datum into a given type
-typedDatumFromTxOutRef :: (DatumConstrs a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-typedDatumFromTxOutRef = ((>>= preview txSkelOutDatumTypedAT) <$>) . datumFromTxOutRef
-
--- | Like 'typedDatumFromTxOutRef' but throws an error when the utxo is missing
-unsafeTypedDatumFromTxOutRef :: (DatumConstrs a, MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe a)
-unsafeTypedDatumFromTxOutRef = (preview txSkelOutDatumTypedAT <$>) . unsafeDatumFromTxOutRef
-
--- | Resolves an 'Api.TxOutRef' and extracts the value it contains
-valueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.Value)
-valueFromTxOutRef = (fmap (view (txSkelOutValueL % txSkelOutValueContentL)) <$>) . txOutByRef
-
--- | Same as 'valueFromTxOutRef' but throws an error when the utxo is missing
-unsafeValueFromTxOutRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m Api.Value
-unsafeValueFromTxOutRef = (view (txSkelOutValueL % txSkelOutValueContentL) <$>) . unsafeTxOutByRef
-
 -- | Retrieves the required deposit amount for issuing governance actions.
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
 govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
@@ -285,7 +258,7 @@ lookupUtxos = foldM (\m oRef -> flip (Map.insert oRef) m <$> unsafeTxOutByRef oR
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
-txSkelInputValue = fmap mconcat . mapM unsafeValueFromTxOutRef . Map.keys . txSkelIns
+txSkelInputValue = fmap mconcat . mapM (unsafeViewByRef (txSkelOutValueL % txSkelOutValueContentL)) . Map.keys . txSkelIns
 
 -- * Slot and Time Management
 

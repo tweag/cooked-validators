@@ -20,7 +20,7 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
 
--- | A bundle arond an 'Api.Value' to be stored in a
+-- | A bundle around an 'Api.Value' to be stored in a
 -- 'Cooked.Skeleton.TxSkel'. This bundles offers the possibility to mark a value
 -- as adjustable, in case the ADA amount it contains is insufficient to sustain
 -- the storage cost of the UTxO containing it.
