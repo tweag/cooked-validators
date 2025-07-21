@@ -41,6 +41,8 @@ import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.AssocMap qualified as PMap
 
+-- * Requirements to be able to own a 'TxSkelOut'
+
 -- | A 'TxSkelOut' can either be owned by a pubkeyhash or a versioned validator
 class IsTxSkelOutAllowedOwner a where
   toPKHOrValidator :: a -> Either Api.PubKeyHash (Script.Versioned Script.Validator)
@@ -66,11 +68,9 @@ instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script
 instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
   toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
 
--- | Retrieves the credential of an allowed owner
+-- | Retrieves the credential of a 'TxSkelOut' allowed owner
 ownerCredentialG :: (IsTxSkelOutAllowedOwner owner) => Getter owner Api.Credential
-ownerCredentialG = to $ \owner -> case toPKHOrValidator owner of
-  Left pkh -> Api.PubKeyCredential pkh
-  Right val -> Api.ScriptCredential $ Script.toScriptHash val
+ownerCredentialG = to $ either Api.PubKeyCredential (Api.ScriptCredential . Script.toScriptHash) . toPKHOrValidator
 
 -- | Type constraints over the owner of a 'TxSkelOut'
 type OwnerConstrs owner =
@@ -78,6 +78,8 @@ type OwnerConstrs owner =
     Typeable owner,
     Show owner
   )
+
+-- * Definition of 'Cooked.Skeleton.TxSkel' outputs with associated optics
 
 -- | A rich output to be put into a 'Cooked.Skeleton.TxSkel'
 data TxSkelOut where
@@ -100,20 +102,20 @@ data TxSkelOut where
 
 deriving instance Show TxSkelOut
 
+-- | A lens to get or set the 'Maybe Api.StakingCredential' from a 'TxSkelOut'
+makeLensesFor [("txSkelOutStakingCredential", "txSkelOutStakingCredentialL")] ''TxSkelOut
+
 -- | A lens to get or set the 'TxSkelOutDatum' from a 'TxSkelOut'
 makeLensesFor [("txSkelOutDatum", "txSkelOutDatumL")] ''TxSkelOut
 
--- | A lens to get or set the 'TxSkelOutValue' from a 'TxSkelOut'
+-- | A lens to get or set the 'Api.Value' from a 'TxSkelOut'
 makeLensesFor [("txSkelOutValue", "txSkelOutValueL")] ''TxSkelOut
-
--- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
-makeLensesFor [("txSkelOutReferenceScript", "txSkelOutReferenceScriptL")] ''TxSkelOut
 
 -- | A lens to get or set if the value can be auto-adjusted if needed
 makeLensesFor [("txSkelOutValueAutoAdjust", "txSkelOutValueAutoAdjustL")] ''TxSkelOut
 
--- | A lens to get or set the 'Maybe Api.StakingCredential' from a 'TxSkelOut'
-makeLensesFor [("txSkelOutStakingCredential", "txSkelOutStakingCredentialL")] ''TxSkelOut
+-- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
+makeLensesFor [("txSkelOutReferenceScript", "txSkelOutReferenceScriptL")] ''TxSkelOut
 
 -- | Returns the credential of this 'TxSkelOut'
 txSkelOutCredentialG :: Getter TxSkelOut Api.Credential
@@ -165,6 +167,8 @@ txSkelOutValidatorAT =
 txSkelOutValidatorHashAF :: AffineFold TxSkelOut Script.ValidatorHash
 txSkelOutValidatorHashAF = txSkelOutValidatorAT % to Script.toValidatorHash
 
+-- * Additional optics revolving around 'Api.Value'
+
 -- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'
 -- from a given 'Api.Value'. This removes the entry if the new amount is 0.
 valueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' Api.Value Integer
@@ -213,6 +217,8 @@ valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
 -- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'
 valueLovelaceP :: Prism' Api.Value Api.Lovelace
 valueLovelaceP = valueAssetClassAmountP Api.adaSymbol Api.adaToken % re lovelaceIntegerI
+
+-- * Smart constructor to build 'TxSkelOut's
 
 -- | Smart constructor to build a 'TxSkelOut' from an owner and payment. This
 -- should be the main way of building outputs.
