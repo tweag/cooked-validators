@@ -4,9 +4,47 @@
 
 ### Added
 
+- `LtlDelay` delays a Ltl formula by n time stamps. `there` is now implemented
+  in terms of `LtlDelay`.
+- `viewByRef` and `previewByRef` which call `txSkelOutByRef` and apply a getter
+  and an affine fold on it, respectively.
+- Optics working on values in `Cooked.Skeleton.Output`
+- Missing instance of `IsTxSkelOutAllowedOwner` for `Versioned Script`
+- A new documentation file around optics, in `doc/OPTICS.md`
+
 ### Removed
 
+- Module `Cooked.Skeleton.Value`. `TxSkelOutValue` no longer exists and has been
+  replaced by two fields for `TxSkelOut`, `txSkelOutValue` and
+  `txSkelOutValueAutoAdjust`.
+- `unsafeTxOutByRef` which is now the default behavior for `txOutByRef`
+- Dedicated lookup functions for part of `TxSkelOut` such as
+  `typedDatumFromTxOutRef` as they have been replaced by `viewByRef` or
+  `previewByRef`.
+- `DatumContent`. In a `TxSkelOutDatum` the datum is now stored as is, and a new
+  type, `UtxoPayloadDatum` is used to store datum in utxo payloads.
+
 ### Changed
+
+- `TxOpts` replaced by `TxSkelOpts` and field names changed likewise.
+- `TxLabel` replaced by `TxSkelLabel`
+- `txOutByRef` replaced by `txSkelOutByRef`. It now throws an error if the
+  output is not found and thus it returns `m TxSkelOut` instead of `m (Maybe
+  TxSkelOut)`
+- Complete overhaul of the optics within skeleton. Their names has been made
+  consistent, the missing ones have been added and they are used more
+  consistently throughout the codebase.
+- `TxSkelMints` has been improved and clarified.
+- Transaction modifications in options are now called `txSkelModTx` and is now a
+  simple unwrapped function.
+- Parameters modifications in options are now called `txSkelModParams` and is
+  now a simple unwrapped function.
+- `ToCredential` is no longer a requirement for an owner of a `TxSkelOut`,
+  instead it is derived from `IsTxSkelOutAllowedOwner`
+- Some helpers, like `txSkelOutValue` are gone, as part of the optics overhaul,
+  and are replaced by their optics counterpart, such as `view txSkelOuValueL`. 
+- `addMintTweak` replaced by `addMintsTweak` which can add multiple mint
+  constraints in one go.
 
 ### Fixed
 
