@@ -21,6 +21,7 @@ module Cooked.Skeleton.Output
     valueLovelaceL,
     valueAssetClassAmountP,
     valueLovelaceP,
+    ownerCredentialG,
   )
 where
 
@@ -65,10 +66,15 @@ instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script
 instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
   toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
 
+-- | Retrieves the credential of an allowed owner
+ownerCredentialG :: (IsTxSkelOutAllowedOwner owner) => Getter owner Api.Credential
+ownerCredentialG = to $ \owner -> case toPKHOrValidator owner of
+  Left pkh -> Api.PubKeyCredential pkh
+  Right val -> Api.ScriptCredential $ Script.toScriptHash val
+
 -- | Type constraints over the owner of a 'TxSkelOut'
 type OwnerConstrs owner =
   ( IsTxSkelOutAllowedOwner owner,
-    Script.ToCredential owner,
     Typeable owner,
     Show owner
   )
@@ -111,7 +117,10 @@ makeLensesFor [("txSkelOutStakingCredential", "txSkelOutStakingCredentialL")] ''
 
 -- | Returns the credential of this 'TxSkelOut'
 txSkelOutCredentialG :: Getter TxSkelOut Api.Credential
-txSkelOutCredentialG = to $ \(TxSkelOut {txSkelOutOwner}) -> Script.toCredential txSkelOutOwner
+txSkelOutCredentialG = to $ \(TxSkelOut {txSkelOutOwner}) -> view ownerCredentialG txSkelOutOwner
+
+instance Script.ToCredential TxSkelOut where
+  toCredential = view txSkelOutCredentialG
 
 -- | Returns the address of this 'TxSkelOut'
 txSkelOutAddressG :: Getter TxSkelOut Api.Address
@@ -119,6 +128,9 @@ txSkelOutAddressG = to $ \txSkelOut ->
   Api.Address
     (view txSkelOutCredentialG txSkelOut)
     (view txSkelOutStakingCredentialL txSkelOut)
+
+instance Script.ToAddress TxSkelOut where
+  toAddress = view txSkelOutAddressG
 
 -- | Attempts to retrieve or set a typed owner from this 'TxSkelOut'
 txSkelOutTypedOwnerAT :: (OwnerConstrs a, OwnerConstrs b) => AffineTraversal TxSkelOut TxSkelOut a b

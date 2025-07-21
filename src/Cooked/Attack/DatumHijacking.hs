@@ -18,7 +18,6 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Data.Maybe
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 
@@ -108,7 +107,7 @@ datumHijackingAttackAll ::
 datumHijackingAttackAll change select thief = do
   redirected <- redirectOutputTweakAll @owner (\output -> if change output then Just thief else Nothing) select
   guard . not $ null redirected
-  addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
+  addLabelTweak $ DatumHijackingLbl $ view ownerCredentialG thief
   return redirected
 
 -- | A version of datumHijackingAttackAll relying on the rules of
@@ -128,7 +127,7 @@ datumHijackingAttackAny ::
   m TxSkelOut
 datumHijackingAttackAny change select thief = do
   redirected <- redirectOutputTweakAny @owner (\output -> if change output then Just thief else Nothing) select
-  addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
+  addLabelTweak $ DatumHijackingLbl $ view ownerCredentialG thief
   return redirected
 
 -- | The default datum hijacking attack. It tries to redirect any output for
