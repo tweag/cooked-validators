@@ -20,15 +20,15 @@
 </span><span id="line-20"></span><span class="hs-comment">-- | Ensure that a given 'Api.TxOutRef' is being spent with a given</span><span>
 </span><span id="line-21"></span><span class="hs-comment">-- 'TxSkelRedeemer'. The return value will be @Just@ the added data, if anything</span><span>
 </span><span id="line-22"></span><span class="hs-comment">-- changed.</span><span>
-</span><span id="line-23"></span><span id="local-6989586621679805672"><span class="annot"><a href="Cooked.Tweak.Inputs.html#ensureInputTweak"><span class="hs-identifier hs-type">ensureInputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679805672"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679805672"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-23"></span><span id="local-6989586621679807433"><span class="annot"><a href="Cooked.Tweak.Inputs.html#ensureInputTweak"><span class="hs-identifier hs-type">ensureInputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807433"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807433"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
 </span><span id="line-24"></span><span id="ensureInputTweak"><span class="annot"><span class="annottext">ensureInputTweak :: forall (m :: * -&gt; *).
 MonadTweak m =&gt;
 TxOutRef -&gt; TxSkelRedeemer -&gt; m (Maybe (TxOutRef, TxSkelRedeemer))
-</span><a href="Cooked.Tweak.Inputs.html#ensureInputTweak"><span class="hs-identifier hs-var hs-var">ensureInputTweak</span></a></span></span><span> </span><span id="local-6989586621679805778"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805778"><span class="hs-identifier hs-var">oref</span></a></span></span><span> </span><span id="local-6989586621679805779"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805779"><span class="hs-identifier hs-var">howConsumed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-25"></span><span>  </span><span id="local-6989586621679805780"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805780"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
+</span><a href="Cooked.Tweak.Inputs.html#ensureInputTweak"><span class="hs-identifier hs-var hs-var">ensureInputTweak</span></a></span></span><span> </span><span id="local-6989586621679807539"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679807539"><span class="hs-identifier hs-var">oref</span></a></span></span><span> </span><span id="local-6989586621679807540"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679807540"><span class="hs-identifier hs-var">howConsumed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679807541"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807541"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; m (Map TxOutRef TxSkelRedeemer)
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
@@ -36,15 +36,15 @@ Optic' k is TxSkel a -&gt; m a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.html#txSkelInsL"><span class="hs-identifier hs-var">txSkelInsL</span></a></span><span>
 </span><span id="line-26"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805780"><span class="hs-identifier hs-var">presentInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; TxOutRef -&gt; Maybe TxSkelRedeemer
+</span><a href="#local-6989586621679807541"><span class="hs-identifier hs-var">presentInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; TxOutRef -&gt; Maybe TxSkelRedeemer
 forall k a. Ord k =&gt; Map k a -&gt; k -&gt; Maybe a
 </span><span class="hs-operator hs-var">Map.!?</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805778"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxSkelRedeemer -&gt; Maybe TxSkelRedeemer -&gt; Bool
+</span><a href="#local-6989586621679807539"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe TxSkelRedeemer -&gt; Maybe TxSkelRedeemer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; Maybe TxSkelRedeemer
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805779"><span class="hs-identifier hs-var">howConsumed</span></a></span><span>
+</span><a href="#local-6989586621679807540"><span class="hs-identifier hs-var">howConsumed</span></a></span><span>
 </span><span id="line-27"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe (TxOutRef, TxSkelRedeemer)
 -&gt; m (Maybe (TxOutRef, TxSkelRedeemer))
 forall a. a -&gt; m a
@@ -66,8 +66,8 @@ Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
 -&gt; Map TxOutRef TxSkelRedeemer
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805778"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805779"><span class="hs-identifier hs-var">howConsumed</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679807539"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679807540"><span class="hs-identifier hs-var">howConsumed</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-30"></span><span>      </span><span class="annot"><span class="annottext">Maybe (TxOutRef, TxSkelRedeemer)
 -&gt; m (Maybe (TxOutRef, TxSkelRedeemer))
 forall a. a -&gt; m a
@@ -80,20 +80,20 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxSkelRedeemer) -&gt; Maybe (TxOutRef, TxSkelRedeemer)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805778"><span class="hs-identifier hs-var">oref</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805779"><span class="hs-identifier hs-var">howConsumed</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679807539"><span class="hs-identifier hs-var">oref</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679807540"><span class="hs-identifier hs-var">howConsumed</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-31"></span><span>
 </span><span id="line-32"></span><span class="hs-comment">-- | Add an input to a transaction. If the given 'Api.TxOutRef' is already being</span><span>
 </span><span id="line-33"></span><span class="hs-comment">-- consumed by the transaction, fail.</span><span>
-</span><span id="line-34"></span><span id="local-6989586621679805709"><span class="annot"><a href="Cooked.Tweak.Inputs.html#addInputTweak"><span class="hs-identifier hs-type">addInputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679805709"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679805709"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-34"></span><span id="local-6989586621679807470"><span class="annot"><a href="Cooked.Tweak.Inputs.html#addInputTweak"><span class="hs-identifier hs-type">addInputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807470"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807470"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-35"></span><span id="addInputTweak"><span class="annot"><span class="annottext">addInputTweak :: forall (m :: * -&gt; *).
 MonadTweak m =&gt;
 TxOutRef -&gt; TxSkelRedeemer -&gt; m ()
-</span><a href="Cooked.Tweak.Inputs.html#addInputTweak"><span class="hs-identifier hs-var hs-var">addInputTweak</span></a></span></span><span> </span><span id="local-6989586621679805800"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805800"><span class="hs-identifier hs-var">oref</span></a></span></span><span> </span><span id="local-6989586621679805801"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805801"><span class="hs-identifier hs-var">howConsumed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-36"></span><span>  </span><span id="local-6989586621679805802"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805802"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
+</span><a href="Cooked.Tweak.Inputs.html#addInputTweak"><span class="hs-identifier hs-var hs-var">addInputTweak</span></a></span></span><span> </span><span id="local-6989586621679807561"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679807561"><span class="hs-identifier hs-var">oref</span></a></span></span><span> </span><span id="local-6989586621679807562"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679807562"><span class="hs-identifier hs-var">howConsumed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679807563"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807563"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; m (Map TxOutRef TxSkelRedeemer)
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
@@ -105,8 +105,8 @@ forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; Map TxOutRef TxSkelRedeemer -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
 </span><span class="hs-identifier hs-var">Map.notMember</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805800"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805802"><span class="hs-identifier hs-var">presentInputs</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679807561"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807563"><span class="hs-identifier hs-var">presentInputs</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; (Map TxOutRef TxSkelRedeemer -&gt; Map TxOutRef TxSkelRedeemer)
 -&gt; m ()
@@ -120,35 +120,35 @@ Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
 -&gt; Map TxOutRef TxSkelRedeemer
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805800"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805801"><span class="hs-identifier hs-var">howConsumed</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679807561"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679807562"><span class="hs-identifier hs-var">howConsumed</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-39"></span><span>
 </span><span id="line-40"></span><span class="hs-comment">-- | Remove transaction inputs according to a given predicate. The returned list</span><span>
 </span><span id="line-41"></span><span class="hs-comment">-- contains all removed inputs.</span><span>
-</span><span id="line-42"></span><span id="local-6989586621679805715"><span class="annot"><a href="Cooked.Tweak.Inputs.html#removeInputTweak"><span class="hs-identifier hs-type">removeInputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679805715"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679805715"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-42"></span><span id="local-6989586621679807476"><span class="annot"><a href="Cooked.Tweak.Inputs.html#removeInputTweak"><span class="hs-identifier hs-type">removeInputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807476"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807476"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
 </span><span id="line-43"></span><span id="removeInputTweak"><span class="annot"><span class="annottext">removeInputTweak :: forall (m :: * -&gt; *).
 MonadTweak m =&gt;
 (TxOutRef -&gt; TxSkelRedeemer -&gt; Bool)
 -&gt; m [(TxOutRef, TxSkelRedeemer)]
-</span><a href="Cooked.Tweak.Inputs.html#removeInputTweak"><span class="hs-identifier hs-var hs-var">removeInputTweak</span></a></span></span><span> </span><span id="local-6989586621679805814"><span class="annot"><span class="annottext">TxOutRef -&gt; TxSkelRedeemer -&gt; Bool
-</span><a href="#local-6989586621679805814"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-44"></span><span>  </span><span id="local-6989586621679805815"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805815"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
+</span><a href="Cooked.Tweak.Inputs.html#removeInputTweak"><span class="hs-identifier hs-var hs-var">removeInputTweak</span></a></span></span><span> </span><span id="local-6989586621679807575"><span class="annot"><span class="annottext">TxOutRef -&gt; TxSkelRedeemer -&gt; Bool
+</span><a href="#local-6989586621679807575"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679807576"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807576"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; m (Map TxOutRef TxSkelRedeemer)
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; m a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.html#txSkelInsL"><span class="hs-identifier hs-var">txSkelInsL</span></a></span><span>
-</span><span id="line-45"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679805816"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805816"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679805817"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805817"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; TxSkelRedeemer -&gt; Bool)
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807577"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807577"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807578"><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807578"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; TxSkelRedeemer -&gt; Bool)
 -&gt; Map TxOutRef TxSkelRedeemer
 -&gt; (Map TxOutRef TxSkelRedeemer, Map TxOutRef TxSkelRedeemer)
 forall k a. (k -&gt; a -&gt; Bool) -&gt; Map k a -&gt; (Map k a, Map k a)
 </span><span class="hs-identifier hs-var">Map.partitionWithKey</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; TxSkelRedeemer -&gt; Bool
-</span><a href="#local-6989586621679805814"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805815"><span class="hs-identifier hs-var">presentInputs</span></a></span><span>
+</span><a href="#local-6989586621679807575"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
+</span><a href="#local-6989586621679807576"><span class="hs-identifier hs-var">presentInputs</span></a></span><span>
 </span><span id="line-46"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; Map TxOutRef TxSkelRedeemer -&gt; m ()
 forall (m :: * -&gt; *) k (is :: IxList) a.
@@ -156,7 +156,7 @@ forall (m :: * -&gt; *) k (is :: IxList) a.
 Optic' k is TxSkel a -&gt; a -&gt; m ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Map TxOutRef TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.html#txSkelInsL"><span class="hs-identifier hs-var">txSkelInsL</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805817"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><a href="#local-6989586621679807578"><span class="hs-identifier hs-var">kept</span></a></span><span>
 </span><span id="line-47"></span><span>  </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)] -&gt; m [(TxOutRef, TxSkelRedeemer)]
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -166,17 +166,17 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805816"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><a href="#local-6989586621679807577"><span class="hs-identifier hs-var">removed</span></a></span><span>
 </span><span id="line-48"></span><span>
 </span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- | Applies an optional modification to all spend redeemers of type a</span></span><span>
-</span><span id="line-50"></span><span class="annot"><a href="Cooked.Tweak.Inputs.html#modifySpendRedeemersOfTypeTweak"><span class="hs-identifier hs-type">modifySpendRedeemersOfTypeTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679805725"><span class="annot"><a href="#local-6989586621679805725"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679805726"><span class="annot"><a href="#local-6989586621679805726"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679805728"><span class="annot"><a href="#local-6989586621679805728"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679805725"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#RedeemerConstrs"><span class="hs-identifier hs-type">RedeemerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679805726"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679805728"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679805725"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679805726"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679805728"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span class="annot"><a href="Cooked.Tweak.Inputs.html#modifySpendRedeemersOfTypeTweak"><span class="hs-identifier hs-type">modifySpendRedeemersOfTypeTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679807486"><span class="annot"><a href="#local-6989586621679807486"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679807487"><span class="annot"><a href="#local-6989586621679807487"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679807489"><span class="annot"><a href="#local-6989586621679807489"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679807486"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#RedeemerConstrs"><span class="hs-identifier hs-type">RedeemerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807487"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807489"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679807486"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679807487"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807489"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-51"></span><span id="modifySpendRedeemersOfTypeTweak"><span class="annot"><span class="annottext">modifySpendRedeemersOfTypeTweak :: forall a b (m :: * -&gt; *).
 (Typeable a, RedeemerConstrs b, MonadTweak m) =&gt;
 (a -&gt; Maybe b) -&gt; m ()
-</span><a href="Cooked.Tweak.Inputs.html#modifySpendRedeemersOfTypeTweak"><span class="hs-identifier hs-var hs-var">modifySpendRedeemersOfTypeTweak</span></a></span></span><span> </span><span id="local-6989586621679805846"><span class="annot"><span class="annottext">a -&gt; Maybe b
-</span><a href="#local-6989586621679805846"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-52"></span><span>  </span><span id="local-6989586621679805847"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679805847"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
+</span><a href="Cooked.Tweak.Inputs.html#modifySpendRedeemersOfTypeTweak"><span class="hs-identifier hs-var hs-var">modifySpendRedeemersOfTypeTweak</span></a></span></span><span> </span><span id="local-6989586621679807607"><span class="annot"><span class="annottext">a -&gt; Maybe b
+</span><a href="#local-6989586621679807607"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679807608"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679807608"><span class="hs-identifier hs-var">presentInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)])
 -&gt; m (Map TxOutRef TxSkelRedeemer)
@@ -206,14 +206,14 @@ forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
 </span><span id="line-55"></span><span>      </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679805847"><span class="hs-identifier hs-var">presentInputs</span></a></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679807608"><span class="hs-identifier hs-var">presentInputs</span></a></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
 -&gt; ((TxOutRef, TxSkelRedeemer) -&gt; (TxOutRef, TxSkelRedeemer))
 -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
-</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679805851"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805851"><span class="hs-identifier hs-var">oRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679805852"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805852"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679805851"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679807612"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679807612"><span class="hs-identifier hs-var">oRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807613"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679807613"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679807612"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
 -&gt; (Maybe TxSkelRedeemer -&gt; TxSkelRedeemer)
 -&gt; Maybe TxSkelRedeemer
 -&gt; (TxOutRef, TxSkelRedeemer)
@@ -221,23 +221,23 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; Maybe TxSkelRedeemer -&gt; TxSkelRedeemer
 forall a. a -&gt; Maybe a -&gt; a
 </span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805852"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
+</span><a href="#local-6989586621679807613"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
 -&gt; Maybe TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-56"></span><span>        </span><span id="local-6989586621679805854"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679805854"><span class="hs-identifier hs-var">typedRedeemer</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; Maybe a
+</span><span id="line-56"></span><span>        </span><span id="local-6989586621679807615"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679807615"><span class="hs-identifier hs-var">typedRedeemer</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; Maybe a
 forall a. Typeable a =&gt; TxSkelRedeemer -&gt; Maybe a
 </span><a href="Cooked.Skeleton.Redeemer.html#getTypedRedeemer"><span class="hs-identifier hs-var">getTypedRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805852"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><a href="#local-6989586621679807613"><span class="hs-identifier hs-var">red</span></a></span><span>
 </span><span id="line-57"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b -&gt; TxSkelRedeemer -&gt; TxSkelRedeemer
 forall redeemer.
 RedeemerConstrs redeemer =&gt;
 redeemer -&gt; TxSkelRedeemer -&gt; TxSkelRedeemer
 </span><a href="Cooked.Skeleton.Redeemer.html#setTypedRedeemer"><span class="hs-operator hs-var">`setTypedRedeemer`</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679805852"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(b -&gt; TxSkelRedeemer) -&gt; Maybe b -&gt; Maybe TxSkelRedeemer
+</span><a href="#local-6989586621679807613"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(b -&gt; TxSkelRedeemer) -&gt; Maybe b -&gt; Maybe TxSkelRedeemer
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe b
-</span><a href="#local-6989586621679805846"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679805854"><span class="hs-identifier hs-var">typedRedeemer</span></a></span><span>
+</span><a href="#local-6989586621679807607"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679807615"><span class="hs-identifier hs-var">typedRedeemer</span></a></span><span>
 </span><span id="line-58"></span></pre></body></html>
