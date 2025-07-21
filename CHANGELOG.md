@@ -4,7 +4,7 @@
 
 ### Added
 
-- `LtlDelay` delays a Ltl formula by n time stamps. `there` is now implemented
+- `LtlDelay` delays a Ltl formula by n timestamps. `there` is now implemented
   in terms of `LtlDelay`.
 - `viewByRef` and `previewByRef` which call `txSkelOutByRef` and apply a getter
   and an affine fold on it, respectively.
