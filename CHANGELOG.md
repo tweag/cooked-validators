@@ -11,6 +11,8 @@
 - Optics working on values in `Cooked.Skeleton.Output`
 - Missing instance of `IsTxSkelOutAllowedOwner` for `Versioned Script`
 - A new documentation file around optics, in `doc/OPTICS.md`
+- New `forceOutputs` primitives to force the creation of new utxos from a list
+  of `TxSkel`. Initial distributions are now handled using this primitive.
 
 ### Removed
 
