@@ -11,7 +11,7 @@ module Cooked.Skeleton.Datum
     txSkelOutDatumTypedAT,
     txSkelOutDatumDatumAF,
     txSkelOutDatumDatumHashAF,
-    txSkelOutDatumOutputDatum,
+    txSkelOutDatumOutputDatumG,
   )
 where
 
@@ -139,8 +139,8 @@ txSkelOutDatumDatumHashAF :: AffineFold TxSkelOutDatum Api.DatumHash
 txSkelOutDatumDatumHashAF = txSkelOutDatumDatumAF % to Script.datumHash
 
 -- | Converts a 'TxSkelOutDatum' into an 'Api.OutputDatum'
-txSkelOutDatumOutputDatum :: Getter TxSkelOutDatum Api.OutputDatum
-txSkelOutDatumOutputDatum = to Script.toOutputDatum
+txSkelOutDatumOutputDatumG :: Getter TxSkelOutDatum Api.OutputDatum
+txSkelOutDatumOutputDatumG = to Script.toOutputDatum
 
 instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum NoTxSkelOutDatum = Api.NoOutputDatum
