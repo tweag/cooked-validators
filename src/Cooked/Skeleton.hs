@@ -45,7 +45,6 @@ import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
 import Cooked.Skeleton.ReferenceScript as X
-import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
@@ -154,7 +153,7 @@ txSkelTemplate =
 
 -- | Returns the full value contained in the skeleton outputs
 txSkelValueInOutputs :: TxSkel -> Api.Value
-txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
+txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
 -- | All 'Api.TxOutRef's in reference inputs from redeemers
 txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef

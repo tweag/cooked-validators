@@ -15,7 +15,7 @@ import PlutusLedgerApi.V3 qualified as Api
 toCardanoTxOut :: (MonadBlockChainBalancing m) => TxSkelOut -> m (Cardano.TxOut Cardano.CtxTx Cardano.ConwayEra)
 toCardanoTxOut output = do
   let oAddress = view txSkelOutAddressG output
-      oValue = view (txSkelOutValueL % txSkelOutValueContentL) output
+      oValue = view txSkelOutValueL output
       oDatum = output ^. txSkelOutDatumL
       oRefScript = preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP) output
   networkId <- Emulator.pNetworkId <$> getParams

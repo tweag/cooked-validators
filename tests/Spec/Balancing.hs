@@ -78,7 +78,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
         txSkelTemplate
           { txSkelOuts =
               List.filter
-                ((/= mempty) . (^. txSkelOutValueL % txSkelOutValueContentL))
+                ((/= mempty) . (^. txSkelOutValueL))
                 [ bob `receives` valueConstr toBobValue,
                   alice `receives` valueConstr toAliceValue
                 ],

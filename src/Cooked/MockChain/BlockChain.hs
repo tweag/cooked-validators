@@ -246,7 +246,7 @@ lookupUtxos = foldM (\m oRef -> flip (Map.insert oRef) m <$> txSkelOutByRef oRef
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
-txSkelInputValue = fmap mconcat . mapM (viewByRef (txSkelOutValueL % txSkelOutValueContentL)) . Map.keys . txSkelIns
+txSkelInputValue = fmap mconcat . mapM (viewByRef txSkelOutValueL) . Map.keys . txSkelIns
 
 -- * Slot and Time Management
 

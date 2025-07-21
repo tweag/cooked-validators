@@ -112,7 +112,7 @@ filterWithPureRev as = filterWithPred as . (isNothing .)
 -- | A specific version of 'filterWithPred' where outputs must me of type
 -- 'TxSkelOut' and the predicate only relies on their value
 filterWithValuePred :: (Monad m) => UtxoSearch m TxSkelOut -> (Api.Value -> Bool) -> UtxoSearch m TxSkelOut
-filterWithValuePred as f = filterWithPred as (f . view (txSkelOutValueL % txSkelOutValueContentL))
+filterWithValuePred as f = filterWithPred as (f . view txSkelOutValueL)
 
 -- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
 -- when they contain only ADA

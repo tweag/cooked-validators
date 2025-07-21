@@ -69,7 +69,6 @@ tests =
             x1 = Script.lovelace 10001
             x2 = Script.lovelace 10000
             x3 = Script.lovelace 9999
-            mkValue x = TxSkelOutValue x True
             skelIn =
               txSkelFromOuts
                 [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
@@ -81,10 +80,10 @@ tests =
             skelOut bound select =
               runTweak
                 ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
-                    ( \out@(TxSkelOut _ _ dat value _) ->
+                    ( \out@(TxSkelOut _ _ dat value _ _) ->
                         Just (Script.toValidatorHash val1) == preview txSkelOutValidatorHashAF out
                           && dat == SomeTxSkelOutDatum SecondLock Inline
-                          && bound `Api.geq` txSkelOutValueContent value
+                          && bound `Api.geq` value
                     )
                     select
                     thief
@@ -106,15 +105,15 @@ tests =
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? mcrValue <$> skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ Right
-                    ( [TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) (mkValue x3) NoTxSkelOutReferenceScript],
+                    ( [TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) x3 True NoTxSkelOutReferenceScript],
                       skelExpected thief val1
                     )
                 ]
                   @=? mcrValue <$> skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
                 [ Right
-                    ( [ TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) (mkValue x3) NoTxSkelOutReferenceScript,
-                        TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) (mkValue x2) NoTxSkelOutReferenceScript
+                    ( [ TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) x3 True NoTxSkelOutReferenceScript,
+                        TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) x2 True NoTxSkelOutReferenceScript
                       ],
                       skelExpected thief thief
                     )
@@ -122,7 +121,7 @@ tests =
                   @=? mcrValue <$> skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
                 [ Right
-                    ( [TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) (mkValue x2) NoTxSkelOutReferenceScript],
+                    ( [TxSkelOut val1 Nothing (SomeTxSkelOutDatum SecondLock Inline) x2 True NoTxSkelOutReferenceScript],
                       skelExpected val1 thief
                     )
                 ]
@@ -132,7 +131,7 @@ tests =
         mustFailInPhase2Test $
           somewhere
             ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
-                ( \out@(TxSkelOut _ _ d _ _) ->
+                ( \out@(TxSkelOut _ _ d _ _ _) ->
                     Just (Script.toValidatorHash carefulValidator) == preview txSkelOutValidatorHashAF out
                       && d == SomeTxSkelOutDatum SecondLock Inline
                 )
@@ -144,7 +143,7 @@ tests =
         mustSucceedTest
           ( somewhere
               ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
-                  ( \out@(TxSkelOut _ _ d _ _) ->
+                  ( \out@(TxSkelOut _ _ d _ _ _) ->
                       Just (Script.toValidatorHash carelessValidator) == preview txSkelOutValidatorHashAF out
                         && d == SomeTxSkelOutDatum SecondLock Inline
                   )

@@ -205,7 +205,7 @@ instance PrettyCooked Mint where
 instance PrettyCookedList TxSkelOut where
   prettyCookedOptList opts output =
     [ prettyCookedOpt opts (view txSkelOutAddressG output),
-      prettyCookedOpt opts (view (txSkelOutValueL % txSkelOutValueContentL) output)
+      prettyCookedOpt opts (view txSkelOutValueL output)
     ]
       ++ catMaybes
         [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),

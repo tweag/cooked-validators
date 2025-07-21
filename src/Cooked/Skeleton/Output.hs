@@ -4,6 +4,7 @@ module Cooked.Skeleton.Output
   ( TxSkelOut (..),
     receives,
     txSkelOutValueL,
+    txSkelOutValueAutoAdjustL,
     txSkelOutDatumL,
     txSkelOutReferenceScriptL,
     txSkelOutStakingCredentialL,
@@ -15,13 +16,17 @@ module Cooked.Skeleton.Output
     txSkelOutPKHashAT,
     txSkelOutTypedOwnerAT,
     txSkelOutValidatorHashAF,
+    valueAssetClassAmountL,
+    lovelaceIntegerI,
+    valueLovelaceL,
+    valueAssetClassAmountP,
+    valueLovelaceP,
   )
 where
 
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Payable
 import Cooked.Skeleton.ReferenceScript
-import Cooked.Skeleton.Value
 import Cooked.Wallet
 import Data.Typeable
 import Optics.Core
@@ -31,7 +36,9 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V1.Typed qualified as Script (TypedValidator (..))
 import Plutus.Script.Utils.V3.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.AssocMap qualified as PMap
 
 -- | A 'TxSkelOut' can either be owned by a pubkeyhash or a versioned validator
 class IsTxSkelOutAllowedOwner a where
@@ -70,10 +77,17 @@ type OwnerConstrs owner =
 data TxSkelOut where
   TxSkelOut ::
     (OwnerConstrs owner) =>
-    { txSkelOutOwner :: owner,
+    { -- The target of this payment
+      txSkelOutOwner :: owner,
+      -- What staking credential should be attached to this payment
       txSkelOutStakingCredential :: Maybe Api.StakingCredential,
+      -- What datum should be placed in this payment
       txSkelOutDatum :: TxSkelOutDatum,
-      txSkelOutValue :: TxSkelOutValue,
+      -- What value should be paid
+      txSkelOutValue :: Api.Value,
+      -- Whether the paid value can be auto-adjusted for min ADA
+      txSkelOutValueAutoAdjust :: Bool,
+      -- What reference script should be attached to this payment
       txSkelOutReferenceScript :: TxSkelOutReferenceScript
     } ->
     TxSkelOut
@@ -88,6 +102,9 @@ makeLensesFor [("txSkelOutValue", "txSkelOutValueL")] ''TxSkelOut
 
 -- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
 makeLensesFor [("txSkelOutReferenceScript", "txSkelOutReferenceScriptL")] ''TxSkelOut
+
+-- | A lens to get or set if the value can be auto-adjusted if needed
+makeLensesFor [("txSkelOutValueAutoAdjust", "txSkelOutValueAutoAdjustL")] ''TxSkelOut
 
 -- | A lens to get or set the 'Maybe Api.StakingCredential' from a 'TxSkelOut'
 makeLensesFor [("txSkelOutStakingCredential", "txSkelOutStakingCredentialL")] ''TxSkelOut
@@ -136,6 +153,55 @@ txSkelOutValidatorAT =
 txSkelOutValidatorHashAF :: AffineFold TxSkelOut Script.ValidatorHash
 txSkelOutValidatorHashAF = txSkelOutValidatorAT % to Script.toValidatorHash
 
+-- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'
+-- from a given 'Api.Value'. This removes the entry if the new amount is 0.
+valueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' Api.Value Integer
+valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
+  lens
+    (`Api.assetClassValueOf` Api.assetClass cs tk)
+    ( \v@(Api.Value val) i -> case PMap.lookup cs val of
+        -- No previous cs entry and nothing to add.
+        Nothing | i == 0 -> v
+        -- No previous cs entry, and something to add.
+        Nothing -> Api.Value $ PMap.insert cs (PMap.singleton tk i) val
+        -- A previous cs and tk entry, which needs to be removed and the whole
+        -- cs entry as well because it only containes this tk.
+        Just (PMap.toList -> [(tk', _)]) | i == 0, tk == tk' -> Api.Value $ PMap.delete cs val
+        -- A previous cs and tk entry, which needs to be removed, but the whole
+        -- cs entry has other tokens and thus is kept.
+        Just tokenMap | i == 0 -> Api.Value $ PMap.insert cs (PMap.delete tk tokenMap) val
+        -- A previous cs entry, in which we insert the new tk (regarless of
+        -- whether the tk was already present).
+        Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
+    )
+
+-- | Isomorphism between 'Api.Lovelace' and integers
+lovelaceIntegerI :: Iso' Api.Lovelace Integer
+lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
+
+-- | Focus the Lovelace part in a value.
+valueLovelaceL :: Lens' Api.Value Api.Lovelace
+valueLovelaceL = valueAssetClassAmountL Api.adaSymbol Api.adaToken % re lovelaceIntegerI
+
+-- | A prism to build a value from an asset class and amount, or retrieves the
+-- amount from this asset class if it is not zero
+valueAssetClassAmountP :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Prism' Api.Value Integer
+valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
+  | ac <- Api.assetClass cs tk =
+      prism
+        ( \case
+            i | i == 0 -> mempty
+            i -> Api.assetClassValue ac i
+        )
+        ( \val -> case val `Api.assetClassValueOf` ac of
+            i | i == 0 -> Left val
+            i -> Right i
+        )
+
+-- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'
+valueLovelaceP :: Prism' Api.Value Api.Lovelace
+valueLovelaceP = valueAssetClassAmountP Api.adaSymbol Api.adaToken % re lovelaceIntegerI
+
 -- | Smart constructor to build a 'TxSkelOut' from an owner and payment. This
 -- should be the main way of building outputs.
 receives :: (OwnerConstrs owner) => owner -> Payable els -> TxSkelOut
@@ -145,7 +211,8 @@ receives owner =
         owner
         Nothing -- No staking credential by default
         defaultTxSkelDatum -- Default datum defined below
-        (TxSkelOutValue mempty True) -- Empty value by default, adjustable to min ada
+        mempty -- Empty value by default
+        True -- the value is adjustable to min ADA by default
         NoTxSkelOutReferenceScript -- No reference script by default
   )
   where
@@ -153,8 +220,8 @@ receives owner =
     go (VisibleHashedDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat (Hashed Resolved))
     go (InlineDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat Inline)
     go (HiddenHashedDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat (Hashed NotResolved))
-    go (FixedValue v) = set txSkelOutValueL (TxSkelOutValue (Script.toValue v) False)
-    go (Value v) = set txSkelOutValueL (TxSkelOutValue (Script.toValue v) True)
+    go (FixedValue v) = set txSkelOutValueL (Script.toValue v) . set txSkelOutValueAutoAdjustL False
+    go (Value v) = set txSkelOutValueL (Script.toValue v) . set txSkelOutValueAutoAdjustL True
     go (ReferenceScript script) = set txSkelOutReferenceScriptL (SomeTxSkelOutReferenceScript script)
     go (StakingCredential stCred) = set txSkelOutStakingCredentialL (Script.toMaybeStakingCredential stCred)
     go (PayableAnd p1 p2) = go p2 . go p1

@@ -261,14 +261,14 @@ reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
 reachValue _ _ maxEls | maxEls == 0 = []
 -- The target is not reached, and cannot possibly be reached, as the remaining
 -- candidates do not sum up to the target.
-reachValue l target _ | not $ target `Api.leq` mconcat (view (txSkelOutValueL % txSkelOutValueContentL) . snd <$> l) = []
+reachValue l target _ | not $ target `Api.leq` mconcat (view txSkelOutValueL . snd <$> l) = []
 -- There is no more elements to go through and the target has not been
 -- reached. Encompassed by the previous case, but needed by GHC.
 reachValue [] _ _ = []
 -- Main recursive case, where we either pick or drop the head. We only pick the
 -- head if it contributes to reaching the target, i.e. if its intersection with
 -- the positive part of the target is not empty.
-reachValue (h@(_, view (txSkelOutValueL % txSkelOutValueContentL) -> hVal) : t) target maxEls =
+reachValue (h@(_, view txSkelOutValueL -> hVal) : t) target maxEls =
   (++) (reachValue t target maxEls) $
     if snd (Api.split target) PlutusTx./\ hVal == mempty
       then []
@@ -336,7 +336,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   let candidatesRaw = second (<> missingRight') <$> reachValue balancingUtxos missingLeft' (toInteger $ length balancingUtxos)
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing wallet
-  let totalValue = mconcat $ view (txSkelOutValueL % txSkelOutValueContentL) . snd <$> balancingUtxos
+  let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
       difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
       balancingError = MCEUnbalanceable balancingWallet difference
   -- Which one of our candidates should be picked depends on three factors
@@ -357,9 +357,9 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected
           -- output. We keep intact the orders of those outputs.
-          let candidatesRaw' = second (<> txSkelOut ^. (txSkelOutValueL % txSkelOutValueContentL)) <$> candidatesRaw
+          let candidatesRaw' = second (<> txSkelOut ^. txSkelOutValueL) <$> candidatesRaw
           (txOutRefs, val) <- getOptimalCandidate candidatesRaw' balancingWallet balancingError
-          return (txOutRefs, before ++ (txSkelOut & (txSkelOutValueL % txSkelOutValueContentL) .~ val) : after)
+          return (txOutRefs, before ++ (txSkelOut & txSkelOutValueL .~ val) : after)
     -- There is no output at the balancing wallet address, or the balancing
     -- policy forces us to create a new output, both yielding the same result.
     _ -> do

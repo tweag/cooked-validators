@@ -79,7 +79,7 @@ mcstToUtxoState =
             UtxoPayloadSet
               [ UtxoPayload
                   txOutRef
-                  (view (txSkelOutValueL % txSkelOutValueContentL) txSkelOut)
+                  (view txSkelOutValueL txSkelOut)
                   ( case txSkelOut ^. txSkelOutDatumL of
                       NoTxSkelOutDatum -> NoUtxoPayloadDatum
                       SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)

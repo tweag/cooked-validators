@@ -60,7 +60,6 @@ library
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
       Cooked.Skeleton.ReferenceScript
-      Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common

@@ -16,7 +16,6 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
-import Optics.Core ((%))
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -48,7 +47,7 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
   -- Retrieving the total value in collateral inputs. This fails if one of the
   -- collateral inputs has not been successfully resolved.
   collateralInsValue <-
-    foldM (\val -> ((val <>) <$>) . viewByRef (txSkelOutValueL % txSkelOutValueContentL)) mempty collateralInsList
+    foldM (\val -> ((val <>) <$>) . viewByRef txSkelOutValueL) mempty collateralInsList
   -- We retrieve the collateral percentage compared to fees. By default, we use
   -- 150% which is the current value in the parameters, although the default
   -- value should never be used here, as the call is supposed to always succeed.
