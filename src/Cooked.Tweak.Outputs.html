@@ -22,25 +22,25 @@
 </span><span id="line-22"></span><span>
 </span><span id="line-23"></span><span class="hs-comment">-- | Ensures that a certain output is produced by a transaction. The return</span><span>
 </span><span id="line-24"></span><span class="hs-comment">-- value will be @Just@ the added output, when applicable.</span><span>
-</span><span id="line-25"></span><span id="local-6989586621679807008"><span class="annot"><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-type">ensureOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807008"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807008"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-25"></span><span id="local-6989586621679810401"><span class="annot"><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-type">ensureOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810401"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810401"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">)</span></span><span>
 </span><span id="line-26"></span><span id="ensureOutputTweak"><span class="annot"><span class="annottext">ensureOutputTweak :: forall (m :: * -&gt; *).
 MonadTweak m =&gt;
 TxSkelOut -&gt; m (Maybe TxSkelOut)
-</span><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-var hs-var">ensureOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679807179"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807179"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-27"></span><span>  </span><span id="local-6989586621679807180"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807180"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
+</span><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-var hs-var">ensureOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679810572"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679810572"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679810573"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810573"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; m a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span>
 </span><span id="line-28"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807179"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; Bool
+</span><a href="#local-6989586621679810572"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; Bool
 forall a. Eq a =&gt; a -&gt; [a] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807180"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
+</span><a href="#local-6989586621679810573"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
 </span><span id="line-29"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe TxSkelOut -&gt; m (Maybe TxSkelOut)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -51,7 +51,7 @@ forall a. Maybe a
 </span><span id="line-31"></span><span>      </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m ()
 forall (m :: * -&gt; *). MonadTweak m =&gt; TxSkelOut -&gt; m ()
 </span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var">addOutputTweak</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807179"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679810572"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-32"></span><span>      </span><span class="annot"><span class="annottext">Maybe TxSkelOut -&gt; m (Maybe TxSkelOut)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -61,14 +61,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe TxSkelOut
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807179"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679810572"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-33"></span><span>
 </span><span id="line-34"></span><span class="hs-comment">-- | Adds a transaction output, at the end of the current list of outputs, thus</span><span>
 </span><span id="line-35"></span><span class="hs-comment">-- retaining the initial outputs order.</span><span>
-</span><span id="line-36"></span><span id="local-6989586621679807031"><span class="annot"><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-type">addOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807031"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807031"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-36"></span><span id="local-6989586621679810424"><span class="annot"><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-type">addOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810424"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810424"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-37"></span><span id="addOutputTweak"><span class="annot"><span class="annottext">addOutputTweak :: forall (m :: * -&gt; *). MonadTweak m =&gt; TxSkelOut -&gt; m ()
-</span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var hs-var">addOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679807188"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807188"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
+</span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var hs-var">addOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679810581"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679810581"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 -&gt; ([TxSkelOut] -&gt; [TxSkelOut]) -&gt; m ()
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Setter) =&gt;
@@ -77,46 +77,46 @@ Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807188"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679810581"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-38"></span><span>
 </span><span id="line-39"></span><span class="hs-comment">-- | Removes transaction outputs according to some predicate. The returned list</span><span>
 </span><span id="line-40"></span><span class="hs-comment">-- contains all the removed outputs.</span><span>
-</span><span id="line-41"></span><span id="local-6989586621679807042"><span class="annot"><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-type">removeOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807042"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807042"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-41"></span><span id="local-6989586621679810435"><span class="annot"><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-type">removeOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810435"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810435"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span></span><span>
 </span><span id="line-42"></span><span id="removeOutputTweak"><span class="annot"><span class="annottext">removeOutputTweak :: forall (m :: * -&gt; *).
 MonadTweak m =&gt;
 (TxSkelOut -&gt; Bool) -&gt; m [TxSkelOut]
-</span><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-var hs-var">removeOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679807200"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679807200"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-43"></span><span>  </span><span id="local-6989586621679807201"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807201"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
+</span><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-var hs-var">removeOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679810593"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
+</span><a href="#local-6989586621679810593"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679810594"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810594"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; m a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span>
-</span><span id="line-44"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807202"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807202"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807203"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807203"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Bool) -&gt; [TxSkelOut] -&gt; ([TxSkelOut], [TxSkelOut])
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810595"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810595"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810596"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810596"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Bool) -&gt; [TxSkelOut] -&gt; ([TxSkelOut], [TxSkelOut])
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
 </span><span class="hs-identifier hs-var">partition</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679807200"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807201"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
+</span><a href="#local-6989586621679810593"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810594"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
 </span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; [TxSkelOut] -&gt; m ()
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Setter) =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; m ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807203"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><a href="#local-6989586621679810596"><span class="hs-identifier hs-var">kept</span></a></span><span>
 </span><span id="line-46"></span><span>  </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; m [TxSkelOut]
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807202"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><a href="#local-6989586621679810595"><span class="hs-identifier hs-var">removed</span></a></span><span>
 </span><span id="line-47"></span><span>
 </span><span id="line-48"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which the 'tamperDatumTweak' has been</span><span>
 </span><span id="line-49"></span><span class="hs-comment">-- successfully applied</span><span>
-</span><span id="line-50"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807207"><span id="local-6989586621679807209"><span id="local-6989586621679807213"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
+</span><span id="line-50"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810600"><span id="local-6989586621679810602"><span id="local-6989586621679810606"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
 [TamperDatumLbl] -&gt; ShowS
 TamperDatumLbl -&gt; String
 (Int -&gt; TamperDatumLbl -&gt; ShowS)
@@ -131,7 +131,7 @@ $cshow :: TamperDatumLbl -&gt; String
 show :: TamperDatumLbl -&gt; String
 $cshowList :: [TamperDatumLbl] -&gt; ShowS
 showList :: [TamperDatumLbl] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807217"><span id="local-6989586621679807219"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810610"><span id="local-6989586621679810612"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool)
 -&gt; (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool) -&gt; Eq TamperDatumLbl
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -139,7 +139,7 @@ $c== :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 == :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 $c/= :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 /= :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807226"><span id="local-6989586621679807228"><span id="local-6989586621679807230"><span id="local-6989586621679807234"><span id="local-6989586621679807237"><span id="local-6989586621679807240"><span id="local-6989586621679807243"><span class="annot"><span class="annottext">Eq TamperDatumLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810619"><span id="local-6989586621679810621"><span id="local-6989586621679810623"><span id="local-6989586621679810627"><span id="local-6989586621679810630"><span id="local-6989586621679810633"><span id="local-6989586621679810636"><span class="annot"><span class="annottext">Eq TamperDatumLbl
 Eq TamperDatumLbl =&gt;
 (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Ordering)
 -&gt; (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool)
@@ -178,9 +178,9 @@ $cmin :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; TamperDatumLbl
 min :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; TamperDatumLbl
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-51"></span><span>
-</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807247"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-type">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-53"></span><span>  </span><span id="local-6989586621679807254"><span class="annot"><span class="annottext">prettyCooked :: TamperDatumLbl -&gt; DocCooked
-</span><a href="#local-6989586621679807254"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
+</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679810640"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-type">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679810647"><span class="annot"><span class="annottext">prettyCooked :: TamperDatumLbl -&gt; DocCooked
+</span><a href="#local-6989586621679810647"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;TamperDatum&quot;</span></span><span>
 </span><span id="line-54"></span><span>
@@ -190,14 +190,14 @@ min :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; TamperDatumLbl
 </span><span id="line-58"></span><span class="hs-comment">--</span><span>
 </span><span id="line-59"></span><span class="hs-comment">-- The tweak returns a list of the modified datums, as they were *before* the</span><span>
 </span><span id="line-60"></span><span class="hs-comment">-- modification was applied to them.</span><span>
-</span><span id="line-61"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-type">tamperDatumTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679807061"><span class="annot"><a href="#local-6989586621679807061"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679807060"><span class="annot"><a href="#local-6989586621679807060"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807060"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807061"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679807061"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679807061"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807060"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679807061"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-type">tamperDatumTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679810454"><span class="annot"><a href="#local-6989586621679810454"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679810453"><span class="annot"><a href="#local-6989586621679810453"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810453"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810454"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679810454"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679810454"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810453"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679810454"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-62"></span><span id="tamperDatumTweak"><span class="annot"><span class="annottext">tamperDatumTweak :: forall a (m :: * -&gt; *).
 (MonadTweak m, DatumConstrs a) =&gt;
 (a -&gt; Maybe a) -&gt; m [a]
-</span><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-var hs-var">tamperDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679807298"><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679807298"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-63"></span><span>  </span><span id="local-6989586621679807299"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807299"><span class="hs-identifier hs-var">beforeModification</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel a -&gt; (a -&gt; Maybe a) -&gt; m [a]
+</span><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-var hs-var">tamperDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679810692"><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679810692"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-63"></span><span>  </span><span id="local-6989586621679810693"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679810693"><span class="hs-identifier hs-var">beforeModification</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel a -&gt; (a -&gt; Maybe a) -&gt; m [a]
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Traversal) =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; Maybe a) -&gt; m [a]
@@ -232,9 +232,11 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_AffineTraversal NoIx TxSkelOutDatum TxSkelOutDatum a a
-forall a. DatumConstrs a =&gt; AffineTraversal' TxSkelOutDatum a
-</span><a href="Cooked.Skeleton.Datum.html#txSkelOutTypedDatumAT"><span class="hs-identifier hs-var">txSkelOutTypedDatumAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679807298"><span class="hs-identifier hs-var">change</span></a></span><span>
+forall a b.
+(DatumConstrs a, DatumConstrs b) =&gt;
+AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
+</span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679810692"><span class="hs-identifier hs-var">change</span></a></span><span>
 </span><span id="line-64"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; ([a] -&gt; Bool) -&gt; [a] -&gt; m ()
@@ -248,7 +250,7 @@ forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; m ()) -&gt; [a] -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807299"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
+</span><a href="#local-6989586621679810693"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
 </span><span id="line-65"></span><span>  </span><span class="annot"><span class="annottext">TamperDatumLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
@@ -257,7 +259,7 @@ forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807299"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
+</span><a href="#local-6989586621679810693"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
 </span><span id="line-67"></span><span>
 </span><span id="line-68"></span><span class="hs-comment">-- | A tweak that tries to change the datum on outputs carrying datums of a</span><span>
 </span><span id="line-69"></span><span class="hs-comment">-- certain type with a prescribed tampering function. There are two main</span><span>
@@ -277,14 +279,14 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span id="line-83"></span><span class="hs-comment">-- &gt; == (k_1 + 1) * ... * (k_n + 1) - 1</span><span>
 </span><span id="line-84"></span><span class="hs-comment">--</span><span>
 </span><span id="line-85"></span><span class="hs-comment">-- modified transactions.</span><span>
-</span><span id="line-86"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-type">malformDatumTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679807116"><span class="annot"><a href="#local-6989586621679807116"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679807115"><span class="annot"><a href="#local-6989586621679807115"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807115"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679807116"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679807116"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679807115"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-86"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-type">malformDatumTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679810510"><span class="annot"><a href="#local-6989586621679810510"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679810509"><span class="annot"><a href="#local-6989586621679810509"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810509"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810510"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679810510"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679810509"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-87"></span><span id="malformDatumTweak"><span class="annot"><span class="annottext">malformDatumTweak :: forall a (m :: * -&gt; *).
 (MonadTweak m, DatumConstrs a) =&gt;
 (a -&gt; [BuiltinData]) -&gt; m ()
-</span><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-var hs-var">malformDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679807369"><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
-</span><a href="#local-6989586621679807369"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-88"></span><span>  </span><span id="local-6989586621679807370"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807370"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal NoIx TxSkel TxSkel TxSkelOut TxSkelOut
+</span><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-var hs-var">malformDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679810767"><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
+</span><a href="#local-6989586621679810767"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-88"></span><span>  </span><span id="local-6989586621679810768"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810768"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal NoIx TxSkel TxSkel TxSkelOut TxSkelOut
 -&gt; m [TxSkelOut]
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Fold) =&gt;
@@ -303,28 +305,28 @@ forall (t :: * -&gt; *) a b.
 Traversable t =&gt;
 Traversal (t a) (t b) a b
 </span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span>
-</span><span id="line-89"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679807372"><span class="annot"><span class="annottext">modifiedOutputs :: [[TxSkelOut]]
-</span><a href="#local-6989586621679807372"><span class="hs-identifier hs-var hs-var">modifiedOutputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [[TxSkelOut]]
+</span><span id="line-89"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679810770"><span class="annot"><span class="annottext">modifiedOutputs :: [[TxSkelOut]]
+</span><a href="#local-6989586621679810770"><span class="hs-identifier hs-var hs-var">modifiedOutputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [[TxSkelOut]]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679807373"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807373"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807373"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679810771"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679810771"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679810771"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut]
-</span><a href="#local-6989586621679807374"><span class="hs-identifier hs-var">changeOutput</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807373"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679807370"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><a href="#local-6989586621679810772"><span class="hs-identifier hs-var">changeOutput</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679810771"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679810768"><span class="hs-identifier hs-var">outputs</span></a></span><span>
 </span><span id="line-90"></span><span>      </span><span class="hs-comment">-- We remove the first combination because it consists of all the heads</span><span>
 </span><span id="line-91"></span><span>      </span><span class="hs-comment">-- and therefore it is the combination consisting of no changes at all.</span><span>
-</span><span id="line-92"></span><span>      </span><span id="local-6989586621679807375"><span class="annot"><span class="annottext">modifiedOutputGroups :: [[TxSkelOut]]
-</span><a href="#local-6989586621679807375"><span class="hs-identifier hs-var hs-var">modifiedOutputGroups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]] -&gt; [[TxSkelOut]]
+</span><span id="line-92"></span><span>      </span><span id="local-6989586621679810773"><span class="annot"><span class="annottext">modifiedOutputGroups :: [[TxSkelOut]]
+</span><a href="#local-6989586621679810773"><span class="hs-identifier hs-var hs-var">modifiedOutputGroups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall a. HasCallStack =&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">tail</span></span><span> </span><span class="annot"><span class="annottext">([[TxSkelOut]] -&gt; [[TxSkelOut]]) -&gt; [[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall a. [[a]] -&gt; [[a]]
 </span><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]]
-</span><a href="#local-6989586621679807372"><span class="hs-identifier hs-var">modifiedOutputs</span></a></span><span>
+</span><a href="#local-6989586621679810770"><span class="hs-identifier hs-var">modifiedOutputs</span></a></span><span>
 </span><span id="line-93"></span><span>  </span><span class="annot"><span class="annottext">[m ()] -&gt; m ()
 forall (t :: * -&gt; *) (m :: * -&gt; *) a.
 (Foldable t, MonadPlus m) =&gt;
@@ -339,24 +341,24 @@ forall (m :: * -&gt; *) k (is :: IxList) a.
 Optic' k is TxSkel a -&gt; a -&gt; m ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]]
-</span><a href="#local-6989586621679807375"><span class="hs-identifier hs-var">modifiedOutputGroups</span></a></span><span>
+</span><a href="#local-6989586621679810773"><span class="hs-identifier hs-var">modifiedOutputGroups</span></a></span><span>
 </span><span id="line-94"></span><span>  </span><span class="annot"><span class="annottext">MalformDatumLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">MalformDatumLbl
 </span><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span><span>
 </span><span id="line-95"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-96"></span><span>    </span><span class="annot"><a href="#local-6989586621679807374"><span class="hs-identifier hs-type">changeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-97"></span><span>    </span><span id="local-6989586621679807374"><span class="annot"><span class="annottext">changeOutput :: TxSkelOut -&gt; [TxSkelOut]
-</span><a href="#local-6989586621679807374"><span class="hs-identifier hs-var hs-var">changeOutput</span></a></span></span><span> </span><span id="local-6989586621679807380"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807380"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-96"></span><span>    </span><span class="annot"><a href="#local-6989586621679810772"><span class="hs-identifier hs-type">changeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-97"></span><span>    </span><span id="local-6989586621679810772"><span class="annot"><span class="annottext">changeOutput :: TxSkelOut -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679810772"><span class="hs-identifier hs-var hs-var">changeOutput</span></a></span></span><span> </span><span id="local-6989586621679810778"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679810778"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-98"></span><span>      </span><span class="hs-keyword">do</span><span>
-</span><span id="line-99"></span><span>        </span><span id="local-6989586621679807381"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679807381"><span class="hs-identifier hs-var">typedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [a]
+</span><span id="line-99"></span><span>        </span><span id="local-6989586621679810779"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679810779"><span class="hs-identifier hs-var">typedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [a]
 forall a. Maybe a -&gt; [a]
 </span><span class="hs-identifier hs-var">maybeToList</span></span><span> </span><span class="annot"><span class="annottext">(Maybe a -&gt; [a]) -&gt; Maybe a -&gt; [a]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807380"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' An_AffineTraversal NoIx TxSkelOut a -&gt; Maybe a
+</span><a href="#local-6989586621679810778"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' An_AffineTraversal NoIx TxSkelOut a -&gt; Maybe a
 forall k s (is :: IxList) a.
 Is k An_AffineFold =&gt;
 s -&gt; Optic' k is s a -&gt; Maybe a
@@ -369,66 +371,45 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_AffineTraversal NoIx TxSkelOutDatum TxSkelOutDatum a a
-forall a. DatumConstrs a =&gt; AffineTraversal' TxSkelOutDatum a
-</span><a href="Cooked.Skeleton.Datum.html#txSkelOutTypedDatumAT"><span class="hs-identifier hs-var">txSkelOutTypedDatumAT</span></a></span><span>
-</span><span id="line-100"></span><span>        </span><span id="local-6989586621679807384"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679807384"><span class="hs-identifier hs-var">modifiedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
-</span><a href="#local-6989586621679807369"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679807381"><span class="hs-identifier hs-var">typedDat</span></a></span><span>
+forall a b.
+(DatumConstrs a, DatumConstrs b) =&gt;
+AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
+</span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span>
+</span><span id="line-100"></span><span>        </span><span id="local-6989586621679810782"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679810782"><span class="hs-identifier hs-var">modifiedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
+</span><a href="#local-6989586621679810767"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679810779"><span class="hs-identifier hs-var">typedDat</span></a></span><span>
 </span><span id="line-101"></span><span>        </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut]
 forall a. a -&gt; [a]
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; [TxSkelOut]) -&gt; TxSkelOut -&gt; [TxSkelOut]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679807380"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
+</span><a href="#local-6989586621679810778"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkelOut TxSkelOut TxSkelOutDatum TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkelOut TxSkelOut TxSkelOutDatum TxSkelOutDatum
 -&gt; Optic
-     An_AffineTraversal
-     NoIx
-     TxSkelOutDatum
-     TxSkelOutDatum
-     DatumContent
-     DatumContent
--&gt; Optic
-     An_AffineTraversal
-     NoIx
-     TxSkelOut
-     TxSkelOut
-     DatumContent
-     DatumContent
+     An_AffineTraversal NoIx TxSkelOutDatum TxSkelOutDatum a BuiltinData
+-&gt; Optic An_AffineTraversal NoIx TxSkelOut TxSkelOut a BuiltinData
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
-  An_AffineTraversal
-  NoIx
-  TxSkelOutDatum
-  TxSkelOutDatum
-  DatumContent
-  DatumContent
-</span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumContentAT"><span class="hs-identifier hs-var">txSkelOutDatumContentAT</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
-  An_AffineTraversal
-  NoIx
-  TxSkelOut
-  TxSkelOut
-  DatumContent
-  DatumContent
--&gt; DatumContent -&gt; TxSkelOut -&gt; TxSkelOut
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">forall a b.
+(DatumConstrs a, DatumConstrs b) =&gt;
+AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
+</span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679810510"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">Optic An_AffineTraversal NoIx TxSkelOut TxSkelOut a BuiltinData
+-&gt; BuiltinData -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
-</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; DatumContent
-forall a. DatumConstrs a =&gt; a -&gt; DatumContent
-</span><a href="Cooked.Skeleton.Datum.html#DatumContent"><span class="hs-identifier hs-var">DatumContent</span></a></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679807384"><span class="hs-identifier hs-var">modifiedDat</span></a></span><span>
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679810782"><span class="hs-identifier hs-var">modifiedDat</span></a></span><span>
 </span><span id="line-102"></span><span>
 </span><span id="line-103"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been</span><span>
 </span><span id="line-104"></span><span class="hs-comment">-- successfully applied</span><span>
-</span><span id="line-105"></span><span class="hs-keyword">data</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807390"><span id="local-6989586621679807392"><span id="local-6989586621679807395"><span class="annot"><span class="annottext">Int -&gt; MalformDatumLbl -&gt; ShowS
+</span><span id="line-105"></span><span class="hs-keyword">data</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810786"><span id="local-6989586621679810788"><span id="local-6989586621679810791"><span class="annot"><span class="annottext">Int -&gt; MalformDatumLbl -&gt; ShowS
 [MalformDatumLbl] -&gt; ShowS
 MalformDatumLbl -&gt; String
 (Int -&gt; MalformDatumLbl -&gt; ShowS)
@@ -443,7 +424,7 @@ $cshow :: MalformDatumLbl -&gt; String
 show :: MalformDatumLbl -&gt; String
 $cshowList :: [MalformDatumLbl] -&gt; ShowS
 showList :: [MalformDatumLbl] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807398"><span id="local-6989586621679807400"><span class="annot"><span class="annottext">MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810794"><span id="local-6989586621679810796"><span class="annot"><span class="annottext">MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool)
 -&gt; (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool)
 -&gt; Eq MalformDatumLbl
@@ -452,7 +433,7 @@ $c== :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 == :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 $c/= :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 /= :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807405"><span id="local-6989586621679807407"><span id="local-6989586621679807409"><span id="local-6989586621679807412"><span id="local-6989586621679807415"><span id="local-6989586621679807418"><span id="local-6989586621679807421"><span class="annot"><span class="annottext">Eq MalformDatumLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810801"><span id="local-6989586621679810803"><span id="local-6989586621679810805"><span id="local-6989586621679810808"><span id="local-6989586621679810811"><span id="local-6989586621679810814"><span id="local-6989586621679810817"><span class="annot"><span class="annottext">Eq MalformDatumLbl
 Eq MalformDatumLbl =&gt;
 (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Ordering)
 -&gt; (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool)
@@ -491,8 +472,8 @@ $cmin :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; MalformDatumLbl
 min :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; MalformDatumLbl
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-106"></span><span>
-</span><span id="line-107"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679807424"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-type">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-108"></span><span>  </span><span id="local-6989586621679807428"><span class="annot"><span class="annottext">prettyCooked :: MalformDatumLbl -&gt; DocCooked
+</span><span id="line-107"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679810820"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-type">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679810824"><span class="annot"><span class="annottext">prettyCooked :: MalformDatumLbl -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">MalformDatumLbl
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;MalformDatum&quot;</span></span><span>
@@ -515,21 +496,21 @@ min :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; MalformDatumLbl
 </span><span id="line-125"></span><span class="hs-comment">-- and @a1@ comes before @a2@ in the list @l !! length p@. In particular, the</span><span>
 </span><span id="line-126"></span><span class="hs-comment">-- first element of the result list is the combination consisting of all the</span><span>
 </span><span id="line-127"></span><span class="hs-comment">-- first elements of the input lists.</span><span>
-</span><span id="line-128"></span><span id="local-6989586621679807134"><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-type">allCombinations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679807134"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679807134"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
+</span><span id="line-128"></span><span id="local-6989586621679810529"><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-type">allCombinations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679810529"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679810529"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
 </span><span id="line-129"></span><span id="allCombinations"><span class="annot"><span class="annottext">allCombinations :: forall a. [[a]] -&gt; [[a]]
 </span><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var hs-var">allCombinations</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
 </span><span id="line-130"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-comment">-- included in the next one</span><span>
-</span><span id="line-131"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679807429"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807429"><span class="hs-identifier hs-var">first</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679807430"><span class="annot"><span class="annottext">[[a]]
-</span><a href="#local-6989586621679807430"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679807431"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><span id="line-131"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810825"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679810825"><span class="hs-identifier hs-var">first</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679810826"><span class="annot"><span class="annottext">[[a]]
+</span><a href="#local-6989586621679810826"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679810827"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807432"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679807431"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679807431"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807429"><span class="hs-identifier hs-var">first</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679807432"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679807432"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[[a]] -&gt; [[a]]
+</span><a href="#local-6989586621679810828"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679810827"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679810827"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679810825"><span class="hs-identifier hs-var">first</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810828"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679810828"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[[a]] -&gt; [[a]]
 forall a. [[a]] -&gt; [[a]]
 </span><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">[[a]]
-</span><a href="#local-6989586621679807430"><span class="hs-identifier hs-var">rest</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679810826"><span class="hs-identifier hs-var">rest</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-132"></span></pre></body></html>

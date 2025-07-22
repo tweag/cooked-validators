@@ -45,78 +45,75 @@
 </span><span id="line-45"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html"><span class="hs-identifier">Cooked.Skeleton.Proposal</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
 </span><span id="line-46"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html"><span class="hs-identifier">Cooked.Skeleton.Redeemer</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
 </span><span id="line-47"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.ReferenceScript.html"><span class="hs-identifier">Cooked.Skeleton.ReferenceScript</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-48"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Value.html"><span class="hs-identifier">Cooked.Skeleton.Value</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html"><span class="hs-identifier">Cooked.Skeleton.Withdrawal</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
-</span><span id="line-51"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span>
-</span><span id="line-52"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Either</span></span><span>
-</span><span id="line-53"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
-</span><span id="line-54"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-55"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
-</span><span id="line-56"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
-</span><span id="line-57"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
-</span><span id="line-58"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-59"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-60"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.TH</span></span><span>
-</span><span id="line-61"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-62"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-63"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
-</span><span id="line-64"></span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- | A transaction skeleton. This is cooked-validators's variant of transaction</span><span>
-</span><span id="line-66"></span><span class="hs-comment">-- bodies, eventually translated to Cardano @TxBody@.</span><span>
-</span><span id="line-67"></span><span class="hs-keyword">data</span><span> </span><span id="TxSkel"><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-68"></span><span>  </span><span id="TxSkel"><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-69"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | Labels do not influence the transaction generation at all; they are</span><span>
-</span><span id="line-70"></span><span>      </span><span class="hs-comment">-- pretty-printed whenever cooked-validators prints a transaction, and can</span><span>
-</span><span id="line-71"></span><span>      </span><span class="hs-comment">-- therefore make the output more informative (and greppable).</span><span>
-</span><span id="line-72"></span><span>      </span><span id="txSkelLabel"><span class="annot"><span class="annottext">TxSkel -&gt; Set TxLabel
-</span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-identifier hs-var hs-var">txSkelLabel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-73"></span><span>      </span><span class="annot"><span class="hs-comment">-- | Some options that control transaction generation.</span></span><span>
-</span><span id="line-74"></span><span>      </span><span id="txSkelOpts"><span class="annot"><span class="annottext">TxSkel -&gt; TxOpts
-</span><a href="Cooked.Skeleton.html#txSkelOpts"><span class="hs-identifier hs-var hs-var">txSkelOpts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#TxOpts"><span class="hs-identifier hs-type">TxOpts</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-75"></span><span>      </span><span class="hs-comment">-- | Any value minted or burned by the transaction. You'll probably want</span><span>
-</span><span id="line-76"></span><span>      </span><span class="hs-comment">-- to use 'Cooked.Skeleton.Mint.txSkelMintsFromList' to construct this.</span><span>
-</span><span id="line-77"></span><span>      </span><span id="txSkelMints"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelMints
+</span><span id="line-48"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html"><span class="hs-identifier">Cooked.Skeleton.Withdrawal</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-56"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.TH</span></span><span>
+</span><span id="line-59"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-60"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- | A transaction skeleton. This is cooked-validators's variant of transaction</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- bodies, eventually translated to Cardano @TxBody@.</span><span>
+</span><span id="line-64"></span><span class="hs-keyword">data</span><span> </span><span id="TxSkel"><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>  </span><span id="TxSkel"><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-66"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | Labels do not influence the transaction generation at all; they are</span><span>
+</span><span id="line-67"></span><span>      </span><span class="hs-comment">-- pretty-printed whenever cooked-validators prints a transaction, and can</span><span>
+</span><span id="line-68"></span><span>      </span><span class="hs-comment">-- therefore make the output more informative (and greppable).</span><span>
+</span><span id="line-69"></span><span>      </span><span id="txSkelLabel"><span class="annot"><span class="annottext">TxSkel -&gt; Set TxSkelLabel
+</span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-identifier hs-var hs-var">txSkelLabel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-type">TxSkelLabel</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-70"></span><span>      </span><span class="annot"><span class="hs-comment">-- | Some options that control transaction generation.</span></span><span>
+</span><span id="line-71"></span><span>      </span><span id="txSkelOpts"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelOpts
+</span><a href="Cooked.Skeleton.html#txSkelOpts"><span class="hs-identifier hs-var hs-var">txSkelOpts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Option.html#TxSkelOpts"><span class="hs-identifier hs-type">TxSkelOpts</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-72"></span><span>      </span><span class="hs-comment">-- | Any value minted or burned by the transaction. You'll probably want</span><span>
+</span><span id="line-73"></span><span>      </span><span class="hs-comment">-- to use 'Cooked.Skeleton.Mint.txSkelMintsFromList' to construct this.</span><span>
+</span><span id="line-74"></span><span>      </span><span id="txSkelMints"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMints"><span class="hs-identifier hs-var hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-78"></span><span>      </span><span class="hs-comment">-- | The wallets signing the transaction. This list must contain at least</span><span>
-</span><span id="line-79"></span><span>      </span><span class="hs-comment">-- one element. By default, the first signer will pay for fees and</span><span>
-</span><span id="line-80"></span><span>      </span><span class="hs-comment">-- balancing. You can change that with</span><span>
-</span><span id="line-81"></span><span>      </span><span class="hs-comment">-- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.</span><span>
-</span><span id="line-82"></span><span>      </span><span id="txSkelSigners"><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
+</span><span id="line-75"></span><span>      </span><span class="hs-comment">-- | The wallets signing the transaction. This list must contain at least</span><span>
+</span><span id="line-76"></span><span>      </span><span class="hs-comment">-- one element. By default, the first signer will pay for fees and</span><span>
+</span><span id="line-77"></span><span>      </span><span class="hs-comment">-- balancing. You can change that with</span><span>
+</span><span id="line-78"></span><span>      </span><span class="hs-comment">-- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.</span><span>
+</span><span id="line-79"></span><span>      </span><span id="txSkelSigners"><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
 </span><a href="Cooked.Skeleton.html#txSkelSigners"><span class="hs-identifier hs-var hs-var">txSkelSigners</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-83"></span><span>      </span><span id="txSkelValidityRange"><span class="annot"><span class="annottext">TxSkel -&gt; SlotRange
+</span><span id="line-80"></span><span>      </span><span id="txSkelValidityRange"><span class="annot"><span class="annottext">TxSkel -&gt; SlotRange
 </span><a href="Cooked.Skeleton.html#txSkelValidityRange"><span class="hs-identifier hs-var hs-var">txSkelValidityRange</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span class="hs-special">,</span><span>
-</span><span id="line-84"></span><span>      </span><span class="hs-comment">-- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer</span><span>
-</span><span id="line-85"></span><span>      </span><span class="hs-comment">-- specifying how to spend it. You must make sure that</span><span>
+</span><span id="line-81"></span><span>      </span><span class="hs-comment">-- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer</span><span>
+</span><span id="line-82"></span><span>      </span><span class="hs-comment">-- specifying how to spend it. You must make sure that</span><span>
+</span><span id="line-83"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-84"></span><span>      </span><span class="hs-comment">-- - On 'Api.TxOutRef's referencing UTxOs belonging to public keys, use</span><span>
+</span><span id="line-85"></span><span>      </span><span class="hs-comment">--   the 'Cooked.Skeleton.Redeemer.emptyTxSkelRedeemer' smart constructor.</span><span>
 </span><span id="line-86"></span><span>      </span><span class="hs-comment">--</span><span>
-</span><span id="line-87"></span><span>      </span><span class="hs-comment">-- - On 'Api.TxOutRef's referencing UTxOs belonging to public keys, use</span><span>
-</span><span id="line-88"></span><span>      </span><span class="hs-comment">--   the 'Cooked.Skeleton.Redeemer.emptyTxSkelRedeemer' smart constructor.</span><span>
-</span><span id="line-89"></span><span>      </span><span class="hs-comment">--</span><span>
-</span><span id="line-90"></span><span>      </span><span class="hs-comment">-- - On 'Api.TxOutRef's referencing UTxOs belonging to scripts, use</span><span>
-</span><span id="line-91"></span><span>      </span><span class="hs-comment">--   the 'Cooked.Skeleton.Redeemer.someTxSkelRedeemer' smart constructor.</span><span>
-</span><span id="line-92"></span><span>      </span><span id="txSkelIns"><span class="annot"><span class="annottext">TxSkel -&gt; Map TxOutRef TxSkelRedeemer
+</span><span id="line-87"></span><span>      </span><span class="hs-comment">-- - On 'Api.TxOutRef's referencing UTxOs belonging to scripts, use</span><span>
+</span><span id="line-88"></span><span>      </span><span class="hs-comment">--   the 'Cooked.Skeleton.Redeemer.someTxSkelRedeemer' smart constructor.</span><span>
+</span><span id="line-89"></span><span>      </span><span id="txSkelIns"><span class="annot"><span class="annottext">TxSkel -&gt; Map TxOutRef TxSkelRedeemer
 </span><a href="Cooked.Skeleton.html#txSkelIns"><span class="hs-identifier hs-var hs-var">txSkelIns</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-93"></span><span>      </span><span class="hs-comment">-- | All outputs directly referenced by the transaction. Each of them will</span><span>
-</span><span id="line-94"></span><span>      </span><span class="hs-comment">-- be directly translated into a Cardano reference input. Additional</span><span>
-</span><span id="line-95"></span><span>      </span><span class="hs-comment">-- reference inputs can be found within the various redeemers of the</span><span>
-</span><span id="line-96"></span><span>      </span><span class="hs-comment">-- skeleton to host reference scripts. Function</span><span>
-</span><span id="line-97"></span><span>      </span><span class="hs-comment">-- 'txSkelInsReferenceInRedeemers' collects those all.</span><span>
-</span><span id="line-98"></span><span>      </span><span id="txSkelInsReference"><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
+</span><span id="line-90"></span><span>      </span><span class="hs-comment">-- | All outputs directly referenced by the transaction. Each of them will</span><span>
+</span><span id="line-91"></span><span>      </span><span class="hs-comment">-- be directly translated into a Cardano reference input. Additional</span><span>
+</span><span id="line-92"></span><span>      </span><span class="hs-comment">-- reference inputs can be found within the various redeemers of the</span><span>
+</span><span id="line-93"></span><span>      </span><span class="hs-comment">-- skeleton to host reference scripts. Function</span><span>
+</span><span id="line-94"></span><span>      </span><span class="hs-comment">-- 'txSkelInsReferenceInRedeemers' collects those all.</span><span>
+</span><span id="line-95"></span><span>      </span><span id="txSkelInsReference"><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReference"><span class="hs-identifier hs-var hs-var">txSkelInsReference</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span>
-</span><span id="line-99"></span><span>      </span><span class="hs-comment">-- | The outputs of the transaction. These will occur in exactly this</span><span>
-</span><span id="line-100"></span><span>      </span><span class="hs-comment">-- order on the transaction.</span><span>
-</span><span id="line-101"></span><span>      </span><span id="txSkelOuts"><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelOut]
+</span><span id="line-96"></span><span>      </span><span class="hs-comment">-- | The outputs of the transaction. These will occur in exactly this</span><span>
+</span><span id="line-97"></span><span>      </span><span class="hs-comment">-- order on the transaction.</span><span>
+</span><span id="line-98"></span><span>      </span><span id="txSkelOuts"><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOuts"><span class="hs-identifier hs-var hs-var">txSkelOuts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-102"></span><span>      </span><span class="hs-comment">-- | Possible proposals issued in this transaction to be voted on and</span><span>
-</span><span id="line-103"></span><span>      </span><span class="hs-comment">-- possible enacted later on.</span><span>
-</span><span id="line-104"></span><span>      </span><span id="txSkelProposals"><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelProposal]
+</span><span id="line-99"></span><span>      </span><span class="hs-comment">-- | Possible proposals issued in this transaction to be voted on and</span><span>
+</span><span id="line-100"></span><span>      </span><span class="hs-comment">-- possible enacted later on.</span><span>
+</span><span id="line-101"></span><span>      </span><span id="txSkelProposals"><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelProposal]
 </span><a href="Cooked.Skeleton.html#txSkelProposals"><span class="hs-identifier hs-var hs-var">txSkelProposals</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#TxSkelProposal"><span class="hs-identifier hs-type">TxSkelProposal</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-105"></span><span>      </span><span class="annot"><span class="hs-comment">-- | Withdrawals performed by the transaction</span></span><span>
-</span><span id="line-106"></span><span>      </span><span id="txSkelWithdrawals"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelWithdrawals
+</span><span id="line-102"></span><span>      </span><span class="annot"><span class="hs-comment">-- | Withdrawals performed by the transaction</span></span><span>
+</span><span id="line-103"></span><span>      </span><span id="txSkelWithdrawals"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelWithdrawals"><span class="hs-identifier hs-var hs-var">txSkelWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span>
-</span><span id="line-107"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-108"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-109"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679801649"><span id="local-6989586621679801679"><span id="local-6989586621679801683"><span class="annot"><span class="annottext">Int -&gt; TxSkel -&gt; ShowS
+</span><span id="line-104"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-105"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679805262"><span id="local-6989586621679805292"><span id="local-6989586621679805296"><span class="annot"><span class="annottext">Int -&gt; TxSkel -&gt; ShowS
 [TxSkel] -&gt; ShowS
 TxSkel -&gt; String
 (Int -&gt; TxSkel -&gt; ShowS)
@@ -129,7 +126,7 @@ $cshow :: TxSkel -&gt; String
 show :: TxSkel -&gt; String
 $cshowList :: [TxSkel] -&gt; ShowS
 showList :: [TxSkel] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679801714"><span id="local-6989586621679801743"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679805327"><span id="local-6989586621679805356"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkel -&gt; Bool
 (TxSkel -&gt; TxSkel -&gt; Bool)
 -&gt; (TxSkel -&gt; TxSkel -&gt; Bool) -&gt; Eq TxSkel
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -138,81 +135,81 @@ $c== :: TxSkel -&gt; TxSkel -&gt; Bool
 $c/= :: TxSkel -&gt; TxSkel -&gt; Bool
 /= :: TxSkel -&gt; TxSkel -&gt; Bool
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get labels from a 'TxSkel'</span></span><span>
+</span><span id="line-109"></span><span id="txSkelLabelL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelLabel&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelLabelL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-110"></span><span>
-</span><span id="line-111"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get labels from a 'TxSkel'</span></span><span>
-</span><span id="line-112"></span><span id="txSkelLabelL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelLabel&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelLabelL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-111"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get options from a 'TxSkel'</span></span><span>
+</span><span id="line-112"></span><span id="txSkelOptsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelOpts&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelOptsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-113"></span><span>
-</span><span id="line-114"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get options from a 'TxSkel'</span></span><span>
-</span><span id="line-115"></span><span id="txSkelOptsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelOpts&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelOptsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-114"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get the minted value of a 'TxSkel'</span></span><span>
+</span><span id="line-115"></span><span id="txSkelMintsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelMints&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelMintsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-116"></span><span>
-</span><span id="line-117"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get the minted value of a 'TxSkel'</span></span><span>
-</span><span id="line-118"></span><span id="txSkelMintsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelMints&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelMintsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-117"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get the validity range of a 'TxSkel'</span></span><span>
+</span><span id="line-118"></span><span id="txSkelValidityRangeL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelValidityRange&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelValidityRangeL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-119"></span><span>
-</span><span id="line-120"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get the validity range of a 'TxSkel'</span></span><span>
-</span><span id="line-121"></span><span id="txSkelValidityRangeL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelValidityRange&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelValidityRangeL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-120"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get signers from a 'TxSkel'</span></span><span>
+</span><span id="line-121"></span><span id="txSkelSignersL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelSigners&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelSignersL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-122"></span><span>
-</span><span id="line-123"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get signers from a 'TxSkel'</span></span><span>
-</span><span id="line-124"></span><span id="txSkelSignersL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelSigners&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelSignersL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-123"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get inputs from a 'TxSkel'</span></span><span>
+</span><span id="line-124"></span><span id="txSkelInsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelIns&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelInsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-125"></span><span>
-</span><span id="line-126"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get inputs from a 'TxSkel'</span></span><span>
-</span><span id="line-127"></span><span id="txSkelInsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelIns&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelInsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-126"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get reference inputs from a 'TxSkel'</span></span><span>
+</span><span id="line-127"></span><span id="txSkelInsReferenceL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelInsReference&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelInsReferenceL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-128"></span><span>
-</span><span id="line-129"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get reference inputs from a 'TxSkel'</span></span><span>
-</span><span id="line-130"></span><span id="txSkelInsReferenceL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelInsReference&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelInsReferenceL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-129"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get outputs from a 'TxSkel'</span></span><span>
+</span><span id="line-130"></span><span id="txSkelOutsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelOuts&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelOutsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-131"></span><span>
-</span><span id="line-132"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get outputs from a 'TxSkel'</span></span><span>
-</span><span id="line-133"></span><span id="txSkelOutsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelOuts&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelOutsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-132"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get proposals from a 'TxSkel'</span></span><span>
+</span><span id="line-133"></span><span id="txSkelProposalsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelProposals&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelProposalsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-134"></span><span>
-</span><span id="line-135"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get proposals from a 'TxSkel'</span></span><span>
-</span><span id="line-136"></span><span id="txSkelProposalsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelProposals&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelProposalsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
+</span><span id="line-135"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get withdrawals from a 'TxSkel'</span></span><span>
+</span><span id="line-136"></span><span id="txSkelWithdrawalsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelWithdrawals&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelWithdrawalsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
 </span><span id="line-137"></span><span>
-</span><span id="line-138"></span><span class="annot"><span class="hs-comment">-- | A lens to set of get withdrawals from a 'TxSkel'</span></span><span>
-</span><span id="line-139"></span><span id="txSkelWithdrawalsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelWithdrawals&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelWithdrawalsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkel</span></span><span>
-</span><span id="line-140"></span><span>
-</span><span id="line-141"></span><span class="annot"><span class="hs-comment">-- | A convenience template of an empty transaction skeleton.</span></span><span>
-</span><span id="line-142"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelTemplate"><span class="hs-identifier hs-type">txSkelTemplate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-143"></span><span id="txSkelTemplate"><span class="annot"><span class="annottext">txSkelTemplate :: TxSkel
+</span><span id="line-138"></span><span class="annot"><span class="hs-comment">-- | A convenience template of an empty transaction skeleton.</span></span><span>
+</span><span id="line-139"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelTemplate"><span class="hs-identifier hs-type">txSkelTemplate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-140"></span><span id="txSkelTemplate"><span class="annot"><span class="annottext">txSkelTemplate :: TxSkel
 </span><a href="Cooked.Skeleton.html#txSkelTemplate"><span class="hs-identifier hs-var hs-var">txSkelTemplate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-144"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-145"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">txSkelLabel :: Set TxLabel
-</span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-identifier hs-var">txSkelLabel</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxLabel
+</span><span id="line-141"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">txSkelLabel :: Set TxSkelLabel
+</span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-identifier hs-var">txSkelLabel</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxSkelLabel
 forall a. Set a
 </span><span class="hs-identifier hs-var">Set.empty</span></span><span class="hs-special">,</span><span>
-</span><span id="line-146"></span><span>      </span><span class="annot"><span class="annottext">txSkelOpts :: TxOpts
-</span><a href="Cooked.Skeleton.html#txSkelOpts"><span class="hs-identifier hs-var">txSkelOpts</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOpts
+</span><span id="line-143"></span><span>      </span><span class="annot"><span class="annottext">txSkelOpts :: TxSkelOpts
+</span><a href="Cooked.Skeleton.html#txSkelOpts"><span class="hs-identifier hs-var">txSkelOpts</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOpts
 forall a. Default a =&gt; a
 </span><span class="hs-identifier hs-var">def</span></span><span class="hs-special">,</span><span>
-</span><span id="line-147"></span><span>      </span><span class="annot"><span class="annottext">txSkelMints :: TxSkelMints
+</span><span id="line-144"></span><span>      </span><span class="annot"><span class="annottext">txSkelMints :: TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMints"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span class="hs-special">,</span><span>
-</span><span id="line-148"></span><span>      </span><span class="annot"><span class="annottext">txSkelValidityRange :: SlotRange
+</span><span id="line-145"></span><span>      </span><span class="annot"><span class="annottext">txSkelValidityRange :: SlotRange
 </span><a href="Cooked.Skeleton.html#txSkelValidityRange"><span class="hs-identifier hs-var">txSkelValidityRange</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SlotRange
 forall a. Interval a
 </span><span class="hs-identifier hs-var">Api.always</span></span><span class="hs-special">,</span><span>
-</span><span id="line-149"></span><span>      </span><span class="annot"><span class="annottext">txSkelSigners :: [Wallet]
+</span><span id="line-146"></span><span>      </span><span class="annot"><span class="annottext">txSkelSigners :: [Wallet]
 </span><a href="Cooked.Skeleton.html#txSkelSigners"><span class="hs-identifier hs-var">txSkelSigners</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-150"></span><span>      </span><span class="annot"><span class="annottext">txSkelIns :: Map TxOutRef TxSkelRedeemer
+</span><span id="line-147"></span><span>      </span><span class="annot"><span class="annottext">txSkelIns :: Map TxOutRef TxSkelRedeemer
 </span><a href="Cooked.Skeleton.html#txSkelIns"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span class="hs-special">,</span><span>
-</span><span id="line-151"></span><span>      </span><span class="annot"><span class="annottext">txSkelInsReference :: Set TxOutRef
+</span><span id="line-148"></span><span>      </span><span class="annot"><span class="annottext">txSkelInsReference :: Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReference"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
 forall a. Set a
 </span><span class="hs-identifier hs-var">Set.empty</span></span><span class="hs-special">,</span><span>
-</span><span id="line-152"></span><span>      </span><span class="annot"><span class="annottext">txSkelOuts :: [TxSkelOut]
+</span><span id="line-149"></span><span>      </span><span class="annot"><span class="annottext">txSkelOuts :: [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOuts"><span class="hs-identifier hs-var">txSkelOuts</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-153"></span><span>      </span><span class="annot"><span class="annottext">txSkelProposals :: [TxSkelProposal]
+</span><span id="line-150"></span><span>      </span><span class="annot"><span class="annottext">txSkelProposals :: [TxSkelProposal]
 </span><a href="Cooked.Skeleton.html#txSkelProposals"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-154"></span><span>      </span><span class="annot"><span class="annottext">txSkelWithdrawals :: TxSkelWithdrawals
+</span><span id="line-151"></span><span>      </span><span class="annot"><span class="annottext">txSkelWithdrawals :: TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelWithdrawals"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span>
-</span><span id="line-155"></span><span>    </span><span class="hs-special">}</span><span>
-</span><span id="line-156"></span><span>
-</span><span id="line-157"></span><span class="annot"><span class="hs-comment">-- | Returns the full value contained in the skeleton outputs</span></span><span>
-</span><span id="line-158"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelValueInOutputs"><span class="hs-identifier hs-type">txSkelValueInOutputs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
-</span><span id="line-159"></span><span id="txSkelValueInOutputs"><span class="annot"><span class="annottext">txSkelValueInOutputs :: TxSkel -&gt; Value
+</span><span id="line-152"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-153"></span><span>
+</span><span id="line-154"></span><span class="annot"><span class="hs-comment">-- | Returns the full value contained in the skeleton outputs</span></span><span>
+</span><span id="line-155"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelValueInOutputs"><span class="hs-identifier hs-type">txSkelValueInOutputs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-156"></span><span id="txSkelValueInOutputs"><span class="annot"><span class="annottext">txSkelValueInOutputs :: TxSkel -&gt; Value
 </span><a href="Cooked.Skeleton.html#txSkelValueInOutputs"><span class="hs-identifier hs-var hs-var">txSkelValueInOutputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Fold '[] TxSkel Value -&gt; TxSkel -&gt; Value
 forall k a (is :: IxList) s.
 (Is k A_Fold, Monoid a) =&gt;
@@ -228,39 +225,30 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Fold '[] [TxSkelOut] [TxSkelOut] TxSkelOut TxSkelOut
 forall (f :: * -&gt; *) a. Foldable f =&gt; Fold (f a) a
 </span><span class="hs-identifier hs-var">folded</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Fold '[] TxSkel TxSkel TxSkelOut TxSkelOut
--&gt; Optic
-     A_Lens '[] TxSkelOut TxSkelOut TxSkelOutValue TxSkelOutValue
--&gt; Optic A_Fold '[] TxSkel TxSkel TxSkelOutValue TxSkelOutValue
-forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
-       b.
-(JoinKinds k l m, AppendIndices is js ks) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkelOut TxSkelOut TxSkelOutValue TxSkelOutValue
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Fold '[] TxSkel TxSkel TxSkelOutValue TxSkelOutValue
--&gt; Optic A_Lens '[] TxSkelOutValue TxSkelOutValue Value Value
+-&gt; Optic A_Lens '[] TxSkelOut TxSkelOut Value Value
 -&gt; Optic' A_Fold '[] TxSkel Value
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkelOutValue TxSkelOutValue Value Value
-</span><a href="Cooked.Skeleton.Value.html#txSkelOutValueContentL"><span class="hs-identifier hs-var">txSkelOutValueContentL</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-160"></span><span>
-</span><span id="line-161"></span><span class="annot"><span class="hs-comment">-- | All 'Api.TxOutRef's in reference inputs from redeemers</span></span><span>
-</span><span id="line-162"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-type">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
-</span><span id="line-163"></span><span id="txSkelInsReferenceInRedeemers"><span class="annot"><span class="annottext">txSkelInsReferenceInRedeemers :: TxSkel -&gt; Set TxOutRef
-</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var hs-var">txSkelInsReferenceInRedeemers</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679801935"><span id="local-6989586621679801936"><span id="local-6989586621679801937"><span id="local-6989586621679801938"><span id="local-6989586621679801939"><span id="local-6989586621679801940"><span id="local-6989586621679801941"><span id="local-6989586621679801942"><span id="local-6989586621679801943"><span id="local-6989586621679801944"><span class="annot"><span class="annottext">[Wallet]
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkelOut TxSkelOut Value Value
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>
+</span><span id="line-158"></span><span class="annot"><span class="hs-comment">-- | All 'Api.TxOutRef's in reference inputs from redeemers</span></span><span>
+</span><span id="line-159"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-type">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
+</span><span id="line-160"></span><span id="txSkelInsReferenceInRedeemers"><span class="annot"><span class="annottext">txSkelInsReferenceInRedeemers :: TxSkel -&gt; Set TxOutRef
+</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var hs-var">txSkelInsReferenceInRedeemers</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679805547"><span id="local-6989586621679805548"><span id="local-6989586621679805549"><span id="local-6989586621679805550"><span id="local-6989586621679805551"><span id="local-6989586621679805552"><span id="local-6989586621679805553"><span id="local-6989586621679805554"><span id="local-6989586621679805555"><span id="local-6989586621679805556"><span class="annot"><span class="annottext">[Wallet]
 [TxSkelProposal]
 [TxSkelOut]
 Set TxOutRef
-Set TxLabel
+Set TxSkelLabel
 TxSkelWithdrawals
 Map TxOutRef TxSkelRedeemer
 TxSkelMints
 SlotRange
-TxOpts
-txSkelLabel :: TxSkel -&gt; Set TxLabel
-txSkelOpts :: TxSkel -&gt; TxOpts
+TxSkelOpts
+txSkelLabel :: TxSkel -&gt; Set TxSkelLabel
+txSkelOpts :: TxSkel -&gt; TxSkelOpts
 txSkelMints :: TxSkel -&gt; TxSkelMints
 txSkelSigners :: TxSkel -&gt; [Wallet]
 txSkelValidityRange :: TxSkel -&gt; SlotRange
@@ -269,8 +257,8 @@ txSkelInsReference :: TxSkel -&gt; Set TxOutRef
 txSkelOuts :: TxSkel -&gt; [TxSkelOut]
 txSkelProposals :: TxSkel -&gt; [TxSkelProposal]
 txSkelWithdrawals :: TxSkel -&gt; TxSkelWithdrawals
-txSkelLabel :: Set TxLabel
-txSkelOpts :: TxOpts
+txSkelLabel :: Set TxSkelLabel
+txSkelOpts :: TxSkelOpts
 txSkelMints :: TxSkelMints
 txSkelSigners :: [Wallet]
 txSkelValidityRange :: SlotRange
@@ -280,23 +268,23 @@ txSkelOuts :: [TxSkelOut]
 txSkelProposals :: [TxSkelProposal]
 txSkelWithdrawals :: TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-164"></span><span>  </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Set TxOutRef
+</span><span id="line-161"></span><span>  </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Set TxOutRef
 forall a. Ord a =&gt; [a] -&gt; Set a
 </span><span class="hs-identifier hs-var">Set.fromList</span></span><span> </span><span class="annot"><span class="annottext">([TxOutRef] -&gt; Set TxOutRef) -&gt; [TxOutRef] -&gt; Set TxOutRef
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-165"></span><span>    </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; Maybe TxOutRef)
+</span><span id="line-162"></span><span>    </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; Maybe TxOutRef)
 -&gt; [TxSkelRedeemer] -&gt; [TxOutRef]
 forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">mapMaybe</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; Maybe TxOutRef
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerReferenceInput"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInput</span></a></span><span> </span><span class="annot"><span class="annottext">([TxSkelRedeemer] -&gt; [TxOutRef]) -&gt; [TxSkelRedeemer] -&gt; [TxOutRef]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-166"></span><span>      </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [TxSkelRedeemer]
+</span><span id="line-163"></span><span>      </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [TxSkelRedeemer]
 forall k a. Map k a -&gt; [a]
 </span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679801940"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
-</span><span id="line-167"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
+</span><a href="#local-6989586621679805552"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
+</span><span id="line-164"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Versioned Script, TxSkelRedeemer) -&gt; TxSkelRedeemer
 forall a b. (a, b) -&gt; b
@@ -308,8 +296,8 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">mapMaybe</span></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Maybe (Versioned Script, TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalWitness"><span class="hs-identifier hs-var">txSkelProposalWitness</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679801943"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-168"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
+</span><a href="#local-6989586621679805555"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-165"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkelRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelRedeemer
@@ -323,8 +311,8 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 -&gt; [(TxSkelRedeemer, NEMap TokenName (NonZero Integer))]
 forall k a. Map k a -&gt; [a]
 </span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679801937"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-169"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
+</span><a href="#local-6989586621679805549"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-166"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkelRedeemer, Lovelace) -&gt; TxSkelRedeemer
 forall a b. (a, b) -&gt; a
@@ -334,28 +322,28 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals -&gt; [(TxSkelRedeemer, Lovelace)]
 forall k a. Map k a -&gt; [a]
 </span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
-</span><a href="#local-6989586621679801944"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-170"></span><span>
-</span><span id="line-171"></span><span class="hs-comment">-- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes</span><span>
-</span><span id="line-172"></span><span class="hs-comment">-- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference</span><span>
-</span><span id="line-173"></span><span class="hs-comment">-- inputs of the skeleton.  This does not include additional possible</span><span>
-</span><span id="line-174"></span><span class="hs-comment">-- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral</span><span>
-</span><span id="line-175"></span><span class="hs-comment">-- inputs, as they are not part of the skeleton.</span><span>
-</span><span id="line-176"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-type">txSkelKnownTxOutRefs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
-</span><span id="line-177"></span><span id="txSkelKnownTxOutRefs"><span class="annot"><span class="annottext">txSkelKnownTxOutRefs :: TxSkel -&gt; Set TxOutRef
-</span><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-var hs-var">txSkelKnownTxOutRefs</span></a></span></span><span> </span><span id="local-6989586621679801953"><span class="annot"><span class="annottext">skel :: TxSkel
-</span><a href="#local-6989586621679801953"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679801954"><span id="local-6989586621679801955"><span id="local-6989586621679801956"><span id="local-6989586621679801957"><span id="local-6989586621679801958"><span id="local-6989586621679801959"><span id="local-6989586621679801960"><span id="local-6989586621679801961"><span id="local-6989586621679801962"><span id="local-6989586621679801963"><span class="annot"><span class="annottext">[Wallet]
+</span><a href="#local-6989586621679805556"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-167"></span><span>
+</span><span id="line-168"></span><span class="hs-comment">-- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes</span><span>
+</span><span id="line-169"></span><span class="hs-comment">-- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference</span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- inputs of the skeleton.  This does not include additional possible</span><span>
+</span><span id="line-171"></span><span class="hs-comment">-- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral</span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- inputs, as they are not part of the skeleton.</span><span>
+</span><span id="line-173"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-type">txSkelKnownTxOutRefs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
+</span><span id="line-174"></span><span id="txSkelKnownTxOutRefs"><span class="annot"><span class="annottext">txSkelKnownTxOutRefs :: TxSkel -&gt; Set TxOutRef
+</span><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-var hs-var">txSkelKnownTxOutRefs</span></a></span></span><span> </span><span id="local-6989586621679805565"><span class="annot"><span class="annottext">skel :: TxSkel
+</span><a href="#local-6989586621679805565"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679805566"><span id="local-6989586621679805567"><span id="local-6989586621679805568"><span id="local-6989586621679805569"><span id="local-6989586621679805570"><span id="local-6989586621679805571"><span id="local-6989586621679805572"><span id="local-6989586621679805573"><span id="local-6989586621679805574"><span id="local-6989586621679805575"><span class="annot"><span class="annottext">[Wallet]
 [TxSkelProposal]
 [TxSkelOut]
 Set TxOutRef
-Set TxLabel
+Set TxSkelLabel
 TxSkelWithdrawals
 Map TxOutRef TxSkelRedeemer
 TxSkelMints
 SlotRange
-TxOpts
-txSkelLabel :: TxSkel -&gt; Set TxLabel
-txSkelOpts :: TxSkel -&gt; TxOpts
+TxSkelOpts
+txSkelLabel :: TxSkel -&gt; Set TxSkelLabel
+txSkelOpts :: TxSkel -&gt; TxSkelOpts
 txSkelMints :: TxSkel -&gt; TxSkelMints
 txSkelSigners :: TxSkel -&gt; [Wallet]
 txSkelValidityRange :: TxSkel -&gt; SlotRange
@@ -364,8 +352,8 @@ txSkelInsReference :: TxSkel -&gt; Set TxOutRef
 txSkelOuts :: TxSkel -&gt; [TxSkelOut]
 txSkelProposals :: TxSkel -&gt; [TxSkelProposal]
 txSkelWithdrawals :: TxSkel -&gt; TxSkelWithdrawals
-txSkelLabel :: Set TxLabel
-txSkelOpts :: TxOpts
+txSkelLabel :: Set TxSkelLabel
+txSkelOpts :: TxSkelOpts
 txSkelMints :: TxSkelMints
 txSkelSigners :: [Wallet]
 txSkelValidityRange :: SlotRange
@@ -375,172 +363,486 @@ txSkelOuts :: [TxSkelOut]
 txSkelProposals :: [TxSkelProposal]
 txSkelWithdrawals :: TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-178"></span><span>  </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
+</span><span id="line-175"></span><span>  </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679801953"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-179"></span><span>    </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679805565"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-176"></span><span>    </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; Set TxOutRef
 forall k a. Map k a -&gt; Set k
 </span><span class="hs-identifier hs-var">Map.keysSet</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679801959"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
-</span><span id="line-180"></span><span>    </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679805571"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
+</span><span id="line-177"></span><span>    </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679801960"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span>
-</span><span id="line-181"></span><span>
-</span><span id="line-182"></span><span class="annot"><span class="hs-comment">-- | Returns the total value withdrawn in this 'TxSkel'</span></span><span>
-</span><span id="line-183"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelWithdrawnValue"><span class="hs-identifier hs-type">txSkelWithdrawnValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
-</span><span id="line-184"></span><span id="txSkelWithdrawnValue"><span class="annot"><span class="annottext">txSkelWithdrawnValue :: TxSkel -&gt; Value
-</span><a href="Cooked.Skeleton.html#txSkelWithdrawnValue"><span class="hs-identifier hs-var hs-var">txSkelWithdrawnValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; Value
-forall a. Monoid a =&gt; [a] -&gt; a
-</span><span class="hs-identifier hs-var">mconcat</span></span><span> </span><span class="annot"><span class="annottext">([Value] -&gt; Value) -&gt; (TxSkel -&gt; [Value]) -&gt; TxSkel -&gt; Value
+</span><a href="#local-6989586621679805572"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span>
+</span><span id="line-178"></span><span>
+</span><span id="line-179"></span><span class="annot"><span class="hs-comment">-- | Returns the total value withdrawn in this 'TxSkel'</span></span><span>
+</span><span id="line-180"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelWithdrawnValue"><span class="hs-identifier hs-type">txSkelWithdrawnValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-181"></span><span id="txSkelWithdrawnValue"><span class="annot"><span class="annottext">txSkelWithdrawnValue :: TxSkel -&gt; Value
+</span><a href="Cooked.Skeleton.html#txSkelWithdrawnValue"><span class="hs-identifier hs-var hs-var">txSkelWithdrawnValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Prism '[] Value Lovelace -&gt; Lovelace -&gt; Value
+forall k (is :: IxList) t b.
+Is k A_Review =&gt;
+Optic' k is t b -&gt; b -&gt; t
+</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Prism '[] Value Lovelace
+</span><a href="Cooked.Skeleton.Output.html#valueLovelaceP"><span class="hs-identifier hs-var">valueLovelaceP</span></a></span><span> </span><span class="annot"><span class="annottext">(Lovelace -&gt; Value) -&gt; (TxSkel -&gt; Lovelace) -&gt; TxSkel -&gt; Value
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace -&gt; Value
-forall a. ToValue a =&gt; a -&gt; Value
-</span><span class="hs-identifier hs-var">Script.toValue</span></span><span> </span><span class="annot"><span class="annottext">(Lovelace -&gt; Value)
--&gt; ((Either (Versioned Script) PubKeyHash,
-     (TxSkelRedeemer, Lovelace))
-    -&gt; Lovelace)
--&gt; (Either (Versioned Script) PubKeyHash,
-    (TxSkelRedeemer, Lovelace))
--&gt; Value
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer, Lovelace) -&gt; Lovelace
-forall a b. (a, b) -&gt; b
-</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((TxSkelRedeemer, Lovelace) -&gt; Lovelace)
--&gt; ((Either (Versioned Script) PubKeyHash,
-     (TxSkelRedeemer, Lovelace))
-    -&gt; (TxSkelRedeemer, Lovelace))
--&gt; (Either (Versioned Script) PubKeyHash,
-    (TxSkelRedeemer, Lovelace))
--&gt; Lovelace
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
--&gt; (TxSkelRedeemer, Lovelace)
-forall a b. (a, b) -&gt; b
-</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
- -&gt; Value)
--&gt; [(Either (Versioned Script) PubKeyHash,
-     (TxSkelRedeemer, Lovelace))]
--&gt; [Value]
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Either (Versioned Script) PubKeyHash,
-   (TxSkelRedeemer, Lovelace))]
- -&gt; [Value])
--&gt; (TxSkel
-    -&gt; [(Either (Versioned Script) PubKeyHash,
-         (TxSkelRedeemer, Lovelace))])
--&gt; TxSkel
--&gt; [Value]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Fold '[] TxSkel Lovelace -&gt; TxSkel -&gt; Lovelace
+forall k a (is :: IxList) s.
+(Is k A_Fold, Monoid a) =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">foldOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+</span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+-&gt; Optic
+     A_Getter
+     '[]
+     TxSkelWithdrawals
+     TxSkelWithdrawals
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+-&gt; Optic
+     A_Getter
+     '[]
+     TxSkel
+     TxSkel
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelWithdrawals
+ -&gt; [(Either (Versioned Script) PubKeyHash,
+      (TxSkelRedeemer, Lovelace))])
+-&gt; Optic
+     A_Getter
+     '[]
+     TxSkelWithdrawals
+     TxSkelWithdrawals
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+forall s a. (s -&gt; a) -&gt; Getter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
 -&gt; [(Either (Versioned Script) PubKeyHash,
      (TxSkelRedeemer, Lovelace))]
 forall k a. Map k a -&gt; [(k, a)]
-</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelWithdrawals
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Getter
+  '[]
+  TxSkel
+  TxSkel
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+-&gt; Optic
+     A_Traversal
+     '[]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+-&gt; Optic
+     A_Fold
+     '[]
+     TxSkel
+     TxSkel
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Fold
+  '[]
+  TxSkel
+  TxSkel
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+-&gt; Optic
+     A_Lens
+     '[]
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (TxSkelRedeemer, Lovelace)
+     (TxSkelRedeemer, Lovelace)
+-&gt; Optic
+     A_Fold
+     '[]
+     TxSkel
+     TxSkel
+     (TxSkelRedeemer, Lovelace)
+     (TxSkelRedeemer, Lovelace)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (TxSkelRedeemer, Lovelace)
+  (TxSkelRedeemer, Lovelace)
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Fold
+  '[]
+  TxSkel
+  TxSkel
+  (TxSkelRedeemer, Lovelace)
+  (TxSkelRedeemer, Lovelace)
+-&gt; Optic
+     A_Lens
+     '[]
+     (TxSkelRedeemer, Lovelace)
+     (TxSkelRedeemer, Lovelace)
+     Lovelace
+     Lovelace
+-&gt; Optic' A_Fold '[] TxSkel Lovelace
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  (TxSkelRedeemer, Lovelace)
+  (TxSkelRedeemer, Lovelace)
+  Lovelace
+  Lovelace
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-182"></span><span>
+</span><span id="line-183"></span><span class="annot"><span class="hs-comment">-- | Returns all the scripts involved in withdrawals in this 'TxSkel'</span></span><span>
+</span><span id="line-184"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelWithdrawingScripts"><span class="hs-identifier hs-type">txSkelWithdrawingScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">]</span><span>
+</span><span id="line-185"></span><span id="txSkelWithdrawingScripts"><span class="annot"><span class="annottext">txSkelWithdrawingScripts :: TxSkel -&gt; [Versioned Script]
+</span><a href="Cooked.Skeleton.html#txSkelWithdrawingScripts"><span class="hs-identifier hs-var hs-var">txSkelWithdrawingScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Fold '[] TxSkel (Versioned Script)
+-&gt; TxSkel -&gt; [Versioned Script]
+forall k (is :: IxList) s a.
+Is k A_Fold =&gt;
+Optic' k is s a -&gt; s -&gt; [a]
+</span><span class="hs-identifier hs-var">toListOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+</span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+-&gt; Optic
+     A_Getter
+     '[]
+     TxSkelWithdrawals
+     TxSkelWithdrawals
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+-&gt; Optic
+     A_Getter
+     '[]
+     TxSkel
+     TxSkel
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelWithdrawals
  -&gt; [(Either (Versioned Script) PubKeyHash,
       (TxSkelRedeemer, Lovelace))])
--&gt; (TxSkel -&gt; TxSkelWithdrawals)
--&gt; TxSkel
--&gt; [(Either (Versioned Script) PubKeyHash,
-     (TxSkelRedeemer, Lovelace))]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelWithdrawals
-</span><a href="Cooked.Skeleton.html#txSkelWithdrawals"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span>
-</span><span id="line-185"></span><span>
-</span><span id="line-186"></span><span class="annot"><span class="hs-comment">-- | Returns all the scripts involved in withdrawals in this 'TxSkel'</span></span><span>
-</span><span id="line-187"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelWithdrawingScripts"><span class="hs-identifier hs-type">txSkelWithdrawingScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">]</span><span>
-</span><span id="line-188"></span><span id="txSkelWithdrawingScripts"><span class="annot"><span class="annottext">txSkelWithdrawingScripts :: TxSkel -&gt; [Versioned Script]
-</span><a href="Cooked.Skeleton.html#txSkelWithdrawingScripts"><span class="hs-identifier hs-var hs-var">txSkelWithdrawingScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Versioned Script], [PubKeyHash]) -&gt; [Versioned Script]
-forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(([Versioned Script], [PubKeyHash]) -&gt; [Versioned Script])
--&gt; (TxSkel -&gt; ([Versioned Script], [PubKeyHash]))
--&gt; TxSkel
--&gt; [Versioned Script]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Either (Versioned Script) PubKeyHash]
--&gt; ([Versioned Script], [PubKeyHash])
-forall a b. [Either a b] -&gt; ([a], [b])
-</span><span class="hs-identifier hs-var">partitionEithers</span></span><span> </span><span class="annot"><span class="annottext">([Either (Versioned Script) PubKeyHash]
- -&gt; ([Versioned Script], [PubKeyHash]))
--&gt; (TxSkel -&gt; [Either (Versioned Script) PubKeyHash])
--&gt; TxSkel
--&gt; ([Versioned Script], [PubKeyHash])
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
--&gt; Either (Versioned Script) PubKeyHash
-forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
- -&gt; Either (Versioned Script) PubKeyHash)
--&gt; [(Either (Versioned Script) PubKeyHash,
-     (TxSkelRedeemer, Lovelace))]
--&gt; [Either (Versioned Script) PubKeyHash]
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Either (Versioned Script) PubKeyHash,
-   (TxSkelRedeemer, Lovelace))]
- -&gt; [Either (Versioned Script) PubKeyHash])
--&gt; (TxSkel
-    -&gt; [(Either (Versioned Script) PubKeyHash,
-         (TxSkelRedeemer, Lovelace))])
--&gt; TxSkel
--&gt; [Either (Versioned Script) PubKeyHash]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
+-&gt; Optic
+     A_Getter
+     '[]
+     TxSkelWithdrawals
+     TxSkelWithdrawals
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+forall s a. (s -&gt; a) -&gt; Getter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
 -&gt; [(Either (Versioned Script) PubKeyHash,
      (TxSkelRedeemer, Lovelace))]
 forall k a. Map k a -&gt; [(k, a)]
-</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelWithdrawals
- -&gt; [(Either (Versioned Script) PubKeyHash,
-      (TxSkelRedeemer, Lovelace))])
--&gt; (TxSkel -&gt; TxSkelWithdrawals)
--&gt; TxSkel
--&gt; [(Either (Versioned Script) PubKeyHash,
-     (TxSkelRedeemer, Lovelace))]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelWithdrawals
-</span><a href="Cooked.Skeleton.html#txSkelWithdrawals"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span>
-</span><span id="line-189"></span><span>
-</span><span id="line-190"></span><span class="annot"><span class="hs-comment">-- | Returns all the scripts involved in proposals in this 'TxSkel'</span></span><span>
-</span><span id="line-191"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelProposingScripts"><span class="hs-identifier hs-type">txSkelProposingScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">]</span><span>
-</span><span id="line-192"></span><span id="txSkelProposingScripts"><span class="annot"><span class="annottext">txSkelProposingScripts :: TxSkel -&gt; [Versioned Script]
-</span><a href="Cooked.Skeleton.html#txSkelProposingScripts"><span class="hs-identifier hs-var hs-var">txSkelProposingScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelProposal -&gt; Maybe (Versioned Script))
--&gt; [TxSkelProposal] -&gt; [Versioned Script]
-forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">mapMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((Versioned Script, TxSkelRedeemer) -&gt; Versioned Script)
--&gt; Maybe (Versioned Script, TxSkelRedeemer)
--&gt; Maybe (Versioned Script)
-forall a b. (a -&gt; b) -&gt; Maybe a -&gt; Maybe b
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(Versioned Script, TxSkelRedeemer) -&gt; Versioned Script
-forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (Versioned Script, TxSkelRedeemer)
- -&gt; Maybe (Versioned Script))
--&gt; (TxSkelProposal -&gt; Maybe (Versioned Script, TxSkelRedeemer))
--&gt; TxSkelProposal
--&gt; Maybe (Versioned Script)
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Maybe (Versioned Script, TxSkelRedeemer)
-</span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalWitness"><span class="hs-identifier hs-var">txSkelProposalWitness</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelProposal] -&gt; [Versioned Script])
--&gt; (TxSkel -&gt; [TxSkelProposal]) -&gt; TxSkel -&gt; [Versioned Script]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelProposal]
-</span><a href="Cooked.Skeleton.html#txSkelProposals"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span>
-</span><span id="line-193"></span><span>
-</span><span id="line-194"></span><span class="annot"><span class="hs-comment">-- | Returns all the scripts involved in minting in this 'TxSkel'</span></span><span>
-</span><span id="line-195"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelMintingScripts"><span class="hs-identifier hs-type">txSkelMintingScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">]</span><span>
-</span><span id="line-196"></span><span id="txSkelMintingScripts"><span class="annot"><span class="annottext">txSkelMintingScripts :: TxSkel -&gt; [Versioned Script]
-</span><a href="Cooked.Skeleton.html#txSkelMintingScripts"><span class="hs-identifier hs-var hs-var">txSkelMintingScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Mint -&gt; Versioned Script) -&gt; [Mint] -&gt; [Versioned Script]
-forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">Mint -&gt; Versioned Script
-</span><a href="Cooked.Skeleton.Mint.html#txSkelMintVersionedScript"><span class="hs-identifier hs-var">txSkelMintVersionedScript</span></a></span><span> </span><span class="annot"><span class="annottext">([Mint] -&gt; [Versioned Script])
--&gt; (TxSkel -&gt; [Mint]) -&gt; TxSkel -&gt; [Versioned Script]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; [Mint]
-</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints -&gt; [Mint])
--&gt; (TxSkel -&gt; TxSkelMints) -&gt; TxSkel -&gt; [Mint]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelMints
-</span><a href="Cooked.Skeleton.html#txSkelMints"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
-</span><span id="line-197"></span></pre></body></html>
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Getter
+  '[]
+  TxSkel
+  TxSkel
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+-&gt; Optic
+     A_Traversal
+     '[]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     [(Either (Versioned Script) PubKeyHash,
+       (TxSkelRedeemer, Lovelace))]
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+-&gt; Optic
+     A_Fold
+     '[]
+     TxSkel
+     TxSkel
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+  [(Either (Versioned Script) PubKeyHash,
+    (TxSkelRedeemer, Lovelace))]
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Fold
+  '[]
+  TxSkel
+  TxSkel
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+-&gt; Optic
+     A_Lens
+     '[]
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+     (Either (Versioned Script) PubKeyHash)
+     (Either (Versioned Script) PubKeyHash)
+-&gt; Optic
+     A_Fold
+     '[]
+     TxSkel
+     TxSkel
+     (Either (Versioned Script) PubKeyHash)
+     (Either (Versioned Script) PubKeyHash)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash, (TxSkelRedeemer, Lovelace))
+  (Either (Versioned Script) PubKeyHash)
+  (Either (Versioned Script) PubKeyHash)
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Fold
+  '[]
+  TxSkel
+  TxSkel
+  (Either (Versioned Script) PubKeyHash)
+  (Either (Versioned Script) PubKeyHash)
+-&gt; Optic
+     A_Prism
+     '[]
+     (Either (Versioned Script) PubKeyHash)
+     (Either (Versioned Script) PubKeyHash)
+     (Versioned Script)
+     (Versioned Script)
+-&gt; Optic' A_Fold '[] TxSkel (Versioned Script)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Prism
+  '[]
+  (Either (Versioned Script) PubKeyHash)
+  (Either (Versioned Script) PubKeyHash)
+  (Versioned Script)
+  (Versioned Script)
+forall a b c. Prism (Either a b) (Either c b) a c
+</span><span class="hs-identifier hs-var">_Left</span></span><span class="hs-special">)</span><span>
+</span><span id="line-186"></span><span>
+</span><span id="line-187"></span><span class="annot"><span class="hs-comment">-- | Returns all the scripts involved in proposals in this 'TxSkel'</span></span><span>
+</span><span id="line-188"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelProposingScripts"><span class="hs-identifier hs-type">txSkelProposingScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">]</span><span>
+</span><span id="line-189"></span><span id="txSkelProposingScripts"><span class="annot"><span class="annottext">txSkelProposingScripts :: TxSkel -&gt; [Versioned Script]
+</span><a href="Cooked.Skeleton.html#txSkelProposingScripts"><span class="hs-identifier hs-var hs-var">txSkelProposingScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (Versioned Script)
+-&gt; TxSkel -&gt; [Versioned Script]
+forall k (is :: IxList) s a.
+Is k A_Fold =&gt;
+Optic' k is s a -&gt; s -&gt; [a]
+</span><span class="hs-identifier hs-var">toListOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+-&gt; Optic
+     A_Traversal
+     '[]
+     [TxSkelProposal]
+     [TxSkelProposal]
+     TxSkelProposal
+     TxSkelProposal
+-&gt; Optic
+     A_Traversal '[] TxSkel TxSkel TxSkelProposal TxSkelProposal
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  [TxSkelProposal]
+  [TxSkelProposal]
+  TxSkelProposal
+  TxSkelProposal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] TxSkel TxSkel TxSkelProposal TxSkelProposal
+-&gt; Optic
+     A_Lens
+     '[]
+     TxSkelProposal
+     TxSkelProposal
+     (Maybe (Versioned Script, TxSkelRedeemer))
+     (Maybe (Versioned Script, TxSkelRedeemer))
+-&gt; Optic
+     A_Traversal
+     '[]
+     TxSkel
+     TxSkel
+     (Maybe (Versioned Script, TxSkelRedeemer))
+     (Maybe (Versioned Script, TxSkelRedeemer))
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  TxSkelProposal
+  TxSkelProposal
+  (Maybe (Versioned Script, TxSkelRedeemer))
+  (Maybe (Versioned Script, TxSkelRedeemer))
+</span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalWitnessL"><span class="hs-identifier hs-var">txSkelProposalWitnessL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  TxSkel
+  TxSkel
+  (Maybe (Versioned Script, TxSkelRedeemer))
+  (Maybe (Versioned Script, TxSkelRedeemer))
+-&gt; Optic
+     A_Prism
+     '[]
+     (Maybe (Versioned Script, TxSkelRedeemer))
+     (Maybe (Versioned Script, TxSkelRedeemer))
+     (Versioned Script, TxSkelRedeemer)
+     (Versioned Script, TxSkelRedeemer)
+-&gt; Optic
+     A_Traversal
+     '[]
+     TxSkel
+     TxSkel
+     (Versioned Script, TxSkelRedeemer)
+     (Versioned Script, TxSkelRedeemer)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Prism
+  '[]
+  (Maybe (Versioned Script, TxSkelRedeemer))
+  (Maybe (Versioned Script, TxSkelRedeemer))
+  (Versioned Script, TxSkelRedeemer)
+  (Versioned Script, TxSkelRedeemer)
+forall a b. Prism (Maybe a) (Maybe b) a b
+</span><span class="hs-identifier hs-var">_Just</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  TxSkel
+  TxSkel
+  (Versioned Script, TxSkelRedeemer)
+  (Versioned Script, TxSkelRedeemer)
+-&gt; Optic
+     A_Lens
+     '[]
+     (Versioned Script, TxSkelRedeemer)
+     (Versioned Script, TxSkelRedeemer)
+     (Versioned Script)
+     (Versioned Script)
+-&gt; Optic' A_Traversal '[] TxSkel (Versioned Script)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  (Versioned Script, TxSkelRedeemer)
+  (Versioned Script, TxSkelRedeemer)
+  (Versioned Script)
+  (Versioned Script)
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-190"></span><span>
+</span><span id="line-191"></span><span class="annot"><span class="hs-comment">-- | Returns all the scripts involved in minting in this 'TxSkel'</span></span><span>
+</span><span id="line-192"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelMintingScripts"><span class="hs-identifier hs-type">txSkelMintingScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">]</span><span>
+</span><span id="line-193"></span><span id="txSkelMintingScripts"><span class="annot"><span class="annottext">txSkelMintingScripts :: TxSkel -&gt; [Versioned Script]
+</span><a href="Cooked.Skeleton.html#txSkelMintingScripts"><span class="hs-identifier hs-var hs-var">txSkelMintingScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (Versioned Script)
+-&gt; TxSkel -&gt; [Versioned Script]
+forall k (is :: IxList) s a.
+Is k A_Fold =&gt;
+Optic' k is s a -&gt; s -&gt; [a]
+</span><span class="hs-identifier hs-var">toListOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+-&gt; Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+-&gt; Optic A_Traversal '[] [Mint] [Mint] Mint Mint
+-&gt; Optic A_Traversal '[] TxSkel TxSkel Mint Mint
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] [Mint] [Mint] Mint Mint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] TxSkel TxSkel Mint Mint
+-&gt; Optic A_Lens '[] Mint Mint (Versioned Script) (Versioned Script)
+-&gt; Optic' A_Traversal '[] TxSkel (Versioned Script)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] Mint Mint (Versioned Script) (Versioned Script)
+</span><a href="Cooked.Skeleton.Mint.html#mintVersionedScriptL"><span class="hs-identifier hs-var">mintVersionedScriptL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-194"></span></pre></body></html>
