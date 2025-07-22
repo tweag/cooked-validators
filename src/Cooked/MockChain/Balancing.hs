@@ -324,7 +324,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   rightMinAda <- getTxSkelOutMinAda $ balancingWallet `receives` Value missingRight
   -- We compute the current ada of the missing payment. If the missing payment
   -- is not empty and the minimal ada is not present, some value is missing.
-  let Api.Lovelace rightAda = missingRight ^. Script.adaL
+  let Api.Lovelace rightAda = missingRight ^. valueLovelaceL
       missingAda = rightMinAda - rightAda
       missingAdaValue = if missingRight /= mempty && missingAda > 0 then Script.lovelace missingAda else mempty
   -- The actual missing value on the left might needs to account for any missing
