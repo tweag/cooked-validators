@@ -59,7 +59,7 @@ the `packages` stanza.
      subdir:
        .
    ```
-   where `myTag` is either a commit hash in the repo, or a tag, such as v5.0.0
+   where `myTag` is either a commit hash in the repo, or a tag, such as v7.0.0
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
 
@@ -114,6 +114,9 @@ the `packages` stanza.
 
 - The [CONWAY](doc/CONWAY.md) file describes the Conway features that are
   currently supported by `cooked-validators`.
+
+- The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
+  data structures.
 
 ## Additional resources
 

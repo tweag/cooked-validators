@@ -117,18 +117,18 @@ doubleSatAttack groupings optic change attacker = do
     -- calculate its balance
     deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Api.Value
     deltaBalance (inputs, outputs, mints) = do
-      inValue <- foldMap (txSkelOutValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
+      inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate outValue <> mintValue
       where
-        outValue = foldOf (traversed % txSkelOutValueL % txSkelOutValueContentL) outputs
-        mintValue = txSkelMintsValue mints
+        outValue = foldOf (traversed % txSkelOutValueL) outputs
+        mintValue = view txSkelMintsValueG mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
     addDoubleSatDeltaTweak :: (MonadTweak m) => DoubleSatDelta -> m ()
     addDoubleSatDeltaTweak (ins, outs, mints) =
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs
-        >> mapM_ addMintTweak (txSkelMintsToList mints)
+        >> addMintsTweak (view txSkelMintsListI mints)
 
     -- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
     -- eveything that is contained in the input.

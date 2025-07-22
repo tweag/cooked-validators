@@ -7,7 +7,7 @@ module Cooked.MockChain.UtxoSearch
     allUtxosSearch,
     utxosOwnedBySearch,
     utxosFromCardanoTxSearch,
-    txOutByRefSearch,
+    txSkelOutByRefSearch,
     filterWith,
     filterWithPure,
     filterWithOptic,
@@ -60,13 +60,13 @@ allUtxosSearch = allUtxos >>= ListT.fromFoldable
 utxosOwnedBySearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
 utxosOwnedBySearch = utxosAt . Script.toAddress >=> ListT.fromFoldable
 
--- | Search all 'Api.TxOut's corresponding to given the list of
+-- | Search all 'Cooked.Skelelton.Output.TxSkelOut's corresponding to given the list of
 -- 'Api.TxOutRef's. Any 'Api.TxOutRef' that doesn't correspond to a known output
 -- will be filtered out.
-txOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m TxSkelOut
-txOutByRefSearch orefs =
+txSkelOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m TxSkelOut
+txSkelOutByRefSearch orefs =
   ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
-    `filterWith` txOutByRef
+    `filterWith` ((Just <$>) . txSkelOutByRef)
 
 -- | Search all 'Api.TxOutRef's of a transaction, together with their
 -- 'Api.TxOut'.
@@ -112,7 +112,7 @@ filterWithPureRev as = filterWithPred as . (isNothing .)
 -- | A specific version of 'filterWithPred' where outputs must me of type
 -- 'TxSkelOut' and the predicate only relies on their value
 filterWithValuePred :: (Monad m) => UtxoSearch m TxSkelOut -> (Api.Value -> Bool) -> UtxoSearch m TxSkelOut
-filterWithValuePred as f = filterWithPred as (f . txSkelOutValue)
+filterWithValuePred as f = filterWithPred as (f . view txSkelOutValueL)
 
 -- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
 -- when they contain only ADA
@@ -131,9 +131,9 @@ filterWithNotOnlyAda as = filterWithValuePred as (not . Script.isAdaOnlyValue)
 onlyValueOutputsAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
 onlyValueOutputsAtSearch addr =
   utxosOwnedBySearch addr
-    `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumContentAT)
+    `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumKindAT)
     `filterWithPureRev` view txSkelOutStakingCredentialL
-    `filterWithPureRev` txSkelOutReferenceScript
+    `filterWithPureRev` preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP)
 
 -- | Same as 'onlyValueOutputsAtSearch', but also ensures the returned outputs
 -- do not contain non-ADA assets. These "vanilla" outputs are perfect candidates
@@ -146,4 +146,4 @@ referenceScriptOutputsSearch ::
   (MonadBlockChain m, Script.ToScriptHash s) => s -> UtxoSearch m TxSkelOut
 referenceScriptOutputsSearch s =
   allUtxosSearch
-    `filterWithPred` ((Just (Script.toScriptHash s) ==) . (Script.toScriptHash <$>) . txSkelOutReferenceScript)
+    `filterWithPred` ((Just (Script.toScriptHash s) ==) . preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF))

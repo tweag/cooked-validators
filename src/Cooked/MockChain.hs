@@ -13,7 +13,6 @@ import Cooked.MockChain.Direct as X hiding
 import Cooked.MockChain.MinAda as X
 import Cooked.MockChain.MockChainState as X
   ( MockChainState (..),
-    mockChainState0From,
   )
 import Cooked.MockChain.Staged as X hiding
   ( InterpMockChain,

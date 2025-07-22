@@ -5,7 +5,7 @@
 module Cooked.MockChain.Direct where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Lens qualified as Lens
@@ -21,6 +21,7 @@ import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.GenerateTx.Common
+import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
@@ -152,8 +153,7 @@ runMockChainTFrom ::
   InitialDistribution ->
   MockChainT m a ->
   m (MockChainReturn a)
-runMockChainTFrom i0 s =
-  runMockChainTRaw (mockChainState0From i0 >>= put >> s)
+runMockChainTFrom (InitialDistribution i0) = runMockChainTRaw . (forceOutputs i0 >>)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
 runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
@@ -171,12 +171,12 @@ runMockChain = runIdentity . runMockChainT
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = gets mcstParams
-  txOutByRef outref = do
-    res <- gets $ Map.lookup outref . mcstOutputs
-    return $ case res of
-      Just (txSkelOut, True) -> Just txSkelOut
-      _ -> Nothing
-  utxosAt (Script.toAddress -> addr) = filter ((addr ==) . txSkelOutAddress . snd) <$> allUtxos
+  txSkelOutByRef oRef = do
+    res <- gets $ Map.lookup oRef . mcstOutputs
+    case res of
+      Just (txSkelOut, True) -> return txSkelOut
+      _ -> throwError $ MCEUnknownOutRef oRef
+  utxosAt (Script.toAddress -> addr) = filter ((addr ==) . view txSkelOutAddressG . snd) <$> allUtxos
   logEvent l = tell $ MockChainBook [l] Map.empty
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
@@ -224,13 +224,13 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal | TxOpts {..} <- txSkelOpts skelUnbal = do
+  validateTxSkel skelUnbal | TxSkelOpts {..} <- txSkelOpts skelUnbal = do
     -- We log the submission of a new skeleton
     logEvent $ MCLogSubmittedTxSkel skelUnbal
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
-    let newParams = applyEmulatorParamsModification txOptEmulatorParamsModification oldParams
+    let newParams = txSkelOptModParams oldParams
     -- We change the parameters for the duration of the validation process
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
@@ -250,7 +250,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
     -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
-    cardanoTx <- Ledger.CardanoEmulatorEraTx . applyRawModOnBalancedTx txOptUnsafeModTx <$> txSkelToCardanoTx skel fee mCollaterals
+    cardanoTx <- Ledger.CardanoEmulatorEraTx . txSkelOptModTx <$> txSkelToCardanoTx skel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
     -- We finally run the emulated validation. We update our internal state
@@ -292,10 +292,56 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         | Nothing <- mCollaterals ->
             fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
-    when txOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
+    when txSkelOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
     -- We return the parameters to their original state
     setParams oldParams
     -- We log the validated transaction
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return cardanoTx
+
+  forceOutputs outputs = do
+    -- We retrieve the protocol parameters
+    params <- getParams
+    -- The emulator takes for granted transactions with a single pseudo input,
+    -- which we build to force transaction validation
+    let inputs =
+          [ ( Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) $
+                Cardano.GenesisUTxOKeyHash $
+                  Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
+              Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+            )
+          ]
+    -- We adjust the outputs for the minimal required ADA if needed
+    outputsMinAda <- mapM toTxSkelOutWithMinAda outputs
+    -- We transform these outputs to Cardano outputs
+    outputs' <- mapM toCardanoTxOut outputsMinAda
+    -- We create our transaction body, which only consists of the dummy input
+    -- and the outputs to force. This create might result in an error.
+    let transactionBody =
+          Emulator.createTransactionBody params $
+            Ledger.CardanoBuildTx
+              ( Ledger.emptyTxBodyContent
+                  { Cardano.txOuts = outputs',
+                    Cardano.txIns = inputs
+                  }
+              )
+    -- We retrieve the forcefully validated transaction associated with the
+    -- body, handling errors in the process.
+    cardanoTx <-
+      Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
+        <$> either (throwError . MCEToCardanoError "forceOutputs :") return transactionBody
+    -- We need to adjust our internal state to account for the forced
+    -- transaction. We beging by computing the new map of outputs.
+    let outputsMap =
+          Map.fromList $
+            zipWith
+              (\x y -> (x, (y, True)))
+              (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
+              outputsMinAda
+    -- We update the index, which effectively receives the new utxos
+    modify' (over mcstLedgerStateL $ Lens.over Emulator.elsUtxoL (Ledger.fromPlutusIndex . Ledger.insert cardanoTx . Ledger.toPlutusIndex))
+    -- We update our internal map by adding the new outputs
+    modify' (over mcstOutputsL (<> outputsMap))
+    -- Finally, we return the created utxos
+    fmap fst <$> utxosFromCardanoTx cardanoTx

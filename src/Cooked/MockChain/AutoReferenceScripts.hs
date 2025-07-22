@@ -41,10 +41,10 @@ updateRedeemer _ _ redeemer = return redeemer
 toTxSkelWithReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
 toTxSkelWithReferenceScripts txSkel@TxSkel {..} = do
   let inputs = Map.keys txSkelIns
-  newMints <- forM (txSkelMintsToList txSkelMints) $ \(Mint mPol red tks) ->
+  newMints <- forM (view txSkelMintsListI txSkelMints) $ \(Mint mPol red tks) ->
     (\x -> Mint mPol x tks) <$> updateRedeemer (Script.toVersioned @Script.MintingPolicy mPol) inputs red
   newInputs <- forM (Map.toList txSkelIns) $ \(oRef, red) -> do
-    validatorM <- txSkelOutValidator <$> unsafeTxOutByRef oRef
+    validatorM <- previewByRef txSkelOutValidatorAT oRef
     case validatorM of
       Nothing -> return (oRef, red)
       Just scriptHash -> (oRef,) <$> updateRedeemer scriptHash inputs red
@@ -58,7 +58,8 @@ toTxSkelWithReferenceScripts txSkel@TxSkel {..} = do
   return $
     txSkel
       & txSkelMintsL
-      .~ txSkelMintsFromList newMints
+      % txSkelMintsListI
+      .~ newMints
       & txSkelInsL
       .~ Map.fromList newInputs
       & txSkelProposalsL

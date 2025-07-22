@@ -94,7 +94,7 @@ tests =
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
                                       | (bOref, bOut) <- bUtxos,
-                                        txSkelOutValue bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
@@ -134,7 +134,7 @@ tests =
             skelExpected :: [(ARedeemer, V3.TxOutRef)] -> [(BRedeemer, (V3.TxOutRef, TxSkelOut))] -> TxSkel
             skelExpected aInputs bInputs =
               txSkelTemplate
-                { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
+                { txSkelLabel = Set.singleton $ TxSkelLabel DoubleSatLbl,
                   txSkelIns =
                     Map.fromList
                       ( ( \(bRedeemer, (bOref, _)) ->
@@ -150,7 +150,7 @@ tests =
                         ),
                   txSkelOuts =
                     [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
-                      wallet 6 `receives` Value (foldMap (txSkelOutValue . snd . snd) bInputs)
+                      wallet 6 `receives` Value (foldMap (view txSkelOutValueL . snd . snd) bInputs)
                     ],
                   txSkelSigners = [wallet 1]
                 }

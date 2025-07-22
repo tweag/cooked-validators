@@ -45,11 +45,9 @@ import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
 import Cooked.Skeleton.ReferenceScript as X
-import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
-import Data.Either
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -59,7 +57,6 @@ import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A transaction skeleton. This is cooked-validators's variant of transaction
@@ -69,9 +66,9 @@ data TxSkel where
     { -- | Labels do not influence the transaction generation at all; they are
       -- pretty-printed whenever cooked-validators prints a transaction, and can
       -- therefore make the output more informative (and greppable).
-      txSkelLabel :: Set TxLabel,
+      txSkelLabel :: Set TxSkelLabel,
       -- | Some options that control transaction generation.
-      txSkelOpts :: TxOpts,
+      txSkelOpts :: TxSkelOpts,
       -- | Any value minted or burned by the transaction. You'll probably want
       -- to use 'Cooked.Skeleton.Mint.txSkelMintsFromList' to construct this.
       txSkelMints :: TxSkelMints,
@@ -156,7 +153,7 @@ txSkelTemplate =
 
 -- | Returns the full value contained in the skeleton outputs
 txSkelValueInOutputs :: TxSkel -> Api.Value
-txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL % txSkelOutValueContentL)
+txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
 -- | All 'Api.TxOutRef's in reference inputs from redeemers
 txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
@@ -181,16 +178,16 @@ txSkelKnownTxOutRefs skel@TxSkel {..} =
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = mconcat . (Script.toValue . snd . snd <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawnValue = review valueLovelaceP . foldOf (txSkelWithdrawalsL % to Map.toList % traversed % _2 % _2)
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
 txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawingScripts = fst . partitionEithers . (fst <$>) . Map.toList . txSkelWithdrawals
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traversed % _1 % _Left)
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelProposingScripts = mapMaybe (fmap fst . txSkelProposalWitness) . txSkelProposals
+txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalWitnessL % _Just % _1)
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
 txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelMintingScripts = fmap txSkelMintVersionedScript . txSkelMintsToList . txSkelMints
+txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintVersionedScriptL)

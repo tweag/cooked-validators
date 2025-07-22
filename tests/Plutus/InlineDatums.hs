@@ -11,7 +11,7 @@ import PlutusTx.List
 import PlutusTx.Prelude
 import Prelude qualified as HS
 
-data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (HS.Show)
+data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (HS.Show, HS.Eq)
 
 instance Eq SimpleContractDatum where
   FirstPaymentDatum == FirstPaymentDatum = True

@@ -30,7 +30,7 @@ dupTokenAttack ::
   o ->
   m Api.Value
 dupTokenAttack change attacker = do
-  oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
+  oldMintsList <- viewTweak $ txSkelMintsL % txSkelMintsListI
   let (newMintsList, totalIncrement) =
         foldl
           ( \(newMs, addVal) (Mint mp@(Script.toCurrencySymbol . Script.toVersioned @Script.MintingPolicy -> cs) red tks) ->
@@ -49,7 +49,7 @@ dupTokenAttack change attacker = do
           ([], mempty)
           oldMintsList
   guard (totalIncrement /= mempty)
-  setTweak txSkelMintsL $ txSkelMintsFromList newMintsList
+  setTweak (txSkelMintsL % txSkelMintsListI) newMintsList
   addOutputTweak $ attacker `receives` Value totalIncrement
   addLabelTweak DupTokenLbl
   return totalIncrement

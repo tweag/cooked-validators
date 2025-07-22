@@ -5,6 +5,7 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Tx qualified as Ledger
+import Optics.Core
 import Plutus.ReferenceScripts
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -39,7 +40,7 @@ putRefScriptOnScriptOutput recipient referenceScript =
         }
 
 retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
-retrieveRefScriptHash = (txSkelOutReferenceScriptHash <$>) . unsafeTxOutByRef
+retrieveRefScriptHash = previewByRef (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF)
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
@@ -80,6 +81,21 @@ useReferenceScript spendingSubmitter consumeScriptOref theScript = do
             (oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref)
               : [(scriptOref, emptyTxSkelRedeemer) | consumeScriptOref],
         txSkelSigners = spendingSubmitter : [wallet 3 | consumeScriptOref]
+      }
+
+useReferenceScriptInInputs :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
+useReferenceScriptInInputs spendingSubmitter theScript = do
+  scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
+  oref : _ <-
+    validateTxSkel'
+      txSkelTemplate
+        { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
+          txSkelSigners = [wallet 1]
+        }
+  validateTxSkel_
+    txSkelTemplate
+      { txSkelIns = Map.fromList [(oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref), (scriptOref, emptyTxSkelRedeemer)],
+        txSkelSigners = [spendingSubmitter]
       }
 
 referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
@@ -138,7 +154,7 @@ tests =
                   (consumedOref, _) : _ <-
                     runUtxoSearch $
                       utxosOwnedBySearch (wallet 1)
-                        `filterWithPred` ((`Api.geq` Script.lovelace 42_000_000) . txSkelOutValue)
+                        `filterWithValuePred` (`Api.geq` Script.lovelace 42_000_000)
                   oref : _ <-
                     validateTxSkel'
                       txSkelTemplate

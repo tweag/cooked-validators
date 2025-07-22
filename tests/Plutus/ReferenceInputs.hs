@@ -27,7 +27,7 @@ import Prelude qualified as HS
 
 data Foo
 
-newtype FooDatum = FooDatum Api.PubKeyHash deriving (HS.Show)
+newtype FooDatum = FooDatum Api.PubKeyHash deriving (HS.Show, HS.Eq)
 
 instance Eq FooDatum where
   FooDatum pkh1 == FooDatum pkh2 = pkh1 == pkh2

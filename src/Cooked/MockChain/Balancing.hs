@@ -26,12 +26,12 @@ import Data.Bifunctor
 import Data.Function
 import Data.List (find, partition, sortBy)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
+import Optics.Core.Extras
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -49,7 +49,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
   -- redirected to them, and utxos will be taken from their wallet if associated
   -- with the BalancingUtxosFromBalancingWallet policy
-  balancingWallet <- case txOptBalancingPolicy txSkelOpts of
+  balancingWallet <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSigner -> case txSkelSigners of
       [] -> throwError $ MCEMissingBalancingWallet "The list of signers is empty, but the balancing wallet is supposed to be the first signer."
       bw : _ -> return $ Just bw
@@ -71,7 +71,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- collaterals attached to it.
   mCollaterals <- do
     -- The transaction will only require collaterals when involving scripts
-    case (nbOfScripts == 0, txOptCollateralUtxos txSkelOpts) of
+    case (nbOfScripts == 0, txSkelOptCollateralUtxos txSkelOpts) of
       (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
       (True, CollateralUtxosFromWallet cWallet) -> logEvent (MCLogUnusedCollaterals $ Left cWallet) >> return Nothing
       (True, CollateralUtxosFromBalancingWallet) -> return Nothing
@@ -87,7 +87,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     Nothing ->
       -- The balancing should not be performed. We still adjust the collaterals
       -- though around a provided fee, or the maximum fee.
-      let fee = case txOptFeePolicy txSkelOpts of
+      let fee = case txSkelOptFeePolicy txSkelOpts of
             AutoFeeComputation -> maxFee
             ManualFee fee' -> fee'
        in (skelUnbal,fee,) <$> collateralsFromFees fee mCollaterals
@@ -95,19 +95,19 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- The balancing should be performed. We collect the candidates balancing
       -- utxos based on the associated policy
       balancingUtxos <-
-        case txOptBalancingUtxos txSkelOpts of
+        case txSkelOptBalancingUtxos txSkelOpts of
           BalancingUtxosFromBalancingWallet -> runUtxoSearch $ onlyValueOutputsAtSearch bWallet
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            runUtxoSearch (txOutByRefSearch (Set.toList utxos))
+            runUtxoSearch (txSkelOutByRefSearch (Set.toList utxos))
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              >>= filterAndWarn (isJust . txSkelOutPKHash . snd) "They belong to scripts."
+              >>= filterAndWarn (is txSkelOutPKHashAT . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
           >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
 
-      case txOptFeePolicy txSkelOpts of
+      case txSkelOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
         -- is full auto mode, the most powerful but time-consuming.
         AutoFeeComputation ->
@@ -234,7 +234,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
+  collateralTxOuts <- runUtxoSearch (txSkelOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
   let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
   -- Preparing a possible collateral error
@@ -262,14 +262,14 @@ reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
 reachValue _ _ maxEls | maxEls == 0 = []
 -- The target is not reached, and cannot possibly be reached, as the remaining
 -- candidates do not sum up to the target.
-reachValue l target _ | not $ target `Api.leq` mconcat (txSkelOutValue . snd <$> l) = []
+reachValue l target _ | not $ target `Api.leq` mconcat (view txSkelOutValueL . snd <$> l) = []
 -- There is no more elements to go through and the target has not been
 -- reached. Encompassed by the previous case, but needed by GHC.
 reachValue [] _ _ = []
 -- Main recursive case, where we either pick or drop the head. We only pick the
 -- head if it contributes to reaching the target, i.e. if its intersection with
 -- the positive part of the target is not empty.
-reachValue (h@(_, txSkelOutValue -> hVal) : t) target maxEls =
+reachValue (h@(_, view txSkelOutValueL -> hVal) : t) target maxEls =
   (++) (reachValue t target maxEls) $
     if snd (Api.split target) PlutusTx./\ hVal == mempty
       then []
@@ -313,7 +313,7 @@ computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRe
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
-  let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
+  let (burnedValue, mintedValue) = Api.split $ view txSkelMintsValueG txSkelMints
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
@@ -337,7 +337,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   let candidatesRaw = second (<> missingRight') <$> reachValue balancingUtxos missingLeft' (toInteger $ length balancingUtxos)
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing wallet
-  let totalValue = mconcat $ txSkelOutValue . snd <$> balancingUtxos
+  let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
       difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
       balancingError = MCEUnbalanceable balancingWallet difference
   -- Which one of our candidates should be picked depends on three factors
@@ -353,14 +353,14 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Nothing
-      | (before, txSkelOut : after) <- break (\(TxSkelOut {tsoOwner}) -> Script.toCredential tsoOwner == Script.toCredential balancingWallet) txSkelOuts,
-        AdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> do
+      | (before, txSkelOut : after) <- break ((== Script.toCredential balancingWallet) . view txSkelOutCredentialG) txSkelOuts,
+        AdjustExistingOutput <- txSkelOptBalanceOutputPolicy txSkelOpts -> do
           -- We get the optimal candidate based on an updated value. We update
           -- the `txSkelOuts` by replacing the value content of the selected
           -- output. We keep intact the orders of those outputs.
-          let candidatesRaw' = second (<> txSkelOut ^. (txSkelOutValueL % txSkelOutValueContentL)) <$> candidatesRaw
+          let candidatesRaw' = second (<> txSkelOut ^. txSkelOutValueL) <$> candidatesRaw
           (txOutRefs, val) <- getOptimalCandidate candidatesRaw' balancingWallet balancingError
-          return (txOutRefs, before ++ (txSkelOut & (txSkelOutValueL % txSkelOutValueContentL) .~ val) : after)
+          return (txOutRefs, before ++ (txSkelOut & txSkelOutValueL .~ val) : after)
     -- There is no output at the balancing wallet address, or the balancing
     -- policy forces us to create a new output, both yielding the same result.
     _ -> do

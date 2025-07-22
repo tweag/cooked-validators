@@ -15,7 +15,6 @@ import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.Skeleton
 import Optics.Core
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
 -- | Compute the required minimal ADA for a given output
@@ -34,12 +33,12 @@ getTxSkelOutMinAda txSkelOut = do
 -- will increase the size of the UTXO which in turn might need more ADA.
 toTxSkelOutWithMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
-toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueL % txSkelOutValueAutoAdjustL) -> False) = return txSkelOut
+toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueAutoAdjustL) -> False) = return txSkelOut
 -- The auto adjustment is enabled
 toTxSkelOutWithMinAda txSkelOut = do
   txSkelOut' <- go txSkelOut
-  let originalAda = txSkelOutValue txSkelOut ^. Script.adaL
-      updatedAda = txSkelOutValue txSkelOut' ^. Script.adaL
+  let originalAda = view (txSkelOutValueL % valueLovelaceL) txSkelOut
+      updatedAda = view (txSkelOutValueL % valueLovelaceL) txSkelOut'
   when (originalAda /= updatedAda) $ logEvent $ MCLogAdjustedTxSkelOut txSkelOut updatedAda
   return txSkelOut'
   where
@@ -49,9 +48,9 @@ toTxSkelOutWithMinAda txSkelOut = do
       requiredAda <- getTxSkelOutMinAda skelOut
       -- If this amount is sufficient, we return Nothing, otherwise, we adjust the
       -- output and possibly iterate
-      if Api.getLovelace (skelOut ^. txSkelOutValueL % txSkelOutValueContentL % Script.adaL) >= requiredAda
+      if Api.getLovelace (skelOut ^. txSkelOutValueL % valueLovelaceL) >= requiredAda
         then return skelOut
-        else go $ skelOut & txSkelOutValueL % txSkelOutValueContentL % Script.adaL .~ Api.Lovelace requiredAda
+        else go $ skelOut & txSkelOutValueL % valueLovelaceL .~ Api.Lovelace requiredAda
 
 -- | This goes through all the `TxSkelOut`s of the given skeleton and updates
 -- their ada value when requested by the user and required by the protocol

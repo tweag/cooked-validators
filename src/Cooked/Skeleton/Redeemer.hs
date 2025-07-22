@@ -6,23 +6,31 @@ module Cooked.Skeleton.Redeemer
     withReferenceInput,
     someTxSkelRedeemer,
     emptyTxSkelRedeemer,
-    getTypedRedeemer,
-    setTypedRedeemer,
+    txSkelRedeemerReferenceInputL,
+    txSkelRedeemerAutoFillL,
+    txSkelRedeemerTypedAT,
     someTxSkelRedeemerNoAutoFill,
     emptyTxSkelRedeemerNoAutoFill,
+    txSkelRedeemerBuiltinDataL,
   )
 where
 
 import Cooked.Pretty.Class
+import Cooked.Pretty.Plutus ()
 import Data.Typeable (Typeable, cast)
+import Optics.Core
+import Optics.TH
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
+
+-- * Types and constraints for redeemers used in skeletons
 
 -- | These are the constraints that must be satisfied by the inner content of a
 -- redeemer, that is the actual data that will be passed to the script as its
 -- redeemer during during validation
 type RedeemerConstrs redeemer =
   ( Api.ToData redeemer,
+    Api.FromData redeemer,
     Show redeemer,
     PrettyCooked redeemer,
     PlutusTx.Eq redeemer,
@@ -52,15 +60,44 @@ instance Eq TxSkelRedeemer where
   (TxSkelRedeemer red mRefIn af) == TxSkelRedeemer red' mRefIn' af' =
     cast red PlutusTx.== Just red' PlutusTx.&& mRefIn PlutusTx.== mRefIn' PlutusTx.&& af PlutusTx.== af'
 
--- | Attempts to retrieve the content of a 'TxSkelRedeemer' and cast it to a
--- given type
-getTypedRedeemer :: (Typeable a) => TxSkelRedeemer -> Maybe a
-getTypedRedeemer (TxSkelRedeemer red _ _) = cast red
+-- * Navigating within a 'TxSkelRedeemer'
 
--- | Changes the inner content of this 'TxSkelRedeemer', leaving the reference
--- input unchanged. This operation is type-changing.
-setTypedRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer -> TxSkelRedeemer
-setTypedRedeemer red txSkelRed = txSkelRed {txSkelRedeemerContent = red}
+-- | Sets or gets the reference input from a redeemer
+makeLensesFor [("txSkelRedeemerReferenceInput", "txSkelRedeemerReferenceInputL")] ''TxSkelRedeemer
+
+-- | Sets or gets the autofill property from a redeemer
+makeLensesFor [("txSkelRedeemerAutoFill", "txSkelRedeemerAutoFillL")] ''TxSkelRedeemer
+
+-- | Attaches a reference input to a given 'TxSkelRedeemer'. This should usually
+-- be of no use if option 'Cooked.Skeleton.Option.txOptAutoReferenceScripts' is
+-- turned on, which is the case by default.
+withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
+withReferenceInput red ref = red & txSkelRedeemerReferenceInputL ?~ ref
+
+-- | Extracts, or sets, the typed redeemer of a 'TxSkelRedeemer'. This is
+-- attempted in two ways: first, we try to simply cast the content, and then, if
+-- it fails, we serialise the content and then attempt to deserialise it to the
+-- right type. This second case is specifically useful when the current content
+-- is an 'Api.BuiltinData' itself directly, but it can also be used in the
+-- cornercase when both types have compatible serialized representation.
+txSkelRedeemerTypedAT :: (RedeemerConstrs a, RedeemerConstrs b) => AffineTraversal TxSkelRedeemer TxSkelRedeemer a b
+txSkelRedeemerTypedAT =
+  atraversal
+    ( \case
+        (TxSkelRedeemer content _ _) | Just content' <- cast content -> Right content'
+        (TxSkelRedeemer content _ _) | Just content' <- Api.fromBuiltinData $ Api.toBuiltinData content -> Right content'
+        txSkelRed -> Left txSkelRed
+    )
+    (\red content -> red {txSkelRedeemerContent = content})
+
+-- | Extracts, or sets, the redeemer content as an `Api.BuiltinData`
+txSkelRedeemerBuiltinDataL :: Lens' TxSkelRedeemer Api.BuiltinData
+txSkelRedeemerBuiltinDataL =
+  lens
+    (\(TxSkelRedeemer content _ _) -> Api.toBuiltinData content)
+    (\txSkelRed bData -> txSkelRed {txSkelRedeemerContent = bData})
+
+-- * Building 'TxSkelRedeemer's
 
 -- | Creates a 'TxSkelRedeemer' from an inner content with no reference input
 someTxSkelRedeemer :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
@@ -79,9 +116,3 @@ emptyTxSkelRedeemer = someTxSkelRedeemer ()
 -- while dissallowing it to be automatically assinged
 emptyTxSkelRedeemerNoAutoFill :: TxSkelRedeemer
 emptyTxSkelRedeemerNoAutoFill = someTxSkelRedeemerNoAutoFill ()
-
--- | Attaches a reference input to a given 'TxSkelRedeemer'. This should usually
--- be of no use if option 'Cooked.Skeleton.Option.txOptAutoReferenceScripts' is
--- turned on, which is the case by default.
-withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
-withReferenceInput red ref = red {txSkelRedeemerReferenceInput = Just ref}

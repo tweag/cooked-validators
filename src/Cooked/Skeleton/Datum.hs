@@ -2,76 +2,40 @@
 -- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Datum
   ( DatumConstrs,
-    DatumContent (..),
-    datumContentToDatum,
-    datumContentToDatumHash,
     DatumResolved (..),
     DatumKind (..),
     TxSkelOutDatum (..),
-    txSkelOutDatumHash,
-    txSkelOutUntypedDatum,
-    datumContentTypedDatumAT,
-    txSkelOutDatumContentAT,
-    txSkelOutTypedDatumAT,
+    datumKindResolvedP,
+    txSkelOutDatumKindAT,
+    txSkelOutDatumResolvedAT,
+    txSkelOutDatumTypedAT,
+    txSkelOutDatumDatumAF,
+    txSkelOutDatumDatumHashAF,
+    txSkelOutDatumOutputDatumG,
   )
 where
 
 import Cooked.Pretty.Class
+import Cooked.Pretty.Plutus ()
 import Data.Typeable (cast)
 import Optics.Core
 import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.Prelude qualified as PlutusTx
 import Type.Reflection
 
 -- * Type constraints on datums used in cooked-validators
 
 -- | Type constraints that must be satisfied by the datum content
-type DatumConstrs a =
-  ( Show a,
-    PrettyCooked a,
-    Api.ToData a,
-    PlutusTx.Eq a,
-    Typeable a
+type DatumConstrs datum =
+  ( Show datum,
+    PrettyCooked datum,
+    Api.ToData datum,
+    Api.FromData datum,
+    Eq datum,
+    Typeable datum
   )
 
--- * Wrapping datums of arbitrary types satisfying 'DatumConstrs'
-
--- | Data type of wrapped datums satisfying 'DatumConstrs'
-data DatumContent where
-  -- | Wraps an element satisfying 'DatumConstrs'
-  DatumContent :: (DatumConstrs a) => a -> DatumContent
-
-deriving instance Show DatumContent
-
-instance Api.ToData DatumContent where
-  toBuiltinData (DatumContent dat) = Api.toBuiltinData dat
-
--- | Extracts the datum from a 'DatumContent'
-datumContentToDatum :: DatumContent -> Api.Datum
-datumContentToDatum = Api.Datum . Api.toBuiltinData
-
--- | Extracts the datum hash from a 'DatumContent'
-datumContentToDatumHash :: DatumContent -> Api.DatumHash
-datumContentToDatumHash = Script.datumHash . datumContentToDatum
-
--- | Extracts a typed datum for a 'DatumContent' when of the right type
-datumContentTypedDatumAT :: (DatumConstrs a) => AffineTraversal' DatumContent a
-datumContentTypedDatumAT =
-  atraversal
-    (\c@(DatumContent content) -> maybe (Left c) Right (cast content))
-    (const DatumContent)
-
-instance Ord DatumContent where
-  compare (DatumContent d1) (DatumContent d2) =
-    case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
-      EQ -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
-      a -> a
-
-instance Eq DatumContent where
-  d1 == d2 = compare d1 d2 == EQ
-
--- * Datum placement within a transaction
+-- * Datum kind within a transaction and output
 
 -- | Whether the datum should be resolved in the transaction
 data DatumResolved
@@ -90,45 +54,95 @@ data DatumKind
     Hashed DatumResolved
   deriving (Show, Eq, Ord)
 
+-- | Builds a 'DatumKind' from a 'DatumResolved' or optionally retrieves it
+datumKindResolvedP :: Prism' DatumKind DatumResolved
+datumKindResolvedP =
+  prism
+    Hashed
+    ( \case
+        Inline -> Left Inline
+        Hashed resolved -> Right resolved
+    )
+
 -- * 'Cooked.Skeleton.TxSkel' datums
 
 -- | Datums to be placed in 'Cooked.Skeleton.TxSkel' outputs, which are either
 -- empty, or composed of a datum content and its placement
 data TxSkelOutDatum where
   -- | use no datum
-  TxSkelOutNoDatum :: TxSkelOutDatum
+  NoTxSkelOutDatum :: TxSkelOutDatum
   -- | use some datum content and associated placement
-  TxSkelOutSomeDatum :: DatumContent -> DatumKind -> TxSkelOutDatum
-  deriving (Eq, Show, Ord)
+  SomeTxSkelOutDatum :: (DatumConstrs dat) => dat -> DatumKind -> TxSkelOutDatum
 
-instance Script.ToOutputDatum TxSkelOutDatum where
-  toOutputDatum TxSkelOutNoDatum = Api.NoOutputDatum
-  toOutputDatum (TxSkelOutSomeDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
-  toOutputDatum (TxSkelOutSomeDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
+deriving instance Show TxSkelOutDatum
 
--- | Extracts or changes the 'DatumContent' of a 'TxSkelOutDatum'
-txSkelOutDatumContentAT :: AffineTraversal' TxSkelOutDatum DatumContent
-txSkelOutDatumContentAT =
+instance Ord TxSkelOutDatum where
+  compare NoTxSkelOutDatum NoTxSkelOutDatum = EQ
+  compare NoTxSkelOutDatum _ = LT
+  compare _ NoTxSkelOutDatum = GT
+  compare
+    (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b)
+    (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') =
+      compare (dat, b) (dat', b')
+
+instance Eq TxSkelOutDatum where
+  dat == dat' = compare dat dat' == EQ
+
+-- * Optics working on 'TxSkelOutDatum'
+
+-- | Extracts or changes the 'DatumKind' of a 'TxSkelOutDatum'
+txSkelOutDatumKindAT :: AffineTraversal' TxSkelOutDatum DatumKind
+txSkelOutDatumKindAT =
   atraversal
     ( \case
-        TxSkelOutNoDatum -> Left TxSkelOutNoDatum
-        TxSkelOutSomeDatum content _ -> Right content
+        NoTxSkelOutDatum -> Left NoTxSkelOutDatum
+        SomeTxSkelOutDatum _ kind -> Right kind
     )
     ( flip
-        ( \content -> \case
-            TxSkelOutNoDatum -> TxSkelOutNoDatum
-            TxSkelOutSomeDatum _ kind -> TxSkelOutSomeDatum content kind
+        ( \kind -> \case
+            NoTxSkelOutDatum -> NoTxSkelOutDatum
+            SomeTxSkelOutDatum content _ -> SomeTxSkelOutDatum content kind
         )
     )
 
--- | Converts a 'TxSkelOutDatum' into a possible Plutus datum
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
-txSkelOutUntypedDatum = fmap datumContentToDatum . preview txSkelOutDatumContentAT
+-- | Extracts or changes the 'DatumResolved' of a 'TxSkelOutDatum'
+txSkelOutDatumResolvedAT :: AffineTraversal' TxSkelOutDatum DatumResolved
+txSkelOutDatumResolvedAT = txSkelOutDatumKindAT % datumKindResolvedP
 
--- | Converts a 'TxSkelOutDatum' into a possible Plutus datum hash
-txSkelOutDatumHash :: TxSkelOutDatum -> Maybe Api.DatumHash
-txSkelOutDatumHash = fmap datumContentToDatumHash . preview txSkelOutDatumContentAT
+-- | Extracts, or sets, the typed datum of a 'TxSkelOutDatum'. This is attempted
+-- in two ways: first, we try to simply cast the content, and then, if it fails,
+-- we serialise the content and then attempt to deserialise it to the right
+-- type. This second case is specifically useful when the current content is an
+-- 'Api.BuiltinData' itself directly, but it can also be used in the cornercase
+-- when both types have compatible serialized representation.
+txSkelOutDatumTypedAT :: (DatumConstrs a, DatumConstrs b) => AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
+txSkelOutDatumTypedAT =
+  atraversal
+    ( \case
+        (SomeTxSkelOutDatum content _) | Just content' <- cast content -> Right content'
+        (SomeTxSkelOutDatum content _) | Just content' <- Api.fromBuiltinData $ Api.toBuiltinData content -> Right content'
+        dc -> Left dc
+    )
+    ( flip
+        ( \content -> \case
+            NoTxSkelOutDatum -> NoTxSkelOutDatum
+            SomeTxSkelOutDatum _ kind -> SomeTxSkelOutDatum content kind
+        )
+    )
 
--- | Extracts or changes the inner typed datum of a 'TxSkelOutDatum'
-txSkelOutTypedDatumAT :: (DatumConstrs a) => AffineTraversal' TxSkelOutDatum a
-txSkelOutTypedDatumAT = txSkelOutDatumContentAT % datumContentTypedDatumAT
+-- | Converts a 'TxSkelOutDatum' into a possible 'Api.Datum'
+txSkelOutDatumDatumAF :: AffineFold TxSkelOutDatum Api.Datum
+txSkelOutDatumDatumAF = txSkelOutDatumTypedAT % to Api.Datum
+
+-- | Converts a 'TxSkelOutDatum' into a possible 'Api.DatumHash'
+txSkelOutDatumDatumHashAF :: AffineFold TxSkelOutDatum Api.DatumHash
+txSkelOutDatumDatumHashAF = txSkelOutDatumDatumAF % to Script.datumHash
+
+-- | Converts a 'TxSkelOutDatum' into an 'Api.OutputDatum'
+txSkelOutDatumOutputDatumG :: Getter TxSkelOutDatum Api.OutputDatum
+txSkelOutDatumOutputDatumG = to Script.toOutputDatum
+
+instance Script.ToOutputDatum TxSkelOutDatum where
+  toOutputDatum NoTxSkelOutDatum = Api.NoOutputDatum
+  toOutputDatum (SomeTxSkelOutDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
+  toOutputDatum (SomeTxSkelOutDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum

@@ -6,13 +6,13 @@ import Data.Default
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Set
 import Data.Set qualified as Set
 import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
 import ListT
 import Optics.Core
+import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -64,7 +64,7 @@ testingBalancingTemplate ::
   -- Whether to consum the script utxo
   Bool ->
   -- Option modifications
-  (TxOpts -> TxOpts) ->
+  (TxSkelOpts -> TxSkelOpts) ->
   -- Wether to adjust the output with min ada
   Bool ->
   m TestBalancingOutcome
@@ -78,7 +78,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
         txSkelTemplate
           { txSkelOuts =
               List.filter
-                ((/= mempty) . (^. txSkelOutValueL % txSkelOutValueContentL))
+                ((/= mempty) . (^. txSkelOutValueL))
                 [ bob `receives` valueConstr toBobValue,
                   alice `receives` valueConstr toAliceValue
                 ],
@@ -86,11 +86,11 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
             txSkelOpts =
               optionsMod
                 def
-                  { txOptBalancingUtxos =
+                  { txSkelOptBalancingUtxos =
                       if List.null toBalanceUtxos
                         then BalancingUtxosFromBalancingWallet
                         else BalancingUtxosFromSet $ Set.fromList toBalanceUtxos,
-                    txOptCollateralUtxos =
+                    txSkelOptCollateralUtxos =
                       if List.null toCollateralUtxos
                         then CollateralUtxosFromBalancingWallet
                         else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
@@ -105,19 +105,19 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 aliceNonOnlyValueUtxos =
   utxosOwnedBySearch alice `filterWithPred` \o ->
-    isJust (txSkelOutReferenceScript o)
-      || isJust (preview (txSkelOutDatumL % txSkelOutDatumContentAT) o)
+    is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP) o
+      || is (txSkelOutDatumL % txSkelOutDatumKindAT) o
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m TxSkelOut
-aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` (\v -> Api.lovelaceValueOf v == Api.Lovelace (n * 1_000_000))
+aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` ((== Api.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` \o -> isJust (txSkelOutReferenceScript o)
+aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP)
 
 emptySearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 emptySearch = ListT.fromFoldable []
 
-simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxOpts -> TxOpts) -> Bool -> m TestBalancingOutcome
+simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> m TestBalancingOutcome
 simplePaymentToBob lv apples oranges bananas =
   testingBalancingTemplate
     (Script.lovelace lv <> apple apples <> orange oranges <> banana bananas)
@@ -126,7 +126,7 @@ simplePaymentToBob lv apples oranges bananas =
     emptySearch
     emptySearch
 
-bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxOpts -> TxOpts) -> Bool -> m TestBalancingOutcome
+bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> m TestBalancingOutcome
 bothPaymentsToBobAndAlice val =
   testingBalancingTemplate
     (Script.lovelace val)
@@ -145,8 +145,8 @@ noBalanceMaxFee = do
         txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
         txSkelOpts =
           def
-            { txOptBalancingPolicy = DoNotBalance,
-              txOptFeePolicy = AutoFeeComputation
+            { txSkelOptBalancingPolicy = DoNotBalance,
+              txSkelOptFeePolicy = AutoFeeComputation
             },
         txSkelSigners = [alice]
       }
@@ -164,7 +164,7 @@ balanceReduceFee = do
         skelAutoFee
           { txSkelOpts =
               def
-                { txOptFeePolicy = ManualFee (feeBalanced - 1)
+                { txSkelOptFeePolicy = ManualFee (feeBalanced - 1)
                 }
           }
   (skelBalancedManual, feeBalancedManual, mColsManual) <- balanceTxSkel skelManualFee
@@ -180,7 +180,7 @@ reachingMagic = do
         txSkelSigners = [alice],
         txSkelOpts =
           def
-            { txOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
+            { txSkelOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
             }
       }
 
@@ -193,7 +193,7 @@ additionalOutsNb :: Int -> ResProp
 additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
 
 insNb :: Int -> ResProp
-insNb is (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == is
+insNb n (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == n
 
 colInsNb :: Int -> ResProp
 colInsNb cis (_, _, _, Nothing, _) = testBool $ cis == 0
@@ -250,10 +250,10 @@ testBalancingFailsWith msg p smc =
 
 tests :: TestTree
 tests =
-  let setFixedFee fee txOpts = txOpts {txOptFeePolicy = ManualFee fee}
-      setDontAdjustOutput txOpts = txOpts {txOptBalanceOutputPolicy = DontAdjustExistingOutput}
-      setDontBalance txOpts = txOpts {txOptBalancingPolicy = DoNotBalance}
-      setCollateralWallet wallet' txOpts = txOpts {txOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
+  let setFixedFee fee txSkelOpts = txSkelOpts {txSkelOptFeePolicy = ManualFee fee}
+      setDontAdjustOutput txSkelOpts = txSkelOpts {txSkelOptBalanceOutputPolicy = DontAdjustExistingOutput}
+      setDontBalance txSkelOpts = txSkelOpts {txSkelOptBalancingPolicy = DoNotBalance}
+      setCollateralWallet wallet' txSkelOpts = txSkelOpts {txSkelOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
    in testGroup
         "Balancing"
         [ testGroup

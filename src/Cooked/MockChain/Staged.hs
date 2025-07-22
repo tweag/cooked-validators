@@ -72,7 +72,7 @@ data MockChainBuiltin a where
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRef :: Api.TxOutRef -> MockChainBuiltin (Maybe TxSkelOut)
+  TxSkelOutByRef :: Api.TxOutRef -> MockChainBuiltin TxSkelOut
   WaitNSlots :: (Integral i) => i -> MockChainBuiltin Ledger.Slot
   AllUtxos :: MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
@@ -81,6 +81,7 @@ data MockChainBuiltin a where
   SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
   GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
   RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
+  ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -127,7 +128,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         (_, skel') <- lift $ runTweakInChain now skel
         put later
         validateTxSkel skel'
-  interpBuiltin (TxOutByRef o) = txOutByRef o
+  interpBuiltin (TxSkelOutByRef o) = txSkelOutByRef o
   interpBuiltin (WaitNSlots s) = waitNSlots s
   interpBuiltin AllUtxos = allUtxos
   interpBuiltin (UtxosAt address) = utxosAt address
@@ -141,6 +142,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
   interpBuiltin GetConstitutionScript = getConstitutionScript
   interpBuiltin (RegisterStakingCred cred reward deposit) = registerStakingCred cred reward deposit
+  interpBuiltin (ForceOutputs outs) = forceOutputs outs
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -172,12 +174,7 @@ everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
 there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
-there n = modifyLtl . mkLtlFormula n
-  where
-    mkLtlFormula x =
-      if x == 0
-        then LtlAtom . UntypedTweak
-        else LtlNext . mkLtlFormula (x - 1)
+there n = modifyLtl . ltlDelay n . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
@@ -204,7 +201,7 @@ instance MonadError MockChainError StagedMockChain where
 
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
-  txOutByRef = singletonBuiltin . TxOutByRef
+  txSkelOutByRef = singletonBuiltin . TxSkelOutByRef
   utxosAt = singletonBuiltin . UtxosAt
   logEvent = singletonBuiltin . LogEvent
 
@@ -219,3 +216,4 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
+  forceOutputs = singletonBuiltin . ForceOutputs

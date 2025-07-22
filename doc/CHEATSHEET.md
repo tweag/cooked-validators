@@ -116,7 +116,7 @@ foo = do
 foo :: MonadBlockChain m => m ()
 foo = do
     ...
-    (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentTime
+    (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentMSRange
     targetSlot <- getEnclosingSlot $ lastMsOfCurrentSlot + 3_600_000 -- 1 hour
     awaitSlot targetSlot
     ...
@@ -166,7 +166,8 @@ foo = do
 ### Use wallets
 
 * 10 wallets: `wallet 1` to `wallet 10`
-* `walletAddress (wallet 3)`
+* `import Plutus.Script.Utils.Address qualified as Script`
+* `Script.toAddress (wallet 3)`
 * `Script.toPubKeyHash (wallet 2)`
 
 ### Sign a transaction with one or more wallets
@@ -245,33 +246,25 @@ txSkelTemplate
     return (txOutRef1, txOutRef2)
   ```
 
-### Resolve a `TxOutRef` (get the corresponding `TxSkelOut`)
+### Resolve all or parts of a `TxOutRef` (get the corresponding `TxSkelOut` elements)
 
-* Use the `MonadFail` instance of `MonadBlockChain`
+* Get the full `TxSkelOut` from a `TxOutRef`
 ```haskell
 foo :: MonadBlockChain m => Api.TxOutRef -> m ()
 foo txOutRef = do
-    Just txSkelOut <- txOutByRef txOutRef
+  txSkelOut <- txSkelOutByRef txOutRef
+  ...
 ```
 
-* Use the `MonadError MockChainError` instance of `MonadBlockChain`
+* Get a certain part of a `TxSkelOut` from a `TxOutRef` and an optic
 ```haskell
 foo :: MonadBlockChain m => Api.TxOutRef -> m ()
 foo txOutRef = do
-    txSkelOut <- unsafeTxOutByRef txOutRef -- will throw a MCEUnknownOutRef if not found
-```
-
-### Resolve the address, value, and datum of a `TxOutRef`
-
-```haskell
-foo :: MonadBlockChain m => Api.TxOutRef -> m ()
-foo txOutRef = do
-    Just address <- (txSkelOutAddress <$>) <$> txOutByRef txOutRef
-	address' <- txSkelOutAddress <$> unsafeTxOutByRef txOutRef
-    Just value <- valueFromTxOutRef txOutRef
-	value' <- unsafeValueFromTxOutRef txOutRef
-    Just datum <- typedDatumFromTxOutRef @typeOfDatum txOutRef
-	Just datum' <- unsafeTypedDatumFromTxOutRef @typeOfDatum txOutRef
+  -- A value is always present, use 'viewByRef'
+  value <- viewByRef txSkelOutValueL txOutRef
+  -- A datum of a given type might not be present, use 'previewByRef'
+  Just typedDatum <- previewByRef (txSkelOutDatumL % txSkelOutDatumTypedAT @MyDatumType) txOutRef
+  ...
 ```
 
 ### Mint or burn tokens
@@ -397,7 +390,7 @@ foo = do
     ...
 ```
 
-### Fetch all UTxOs at an address
+### Fetch all UTxOs belonging to a certain owner
 
 ```haskell
 foo :: MonadBlockChain m => m () 
@@ -417,7 +410,7 @@ foo = do
     ...
     searchResults <-
       runUtxoSearch $
-        allUtxos `filterWithPred` ((== ada 10) . txSkelOutValue)
+        allUtxos `filterWithPred` ((== ada 10) . view txSkelOutValueL)
     ...
 ```
 
@@ -441,7 +434,7 @@ foo = do
       runUtxoSearch $
         utxosOwnedBy (wallet 2)
 		  `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumContentAT)
-          `filterWithPred` ((== ada 10) . txSkelOutValue)
+          `filterWithPred` ((== ada 10) . view txSkelOutValueL)
     ...
 ```
 
@@ -487,7 +480,7 @@ foo :: MonadBlockChain m => m ()
 foo = do
     bar `withTweak` ( do
                         C.overTweak
-                          (txSkelOutsL % _head % txSkelOutValueL) -- Value of first output
+                          (txSkelOutsL % ix 1 % txSkelOutValueL) -- Value of first output
                           (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
                     )
 ```

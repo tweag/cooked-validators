@@ -3,6 +3,7 @@ module Spec.InitialDistribution where
 import Cooked
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
+import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import Test.Tasty
 
@@ -27,7 +28,7 @@ initialDistributionWithReferenceScript =
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
 getValueFromInitialDatum = do
   aliceUtxos <- runUtxoSearch $ utxosOwnedBySearch alice
-  catMaybes <$> mapM (typedDatumFromTxOutRef @Integer . fst) aliceUtxos
+  catMaybes <$> mapM (previewByRef (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer) . fst) aliceUtxos
 
 spendReferenceAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 spendReferenceAlwaysTrueValidator = do

@@ -41,7 +41,7 @@ instance PrettyCookedList (Contextualized TxSkel) where
   prettyCookedOptListMaybe opts cTxSkel
     | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals <- ctxContent cTxSkel =
         [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
-          prettyItemizeNonEmpty opts "Mints:" "-" (txSkelMintsToList mints),
+          prettyItemizeNonEmpty opts "Mints:" "-" (view txSkelMintsListI mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty opts "Signers:" "-" (txopts, signers),
           prettyItemizeNonEmpty opts "Inputs:" "-" ((<$ cTxSkel) . uncurry Input <$> Map.toList ins),
@@ -180,11 +180,11 @@ instance PrettyCooked TxGovAction where
     Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
-instance PrettyCookedList (TxOpts, [Wallet]) where
-  prettyCookedOptList opts (TxOpts {txOptBalancingPolicy = DoNotBalance}, signers) = prettyCookedOptList opts signers
-  prettyCookedOptList opts (TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
+instance PrettyCookedList (TxSkelOpts, [Wallet]) where
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = DoNotBalance}, signers) = prettyCookedOptList opts signers
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
     prettyCookedOpt opts firstSigner <+> "[balancing]" : prettyCookedOptList opts signers
-  prettyCookedOptList opts (TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet}, signers) =
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWith balancingWallet}, signers) =
     (\s -> if s == balancingWallet then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s) <$> signers
   -- The following case should never happen for real transactions
   prettyCookedOptList _ (_, []) = []
@@ -204,12 +204,12 @@ instance PrettyCooked Mint where
 
 instance PrettyCookedList TxSkelOut where
   prettyCookedOptList opts output =
-    [ prettyCookedOpt opts (txSkelOutAddress output),
-      prettyCookedOpt opts (txSkelOutValue output)
+    [ prettyCookedOpt opts (view txSkelOutAddressG output),
+      prettyCookedOpt opts (view txSkelOutValueL output)
     ]
       ++ catMaybes
         [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),
-          ("Reference script hash:" <+>) . prettyHash opts <$> txSkelOutRefScriptHash (output ^. txSkelOutReferenceScriptL)
+          ("Reference script hash:" <+>) . prettyHash opts <$> preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) output
         ]
 
 instance PrettyCooked TxSkelOut where
@@ -217,24 +217,24 @@ instance PrettyCooked TxSkelOut where
     let txSkelOutList = prettyCookedOptList opts output
      in prettyItemize opts ("Pays to" <+> head txSkelOutList) "-" (tail txSkelOutList)
 
--- | Prints a 'TxSkelOutDatum' when different from 'TxSkelOutNoDatum'
+-- | Prints a 'TxSkelOutDatum' when different from 'NoTxSkelOutDatum'
 instance PrettyCookedMaybe TxSkelOutDatum where
-  prettyCookedOptMaybe _ TxSkelOutNoDatum = Nothing
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat Inline) =
+  prettyCookedOptMaybe _ NoTxSkelOutDatum = Nothing
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat Inline) =
     Just $
       "Datum (inline)"
         <+> "("
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed NotResolved)) =
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat (Hashed NotResolved)) =
     Just $
       "Datum (hashed, hidden)"
         <+> "("
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
-  prettyCookedOptMaybe opts (TxSkelOutSomeDatum dat (Hashed Resolved)) =
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatum dat (Hashed Resolved)) =
     Just $
       "Datum (hashed, visible)"
         <+> "("
@@ -242,39 +242,34 @@ instance PrettyCookedMaybe TxSkelOutDatum where
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
 
-instance PrettyCooked DatumContent where
-  prettyCookedOpt opts (DatumContent dat) = prettyCookedOpt opts dat
-
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default.
-instance PrettyCookedList TxOpts where
+instance PrettyCookedList TxSkelOpts where
   prettyCookedOptListMaybe
     opts
-    TxOpts
-      { txOptAutoSlotIncrease,
-        txOptUnsafeModTx,
-        txOptBalanceOutputPolicy,
-        txOptFeePolicy,
-        txOptBalancingPolicy,
-        txOptBalancingUtxos,
-        txOptEmulatorParamsModification,
-        txOptCollateralUtxos,
-        txOptAnchorResolution
-      } =
-      [ prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
-        prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
-        prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
-        prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
-        prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
-        prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
-        prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
-        prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos,
-        prettyIfNot def prettyAnchorResolution txOptAnchorResolution
+    ( TxSkelOpts
+        txSkelOptAutoSlotIncrease
+        _
+        txSkelOptBalancingPolicy
+        txSkelOptFeePolicy
+        txSkelOptBalanceOutputPolicy
+        txSkelOptBalancingUtxos
+        _
+        txSkelOptCollateralUtxos
+        txSkelOptAnchorResolution
+      ) =
+      [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
+        prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
+        prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
+        prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
+        prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
+        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
+        prettyIfNot def prettyAnchorResolution txSkelOptAnchorResolution
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
         prettyIfNot defaultValue f x
-          | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
+          | x == defaultValue && not (pcOptPrintDefaultTxSkelOpts opts) = Nothing
           | otherwise = Just $ f x
         prettyAutoSlotIncrease :: Bool -> DocCooked
         prettyAutoSlotIncrease True = "Automatic slot increase"
@@ -286,12 +281,6 @@ instance PrettyCookedList TxOpts where
         prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
         prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts w
         prettyBalancingPolicy DoNotBalance = "Do not balance"
-        prettyUnsafeModTx :: [RawModTx] -> DocCooked
-        prettyUnsafeModTx [] = "No transaction modifications"
-        prettyUnsafeModTx (length -> n) = prettyCookedOpt opts n <+> "transaction" <+> PP.plural "modification" "modifications" n
-        prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
-        prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
-        prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
         prettyCollateralUtxos :: CollateralUtxos -> DocCooked
         prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
           prettyItemize
