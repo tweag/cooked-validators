@@ -68,7 +68,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
   txProposalProcedures <-
     Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
-      <$> toProposalProcedures txSkelProposals (txOptAnchorResolution txSkelOpts)
+      <$> toProposalProcedures txSkelProposals (txSkelOptAnchorResolution txSkelOpts)
   txWithdrawals <- toWithdrawals txSkelWithdrawals
   let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
       txMetadata = Cardano.TxMetadataNone

@@ -1,15 +1,10 @@
 -- | Re-exports the entirety of the library, which is always eventually necessary
 --  when writing large test-suites.
-module Cooked
-  ( module X,
-    Ltl.MonadModal (..),
-    Ltl.Ltl (..),
-  )
-where
+module Cooked (module X) where
 
 import Cooked.Attack as X
 import Cooked.InitialDistribution as X
-import Cooked.Ltl qualified as Ltl
+import Cooked.Ltl as X (Ltl (..), MonadModal (..), ltlDelay)
 import Cooked.MockChain as X
 import Cooked.Pretty as X
 import Cooked.ShowBS as X

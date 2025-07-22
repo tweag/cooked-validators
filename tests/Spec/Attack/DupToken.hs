@@ -51,7 +51,7 @@ tests =
                in [ Right
                       ( increment,
                         txSkelTemplate
-                          { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
+                          { txSkelLabel = Set.singleton $ TxSkelLabel DupTokenLbl,
                             txSkelMints =
                               txSkelMintsFromList
                                 [ mint pol1 emptyTxSkelRedeemer tName1 v1,
@@ -101,7 +101,7 @@ tests =
               [ Right
                   ( Api.assetClassValue ac1 1,
                     txSkelTemplate
-                      { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
+                      { txSkelLabel = Set.singleton $ TxSkelLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [mint pol emptyTxSkelRedeemer tName1 2],
                         txSkelOuts =
                           [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),

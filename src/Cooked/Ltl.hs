@@ -12,6 +12,7 @@ module Cooked.Ltl
     interpLtlAndPruneUnfinished,
     InterpLtl (..),
     MonadModal (..),
+    ltlDelay,
   )
 where
 
@@ -67,6 +68,11 @@ data Ltl a
     -- are equivalent.
     LtlRelease (Ltl a) (Ltl a)
   deriving (Show)
+
+-- | Delays a Ltl formula by @n@ time steps when @n > 0@
+ltlDelay :: Integer -> Ltl a -> Ltl a
+ltlDelay n | n <= 0 = id
+ltlDelay n = LtlNext . ltlDelay (n - 1)
 
 -- | Split an LTL formula that describes a modification of a computation into a
 -- list of @(doNow, doLater)@ pairs, where

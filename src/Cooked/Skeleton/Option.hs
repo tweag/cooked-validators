@@ -6,22 +6,20 @@ module Cooked.Skeleton.Option
     FeePolicy (..),
     BalancingPolicy (..),
     BalancingUtxos (..),
-    RawModTx (..),
-    EmulatorParamsModification (..),
     CollateralUtxos (..),
     AnchorResolution (..),
-    applyEmulatorParamsModification,
-    applyRawModOnBalancedTx,
-    TxOpts (..),
-    txOptUnsafeModTxL,
-    txOptAutoSlotIncreaseL,
-    txOptBalancingPolicyL,
-    txOptBalanceOutputPolicyL,
-    txOptFeePolicyL,
-    txOptBalancingUtxosL,
-    txOptEmulatorParamsModificationL,
-    txOptCollateralUtxosL,
-    txOptAnchorResolutionL,
+    TxSkelOpts (..),
+    txSkelOptModTxL,
+    txSkelOptAutoSlotIncreaseL,
+    txSkelOptBalancingPolicyL,
+    txSkelOptBalanceOutputPolicyL,
+    txSkelOptFeePolicyL,
+    txSkelOptBalancingUtxosL,
+    txSkelOptModParamsL,
+    txSkelOptCollateralUtxosL,
+    txSkelOptAnchorResolutionL,
+    txSkelOptAddModTx,
+    txSkelOptAddModParams,
   )
 where
 
@@ -30,10 +28,10 @@ import Cardano.Node.Emulator qualified as Emulator
 import Cooked.Wallet
 import Data.ByteString (ByteString)
 import Data.Default
-import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
+import Optics.Core
 import Optics.TH
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -94,42 +92,6 @@ data BalancingPolicy
 instance Default BalancingPolicy where
   def = BalanceWithFirstSigner
 
--- | Wraps a function that will be applied to a Cardano transaction after it has
--- been generated from this skeleton (and thus, after balancing has been
--- performed since it operates on skeletons).
-newtype RawModTx
-  = RawModTx (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra)
-
--- This instance always returns @False@, which is no problem, because 'Eq
--- TxSkel' is only used for tests that never depend on this comparison
-instance Eq RawModTx where
-  _ == _ = False
-
-instance Show RawModTx where
-  show (RawModTx _) = "RawModTxAfterBalancing"
-
--- | Applies a list of modifications right before the transaction is
--- submitted. The leftmost function in the argument list is applied first.
-applyRawModOnBalancedTx :: [RawModTx] -> Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
-applyRawModOnBalancedTx = foldl' (\acc (RawModTx f) -> acc . f) id
-
--- | Wraps a function that will temporarily change the emulator parameters for
--- the transaction's balancing and submission.
-newtype EmulatorParamsModification = EmulatorParamsModification (Emulator.Params -> Emulator.Params)
-
--- | This instance always returns @False@, which is no problem, because 'Eq
--- TxSkel' is only used for tests that never depend on this comparison
-instance Eq EmulatorParamsModification where
-  _ == _ = False
-
-instance Show EmulatorParamsModification where
-  show EmulatorParamsModification {} = "EmulatorParamsModification <function>"
-
--- | Performs an 'EmulatorParamsModification' over an 'Emulator.Params'
-applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.Params -> Emulator.Params
-applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
-applyEmulatorParamsModification Nothing = id
-
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
   = -- | Rely on automated computation with only-value UTxOs from the balancing
@@ -161,14 +123,14 @@ instance Default AnchorResolution where
 
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
-data TxOpts = TxOpts
+data TxSkelOpts = TxSkelOpts
   { -- | Whether to increase the slot counter automatically on transaction
     -- submission.  This is useful for modelling transactions that could be
     -- submitted in parallel in reality, so there should be no explicit ordering
     -- of what comes first.
     --
     -- Default is @True@.
-    txOptAutoSlotIncrease :: Bool,
+    txSkelOptAutoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
     -- potentially adjusted and balanced. The name of this option contains
     -- /unsafe/ to draw attention to the fact that modifying a transaction at
@@ -179,37 +141,37 @@ data TxOpts = TxOpts
     -- One interesting use of this function is to observe a transaction just
     -- before it is being sent for validation, with
     --
-    -- > txOptUnsafeModTx = [RawModTx Debug.Trace.traceShowId]
+    -- > txSkelOptModTx = [RawModTx Debug.Trace.traceShowId]
     --
     -- The leftmost function in the list is applied first.
     --
     -- Default is @[]@.
-    txOptUnsafeModTx :: [RawModTx],
+    txSkelOptModTx :: Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra,
     -- | Whether to balance the transaction or not, and which wallet should
     -- provide/reclaim the missing and surplus value. Balancing ensures that
     --
     -- > input + mints == output + fees + burns
     --
-    -- If you decide to set @txOptBalance = DoNotBalance@ you will have trouble
+    -- If you decide to set @txSkelOptBalance = DoNotBalance@ you will have trouble
     -- satisfying that equation by hand unless you use @ManualFee@. You will
     -- likely see a error about value preservation.
     --
     -- Default is 'BalanceWithFirstSigner'
-    txOptBalancingPolicy :: BalancingPolicy,
+    txSkelOptBalancingPolicy :: BalancingPolicy,
     -- | The fee to use when balancing the transaction
     --
     -- Default is 'AutoFeeComputation'
-    txOptFeePolicy :: FeePolicy,
+    txSkelOptFeePolicy :: FeePolicy,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- Default is 'AdjustExistingOutput'.
-    txOptBalanceOutputPolicy :: BalanceOutputPolicy,
+    txSkelOptBalanceOutputPolicy :: BalanceOutputPolicy,
     -- | Which UTxOs to use during balancing. This can either be a precise list,
     -- or rely on automatic searches for utxos with values only belonging to the
     -- balancing wallet.
     --
     -- Default is 'BalancingUtxosFromBalancingWallet'.
-    txOptBalancingUtxos :: BalancingUtxos,
+    txSkelOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is obviously a very
     -- unsafe thing to do if you want to preserve compatibility with the actual
@@ -217,61 +179,87 @@ data TxOpts = TxOpts
     -- use extremely big transactions or transactions that exhaust the maximum
     -- execution budget. Such a thing could be accomplished with
     --
-    -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
+    -- > txSkelOptModParams = Just $ ModParams increaseTransactionLimits
     --
     -- for example.
     --
     -- Default is 'Nothing'.
-    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification,
+    txSkelOptModParams :: Emulator.Params -> Emulator.Params,
     -- | Which utxos to use as collaterals. They can be given manually, or
     -- computed automatically from a given, or the balancing, wallet.
     --
     -- Default is 'CollateralUtxosFromBalancingWallet'
-    txOptCollateralUtxos :: CollateralUtxos,
+    txSkelOptCollateralUtxos :: CollateralUtxos,
     -- | How to resolve anchor in proposal procedures
     --
     -- Default is 'AnchorResolutionLocal Map.Empty'
-    txOptAnchorResolution :: AnchorResolution
+    txSkelOptAnchorResolution :: AnchorResolution
   }
-  deriving (Eq, Show)
+
+-- | Comparing 'TxSkelOpts' is possible as long as we ignore modifications to the
+-- generated transaction and the parameters.
+instance Eq TxSkelOpts where
+  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos anchorRes)
+    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos' anchorRes') =
+      slotIncrease == slotIncrease'
+        && balancingPol == balancingPol'
+        && feePol == feePol'
+        && balOutputPol == balOutputPol'
+        && balUtxos == balUtxos'
+        && colUtxos == colUtxos'
+        && anchorRes == anchorRes'
+
+-- | Showing 'TxSkelOpts' is possible as long as we ignore modifications to the
+-- generated transaction and the parameters.
+instance Show TxSkelOpts where
+  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos anchorRes) =
+    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show anchorRes]
 
 -- | A lens to get or set the automatic slot increase option
-makeLensesFor [("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL")] ''TxOpts
+makeLensesFor [("txSkelOptAutoSlotIncrease", "txSkelOptAutoSlotIncreaseL")] ''TxSkelOpts
 
 -- | A lens to get or set the Cardano transaction modifications option
-makeLensesFor [("txOptUnsafeModTx", "txOptUnsafeModTxL")] ''TxOpts
+makeLensesFor [("txSkelOptModTx", "txSkelOptModTxL")] ''TxSkelOpts
 
 -- | A lens to get or set the balancing policy option
-makeLensesFor [("txOptBalancingPolicy", "txOptBalancingPolicyL")] ''TxOpts
+makeLensesFor [("txSkelOptBalancingPolicy", "txSkelOptBalancingPolicyL")] ''TxSkelOpts
 
 -- | A lens to get or set the fee policy option
-makeLensesFor [("txOptFeePolicy", "txOptFeePolicyL")] ''TxOpts
+makeLensesFor [("txSkelOptFeePolicy", "txSkelOptFeePolicyL")] ''TxSkelOpts
 
 -- | A lens to get or set the handling of balancing outputs option
-makeLensesFor [("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL")] ''TxOpts
+makeLensesFor [("txSkelOptBalanceOutputPolicy", "txSkelOptBalanceOutputPolicyL")] ''TxSkelOpts
 
 -- | A lens to get or set the balancing utxos option
-makeLensesFor [("txOptBalancingUtxos", "txOptBalancingUtxosL")] ''TxOpts
+makeLensesFor [("txSkelOptBalancingUtxos", "txSkelOptBalancingUtxosL")] ''TxSkelOpts
 
 -- | A lens to get or set the changes to protocol parameters option
-makeLensesFor [("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")] ''TxOpts
+makeLensesFor [("txSkelOptModParams", "txSkelOptModParamsL")] ''TxSkelOpts
 
 -- | A lens to get or set the collateral utxos option
-makeLensesFor [("txOptCollateralUtxos", "txOptCollateralUtxosL")] ''TxOpts
+makeLensesFor [("txSkelOptCollateralUtxos", "txSkelOptCollateralUtxosL")] ''TxSkelOpts
 
 -- | A lens to get or set the anchor resolution option
-makeLensesFor [("txOptAnchorResolution", "txOptAnchorResolutionL")] ''TxOpts
+makeLensesFor [("txSkelOptAnchorResolution", "txSkelOptAnchorResolutionL")] ''TxSkelOpts
 
-instance Default TxOpts where
+instance Default TxSkelOpts where
   def =
-    TxOpts
-      { txOptAutoSlotIncrease = True,
-        txOptUnsafeModTx = [],
-        txOptBalancingPolicy = def,
-        txOptBalanceOutputPolicy = def,
-        txOptFeePolicy = def,
-        txOptBalancingUtxos = def,
-        txOptEmulatorParamsModification = Nothing,
-        txOptCollateralUtxos = def,
-        txOptAnchorResolution = def
+    TxSkelOpts
+      { txSkelOptAutoSlotIncrease = True,
+        txSkelOptModTx = id,
+        txSkelOptBalancingPolicy = def,
+        txSkelOptBalanceOutputPolicy = def,
+        txSkelOptFeePolicy = def,
+        txSkelOptBalancingUtxos = def,
+        txSkelOptModParams = id,
+        txSkelOptCollateralUtxos = def,
+        txSkelOptAnchorResolution = def
       }
+
+-- | Appends a transaction modification to the given 'TxSkelOpts'
+txSkelOptAddModTx :: (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra) -> TxSkelOpts -> TxSkelOpts
+txSkelOptAddModTx modTx = over txSkelOptModTxL (modTx .)
+
+-- | Appends a parameters modification to the given 'TxSkelOpts'
+txSkelOptAddModParams :: (Emulator.Params -> Emulator.Params) -> TxSkelOpts -> TxSkelOpts
+txSkelOptAddModParams modParams = over txSkelOptModParamsL (modParams .)

@@ -24,7 +24,7 @@ listUtxosTestTrace ::
   Script.Versioned Script.Validator ->
   m (Api.TxOutRef, TxSkelOut)
 listUtxosTestTrace useInlineDatum validator =
-  (\oref -> (oref,) <$> unsafeTxOutByRef oref) . head
+  (\oref -> (oref,) <$> txSkelOutByRef oref) . head
     =<< validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],

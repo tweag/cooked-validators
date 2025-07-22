@@ -16,16 +16,16 @@ toTxInAndWitness ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   m (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  TxSkelOut (toPKHOrValidator -> owner) _ datum _ _ <- unsafeTxOutByRef txOutRef
+  TxSkelOut (toPKHOrValidator -> owner) _ datum _ _ _ <- txSkelOutByRef txOutRef
   witness <- case owner of
     Left _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
     Right validator ->
       fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
         toScriptWitness validator txSkelRedeemer $
           case datum of
-            TxSkelOutNoDatum -> Cardano.ScriptDatumForTxIn Nothing
-            TxSkelOutSomeDatum _ Inline -> Cardano.InlineScriptDatum
-            TxSkelOutSomeDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat
+            NoTxSkelOutDatum -> Cardano.ScriptDatumForTxIn Nothing
+            SomeTxSkelOutDatum _ Inline -> Cardano.InlineScriptDatum
+            SomeTxSkelOutDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat
   throwOnToCardanoErrorOrApply
     "toTxInAndWitness: Unable to translate TxOutRef"
     (,Cardano.BuildTxWith witness)

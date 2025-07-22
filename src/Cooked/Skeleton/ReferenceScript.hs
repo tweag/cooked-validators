@@ -3,52 +3,59 @@
 module Cooked.Skeleton.ReferenceScript
   ( ReferenceScriptConstrs,
     TxSkelOutReferenceScript (..),
-    txSkelOutTypedRefScriptAT,
-    txSkelOutRefScriptVersioned,
-    txSkelOutRefScriptHash,
+    txSkelOutReferenceScriptHashAF,
+    txSkelOutReferenceScriptTypedP,
+    txSkelOutReferenceScriptVersionedP,
   )
 where
 
+import Data.Function (on)
 import Data.Typeable
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- | Type constraints over the reference script in a
--- 'Cooked.Skeleton.Ouput.TxSkelOut'
+-- | Reference scripts are typeable and can be converted to versioned scripts.
 type ReferenceScriptConstrs refScript =
   ( Script.ToVersioned Script.Script refScript,
-    Show refScript,
     Typeable refScript
   )
 
--- | Reference scripts in 'Cooked.Skeleton.Ouput.TxSkelOut'
+-- | Reference scripts used in 'Cooked.Skeleton.Ouput.TxSkelOut'
 data TxSkelOutReferenceScript where
-  TxSkelOutNoReferenceScript :: TxSkelOutReferenceScript
-  TxSkelOutSomeReferenceScript :: (ReferenceScriptConstrs a) => a -> TxSkelOutReferenceScript
+  NoTxSkelOutReferenceScript :: TxSkelOutReferenceScript
+  SomeTxSkelOutReferenceScript :: (ReferenceScriptConstrs a) => a -> TxSkelOutReferenceScript
 
-deriving instance Show TxSkelOutReferenceScript
+instance Eq TxSkelOutReferenceScript where
+  (==) = (==) `on` preview txSkelOutReferenceScriptHashAF
 
--- | Retrieving, or setting, a typed reference script
-txSkelOutTypedRefScriptAT :: (ReferenceScriptConstrs a) => AffineTraversal' TxSkelOutReferenceScript a
-txSkelOutTypedRefScriptAT =
-  atraversal
-    ( \x -> case x of
-        TxSkelOutNoReferenceScript -> Left x
-        TxSkelOutSomeReferenceScript script -> maybe (Left x) Right (cast script)
+instance Show TxSkelOutReferenceScript where
+  show refScript =
+    maybe
+      "No reference script"
+      (("Reference script: " <>) . show)
+      $ preview txSkelOutReferenceScriptHashAF refScript
+
+-- | A prism targeting a certain typed reference script within a 'TxSkelOutReferenceScript'
+txSkelOutReferenceScriptTypedP :: (ReferenceScriptConstrs a, ReferenceScriptConstrs b) => Prism TxSkelOutReferenceScript TxSkelOutReferenceScript a b
+txSkelOutReferenceScriptTypedP =
+  prism
+    SomeTxSkelOutReferenceScript
+    ( \refScript -> case refScript of
+        NoTxSkelOutReferenceScript -> Left refScript
+        SomeTxSkelOutReferenceScript script -> maybe (Left refScript) Right (cast script)
     )
-    ( flip
-        ( \refScript -> \case
-            TxSkelOutNoReferenceScript -> TxSkelOutNoReferenceScript
-            TxSkelOutSomeReferenceScript _ -> TxSkelOutSomeReferenceScript refScript
-        )
+
+-- | A prism targeting the versioned script within a 'TxSkelOutReferenceScript'
+txSkelOutReferenceScriptVersionedP :: Prism' TxSkelOutReferenceScript (Script.Versioned Script.Script)
+txSkelOutReferenceScriptVersionedP =
+  prism
+    SomeTxSkelOutReferenceScript
+    ( \refScript -> case refScript of
+        NoTxSkelOutReferenceScript -> Left refScript
+        SomeTxSkelOutReferenceScript script -> Right (Script.toVersioned script)
     )
 
--- | Retrieving the versioned reference script
-txSkelOutRefScriptVersioned :: TxSkelOutReferenceScript -> Maybe (Script.Versioned Script.Script)
-txSkelOutRefScriptVersioned TxSkelOutNoReferenceScript = Nothing
-txSkelOutRefScriptVersioned (TxSkelOutSomeReferenceScript content) = Just $ Script.toVersioned content
-
--- | Retrieving the hash of the reference script
-txSkelOutRefScriptHash :: TxSkelOutReferenceScript -> Maybe Api.ScriptHash
-txSkelOutRefScriptHash = fmap Script.toScriptHash . txSkelOutRefScriptVersioned
+-- | An affine fold producing an optional script hash from a 'TxSkelOutReferenceScript'
+txSkelOutReferenceScriptHashAF :: AffineFold TxSkelOutReferenceScript Api.ScriptHash
+txSkelOutReferenceScriptHashAF = txSkelOutReferenceScriptVersionedP % to Script.toScriptHash

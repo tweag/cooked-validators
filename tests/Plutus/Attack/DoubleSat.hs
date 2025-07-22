@@ -15,7 +15,7 @@ import Prelude qualified as HS
 -- add an input belonging to the B validator to a transaction that spends from
 -- the A validator.
 
-data ADatum = ADatum deriving (HS.Show)
+data ADatum = ADatum deriving (HS.Show, HS.Eq)
 
 instance Eq ADatum where
   ADatum == ADatum = True
@@ -52,7 +52,7 @@ aValidator =
   where
     wrap = Script.mkUntypedValidator
 
-data BDatum = BDatum deriving (HS.Show)
+data BDatum = BDatum deriving (HS.Show, HS.Eq)
 
 instance Eq BDatum where
   BDatum == BDatum = True

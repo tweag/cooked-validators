@@ -18,7 +18,6 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Data.Maybe
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 
@@ -49,7 +48,7 @@ redirectOutputTweakAll outputPred indexPred = do
     go (out : l) n =
       case preview (txSkelOutTypedOwnerAT @owner) out >> outputPred out of
         Nothing -> (Nothing, out) : go l n
-        Just newOwner | indexPred n -> (Just out, out {tsoOwner = newOwner}) : go l (n + 1)
+        Just newOwner | indexPred n -> (Just out, out & txSkelOutTypedOwnerAT @owner .~ newOwner) : go l (n + 1)
         _ -> (Nothing, out) : go l (n + 1)
 
 -- | A version of 'redirectOutputTweakAll' where, instead of modifying all the
@@ -73,7 +72,7 @@ redirectOutputTweakAny outputPred indexPred = viewTweak txSkelOutsL >>= go [] 0
                 newOwner <- outputPred out
                 return $
                   mplus
-                    (setTweak txSkelOutsL (l' ++ out {tsoOwner = newOwner} : l) >> return out)
+                    (setTweak txSkelOutsL (l' ++ (out & txSkelOutTypedOwnerAT @owner .~ newOwner) : l) >> return out)
                     (go (l' ++ [out]) (n + 1) l)
             )
     go l' n (out : l) = go (l' ++ [out]) n l
@@ -108,7 +107,7 @@ datumHijackingAttackAll ::
 datumHijackingAttackAll change select thief = do
   redirected <- redirectOutputTweakAll @owner (\output -> if change output then Just thief else Nothing) select
   guard . not $ null redirected
-  addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
+  addLabelTweak $ DatumHijackingLbl $ view ownerCredentialG thief
   return redirected
 
 -- | A version of datumHijackingAttackAll relying on the rules of
@@ -128,7 +127,7 @@ datumHijackingAttackAny ::
   m TxSkelOut
 datumHijackingAttackAny change select thief = do
   redirected <- redirectOutputTweakAny @owner (\output -> if change output then Just thief else Nothing) select
-  addLabelTweak $ DatumHijackingLbl $ Script.toCredential thief
+  addLabelTweak $ DatumHijackingLbl $ view ownerCredentialG thief
   return redirected
 
 -- | The default datum hijacking attack. It tries to redirect any output for

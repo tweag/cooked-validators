@@ -4,6 +4,7 @@ module Cooked.MockChain.UtxoState
   ( UtxoState (..),
     UtxoPayloadSet (..),
     UtxoPayload (..),
+    UtxoPayloadDatum (..),
     holdsInState,
   )
 where
@@ -45,15 +46,34 @@ newtype UtxoPayloadSet = UtxoPayloadSet
   }
   deriving (Show)
 
+-- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
+-- stores the actual datum and whether it is hashed or inline.
+data UtxoPayloadDatum where
+  NoUtxoPayloadDatum :: UtxoPayloadDatum
+  SomeUtxoPayloadDatum :: (DatumConstrs dat) => dat -> Bool -> UtxoPayloadDatum
+
+deriving instance Show UtxoPayloadDatum
+
+instance Ord UtxoPayloadDatum where
+  compare NoUtxoPayloadDatum NoUtxoPayloadDatum = EQ
+  compare NoUtxoPayloadDatum _ = LT
+  compare _ NoUtxoPayloadDatum = GT
+  compare
+    (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat) b)
+    (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat') b') =
+      compare (dat, b) (dat', b')
+
+instance Eq UtxoPayloadDatum where
+  dat == dat' = compare dat dat' == EQ
+
 -- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload = UtxoPayload
   { -- | The reference of this UTxO
     utxoPayloadTxOutRef :: Api.TxOutRef,
     -- | The value stored in this UTxO
     utxoPayloadValue :: Api.Value,
-    -- | The optional datum stored in this UTxO and whether it is hashed
-    -- ('True') or inline ('False')
-    utxoPayloadDatum :: Maybe (DatumContent, Bool),
+    -- | The optional datum stored in this UTxO
+    utxoPayloadDatum :: UtxoPayloadDatum,
     -- | The optional reference script stored in this UTxO
     utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }

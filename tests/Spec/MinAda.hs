@@ -1,9 +1,8 @@
 module Spec.MinAda where
 
 import Cooked
-import Optics.Core ((^.))
+import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx qualified
 import PlutusTx.Eq qualified as PlutusTx
 import Test.Tasty
@@ -30,7 +29,7 @@ paymentWithMinAda = do
         { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
           txSkelSigners = [wallet 1]
         }
-  Api.getLovelace . (^. Script.adaL) . txSkelOutValue . snd . (!! 0) <$> utxosFromCardanoTx tx
+  view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0) <$> utxosFromCardanoTx tx
 
 paymentWithoutMinAda :: (MonadBlockChain m) => Integer -> m ()
 paymentWithoutMinAda paidLovelaces = do
