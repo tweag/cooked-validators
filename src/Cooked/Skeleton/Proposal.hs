@@ -1,25 +1,29 @@
 -- | This module exposes the notion of proposal within a
 -- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Proposal
-  ( TxParameterChange (..),
-    TxGovAction (..),
+  ( ParameterChange (..),
+    GovAction (..),
+    TxSkelProposalGovAction,
     TxSkelProposal (..),
-    txSkelProposalAddressL,
-    txSkelProposalActionL,
-    txSkelProposalWitnessL,
-    txSkelProposalAnchorL,
-    txSkelProposalAutoConstitutionL,
+    txSkelProposalReturnCredentialL,
+    txSkelProposalGovActionL,
+    txSkelProposalWitnessedGovActionAT,
+    txSkelProposalConstitutionAT,
+    txSkelProposalRedeemerAT,
+    txSkelProposalFreeGovActionAT,
     simpleTxSkelProposal,
-    withWitness,
-    withAnchor,
-    withConstitution,
-    updateConstitution,
+    witnessedTxSkelProposal,
+    autoFillConstitution,
+    txSkelProposalConstitutionRedeemerAT,
   )
 where
 
 import Cooked.Skeleton.Redeemer as X
+import Data.Kind (Type)
 import Data.Map (Map)
-import Optics.Core ((&), (.~), (?~), (^.))
+import Data.Typeable (cast)
+import GHC.TypeLits (KnownSymbol, Symbol)
+import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -29,68 +33,68 @@ import PlutusTx.Prelude qualified as PlutusTx
 -- | These are all the protocol parameters. They are taken from
 -- https://github.com/IntersectMBO/cardano-ledger/blob/c4fbc05999866fea7c0cb1b211fd5288f286b95d/eras/conway/impl/cddl-files/conway.cddl#L381-L412
 -- and will most likely change in future eras.
-data TxParameterChange where
+data ParameterChange where
   -- | The linear factor for the minimum fee calculation
-  FeePerByte :: Integer -> TxParameterChange
+  FeePerByte :: Integer -> ParameterChange
   -- | The constant factor for the minimum fee calculation
-  FeeFixed :: Integer -> TxParameterChange
+  FeeFixed :: Integer -> ParameterChange
   -- | Maximal block body size
-  MaxBlockBodySize :: Integer -> TxParameterChange
+  MaxBlockBodySize :: Integer -> ParameterChange
   -- | Maximal transaction size
-  MaxTxSize :: Integer -> TxParameterChange
+  MaxTxSize :: Integer -> ParameterChange
   -- | Maximal block header size
-  MaxBlockHeaderSize :: Integer -> TxParameterChange
+  MaxBlockHeaderSize :: Integer -> ParameterChange
   -- | The amount of a key registration deposit
-  KeyDeposit :: Integer -> TxParameterChange
+  KeyDeposit :: Integer -> ParameterChange
   -- | The amount of a pool registration deposit
-  PoolDeposit :: Integer -> TxParameterChange
+  PoolDeposit :: Integer -> ParameterChange
   -- | Maximum number of epochs in the future a pool retirement is allowed to
   -- be scheduled future for.
-  PoolRetirementMaxEpoch :: Integer -> TxParameterChange
+  PoolRetirementMaxEpoch :: Integer -> ParameterChange
   -- | Desired number of pools
-  PoolNumber :: Integer -> TxParameterChange
+  PoolNumber :: Integer -> ParameterChange
   -- | Pool influence
-  PoolInfluence :: Rational -> TxParameterChange
+  PoolInfluence :: Rational -> ParameterChange
   -- | Monetary expansion
-  MonetaryExpansion :: Rational -> TxParameterChange
+  MonetaryExpansion :: Rational -> ParameterChange
   -- | Treasury expansion
-  TreasuryCut :: Rational -> TxParameterChange
+  TreasuryCut :: Rational -> ParameterChange
   -- | Minimum Stake Pool Cost
-  MinPoolCost :: Integer -> TxParameterChange
+  MinPoolCost :: Integer -> ParameterChange
   -- | Cost in lovelace per byte of UTxO storage
-  CoinsPerUTxOByte :: Integer -> TxParameterChange
+  CoinsPerUTxOByte :: Integer -> ParameterChange
   -- | Cost models for non-native script languages
   CostModels ::
     { cmPlutusV1Costs :: [Integer],
       cmPlutusV2Costs :: [Integer],
       cmPlutusV3Costs :: [Integer]
     } ->
-    TxParameterChange
+    ParameterChange
   -- | Prices of execution units
   Prices ::
     { pMemoryCost :: Rational,
       pStepCost :: Rational
     } ->
-    TxParameterChange
+    ParameterChange
   -- | Max total script execution resources units allowed per tx
   MaxTxExUnits ::
     { mteuMemory :: Integer,
       mteuSteps :: Integer
     } ->
-    TxParameterChange
+    ParameterChange
   -- | Max total script execution resources units allowed per block
   MaxBlockExUnits ::
     { mbeuMemory :: Integer,
       mbeuSteps :: Integer
     } ->
-    TxParameterChange
+    ParameterChange
   -- | Max size of a Value in an output
-  MaxValSize :: Integer -> TxParameterChange
+  MaxValSize :: Integer -> ParameterChange
   -- | Percentage of the txfee which must be provided as collateral when
   -- including non-native scripts.
-  CollateralPercentage :: Integer -> TxParameterChange
+  CollateralPercentage :: Integer -> ParameterChange
   -- | Maximum number of collateral inputs allowed in a transaction
-  MaxCollateralInputs :: Integer -> TxParameterChange
+  MaxCollateralInputs :: Integer -> ParameterChange
   -- | Thresholds for pool votes
   PoolVotingThresholds ::
     { pvtMotionNoConfidence :: Rational,
@@ -99,7 +103,7 @@ data TxParameterChange where
       pvtHardFork :: Rational,
       pvtSecurityGroup :: Rational
     } ->
-    TxParameterChange
+    ParameterChange
   -- | Thresholds for DRep votes
   DRepVotingThresholds ::
     { drvtMotionNoConfidence :: Rational,
@@ -113,95 +117,106 @@ data TxParameterChange where
       drvtGovernanceGroup :: Rational,
       drvtTreasuryWithdrawal :: Rational
     } ->
-    TxParameterChange
+    ParameterChange
   -- | Minimum size of the Constitutional Committee
-  CommitteeMinSize :: Integer -> TxParameterChange
+  CommitteeMinSize :: Integer -> ParameterChange
   -- | The Constitutional Committee Term limit in number of Slots
-  CommitteeMaxTermLength :: Integer -> TxParameterChange
+  CommitteeMaxTermLength :: Integer -> ParameterChange
   -- | Gov action lifetime in number of Epochs
-  GovActionLifetime :: Integer -> TxParameterChange
+  GovActionLifetime :: Integer -> ParameterChange
   -- | The amount of the Gov Action deposit
-  GovActionDeposit :: Integer -> TxParameterChange
+  GovActionDeposit :: Integer -> ParameterChange
   -- | The amount of a DRep registration deposit
-  DRepRegistrationDeposit :: Integer -> TxParameterChange
+  DRepRegistrationDeposit :: Integer -> ParameterChange
   -- | The number of Epochs that a DRep can perform no activity without losing
   -- their @Active@ status.
-  DRepActivity :: Integer -> TxParameterChange
+  DRepActivity :: Integer -> ParameterChange
   -- Reference scripts fee for the minimum fee calculation
-  MinFeeRefScriptCostPerByte :: Rational -> TxParameterChange
+  MinFeeRefScriptCostPerByte :: Rational -> ParameterChange
   deriving (Show, Eq)
 
--- | This lists the various possible governance actions
-data TxGovAction where
+-- | This lists the various possible governance actions. This type is annotated
+-- by a boolean which states whether or not the governance action should be
+-- witnessed by the constitution script.
+data GovAction :: Symbol -> Type where
   -- If several parameter changes are of the same kind, only the last
   -- one will take effect
-  TxGovActionParameterChange :: [TxParameterChange] -> TxGovAction
-  TxGovActionHardForkInitiation :: Api.ProtocolVersion -> TxGovAction
-  TxGovActionTreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> TxGovAction
-  TxGovActionNoConfidence :: TxGovAction
-  TxGovActionUpdateCommittee :: [Api.ColdCommitteeCredential] -> Map Api.ColdCommitteeCredential Integer -> PlutusTx.Rational -> TxGovAction
-  TxGovActionNewConstitution :: Api.Constitution -> TxGovAction
-  deriving (Show, Eq)
+  ParameterChange :: [ParameterChange] -> GovAction "Witnessed"
+  TreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> GovAction "Witnessed"
+  HardForkInitiation :: Api.ProtocolVersion -> GovAction "Free"
+  NoConfidence :: GovAction "Free"
+  UpdateCommittee :: [Api.ColdCommitteeCredential] -> Map Api.ColdCommitteeCredential Integer -> PlutusTx.Rational -> GovAction "Free"
+  NewConstitution :: Api.Constitution -> GovAction "Free"
+
+deriving instance Show (GovAction a)
+
+deriving instance Eq (GovAction a)
+
+type TxSkelProposalGovAction =
+  Either
+    (GovAction "Free")
+    ( GovAction "Witnessed",
+      Maybe (Script.Versioned Script.Script, TxSkelRedeemer)
+    )
 
 -- | This bundles a governance action into an actual proposal
 data TxSkelProposal where
   TxSkelProposal ::
-    { -- | Whatever credential will get back the deposit
-      txSkelProposalAddress :: Api.Address,
-      -- | The proposed action
-      txSkelProposalAction :: TxGovAction,
-      -- | An optional script (typically the constitution script) to witness the
-      -- proposal and validate it. Only parameter changes and treasury
-      -- withdrawals can be subject to such a validation and transactions will
-      -- not pass validation phase 1 if other actions are given a witness.
-      txSkelProposalWitness :: Maybe (Script.Versioned Script.Script, TxSkelRedeemer),
-      -- | An optional anchor to be given as additional data. It should
-      -- correspond to the URL of a web page
-      txSkelProposalAnchor :: Maybe String,
-      -- | A flag to turn on/off the auto assignement of the constitution script
-      txSkelProposalAutoConstitution :: Bool
+    { -- | The credential that should be used for a return account
+      txSkelProposalReturnCredential :: Api.Credential,
+      -- | The proposed action. It can either be a "free" action, which does not
+      -- need to be witnessed by the constitution, or a witnessed action. The
+      -- latter requires the constitution script, which can either be given
+      -- manually, or left for cooekd to be filled out automatically based on
+      -- the current official one.
+      txSkelProposalGovAction :: TxSkelProposalGovAction
     } ->
     TxSkelProposal
   deriving (Show, Eq)
 
--- | A lens to get or set the address of a 'TxSkelProposal'
-makeLensesFor [("txSkelProposalAddress", "txSkelProposalAddressL")] ''TxSkelProposal
+-- | Focuses on the the credential of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalReturnCredential", "txSkelProposalReturnCredentialL")] ''TxSkelProposal
 
--- | A lens to get or set the governance action of a 'TxSkelProposal'
-makeLensesFor [("txSkelProposalAction", "txSkelProposalActionL")] ''TxSkelProposal
+-- | Focuses on the governance action of a 'TxSkelProposal'
+makeLensesFor [("txSkelProposalGovAction", "txSkelProposalGovActionL")] ''TxSkelProposal
 
--- | A lens to get or set the witness of a 'TxSkelProposal'
-makeLensesFor [("txSkelProposalWitness", "txSkelProposalWitnessL")] ''TxSkelProposal
+-- | Focuses on the witnessed gov action from a 'TxSkelProposal'
+txSkelProposalWitnessedGovActionAT :: AffineTraversal' TxSkelProposal (GovAction "Free")
+txSkelProposalWitnessedGovActionAT = txSkelProposalGovActionL % _Left
 
--- | A lens to get or set the anchor of a 'TxSkelProposal'
-makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelProposal
+-- | Focuses on the pair (constitution script, redeemer) from a 'TxSkelProposal'
+txSkelProposalConstitutionRedeemerAT :: AffineTraversal' TxSkelProposal (Script.Versioned Script.Script, TxSkelRedeemer)
+txSkelProposalConstitutionRedeemerAT = txSkelProposalGovActionL % _Right % _2 % _Just
 
--- | A lens to get or set the anchor of a 'TxSkelProposal'
-makeLensesFor [("txSkelProposalAutoConstitution", "txSkelProposalAutoConstitutionL")] ''TxSkelProposal
+-- | Focuses on the constitution script from a 'TxSkelProposal'
+txSkelProposalConstitutionAT :: AffineTraversal' TxSkelProposal (Script.Versioned Script.Script)
+txSkelProposalConstitutionAT = txSkelProposalConstitutionRedeemerAT % _1
 
--- | Builds a 'TxSkelProposal' from an address and a 'TxGovAction'
-simpleTxSkelProposal :: (Script.ToAddress a) => a -> TxGovAction -> TxSkelProposal
-simpleTxSkelProposal a govAction = TxSkelProposal (Script.toAddress a) govAction Nothing Nothing True
+-- | Focuses on the constitution redeemer from a 'TxSkelProposal'
+txSkelProposalRedeemerAT :: AffineTraversal' TxSkelProposal TxSkelRedeemer
+txSkelProposalRedeemerAT = txSkelProposalConstitutionRedeemerAT % _2
 
--- | Assigns a witness to a 'TxSkelProposal'. Also turns off the auto
--- constitution flag, so that this witness is not overridden.
-withWitness :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
-withWitness prop (s, red) =
-  prop
-    & txSkelProposalWitnessL
-    ?~ (Script.toVersioned s, red)
-    & txSkelProposalAutoConstitutionL
-    .~ False
+-- | Focuses on the free gov action from a 'TxSkelProposal'
+txSkelProposalFreeGovActionAT :: AffineTraversal' TxSkelProposal (GovAction "Witnessed")
+txSkelProposalFreeGovActionAT = txSkelProposalGovActionL % _Right % _1
 
--- | Assigns the constitution script with an empty redeemer
-withConstitution :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> Maybe a -> TxSkelProposal
-withConstitution prop sM = prop & txSkelProposalWitnessL .~ ((,emptyTxSkelRedeemer) . Script.toVersioned <$> sM)
+-- | Builds a 'TxSkelProposal' from a credential and governance action of any
+-- kind
+simpleTxSkelProposal :: forall a b. (KnownSymbol b, Script.ToCredential a) => a -> GovAction b -> TxSkelProposal
+simpleTxSkelProposal a govAction =
+  TxSkelProposal (Script.toCredential a) $
+    case cast @_ @(GovAction "Free") govAction of
+      Nothing -> case cast @_ @(GovAction "Witnessed") govAction of
+        Nothing -> error "Unreachable case"
+        Just witnessedGovAction -> Right (witnessedGovAction, Nothing)
+      Just freeGovAction -> Left freeGovAction
 
--- | Assigns an anchor to a 'TxSkelProposal'
-withAnchor :: TxSkelProposal -> String -> TxSkelProposal
-withAnchor prop url = prop & txSkelProposalAnchorL ?~ url
+-- | Builds a witnessed 'TxSkelProposal' from a credential, witnessed governance
+-- action, constitution script and redeemer
+witnessedTxSkelProposal :: (Script.ToCredential a) => (a, GovAction "Witnessed", Script.Versioned Script.Script, TxSkelRedeemer) -> TxSkelProposal
+witnessedTxSkelProposal (cred, govAction, constitution, red) = TxSkelProposal (Script.toCredential cred) $ Right (govAction, Just (constitution, red))
 
--- | Updates the constitution if 'txSkelProposalAutoConstitution' is 'True'
-updateConstitution :: (Script.ToVersioned Script.Script a) => TxSkelProposal -> Maybe a -> TxSkelProposal
-updateConstitution prop sM | prop ^. txSkelProposalAutoConstitutionL = prop `withConstitution` sM
-updateConstitution prop _ = prop
+-- | Sets the constitution script with an empty redeemer when empty. This will
+-- not tamper with an existing constitution script and redeemer.
+autoFillConstitution :: Maybe (Script.Versioned Script.Script) -> TxSkelProposal -> TxSkelProposal
+autoFillConstitution constitution = over (txSkelProposalGovActionL % _Right % _2) $ maybe ((,emptyTxSkelRedeemer) <$> constitution) Just

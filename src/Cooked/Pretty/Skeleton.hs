@@ -63,7 +63,7 @@ instance PrettyCooked Withdrawal where
   prettyCookedOpt opts (Withdrawal (Right pkh) _ lv) =
     prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
-instance PrettyCooked TxParameterChange where
+instance PrettyCooked ParameterChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (FeeFixed n) = "Fee fixed:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (MaxBlockBodySize n) = "Max block body size:" <+> prettyCookedOpt opts n
@@ -149,22 +149,23 @@ instance PrettyCookedList TxSkelRedeemer where
     ]
 
 instance PrettyCookedList TxSkelProposal where
-  prettyCookedOptListMaybe opts TxSkelProposal {..} =
-    [ Just $ "Governance action:" <+> prettyCookedOpt opts txSkelProposalAction,
-      Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
-      (\(script, redeemer) -> prettyItemize opts "Witness:" "-" (prettyHash opts script : prettyCookedOptList opts redeemer)) <$> txSkelProposalWitness,
-      ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
+  prettyCookedOptListMaybe opts txSkelProposal =
+    [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview txSkelProposalWitnessedGovActionAT txSkelProposal,
+      ("Free governance action:" <+>) . prettyCookedOpt opts <$> preview txSkelProposalFreeGovActionAT txSkelProposal,
+      ("Constitution witness:" <+>) . prettyHash opts <$> preview txSkelProposalConstitutionAT txSkelProposal
     ]
+      ++ maybe [] (prettyCookedOptListMaybe opts) (preview txSkelProposalRedeemerAT txSkelProposal)
 
-instance PrettyCooked TxGovAction where
-  prettyCookedOpt opts (TxGovActionParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
-  prettyCookedOpt opts (TxGovActionHardForkInitiation (Api.ProtocolVersion major minor)) =
+instance PrettyCooked (GovAction a) where
+  prettyCookedOpt opts (ParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
+  prettyCookedOpt opts (HardForkInitiation (Api.ProtocolVersion major minor)) =
     "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
-  prettyCookedOpt opts (TxGovActionTreasuryWithdrawals withdrawals) =
+  prettyCookedOpt opts (TreasuryWithdrawals withdrawals) =
     prettyItemize opts "Withdrawals:" "-" $
       (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
-  prettyCookedOpt _ TxGovActionNoConfidence = "No confidence"
-  prettyCookedOpt opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
+  prettyCookedOpt _ NoConfidence = "No confidence"
+  prettyCookedOpt opts (UpdateCommittee toRemoveCreds toAddCreds quorum) =
     prettyItemize
       opts
       "Updates in committee:"
@@ -175,7 +176,7 @@ instance PrettyCooked TxGovAction where
           (\(Api.ColdCommitteeCredential cred, i) -> prettyCookedOpt opts cred <+> "->" <+> prettyCookedOpt opts i) <$> Map.toList toAddCreds,
         "Quorum:" <+> prettyCookedOpt opts (Api.toGHC quorum)
       ]
-  prettyCookedOpt opts (TxGovActionNewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
+  prettyCookedOpt opts (NewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
     Nothing -> "Empty new constitution"
     Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
@@ -256,15 +257,13 @@ instance PrettyCookedList TxSkelOpts where
         txSkelOptBalancingUtxos
         _
         txSkelOptCollateralUtxos
-        txSkelOptAnchorResolution
       ) =
       [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
         prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
         prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
         prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
-        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
-        prettyIfNot def prettyAnchorResolution txSkelOptAnchorResolution
+        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
@@ -313,10 +312,6 @@ instance PrettyCookedList TxSkelOpts where
         prettyBalanceFeePolicy :: FeePolicy -> DocCooked
         prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
         prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> prettyCookedOpt opts fee
-        prettyAnchorResolution :: AnchorResolution -> DocCooked
-        prettyAnchorResolution AnchorResolutionHttp = "Resolve anchor url with an (unsafe) http connection"
-        prettyAnchorResolution (AnchorResolutionLocal urlMap) =
-          prettyItemize @[DocCooked] opts "Resolve anchor url with the following table keys" "-" (PP.viaShow <$> Map.keys urlMap)
 
 -- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
 -- address and value, and also builds a possibly empty list for its datum and

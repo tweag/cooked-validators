@@ -62,9 +62,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSigners
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
-  txProposalProcedures <-
-    Just . Cardano.Featured Cardano.ConwayEraOnwardsConway
-      <$> toProposalProcedures txSkelProposals (txSkelOptAnchorResolution txSkelOpts)
+  txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> toProposalProcedures txSkelProposals
   txWithdrawals <- toWithdrawals txSkelWithdrawals
   let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
       txMetadata = Cardano.TxMetadataNone

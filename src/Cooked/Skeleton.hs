@@ -161,9 +161,9 @@ txSkelInsReferenceInRedeemers TxSkel {..} =
   Set.fromList $
     mapMaybe txSkelRedeemerReferenceInput $
       Map.elems txSkelIns
-        <> (snd <$> mapMaybe txSkelProposalWitness txSkelProposals)
-        <> (fst <$> Map.elems txSkelMints)
-        <> (fst <$> Map.elems txSkelWithdrawals)
+        <> toListOf (traversed % txSkelProposalRedeemerAT) txSkelProposals
+        <> toListOf (traversed % _1) (Map.elems txSkelMints)
+        <> toListOf (traversed % _1) (Map.elems txSkelWithdrawals)
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
@@ -186,7 +186,7 @@ txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traver
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalWitnessL % _Just % _1)
+txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalConstitutionAT)
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
 txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]

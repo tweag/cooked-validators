@@ -239,7 +239,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We retrieve the official constitution script
     constitution <- getConstitutionScript
     -- We attach the script to each proposal that requires it
-    let minAdaSkelUnbalWithConst = over (txSkelProposalsL % traversed) (`updateConstitution` constitution) minAdaSkelUnbal
+    let minAdaSkelUnbalWithConst = over (txSkelProposalsL % traversed) (autoFillConstitution constitution) minAdaSkelUnbal
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are allowed to be auto filled
     minAdaRefScriptsSkelUnbalWithConst <- toTxSkelWithReferenceScripts minAdaSkelUnbalWithConst

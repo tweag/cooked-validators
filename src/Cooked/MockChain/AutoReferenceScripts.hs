@@ -49,9 +49,9 @@ toTxSkelWithReferenceScripts txSkel@TxSkel {..} = do
       Nothing -> return (oRef, red)
       Just scriptHash -> (oRef,) <$> updateRedeemer scriptHash inputs red
   newProposals <- forM txSkelProposals $ \prop ->
-    case prop ^. txSkelProposalWitnessL of
+    case preview txSkelProposalConstitutionRedeemerAT prop of
       Nothing -> return prop
-      Just (script, red) -> flip (set txSkelProposalWitnessL) prop . Just . (script,) <$> updateRedeemer script inputs red
+      Just (script, red) -> flip (set txSkelProposalConstitutionRedeemerAT) prop . (script,) <$> updateRedeemer script inputs red
   newWithdrawals <- forM (Map.toList txSkelWithdrawals) $ \(wit, (red, quantity)) -> case wit of
     Right _ -> return (wit, (red, quantity))
     Left script -> (Left script,) . (,quantity) <$> updateRedeemer script inputs red
