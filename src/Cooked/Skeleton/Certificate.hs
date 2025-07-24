@@ -3,13 +3,13 @@
 -- | This module exposes certificates in 'Cooked.Skelton.TxSkel'
 module Cooked.Skeleton.Certificate where
 
-import Cooked.Skeleton.Output (valueLovelaceP)
 import Cooked.Skeleton.Redeemer
 import Data.Kind (Constraint, Type)
 import Data.Typeable (Typeable, cast)
 import GHC.TypeLits (ErrorMessage (ShowType, Text, (:<>:)), Symbol, TypeError)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A type family representing membership. This requires @UndecidableInstances@
@@ -68,6 +68,10 @@ deriving instance (Show (Deposit deposit))
 
 deriving instance (Eq (Deposit deposit))
 
+instance Script.ToValue (Deposit a) where
+  toValue EmptyDeposit = mempty
+  toValue (SomeDeposit dep) = Script.toValue dep
+
 -- | Certificates used in 'Cooked.Skeleton.TxSkel'. The types ensure that each
 -- certificate action is associated with a proper owner and deposit.
 data TxSkelCertificate where
@@ -109,17 +113,5 @@ txSkelCertificateRedeemedScriptAT =
 
 -- | Gets the deposited value in this certificate which might be empty in case
 -- of an empty deposit.
-txSkelCertificateDepositG :: Getter TxSkelCertificate Api.Value
-txSkelCertificateDepositG =
-  to
-    ( \TxSkelCertificate {txSkelCertificateDeposit} ->
-        view
-          ( to
-              ( \case
-                  EmptyDeposit -> Api.Lovelace 0
-                  SomeDeposit dep -> dep
-              )
-              % re valueLovelaceP
-          )
-          txSkelCertificateDeposit
-    )
+txSkelCertificateDepositedValueG :: Getter TxSkelCertificate Api.Value
+txSkelCertificateDepositedValueG = to (\TxSkelCertificate {txSkelCertificateDeposit} -> Script.toValue txSkelCertificateDeposit)

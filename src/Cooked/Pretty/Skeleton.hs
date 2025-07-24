@@ -15,6 +15,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
+import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -39,7 +40,7 @@ data Contextualized a = Contextualized
 -- | Prints a 'Contextualized' 'TxSkel'
 instance PrettyCookedList (Contextualized TxSkel) where
   prettyCookedOptListMaybe opts cTxSkel
-    | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals <- ctxContent cTxSkel =
+    | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals certificates <- ctxContent cTxSkel =
         [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
           prettyItemizeNonEmpty opts "Mints:" "-" (view txSkelMintsListI mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
@@ -49,8 +50,47 @@ instance PrettyCookedList (Contextualized TxSkel) where
           prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
           prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
           prettyItemizeNonEmpty opts "Withdrawals:" "-" (mkWithdrawal <$> Map.toList withdrawals),
+          prettyItemizeNonEmpty opts "Certificates:" "-" certificates,
           prettyItemizeNonEmpty opts "Options:" "-" txopts
         ]
+
+instance PrettyCooked TxSkelCertificate where
+  prettyCookedOpt opts (TxSkelCertificate owner deposit action) =
+    prettyItemizeNoTitle
+      opts
+      "-"
+      [ prettyItemize opts "Owner:" "-" owner,
+        "Deposit:" <+> prettyCookedOpt opts (Script.toValue deposit),
+        "Action:" <+> prettyCookedOpt opts action
+      ]
+
+instance PrettyCookedList (Owner a) where
+  prettyCookedOptListMaybe opt (PubKeyOwner pkh) = [Just (prettyHash opt pkh)]
+  prettyCookedOptListMaybe opt (ScriptOwner (RedeemedScript (Script.toVersioned @Script.Script -> script) red)) =
+    Just (prettyHash opt script) : prettyCookedOptListMaybe opt red
+
+instance PrettyCooked (CertificateAction a b) where
+  prettyCookedOpt _ StakingRegister = "Register staking"
+  prettyCookedOpt _ StakingUnRegister = "Unregister staking"
+  prettyCookedOpt opt (StakingDelegate deleg) = "Delegate staking to" <+> prettyCookedOpt opt deleg
+  prettyCookedOpt opt (StakingRegisterDelegate deleg) = "Register staking and delegate it to" <+> prettyCookedOpt opt deleg
+  prettyCookedOpt _ DRepRegister = "Register DRep"
+  prettyCookedOpt _ DRepUpdate = "Update DRep"
+  prettyCookedOpt _ DRepUnRegister = "Unregister DRep"
+  prettyCookedOpt opt (PoolRegister poolVfr) = "Register pool" <+> prettyHash opt poolVfr
+  prettyCookedOpt _ (PoolRetire (Ledger.Slot n)) = "Retire pool at slot" <+> PP.pretty n
+  prettyCookedOpt opt (CommitteeRegisterHot cred) = "Register hot credential" <+> prettyCookedOpt opt cred
+  prettyCookedOpt _ CommitteeResign = "Resign committee"
+
+instance PrettyCooked Api.Delegatee where
+  prettyCookedOpt opt (Api.DelegStake pkh) = "Delegate stake to" <+> prettyHash opt pkh
+  prettyCookedOpt opt (Api.DelegVote dRep) = "Delegate vote to" <+> prettyCookedOpt opt dRep
+  prettyCookedOpt opt (Api.DelegStakeVote pkh dRep) = "Delegate stake to" <+> prettyHash opt pkh <+> "and delegate vote to" <+> prettyCookedOpt opt dRep
+
+instance PrettyCooked Api.DRep where
+  prettyCookedOpt _ Api.DRepAlwaysAbstain = "Always abstain"
+  prettyCookedOpt _ Api.DRepAlwaysNoConfidence = "Always no confidence"
+  prettyCookedOpt opt (Api.DRep (Api.DRepCredential cred)) = prettyCookedOpt opt cred
 
 data Withdrawal = Withdrawal (Either (Script.Versioned Script.Script) Api.PubKeyHash) TxSkelRedeemer Api.Lovelace
 

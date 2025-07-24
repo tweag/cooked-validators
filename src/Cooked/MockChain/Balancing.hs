@@ -316,10 +316,18 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
+      certificatesDepositedValue = txSkelDepositedValueInCertificates txSkel
   inValue <- txSkelInputValue txSkel
-  depositedValue <- Script.toValue <$> txSkelProposalsDeposit txSkel
+  proposalsDepositedValue <- Script.toValue <$> txSkelDepositedValueInProposals txSkel
   -- We compute the values missing in the left and right side of the equation
-  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
+  let (missingRight, missingLeft) =
+        Api.split $
+          outValue
+            <> burnedValue
+            <> feeValue
+            <> proposalsDepositedValue
+            <> certificatesDepositedValue
+            <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
   -- We compute the minimal ada requirement of the missing payment
   rightMinAda <- getTxSkelOutMinAda $ balancingWallet `receives` Value missingRight
   -- We compute the current ada of the missing payment. If the missing payment
