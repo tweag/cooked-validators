@@ -92,8 +92,8 @@ toGovAction (Right (govAction, witness)) =
     )
     ( case witness of
         Nothing -> return SNothing
-        Just (script, _) -> do
-          Cardano.ScriptHash sHash <- throwOnToCardanoError "Unable to convert script hash" (Ledger.toCardanoScriptHash (Script.toScriptHash script))
+        Just (view (redeemedScriptVersionedL % to Script.toScriptHash) -> hash) -> do
+          Cardano.ScriptHash sHash <- throwOnToCardanoError "Unable to convert script hash" (Ledger.toCardanoScriptHash hash)
           return $ SJust sHash
     )
 
@@ -109,9 +109,9 @@ toProposalProcedureAndWitness txSkelProposal = do
   govAction <- toGovAction $ view txSkelProposalGovActionL txSkelProposal
   -- We use the default anchor, as we decided not to expose those in our API
   let conwayProposalProcedure = Conway.ProposalProcedure (Cardano.Coin minDeposit) cred govAction def
-  (conwayProposalProcedure,) . Cardano.BuildTxWith <$> case preview txSkelProposalConstitutionRedeemerAT txSkelProposal of
+  (conwayProposalProcedure,) . Cardano.BuildTxWith <$> case preview txSkelProposalRedeemedScriptAT txSkelProposal of
     Nothing -> return Nothing
-    Just (script, redeemer) -> Just <$> toScriptWitness script redeemer Cardano.NoScriptDatumForStake
+    Just (RedeemedScript script redeemer) -> Just <$> toScriptWitness script redeemer Cardano.NoScriptDatumForStake
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::

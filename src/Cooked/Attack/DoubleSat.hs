@@ -17,6 +17,7 @@ import Cooked.Wallet
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Optics.Core
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -118,10 +119,7 @@ doubleSatAttack groupings optic change attacker = do
     deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Api.Value
     deltaBalance (inputs, outputs, mints) = do
       inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
-      return $ inValue <> PlutusTx.negate outValue <> mintValue
-      where
-        outValue = foldOf (traversed % txSkelOutValueL) outputs
-        mintValue = view txSkelMintsValueG mints
+      return $ inValue <> PlutusTx.negate (foldOf (traversed % txSkelOutValueL) outputs) <> Script.toValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
     addDoubleSatDeltaTweak :: (MonadTweak m) => DoubleSatDelta -> m ()

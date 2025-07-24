@@ -33,7 +33,7 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
         txSkelProposals =
           [ set
               (txSkelProposalGovActionL % _Right % _2)
-              ((,if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemerNoAutoFill) <$> if autoConstitution then Nothing else mScript)
+              ((`RedeemedScript` if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemerNoAutoFill) <$> if autoConstitution then Nothing else mScript)
               (simpleTxSkelProposal (wallet 1) govAction)
           ]
       }

@@ -153,9 +153,9 @@ instance PrettyCookedList TxSkelProposal where
     [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
       ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview txSkelProposalWitnessedGovActionAT txSkelProposal,
       ("Free governance action:" <+>) . prettyCookedOpt opts <$> preview txSkelProposalFreeGovActionAT txSkelProposal,
-      ("Constitution witness:" <+>) . prettyHash opts <$> preview txSkelProposalConstitutionAT txSkelProposal
+      ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalRedeemedScriptAT % redeemedScriptVersionedL) txSkelProposal
     ]
-      ++ maybe [] (prettyCookedOptListMaybe opts) (preview txSkelProposalRedeemerAT txSkelProposal)
+      ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalRedeemedScriptAT % redeemedScriptRedeemerL) txSkelProposal)
 
 instance PrettyCooked (GovAction a) where
   prettyCookedOpt opts (ParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
@@ -199,8 +199,8 @@ instance PrettyCookedList (TxSkelOpts, [Wallet]) where
 --     - "Foo": 500
 --     - "Bar": 1000
 instance PrettyCooked Mint where
-  prettyCookedOpt opts (Mint pol red tks) =
-    prettyItemize opts (prettyHash opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
+  prettyCookedOpt opts (Mint (RedeemedScript pol red) tks) =
+    prettyItemize opts (prettyHash opts (Script.toVersioned @Script.Script pol)) "-" $
       prettyCookedOptList opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
 instance PrettyCookedList TxSkelOut where

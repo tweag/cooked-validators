@@ -5,6 +5,7 @@ module Spec.MultiPurpose where
 import Cooked
 import Data.Default
 import Data.Map qualified as HMap
+import Optics.Core
 import Plutus.MultiPurpose
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -57,7 +58,7 @@ runScript = do
             [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue2),
               script `receives` (InlineDatum (1 :: Integer) <&&> Value mintValue3)
             ],
-          txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn1 1]
+          txSkelMints = review txSkelMintsListI [burn script (someTxSkelRedeemer BurnToken) tn1 1]
         }
 
   (oRefScript2'' : _) <-
@@ -72,25 +73,25 @@ runScript = do
           txSkelOuts =
             [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue3)
             ],
-          txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn2 1]
+          txSkelMints = review txSkelMintsListI [burn script (someTxSkelRedeemer BurnToken) tn2 1]
         }
 
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSigners = [alice],
         txSkelIns = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
-        txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn3 1]
+        txSkelMints = review txSkelMintsListI [burn script (someTxSkelRedeemer BurnToken) tn3 1]
       }
   where
     mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript MPTag -> (TxSkel, Api.Value, Api.TokenName)
-    mkMintSkel signer oRef@(Api.TxOutRef _ ix) script =
+    mkMintSkel signer oRef@(Api.TxOutRef _ index) script =
       let tn = txOutRefToToken oRef
-          mints = txSkelMintsFromList [mint script (someTxSkelRedeemer (MintToken oRef)) tn 1]
-          mintValue = txSkelMintsValue mints
+          mints = review txSkelMintsListI [mint script (someTxSkelRedeemer (MintToken oRef)) tn 1]
+          mintValue = Script.toValue mints
        in ( txSkelTemplate
               { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,
                 txSkelMints = mints,
-                txSkelOuts = [script `receives` (InlineDatum ix <&&> Value (txSkelMintsValue mints))],
+                txSkelOuts = [script `receives` (InlineDatum index <&&> Value mintValue)],
                 txSkelSigners = [signer]
               },
             mintValue,
@@ -115,7 +116,7 @@ tests =
         "The Minting purpose behaves properly"
         [ testCooked "We cannot duplicate the tokens" $
             mustFailWithSizeTest 6 $
-              somewhere (dupTokenAttack (\_ n -> n + 1) alice) runScript,
+              somewhere (dupTokenAttack (\_ _ n -> n + 1) alice) runScript,
           testCooked "We cannot mint additional tokens" $
             mustFailWithSizeTest 6 $
               somewhere (addTokenAttack (const [(Api.TokenName "myToken", 1)]) alice) runScript

@@ -25,7 +25,7 @@ toMintValue mints = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMa
     policyId <-
       throwOnToCardanoError
         "toMintValue: Unable to translate minting policy hash"
-        (Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash policy)
+        (Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash $ Script.toScriptHash policy)
     mintWitness <- Cardano.BuildTxWith <$> toScriptWitness policy red Cardano.NoScriptDatumForMint
     return
       ( policyId,

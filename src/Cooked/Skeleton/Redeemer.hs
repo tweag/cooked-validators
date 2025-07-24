@@ -12,6 +12,9 @@ module Cooked.Skeleton.Redeemer
     someTxSkelRedeemerNoAutoFill,
     emptyTxSkelRedeemerNoAutoFill,
     txSkelRedeemerBuiltinDataL,
+    RedeemedScript (..),
+    redeemedScriptRedeemerL,
+    redeemedScriptVersionedL,
   )
 where
 
@@ -20,6 +23,7 @@ import Cooked.Pretty.Plutus ()
 import Data.Typeable (Typeable, cast)
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
 
@@ -116,3 +120,31 @@ emptyTxSkelRedeemer = someTxSkelRedeemer ()
 -- while dissallowing it to be automatically assinged
 emptyTxSkelRedeemerNoAutoFill :: TxSkelRedeemer
 emptyTxSkelRedeemerNoAutoFill = someTxSkelRedeemerNoAutoFill ()
+
+-- * Associating a 'TxSkelRedeemer' to a script
+
+-- | Representation of a script being redeemed with a certain 'TxSkelRedeemer'
+data RedeemedScript where
+  RedeemedScript ::
+    (Script.ToVersioned Script.Script s) =>
+    { redeemedScriptVersioned :: s,
+      redeemedScriptRedeemer :: TxSkelRedeemer
+    } ->
+    RedeemedScript
+
+instance Show RedeemedScript where
+  show (RedeemedScript s r) = show (Script.toVersioned @Script.Script s, r)
+
+instance Eq RedeemedScript where
+  (RedeemedScript s r) == (RedeemedScript s' r') =
+    r == r' && Script.toVersioned @Script.Script s == Script.toVersioned s'
+
+-- | Focusing on the redeemer from a redeemed script
+makeLensesFor [("redeemedScriptRedeemer", "redeemedScriptRedeemerL")] ''RedeemedScript
+
+-- | Focusing on the script from a redeemed script
+redeemedScriptVersionedL :: Lens' RedeemedScript (Script.Versioned Script.Script)
+redeemedScriptVersionedL =
+  lens
+    (\(RedeemedScript {redeemedScriptVersioned}) -> Script.toVersioned redeemedScriptVersioned)
+    (\rs s -> rs {redeemedScriptVersioned = s})

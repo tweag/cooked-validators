@@ -161,7 +161,7 @@ txSkelInsReferenceInRedeemers TxSkel {..} =
   Set.fromList $
     mapMaybe txSkelRedeemerReferenceInput $
       Map.elems txSkelIns
-        <> toListOf (traversed % txSkelProposalRedeemerAT) txSkelProposals
+        <> toListOf (traversed % txSkelProposalRedeemedScriptAT % redeemedScriptRedeemerL) txSkelProposals
         <> toListOf (traversed % _1) (Map.elems txSkelMints)
         <> toListOf (traversed % _1) (Map.elems txSkelWithdrawals)
 
@@ -186,8 +186,8 @@ txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traver
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalConstitutionAT)
+txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalRedeemedScriptAT % redeemedScriptVersionedL)
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
 txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintVersionedScriptL)
+txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % redeemedScriptVersionedL)

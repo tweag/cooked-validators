@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 -- | This module exposes the notion of proposal within a
 -- 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Proposal
@@ -8,19 +10,18 @@ module Cooked.Skeleton.Proposal
     txSkelProposalReturnCredentialL,
     txSkelProposalGovActionL,
     txSkelProposalWitnessedGovActionAT,
-    txSkelProposalConstitutionAT,
-    txSkelProposalRedeemerAT,
     txSkelProposalFreeGovActionAT,
     simpleTxSkelProposal,
     witnessedTxSkelProposal,
     autoFillConstitution,
-    txSkelProposalConstitutionRedeemerAT,
+    txSkelProposalRedeemedScriptAT,
   )
 where
 
 import Cooked.Skeleton.Redeemer as X
 import Data.Kind (Type)
 import Data.Map (Map)
+import Data.Maybe
 import Data.Typeable (cast)
 import GHC.TypeLits (KnownSymbol, Symbol)
 import Optics.Core
@@ -155,9 +156,7 @@ deriving instance Eq (GovAction a)
 type TxSkelProposalGovAction =
   Either
     (GovAction "Free")
-    ( GovAction "Witnessed",
-      Maybe (Script.Versioned Script.Script, TxSkelRedeemer)
-    )
+    (GovAction "Witnessed", Maybe RedeemedScript)
 
 -- | This bundles a governance action into an actual proposal
 data TxSkelProposal where
@@ -185,23 +184,14 @@ txSkelProposalWitnessedGovActionAT :: AffineTraversal' TxSkelProposal (GovAction
 txSkelProposalWitnessedGovActionAT = txSkelProposalGovActionL % _Left
 
 -- | Focuses on the pair (constitution script, redeemer) from a 'TxSkelProposal'
-txSkelProposalConstitutionRedeemerAT :: AffineTraversal' TxSkelProposal (Script.Versioned Script.Script, TxSkelRedeemer)
-txSkelProposalConstitutionRedeemerAT = txSkelProposalGovActionL % _Right % _2 % _Just
-
--- | Focuses on the constitution script from a 'TxSkelProposal'
-txSkelProposalConstitutionAT :: AffineTraversal' TxSkelProposal (Script.Versioned Script.Script)
-txSkelProposalConstitutionAT = txSkelProposalConstitutionRedeemerAT % _1
-
--- | Focuses on the constitution redeemer from a 'TxSkelProposal'
-txSkelProposalRedeemerAT :: AffineTraversal' TxSkelProposal TxSkelRedeemer
-txSkelProposalRedeemerAT = txSkelProposalConstitutionRedeemerAT % _2
+txSkelProposalRedeemedScriptAT :: AffineTraversal' TxSkelProposal RedeemedScript
+txSkelProposalRedeemedScriptAT = txSkelProposalGovActionL % _Right % _2 % _Just
 
 -- | Focuses on the free gov action from a 'TxSkelProposal'
 txSkelProposalFreeGovActionAT :: AffineTraversal' TxSkelProposal (GovAction "Witnessed")
 txSkelProposalFreeGovActionAT = txSkelProposalGovActionL % _Right % _1
 
--- | Builds a 'TxSkelProposal' from a credential and governance action of any
--- kind
+-- | Builds a 'TxSkelProposal' from a credential and governance action
 simpleTxSkelProposal :: forall a b. (KnownSymbol b, Script.ToCredential a) => a -> GovAction b -> TxSkelProposal
 simpleTxSkelProposal a govAction =
   TxSkelProposal (Script.toCredential a) $
@@ -213,10 +203,13 @@ simpleTxSkelProposal a govAction =
 
 -- | Builds a witnessed 'TxSkelProposal' from a credential, witnessed governance
 -- action, constitution script and redeemer
-witnessedTxSkelProposal :: (Script.ToCredential a) => (a, GovAction "Witnessed", Script.Versioned Script.Script, TxSkelRedeemer) -> TxSkelProposal
-witnessedTxSkelProposal (cred, govAction, constitution, red) = TxSkelProposal (Script.toCredential cred) $ Right (govAction, Just (constitution, red))
+witnessedTxSkelProposal :: (Script.ToCredential a, Script.ToVersioned Script.Script s) => a -> GovAction "Witnessed" -> s -> TxSkelRedeemer -> TxSkelProposal
+witnessedTxSkelProposal cred govAction constitution red =
+  TxSkelProposal (Script.toCredential cred) $
+    Right (govAction, Just (RedeemedScript constitution red))
 
 -- | Sets the constitution script with an empty redeemer when empty. This will
 -- not tamper with an existing constitution script and redeemer.
-autoFillConstitution :: Maybe (Script.Versioned Script.Script) -> TxSkelProposal -> TxSkelProposal
-autoFillConstitution constitution = over (txSkelProposalGovActionL % _Right % _2) $ maybe ((,emptyTxSkelRedeemer) <$> constitution) Just
+autoFillConstitution :: (Script.ToVersioned Script.Script s) => s -> TxSkelProposal -> TxSkelProposal
+autoFillConstitution constitution =
+  over (txSkelProposalGovActionL % _Right % _2) $ Just . fromMaybe (RedeemedScript constitution emptyTxSkelRedeemer)

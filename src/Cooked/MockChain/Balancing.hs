@@ -313,7 +313,7 @@ computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRe
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
-  let (burnedValue, mintedValue) = Api.split $ view txSkelMintsValueG txSkelMints
+  let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
