@@ -20,8 +20,8 @@ import Cooked.MockChain.AutoReferenceScripts
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Output
+import Cooked.MockChain.GenerateTx.Witness
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
@@ -208,11 +208,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
             cScript
   getConstitutionScript = gets (view mcstConstitutionL)
   registerStakingCred (Script.toCredential -> cred) reward deposit = do
-    stakeCredential <-
-      throwOnToCardanoErrorOrApply
-        "Unable to convert staking credential"
-        Cardano.toShelleyStakeCredential
-        (Ledger.toCardanoStakeCredential cred)
+    stakeCredential <- toStakeCredential cred
     modify' $
       over
         mcstLedgerStateL

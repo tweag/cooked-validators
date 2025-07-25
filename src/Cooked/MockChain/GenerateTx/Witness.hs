@@ -1,13 +1,25 @@
 -- | This module exposes the generation of witnesses and reward account
 module Cooked.MockChain.GenerateTx.Witness
   ( toRewardAccount,
+    toCardanoCredential,
     toScriptWitness,
     toKeyWitness,
+    toStakeCredential,
+    deserialiseFromBuiltinByteString,
+    toScriptHash,
+    toKeyHash,
+    toDRepCredential,
+    toStakePoolKeyHash,
+    toColdCredential,
+    toHotCredential,
+    toVRFVerKeyHash,
   )
 where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as C.Ledger
+import Cardano.Ledger.Hashes qualified as C.Ledger
 import Cardano.Ledger.Shelley.API qualified as C.Ledger
 import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
@@ -22,20 +34,69 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Translates a given credential to a reward account.
 toRewardAccount :: (MonadBlockChainBalancing m) => Api.Credential -> m C.Ledger.RewardAccount
-toRewardAccount cred =
-  C.Ledger.RewardAccount C.Ledger.Testnet <$> case cred of
-    Api.ScriptCredential scriptHash -> do
-      Cardano.ScriptHash cHash <-
-        throwOnToCardanoError
-          "toRewardAccount: Unable to convert script hash."
-          (Ledger.toCardanoScriptHash scriptHash)
-      return $ C.Ledger.ScriptHashObj cHash
-    Api.PubKeyCredential pubkeyHash -> do
-      Cardano.StakeKeyHash pkHash <-
-        throwOnToCardanoError
-          "toRewardAccount: Unable to convert private key hash."
-          (Ledger.toCardanoStakeKeyHash pubkeyHash)
-      return $ C.Ledger.KeyHashObj pkHash
+toRewardAccount = (C.Ledger.RewardAccount C.Ledger.Testnet <$>) . toCardanoCredential Cardano.AsStakeKey Cardano.unStakeKeyHash
+
+-- TODO: if this works, migrate to plutus-ledger
+
+-- | Converts an 'Api.PubKeyHash' to any kind of key
+deserialiseFromBuiltinByteString ::
+  (MonadBlockChainBalancing m, Cardano.SerialiseAsRawBytes a) =>
+  Cardano.AsType a ->
+  Api.BuiltinByteString ->
+  m a
+deserialiseFromBuiltinByteString asType =
+  throwOnToCardanoError "deserialiseFromBuiltinByteString" . Ledger.deserialiseFromRawBytes asType . Api.fromBuiltin
+
+-- | Converts a plutus script hash into a cardano ledger script hash
+toScriptHash :: (MonadBlockChainBalancing m) => Api.ScriptHash -> m C.Ledger.ScriptHash
+toScriptHash (Api.ScriptHash sHash) = do
+  Cardano.ScriptHash cHash <- deserialiseFromBuiltinByteString Cardano.AsScriptHash sHash
+  return cHash
+
+-- | Converts a plutus pkhash into a certain cardano ledger hash
+toKeyHash ::
+  (MonadBlockChainBalancing m, Cardano.SerialiseAsRawBytes (Cardano.Hash key)) =>
+  Cardano.AsType key ->
+  (Cardano.Hash key -> C.Ledger.KeyHash kr) ->
+  Api.PubKeyHash ->
+  m (C.Ledger.KeyHash kr)
+toKeyHash asType unwrap = fmap unwrap . deserialiseFromBuiltinByteString (Cardano.AsHash asType) . Api.getPubKeyHash
+
+-- | Converts an 'Api.PubKeyHash' into a cardano ledger stake pool key hash
+toStakePoolKeyHash :: (MonadBlockChainBalancing m) => Api.PubKeyHash -> m (C.Ledger.KeyHash 'C.Ledger.StakePool)
+toStakePoolKeyHash = toKeyHash Cardano.AsStakePoolKey Cardano.unStakePoolKeyHash
+
+-- | Converts an 'Api.PubKeyHash' into a cardano ledger VRFVerKeyHash
+toVRFVerKeyHash :: (MonadBlockChainBalancing m) => Api.PubKeyHash -> m (C.Ledger.VRFVerKeyHash a)
+toVRFVerKeyHash (Api.PubKeyHash pkh) = do
+  Cardano.VrfKeyHash key <- deserialiseFromBuiltinByteString (Cardano.AsHash Cardano.AsVrfKey) pkh
+  return $ Cardano.toVRFVerKeyHash key
+
+-- | Converts an 'Api.Credential' to a Cardano Credential of the expected kind
+toCardanoCredential ::
+  (MonadBlockChainBalancing m, Cardano.SerialiseAsRawBytes (Cardano.Hash key)) =>
+  Cardano.AsType key ->
+  (Cardano.Hash key -> C.Ledger.KeyHash kr) ->
+  Api.Credential ->
+  m (C.Ledger.Credential kr)
+toCardanoCredential _ _ (Api.ScriptCredential sHash) = C.Ledger.ScriptHashObj <$> toScriptHash sHash
+toCardanoCredential asType unwrap (Api.PubKeyCredential pkHash) = C.Ledger.KeyHashObj <$> toKeyHash asType unwrap pkHash
+
+-- | Translates a credential into a Cardano stake credential
+toStakeCredential :: (MonadBlockChainBalancing m) => Api.Credential -> m (C.Ledger.Credential 'C.Ledger.Staking)
+toStakeCredential = toCardanoCredential Cardano.AsStakeKey Cardano.unStakeKeyHash
+
+-- | Translates a credential into a Cardano drep credential
+toDRepCredential :: (MonadBlockChainBalancing m) => Api.Credential -> m (C.Ledger.Credential 'C.Ledger.DRepRole)
+toDRepCredential = toCardanoCredential Cardano.AsDRepKey Cardano.unDRepKeyHash
+
+-- | Translates a credential into a Cardano cold committee credential
+toColdCredential :: (MonadBlockChainBalancing m) => Api.Credential -> m (C.Ledger.Credential 'C.Ledger.ColdCommitteeRole)
+toColdCredential = toCardanoCredential Cardano.AsCommitteeColdKey Cardano.unCommitteeColdKeyHash
+
+-- | Translates a credential into a Cardano hot committee credential
+toHotCredential :: (MonadBlockChainBalancing m) => Api.Credential -> m (C.Ledger.Credential 'C.Ledger.HotCommitteeRole)
+toHotCredential = toCardanoCredential Cardano.AsCommitteeHotKey Cardano.unCommitteeHotKeyHash
 
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script

@@ -13,6 +13,7 @@ import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.GenerateTx.Certificate
 import Cooked.MockChain.GenerateTx.Collateral
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Input
@@ -64,11 +65,11 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
   txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> toProposalProcedures txSkelProposals
   txWithdrawals <- toWithdrawals txSkelWithdrawals
+  txCertificates <- toCertificates txSkelCertificates
   let txFee = Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway $ Cardano.Coin fee
       txMetadata = Cardano.TxMetadataNone
       txAuxScripts = Cardano.TxAuxScriptsNone
       txUpdateProposal = Cardano.TxUpdateProposalNone
-      txCertificates = Cardano.TxCertificatesNone
       txScriptValidity = Cardano.TxScriptValidityNone
       txVotingProcedures = Nothing
       txCurrentTreasuryValue = Nothing

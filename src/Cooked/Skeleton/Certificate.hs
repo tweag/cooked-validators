@@ -9,6 +9,8 @@ import Data.Typeable (Typeable, cast)
 import GHC.TypeLits (ErrorMessage (ShowType, Text, (:<>:)), Symbol, TypeError)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -56,6 +58,10 @@ data Owner :: Symbol -> Type where
 deriving instance (Show (Owner owner))
 
 deriving instance (Eq (Owner owner))
+
+instance Script.ToCredential (Owner a) where
+  toCredential (PubKeyOwner pkh) = Script.toCredential pkh
+  toCredential (ScriptOwner (RedeemedScript (Script.toVersioned @Script.Script -> s) _)) = Script.toCredential s
 
 -- | A depiction of the deposits which exposes in the type if there is indeed a
 -- deposit or not. This is used to account for the fact that some certificates
