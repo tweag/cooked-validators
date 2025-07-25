@@ -36,7 +36,7 @@ module Cooked.MockChain.BlockChain
     lookupUtxos,
     validateTxSkel',
     validateTxSkel_,
-    txSkelProposalsDeposit,
+    txSkelDepositedValueInProposals,
     govActionDeposit,
     defineM,
     txSkelAllScripts,
@@ -229,18 +229,24 @@ govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionD
 
 -- | Retrieves the total amount of lovelace deposited in proposals in this
 -- skeleton (equal to `govActionDeposit` times the number of proposals).
-txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
-txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
+txSkelDepositedValueInProposals :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
+txSkelDepositedValueInProposals TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
 
 -- | Returns all validators which guard transaction inputs
 txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Validator]
-txSkelInputValidators = fmap (mapMaybe (preview txSkelOutValidatorAT)) . mapM txSkelOutByRef . Map.keys . txSkelIns
+txSkelInputValidators = fmap catMaybes . mapM (previewByRef (txSkelOutValidatorAT % to Script.toVersioned)) . Map.keys . txSkelIns
 
 -- | Returns all scripts involved in this 'TxSkel'
 txSkelAllScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Script]
 txSkelAllScripts txSkel = do
   txSkelSpendingScripts <- fmap Script.toVersioned <$> txSkelInputValidators txSkel
-  return (txSkelMintingScripts txSkel <> txSkelWithdrawingScripts txSkel <> txSkelProposingScripts txSkel <> txSkelSpendingScripts)
+  return
+    ( txSkelMintingScripts txSkel
+        <> txSkelWithdrawingScripts txSkel
+        <> txSkelProposingScripts txSkel
+        <> txSkelWithdrawingScripts txSkel
+        <> txSkelSpendingScripts
+    )
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.

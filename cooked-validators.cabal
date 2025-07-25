@@ -17,7 +17,6 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
-      Cooked.Attack.DupToken
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.MockChain
@@ -27,6 +26,7 @@ library
       Cooked.MockChain.Direct
       Cooked.MockChain.GenerateTx
       Cooked.MockChain.GenerateTx.Body
+      Cooked.MockChain.GenerateTx.Certificate
       Cooked.MockChain.GenerateTx.Collateral
       Cooked.MockChain.GenerateTx.Common
       Cooked.MockChain.GenerateTx.Input
@@ -51,6 +51,7 @@ library
       Cooked.Pretty.Skeleton
       Cooked.ShowBS
       Cooked.Skeleton
+      Cooked.Skeleton.Certificate
       Cooked.Skeleton.Datum
       Cooked.Skeleton.Label
       Cooked.Skeleton.Mint

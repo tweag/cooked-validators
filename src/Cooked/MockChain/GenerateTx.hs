@@ -6,7 +6,7 @@ module Cooked.MockChain.GenerateTx
   )
 where
 
-import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Api qualified as Cardano
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.GenerateTx.Witness
