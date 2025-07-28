@@ -8,20 +8,21 @@ import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Control.Lens qualified as Lens
+import Control.Monad
 import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.GenerateTx.Anchor
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
-import Data.Default
+import Data.Coerce
 import Data.Map qualified as Map
 import Data.Map.Ordered.Strict qualified as OMap
 import Data.Maybe
 import Data.Maybe.Strict
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro qualified as MicroLens
-import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
@@ -71,47 +72,15 @@ toPParamsUpdate pChange =
         MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ Cardano.boundRational q
 
 -- | Translates a given skeleton proposal into a governance action
-toGovAction :: (MonadBlockChainBalancing m) => TxSkelProposalGovAction -> m (Conway.GovAction Emulator.EmulatorEra)
-toGovAction (Left NoConfidence) = return $ Conway.NoConfidence SNothing
-toGovAction (Left (UpdateCommittee {})) = throwError $ MCEUnsupportedFeature "UpdateCommittee"
-toGovAction (Left (NewConstitution {})) = throwError $ MCEUnsupportedFeature "TxGovActionNewConstitution"
-toGovAction (Left (HardForkInitiation {})) = throwError $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
-toGovAction (Right (govAction, witness)) =
-  (<*>)
-    ( case govAction of
-        ParameterChange changes ->
-          return $
-            Conway.ParameterChange
-              SNothing
-              (foldl (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes)
-        TreasuryWithdrawals mapCredentialLovelace ->
-          Conway.TreasuryWithdrawals . Map.fromList
-            <$> mapM
-              (\(cred, Api.Lovelace lv) -> (,Cardano.Coin lv) <$> toRewardAccount cred)
-              (Map.toList mapCredentialLovelace)
-    )
-    ( case witness of
-        Nothing -> return SNothing
-        Just (view (redeemedScriptVersionedL % to Script.toScriptHash) -> hash) -> do
-          Cardano.ScriptHash sHash <- throwOnToCardanoError "Unable to convert script hash" (Ledger.toCardanoScriptHash hash)
-          return $ SJust sHash
-    )
-
--- | Translates a skeleton proposal into a proposal procedure alongside a
--- possible witness
-toProposalProcedureAndWitness ::
-  (MonadBlockChainBalancing m) =>
-  TxSkelProposal ->
-  m (Conway.ProposalProcedure Emulator.EmulatorEra, Cardano.BuildTxWith Cardano.BuildTx (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra)))
-toProposalProcedureAndWitness txSkelProposal = do
-  minDeposit <- Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.pEmulatorPParams <$> getParams
-  cred <- toRewardAccount $ view txSkelProposalReturnCredentialL txSkelProposal
-  govAction <- toGovAction $ view txSkelProposalGovActionL txSkelProposal
-  -- We use the default anchor, as we decided not to expose those in our API
-  let conwayProposalProcedure = Conway.ProposalProcedure (Cardano.Coin minDeposit) cred govAction def
-  (conwayProposalProcedure,) . Cardano.BuildTxWith <$> case preview txSkelProposalRedeemedScriptAT txSkelProposal of
-    Nothing -> return Nothing
-    Just (RedeemedScript script redeemer) -> Just <$> toScriptWitness script redeemer Cardano.NoScriptDatumForStake
+toGovAction :: (MonadBlockChainBalancing m) => TxSkelGovAction a -> StrictMaybe Conway.ScriptHash -> m (Conway.GovAction Emulator.EmulatorEra)
+toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
+toGovAction UpdateCommittee {} _ = throwError $ MCEUnsupportedFeature "UpdateCommittee"
+toGovAction NewConstitution {} _ = throwError $ MCEUnsupportedFeature "TxGovActionNewConstitution"
+toGovAction HardForkInitiation {} _ = throwError $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
+toGovAction (ParameterChange changes) sHash =
+  return $ Conway.ParameterChange SNothing (foldl (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes) sHash
+toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
+  (`Conway.TreasuryWithdrawals` sHash) . Map.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Cardano.Coin lv) <$> toRewardAccount cred) withdrawals
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::
@@ -119,4 +88,19 @@ toProposalProcedures ::
   [TxSkelProposal] ->
   m (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone
-toProposalProcedures props = Cardano.TxProposalProcedures . OMap.fromList <$> mapM toProposalProcedureAndWitness props
+toProposalProcedures props =
+  Cardano.TxProposalProcedures . OMap.fromList
+    <$> forM
+      props
+      ( \(TxSkelProposal (Script.toCredential -> returnCredential) govAction mConstitution (toCardanoAnchor -> anchor)) -> do
+          proposalDeposit <- govActionDeposit
+          rewardAccount <- toRewardAccount returnCredential
+          (Cardano.BuildTxWith -> mConstitutionWitness, mConstitutionHash) <- case mConstitution of
+            Just (UserRedeemedScript (toVScript -> script) redeemer) -> do
+              scriptWitness <- toScriptWitness script redeemer Cardano.NoScriptDatumForStake
+              Cardano.ScriptHash scriptHash <- throwOnToCardanoError "Unable to convert script hash" $ Ledger.toCardanoScriptHash $ Script.toScriptHash script
+              return (Just scriptWitness, SJust scriptHash)
+            _ -> return (Nothing, SNothing)
+          cardanoGovAction <- toGovAction govAction mConstitutionHash
+          return (Conway.ProposalProcedure (Cardano.Coin $ coerce proposalDeposit) rewardAccount cardanoGovAction anchor, mConstitutionWitness)
+      )

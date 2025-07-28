@@ -18,7 +18,6 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -49,27 +48,26 @@ instance PrettyCookedList (Contextualized TxSkel) where
           prettyItemizeNonEmpty opts "Reference inputs:" "-" $ prettyCookedOpt opts . (<$ cTxSkel) . ReferenceInput <$> Set.toList insReference,
           prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
           prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
-          prettyItemizeNonEmpty opts "Withdrawals:" "-" (mkWithdrawal <$> Map.toList withdrawals),
+          prettyItemizeNonEmpty opts "Withdrawals:" "-" $ Map.toList withdrawals,
           prettyItemizeNonEmpty opts "Certificates:" "-" certificates,
           prettyItemizeNonEmpty opts "Options:" "-" txopts
         ]
 
 instance PrettyCooked TxSkelCertificate where
-  prettyCookedOpt opts (TxSkelCertificate owner deposit action) =
-    prettyItemizeNoTitle
+  prettyCookedOpt opts (TxSkelCertificate owner action) =
+    prettyItemize
       opts
+      (prettyCookedOpt opts action)
       "-"
-      [ prettyItemize opts "Owner:" "-" owner,
-        "Deposit:" <+> prettyCookedOpt opts (Script.toValue deposit),
-        "Action:" <+> prettyCookedOpt opts action
-      ]
+      $ prettyCookedList owner
 
-instance PrettyCookedList (Owner a) where
-  prettyCookedOptListMaybe opt (PubKeyOwner pkh) = [Just (prettyHash opt pkh)]
-  prettyCookedOptListMaybe opt (ScriptOwner (RedeemedScript (Script.toVersioned @Script.Script -> script) red)) =
+instance PrettyCookedList (User req mode) where
+  prettyCookedOptListMaybe opt (UserPubKeyHash (Script.toPubKeyHash -> pkh)) = [Just ("User" <+> prettyHash opt pkh)]
+  prettyCookedOptListMaybe opt (UserScript (toVScript -> vScript)) = [Just ("Script" <+> prettyHash opt vScript)]
+  prettyCookedOptListMaybe opt (UserRedeemedScript (toVScript -> script) red) =
     Just (prettyHash opt script) : prettyCookedOptListMaybe opt red
 
-instance PrettyCooked (CertificateAction a b) where
+instance PrettyCooked (CertificateAction req) where
   prettyCookedOpt _ StakingRegister = "Register staking"
   prettyCookedOpt _ StakingUnRegister = "Unregister staking"
   prettyCookedOpt opt (StakingDelegate deleg) = "Delegate staking to" <+> prettyCookedOpt opt deleg
@@ -92,15 +90,10 @@ instance PrettyCooked Api.DRep where
   prettyCookedOpt _ Api.DRepAlwaysNoConfidence = "Always no confidence"
   prettyCookedOpt opt (Api.DRep (Api.DRepCredential cred)) = prettyCookedOpt opt cred
 
-data Withdrawal = Withdrawal (Either (Script.Versioned Script.Script) Api.PubKeyHash) TxSkelRedeemer Api.Lovelace
-
-mkWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> Withdrawal
-mkWithdrawal (owner, (red, lv)) = Withdrawal owner red lv
-
-instance PrettyCooked Withdrawal where
-  prettyCookedOpt opts (Withdrawal (Left script) red lv) =
-    prettyItemize opts (prettyHash opts script) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
-  prettyCookedOpt opts (Withdrawal (Right pkh) _ lv) =
+instance PrettyCooked (User IsEither Redemption, Api.Lovelace) where
+  prettyCookedOpt opts (UserRedeemedScript (toVScript -> vScript) red, lv) =
+    prettyItemize opts (prettyHash opts vScript) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
+  prettyCookedOpt opts (UserPubKeyHash (Script.toPubKeyHash -> pkh), lv) =
     prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
 instance PrettyCooked ParameterChange where
@@ -191,13 +184,13 @@ instance PrettyCookedList TxSkelRedeemer where
 instance PrettyCookedList TxSkelProposal where
   prettyCookedOptListMaybe opts txSkelProposal =
     [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
-      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview txSkelProposalWitnessedGovActionAT txSkelProposal,
-      ("Free governance action:" <+>) . prettyCookedOpt opts <$> preview txSkelProposalFreeGovActionAT txSkelProposal,
-      ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalRedeemedScriptAT % redeemedScriptVersionedL) txSkelProposal
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsScript) txSkelProposal,
+      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsNone) txSkelProposal,
+      ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
-      ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalRedeemedScriptAT % redeemedScriptRedeemerL) txSkelProposal)
+      ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)
 
-instance PrettyCooked (GovAction a) where
+instance PrettyCooked (TxSkelGovAction a) where
   prettyCookedOpt opts (ParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
   prettyCookedOpt opts (HardForkInitiation (Api.ProtocolVersion major minor)) =
     "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
@@ -239,8 +232,8 @@ instance PrettyCookedList (TxSkelOpts, [Wallet]) where
 --     - "Foo": 500
 --     - "Bar": 1000
 instance PrettyCooked Mint where
-  prettyCookedOpt opts (Mint (RedeemedScript pol red) tks) =
-    prettyItemize opts (prettyHash opts (Script.toVersioned @Script.Script pol)) "-" $
+  prettyCookedOpt opts (Mint (UserRedeemedScript pol red) tks) =
+    prettyItemize opts (prettyHash opts (toVScript pol)) "-" $
       prettyCookedOptList opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
 instance PrettyCookedList TxSkelOut where

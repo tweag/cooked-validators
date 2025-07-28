@@ -34,11 +34,11 @@ module Cooked.Skeleton
     txSkelInsReferenceInRedeemers,
     txSkelProposingScripts,
     txSkelMintingScripts,
-    txSkelDepositedValueInCertificates,
     txSkelCertifyingScripts,
   )
 where
 
+import Cooked.Skeleton.Anchor as X
 import Cooked.Skeleton.Certificate as X
 import Cooked.Skeleton.Datum as X
 import Cooked.Skeleton.Label as X
@@ -49,6 +49,7 @@ import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
 import Cooked.Skeleton.ReferenceScript as X
+import Cooked.Skeleton.Scripts as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
@@ -59,7 +60,7 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A transaction skeleton. This is cooked-validators's variant of transaction
@@ -171,10 +172,10 @@ txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
 txSkelInsReferenceInRedeemers TxSkel {..} =
   Set.fromList $
     toListOf (traversed % txSkelRedeemerReferenceInputL % _Just) (Map.elems txSkelIns)
-      <> toListOf (traversed % txSkelProposalRedeemedScriptAT % redeemedScriptRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelProposals
+      <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelProposals
       <> toListOf (traversed % _1 % txSkelRedeemerReferenceInputL % _Just) (Map.elems txSkelMints)
-      <> toListOf (traversed % _1 % txSkelRedeemerReferenceInputL % _Just) (Map.elems txSkelWithdrawals)
-      <> toListOf (traversed % txSkelCertificateRedeemedScriptAT % redeemedScriptRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelCertificates
+      <> toListOf (traversed % _1 % userTxSkelRedeemerAT % txSkelRedeemerReferenceInputL % _Just) (Map.toList txSkelWithdrawals)
+      <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelCertificates
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
@@ -186,24 +187,20 @@ txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelInsReferenceInRedeemers skel <> Ma
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = review valueLovelaceP . foldOf (txSkelWithdrawalsL % to Map.toList % traversed % _2 % _2)
-
--- | Returns the total value deposited in this 'TxSkel'
-txSkelDepositedValueInCertificates :: TxSkel -> Api.Value
-txSkelDepositedValueInCertificates = foldOf (txSkelCertificatesL % traversed % txSkelCertificateDepositedValueG)
+txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traversed % _1 % _Left)
+txSkelWithdrawingScripts :: TxSkel -> [VScript]
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traversed % _1 % userVScriptAT)
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
-txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalRedeemedScriptAT % redeemedScriptVersionedL)
+txSkelProposingScripts :: TxSkel -> [VScript]
+txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userVScriptL)
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
-txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % redeemedScriptVersionedL)
+txSkelMintingScripts :: TxSkel -> [VScript]
+txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userVScriptL)
 
 -- | Returns all the scripts involved in certificates in this 'TxSkel'
-txSkelCertifyingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateRedeemedScriptAT % redeemedScriptVersionedL)
+txSkelCertifyingScripts :: TxSkel -> [VScript]
+txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userVScriptAT)

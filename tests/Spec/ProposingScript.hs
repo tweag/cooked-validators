@@ -1,24 +1,21 @@
 module Spec.ProposingScript where
 
 import Cooked
-import GHC.TypeLits (KnownSymbol)
-import Optics.Core
 import Plutus.ProposingScript
-import Plutus.Script.Utils.V3 qualified as Script
 import Test.Tasty
 
 testProposingScript ::
-  (MonadBlockChain m, KnownSymbol a) =>
+  (MonadBlockChain m) =>
   -- | Whether or not to automatically fetch a reference script
   Bool ->
   -- | Whether or not to automatically attach the constitution
   Bool ->
   -- | The official constitution script
-  Script.Versioned Script.Script ->
+  VScript ->
   -- | The optionally attached unofficial constitution script
-  Maybe (Script.Versioned Script.Script) ->
+  Maybe VScript ->
   -- | The governance action to propose
-  GovAction a ->
+  TxSkelGovAction IsScript ->
   m ()
 testProposingScript autoRefScript autoConstitution constitution mScript govAction = do
   setConstitutionScript constitution
@@ -31,10 +28,15 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
     txSkelTemplate
       { txSkelSigners = [wallet 1],
         txSkelProposals =
-          [ set
-              (txSkelProposalGovActionL % _Right % _2)
-              ((`RedeemedScript` if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemerNoAutoFill) <$> if autoConstitution then Nothing else mScript)
-              (simpleTxSkelProposal (wallet 1) govAction)
+          [ TxSkelProposal
+              (wallet 1)
+              govAction
+              ( if autoConstitution
+                  then
+                    Nothing
+                  else (\vScript -> Just $ UserRedeemedScript vScript (if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemerNoAutoFill)) =<< mScript
+              )
+              Nothing
           ]
       }
 
@@ -58,10 +60,7 @@ tests =
               testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 50]),
           testCooked "Success when executing a more complex constitution script as a reference script" $
             mustSucceedTest (testProposingScript True False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 100]))
-              `withJournalProp` happened "MCLogAddedReferenceScript",
-          testCooked "Failure when executing a dummy proposal script with the wrong proposal kind" $
-            mustFailInPhase2Test $
-              testProposingScript False False alwaysTrueProposingValidator (Just alwaysTrueProposingValidator) NoConfidence
+              `withJournalProp` happened "MCLogAddedReferenceScript"
         ],
       testGroup
         "Automated constitution attachment"

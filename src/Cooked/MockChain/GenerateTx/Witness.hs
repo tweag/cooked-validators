@@ -100,7 +100,7 @@ toHotCredential = toCardanoCredential Cardano.AsCommitteeHotKey Cardano.unCommit
 
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script
-toPlutusScriptOrReferenceInput :: (MonadBlockChainBalancing m) => Script.Versioned Script.Script -> Maybe Api.TxOutRef -> m (Cardano.PlutusScriptOrReferenceInput lang)
+toPlutusScriptOrReferenceInput :: (MonadBlockChainBalancing m) => VScript -> Maybe Api.TxOutRef -> m (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing = return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
   (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) -> mScriptHash) <- txSkelOutByRef scriptOutRef
@@ -118,8 +118,8 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
 -- the transaction create, we cannot know the execution units used by the
 -- script. They will be filled out later on once the full body has been
 -- generated. So, for now, we temporarily leave them to 0.
-toScriptWitness :: (MonadBlockChainBalancing m, Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
-toScriptWitness (Script.toVersioned -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum = do
+toScriptWitness :: (MonadBlockChainBalancing m, ToVScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
+toScriptWitness (toVScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum = do
   let scriptData = Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
   case version of
     Script.PlutusV1 ->

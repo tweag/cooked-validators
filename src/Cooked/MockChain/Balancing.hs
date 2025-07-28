@@ -316,8 +316,8 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
-      certificatesDepositedValue = txSkelDepositedValueInCertificates txSkel
   inValue <- txSkelInputValue txSkel
+  certificatesDepositedValue <- Script.toValue <$> txSkelDepositedValueInCertificates txSkel
   proposalsDepositedValue <- Script.toValue <$> txSkelDepositedValueInProposals txSkel
   -- We compute the values missing in the left and right side of the equation
   let (missingRight, missingLeft) =

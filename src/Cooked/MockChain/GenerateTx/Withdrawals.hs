@@ -10,6 +10,7 @@ import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
@@ -20,22 +21,22 @@ toWithdrawals (Map.toList -> withdrawals) =
   fmap
     (Cardano.TxWithdrawals Cardano.ShelleyBasedEraConway)
     $ forM withdrawals
-    $ \(staker, (red, Api.Lovelace n)) ->
+    $ \(staker, Api.Lovelace n) ->
       do
         (witness, sCred) <-
           case staker of
-            Right pkh -> do
+            UserPubKeyHash (Script.toPubKeyHash -> pkh) -> do
               sCred <-
                 throwOnToCardanoError "toWithdrawals: unable to translate pkh stake credential" $
                   Cardano.StakeCredentialByKey <$> Ledger.toCardanoStakeKeyHash pkh
               return (Cardano.KeyWitness Cardano.KeyWitnessForStakeAddr, sCred)
-            Left script -> do
+            UserRedeemedScript (toVScript -> vScript) red -> do
               witness <-
                 Cardano.ScriptWitness Cardano.ScriptWitnessForStakeAddr
-                  <$> toScriptWitness script red Cardano.NoScriptDatumForStake
+                  <$> toScriptWitness vScript red Cardano.NoScriptDatumForStake
               sCred <-
                 throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
-                  Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash script)
+                  Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash vScript)
               return (witness, sCred)
         networkId <- Emulator.pNetworkId <$> getParams
         return (Cardano.makeStakeAddress networkId sCred, Cardano.Coin n, Cardano.BuildTxWith witness)

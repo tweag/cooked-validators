@@ -11,9 +11,6 @@ import PlutusLedgerApi.V1.Value qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
 
-instance Script.ToMintingPolicyHash (Script.Versioned Script.Script) where
-  toMintingPolicyHash = Script.toMintingPolicyHash . Script.toScriptHash
-
 dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Api.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = validateTxSkel_ skel
   where

@@ -199,7 +199,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
           return newSlot
       | otherwise -> throwError $ MCEPastSlot cs (cs + fromIntegral n)
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
-  setConstitutionScript (Script.toVersioned -> cScript) = do
+  setConstitutionScript (toVScript -> cScript) = do
     modify' (mcstConstitutionL ?~ cScript)
     modify' $
       over mcstLedgerStateL $

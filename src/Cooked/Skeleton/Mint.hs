@@ -17,6 +17,7 @@ module Cooked.Skeleton.Mint
 where
 
 import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.Scripts
 import Data.Bifunctor
 import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
@@ -39,7 +40,7 @@ import Test.QuickCheck (NonZero (..))
 -- building a 'TxSkelMints' directly.
 data Mint where
   Mint ::
-    { mintRedeemedScript :: RedeemedScript,
+    { mintRedeemedScript :: User IsScript Redemption,
       mintTokens :: [(Api.TokenName, Integer)]
     } ->
     Mint
@@ -47,11 +48,11 @@ data Mint where
 -- * Extra builders for single mint entries
 
 -- | Builds some 'Mint' when a single type of token is minted for a given MP
-mint :: (Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
-mint mp red tn n = Mint (RedeemedScript mp red) [(tn, n)]
+mint :: (ToVScript a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
+mint mp red tn n = Mint (UserRedeemedScript mp red) [(tn, n)]
 
 -- | Similar to 'mint' but deducing the tokens instead
-burn :: (Script.ToVersioned Script.Script a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
+burn :: (ToVScript a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
 burn mp red tn n = mint mp red tn (-n)
 
 -- * Optics to manipulate elements of 'Mint'
@@ -66,11 +67,11 @@ makeLensesFor [("mintTokens", "mintTokensL")] ''Mint
 mintCurrencySymbolG :: Getter Mint Api.CurrencySymbol
 mintCurrencySymbolG =
   mintRedeemedScriptL
-    % redeemedScriptVersionedL
+    % userVScriptL
     % to
       ( Script.toCurrencySymbol
           . Script.toScriptHash
-          . Script.toVersioned @Script.Script
+          . toVScript
       )
 
 -- * Describing full minted values with associated redeemers
@@ -80,10 +81,7 @@ mintCurrencySymbolG =
 -- with a non-zero amount of tokens.
 --
 -- You'll probably not construct this by hand, but use 'txSkelMintsFromList'.
-type TxSkelMints =
-  Map
-    (Script.Versioned Script.Script)
-    (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
+type TxSkelMints = Map VScript (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'
 
@@ -100,8 +98,8 @@ type TxSkelMints =
 -- for instance to modify an existing redeemer, or @ix mp % _2 % ix tk@ to
 -- modify a token amount. Another option is to use the optics working on 'Mint'
 -- and combining them with 'txSkelMintsListI'.
-txSkelMintsAssetClassAmountL :: (Script.ToVersioned Script.Script mp) => mp -> Api.TokenName -> Lens' TxSkelMints (Maybe TxSkelRedeemer, Integer)
-txSkelMintsAssetClassAmountL (Script.toVersioned @Script.Script -> mp) tk =
+txSkelMintsAssetClassAmountL :: (ToVScript mp) => mp -> Api.TokenName -> Lens' TxSkelMints (Maybe TxSkelRedeemer, Integer)
+txSkelMintsAssetClassAmountL (toVScript -> mp) tk =
   lens
     -- We return (Nothing, 0) when the mp is not in the map, (Just red, 0) when
     -- the mp is present but not the token, and (Just red, n) otherwise.
@@ -125,7 +123,7 @@ txSkelMintsAssetClassAmountL (Script.toVersioned @Script.Script -> mp) tk =
         Just (prevRed, tokenMap) -> Map.insert mp (fromMaybe prevRed newRed, NEMap.insert tk (NonZero i) tokenMap) mints
     )
 
-instance Script.ToValue TxSkelMints where
+instance {-# OVERLAPPING #-} Script.ToValue TxSkelMints where
   toValue =
     Api.Value
       . PMap.unsafeFromList
@@ -142,16 +140,16 @@ instance Script.ToValue TxSkelMints where
       . Map.toList
 
 -- | The list of assets classes contained in this 'TxSkelMints'
-txSkelMintsAssetClassesG :: Getter TxSkelMints [(Script.Versioned Script.Script, Api.TokenName)]
-txSkelMintsAssetClassesG = txSkelMintsListI % to (\l -> [(Script.toVersioned mp, tk) | Mint (RedeemedScript mp _) tks <- l, (tk, _) <- tks])
+txSkelMintsAssetClassesG :: Getter TxSkelMints [(VScript, Api.TokenName)]
+txSkelMintsAssetClassesG = txSkelMintsListI % to (\l -> [(toVScript mp, tk) | Mint (UserRedeemedScript mp _) tks <- l, (tk, _) <- tks])
 
 -- | Seeing a 'TxSkelMints' as a list of 'Mint'
 txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
-    (map (\(p, (r, m)) -> Mint (RedeemedScript p r) $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList)
+    (map (\(p, (r, m)) -> Mint (UserRedeemedScript p r) $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList)
     ( foldl
-        ( \mints (Mint (RedeemedScript mp red) tks) ->
+        ( \mints (Mint (UserRedeemedScript mp red) tks) ->
             foldl
               (\mints' (tk, n) -> mints' & txSkelMintsAssetClassAmountL mp tk %~ (\(_, n') -> (Just red, n + n')))
               mints

@@ -21,7 +21,6 @@ import Data.Map.Strict qualified as Map
 import Ledger.Orphans ()
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | The state used to run the simulation in 'Cooked.MockChain.Direct'
@@ -33,7 +32,7 @@ data MockChainState = MockChainState
     -- index ('True') or has already been consumed ('False').
     mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
     -- | The constitution script to be used with proposals
-    mcstConstitution :: Maybe (Script.Versioned Script.Script)
+    mcstConstitution :: Maybe VScript
   }
   deriving (Show)
 

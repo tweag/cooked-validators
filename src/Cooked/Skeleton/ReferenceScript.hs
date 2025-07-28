@@ -9,6 +9,7 @@ module Cooked.Skeleton.ReferenceScript
   )
 where
 
+import Cooked.Skeleton.Scripts
 import Data.Function (on)
 import Data.Typeable
 import Optics.Core
@@ -17,7 +18,7 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Reference scripts are typeable and can be converted to versioned scripts.
 type ReferenceScriptConstrs refScript =
-  ( Script.ToVersioned Script.Script refScript,
+  ( ToVScript refScript,
     Typeable refScript
   )
 
@@ -47,7 +48,7 @@ txSkelOutReferenceScriptTypedP =
     )
 
 -- | A prism targeting the versioned script within a 'TxSkelOutReferenceScript'
-txSkelOutReferenceScriptVersionedP :: Prism' TxSkelOutReferenceScript (Script.Versioned Script.Script)
+txSkelOutReferenceScriptVersionedP :: Prism' TxSkelOutReferenceScript VScript
 txSkelOutReferenceScriptVersionedP =
   prism
     SomeTxSkelOutReferenceScript

@@ -16,7 +16,6 @@ import Data.List.NonEmpty qualified as NEList
 import Data.Map qualified as Map
 import Data.Map.NonEmpty qualified as NEMap
 import Optics.Core
-import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -32,7 +31,7 @@ addTokenAttack ::
   (MonadTweak m, OwnerConstrs o) =>
   -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
-  (Script.Versioned Script.Script -> [(Api.TokenName, Integer)]) ->
+  (VScript -> [(Api.TokenName, Integer)]) ->
   -- | The wallet of the attacker where extra tokens will be paid to
   o ->
   m Api.Value
@@ -59,7 +58,7 @@ dupTokenAttack ::
   -- @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the minted
   -- amount. If it does not, the tweak will still succeed but this might result
   -- in negative portions in the value paid to the attacker.
-  (Script.Versioned Script.Script -> Api.TokenName -> Integer -> Integer) ->
+  (VScript -> Api.TokenName -> Integer -> Integer) ->
   -- | The target of the extra tokens. Any additional tokens that are minted by
   -- the modified transaction but were not minted by the original transaction
   -- are paid to this wallet.

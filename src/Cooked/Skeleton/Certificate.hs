@@ -3,121 +3,61 @@
 -- | This module exposes certificates in 'Cooked.Skelton.TxSkel'
 module Cooked.Skeleton.Certificate where
 
-import Cooked.Skeleton.Redeemer
-import Data.Kind (Constraint, Type)
+import Cooked.Skeleton.Scripts
+import Data.Kind (Type)
 import Data.Typeable (Typeable, cast)
-import GHC.TypeLits (ErrorMessage (ShowType, Text, (:<>:)), Symbol, TypeError)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-
--- | A type family representing membership. This requires @UndecidableInstances@
--- because the type checker is not smart enough to understand that this type
--- family decreases in @els@, due to the presence of @extras@. @extras@ is only
--- used to keep track of the original list and output a relevant message in the
--- empty case, which could otherwise be omitted altogther at no loss of type
--- safety.
-type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
-  Member x (x ': xs) _ = ()
-  Member x (y ': xs) l = Member x xs (y ': l)
-  Member x '[] l = TypeError ('ShowType x ':<>: 'Text " is not a member of " ':<>: 'ShowType l)
-
--- | A specific instance of @Member@ where the already browsed elements is @[]@
-type (∈) el els = Member el els '[]
 
 -- | The depiction of the possible actions in a certificate. Each actions
 -- exposes, in its types, the possible owners it can have and the requirements
 -- on the deposits.
-data CertificateAction :: [Symbol] -> [Symbol] -> Type where
-  StakingRegister :: CertificateAction '["PubKey", "Script"] ["Some", "Empty"]
-  StakingUnRegister :: CertificateAction '["PubKey", "Script"] ["Some", "Empty"]
-  StakingDelegate :: Api.Delegatee -> CertificateAction '["PubKey", "Script"] '["Empty"]
-  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction '["PubKey", "Script"] '["Some"]
-  DRepRegister :: CertificateAction '["PubKey", "Script"] '["Some"]
-  DRepUpdate :: CertificateAction '["PubKey", "Script"] '["Empty"]
-  DRepUnRegister :: CertificateAction '["PubKey", "Script"] '["Some"]
-  PoolRegister :: Api.PubKeyHash -> CertificateAction '["PubKey"] '["Empty"]
-  PoolRetire :: Ledger.Slot -> CertificateAction '["PubKey"] '["Empty"]
-  CommitteeRegisterHot :: Api.Credential -> CertificateAction '["PubKey", "Script"] '["Empty"]
-  CommitteeResign :: CertificateAction '["PubKey", "Script"] '["Empty"]
+data CertificateAction :: UserKind -> Type where
+  StakingRegister :: CertificateAction IsEither
+  StakingUnRegister :: CertificateAction IsEither
+  StakingDelegate :: Api.Delegatee -> CertificateAction IsEither
+  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction IsEither
+  DRepRegister :: CertificateAction IsEither
+  DRepUpdate :: CertificateAction IsEither
+  DRepUnRegister :: CertificateAction IsEither
+  PoolRegister :: Api.PubKeyHash -> CertificateAction IsPubKey
+  PoolRetire :: Ledger.Slot -> CertificateAction IsPubKey
+  CommitteeRegisterHot :: Api.Credential -> CertificateAction IsEither
+  CommitteeResign :: CertificateAction IsEither
 
-deriving instance (Show (CertificateAction owners deposits))
+deriving instance (Show (CertificateAction req))
 
-deriving instance (Eq (CertificateAction owners deposits))
-
--- | A depiction of the owner of a certificate which exposes in the type the
--- kind of the owner. This is used to account for the fact that some certificate
--- can have any kind of owners while others require a pubkey specifically.
-data Owner :: Symbol -> Type where
-  PubKeyOwner :: Api.PubKeyHash -> Owner "PubKey"
-  ScriptOwner :: RedeemedScript -> Owner "Script"
-
-deriving instance (Show (Owner owner))
-
-deriving instance (Eq (Owner owner))
-
-instance Script.ToCredential (Owner a) where
-  toCredential (PubKeyOwner pkh) = Script.toCredential pkh
-  toCredential (ScriptOwner (RedeemedScript (Script.toVersioned @Script.Script -> s) _)) = Script.toCredential s
-
--- | A depiction of the deposits which exposes in the type if there is indeed a
--- deposit or not. This is used to account for the fact that some certificates
--- require a deposit, some others require no deposit and some can have either.
-data Deposit :: Symbol -> Type where
-  EmptyDeposit :: Deposit "Empty"
-  SomeDeposit :: Api.Lovelace -> Deposit "Some"
-
-deriving instance (Show (Deposit deposit))
-
-deriving instance (Eq (Deposit deposit))
-
-instance Script.ToValue (Deposit a) where
-  toValue EmptyDeposit = mempty
-  toValue (SomeDeposit dep) = Script.toValue dep
+deriving instance (Eq (CertificateAction req))
 
 -- | Certificates used in 'Cooked.Skeleton.TxSkel'. The types ensure that each
 -- certificate action is associated with a proper owner and deposit.
 data TxSkelCertificate where
   TxSkelCertificate ::
-    forall owners deposits owner deposit.
-    ( Typeable owners,
-      Typeable deposits,
-      Typeable owner,
-      Typeable deposit,
-      owner ∈ owners,
-      deposit ∈ deposits
-    ) =>
-    { txSkelCertificateOwner :: Owner owner,
-      txSkelCertificateDeposit :: Deposit deposit,
-      txSkelCertificateAction :: CertificateAction owners deposits
+    (Typeable req) =>
+    { -- | All owners of certificates must be in 'Redemption' mode
+      txSkelCertificateOwner :: User req Redemption,
+      -- | The certificate itself does impose a 'UserKind'
+      txSkelCertificateAction :: CertificateAction req
     } ->
     TxSkelCertificate
 
 deriving instance (Show TxSkelCertificate)
 
 instance Eq TxSkelCertificate where
-  (TxSkelCertificate o d a) == (TxSkelCertificate o' d' a') =
-    cast o == Just o'
-      && cast d == Just d'
-      && cast a == Just a'
+  (TxSkelCertificate owner action) == (TxSkelCertificate owner' action') =
+    cast owner == Just owner' && cast action == Just action'
 
--- | Focuses on the possible redeemed script of a 'TxSkelCertificate'
-txSkelCertificateRedeemedScriptAT :: AffineTraversal' TxSkelCertificate RedeemedScript
-txSkelCertificateRedeemedScriptAT =
+-- | Focuses on the owner of a 'TxSkelCertificate'
+txSkelCertificateOwnerAT :: (Typeable req) => AffineTraversal' TxSkelCertificate (User req Redemption)
+txSkelCertificateOwnerAT =
   atraversal
-    ( \cert@(TxSkelCertificate owner _ _) -> case owner of
-        ScriptOwner rs -> Right rs
-        _ -> Left cert
-    )
-    ( flip $ \rs -> \case
-        TxSkelCertificate ScriptOwner {} dep act -> TxSkelCertificate (ScriptOwner rs) dep act
-        cert -> cert
-    )
+    (\cert@(TxSkelCertificate {txSkelCertificateOwner}) -> maybe (Left cert) Right $ cast txSkelCertificateOwner)
+    (\cert@(TxSkelCertificate _ action) -> maybe cert (`TxSkelCertificate` action) . cast)
 
--- | Gets the deposited value in this certificate which might be empty in case
--- of an empty deposit.
-txSkelCertificateDepositedValueG :: Getter TxSkelCertificate Api.Value
-txSkelCertificateDepositedValueG = to (\TxSkelCertificate {txSkelCertificateDeposit} -> Script.toValue txSkelCertificateDeposit)
+-- | Focuses on the action of a 'TxSkelCertificate'
+txSkelCertificateActionAT :: (Typeable req) => AffineTraversal' TxSkelCertificate (CertificateAction req)
+txSkelCertificateActionAT =
+  atraversal
+    (\cert@(TxSkelCertificate {txSkelCertificateAction}) -> maybe (Left cert) Right $ cast txSkelCertificateAction)
+    (\cert@(TxSkelCertificate owner _) -> maybe cert (TxSkelCertificate owner) . cast)

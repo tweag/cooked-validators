@@ -8,26 +8,29 @@ module Cooked.Skeleton.Output
     txSkelOutDatumL,
     txSkelOutReferenceScriptL,
     txSkelOutStakingCredentialL,
-    txSkelOutValidatorAT,
+    txSkelOutScriptAT,
     IsTxSkelOutAllowedOwner (..),
     OwnerConstrs,
     txSkelOutCredentialG,
     txSkelOutAddressG,
     txSkelOutPKHashAT,
     txSkelOutTypedOwnerAT,
-    txSkelOutValidatorHashAF,
+    txSkelOutScriptHashAF,
     valueAssetClassAmountL,
     lovelaceIntegerI,
     valueLovelaceL,
     valueAssetClassAmountP,
     valueLovelaceP,
     ownerCredentialG,
+    ownerUserG,
+    txSkelOutUserL,
   )
 where
 
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Payable
 import Cooked.Skeleton.ReferenceScript
+import Cooked.Skeleton.Scripts
 import Cooked.Wallet
 import Data.Typeable
 import Optics.Core
@@ -43,34 +46,42 @@ import PlutusTx.AssocMap qualified as PMap
 
 -- * Requirements to be able to own a 'TxSkelOut'
 
--- | A 'TxSkelOut' can either be owned by a pubkeyhash or a versioned validator
+-- | A 'TxSkelOut' can either be owned by a pubkeyhash or a versioned script
 class IsTxSkelOutAllowedOwner a where
-  toPKHOrValidator :: a -> Either Api.PubKeyHash (Script.Versioned Script.Validator)
+  toPKHOrVScript :: a -> Either Api.PubKeyHash VScript
 
 instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
-  toPKHOrValidator = Left
+  toPKHOrVScript = Left
 
 instance IsTxSkelOutAllowedOwner Wallet where
-  toPKHOrValidator = Left . Script.toPubKeyHash
+  toPKHOrVScript = Left . Script.toPubKeyHash
 
-instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
-  toPKHOrValidator = Right
+instance IsTxSkelOutAllowedOwner VScript where
+  toPKHOrVScript = Right
 
 instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
-  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
+  toPKHOrVScript = toPKHOrVScript . Script.toVersioned @Script.Script
 
-instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Script) where
-  toPKHOrValidator = toPKHOrValidator . fmap Script.Validator
+instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
+  toPKHOrVScript = toPKHOrVScript . fmap Script.getValidator
 
-instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
-  toPKHOrValidator = id
+instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Script)) where
+  toPKHOrVScript = id
 
 instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
-  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
+  toPKHOrVScript = toPKHOrVScript . Script.toVersioned @Script.Script
+
+instance IsTxSkelOutAllowedOwner (User IsEither Allocation) where
+  toPKHOrVScript (UserPubKeyHash pkh) = Left (Script.toPubKeyHash pkh)
+  toPKHOrVScript (UserScript vScript) = Right (toVScript vScript)
 
 -- | Retrieves the credential of a 'TxSkelOut' allowed owner
 ownerCredentialG :: (IsTxSkelOutAllowedOwner owner) => Getter owner Api.Credential
-ownerCredentialG = to $ either Api.PubKeyCredential (Api.ScriptCredential . Script.toScriptHash) . toPKHOrValidator
+ownerCredentialG = ownerUserG % to Script.toCredential
+
+-- | Getting a 'User' from an owner
+ownerUserG :: (IsTxSkelOutAllowedOwner owner) => Getter owner (User IsEither Allocation)
+ownerUserG = to (either UserPubKeyHash UserScript . toPKHOrVScript)
 
 -- | Type constraints over the owner of a 'TxSkelOut'
 type OwnerConstrs owner =
@@ -117,6 +128,13 @@ makeLensesFor [("txSkelOutValueAutoAdjust", "txSkelOutValueAutoAdjustL")] ''TxSk
 -- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
 makeLensesFor [("txSkelOutReferenceScript", "txSkelOutReferenceScriptL")] ''TxSkelOut
 
+-- | A lens to get or set the 'User' from a 'TxSkelOut'
+txSkelOutUserL :: Lens' TxSkelOut (User IsEither Allocation)
+txSkelOutUserL =
+  lens
+    (\TxSkelOut {txSkelOutOwner} -> view ownerUserG txSkelOutOwner)
+    (\txSkelOut user -> txSkelOut {txSkelOutOwner = user})
+
 -- | Returns the credential of this 'TxSkelOut'
 txSkelOutCredentialG :: Getter TxSkelOut Api.Credential
 txSkelOutCredentialG = to $ \(TxSkelOut {txSkelOutOwner}) -> view ownerCredentialG txSkelOutOwner
@@ -153,19 +171,19 @@ instance Eq TxSkelOut where
 txSkelOutPKHashAT :: AffineTraversal' TxSkelOut Api.PubKeyHash
 txSkelOutPKHashAT =
   atraversal
-    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> either Right (const (Left txSkelOut)) $ toPKHOrValidator txSkelOutOwner)
+    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> either Right (const (Left txSkelOut)) $ toPKHOrVScript txSkelOutOwner)
     (\txSkelOut pkh -> txSkelOut {txSkelOutOwner = pkh})
 
--- | Returns the optional validator owning a given 'TxSkelOut'
-txSkelOutValidatorAT :: AffineTraversal' TxSkelOut (Script.Versioned Script.Validator)
-txSkelOutValidatorAT =
+-- | Returns the optional script owning a given 'TxSkelOut'
+txSkelOutScriptAT :: AffineTraversal' TxSkelOut VScript
+txSkelOutScriptAT =
   atraversal
-    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> either (const $ Left txSkelOut) Right $ toPKHOrValidator txSkelOutOwner)
+    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> either (const $ Left txSkelOut) Right $ toPKHOrVScript txSkelOutOwner)
     (\txSkelOut val -> txSkelOut {txSkelOutOwner = val})
 
--- | Returns the optional validator hash owning a given 'TxSkelOut'
-txSkelOutValidatorHashAF :: AffineFold TxSkelOut Script.ValidatorHash
-txSkelOutValidatorHashAF = txSkelOutValidatorAT % to Script.toValidatorHash
+-- | Returns the optional script hash owning a given 'TxSkelOut'
+txSkelOutScriptHashAF :: AffineFold TxSkelOut Script.ScriptHash
+txSkelOutScriptHashAF = txSkelOutScriptAT % to Script.toScriptHash
 
 -- * Additional optics revolving around 'Api.Value'
 
@@ -244,7 +262,7 @@ receives owner =
     go (StakingCredential stCred) = set txSkelOutStakingCredentialL (Script.toMaybeStakingCredential stCred)
     go (PayableAnd p1 p2) = go p2 . go p1
 
-    defaultTxSkelDatum = case toPKHOrValidator owner of
+    defaultTxSkelDatum = case toPKHOrVScript owner of
       -- V1 and V2 script always need a datum, even if empty
       Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> SomeTxSkelOutDatum () (Hashed NotResolved)
       -- V3 script and PKH do not necessarily need a datum
