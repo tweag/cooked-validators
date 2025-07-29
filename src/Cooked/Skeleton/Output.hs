@@ -22,8 +22,6 @@ module Cooked.Skeleton.Output
     valueAssetClassAmountP,
     valueLovelaceP,
     ownerCredentialG,
-    ownerUserG,
-    txSkelOutUserL,
   )
 where
 
@@ -71,17 +69,13 @@ instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script
 instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
   toPKHOrVScript = toPKHOrVScript . Script.toVersioned @Script.Script
 
-instance IsTxSkelOutAllowedOwner (User IsEither Allocation) where
+instance IsTxSkelOutAllowedOwner (User a Allocation) where
   toPKHOrVScript (UserPubKeyHash pkh) = Left (Script.toPubKeyHash pkh)
   toPKHOrVScript (UserScript vScript) = Right (toVScript vScript)
 
 -- | Retrieves the credential of a 'TxSkelOut' allowed owner
 ownerCredentialG :: (IsTxSkelOutAllowedOwner owner) => Getter owner Api.Credential
-ownerCredentialG = ownerUserG % to Script.toCredential
-
--- | Getting a 'User' from an owner
-ownerUserG :: (IsTxSkelOutAllowedOwner owner) => Getter owner (User IsEither Allocation)
-ownerUserG = to (either UserPubKeyHash UserScript . toPKHOrVScript)
+ownerCredentialG = to (either Script.toCredential Script.toCredential . toPKHOrVScript)
 
 -- | Type constraints over the owner of a 'TxSkelOut'
 type OwnerConstrs owner =
@@ -127,13 +121,6 @@ makeLensesFor [("txSkelOutValueAutoAdjust", "txSkelOutValueAutoAdjustL")] ''TxSk
 
 -- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
 makeLensesFor [("txSkelOutReferenceScript", "txSkelOutReferenceScriptL")] ''TxSkelOut
-
--- | A lens to get or set the 'User' from a 'TxSkelOut'
-txSkelOutUserL :: Lens' TxSkelOut (User IsEither Allocation)
-txSkelOutUserL =
-  lens
-    (\TxSkelOut {txSkelOutOwner} -> view ownerUserG txSkelOutOwner)
-    (\txSkelOut user -> txSkelOut {txSkelOutOwner = user})
 
 -- | Returns the credential of this 'TxSkelOut'
 txSkelOutCredentialG :: Getter TxSkelOut Api.Credential

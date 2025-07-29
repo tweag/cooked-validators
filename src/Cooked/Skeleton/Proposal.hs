@@ -20,7 +20,7 @@ import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.Scripts
 import Data.Kind (Type)
 import Data.Map (Map)
-import Data.Typeable (Typeable, cast)
+import Data.Typeable
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Address qualified as Script
@@ -135,15 +135,15 @@ data ParameterChange where
 -- | This lists the various possible governance actions. Only two of these
 -- action need to be witnessed by the constitution script, while the other do
 -- not need any witness.
-data TxSkelGovAction :: UserKind -> Type where
+data TxSkelGovAction :: Maybe UserKind -> Type where
   -- If several parameter changes are of the same kind, only the last
   -- one will take effect
-  ParameterChange :: [ParameterChange] -> TxSkelGovAction IsScript
-  TreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> TxSkelGovAction IsScript
-  HardForkInitiation :: Api.ProtocolVersion -> TxSkelGovAction IsNone
-  NoConfidence :: TxSkelGovAction IsNone
-  UpdateCommittee :: [Api.ColdCommitteeCredential] -> Map Api.ColdCommitteeCredential Integer -> PlutusTx.Rational -> TxSkelGovAction IsNone
-  NewConstitution :: Api.Constitution -> TxSkelGovAction IsNone
+  ParameterChange :: [ParameterChange] -> TxSkelGovAction (Just IsScript)
+  TreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> TxSkelGovAction (Just IsScript)
+  HardForkInitiation :: Api.ProtocolVersion -> TxSkelGovAction Nothing
+  NoConfidence :: TxSkelGovAction Nothing
+  UpdateCommittee :: [Api.ColdCommitteeCredential] -> Map Api.ColdCommitteeCredential Integer -> PlutusTx.Rational -> TxSkelGovAction Nothing
+  NewConstitution :: Api.Constitution -> TxSkelGovAction Nothing
 
 deriving instance Show (TxSkelGovAction a)
 
@@ -152,7 +152,10 @@ deriving instance Eq (TxSkelGovAction a)
 -- | This bundles a governance action into an actual proposal
 data TxSkelProposal where
   TxSkelProposal ::
-    (Typeable req, Script.ToCredential cred) =>
+    ( Typeable req,
+      Typeable (FromJust req),
+      Script.ToCredential cred
+    ) =>
     { -- | The credential that should be used for a return account
       txSkelProposalReturnCredential :: cred,
       -- | The proposed action. It can either be a "free" action, which does not
@@ -162,7 +165,7 @@ data TxSkelProposal where
       -- the current official one.
       txSkelProposalGovAction :: TxSkelGovAction req,
       -- | The constitution witness of this proposal
-      txSkelProposalConstitution :: Maybe (User req Redemption),
+      txSkelProposalConstitution :: Maybe (User (FromJust req) Redemption),
       -- | An optional anchor to be given as additional data. It should
       -- correspond to the URL of a web page
       txSkelProposalAnchor :: TxSkelAnchor
@@ -191,11 +194,11 @@ txSkelProposalMConstitutionAT =
     (\prop@(TxSkelProposal cred action _ anchor) -> maybe prop (\constit -> TxSkelProposal cred action constit anchor) . cast)
 
 -- | Focuses on the governance action of a 'TxSkelProposal'
-txSkelProposalGovActionAT :: (Typeable req) => AffineTraversal' TxSkelProposal (TxSkelGovAction req)
+txSkelProposalGovActionAT :: forall req. (Typeable req) => AffineTraversal' TxSkelProposal (TxSkelGovAction req)
 txSkelProposalGovActionAT =
   atraversal
     (\prop@(TxSkelProposal {txSkelProposalGovAction}) -> maybe (Left prop) Right $ cast txSkelProposalGovAction)
-    (\prop@(TxSkelProposal cred _ constit anchor) -> maybe prop (\action -> TxSkelProposal cred action constit anchor) . cast)
+    (\prop@(TxSkelProposal @req' cred _ constit anchor) newAction -> maybe prop (\Refl -> TxSkelProposal cred newAction constit anchor) $ eqT @req @req')
 
 -- | A lens to get or set the anchor of a 'TxSkelProposal'
 makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelProposal
@@ -204,7 +207,7 @@ makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelPropos
 -- defaults the constitution and anchors to empty values. If the constitution is
 -- required by the governance action, it will be automatically filled during
 -- transaction generation if an official constitution script exists.
-simpleTxSkelProposal :: (Script.ToCredential cred, Typeable req) => cred -> TxSkelGovAction req -> TxSkelProposal
+simpleTxSkelProposal :: (Script.ToCredential cred, Typeable req, Typeable (FromJust req)) => cred -> TxSkelGovAction req -> TxSkelProposal
 simpleTxSkelProposal cred action = TxSkelProposal cred action Nothing Nothing
 
 -- | Sets the constitution script with an empty redeemer when empty. This will

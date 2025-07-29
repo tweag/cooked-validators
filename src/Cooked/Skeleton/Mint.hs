@@ -123,7 +123,7 @@ txSkelMintsAssetClassAmountL (toVScript -> mp) tk =
         Just (prevRed, tokenMap) -> Map.insert mp (fromMaybe prevRed newRed, NEMap.insert tk (NonZero i) tokenMap) mints
     )
 
-instance {-# OVERLAPPING #-} Script.ToValue TxSkelMints where
+instance Script.ToValue TxSkelMints where
   toValue =
     Api.Value
       . PMap.unsafeFromList
@@ -155,7 +155,7 @@ txSkelMintsListI =
               mints
               tks
         )
-        mempty
+        Map.empty
     )
 
 -- * Additional instances an useful helpers

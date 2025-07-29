@@ -76,11 +76,8 @@ toCertificateWitness :: (MonadBlockChainBalancing m) => TxSkelCertificate -> m (
 toCertificateWitness =
   maybe
     (return Nothing)
-    ( \case
-        UserRedeemedScript s red -> Just <$> toScriptWitness s red Cardano.NoScriptDatumForStake
-        UserPubKeyHash _ -> return Nothing
-    )
-    . preview (txSkelCertificateOwnerAT @IsEither)
+    (\(UserRedeemedScript s red) -> Just <$> toScriptWitness s red Cardano.NoScriptDatumForStake)
+    . preview (txSkelCertificateOwnerAT @IsScript)
 
 -- | Builds a 'Cardano.TxCertificates' from a list of 'TxSkelCertificate'
 toCertificates :: (MonadBlockChainBalancing m) => [TxSkelCertificate] -> m (Cardano.TxCertificates Cardano.BuildTx Cardano.ConwayEra)

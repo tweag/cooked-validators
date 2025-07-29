@@ -16,7 +16,7 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | Attempts to find in the index a utxo containing a reference script with the
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
-updateRedeemedScript :: (MonadBlockChain m) => [Api.TxOutRef] -> User req Redemption -> m (User req Redemption)
+updateRedeemedScript :: (MonadBlockChain m) => [Api.TxOutRef] -> User IsScript Redemption -> m (User IsScript Redemption)
 updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkelRed@(TxSkelRedeemer _ Nothing True)) = do
   oRefsInInputs <- runUtxoSearch (referenceScriptOutputsSearch vScript)
   maybe
@@ -53,7 +53,8 @@ toTxSkelWithReferenceScripts txSkel = do
     case preview (txSkelProposalMConstitutionAT % _Just) prop of
       Nothing -> return prop
       Just rs -> flip (set (txSkelProposalMConstitutionAT % _Just)) prop <$> updateRedeemedScript inputs rs
-  newWithdrawals <- forM (view (txSkelWithdrawalsL % to Map.toList) txSkel) $ \(user, lv) -> (,lv) <$> updateRedeemedScript inputs user
+  newWithdrawals <- forM (view (txSkelWithdrawalsL % txSkelWithdrawalsByScriptsL % to Map.toList) txSkel) $
+    \(vScript, (red, lv)) -> (vScript,) . (,lv) . view userTxSkelRedeemerL <$> updateRedeemedScript inputs (UserRedeemedScript vScript red)
   return $
     txSkel
       & txSkelMintsL
@@ -63,5 +64,5 @@ toTxSkelWithReferenceScripts txSkel = do
       .~ Map.fromList newInputs
       & txSkelProposalsL
       .~ newProposals
-      & txSkelWithdrawalsL
+      & (txSkelWithdrawalsL % txSkelWithdrawalsByScriptsL)
       .~ Map.fromList newWithdrawals

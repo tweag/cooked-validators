@@ -2,6 +2,7 @@ module Spec.Certificates where
 
 import Cooked
 import Data.Default
+import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -23,27 +24,31 @@ publishCertificate cert =
         txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
       }
 
-withdraw :: (MonadBlockChain m) => User IsEither Redemption -> m ()
+withdraw :: (MonadBlockChain m) => User a Redemption -> m ()
 withdraw user =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSigners = [alice],
-        txSkelWithdrawals = case user of
-          UserPubKeyHash pkh -> pkWithdrawal pkh 0
-          UserRedeemedScript s red -> scriptWithdrawal s red 0,
+        txSkelWithdrawals =
+          review
+            txSkelWithdrawalsListI
+            [ case user of
+                UserPubKeyHash pkh -> pkWithdrawal pkh 0
+                UserRedeemedScript s red -> scriptWithdrawal s red 0
+            ],
         txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
       }
 
-trueScriptUser :: User IsEither Redemption
+trueScriptUser :: User IsScript Redemption
 trueScriptUser = UserRedeemedScript (Script.trueMPScript @()) emptyTxSkelRedeemer
 
-falseScriptUser :: User IsEither Redemption
+falseScriptUser :: User IsScript Redemption
 falseScriptUser = UserRedeemedScript (Script.falseMPScript @()) emptyTxSkelRedeemer
 
-aliceUser :: User IsEither Redemption
+aliceUser :: User IsPubKey Redemption
 aliceUser = UserPubKeyHash alice
 
-bobUser :: User IsEither Redemption
+bobUser :: User IsPubKey Redemption
 bobUser = UserPubKeyHash bob
 
 tests :: TestTree

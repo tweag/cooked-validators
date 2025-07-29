@@ -19,7 +19,6 @@ import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -48,7 +47,7 @@ instance PrettyCookedList (Contextualized TxSkel) where
           prettyItemizeNonEmpty opts "Reference inputs:" "-" $ prettyCookedOpt opts . (<$ cTxSkel) . ReferenceInput <$> Set.toList insReference,
           prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
           prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
-          prettyItemizeNonEmpty opts "Withdrawals:" "-" $ Map.toList withdrawals,
+          prettyItemizeNonEmpty opts "Withdrawals:" "-" $ view txSkelWithdrawalsListI withdrawals,
           prettyItemizeNonEmpty opts "Certificates:" "-" certificates,
           prettyItemizeNonEmpty opts "Options:" "-" txopts
         ]
@@ -90,10 +89,10 @@ instance PrettyCooked Api.DRep where
   prettyCookedOpt _ Api.DRepAlwaysNoConfidence = "Always no confidence"
   prettyCookedOpt opt (Api.DRep (Api.DRepCredential cred)) = prettyCookedOpt opt cred
 
-instance PrettyCooked (User IsEither Redemption, Api.Lovelace) where
-  prettyCookedOpt opts (UserRedeemedScript (toVScript -> vScript) red, lv) =
+instance PrettyCooked Withdrawal where
+  prettyCookedOpt opts (Withdrawal (UserRedeemedScript (toVScript -> vScript) red) lv) =
     prettyItemize opts (prettyHash opts vScript) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
-  prettyCookedOpt opts (UserPubKeyHash (Script.toPubKeyHash -> pkh), lv) =
+  prettyCookedOpt opts (Withdrawal (UserPubKeyHash (Script.toPubKeyHash -> pkh)) lv) =
     prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
 instance PrettyCooked ParameterChange where
@@ -184,8 +183,8 @@ instance PrettyCookedList TxSkelRedeemer where
 instance PrettyCookedList TxSkelProposal where
   prettyCookedOptListMaybe opts txSkelProposal =
     [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
-      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsScript) txSkelProposal,
-      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsNone) txSkelProposal,
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @(Just IsScript)) txSkelProposal,
+      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @Nothing) txSkelProposal,
       ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
       ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)

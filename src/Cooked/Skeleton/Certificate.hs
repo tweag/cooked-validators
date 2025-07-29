@@ -11,20 +11,19 @@ import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | The depiction of the possible actions in a certificate. Each actions
--- exposes, in its types, the possible owners it can have and the requirements
--- on the deposits.
-data CertificateAction :: UserKind -> Type where
-  StakingRegister :: CertificateAction IsEither
-  StakingUnRegister :: CertificateAction IsEither
-  StakingDelegate :: Api.Delegatee -> CertificateAction IsEither
-  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction IsEither
-  DRepRegister :: CertificateAction IsEither
-  DRepUpdate :: CertificateAction IsEither
-  DRepUnRegister :: CertificateAction IsEither
-  PoolRegister :: Api.PubKeyHash -> CertificateAction IsPubKey
-  PoolRetire :: Ledger.Slot -> CertificateAction IsPubKey
-  CommitteeRegisterHot :: Api.Credential -> CertificateAction IsEither
-  CommitteeResign :: CertificateAction IsEither
+-- exposes, in its types, the possible owners it can have.
+data CertificateAction :: [UserKind] -> Type where
+  StakingRegister :: CertificateAction '[IsScript, IsPubKey]
+  StakingUnRegister :: CertificateAction '[IsScript, IsPubKey]
+  StakingDelegate :: Api.Delegatee -> CertificateAction '[IsScript, IsPubKey]
+  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction '[IsScript, IsPubKey]
+  DRepRegister :: CertificateAction '[IsScript, IsPubKey]
+  DRepUpdate :: CertificateAction '[IsScript, IsPubKey]
+  DRepUnRegister :: CertificateAction '[IsScript, IsPubKey]
+  PoolRegister :: Api.PubKeyHash -> CertificateAction '[IsPubKey]
+  PoolRetire :: Ledger.Slot -> CertificateAction '[IsPubKey]
+  CommitteeRegisterHot :: Api.Credential -> CertificateAction '[IsScript, IsPubKey]
+  CommitteeResign :: CertificateAction '[IsScript, IsPubKey]
 
 deriving instance (Show (CertificateAction req))
 
@@ -34,11 +33,12 @@ deriving instance (Eq (CertificateAction req))
 -- certificate action is associated with a proper owner and deposit.
 data TxSkelCertificate where
   TxSkelCertificate ::
-    (Typeable req) =>
+    forall user users.
+    (Typeable user, Typeable users, user ∈ users) =>
     { -- | All owners of certificates must be in 'Redemption' mode
-      txSkelCertificateOwner :: User req Redemption,
+      txSkelCertificateOwner :: User user Redemption,
       -- | The certificate itself does impose a 'UserKind'
-      txSkelCertificateAction :: CertificateAction req
+      txSkelCertificateAction :: CertificateAction users
     } ->
     TxSkelCertificate
 
@@ -49,15 +49,15 @@ instance Eq TxSkelCertificate where
     cast owner == Just owner' && cast action == Just action'
 
 -- | Focuses on the owner of a 'TxSkelCertificate'
-txSkelCertificateOwnerAT :: (Typeable req) => AffineTraversal' TxSkelCertificate (User req Redemption)
+txSkelCertificateOwnerAT :: (Typeable user') => AffineTraversal' TxSkelCertificate (User user' Redemption)
 txSkelCertificateOwnerAT =
   atraversal
     (\cert@(TxSkelCertificate {txSkelCertificateOwner}) -> maybe (Left cert) Right $ cast txSkelCertificateOwner)
-    (\cert@(TxSkelCertificate _ action) -> maybe cert (`TxSkelCertificate` action) . cast)
+    (\cert@(TxSkelCertificate @user _ action) -> maybe cert (`TxSkelCertificate` action) . cast @_ @(User user Redemption))
 
 -- | Focuses on the action of a 'TxSkelCertificate'
-txSkelCertificateActionAT :: (Typeable req) => AffineTraversal' TxSkelCertificate (CertificateAction req)
+txSkelCertificateActionAT :: (Typeable users') => AffineTraversal' TxSkelCertificate (CertificateAction users')
 txSkelCertificateActionAT =
   atraversal
     (\cert@(TxSkelCertificate {txSkelCertificateAction}) -> maybe (Left cert) Right $ cast txSkelCertificateAction)
-    (\cert@(TxSkelCertificate owner _) -> maybe cert (TxSkelCertificate owner) . cast)
+    (\cert@(TxSkelCertificate @_ @users owner _) -> maybe cert (TxSkelCertificate owner) . cast @_ @(CertificateAction users))

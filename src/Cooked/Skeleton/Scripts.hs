@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | This module exposes aliases to conveniently use versioned script and tools
@@ -27,6 +28,10 @@ type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
 -- | A specific instance of @Member@ where the already browsed elements is @[]@
 type (∈) el els = Member el els '[]
 
+-- | Extracting the inner type of a @Maybe k@
+type family FromJust (m :: Maybe UserKind) :: UserKind where
+  FromJust (Just a) = a
+
 -- * Handy aliases around versioned scripts
 
 -- | 'VScript' is a convenient alias as we have versioned scripts everywhere.
@@ -50,9 +55,8 @@ data UserMode = Allocation | Redemption
   deriving (Eq, Show)
 
 -- | The requirement on the type of users. Some elements will require
--- specifically a script, some others a pubkey, and some other will accept
--- either of those. Finally, some will accept none of them.
-data UserKind = IsScript | IsPubKey | IsEither | IsNone
+-- specifically a script and some others a pubkey.
+data UserKind = IsScript | IsPubKey
   deriving (Eq, Show)
 
 -- | Building users. The type exposes the mode for which the user has been
@@ -60,29 +64,13 @@ data UserKind = IsScript | IsPubKey | IsEither | IsNone
 data User :: UserKind -> UserMode -> Type where
   -- | A pubkey user. This can be used whenever a pubkey is needed, and for
   -- either of the possible modes.
-  UserPubKeyHash ::
-    ( peer ∈ '[IsPubKey, IsEither],
-      Script.ToPubKeyHash pkh
-    ) =>
-    pkh ->
-    User peer mode
+  UserPubKeyHash :: (Script.ToPubKeyHash pkh) => pkh -> User IsPubKey mode
   -- | A script user. This can be used whenever a script is needed, but only for
   -- the allocation mode.
-  UserScript ::
-    ( peer ∈ '[IsScript, IsEither],
-      ToVScript script
-    ) =>
-    script ->
-    User peer Allocation
+  UserScript :: (ToVScript script) => script -> User IsScript Allocation
   -- | A script user with an associated redeemer. This can be used whenever a
   -- script is needed for redemption mode.
-  UserRedeemedScript ::
-    ( peer ∈ [IsScript, IsEither],
-      ToVScript script
-    ) =>
-    script ->
-    TxSkelRedeemer ->
-    User peer Redemption
+  UserRedeemedScript :: (ToVScript script) => script -> TxSkelRedeemer -> User IsScript Redemption
 
 instance Show (User req mode) where
   show (UserPubKeyHash (Script.toPubKeyHash -> pkh)) = "UserPubKeyHash " <> show pkh
@@ -90,10 +78,12 @@ instance Show (User req mode) where
   show (UserRedeemedScript (toVScript -> vScript) red) = "UserRedeemedScript " <> show (Script.toScriptHash vScript) <> " " <> show red
 
 instance Eq (User req mode) where
-  (UserPubKeyHash (Script.toPubKeyHash -> pkh)) == (UserPubKeyHash (Script.toPubKeyHash -> pkh')) = pkh == pkh'
-  (UserScript (Script.toScriptHash . toVScript -> sHash)) == (UserScript (Script.toScriptHash . toVScript -> sHash')) = sHash == sHash'
-  (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) red) == (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash') red') = sHash == sHash' && red == red'
-  _ == _ = False
+  (UserPubKeyHash (Script.toPubKeyHash -> pkh))
+    == (UserPubKeyHash (Script.toPubKeyHash -> pkh')) = pkh == pkh'
+  (UserScript (Script.toScriptHash . toVScript -> sHash))
+    == (UserScript (Script.toScriptHash . toVScript -> sHash')) = sHash == sHash'
+  (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) red)
+    == (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash') red') = sHash == sHash' && red == red'
 
 instance Script.ToCredential (User req mode) where
   toCredential (UserPubKeyHash (Script.toPubKeyHash -> pkh)) = Script.toCredential pkh
@@ -104,8 +94,6 @@ instance Script.ToCredential (User req mode) where
 -- in a map. In those cases, we never want to compare the redeemer, thus this
 -- instance only compares the hashes.
 instance Ord (User req mode) where
-  compare UserPubKeyHash {} UserScript {} = LT
-  compare UserPubKeyHash {} UserRedeemedScript {} = LT
   compare
     (UserPubKeyHash (Script.toPubKeyHash -> pkh))
     (UserPubKeyHash (Script.toPubKeyHash -> pkh')) = compare pkh pkh'
@@ -115,7 +103,6 @@ instance Ord (User req mode) where
   compare
     (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) _)
     (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash') _) = compare sHash sHash'
-  compare _ _ = GT
 
 -- * Optics on various possible families of users
 
