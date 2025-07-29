@@ -37,8 +37,10 @@ data TxSkelWithdrawals = TxSkelWithdrawals
   }
   deriving (Show, Eq)
 
+-- | Focuses on the pubkey withdrawals part of this 'TxSkelWithdrawals'
 makeLensesFor [("txSkelWithdrawalsByPubKeys", "txSkelWithdrawalsByPubKeysL")] ''TxSkelWithdrawals
 
+-- | Focuses on the script withdrawals part of this 'TxSkelWithdrawals'
 makeLensesFor [("txSkelWithdrawalsByScripts", "txSkelWithdrawalsByScriptsL")] ''TxSkelWithdrawals
 
 -- | Focuses on the deposit and redeemer for a given 'VScript'

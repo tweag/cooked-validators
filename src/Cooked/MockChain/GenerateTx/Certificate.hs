@@ -1,3 +1,5 @@
+-- | This module provide primitives to transform certificates from our skeleton
+-- to certificate in Cardano transaction bodies.
 module Cooked.MockChain.GenerateTx.Certificate (toCertificates) where
 
 import Cardano.Api qualified as Cardano

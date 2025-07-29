@@ -36,7 +36,7 @@ import Test.QuickCheck (NonZero (..))
 -- * Describing single mint entries
 
 -- | A description of a new entry to be added in a 'TxSkelMints'. The users
--- should be using lists of those (using 'txSkelMintsFromList') instead of
+-- should be using lists of those (using @review txSkelMintsListI@) instead of
 -- building a 'TxSkelMints' directly.
 data Mint where
   Mint ::
@@ -80,7 +80,7 @@ mintCurrencySymbolG =
 -- be one 'TxSkelRedeemer', and if there is, there must be some token names, each
 -- with a non-zero amount of tokens.
 --
--- You'll probably not construct this by hand, but use 'txSkelMintsFromList'.
+-- You'll probably not construct this by hand, but use 'review txSkelMintsListI'.
 type TxSkelMints = Map VScript (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'

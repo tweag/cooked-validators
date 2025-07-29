@@ -26,8 +26,8 @@ import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 
--- | Transorms a `TxParameterChange` into an actual change over a Cardano
--- parameter update
+-- | Transorms a `Cooked.Skeleton.Proposal.ParameterChange` into an actual
+-- change over a Cardano parameter update
 toPParamsUpdate :: ParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
 toPParamsUpdate pChange =
   -- From rational to bounded rational

@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | This module exposes aliases to conveniently use versioned script and tools
@@ -28,8 +27,10 @@ type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
 -- | A specific instance of @Member@ where the already browsed elements is @[]@
 type (∈) el els = Member el els '[]
 
+-- * FromJust type family
+
 -- | Extracting the inner type of a @Maybe k@
-type family FromJust (m :: Maybe UserKind) :: UserKind where
+type family FromJust (m :: Maybe k) :: k where
   FromJust (Just a) = a
 
 -- * Handy aliases around versioned scripts
@@ -47,15 +48,15 @@ toVScript = Script.toVersioned
 
 -- * A depiction of users with their kind and mode
 
--- | The 'Mode' corresponds to the way the user will be used in our
+-- | The 'UserMode' corresponds to the way the user will be used in our
 -- 'Cooked.Skeleton.TxSkel' which can either be for allocation (allocation a
 -- certain entity to a user) or for redemption (using this user as a witness in
 -- a transaction).
 data UserMode = Allocation | Redemption
   deriving (Eq, Show)
 
--- | The requirement on the type of users. Some elements will require
--- specifically a script and some others a pubkey.
+-- | The 'UserKind' corresponds to the requirement on the type of users. Some
+-- elements will require specifically a script and some others a pubkey.
 data UserKind = IsScript | IsPubKey
   deriving (Eq, Show)
 
