@@ -2,6 +2,7 @@ module Spec.BasicUsage where
 
 import Cooked
 import Data.Map qualified as Map
+import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -30,7 +31,7 @@ mintingQuickValue :: (MonadBlockChain m) => m ()
 mintingQuickValue =
   validateTxSkel_
     txSkelTemplate
-      { txSkelMints = txSkelMintsFromList [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
+      { txSkelMints = review txSkelMintsListI [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
         txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript (Api.TokenName "banana") 10)],
         txSkelSigners = [alice]
       }

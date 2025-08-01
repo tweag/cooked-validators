@@ -81,7 +81,7 @@ tests =
               runTweak
                 ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                     ( \out@(TxSkelOut _ _ dat value _ _) ->
-                        Just (Script.toValidatorHash val1) == preview txSkelOutValidatorHashAF out
+                        Just (Script.toScriptHash val1) == preview txSkelOutScriptHashAF out
                           && dat == SomeTxSkelOutDatum SecondLock Inline
                           && bound `Api.geq` value
                     )
@@ -132,7 +132,7 @@ tests =
           somewhere
             ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                 ( \out@(TxSkelOut _ _ d _ _ _) ->
-                    Just (Script.toValidatorHash carefulValidator) == preview txSkelOutValidatorHashAF out
+                    Just (Script.toScriptHash carefulValidator) == preview txSkelOutScriptHashAF out
                       && d == SomeTxSkelOutDatum SecondLock Inline
                 )
                 (const True)
@@ -144,7 +144,7 @@ tests =
           ( somewhere
               ( datumHijackingAttackAll @(Script.MultiPurposeScript DHContract)
                   ( \out@(TxSkelOut _ _ d _ _ _) ->
-                      Just (Script.toValidatorHash carelessValidator) == preview txSkelOutValidatorHashAF out
+                      Just (Script.toScriptHash carelessValidator) == preview txSkelOutScriptHashAF out
                         && d == SomeTxSkelOutDatum SecondLock Inline
                   )
                   (const True)

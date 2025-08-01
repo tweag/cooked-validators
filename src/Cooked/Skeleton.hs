@@ -25,6 +25,7 @@ module Cooked.Skeleton
     txSkelInsReferenceL,
     txSkelOutsL,
     txSkelWithdrawalsL,
+    txSkelCertificatesL,
     txSkelTemplate,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
@@ -33,9 +34,12 @@ module Cooked.Skeleton
     txSkelInsReferenceInRedeemers,
     txSkelProposingScripts,
     txSkelMintingScripts,
+    txSkelCertifyingScripts,
   )
 where
 
+import Cooked.Skeleton.Anchor as X
+import Cooked.Skeleton.Certificate as X
 import Cooked.Skeleton.Datum as X
 import Cooked.Skeleton.Label as X
 import Cooked.Skeleton.Mint as X
@@ -45,18 +49,18 @@ import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
 import Cooked.Skeleton.ReferenceScript as X
+import Cooked.Skeleton.Scripts as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | A transaction skeleton. This is cooked-validators's variant of transaction
@@ -100,40 +104,47 @@ data TxSkel where
       -- possible enacted later on.
       txSkelProposals :: [TxSkelProposal],
       -- | Withdrawals performed by the transaction
-      txSkelWithdrawals :: TxSkelWithdrawals
+      txSkelWithdrawals :: TxSkelWithdrawals,
+      -- | Certificates issued by the transaction
+      txSkelCertificates :: [TxSkelCertificate]
     } ->
     TxSkel
   deriving (Show, Eq)
 
--- | A lens to set of get labels from a 'TxSkel'
+-- | Focusing on the labels of a 'TxSkel'
 makeLensesFor [("txSkelLabel", "txSkelLabelL")] ''TxSkel
 
--- | A lens to set of get options from a 'TxSkel'
+-- | Focusing on the optics of a 'TxSkel'
 makeLensesFor [("txSkelOpts", "txSkelOptsL")] ''TxSkel
 
--- | A lens to set of get the minted value of a 'TxSkel'
+-- | Focusing on the minted value of a 'TxSkel'
 makeLensesFor [("txSkelMints", "txSkelMintsL")] ''TxSkel
 
--- | A lens to set of get the validity range of a 'TxSkel'
+-- | Focusing on the validity range of a 'TxSkel'
 makeLensesFor [("txSkelValidityRange", "txSkelValidityRangeL")] ''TxSkel
 
--- | A lens to set of get signers from a 'TxSkel'
+-- | Focusing on the signers of a 'TxSkel'
 makeLensesFor [("txSkelSigners", "txSkelSignersL")] ''TxSkel
 
--- | A lens to set of get inputs from a 'TxSkel'
+-- | Focusing on the inputs of a 'TxSkel'
 makeLensesFor [("txSkelIns", "txSkelInsL")] ''TxSkel
 
--- | A lens to set of get reference inputs from a 'TxSkel'
+-- | Focusing on the reference inputs of a 'TxSkel'
 makeLensesFor [("txSkelInsReference", "txSkelInsReferenceL")] ''TxSkel
 
--- | A lens to set of get outputs from a 'TxSkel'
+-- | Focusing on the outputs of a 'TxSkel'
 makeLensesFor [("txSkelOuts", "txSkelOutsL")] ''TxSkel
 
--- | A lens to set of get proposals from a 'TxSkel'
+-- | Focusing on the proposals of a 'TxSkel'
 makeLensesFor [("txSkelProposals", "txSkelProposalsL")] ''TxSkel
 
--- | A lens to set of get withdrawals from a 'TxSkel'
+-- | Focusing on the withdrawals of a 'TxSkel'
 makeLensesFor [("txSkelWithdrawals", "txSkelWithdrawalsL")] ''TxSkel
+
+-- | Focusing on the certificates of a 'TxSkel'
+makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
+
+-- | A lens to set or
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel
@@ -148,7 +159,8 @@ txSkelTemplate =
       txSkelInsReference = Set.empty,
       txSkelOuts = [],
       txSkelProposals = [],
-      txSkelWithdrawals = Map.empty
+      txSkelWithdrawals = def,
+      txSkelCertificates = []
     }
 
 -- | Returns the full value contained in the skeleton outputs
@@ -159,11 +171,11 @@ txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
 txSkelInsReferenceInRedeemers TxSkel {..} =
   Set.fromList $
-    mapMaybe txSkelRedeemerReferenceInput $
-      Map.elems txSkelIns
-        <> (snd <$> mapMaybe txSkelProposalWitness txSkelProposals)
-        <> (fst <$> Map.elems txSkelMints)
-        <> (fst <$> Map.elems txSkelWithdrawals)
+    toListOf (to Map.elems % traversed % txSkelRedeemerReferenceInputL % _Just) txSkelIns
+      <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelProposals
+      <> toListOf (to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputL % _Just) txSkelMints
+      <> toListOf (txSkelWithdrawalsByScriptsL % to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputL % _Just) txSkelWithdrawals
+      <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelCertificates
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
@@ -171,23 +183,24 @@ txSkelInsReferenceInRedeemers TxSkel {..} =
 -- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> Set Api.TxOutRef
-txSkelKnownTxOutRefs skel@TxSkel {..} =
-  txSkelInsReferenceInRedeemers skel
-    <> Map.keysSet txSkelIns
-    <> txSkelInsReference
+txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelInsReferenceInRedeemers skel <> Map.keysSet txSkelIns <> txSkelInsReference
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
-txSkelWithdrawnValue = review valueLovelaceP . foldOf (txSkelWithdrawalsL % to Map.toList % traversed % _2 % _2)
+txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.toList % traversed % _1 % _Left)
+txSkelWithdrawingScripts :: TxSkel -> [VScript]
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userVScriptL)
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
-txSkelProposingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalWitnessL % _Just % _1)
+txSkelProposingScripts :: TxSkel -> [VScript]
+txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userVScriptL)
 
 -- | Returns all the scripts involved in minting in this 'TxSkel'
-txSkelMintingScripts :: TxSkel -> [Script.Versioned Script.Script]
-txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintVersionedScriptL)
+txSkelMintingScripts :: TxSkel -> [VScript]
+txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userVScriptL)
+
+-- | Returns all the scripts involved in certificates in this 'TxSkel'
+txSkelCertifyingScripts :: TxSkel -> [VScript]
+txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsScript % userVScriptAT)

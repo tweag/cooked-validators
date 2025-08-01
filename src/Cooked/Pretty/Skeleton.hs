@@ -15,11 +15,10 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
+import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
@@ -39,7 +38,7 @@ data Contextualized a = Contextualized
 -- | Prints a 'Contextualized' 'TxSkel'
 instance PrettyCookedList (Contextualized TxSkel) where
   prettyCookedOptListMaybe opts cTxSkel
-    | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals <- ctxContent cTxSkel =
+    | TxSkel lbl txopts mints signers validityRange ins insReference outs proposals withdrawals certificates <- ctxContent cTxSkel =
         [ prettyItemizeNonEmpty opts "Labels:" "-" lbl,
           prettyItemizeNonEmpty opts "Mints:" "-" (view txSkelMintsListI mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
@@ -48,22 +47,55 @@ instance PrettyCookedList (Contextualized TxSkel) where
           prettyItemizeNonEmpty opts "Reference inputs:" "-" $ prettyCookedOpt opts . (<$ cTxSkel) . ReferenceInput <$> Set.toList insReference,
           prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
           prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
-          prettyItemizeNonEmpty opts "Withdrawals:" "-" (mkWithdrawal <$> Map.toList withdrawals),
+          prettyItemizeNonEmpty opts "Withdrawals:" "-" $ view txSkelWithdrawalsListI withdrawals,
+          prettyItemizeNonEmpty opts "Certificates:" "-" certificates,
           prettyItemizeNonEmpty opts "Options:" "-" txopts
         ]
 
-data Withdrawal = Withdrawal (Either (Script.Versioned Script.Script) Api.PubKeyHash) TxSkelRedeemer Api.Lovelace
+instance PrettyCooked TxSkelCertificate where
+  prettyCookedOpt opts (TxSkelCertificate owner action) =
+    prettyItemize
+      opts
+      (prettyCookedOpt opts action)
+      "-"
+      $ prettyCookedList owner
 
-mkWithdrawal :: (Either (Script.Versioned Script.Script) Api.PubKeyHash, (TxSkelRedeemer, Api.Lovelace)) -> Withdrawal
-mkWithdrawal (owner, (red, lv)) = Withdrawal owner red lv
+instance PrettyCookedList (User req mode) where
+  prettyCookedOptListMaybe opt (UserPubKeyHash (Script.toPubKeyHash -> pkh)) = [Just ("User" <+> prettyHash opt pkh)]
+  prettyCookedOptListMaybe opt (UserScript (toVScript -> vScript)) = [Just ("Script" <+> prettyHash opt vScript)]
+  prettyCookedOptListMaybe opt (UserRedeemedScript (toVScript -> script) red) =
+    Just (prettyHash opt script) : prettyCookedOptListMaybe opt red
+
+instance PrettyCooked (CertificateAction req) where
+  prettyCookedOpt _ StakingRegister = "Register staking"
+  prettyCookedOpt _ StakingUnRegister = "Unregister staking"
+  prettyCookedOpt opt (StakingDelegate deleg) = "Delegate staking to" <+> prettyCookedOpt opt deleg
+  prettyCookedOpt opt (StakingRegisterDelegate deleg) = "Register staking and delegate it to" <+> prettyCookedOpt opt deleg
+  prettyCookedOpt _ DRepRegister = "Register DRep"
+  prettyCookedOpt _ DRepUpdate = "Update DRep"
+  prettyCookedOpt _ DRepUnRegister = "Unregister DRep"
+  prettyCookedOpt opt (PoolRegister poolVfr) = "Register pool" <+> prettyHash opt poolVfr
+  prettyCookedOpt _ (PoolRetire (Ledger.Slot n)) = "Retire pool at slot" <+> PP.pretty n
+  prettyCookedOpt opt (CommitteeRegisterHot cred) = "Register hot credential" <+> prettyCookedOpt opt cred
+  prettyCookedOpt _ CommitteeResign = "Resign committee"
+
+instance PrettyCooked Api.Delegatee where
+  prettyCookedOpt opt (Api.DelegStake pkh) = "Delegate stake to" <+> prettyHash opt pkh
+  prettyCookedOpt opt (Api.DelegVote dRep) = "Delegate vote to" <+> prettyCookedOpt opt dRep
+  prettyCookedOpt opt (Api.DelegStakeVote pkh dRep) = "Delegate stake to" <+> prettyHash opt pkh <+> "and delegate vote to" <+> prettyCookedOpt opt dRep
+
+instance PrettyCooked Api.DRep where
+  prettyCookedOpt _ Api.DRepAlwaysAbstain = "Always abstain"
+  prettyCookedOpt _ Api.DRepAlwaysNoConfidence = "Always no confidence"
+  prettyCookedOpt opt (Api.DRep (Api.DRepCredential cred)) = prettyCookedOpt opt cred
 
 instance PrettyCooked Withdrawal where
-  prettyCookedOpt opts (Withdrawal (Left script) red lv) =
-    prettyItemize opts (prettyHash opts script) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
-  prettyCookedOpt opts (Withdrawal (Right pkh) _ lv) =
+  prettyCookedOpt opts (Withdrawal (UserRedeemedScript (toVScript -> vScript) red) lv) =
+    prettyItemize opts (prettyHash opts vScript) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
+  prettyCookedOpt opts (Withdrawal (UserPubKeyHash (Script.toPubKeyHash -> pkh)) lv) =
     prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
-instance PrettyCooked TxParameterChange where
+instance PrettyCooked ParameterChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (FeeFixed n) = "Fee fixed:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (MaxBlockBodySize n) = "Max block body size:" <+> prettyCookedOpt opts n
@@ -141,7 +173,6 @@ instance PrettyCooked TxParameterChange where
   prettyCookedOpt opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (MinFeeRefScriptCostPerByte q) = "Min fee per byto of reference script:" <+> prettyCookedOpt opts q
 
--- | Prints a list of docs corresponding to an instance of 'TxSkelRedeemer'
 instance PrettyCookedList TxSkelRedeemer where
   prettyCookedOptListMaybe opts (TxSkelRedeemer red mRefScript _) =
     [ Just $ "Redeemer" <+> prettyCookedOpt opts red,
@@ -149,22 +180,23 @@ instance PrettyCookedList TxSkelRedeemer where
     ]
 
 instance PrettyCookedList TxSkelProposal where
-  prettyCookedOptListMaybe opts TxSkelProposal {..} =
-    [ Just $ "Governance action:" <+> prettyCookedOpt opts txSkelProposalAction,
-      Just $ "Return address:" <+> prettyCooked txSkelProposalAddress,
-      (\(script, redeemer) -> prettyItemize opts "Witness:" "-" (prettyHash opts script : prettyCookedOptList opts redeemer)) <$> txSkelProposalWitness,
-      ("Anchor:" <+>) . PP.pretty <$> txSkelProposalAnchor
+  prettyCookedOptListMaybe opts txSkelProposal =
+    [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @ReqScript) txSkelProposal,
+      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @ReqNone) txSkelProposal,
+      ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
+      ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)
 
-instance PrettyCooked TxGovAction where
-  prettyCookedOpt opts (TxGovActionParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
-  prettyCookedOpt opts (TxGovActionHardForkInitiation (Api.ProtocolVersion major minor)) =
+instance PrettyCooked (TxSkelGovAction a) where
+  prettyCookedOpt opts (ParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
+  prettyCookedOpt opts (HardForkInitiation (Api.ProtocolVersion major minor)) =
     "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"
-  prettyCookedOpt opts (TxGovActionTreasuryWithdrawals withdrawals) =
+  prettyCookedOpt opts (TreasuryWithdrawals withdrawals) =
     prettyItemize opts "Withdrawals:" "-" $
       (\(cred, lv) -> prettyCookedOpt opts cred <+> "|" <+> prettyCooked (Script.toValue lv)) <$> Map.toList withdrawals
-  prettyCookedOpt _ TxGovActionNoConfidence = "No confidence"
-  prettyCookedOpt opts (TxGovActionUpdateCommittee toRemoveCreds toAddCreds quorum) =
+  prettyCookedOpt _ NoConfidence = "No confidence"
+  prettyCookedOpt opts (UpdateCommittee toRemoveCreds toAddCreds quorum) =
     prettyItemize
       opts
       "Updates in committee:"
@@ -175,7 +207,7 @@ instance PrettyCooked TxGovAction where
           (\(Api.ColdCommitteeCredential cred, i) -> prettyCookedOpt opts cred <+> "->" <+> prettyCookedOpt opts i) <$> Map.toList toAddCreds,
         "Quorum:" <+> prettyCookedOpt opts (Api.toGHC quorum)
       ]
-  prettyCookedOpt opts (TxGovActionNewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
+  prettyCookedOpt opts (NewConstitution (Api.Constitution mScriptHash)) = case mScriptHash of
     Nothing -> "Empty new constitution"
     Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
@@ -198,8 +230,8 @@ instance PrettyCookedList (TxSkelOpts, [Wallet]) where
 --     - "Foo": 500
 --     - "Bar": 1000
 instance PrettyCooked Mint where
-  prettyCookedOpt opts (Mint pol red tks) =
-    prettyItemize opts (prettyHash opts (Script.toVersioned @Script.MintingPolicy pol)) "-" $
+  prettyCookedOpt opts (Mint (UserRedeemedScript pol red) tks) =
+    prettyItemize opts (prettyHash opts (toVScript pol)) "-" $
       prettyCookedOptList opts red ++ ((\(tk, n) -> PP.viaShow tk <> ":" <+> PP.viaShow n) <$> tks)
 
 instance PrettyCookedList TxSkelOut where
@@ -256,15 +288,13 @@ instance PrettyCookedList TxSkelOpts where
         txSkelOptBalancingUtxos
         _
         txSkelOptCollateralUtxos
-        txSkelOptAnchorResolution
       ) =
       [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
         prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
         prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
         prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
-        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
-        prettyIfNot def prettyAnchorResolution txSkelOptAnchorResolution
+        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
@@ -313,10 +343,6 @@ instance PrettyCookedList TxSkelOpts where
         prettyBalanceFeePolicy :: FeePolicy -> DocCooked
         prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
         prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> prettyCookedOpt opts fee
-        prettyAnchorResolution :: AnchorResolution -> DocCooked
-        prettyAnchorResolution AnchorResolutionHttp = "Resolve anchor url with an (unsafe) http connection"
-        prettyAnchorResolution (AnchorResolutionLocal urlMap) =
-          prettyItemize @[DocCooked] opts "Resolve anchor url with the following table keys" "-" (PP.viaShow <$> Map.keys urlMap)
 
 -- | Resolves a "TxOutRef" from a given context, builds a doc cooked for its
 -- address and value, and also builds a possibly empty list for its datum and

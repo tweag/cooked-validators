@@ -7,7 +7,6 @@ module Cooked.Skeleton.Option
     BalancingPolicy (..),
     BalancingUtxos (..),
     CollateralUtxos (..),
-    AnchorResolution (..),
     TxSkelOpts (..),
     txSkelOptModTxL,
     txSkelOptAutoSlotIncreaseL,
@@ -17,7 +16,6 @@ module Cooked.Skeleton.Option
     txSkelOptBalancingUtxosL,
     txSkelOptModParamsL,
     txSkelOptCollateralUtxosL,
-    txSkelOptAnchorResolutionL,
     txSkelOptAddModTx,
     txSkelOptAddModParams,
   )
@@ -26,10 +24,7 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
 import Cooked.Wallet
-import Data.ByteString (ByteString)
 import Data.Default
-import Data.Map (Map)
-import Data.Map qualified as Map
 import Data.Set (Set)
 import Optics.Core
 import Optics.TH
@@ -108,19 +103,6 @@ data CollateralUtxos
 instance Default CollateralUtxos where
   def = CollateralUtxosFromBalancingWallet
 
--- | Describes how to resolve anchors in proposal procedures
-data AnchorResolution
-  = -- | Provide a map between urls and page content as Bytestring
-    AnchorResolutionLocal (Map String ByteString)
-  | -- | Allow online fetch of pages from a given URL. Important note: using
-    -- this option is unsafe, as it requires a web connection and inherently
-    -- prevents guarantees of reproducibily. Use at your own discretion.
-    AnchorResolutionHttp
-  deriving (Eq, Show)
-
-instance Default AnchorResolution where
-  def = AnchorResolutionLocal Map.empty
-
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
 data TxSkelOpts = TxSkelOpts
@@ -189,31 +171,26 @@ data TxSkelOpts = TxSkelOpts
     -- computed automatically from a given, or the balancing, wallet.
     --
     -- Default is 'CollateralUtxosFromBalancingWallet'
-    txSkelOptCollateralUtxos :: CollateralUtxos,
-    -- | How to resolve anchor in proposal procedures
-    --
-    -- Default is 'AnchorResolutionLocal Map.Empty'
-    txSkelOptAnchorResolution :: AnchorResolution
+    txSkelOptCollateralUtxos :: CollateralUtxos
   }
 
 -- | Comparing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Eq TxSkelOpts where
-  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos anchorRes)
-    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos' anchorRes') =
+  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos)
+    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos') =
       slotIncrease == slotIncrease'
         && balancingPol == balancingPol'
         && feePol == feePol'
         && balOutputPol == balOutputPol'
         && balUtxos == balUtxos'
         && colUtxos == colUtxos'
-        && anchorRes == anchorRes'
 
 -- | Showing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Show TxSkelOpts where
-  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos anchorRes) =
-    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show anchorRes]
+  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos) =
+    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos]
 
 -- | A lens to get or set the automatic slot increase option
 makeLensesFor [("txSkelOptAutoSlotIncrease", "txSkelOptAutoSlotIncreaseL")] ''TxSkelOpts
@@ -252,8 +229,7 @@ instance Default TxSkelOpts where
         txSkelOptFeePolicy = def,
         txSkelOptBalancingUtxos = def,
         txSkelOptModParams = id,
-        txSkelOptCollateralUtxos = def,
-        txSkelOptAnchorResolution = def
+        txSkelOptCollateralUtxos = def
       }
 
 -- | Appends a transaction modification to the given 'TxSkelOpts'

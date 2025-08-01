@@ -4,8 +4,8 @@
 -- have our own internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
+import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Applicative
 import Control.Lens qualified as Lens
@@ -20,8 +20,8 @@ import Cooked.MockChain.AutoReferenceScripts
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Output
+import Cooked.MockChain.GenerateTx.Witness
 import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
@@ -199,7 +199,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
           return newSlot
       | otherwise -> throwError $ MCEPastSlot cs (cs + fromIntegral n)
   define name hashable = tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
-  setConstitutionScript (Script.toVersioned -> cScript) = do
+  setConstitutionScript (toVScript -> cScript) = do
     modify' (mcstConstitutionL ?~ cScript)
     modify' $
       over mcstLedgerStateL $
@@ -208,11 +208,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
             cScript
   getConstitutionScript = gets (view mcstConstitutionL)
   registerStakingCred (Script.toCredential -> cred) reward deposit = do
-    stakeCredential <-
-      throwOnToCardanoErrorOrApply
-        "Unable to convert staking credential"
-        Cardano.toShelleyStakeCredential
-        (Ledger.toCardanoStakeCredential cred)
+    stakeCredential <- toStakeCredential cred
     modify' $
       over
         mcstLedgerStateL
@@ -236,10 +232,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
     minAdaSkelUnbal <- toTxSkelWithMinAda skelUnbal
-    -- We retrieve the official constitution script
-    constitution <- getConstitutionScript
-    -- We attach the script to each proposal that requires it
-    let minAdaSkelUnbalWithConst = over (txSkelProposalsL % traversed) (`updateConstitution` constitution) minAdaSkelUnbal
+    -- We retrieve the official constitution script and attach it to each
+    -- proposal that requires it, if it's not empty
+    minAdaSkelUnbalWithConst <-
+      getConstitutionScript <&> maybe minAdaSkelUnbal (flip (over (txSkelProposalsL % traversed)) minAdaSkelUnbal . autoFillConstitution)
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are allowed to be auto filled
     minAdaRefScriptsSkelUnbalWithConst <- toTxSkelWithReferenceScripts minAdaSkelUnbalWithConst
