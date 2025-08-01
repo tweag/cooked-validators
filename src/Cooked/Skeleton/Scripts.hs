@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 -- | This module exposes aliases to conveniently use versioned script and tools
 -- to manipulate a script alongside its redeemer.
 module Cooked.Skeleton.Scripts where
@@ -11,27 +9,6 @@ import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.Data.V3 qualified as Api
-
--- * Membership type family
-
--- | A type family representing membership. This requires @UndecidableInstances@
--- because the type checker is not smart enough to understand that this type
--- family decreases in @els@, due to the presence of @extras@. @extras@ is used
--- to keep track of the original list and output a relevant message in the empty
--- case, which could otherwise be omitted altogther at no loss of type safety.
-type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
-  Member x (x ': xs) _ = ()
-  Member x (y ': xs) l = Member x xs (y ': l)
-  Member x '[] l = TypeError ('ShowType x ':<>: 'Text " is not a member of " ':<>: 'ShowType l)
-
--- | A specific instance of @Member@ where the already browsed elements is @[]@
-type (∈) el els = Member el els '[]
-
--- * FromJust type family
-
--- | Extracting the inner type of a @Maybe k@
-type family FromJust (m :: Maybe k) :: k where
-  FromJust (Just a) = a
 
 -- * Handy aliases around versioned scripts
 
@@ -46,7 +23,7 @@ type ToVScript = Script.ToVersioned Script.Script
 toVScript :: (ToVScript script) => script -> VScript
 toVScript = Script.toVersioned
 
--- * A depiction of users with their kind and mode
+-- * A depiction of user kinds and modes
 
 -- | The 'UserMode' corresponds to the way the user will be used in our
 -- 'Cooked.Skeleton.TxSkel' which can either be for allocation (allocation a
@@ -57,8 +34,27 @@ data UserMode = Allocation | Redemption
 
 -- | The 'UserKind' corresponds to the requirement on the type of users. Some
 -- elements will require specifically a script and some others a pubkey.
-data UserKind = IsScript | IsPubKey
+data UserKind = IsScript | IsPubKey | IsNone
   deriving (Eq, Show)
+
+-- * A depiction of requirements over users
+
+-- | Requirements to be satisfied by users. They can either be required to be
+-- scripts, pubkeys, either of those, or nothing at all.
+data UserReq = ReqScript | ReqPubKey | ReqEither | ReqNone
+  deriving (Eq, Show)
+
+-- | Which user kind satsifies which user requirements
+type family (⊨) (kind :: UserKind) (req :: UserReq) :: Constraint where
+  IsScript ⊨ ReqScript = ()
+  IsScript ⊨ ReqEither = ()
+  IsPubKey ⊨ ReqPubKey = ()
+  IsPubKey ⊨ ReqEither = ()
+  IsScript ⊨ ReqPubKey = TypeError ('Text "Only public key users allowed")
+  IsPubKey ⊨ ReqScript = TypeError ('Text "Only script users allowed")
+  IsNone ⊨ ReqNone = ()
+  IsNone ⊨ a = TypeError ('Text "A user is needed")
+  a ⊨ ReqNone = TypeError ('Text "No user is allowed")
 
 -- | Building users. The type exposes the mode for which the user has been
 -- built, and the requirements on the kind of the user.

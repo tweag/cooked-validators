@@ -173,7 +173,6 @@ instance PrettyCooked ParameterChange where
   prettyCookedOpt opts (DRepActivity n) = "DRep activity:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (MinFeeRefScriptCostPerByte q) = "Min fee per byto of reference script:" <+> prettyCookedOpt opts q
 
--- | Prints a list of docs corresponding to an instance of 'TxSkelRedeemer'
 instance PrettyCookedList TxSkelRedeemer where
   prettyCookedOptListMaybe opts (TxSkelRedeemer red mRefScript _) =
     [ Just $ "Redeemer" <+> prettyCookedOpt opts red,
@@ -183,8 +182,8 @@ instance PrettyCookedList TxSkelRedeemer where
 instance PrettyCookedList TxSkelProposal where
   prettyCookedOptListMaybe opts txSkelProposal =
     [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
-      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @(Just IsScript)) txSkelProposal,
-      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @Nothing) txSkelProposal,
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @ReqScript) txSkelProposal,
+      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @ReqNone) txSkelProposal,
       ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
       ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)

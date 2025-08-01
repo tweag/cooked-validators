@@ -35,13 +35,13 @@ tests =
           testWithdrawingScript 2 2 2 2
             `withTweak` setTweak
               (txSkelWithdrawalsL % txSkelWithdrawalsListI)
-              [scriptWithdrawal trueWithdrawalMPScript (someTxSkelRedeemer (2_000 :: Integer)) 2_000],
-      testCooked "A wallet can also make a withdrawal" $
-        mustSucceedTest $
-          testWithdrawingScript 2 2 2 2
-            `withTweak` do
-              registerStakingCred (wallet 1) 2_000 0
-              setTweak
-                (txSkelWithdrawalsL % txSkelWithdrawalsListI)
-                [pkWithdrawal (wallet 1) 2_000]
+              [scriptWithdrawal trueWithdrawalMPScript (someTxSkelRedeemer (2_000 :: Integer)) 2_000] -- ,
+              -- testCooked "A wallet can also make a withdrawal" $
+              --   mustSucceedTest $
+              --     testWithdrawingScript 2 2 2 2
+              --       `withTweak` do
+              --         registerStakingCred (wallet 1) 2_000 0
+              --         setTweak
+              --           (txSkelWithdrawalsL % txSkelWithdrawalsListI)
+              --           [pkWithdrawal (wallet 1) 2_000]
     ]

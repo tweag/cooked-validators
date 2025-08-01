@@ -15,7 +15,7 @@ testProposingScript ::
   -- | The optionally attached unofficial constitution script
   Maybe VScript ->
   -- | The governance action to propose
-  TxSkelGovAction (Just IsScript) ->
+  TxSkelGovAction ReqScript ->
   m ()
 testProposingScript autoRefScript autoConstitution constitution mScript govAction = do
   setConstitutionScript constitution
@@ -34,7 +34,17 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
               ( if autoConstitution
                   then
                     Nothing
-                  else (\vScript -> Just $ UserRedeemedScript vScript (if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemerNoAutoFill)) =<< mScript
+                  else
+                    ( \vScript ->
+                        Just $
+                          UserRedeemedScript
+                            vScript
+                            ( if autoRefScript
+                                then emptyTxSkelRedeemer
+                                else emptyTxSkelRedeemerNoAutoFill
+                            )
+                    )
+                      =<< mScript
               )
               Nothing
           ]

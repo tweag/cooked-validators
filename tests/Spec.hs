@@ -33,6 +33,6 @@ main =
         ReferenceInputs.tests,
         ReferenceScripts.tests,
         Slot.tests,
-        Tweak.tests
-        -- Withdrawals.tests
+        Tweak.tests,
+        Withdrawals.tests
       ]

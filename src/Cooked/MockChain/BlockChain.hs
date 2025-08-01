@@ -261,7 +261,7 @@ txSkelDepositedValueInCertificates txSkel = do
     foldOf
       ( txSkelCertificatesL
           % traversed
-          % txSkelCertificateActionAT @[IsScript, IsPubKey]
+          % txSkelCertificateActionAT @ReqEither
           % to
             ( \case
                 StakingRegister {} -> sDep

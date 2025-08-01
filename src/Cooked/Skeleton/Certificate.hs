@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 -- | This module exposes certificates in 'Cooked.Skelton.TxSkel'
 module Cooked.Skeleton.Certificate where
 
@@ -12,18 +10,18 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | The depiction of the possible actions in a certificate. Each actions
 -- exposes, in its types, the possible owners it can have.
-data CertificateAction :: [UserKind] -> Type where
-  StakingRegister :: CertificateAction '[IsScript, IsPubKey]
-  StakingUnRegister :: CertificateAction '[IsScript, IsPubKey]
-  StakingDelegate :: Api.Delegatee -> CertificateAction '[IsScript, IsPubKey]
-  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction '[IsScript, IsPubKey]
-  DRepRegister :: CertificateAction '[IsScript, IsPubKey]
-  DRepUpdate :: CertificateAction '[IsScript, IsPubKey]
-  DRepUnRegister :: CertificateAction '[IsScript, IsPubKey]
-  PoolRegister :: Api.PubKeyHash -> CertificateAction '[IsPubKey]
-  PoolRetire :: Ledger.Slot -> CertificateAction '[IsPubKey]
-  CommitteeRegisterHot :: Api.Credential -> CertificateAction '[IsScript, IsPubKey]
-  CommitteeResign :: CertificateAction '[IsScript, IsPubKey]
+data CertificateAction :: UserReq -> Type where
+  StakingRegister :: CertificateAction ReqEither
+  StakingUnRegister :: CertificateAction ReqEither
+  StakingDelegate :: Api.Delegatee -> CertificateAction ReqEither
+  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction ReqEither
+  DRepRegister :: CertificateAction ReqEither
+  DRepUpdate :: CertificateAction ReqEither
+  DRepUnRegister :: CertificateAction ReqEither
+  PoolRegister :: Api.PubKeyHash -> CertificateAction ReqPubKey
+  PoolRetire :: Ledger.Slot -> CertificateAction ReqPubKey
+  CommitteeRegisterHot :: Api.Credential -> CertificateAction ReqEither
+  CommitteeResign :: CertificateAction ReqEither
 
 deriving instance (Show (CertificateAction req))
 
@@ -33,12 +31,12 @@ deriving instance (Eq (CertificateAction req))
 -- certificate action is associated with a proper owner and deposit.
 data TxSkelCertificate where
   TxSkelCertificate ::
-    forall user users.
-    (Typeable user, Typeable users, user ∈ users) =>
+    forall kind req.
+    (Typeable kind, Typeable req, kind ⊨ req) =>
     { -- | All owners of certificates must be in 'Redemption' mode
-      txSkelCertificateOwner :: User user Redemption,
+      txSkelCertificateOwner :: User kind Redemption,
       -- | The certificate itself does impose a 'UserKind'
-      txSkelCertificateAction :: CertificateAction users
+      txSkelCertificateAction :: CertificateAction req
     } ->
     TxSkelCertificate
 

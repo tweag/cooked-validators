@@ -111,7 +111,7 @@ scriptWithdrawal :: (ToVScript script) => script -> TxSkelRedeemer -> Integer ->
 scriptWithdrawal script red = Withdrawal (UserRedeemedScript script red) . Api.Lovelace
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
-instance {-# OVERLAPPING #-} Script.ToValue TxSkelWithdrawals where
+instance Script.ToValue TxSkelWithdrawals where
   toValue (TxSkelWithdrawals pkW scW) =
     foldl (\val -> (val <>) . Script.toValue) mempty pkW
       <> foldl (\val -> (val <>) . Script.toValue . snd) mempty scW
