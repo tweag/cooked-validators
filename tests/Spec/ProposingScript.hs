@@ -15,7 +15,7 @@ testProposingScript ::
   -- | The optionally attached unofficial constitution script
   Maybe VScript ->
   -- | The governance action to propose
-  TxSkelGovAction ReqScript ->
+  TxSkelGovAction IsScript ->
   m ()
 testProposingScript autoRefScript autoConstitution constitution mScript govAction = do
   setConstitutionScript constitution

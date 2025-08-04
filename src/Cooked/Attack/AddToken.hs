@@ -28,7 +28,7 @@ import Test.QuickCheck.Modifiers
 --
 -- This attack adds an 'AddTokenLbl' label.
 addTokenAttack ::
-  (MonadTweak m, OwnerConstrs o) =>
+  (MonadTweak m, IsTxSkelOutAllowedOwner o) =>
   -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
   (VScript -> [(Api.TokenName, Integer)]) ->
@@ -51,7 +51,7 @@ addTokenAttack extraTokens attacker = do
 --
 -- This attack adds an 'DupTokenLbl' label
 dupTokenAttack ::
-  (MonadTweak m, OwnerConstrs o) =>
+  (MonadTweak m, IsTxSkelOutAllowedOwner o) =>
   -- | A function describing how the amount of tokens specified by a 'Mint'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy

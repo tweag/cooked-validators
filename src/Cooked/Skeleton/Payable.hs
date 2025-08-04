@@ -10,7 +10,7 @@ module Cooked.Skeleton.Payable
 where
 
 import Cooked.Skeleton.Datum
-import Cooked.Skeleton.ReferenceScript
+import Cooked.Skeleton.User
 import Data.Kind (Constraint, Type)
 import GHC.TypeLits
 import Plutus.Script.Utils.Address qualified as Script
@@ -44,7 +44,7 @@ data Payable :: [Symbol] -> Type where
   -- | Hashed datums hidden from the transaction are payable
   HiddenHashedDatum :: (DatumConstrs a) => a -> Payable '["Datum"]
   -- | Reference scripts are payable
-  ReferenceScript :: (ReferenceScriptConstrs s) => s -> Payable '["Reference Script"]
+  ReferenceScript :: (ToVScript s) => s -> Payable '["Reference Script"]
   -- | Values are payable and are subject to min ada adjustment
   Value :: (Script.ToValue a) => a -> Payable '["Value"]
   -- | Fixed Values are payable but are NOT subject to min ada adjustment

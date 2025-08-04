@@ -45,7 +45,7 @@ toTxSkelWithReferenceScripts txSkel = do
     (`Mint` tks) <$> updateRedeemedScript inputs rs
   newInputs <- forM (view (txSkelInsL % to Map.toList) txSkel) $ \(oRef, red) ->
     (oRef,) <$> do
-      validatorM <- previewByRef txSkelOutScriptAT oRef
+      validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
       case validatorM of
         Nothing -> return red
         Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputs (UserRedeemedScript val red)

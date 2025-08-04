@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor #-}
+
 -- | This module provides a direct (as opposed to 'Cooked.MockChain.Staged')
 -- implementation of the `MonadBlockChain` specification. This rely on the
 -- emulator from cardano-node-emulator for transaction validation, although we
@@ -123,18 +125,16 @@ combineMockChainT f ma mb = MockChainT $
 -- | The returned type when running a 'MockChainT'. This is both a reorganizing
 -- and filtering of the natural returned type @((Either MockChainError a,
 -- MockChainState), MockChainBook)@, which is much easier to query.
-data MockChainReturn a = MockChainReturn
-  { -- | The returned value of the run
-    mcrValue :: Either MockChainError a,
-    -- | All the outputs used throughout the run
-    mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
-    -- | The resulting 'UtxoState' of the run
-    mcrUtxoState :: UtxoState,
-    -- | The log entries emitted during the run
-    mcrJournal :: [MockChainLogEntry],
-    -- | The aliases defined during the run
-    mcrAliases :: Map Api.BuiltinByteString String
-  }
+data MockChainReturn a where
+  MockChainReturn ::
+    { mcrValue :: Either MockChainError a,
+      mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+      mcrUtxoState :: UtxoState,
+      mcrJournal :: [MockChainLogEntry],
+      mcrAliases :: Map Api.BuiltinByteString String
+    } ->
+    MockChainReturn a
+  deriving (Functor)
 
 -- | Runs a 'MockChainT' from a default 'MockChainState'
 runMockChainTRaw ::

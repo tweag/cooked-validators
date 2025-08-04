@@ -57,9 +57,6 @@ optics kind.
   iso is `lovelaceIntegerI`, which sees an integer as a lovelace and
   vice-versa. Isos can be reversed using `re` in addition to being used with
   `view`, `review`, `over`, and `set`.
-- Reviews are used to represent smart constructors, and end with `R`. An example
-  of a review is `txSkelProposalSimpleR`, which builds a `TxSkelProposal` from a
-  simple governance action and a credential. Reviews are used with `review`.
 
 ## Combining optics
 

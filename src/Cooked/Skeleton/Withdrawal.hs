@@ -9,7 +9,7 @@ module Cooked.Skeleton.Withdrawal
     Withdrawal (..),
     withdrawalUserL,
     withdrawalAmountL,
-    pkWithdrawal,
+    pubKeyWithdrawal,
     scriptWithdrawal,
     txSkelWithdrawalsByScriptL,
     txSkelWithdrawalsByPubKeyL,
@@ -18,7 +18,7 @@ module Cooked.Skeleton.Withdrawal
 where
 
 import Cooked.Skeleton.Redeemer
-import Cooked.Skeleton.Scripts
+import Cooked.Skeleton.User
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -54,8 +54,7 @@ txSkelWithdrawalsByPubKeyL = (txSkelWithdrawalsByPubKeysL %) . at . Script.toPub
 -- | A single 'Withdrawal', owned by a pubkey or redeemed script
 data Withdrawal where
   Withdrawal ::
-    (Typeable a) =>
-    { withdrawalUser :: User a Redemption,
+    { withdrawalUser :: User IsEither Redemption,
       withdrawalAmount :: Api.Lovelace
     } ->
     Withdrawal
@@ -68,13 +67,8 @@ instance Eq Withdrawal where
 -- | Focuses on the amount in a 'Withdrawal'
 makeLensesFor [("withdrawalAmount", "withdrawalAmountL")] ''Withdrawal
 
--- | Focuses on the user owning a 'Withdrawal'. This is a type-changing affine
--- traversal.
-withdrawalUserL :: (Typeable a, Typeable a') => AffineTraversal Withdrawal Withdrawal (User a Redemption) (User a' Redemption)
-withdrawalUserL =
-  atraversal
-    (\w@(Withdrawal user _) -> maybe (Left w) Right $ cast user)
-    (\w newUser -> w {withdrawalUser = newUser})
+-- | Focuses on the user owning a 'Withdrawal'
+makeLensesFor [("withdrawalUser", "withdrawalUserL")] ''Withdrawal
 
 -- | Transforms a @[Withdrawal]@ to a 'TxSkelWithdrawals and vice
 -- versa. Accumulates amount of withdrawals with similar owners, and keep the
@@ -83,12 +77,12 @@ txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
 txSkelWithdrawalsListI =
   iso
     ( \TxSkelWithdrawals {..} ->
-        fmap (\(pkh, amount) -> Withdrawal (UserPubKeyHash pkh) amount) (Map.toList txSkelWithdrawalsByPubKeys)
+        fmap (\(pkh, amount) -> Withdrawal (UserPubKey pkh) amount) (Map.toList txSkelWithdrawalsByPubKeys)
           ++ fmap (\(script, (red, amount)) -> Withdrawal (UserRedeemedScript script red) amount) (Map.toList txSkelWithdrawalsByScripts)
     )
     ( foldl
         ( \withdrawals (Withdrawal user amount) -> case user of
-            UserPubKeyHash pkh ->
+            UserPubKey pkh ->
               over
                 (txSkelWithdrawalsByPubKeyL pkh)
                 (maybe (Just amount) (Just . (amount +)))
@@ -103,12 +97,12 @@ txSkelWithdrawalsListI =
     )
 
 -- | Creates a 'Withdrawal' from a private key hash and lovelace amount
-pkWithdrawal :: (Script.ToPubKeyHash pkh) => pkh -> Integer -> Withdrawal
-pkWithdrawal pkh = Withdrawal (UserPubKeyHash pkh) . Api.Lovelace
+pubKeyWithdrawal :: (Script.ToPubKeyHash pkh, Typeable pkh) => pkh -> Integer -> Withdrawal
+pubKeyWithdrawal pkh = Withdrawal (UserPubKey pkh) . Api.Lovelace
 
 -- | Creates a 'Withdrawal' from a redeemed script and lovelace amount
-scriptWithdrawal :: (ToVScript script) => script -> TxSkelRedeemer -> Integer -> Withdrawal
-scriptWithdrawal script red = Withdrawal (UserRedeemedScript script red) . Api.Lovelace
+scriptWithdrawal :: (ToVScript script, Typeable script, RedeemerConstrs red) => script -> red -> Integer -> Withdrawal
+scriptWithdrawal script red = Withdrawal (UserRedeemedScript script (someTxSkelRedeemer red)) . Api.Lovelace
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where
@@ -119,7 +113,8 @@ instance Script.ToValue TxSkelWithdrawals where
 instance Semigroup TxSkelWithdrawals where
   txSkelW <> txSkelW' =
     review txSkelWithdrawalsListI $
-      view txSkelWithdrawalsListI txSkelW <> view txSkelWithdrawalsListI txSkelW'
+      view txSkelWithdrawalsListI txSkelW
+        <> view txSkelWithdrawalsListI txSkelW'
 
 instance Monoid TxSkelWithdrawals where
   mempty = TxSkelWithdrawals mempty mempty

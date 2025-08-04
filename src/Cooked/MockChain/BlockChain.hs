@@ -261,7 +261,7 @@ txSkelDepositedValueInCertificates txSkel = do
     foldOf
       ( txSkelCertificatesL
           % traversed
-          % txSkelCertificateActionAT @ReqEither
+          % txSkelCertificateActionAT @IsEither
           % to
             ( \case
                 StakingRegister {} -> sDep
@@ -276,7 +276,7 @@ txSkelDepositedValueInCertificates txSkel = do
 
 -- | Returns all scripts which guard transaction inputs
 txSkelInputScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [VScript]
-txSkelInputScripts = fmap catMaybes . mapM (previewByRef (txSkelOutScriptAT % to Script.toVersioned)) . Map.keys . txSkelIns
+txSkelInputScripts = fmap catMaybes . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT)) . Map.keys . txSkelIns
 
 -- | Returns all scripts involved in this 'TxSkel'
 -- TODO: handle the case when the certificate does not need the script

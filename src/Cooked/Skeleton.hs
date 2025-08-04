@@ -48,8 +48,8 @@ import Cooked.Skeleton.Output as X
 import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
-import Cooked.Skeleton.ReferenceScript as X
-import Cooked.Skeleton.Scripts as X
+import Cooked.Skeleton.User as X
+import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Cooked.Wallet
 import Data.Default
@@ -69,7 +69,7 @@ data TxSkel where
   TxSkel ::
     { -- | Labels do not influence the transaction generation at all; they are
       -- pretty-printed whenever cooked-validators prints a transaction, and can
-      -- therefore make the output more informative (and greppable).
+      -- therefore make the output more informative.
       txSkelLabel :: Set TxSkelLabel,
       -- | Some options that control transaction generation.
       txSkelOpts :: TxSkelOpts,
@@ -191,7 +191,7 @@ txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
 txSkelWithdrawingScripts :: TxSkel -> [VScript]
-txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userVScriptL)
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsByScriptsL % to Map.keys % traversed)
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [VScript]
@@ -203,4 +203,4 @@ txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % m
 
 -- | Returns all the scripts involved in certificates in this 'TxSkel'
 txSkelCertifyingScripts :: TxSkel -> [VScript]
-txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsScript % userVScriptAT)
+txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userVScriptAT)

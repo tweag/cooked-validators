@@ -39,9 +39,6 @@ putRefScriptOnScriptOutput recipient referenceScript =
           txSkelSigners = [wallet 1]
         }
 
-retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
-retrieveRefScriptHash = previewByRef (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF)
-
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
   Api.ScriptHash ->
@@ -128,11 +125,11 @@ tests =
             theRefScriptHash = Script.toScriptHash theRefScript
          in [ testCooked "on a public key output" $
                 mustSucceedTest
-                  (putRefScriptOnWalletOutput (wallet 3) theRefScript >>= retrieveRefScriptHash)
+                  (putRefScriptOnWalletOutput (wallet 3) theRefScript >>= previewByRef txSkelOutReferenceScriptHashAF)
                   `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.)),
               testCooked "on a script output" $
                 mustSucceedTest
-                  (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= retrieveRefScriptHash)
+                  (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= previewByRef txSkelOutReferenceScriptHashAF)
                   `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.))
             ],
       testGroup

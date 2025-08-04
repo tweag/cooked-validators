@@ -17,7 +17,7 @@ module Cooked.Skeleton.Mint
 where
 
 import Cooked.Skeleton.Redeemer as X
-import Cooked.Skeleton.Scripts
+import Cooked.Skeleton.User
 import Data.Bifunctor
 import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
@@ -49,7 +49,7 @@ data Mint where
 
 -- | Builds some 'Mint' when a single type of token is minted for a given MP
 mint :: (ToVScript a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
-mint mp red tn n = Mint (UserRedeemedScript mp red) [(tn, n)]
+mint mp red tn n = Mint (UserRedeemedScript (toVScript mp) red) [(tn, n)]
 
 -- | Similar to 'mint' but deducing the tokens instead
 burn :: (ToVScript a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint

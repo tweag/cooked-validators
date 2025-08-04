@@ -1,42 +1,43 @@
 -- | This module exposes certificates in 'Cooked.Skelton.TxSkel'
 module Cooked.Skeleton.Certificate where
 
-import Cooked.Skeleton.Scripts
+import Cooked.Skeleton.Redeemer
+import Cooked.Skeleton.User
 import Data.Kind (Type)
 import Data.Typeable (Typeable, cast)
 import Ledger.Slot qualified as Ledger
 import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | The depiction of the possible actions in a certificate. Each actions
 -- exposes, in its types, the possible owners it can have.
-data CertificateAction :: UserReq -> Type where
-  StakingRegister :: CertificateAction ReqEither
-  StakingUnRegister :: CertificateAction ReqEither
-  StakingDelegate :: Api.Delegatee -> CertificateAction ReqEither
-  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction ReqEither
-  DRepRegister :: CertificateAction ReqEither
-  DRepUpdate :: CertificateAction ReqEither
-  DRepUnRegister :: CertificateAction ReqEither
-  PoolRegister :: Api.PubKeyHash -> CertificateAction ReqPubKey
-  PoolRetire :: Ledger.Slot -> CertificateAction ReqPubKey
-  CommitteeRegisterHot :: Api.Credential -> CertificateAction ReqEither
-  CommitteeResign :: CertificateAction ReqEither
+data CertificateAction :: UserKind -> Type where
+  StakingRegister :: CertificateAction IsEither
+  StakingUnRegister :: CertificateAction IsEither
+  StakingDelegate :: Api.Delegatee -> CertificateAction IsEither
+  StakingRegisterDelegate :: Api.Delegatee -> CertificateAction IsEither
+  DRepRegister :: CertificateAction IsEither
+  DRepUpdate :: CertificateAction IsEither
+  DRepUnRegister :: CertificateAction IsEither
+  PoolRegister :: Api.PubKeyHash -> CertificateAction IsPubKey
+  PoolRetire :: Ledger.Slot -> CertificateAction IsPubKey
+  CommitteeRegisterHot :: Api.Credential -> CertificateAction IsEither
+  CommitteeResign :: CertificateAction IsEither
 
 deriving instance (Show (CertificateAction req))
 
 deriving instance (Eq (CertificateAction req))
 
 -- | Certificates used in 'Cooked.Skeleton.TxSkel'. The types ensure that each
--- certificate action is associated with a proper owner and deposit.
+-- certificate action is associated with a proper owner.
 data TxSkelCertificate where
   TxSkelCertificate ::
-    forall kind req.
-    (Typeable kind, Typeable req, kind ⊨ req) =>
+    (Typeable kind) =>
     { -- | All owners of certificates must be in 'Redemption' mode
       txSkelCertificateOwner :: User kind Redemption,
       -- | The certificate itself does impose a 'UserKind'
-      txSkelCertificateAction :: CertificateAction req
+      txSkelCertificateAction :: CertificateAction kind
     } ->
     TxSkelCertificate
 
@@ -47,15 +48,23 @@ instance Eq TxSkelCertificate where
     cast owner == Just owner' && cast action == Just action'
 
 -- | Focuses on the owner of a 'TxSkelCertificate'
-txSkelCertificateOwnerAT :: (Typeable user') => AffineTraversal' TxSkelCertificate (User user' Redemption)
+txSkelCertificateOwnerAT :: (Typeable user) => AffineTraversal' TxSkelCertificate (User user Redemption)
 txSkelCertificateOwnerAT =
   atraversal
     (\cert@(TxSkelCertificate {txSkelCertificateOwner}) -> maybe (Left cert) Right $ cast txSkelCertificateOwner)
-    (\cert@(TxSkelCertificate @user _ action) -> maybe cert (`TxSkelCertificate` action) . cast @_ @(User user Redemption))
+    (\cert@(TxSkelCertificate @user' _ action) -> maybe cert (`TxSkelCertificate` action) . cast @_ @(User user' Redemption))
 
 -- | Focuses on the action of a 'TxSkelCertificate'
-txSkelCertificateActionAT :: (Typeable users') => AffineTraversal' TxSkelCertificate (CertificateAction users')
+txSkelCertificateActionAT :: (Typeable user) => AffineTraversal' TxSkelCertificate (CertificateAction user)
 txSkelCertificateActionAT =
   atraversal
     (\cert@(TxSkelCertificate {txSkelCertificateAction}) -> maybe (Left cert) Right $ cast txSkelCertificateAction)
-    (\cert@(TxSkelCertificate @_ @users owner _) -> maybe cert (TxSkelCertificate owner) . cast @_ @(CertificateAction users))
+    (\cert@(TxSkelCertificate @user' owner _) -> maybe cert (TxSkelCertificate owner) . cast @_ @(CertificateAction user'))
+
+-- | Smart constructor for a pubkey certificate
+pubKeyCertificate :: (Script.ToPubKeyHash pkh, Typeable pkh, Typeable a, a ∈ '[IsPubKey, IsEither]) => pkh -> CertificateAction a -> TxSkelCertificate
+pubKeyCertificate pkh = TxSkelCertificate (UserPubKey pkh)
+
+-- | Smart constructor for a script certificate
+scriptCertificate :: (ToVScript script, Typeable script, RedeemerConstrs red) => script -> red -> CertificateAction IsEither -> TxSkelCertificate
+scriptCertificate script red = TxSkelCertificate (UserRedeemedScript script (someTxSkelRedeemer red))

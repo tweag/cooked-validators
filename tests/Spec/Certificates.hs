@@ -24,32 +24,26 @@ publishCertificate cert =
         txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
       }
 
-withdraw :: (MonadBlockChain m) => User a Redemption -> m ()
+withdraw :: (MonadBlockChain m) => User IsEither Redemption -> m ()
 withdraw user =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSigners = [alice],
-        txSkelWithdrawals =
-          review
-            txSkelWithdrawalsListI
-            [ case user of
-                UserPubKeyHash pkh -> pkWithdrawal pkh 0
-                UserRedeemedScript s red -> scriptWithdrawal s red 0
-            ],
+        txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user 0],
         txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
       }
 
-trueScriptUser :: User IsScript Redemption
-trueScriptUser = UserRedeemedScript (Script.trueMPScript @()) emptyTxSkelRedeemer
+trueScriptUser :: User IsEither Redemption
+trueScriptUser = UserRedeemedScript (toVScript $ Script.trueMPScript @()) emptyTxSkelRedeemer
 
-falseScriptUser :: User IsScript Redemption
-falseScriptUser = UserRedeemedScript (Script.falseMPScript @()) emptyTxSkelRedeemer
+falseScriptUser :: User IsEither Redemption
+falseScriptUser = UserRedeemedScript (toVScript $ Script.falseMPScript @()) emptyTxSkelRedeemer
 
-aliceUser :: User IsPubKey Redemption
-aliceUser = UserPubKeyHash alice
+aliceUser :: User IsEither Redemption
+aliceUser = UserPubKey $ Script.toPubKeyHash alice
 
-bobUser :: User IsPubKey Redemption
-bobUser = UserPubKeyHash bob
+bobUser :: User IsEither Redemption
+bobUser = UserPubKey $ Script.toPubKeyHash bob
 
 tests :: TestTree
 tests =

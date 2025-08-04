@@ -57,8 +57,10 @@ data TxSkelRedeemer where
 deriving instance (Show TxSkelRedeemer)
 
 instance Eq TxSkelRedeemer where
-  (TxSkelRedeemer red mRefIn af) == TxSkelRedeemer red' mRefIn' af' =
-    cast red PlutusTx.== Just red' PlutusTx.&& mRefIn PlutusTx.== mRefIn' PlutusTx.&& af PlutusTx.== af'
+  (TxSkelRedeemer red mRefIn af) == TxSkelRedeemer red' mRefIn' af' = (Api.toBuiltinData red, mRefIn, af) == (Api.toBuiltinData red', mRefIn', af')
+
+instance Ord TxSkelRedeemer where
+  compare (TxSkelRedeemer red mRefIn af) (TxSkelRedeemer red' mRefIn' af') = compare (Api.toBuiltinData red, mRefIn, af) (Api.toBuiltinData red', mRefIn', af')
 
 -- * Navigating within a 'TxSkelRedeemer'
 

@@ -11,14 +11,7 @@ testWithdrawingScript reward deposit inRedeemer actual = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSigners = [wallet 1],
-        txSkelWithdrawals =
-          review
-            txSkelWithdrawalsListI
-            [ scriptWithdrawal
-                checkWithdrawalMPScript
-                (someTxSkelRedeemer (inRedeemer * 1_000))
-                (actual * 1_000)
-            ]
+        txSkelWithdrawals = review txSkelWithdrawalsListI [scriptWithdrawal checkWithdrawalMPScript (inRedeemer * 1_000) (actual * 1_000)]
       }
 
 tests :: TestTree
@@ -35,7 +28,7 @@ tests =
           testWithdrawingScript 2 2 2 2
             `withTweak` setTweak
               (txSkelWithdrawalsL % txSkelWithdrawalsListI)
-              [scriptWithdrawal trueWithdrawalMPScript (someTxSkelRedeemer (2_000 :: Integer)) 2_000] -- ,
+              [scriptWithdrawal trueWithdrawalMPScript (2_000 :: Integer) 2_000] -- ,
               -- testCooked "A wallet can also make a withdrawal" $
               --   mustSucceedTest $
               --     testWithdrawingScript 2 2 2 2

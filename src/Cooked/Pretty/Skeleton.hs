@@ -61,7 +61,7 @@ instance PrettyCooked TxSkelCertificate where
       $ prettyCookedList owner
 
 instance PrettyCookedList (User req mode) where
-  prettyCookedOptListMaybe opt (UserPubKeyHash (Script.toPubKeyHash -> pkh)) = [Just ("User" <+> prettyHash opt pkh)]
+  prettyCookedOptListMaybe opt (UserPubKey (Script.toPubKeyHash -> pkh)) = [Just ("User" <+> prettyHash opt pkh)]
   prettyCookedOptListMaybe opt (UserScript (toVScript -> vScript)) = [Just ("Script" <+> prettyHash opt vScript)]
   prettyCookedOptListMaybe opt (UserRedeemedScript (toVScript -> script) red) =
     Just (prettyHash opt script) : prettyCookedOptListMaybe opt red
@@ -92,7 +92,7 @@ instance PrettyCooked Api.DRep where
 instance PrettyCooked Withdrawal where
   prettyCookedOpt opts (Withdrawal (UserRedeemedScript (toVScript -> vScript) red) lv) =
     prettyItemize opts (prettyHash opts vScript) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
-  prettyCookedOpt opts (Withdrawal (UserPubKeyHash (Script.toPubKeyHash -> pkh)) lv) =
+  prettyCookedOpt opts (Withdrawal (UserPubKey (Script.toPubKeyHash -> pkh)) lv) =
     prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
 
 instance PrettyCooked ParameterChange where
@@ -182,8 +182,8 @@ instance PrettyCookedList TxSkelRedeemer where
 instance PrettyCookedList TxSkelProposal where
   prettyCookedOptListMaybe opts txSkelProposal =
     [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
-      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @ReqScript) txSkelProposal,
-      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @ReqNone) txSkelProposal,
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsScript) txSkelProposal,
+      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsNone) txSkelProposal,
       ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
       ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)
@@ -241,7 +241,7 @@ instance PrettyCookedList TxSkelOut where
     ]
       ++ catMaybes
         [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),
-          ("Reference script hash:" <+>) . prettyHash opts <$> preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) output
+          ("Reference script hash:" <+>) . prettyHash opts <$> preview txSkelOutReferenceScriptHashAF output
         ]
 
 instance PrettyCooked TxSkelOut where

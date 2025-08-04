@@ -3,7 +3,6 @@
 module Spec.MultiPurpose where
 
 import Cooked
-import Data.Default
 import Data.Map qualified as HMap
 import Optics.Core
 import Plutus.MultiPurpose
@@ -102,15 +101,15 @@ tests :: TestTree
 tests =
   testGroup
     "Multi purpose scripts"
-    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript `withPrettyOpts` def {pcOptPrintTxOutRefs = PCOptTxOutRefsFull},
+    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript,
       testGroup
         "The Spending purpose behaves properly"
         [ testCooked "We cannot redirect any output to a private key" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack @(Script.MultiPurposeScript MPTag) alice) runScript,
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams alice) runScript,
           testCooked "We cannot redirect any output to another script" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack @(Script.MultiPurposeScript MPTag) (Script.trueSpendingMPScript @())) runScript
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams $ Script.trueSpendingMPScript @()) runScript
         ],
       testGroup
         "The Minting purpose behaves properly"

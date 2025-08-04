@@ -11,7 +11,7 @@ import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton.Certificate
-import Cooked.Skeleton.Scripts
+import Cooked.Skeleton.User
 import Data.Default
 import Data.Maybe.Strict
 import Optics.Core
@@ -50,13 +50,13 @@ toCertificate txSkelCert =
         Conway.ConwayTxCertGov . (`Conway.ConwayUnRegDRep` depositDRep) <$> toDRepCredential cred
       -- TODO: For now, when registering a new pool we use the default parameters
       -- excepct for the pool id and pool vrf. We could change it later on.
-      TxSkelCertificate (UserPubKeyHash (Script.toPubKeyHash -> poolHash)) (PoolRegister poolVrf) ->
+      TxSkelCertificate (UserPubKey (Script.toPubKeyHash -> poolHash)) (PoolRegister poolVrf) ->
         Conway.ConwayTxCertPool . Shelley.RegPool
           <$> liftA2
             (\pId pVrf -> def {Ledger.ppId = pId, Ledger.ppVrf = pVrf})
             (toStakePoolKeyHash poolHash)
             (toVRFVerKeyHash poolVrf)
-      TxSkelCertificate (UserPubKeyHash (Script.toPubKeyHash -> poolHash)) (PoolRetire slot) ->
+      TxSkelCertificate (UserPubKey (Script.toPubKeyHash -> poolHash)) (PoolRetire slot) ->
         Conway.ConwayTxCertPool
           <$> liftA2
             Shelley.RetirePool
@@ -78,8 +78,11 @@ toCertificateWitness :: (MonadBlockChainBalancing m) => TxSkelCertificate -> m (
 toCertificateWitness =
   maybe
     (return Nothing)
-    (\(UserRedeemedScript s red) -> Just <$> toScriptWitness s red Cardano.NoScriptDatumForStake)
-    . preview (txSkelCertificateOwnerAT @IsScript)
+    ( \case
+        (UserRedeemedScript s red) -> Just <$> toScriptWitness s red Cardano.NoScriptDatumForStake
+        _ -> return Nothing
+    )
+    . preview (txSkelCertificateOwnerAT @IsEither)
 
 -- | Builds a 'Cardano.TxCertificates' from a list of 'TxSkelCertificate'
 toCertificates :: (MonadBlockChainBalancing m) => [TxSkelCertificate] -> m (Cardano.TxCertificates Cardano.BuildTx Cardano.ConwayEra)

@@ -68,7 +68,7 @@ mcstToUtxoState =
                       NoTxSkelOutDatum -> NoUtxoPayloadDatum
                       SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)
                   )
-                  (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) txSkelOut)
+                  (preview txSkelOutReferenceScriptHashAF txSkelOut)
               ]
        in if bool
             then utxoState {availableUtxos = Map.insertWith (<>) newAddress newPayloadSet (availableUtxos utxoState)}
