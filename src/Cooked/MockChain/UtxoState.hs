@@ -73,13 +73,13 @@ instance Eq UtxoPayloadDatum where
 -- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload where
   UtxoPayload ::
-    { -- \| The reference of this UTxO
+    { -- | The reference of this UTxO
       utxoPayloadTxOutRef :: Api.TxOutRef,
-      -- \| The value stored in this UTxO
+      -- | The value stored in this UTxO
       utxoPayloadValue :: Api.Value,
-      -- \| The optional datum stored in this UTxO
+      -- | The optional datum stored in this UTxO
       utxoPayloadDatum :: UtxoPayloadDatum,
-      -- \| The optional reference script stored in this UTxO
+      -- | The optional reference script stored in this UTxO
       utxoPayloadReferenceScript :: Maybe Api.ScriptHash
     } ->
     UtxoPayload

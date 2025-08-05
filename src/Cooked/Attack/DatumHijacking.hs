@@ -56,9 +56,8 @@ data DatumHijackingParams where
     } ->
     DatumHijackingParams
 
--- | 'defaultDatumHijackingParams' targets all the outputs for which the focus
--- of a given optic exists, and redirects each of them in a separate
--- transaction.
+-- | Targets all the outputs for which the focus of a given optic exists, and
+-- redirects each of them in a separate transaction.
 defaultDatumHijackingParams :: (IsTxSkelOutAllowedOwner owner, Is k An_AffineFold) => Optic' k is TxSkelOut x -> owner -> DatumHijackingParams
 defaultDatumHijackingParams optic thief =
   DatumHijackingParams
@@ -66,8 +65,8 @@ defaultDatumHijackingParams optic thief =
     (const True)
     False
 
--- | 'txSkelOutPredDatumHijackingParams' targets all the outputs satisfying a
--- given predicate, and redirects each of them in a separate transaction.
+-- | Targets all the outputs satisfying a given predicate, and redirects each of
+-- them in a separate transaction.
 txSkelOutPredDatumHijackingParams :: (IsTxSkelOutAllowedOwner owner) => (TxSkelOut -> Bool) -> owner -> DatumHijackingParams
 txSkelOutPredDatumHijackingParams predicate = defaultDatumHijackingParams (selectP predicate)
 
@@ -85,8 +84,6 @@ scriptsDatumHijackingParams = defaultDatumHijackingParams (txSkelOutOwnerL % use
 -- of datum, and redirecting each of them in a separate transaction.
 datumOfDatumHijackingParams :: forall dat owner. (IsTxSkelOutAllowedOwner owner, DatumConstrs dat) => owner -> DatumHijackingParams
 datumOfDatumHijackingParams = defaultDatumHijackingParams (txSkelOutDatumL % txSkelOutDatumTypedAT @dat)
-
--- | 'ofDatumDatumHijackingParams' targets all the outputs w
 
 -- | Redirects, in the same transaction, all the outputs targetted by an output
 -- and an index predicates. See 'DatumHijackingParams' for more information on
