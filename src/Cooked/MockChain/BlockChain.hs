@@ -216,11 +216,8 @@ validateTxSkel_ = void . validateTxSkel
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx :: (MonadBlockChainBalancing m) => Ledger.CardanoTx -> m [(Api.TxOutRef, TxSkelOut)]
 utxosFromCardanoTx =
-  mapM
-    ( \(_, txIn) ->
-        let txOutRef = Ledger.fromCardanoTxIn txIn
-         in (txOutRef,) <$> txSkelOutByRef txOutRef
-    )
+  mapM (\txOutRef -> (txOutRef,) <$> txSkelOutByRef txOutRef)
+    . fmap (Ledger.fromCardanoTxIn . snd)
     . Ledger.getCardanoTxOutRefs
 
 -- | Like 'define', but binds the result of a monadic computation instead
@@ -279,10 +276,9 @@ txSkelInputScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [VScript]
 txSkelInputScripts = fmap catMaybes . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT)) . Map.keys . txSkelIns
 
 -- | Returns all scripts involved in this 'TxSkel'
--- TODO: handle the case when the certificate does not need the script
 txSkelAllScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [VScript]
 txSkelAllScripts txSkel = do
-  txSkelSpendingScripts <- fmap Script.toVersioned <$> txSkelInputScripts txSkel
+  txSkelSpendingScripts <- txSkelInputScripts txSkel
   return
     ( txSkelMintingScripts txSkel
         <> txSkelWithdrawingScripts txSkel
