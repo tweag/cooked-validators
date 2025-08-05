@@ -1,5 +1,18 @@
--- | This module exposes the notion of Anchor for proposals and certificates.
-module Cooked.Skeleton.Anchor where
+-- | This module exposes the notion of Anchor used in proposals and
+-- certificates.
+module Cooked.Skeleton.Anchor
+  ( -- * Data types
+    TxSkelAnchor,
+
+    -- * Optics
+    txSkelAnchorMResolvedPageAT,
+    txSkelAnchorResolvedPageAT,
+    txSkelAnchorURLAT,
+
+    -- * Smart constructors
+    simpleURLAnchor,
+  )
+where
 
 import Data.ByteString
 import Optics.Core
@@ -23,3 +36,7 @@ txSkelAnchorMResolvedPageAT = _Just % _2
 -- | Focusing on the existing resolved page of a 'TxSkelAnchor'
 txSkelAnchorResolvedPageAT :: AffineTraversal' TxSkelAnchor ByteString
 txSkelAnchorResolvedPageAT = txSkelAnchorMResolvedPageAT % _Just
+
+-- | Builds a simple Anchor with an URL
+simpleURLAnchor :: String -> TxSkelAnchor
+simpleURLAnchor = Just . (,Nothing)

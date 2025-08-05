@@ -1,12 +1,21 @@
--- | This module exposes aliases to conveniently use versioned script and tools
--- to manipulate a script alongside its redeemer.
+-- | This module exposes the notion of user used everywhere in our
+-- 'Cooked.Skeleton.TxSkel'. A user can either be a script or a pubkey, and
+-- might be used in a redemption or an allocation setting. All of this is
+-- grouped under a single data type. Typically, users should rarely be created
+-- by hands, and instead, smart constructors adapted to the user's location in
+-- the skeleton should be used.
 module Cooked.Skeleton.User
-  ( VScript,
+  ( -- * Aliases
+    VScript,
     ToVScript,
     toVScript,
+
+    -- * Data types
     UserMode (..),
     UserKind (..),
     User (..),
+
+    -- * Optics
     userCredentialG,
     userTxSkelRedeemerAT,
     userVScriptAT,

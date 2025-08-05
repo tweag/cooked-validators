@@ -1,17 +1,26 @@
 -- | This module exposes the notion of redeemers used whenever a script in
 -- invoked in a 'Cooked.Skeleton.TxSkel'.
 module Cooked.Skeleton.Redeemer
-  ( TxSkelRedeemer (..),
+  ( -- * Type constraints
     RedeemerConstrs,
-    someTxSkelRedeemer,
-    emptyTxSkelRedeemer,
+
+    -- * Data types
+    TxSkelRedeemer (..),
+
+    -- * Optics
     txSkelRedeemerMReferenceInputL,
     txSkelRedeemerReferenceInputAT,
     txSkelRedeemerAutoFillL,
     txSkelRedeemerTypedAT,
-    someTxSkelRedeemerNoAutoFill,
-    emptyTxSkelRedeemerNoAutoFill,
     txSkelRedeemerBuiltinDataL,
+
+    -- * Smart constructors
+    someTxSkelRedeemer,
+    someTxSkelRedeemerNoAutoFill,
+    emptyTxSkelRedeemer,
+    emptyTxSkelRedeemerNoAutoFill,
+
+    -- * Utilities
     autoFillReferenceInput,
   )
 where

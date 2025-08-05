@@ -1,18 +1,26 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module exposes the minting constructs used in a
--- 'Cooked.Skeleton.TxSkel' and their associated utilities.
+-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To mint or burn
+-- tokens in a skeleton, the usual way is to invoke @txSkelMints =
+-- txSkelMintsFromList [mint script redeemer token quantity, burn ...]@
 module Cooked.Skeleton.Mint
-  ( TxSkelMints,
+  ( -- * Data types
     Mint (..),
+    TxSkelMints,
+
+    -- * Optics
     mintRedeemedScriptL,
     mintTokensL,
-    mint,
-    burn,
+    mintCurrencySymbolG,
     txSkelMintsListI,
     txSkelMintsAssetClassAmountL,
-    mintCurrencySymbolG,
     txSkelMintsAssetClassesG,
+
+    -- * Smart constructors
+    mint,
+    burn,
+    txSkelMintsFromList,
   )
 where
 
@@ -25,6 +33,7 @@ import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
 import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
+import Data.String (IsString (fromString))
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -36,7 +45,7 @@ import Test.QuickCheck (NonZero (..))
 -- * Describing single mint entries
 
 -- | A description of a new entry to be added in a 'TxSkelMints'. The users
--- should be using lists of those (using @review txSkelMintsListI@) instead of
+-- should be using lists of those (using @txSkelMintsFromList@) instead of
 -- building a 'TxSkelMints' directly.
 data Mint where
   Mint ::
@@ -46,6 +55,11 @@ data Mint where
     Mint
 
 -- * Extra builders for single mint entries
+
+-- | Conveniency instance to be able to use Strings as 'Api.TokenName', which
+-- used to be present in plutus-ledger-api.
+instance IsString Api.TokenName where
+  fromString = Api.TokenName . fromString
 
 -- | Builds some 'Mint' when a single type of token is minted for a given MP
 mint :: (ToVScript a, RedeemerConstrs red) => a -> red -> Api.TokenName -> Integer -> Mint
@@ -158,6 +172,11 @@ txSkelMintsListI =
         Map.empty
     )
 
+-- | Builds a 'TxSkelMints' from a list of 'Mint'. This is equivalent to calling
+-- @review txSkelMintsListI@
+txSkelMintsFromList :: [Mint] -> TxSkelMints
+txSkelMintsFromList = review txSkelMintsListI
+
 -- * Additional instances an useful helpers
 
 -- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
@@ -173,7 +192,10 @@ txSkelMintsListI =
 -- In every case, if you add mints with a different redeemer for the same
 -- policy, the redeemer used in the right argument takes precedence.
 instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
-  a <> b = review txSkelMintsListI $ view txSkelMintsListI a ++ view txSkelMintsListI b
+  txSkelM <> txSkelM' =
+    review txSkelMintsListI $
+      view txSkelMintsListI txSkelM
+        <> view txSkelMintsListI txSkelM'
 
 instance {-# OVERLAPPING #-} Monoid TxSkelMints where
   mempty = Map.empty

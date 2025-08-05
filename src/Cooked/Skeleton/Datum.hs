@@ -1,10 +1,16 @@
--- | This module exposes the notion of datums as they are handled within a
--- 'Cooked.Skeleton.TxSkel'
+-- | This module exposes the datum constructs used in payments of a
+-- 'Cooked.Skeleton.TxSkel'. Smart constructors for datums can be found in the
+-- 'Cooked.Skeleton.Output.Payable' structure meant to build payments.
 module Cooked.Skeleton.Datum
-  ( DatumConstrs,
+  ( -- * Type constraints
+    DatumConstrs,
+
+    -- * Data types
     DatumResolved (..),
     DatumKind (..),
     TxSkelOutDatum (..),
+
+    -- * Optics
     datumKindResolvedP,
     txSkelOutDatumKindAT,
     txSkelOutDatumResolvedAT,

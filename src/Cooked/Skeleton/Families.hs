@@ -1,12 +1,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Some type families used to either constraint values within our skeletons,
--- or inputs to build parts of these skeletons.
+-- | This module exposes some type families used to either directly constraint
+-- values within our skeletons, or constrant inputs of smart constructors for
+-- components of these skeletons.
 module Cooked.Skeleton.Families
-  ( type (∈),
+  ( -- * Type-level constraints
+    type (∈),
     type (∉),
     type (⩀),
+
+    -- * Type-level functions
     type (∪),
+    type Rev,
+    type (++),
   )
 where
 

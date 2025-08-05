@@ -1,11 +1,17 @@
--- | This module exposes outputs as they can be defined in a
--- 'Cooked.Skeleton.TxSkel' with various utilities around them.
+-- | This module exposes the outputs constructs used in a
+-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To build payments in
+-- a skeleton, the usual way is to invoke @txSkelIns = [pk `receives` Value v,
+-- script `receives` (InlineDatum dat <&&> ReferenceScript script)]@
 module Cooked.Skeleton.Output
-  ( TxSkelOut (..),
+  ( -- * Type constraints
+    IsTxSkelOutAllowedOwner (..),
+
+    -- * Data types
     PayableKind (..),
     Payable (..),
-    (<&&>),
-    receives,
+    TxSkelOut (..),
+
+    -- * Optics
     txSkelOutValueL,
     txSkelOutValueAutoAdjustL,
     txSkelOutDatumL,
@@ -13,11 +19,14 @@ module Cooked.Skeleton.Output
     txSkelOutReferenceScriptAT,
     txSkelOutMStakingCredentialL,
     txSkelOutStakingCredentialAT,
-    IsTxSkelOutAllowedOwner (..),
     txSkelOutCredentialG,
     txSkelOutAddressG,
     txSkelOutReferenceScriptHashAF,
     txSkelOutOwnerL,
+
+    -- * Smart constructors
+    (<&&>),
+    receives,
   )
 where
 

@@ -182,13 +182,13 @@ instance PrettyCookedList TxSkelRedeemer where
 instance PrettyCookedList TxSkelProposal where
   prettyCookedOptListMaybe opts txSkelProposal =
     [ Just $ "Return credential:" <+> prettyCookedOpt opts (view txSkelProposalReturnCredentialL txSkelProposal),
-      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsScript) txSkelProposal,
-      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovActionAT @IsNone) txSkelProposal,
+      ("Witnessed governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovernanceActionAT @IsScript) txSkelProposal,
+      ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovernanceActionAT @IsNone) txSkelProposal,
       ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
       ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)
 
-instance PrettyCooked (TxSkelGovAction a) where
+instance PrettyCooked (GovernanceAction a) where
   prettyCookedOpt opts (ParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
   prettyCookedOpt opts (HardForkInitiation (Api.ProtocolVersion major minor)) =
     "Protocol version:" <+> "(" <+> prettyCookedOpt opts major <+> "," <+> prettyCookedOpt opts minor <+> ")"

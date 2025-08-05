@@ -1,19 +1,28 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module exposes the notion of Withdrawal within a
--- 'Cooked.Skeleton.TxSkel'
+-- | This module exposes the withdrawing constructs used in a
+-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To issue withdrawals
+-- in a skeleton, the usual way is to invoke @txSkelWithdrawals =
+-- txSkelWithdrawalsFromList [pubKeyWithdrawal pk amount, scriptWithdrawal
+-- script redeemer amount, ...]@
 module Cooked.Skeleton.Withdrawal
-  ( TxSkelWithdrawals (..),
-    txSkelWithdrawalsByPubKeysL,
-    txSkelWithdrawalsByScriptsL,
+  ( -- * Data types
     Withdrawal (..),
+    TxSkelWithdrawals (..),
+
+    -- * Optics
     withdrawalUserL,
     withdrawalAmountL,
-    pubKeyWithdrawal,
-    scriptWithdrawal,
+    txSkelWithdrawalsByPubKeysL,
+    txSkelWithdrawalsByScriptsL,
     txSkelWithdrawalsByScriptL,
     txSkelWithdrawalsByPubKeyL,
     txSkelWithdrawalsListI,
+
+    -- * Smart constructors
+    pubKeyWithdrawal,
+    scriptWithdrawal,
+    txSkelWithdrawalsFromList,
   )
 where
 
@@ -103,6 +112,11 @@ pubKeyWithdrawal pkh = Withdrawal (UserPubKey pkh) . Api.Lovelace
 -- | Creates a 'Withdrawal' from a redeemed script and lovelace amount
 scriptWithdrawal :: (ToVScript script, Typeable script, RedeemerConstrs red) => script -> red -> Integer -> Withdrawal
 scriptWithdrawal script red = Withdrawal (UserRedeemedScript script (someTxSkelRedeemer red)) . Api.Lovelace
+
+-- | Builds a 'TxSkelWithdrawals' from a list of 'Withdrawal'. This is
+-- equivalent to calling @review txSkelWithdrawalsListI@
+txSkelWithdrawalsFromList :: [Withdrawal] -> TxSkelWithdrawals
+txSkelWithdrawalsFromList = review txSkelWithdrawalsListI
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where

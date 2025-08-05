@@ -1,13 +1,14 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This modules exposes optics around 'Api.Value' and 'Api.Lovelace' that we
--- use in our 'Cooked.Skeleton.TxSkel'
+-- use in our 'Cooked.Skeleton.TxSkel' and are not defined anywhere else.
 module Cooked.Skeleton.Value
-  ( valueAssetClassAmountL,
-    lovelaceIntegerI,
+  ( -- * Optics
+    valueAssetClassAmountL,
     valueLovelaceL,
     valueAssetClassAmountP,
     valueLovelaceP,
+    lovelaceIntegerI,
   )
 where
 

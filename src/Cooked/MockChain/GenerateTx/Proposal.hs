@@ -72,7 +72,7 @@ toPParamsUpdate pChange =
         MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ Cardano.boundRational q
 
 -- | Translates a given skeleton proposal into a governance action
-toGovAction :: (MonadBlockChainBalancing m) => TxSkelGovAction a -> StrictMaybe Conway.ScriptHash -> m (Conway.GovAction Emulator.EmulatorEra)
+toGovAction :: (MonadBlockChainBalancing m) => GovernanceAction a -> StrictMaybe Conway.ScriptHash -> m (Conway.GovAction Emulator.EmulatorEra)
 toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
 toGovAction UpdateCommittee {} _ = throwError $ MCEUnsupportedFeature "UpdateCommittee"
 toGovAction NewConstitution {} _ = throwError $ MCEUnsupportedFeature "TxGovActionNewConstitution"

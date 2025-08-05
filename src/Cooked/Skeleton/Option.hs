@@ -2,12 +2,15 @@
 -- 'Cooked.Skeleton.TxSkel'. These options mostly revolves around customizing
 -- the default behavior of cooked-validators's transaction generation mechanism.
 module Cooked.Skeleton.Option
-  ( BalanceOutputPolicy (..),
+  ( -- * Data types
+    BalanceOutputPolicy (..),
     FeePolicy (..),
     BalancingPolicy (..),
     BalancingUtxos (..),
     CollateralUtxos (..),
     TxSkelOpts (..),
+
+    -- * Optics
     txSkelOptModTxL,
     txSkelOptAutoSlotIncreaseL,
     txSkelOptBalancingPolicyL,
@@ -16,6 +19,8 @@ module Cooked.Skeleton.Option
     txSkelOptBalancingUtxosL,
     txSkelOptModParamsL,
     txSkelOptCollateralUtxosL,
+
+    -- * Utilities
     txSkelOptAddModTx,
     txSkelOptAddModParams,
   )

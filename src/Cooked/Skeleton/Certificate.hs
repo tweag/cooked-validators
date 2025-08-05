@@ -1,5 +1,21 @@
--- | This module exposes certificates in 'Cooked.Skelton.TxSkel'
-module Cooked.Skeleton.Certificate where
+-- | This module exposes the certificate constructs used in a
+-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To emit certificates
+-- in a skeleton, the usual way is to invoke @txSkelCertificates =
+-- [pubKeyCertificate pk action, scriptCertificate script redeemer action ...]@
+module Cooked.Skeleton.Certificate
+  ( -- * Data types
+    CertificateAction (..),
+    TxSkelCertificate (..),
+
+    -- * Optics
+    txSkelCertificateOwnerAT,
+    txSkelCertificateActionAT,
+
+    -- * Smart constructors
+    pubKeyCertificate,
+    scriptCertificate,
+  )
+where
 
 import Cooked.Skeleton.Families
 import Cooked.Skeleton.Redeemer
