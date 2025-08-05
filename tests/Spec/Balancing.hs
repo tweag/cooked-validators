@@ -105,14 +105,14 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 aliceNonOnlyValueUtxos =
   utxosOwnedBySearch alice `filterWithPred` \o ->
-    is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP) o
+    is txSkelOutReferenceScriptAT o
       || is (txSkelOutDatumL % txSkelOutDatumKindAT) o
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m TxSkelOut
 aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` ((== Api.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP)
+aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is txSkelOutReferenceScriptAT
 
 emptySearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 emptySearch = ListT.fromFoldable []

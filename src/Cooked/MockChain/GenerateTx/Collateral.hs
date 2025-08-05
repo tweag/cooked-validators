@@ -3,8 +3,6 @@
 module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
