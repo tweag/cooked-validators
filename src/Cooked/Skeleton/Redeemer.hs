@@ -3,15 +3,16 @@
 module Cooked.Skeleton.Redeemer
   ( TxSkelRedeemer (..),
     RedeemerConstrs,
-    withReferenceInput,
     someTxSkelRedeemer,
     emptyTxSkelRedeemer,
-    txSkelRedeemerReferenceInputL,
+    txSkelRedeemerMReferenceInputL,
+    txSkelRedeemerReferenceInputAT,
     txSkelRedeemerAutoFillL,
     txSkelRedeemerTypedAT,
     someTxSkelRedeemerNoAutoFill,
     emptyTxSkelRedeemerNoAutoFill,
     txSkelRedeemerBuiltinDataL,
+    autoFillReferenceInput,
   )
 where
 
@@ -57,24 +58,24 @@ data TxSkelRedeemer where
 deriving instance (Show TxSkelRedeemer)
 
 instance Eq TxSkelRedeemer where
-  (TxSkelRedeemer red mRefIn af) == TxSkelRedeemer red' mRefIn' af' = (Api.toBuiltinData red, mRefIn, af) == (Api.toBuiltinData red', mRefIn', af')
+  (TxSkelRedeemer red mRefIn af) == TxSkelRedeemer red' mRefIn' af' =
+    (Api.toBuiltinData red, mRefIn, af) == (Api.toBuiltinData red', mRefIn', af')
 
 instance Ord TxSkelRedeemer where
-  compare (TxSkelRedeemer red mRefIn af) (TxSkelRedeemer red' mRefIn' af') = compare (Api.toBuiltinData red, mRefIn, af) (Api.toBuiltinData red', mRefIn', af')
+  compare (TxSkelRedeemer red mRefIn af) (TxSkelRedeemer red' mRefIn' af') =
+    compare (Api.toBuiltinData red, mRefIn, af) (Api.toBuiltinData red', mRefIn', af')
 
 -- * Navigating within a 'TxSkelRedeemer'
 
--- | Sets or gets the reference input from a redeemer
-makeLensesFor [("txSkelRedeemerReferenceInput", "txSkelRedeemerReferenceInputL")] ''TxSkelRedeemer
+-- | Focuses on the possible reference input from a redeemer
+makeLensesFor [("txSkelRedeemerReferenceInput", "txSkelRedeemerMReferenceInputL")] ''TxSkelRedeemer
+
+-- | Focuses on the reference input form a redeemer
+txSkelRedeemerReferenceInputAT :: AffineTraversal' TxSkelRedeemer Api.TxOutRef
+txSkelRedeemerReferenceInputAT = txSkelRedeemerMReferenceInputL % _Just
 
 -- | Sets or gets the autofill property from a redeemer
 makeLensesFor [("txSkelRedeemerAutoFill", "txSkelRedeemerAutoFillL")] ''TxSkelRedeemer
-
--- | Attaches a reference input to a given 'TxSkelRedeemer'. This should usually
--- be of no use if option 'Cooked.Skeleton.Option.txOptAutoReferenceScripts' is
--- turned on, which is the case by default.
-withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
-withReferenceInput red ref = red & txSkelRedeemerReferenceInputL ?~ ref
 
 -- | Extracts, or sets, the typed redeemer of a 'TxSkelRedeemer'. This is
 -- attempted in two ways: first, we try to simply cast the content, and then, if
@@ -118,3 +119,11 @@ emptyTxSkelRedeemer = someTxSkelRedeemer ()
 -- while dissallowing it to be automatically assinged
 emptyTxSkelRedeemerNoAutoFill :: TxSkelRedeemer
 emptyTxSkelRedeemerNoAutoFill = someTxSkelRedeemerNoAutoFill ()
+
+-- * Additional helpers
+
+-- | Attaches a reference input to this 'TxSkelRedeemer' when none is already
+-- attached. Is meant to be used by the automated attachment process during
+-- transaction generation.
+autoFillReferenceInput :: Api.TxOutRef -> TxSkelRedeemer -> TxSkelRedeemer
+autoFillReferenceInput refInput = over txSkelRedeemerMReferenceInputL (maybe (Just refInput) Just)

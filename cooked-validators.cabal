@@ -55,11 +55,11 @@ library
       Cooked.Skeleton.Anchor
       Cooked.Skeleton.Certificate
       Cooked.Skeleton.Datum
+      Cooked.Skeleton.Families
       Cooked.Skeleton.Label
       Cooked.Skeleton.Mint
       Cooked.Skeleton.Option
       Cooked.Skeleton.Output
-      Cooked.Skeleton.Payable
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
       Cooked.Skeleton.User

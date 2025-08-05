@@ -48,11 +48,11 @@ data Mint where
 -- * Extra builders for single mint entries
 
 -- | Builds some 'Mint' when a single type of token is minted for a given MP
-mint :: (ToVScript a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
-mint mp red tn n = Mint (UserRedeemedScript (toVScript mp) red) [(tn, n)]
+mint :: (ToVScript a, RedeemerConstrs red) => a -> red -> Api.TokenName -> Integer -> Mint
+mint mp red tn n = Mint (UserRedeemedScript (toVScript mp) (someTxSkelRedeemer red)) [(tn, n)]
 
 -- | Similar to 'mint' but deducing the tokens instead
-burn :: (ToVScript a) => a -> TxSkelRedeemer -> Api.TokenName -> Integer -> Mint
+burn :: (ToVScript a, RedeemerConstrs red) => a -> red -> Api.TokenName -> Integer -> Mint
 burn mp red tn n = mint mp red tn (-n)
 
 -- * Optics to manipulate elements of 'Mint'

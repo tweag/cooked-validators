@@ -45,7 +45,6 @@ import Cooked.Skeleton.Label as X
 import Cooked.Skeleton.Mint as X
 import Cooked.Skeleton.Option as X
 import Cooked.Skeleton.Output as X
-import Cooked.Skeleton.Payable as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
 import Cooked.Skeleton.User as X
@@ -171,11 +170,11 @@ txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
 txSkelInsReferenceInRedeemers TxSkel {..} =
   Set.fromList $
-    toListOf (to Map.elems % traversed % txSkelRedeemerReferenceInputL % _Just) txSkelIns
-      <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelProposals
-      <> toListOf (to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputL % _Just) txSkelMints
-      <> toListOf (txSkelWithdrawalsByScriptsL % to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputL % _Just) txSkelWithdrawals
-      <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputL % _Just) txSkelCertificates
+    toListOf (to Map.elems % traversed % txSkelRedeemerReferenceInputAT) txSkelIns
+      <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelProposals
+      <> toListOf (to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputAT) txSkelMints
+      <> toListOf (txSkelWithdrawalsByScriptsL % to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputAT) txSkelWithdrawals
+      <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelCertificates
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference

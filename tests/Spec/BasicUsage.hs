@@ -31,7 +31,7 @@ mintingQuickValue :: (MonadBlockChain m) => m ()
 mintingQuickValue =
   validateTxSkel_
     txSkelTemplate
-      { txSkelMints = review txSkelMintsListI [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
+      { txSkelMints = review txSkelMintsListI [mint Script.trueMintingMPScript () (Api.TokenName "banana") 10],
         txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript (Api.TokenName "banana") 10)],
         txSkelSigners = [alice]
       }

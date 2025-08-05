@@ -15,7 +15,7 @@ dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy ->
 dupTokenTrace pol tName amount recipient = validateTxSkel_ skel
   where
     skel =
-      let mints = review txSkelMintsListI [mint pol emptyTxSkelRedeemer tName amount]
+      let mints = review txSkelMintsListI [mint pol () tName amount]
           mintedValue = Script.toValue mints
        in txSkelTemplate
             { txSkelMints = mints,
@@ -40,8 +40,8 @@ tests =
                 { txSkelMints =
                     review
                       txSkelMintsListI
-                      [ mint pol1 emptyTxSkelRedeemer tName1 5,
-                        mint pol2 emptyTxSkelRedeemer tName2 7
+                      [ mint pol1 () tName1 5,
+                        mint pol2 () tName2 7
                       ],
                   txSkelOuts =
                     [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
@@ -59,8 +59,8 @@ tests =
                             txSkelMints =
                               review
                                 txSkelMintsListI
-                                [ mint pol1 emptyTxSkelRedeemer tName1 v1,
-                                  mint pol2 emptyTxSkelRedeemer tName2 v2
+                                [ mint pol1 () tName1 v1,
+                                  mint pol2 () tName2 v2
                                 ],
                             txSkelOuts =
                               [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
@@ -98,7 +98,7 @@ tests =
             ac2 = Api.assetClass (Script.toCurrencySymbol Script.trueMintingMPScript) (Api.TokenName "preExistingToken")
             skelIn =
               txSkelTemplate
-                { txSkelMints = review txSkelMintsListI [mint pol emptyTxSkelRedeemer tName1 1],
+                { txSkelMints = review txSkelMintsListI [mint pol () tName1 1],
                   txSkelOuts = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
                   txSkelSigners = [wallet 2]
                 }
@@ -107,7 +107,7 @@ tests =
                   ( Api.assetClassValue ac1 1,
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxSkelLabel DupTokenLbl,
-                        txSkelMints = review txSkelMintsListI [mint pol emptyTxSkelRedeemer tName1 2],
+                        txSkelMints = review txSkelMintsListI [mint pol () tName1 2],
                         txSkelOuts =
                           [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),
                             attacker `receives` Value (Api.assetClassValue ac1 1)

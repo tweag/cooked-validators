@@ -2,6 +2,9 @@
 -- 'Cooked.Skeleton.TxSkel' with various utilities around them.
 module Cooked.Skeleton.Output
   ( TxSkelOut (..),
+    PayableKind (..),
+    Payable (..),
+    (<&&>),
     receives,
     txSkelOutValueL,
     txSkelOutValueAutoAdjustL,
@@ -19,10 +22,11 @@ module Cooked.Skeleton.Output
 where
 
 import Cooked.Skeleton.Datum
-import Cooked.Skeleton.Payable
+import Cooked.Skeleton.Families
 import Cooked.Skeleton.User
 import Cooked.Skeleton.Value ()
 import Cooked.Wallet
+import Data.Kind
 import Data.Typeable
 import Optics.Core
 import Optics.TH (makeLensesFor)
@@ -118,10 +122,10 @@ instance Script.ToCredential TxSkelOut where
 instance Script.ToAddress TxSkelOut where
   toAddress = view txSkelOutAddressG
 
--- * Requirements to be able to own a 'TxSkelOut'
+-- * Smart constructing the owner of a 'TxSkelOut'
 
--- | A typeclass to ease the building of 'TxSkelOut', to be used in conjunction
--- to 'receives'.
+-- | A conveniency typeclass to automated the creation of 'TxSkelOut' owners, to
+-- be used alongside 'Payable' with the smart constructor 'receives'.
 class IsTxSkelOutAllowedOwner a where
   toPKHOrVScript :: a -> User IsEither Allocation
 
@@ -146,9 +150,45 @@ instance (Typeable a) => IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) w
 instance IsTxSkelOutAllowedOwner (User IsEither Allocation) where
   toPKHOrVScript = id
 
+-- * Smart constructing the payload of a 'TxSkelOut'
+
+-- | The kind of possible components of a 'TxSkelOut', other than the owner
+data PayableKind where
+  IsDatum :: PayableKind
+  IsReferenceScript :: PayableKind
+  IsValue :: PayableKind
+  IsStakingCredential :: PayableKind
+
+-- | Payable elements. Created from concrete elements or composed. Notice that
+-- there is no way of building an element of Type @Payable '[]@ so when using an
+-- element of Type @Payable els@ we are sure that something was in fact
+-- paid. Also, there is no way of building an element of type @Payable '[a,a]@
+-- so we also know at most one occurrence of each type of payment is performed.
+data Payable :: [PayableKind] -> Type where
+  -- | Hashed datums visible in the transaction are payable
+  VisibleHashedDatum :: (DatumConstrs a) => a -> Payable '[IsDatum]
+  -- | Inline datums are payable
+  InlineDatum :: (DatumConstrs a) => a -> Payable '[IsDatum]
+  -- | Hashed datums hidden from the transaction are payable
+  HiddenHashedDatum :: (DatumConstrs a) => a -> Payable '[IsDatum]
+  -- | Reference scripts are payable
+  ReferenceScript :: (ToVScript s) => s -> Payable '[IsReferenceScript]
+  -- | Values are payable and are subject to min ada adjustment
+  Value :: (Script.ToValue a) => a -> Payable '[IsValue]
+  -- | Fixed Values are payable but are NOT subject to min ada adjustment
+  FixedValue :: (Script.ToValue a) => a -> Payable '[IsValue]
+  -- | Staking credentials are payable
+  StakingCredential :: (Script.ToMaybeStakingCredential cred) => cred -> Payable '[IsStakingCredential]
+  -- | Payables can be combined as long as their list of tags are disjoint
+  PayableAnd :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
+
+-- | An infix-usable alias for 'PayableAnd'
+(<&&>) :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
+(<&&>) = PayableAnd
+
 -- * Smart constructor to build 'TxSkelOut's
 
--- | Smart constructor to build a 'TxSkelOut' from an owner and payment. This
+-- | Smart constructor to build a 'TxSkelOut' from an @owner@ and 'Payable'. This
 -- should be the main way of building outputs.
 receives :: (IsTxSkelOutAllowedOwner owner) => owner -> Payable els -> TxSkelOut
 receives (toPKHOrVScript -> owner) =

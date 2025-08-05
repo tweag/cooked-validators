@@ -76,6 +76,11 @@ data TxSkelOutDatum where
 
 deriving instance Show TxSkelOutDatum
 
+instance Eq TxSkelOutDatum where
+  NoTxSkelOutDatum == NoTxSkelOutDatum = True
+  (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b) == (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') = (dat, b) == (dat', b')
+  _ == _ = False
+
 instance Ord TxSkelOutDatum where
   compare NoTxSkelOutDatum NoTxSkelOutDatum = EQ
   compare NoTxSkelOutDatum _ = LT
@@ -84,9 +89,6 @@ instance Ord TxSkelOutDatum where
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b)
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') =
       compare (dat, b) (dat', b')
-
-instance Eq TxSkelOutDatum where
-  dat == dat' = compare dat dat' == EQ
 
 -- * Optics working on 'TxSkelOutDatum'
 

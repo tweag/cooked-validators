@@ -1,6 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE UndecidableInstances #-}
-
 -- | This module exposes aliases to conveniently use versioned script and tools
 -- to manipulate a script alongside its redeemer.
 module Cooked.Skeleton.User
@@ -10,7 +7,6 @@ module Cooked.Skeleton.User
     UserMode (..),
     UserKind (..),
     User (..),
-    type (∈),
     userCredentialG,
     userTxSkelRedeemerAT,
     userVScriptAT,
@@ -28,10 +24,10 @@ module Cooked.Skeleton.User
   )
 where
 
+import Cooked.Skeleton.Families
 import Cooked.Skeleton.Redeemer
 import Data.Kind
 import Data.Typeable
-import GHC.TypeLits
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -64,20 +60,7 @@ data UserMode = Allocation | Redemption
 data UserKind = IsScript | IsPubKey | IsEither | IsNone
   deriving (Eq, Show)
 
--- * Membership type family
-
--- | A type family representing membership. This requires @UndecidableInstances@
--- because the type checker is not smart enough to understand that this type
--- family decreases in @els@, due to the presence of @extras@. @extras@ is used
--- to keep track of the original list and output a relevant message in the empty
--- case, which could otherwise be omitted altogther at no loss of type safety.
-type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
-  Member x (x ': xs) _ = ()
-  Member x (y ': xs) l = Member x xs (y ': l)
-  Member x '[] l = TypeError ('ShowType x ':<>: 'Text " is not a member of " ':<>: 'ShowType l)
-
--- | A specific instance of @Member@ where the already browsed elements is @[]@
-type (∈) el els = Member el els '[]
+-- * Users, with their kind and mode
 
 -- | Building users. The type exposes the mode for which the user has been
 -- built, and the requirements on the kind of the user.

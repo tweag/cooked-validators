@@ -75,7 +75,7 @@ useReferenceScript spendingSubmitter consumeScriptOref theScript = do
     txSkelTemplate
       { txSkelIns =
           Map.fromList $
-            (oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref)
+            (oref, TxSkelRedeemer () (Just scriptOref) False)
               : [(scriptOref, emptyTxSkelRedeemer) | consumeScriptOref],
         txSkelSigners = spendingSubmitter : [wallet 3 | consumeScriptOref]
       }
@@ -91,7 +91,7 @@ useReferenceScriptInInputs spendingSubmitter theScript = do
         }
   validateTxSkel_
     txSkelTemplate
-      { txSkelIns = Map.fromList [(oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref), (scriptOref, emptyTxSkelRedeemer)],
+      { txSkelIns = Map.fromList [(oref, TxSkelRedeemer () (Just scriptOref) False), (scriptOref, emptyTxSkelRedeemer)],
         txSkelSigners = [spendingSubmitter]
       }
 
@@ -111,7 +111,9 @@ referenceMint mp1 mp2 n autoRefScript = do
       { txSkelMints =
           review
             txSkelMintsListI
-            [mint mp2 (if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef) (Api.TokenName "banana") 3],
+            [ set (mintRedeemedScriptL % userTxSkelRedeemerL) (if autoRefScript then emptyTxSkelRedeemer else TxSkelRedeemer () (Just mpOutRef) False) $
+                mint mp2 () (Api.TokenName "banana") 3
+            ],
         txSkelOuts = [wallet 1 `receives` Value (Script.ada 2 <> Api.assetClassValue (Api.AssetClass (Script.toCurrencySymbol mp2, Api.TokenName "banana")) 3)],
         txSkelSigners = [wallet 1]
       }
@@ -161,7 +163,7 @@ tests =
                         }
                   validateTxSkel_
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (emptyTxSkelRedeemer `withReferenceInput` consumedOref),
+                      { txSkelIns = Map.singleton oref (TxSkelRedeemer () (Just consumedOref) False),
                         txSkelSigners = [wallet 1]
                       }
               )
@@ -180,7 +182,7 @@ tests =
                         }
                   validateTxSkel_
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (emptyTxSkelRedeemer `withReferenceInput` scriptOref),
+                      { txSkelIns = Map.singleton oref (TxSkelRedeemer () (Just scriptOref) False),
                         txSkelSigners = [wallet 1]
                       }
               )

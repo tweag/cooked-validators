@@ -34,6 +34,10 @@ newtype DatumHijackingLabel = DatumHijackingLabel [TxSkelOut]
 instance PrettyCooked DatumHijackingLabel where
   prettyCookedOpt opts (DatumHijackingLabel txSkelOuts) = prettyItemize opts "Redirected outputs" "-" txSkelOuts
 
+-- | Parameters of the datum hijacking attacks. They state precisely which
+-- outputs should have their owner changed, wich owner should be assigned, to
+-- each of these outputs, and whether several modified outputs should be
+-- combined in a single transaction, or instead spread out multiple branches.
 data DatumHijackingParams where
   DatumHijackingParams ::
     (IsTxSkelOutAllowedOwner owner) =>

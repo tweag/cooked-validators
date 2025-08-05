@@ -57,7 +57,7 @@ runScript = do
             [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue2),
               script `receives` (InlineDatum (1 :: Integer) <&&> Value mintValue3)
             ],
-          txSkelMints = review txSkelMintsListI [burn script (someTxSkelRedeemer BurnToken) tn1 1]
+          txSkelMints = review txSkelMintsListI [burn script BurnToken tn1 1]
         }
 
   (oRefScript2'' : _) <-
@@ -72,20 +72,20 @@ runScript = do
           txSkelOuts =
             [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue3)
             ],
-          txSkelMints = review txSkelMintsListI [burn script (someTxSkelRedeemer BurnToken) tn2 1]
+          txSkelMints = review txSkelMintsListI [burn script BurnToken tn2 1]
         }
 
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSigners = [alice],
         txSkelIns = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
-        txSkelMints = review txSkelMintsListI [burn script (someTxSkelRedeemer BurnToken) tn3 1]
+        txSkelMints = review txSkelMintsListI [burn script BurnToken tn3 1]
       }
   where
     mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript MPTag -> (TxSkel, Api.Value, Api.TokenName)
     mkMintSkel signer oRef@(Api.TxOutRef _ index) script =
       let tn = txOutRefToToken oRef
-          mints = review txSkelMintsListI [mint script (someTxSkelRedeemer (MintToken oRef)) tn 1]
+          mints = review txSkelMintsListI [mint script (MintToken oRef) tn 1]
           mintValue = Script.toValue mints
        in ( txSkelTemplate
               { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,

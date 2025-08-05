@@ -20,10 +20,14 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | A description of who owns what in a blockchain. Owners are addresses and
 -- they each own a 'UtxoPayloadSet'.
-data UtxoState = UtxoState
-  { availableUtxos :: Map Api.Address UtxoPayloadSet,
-    consumedUtxos :: Map Api.Address UtxoPayloadSet
-  }
+data UtxoState where
+  UtxoState ::
+    { -- | Utxos available to be consumed
+      availableUtxos :: Map Api.Address UtxoPayloadSet,
+      -- | Utxos already consumed
+      consumedUtxos :: Map Api.Address UtxoPayloadSet
+    } ->
+    UtxoState
   deriving (Eq)
 
 -- | Total value accessible to what's pointed by the address.
@@ -67,16 +71,18 @@ instance Eq UtxoPayloadDatum where
   dat == dat' = compare dat dat' == EQ
 
 -- | A convenient wrapping of the interesting information of a UTxO.
-data UtxoPayload = UtxoPayload
-  { -- | The reference of this UTxO
-    utxoPayloadTxOutRef :: Api.TxOutRef,
-    -- | The value stored in this UTxO
-    utxoPayloadValue :: Api.Value,
-    -- | The optional datum stored in this UTxO
-    utxoPayloadDatum :: UtxoPayloadDatum,
-    -- | The optional reference script stored in this UTxO
-    utxoPayloadReferenceScript :: Maybe Api.ScriptHash
-  }
+data UtxoPayload where
+  UtxoPayload ::
+    { -- \| The reference of this UTxO
+      utxoPayloadTxOutRef :: Api.TxOutRef,
+      -- \| The value stored in this UTxO
+      utxoPayloadValue :: Api.Value,
+      -- \| The optional datum stored in this UTxO
+      utxoPayloadDatum :: UtxoPayloadDatum,
+      -- \| The optional reference script stored in this UTxO
+      utxoPayloadReferenceScript :: Maybe Api.ScriptHash
+    } ->
+    UtxoPayload
   deriving (Eq, Show)
 
 instance Eq UtxoPayloadSet where

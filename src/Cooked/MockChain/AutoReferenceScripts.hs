@@ -17,7 +17,7 @@ import PlutusLedgerApi.V3 qualified as Api
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
 updateRedeemedScript :: (MonadBlockChain m) => [Api.TxOutRef] -> User IsScript Redemption -> m (User IsScript Redemption)
-updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkelRed@(TxSkelRedeemer _ Nothing True)) = do
+updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkelRed@(TxSkelRedeemer {txSkelRedeemerAutoFill = True})) = do
   oRefsInInputs <- runUtxoSearch (referenceScriptOutputsSearch vScript)
   maybe
     -- We leave the redeemer unchanged if no reference input was found
@@ -25,7 +25,7 @@ updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkel
     -- If a reference input is found, we assign it and log the event
     ( \oRef -> do
         logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
-        return $ over userTxSkelRedeemerAT (`withReferenceInput` oRef) rs
+        return $ over userTxSkelRedeemerAT (autoFillReferenceInput oRef) rs
     )
     $ case oRefsInInputs of
       [] -> Nothing
