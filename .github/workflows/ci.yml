@@ -177,7 +177,7 @@ jobs:
 
     steps:
       - name: Access build and test outputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: cooked-validators-checks
 
@@ -279,7 +279,7 @@ jobs:
     needs: [build-and-deploy-documentation]
     steps:
       - name: Access haddock outputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: documentation
       - name: Check for warnings in Haddock output
