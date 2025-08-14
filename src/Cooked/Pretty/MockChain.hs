@@ -83,7 +83,13 @@ instance PrettyCooked MockChainError where
 
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where
   prettyCookedOpt opts (Contextualized outputs entries) =
-    prettyItemize opts "📖 MockChain run log:" "⁍" (fmap (prettyCookedOpt opts . Contextualized outputs) entries)
+    prettyItemize opts "📖 MockChain run log:" "⁍" $ updatedEntries entries
+    where
+      updatedEntries :: [MockChainLogEntry] -> [DocCooked]
+      updatedEntries [] = []
+      updatedEntries (entry@MCLogSubmittedTxSkel {} : l) =
+        "--------------------------------------------------------------------------" : prettyCookedOpt opts (Contextualized outputs entry) : updatedEntries l
+      updatedEntries (entry : l) = prettyCookedOpt opts (Contextualized outputs entry) : updatedEntries l
 
 -- | This prints a 'MockChainLogEntry'. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
