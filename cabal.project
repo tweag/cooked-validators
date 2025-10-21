@@ -25,7 +25,7 @@ repository cardano-haskell-packages
 index-state:
   , hackage.haskell.org 2025-06-22T20:18:27Z
   , cardano-haskell-packages 2025-07-14T17:31:29Z
-      
+
 -- We never, ever, want this.
 write-ghc-environment-files: never
 
@@ -52,7 +52,7 @@ constraints:
 source-repository-package
     type: git
     location: https://github.com/intersectMBO/cardano-node-emulator
-    tag: f7b2d80ecf4daf2b7ec72609b9ce40e7c822a838
+    tag: origin/mm/update-prot-version
     subdir:
       plutus-script-utils
       plutus-ledger
