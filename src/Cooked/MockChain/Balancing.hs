@@ -8,10 +8,11 @@ module Cooked.MockChain.Balancing
   )
 where
 
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Api qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
@@ -101,7 +102,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
             runUtxoSearch (txSkelOutByRefSearch (Set.toList utxos))
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              >>= filterAndWarn (is txSkelOutPKHashAT . snd) "They belong to scripts."
+              >>= filterAndWarn (is (txSkelOutOwnerL % userPubKeyHashAT) . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
           >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
@@ -312,18 +313,26 @@ computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRe
 computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
-  let (burnedValue, mintedValue) = Api.split $ view txSkelMintsValueG txSkelMints
+  let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
       outValue = txSkelValueInOutputs txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
-  depositedValue <- Script.toValue <$> txSkelProposalsDeposit txSkel
+  certificatesDepositedValue <- Script.toValue <$> txSkelDepositedValueInCertificates txSkel
+  proposalsDepositedValue <- Script.toValue <$> txSkelDepositedValueInProposals txSkel
   -- We compute the values missing in the left and right side of the equation
-  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> depositedValue <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
+  let (missingRight, missingLeft) =
+        Api.split $
+          outValue
+            <> burnedValue
+            <> feeValue
+            <> proposalsDepositedValue
+            <> certificatesDepositedValue
+            <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
   -- We compute the minimal ada requirement of the missing payment
   rightMinAda <- getTxSkelOutMinAda $ balancingWallet `receives` Value missingRight
   -- We compute the current ada of the missing payment. If the missing payment
   -- is not empty and the minimal ada is not present, some value is missing.
-  let Api.Lovelace rightAda = missingRight ^. Script.adaL
+  let Api.Lovelace rightAda = missingRight ^. valueLovelaceL
       missingAda = rightMinAda - rightAda
       missingAdaValue = if missingRight /= mempty && missingAda > 0 then Script.lovelace missingAda else mempty
   -- The actual missing value on the left might needs to account for any missing

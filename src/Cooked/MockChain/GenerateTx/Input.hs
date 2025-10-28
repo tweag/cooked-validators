@@ -16,12 +16,12 @@ toTxInAndWitness ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   m (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  TxSkelOut (toPKHOrValidator -> owner) _ datum _ _ _ <- txSkelOutByRef txOutRef
+  TxSkelOut owner _ datum _ _ _ <- txSkelOutByRef txOutRef
   witness <- case owner of
-    Left _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-    Right validator ->
+    UserPubKey _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+    UserScript script ->
       fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
-        toScriptWitness validator txSkelRedeemer $
+        toScriptWitness script txSkelRedeemer $
           case datum of
             NoTxSkelOutDatum -> Cardano.ScriptDatumForTxIn Nothing
             SomeTxSkelOutDatum _ Inline -> Cardano.InlineScriptDatum

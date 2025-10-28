@@ -16,16 +16,16 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | Attempts to find in the index a utxo containing a reference script with the
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
-updateRedeemer :: (MonadBlockChain m, Script.ToScriptHash s) => s -> [Api.TxOutRef] -> TxSkelRedeemer -> m TxSkelRedeemer
-updateRedeemer script inputs txSkelRed@(TxSkelRedeemer _ Nothing True) = do
-  oRefsInInputs <- runUtxoSearch (referenceScriptOutputsSearch script)
+updateRedeemedScript :: (MonadBlockChain m) => [Api.TxOutRef] -> User IsScript Redemption -> m (User IsScript Redemption)
+updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkelRed@(TxSkelRedeemer {txSkelRedeemerAutoFill = True})) = do
+  oRefsInInputs <- runUtxoSearch (referenceScriptOutputsSearch vScript)
   maybe
     -- We leave the redeemer unchanged if no reference input was found
-    (return txSkelRed)
+    (return rs)
     -- If a reference input is found, we assign it and log the event
     ( \oRef -> do
-        logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash script)
-        return $ txSkelRed `withReferenceInput` oRef
+        logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
+        return $ over userTxSkelRedeemerAT (autoFillReferenceInput oRef) rs
     )
     $ case oRefsInInputs of
       [] -> Nothing
@@ -33,28 +33,28 @@ updateRedeemer script inputs txSkelRed@(TxSkelRedeemer _ Nothing True) = do
       l | Just (oRefM', _) <- find (\(r, _) -> r `elem` inputs) l -> Just oRefM'
       -- If none exist, we use the first one we find elsewhere
       ((oRefM', _) : _) -> Just oRefM'
-updateRedeemer _ _ redeemer = return redeemer
+updateRedeemedScript _ rs = return rs
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,
 -- and attempts to attach a reference input to each of them, whenever it is
 -- allowed and one has not already been set.
-toTxSkelWithReferenceScripts :: (MonadBlockChain m) => TxSkel -> m TxSkel
-toTxSkelWithReferenceScripts txSkel@TxSkel {..} = do
-  let inputs = Map.keys txSkelIns
-  newMints <- forM (view txSkelMintsListI txSkelMints) $ \(Mint mPol red tks) ->
-    (\x -> Mint mPol x tks) <$> updateRedeemer (Script.toVersioned @Script.MintingPolicy mPol) inputs red
-  newInputs <- forM (Map.toList txSkelIns) $ \(oRef, red) -> do
-    validatorM <- previewByRef txSkelOutValidatorAT oRef
-    case validatorM of
-      Nothing -> return (oRef, red)
-      Just scriptHash -> (oRef,) <$> updateRedeemer scriptHash inputs red
-  newProposals <- forM txSkelProposals $ \prop ->
-    case prop ^. txSkelProposalWitnessL of
+toTxSkelWithReferenceScripts :: forall m. (MonadBlockChain m) => TxSkel -> m TxSkel
+toTxSkelWithReferenceScripts txSkel = do
+  let inputs = view (txSkelInsL % to Map.keys) txSkel
+  newMints <- forM (view (txSkelMintsL % txSkelMintsListI) txSkel) $ \(Mint rs tks) ->
+    (`Mint` tks) <$> updateRedeemedScript inputs rs
+  newInputs <- forM (view (txSkelInsL % to Map.toList) txSkel) $ \(oRef, red) ->
+    (oRef,) <$> do
+      validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
+      case validatorM of
+        Nothing -> return red
+        Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputs (UserRedeemedScript val red)
+  newProposals <- forM (view txSkelProposalsL txSkel) $ \prop ->
+    case preview (txSkelProposalMConstitutionAT % _Just) prop of
       Nothing -> return prop
-      Just (script, red) -> flip (set txSkelProposalWitnessL) prop . Just . (script,) <$> updateRedeemer script inputs red
-  newWithdrawals <- forM (Map.toList txSkelWithdrawals) $ \(wit, (red, quantity)) -> case wit of
-    Right _ -> return (wit, (red, quantity))
-    Left script -> (Left script,) . (,quantity) <$> updateRedeemer script inputs red
+      Just rs -> flip (set (txSkelProposalMConstitutionAT % _Just)) prop <$> updateRedeemedScript inputs rs
+  newWithdrawals <- forM (view (txSkelWithdrawalsL % txSkelWithdrawalsByScriptsL % to Map.toList) txSkel) $
+    \(vScript, (red, lv)) -> (vScript,) . (,lv) . view userTxSkelRedeemerL <$> updateRedeemedScript inputs (UserRedeemedScript vScript red)
   return $
     txSkel
       & txSkelMintsL
@@ -64,5 +64,5 @@ toTxSkelWithReferenceScripts txSkel@TxSkel {..} = do
       .~ Map.fromList newInputs
       & txSkelProposalsL
       .~ newProposals
-      & txSkelWithdrawalsL
+      & (txSkelWithdrawalsL % txSkelWithdrawalsByScriptsL)
       .~ Map.fromList newWithdrawals

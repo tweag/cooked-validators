@@ -31,22 +31,26 @@ module Cooked.MockChain.BlockChain
     slotRangeBefore,
     slotRangeAfter,
     slotToMSRange,
-    txSkelInputValidators,
+    txSkelInputScripts,
     txSkelInputValue,
     lookupUtxos,
     validateTxSkel',
     validateTxSkel_,
-    txSkelProposalsDeposit,
+    txSkelDepositedValueInProposals,
     govActionDeposit,
     defineM,
     txSkelAllScripts,
     previewByRef,
     viewByRef,
+    dRepDeposit,
+    stakeAddressDeposit,
+    stakePoolDeposit,
+    txSkelDepositedValueInCertificates,
   )
 where
 
 import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
@@ -167,10 +171,10 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   define :: (ToHash a) => String -> a -> m a
 
   -- | Sets the current script to act as the official constitution script
-  setConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> m ()
+  setConstitutionScript :: (ToVScript s) => s -> m ()
 
   -- | Gets the current official constitution script
-  getConstitutionScript :: m (Maybe (Script.Versioned Script.Script))
+  getConstitutionScript :: m (Maybe VScript)
 
   -- | Registers a staking credential with a given reward and deposit
   registerStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> m ()
@@ -212,35 +216,76 @@ validateTxSkel_ = void . validateTxSkel
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx :: (MonadBlockChainBalancing m) => Ledger.CardanoTx -> m [(Api.TxOutRef, TxSkelOut)]
 utxosFromCardanoTx =
-  mapM
-    ( \(_, txIn) ->
-        let txOutRef = Ledger.fromCardanoTxIn txIn
-         in (txOutRef,) <$> txSkelOutByRef txOutRef
-    )
+  mapM (\txOutRef -> (txOutRef,) <$> txSkelOutByRef txOutRef)
+    . fmap (Ledger.fromCardanoTxIn . snd)
     . Ledger.getCardanoTxOutRefs
 
 -- | Like 'define', but binds the result of a monadic computation instead
 defineM :: (MonadBlockChainWithoutValidation m, ToHash a) => String -> m a -> m a
 defineM name = (define name =<<)
 
--- | Retrieves the required deposit amount for issuing governance actions.
+-- | Retrieves the required governance action deposit amount
 govActionDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
 govActionDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams <$> getParams
 
+-- | Retrieves the required drep deposit amount
+dRepDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
+dRepDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppDRepDepositL . Emulator.emulatorPParams <$> getParams
+
+-- | Retrieves the required stake address deposit amount
+stakeAddressDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
+stakeAddressDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppKeyDepositL . Emulator.emulatorPParams <$> getParams
+
+-- | Retrieves the required stake pool deposit amount
+stakePoolDeposit :: (MonadBlockChainBalancing m) => m Api.Lovelace
+stakePoolDeposit = Api.Lovelace . Cardano.unCoin . Lens.view Conway.ppPoolDepositL . Emulator.emulatorPParams <$> getParams
+
 -- | Retrieves the total amount of lovelace deposited in proposals in this
 -- skeleton (equal to `govActionDeposit` times the number of proposals).
-txSkelProposalsDeposit :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
-txSkelProposalsDeposit TxSkel {..} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
+txSkelDepositedValueInProposals :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
+txSkelDepositedValueInProposals TxSkel {txSkelProposals} = Api.Lovelace . (toInteger (length txSkelProposals) *) . Api.getLovelace <$> govActionDeposit
 
--- | Returns all validators which guard transaction inputs
-txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Validator]
-txSkelInputValidators = fmap (mapMaybe (preview txSkelOutValidatorAT)) . mapM txSkelOutByRef . Map.keys . txSkelIns
+-- | Retrieves the total amount of lovelace deposited in certificates in this
+-- skeleton. Note that unregistering a staking address or a dRep lead to a
+-- negative deposit (a withdrawal, in fact) which means this function can return
+-- a negative amount of lovelace, which is intended. The deposited amounts are
+-- dictated by the current protocol parameters, and computed as such.
+txSkelDepositedValueInCertificates :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Lovelace
+txSkelDepositedValueInCertificates txSkel = do
+  sDep <- stakeAddressDeposit
+  dDep <- dRepDeposit
+  return $
+    foldOf
+      ( txSkelCertificatesL
+          % traversed
+          % txSkelCertificateActionAT @IsEither
+          % to
+            ( \case
+                StakingRegister {} -> sDep
+                StakingRegisterDelegate {} -> sDep
+                StakingUnRegister {} -> -sDep
+                DRepRegister {} -> dDep
+                DRepUnRegister {} -> -dDep
+                _ -> Api.Lovelace 0
+            )
+      )
+      txSkel
+
+-- | Returns all scripts which guard transaction inputs
+txSkelInputScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [VScript]
+txSkelInputScripts = fmap catMaybes . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT)) . Map.keys . txSkelIns
 
 -- | Returns all scripts involved in this 'TxSkel'
-txSkelAllScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [Script.Versioned Script.Script]
+txSkelAllScripts :: (MonadBlockChainBalancing m) => TxSkel -> m [VScript]
 txSkelAllScripts txSkel = do
-  txSkelSpendingScripts <- fmap Script.toVersioned <$> txSkelInputValidators txSkel
-  return (txSkelMintingScripts txSkel <> txSkelWithdrawingScripts txSkel <> txSkelProposingScripts txSkel <> txSkelSpendingScripts)
+  txSkelSpendingScripts <- txSkelInputScripts txSkel
+  return
+    ( txSkelMintingScripts txSkel
+        <> txSkelWithdrawingScripts txSkel
+        <> txSkelProposingScripts txSkel
+        <> txSkelCertifyingScripts txSkel
+        <> txSkelSpendingScripts
+    )
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.

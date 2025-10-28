@@ -36,7 +36,6 @@ import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Interpreting and running 'StagedMockChain'
@@ -78,8 +77,8 @@ data MockChainBuiltin a where
   UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
-  SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
-  GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
+  SetConstitutionScript :: (ToVScript s) => s -> MockChainBuiltin ()
+  GetConstitutionScript :: MockChainBuiltin (Maybe VScript)
   RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
   ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
   -- | The empty set of traces

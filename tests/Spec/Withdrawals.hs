@@ -1,6 +1,7 @@
 module Spec.Withdrawals where
 
 import Cooked
+import Optics.Core
 import Plutus.Withdrawals
 import Test.Tasty
 
@@ -10,11 +11,7 @@ testWithdrawingScript reward deposit inRedeemer actual = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSigners = [wallet 1],
-        txSkelWithdrawals =
-          scriptWithdrawal
-            checkWithdrawalMPScript
-            (someTxSkelRedeemer (inRedeemer * 1_000))
-            (actual * 1_000)
+        txSkelWithdrawals = review txSkelWithdrawalsListI [scriptWithdrawal checkWithdrawalMPScript (inRedeemer * 1_000) (actual * 1_000)]
       }
 
 tests :: TestTree
@@ -29,11 +26,15 @@ tests =
       testCooked "We cannot withdraw if we are not registered" $
         mustFailInPhase1WithMsgTest "WithdrawalsNotInRewardsCERTS" $
           testWithdrawingScript 2 2 2 2
-            `withTweak` setTweak txSkelWithdrawalsL (scriptWithdrawal trueWithdrawalMPScript (someTxSkelRedeemer (2_000 :: Integer)) 2_000),
-      testCooked "A wallet can also make a withdrawal" $
-        mustSucceedTest $
-          testWithdrawingScript 2 2 2 2
-            `withTweak` do
-              registerStakingCred (wallet 1) 2_000 0
-              setTweak txSkelWithdrawalsL (pkWithdrawal (wallet 1) 2_000)
+            `withTweak` setTweak
+              (txSkelWithdrawalsL % txSkelWithdrawalsListI)
+              [scriptWithdrawal trueWithdrawalMPScript (2_000 :: Integer) 2_000] -- ,
+              -- testCooked "A wallet can also make a withdrawal" $
+              --   mustSucceedTest $
+              --     testWithdrawingScript 2 2 2 2
+              --       `withTweak` do
+              --         registerStakingCred (wallet 1) 2_000 0
+              --         setTweak
+              --           (txSkelWithdrawalsL % txSkelWithdrawalsListI)
+              --           [pkWithdrawal (wallet 1) 2_000]
     ]

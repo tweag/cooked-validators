@@ -66,7 +66,8 @@
           LD_LIBRARY_PATH = pkgs.lib.strings.makeLibraryPath [
             pkgs.xz
             pkgs.zlib
-            pkgs.openssl_3_4
+            pkgs.lmdb
+            pkgs.openssl_3_5
             pkgs.postgresql # For cardano-node-emulator
             pkgs.openldap # For freer-extras‽
             pkgs.libsodium

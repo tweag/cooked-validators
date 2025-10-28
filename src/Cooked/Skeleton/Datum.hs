@@ -1,10 +1,16 @@
--- | This module exposes the notion of datums as they are handled within a
--- 'Cooked.Skeleton.TxSkel'
+-- | This module exposes the datum constructs used in payments of a
+-- 'Cooked.Skeleton.TxSkel'. Smart constructors for datums can be found in the
+-- 'Cooked.Skeleton.Output.Payable' structure meant to build payments.
 module Cooked.Skeleton.Datum
-  ( DatumConstrs,
+  ( -- * Type constraints
+    DatumConstrs,
+
+    -- * Data types
     DatumResolved (..),
     DatumKind (..),
     TxSkelOutDatum (..),
+
+    -- * Optics
     datumKindResolvedP,
     txSkelOutDatumKindAT,
     txSkelOutDatumResolvedAT,
@@ -76,6 +82,11 @@ data TxSkelOutDatum where
 
 deriving instance Show TxSkelOutDatum
 
+instance Eq TxSkelOutDatum where
+  NoTxSkelOutDatum == NoTxSkelOutDatum = True
+  (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b) == (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') = (dat, b) == (dat', b')
+  _ == _ = False
+
 instance Ord TxSkelOutDatum where
   compare NoTxSkelOutDatum NoTxSkelOutDatum = EQ
   compare NoTxSkelOutDatum _ = LT
@@ -84,9 +95,6 @@ instance Ord TxSkelOutDatum where
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b)
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') =
       compare (dat, b) (dat', b')
-
-instance Eq TxSkelOutDatum where
-  dat == dat' = compare dat dat' == EQ
 
 -- * Optics working on 'TxSkelOutDatum'
 
