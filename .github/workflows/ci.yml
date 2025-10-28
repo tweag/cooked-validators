@@ -162,7 +162,7 @@ jobs:
           '
 
       - name: Upload build and test outputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cooked-validators-checks
           path: |
@@ -177,7 +177,7 @@ jobs:
 
     steps:
       - name: Access build and test outputs
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: cooked-validators-checks
 
@@ -261,7 +261,7 @@ jobs:
           '
 
       - name: Upload documentation as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: documentation
           path: ./docs
@@ -279,7 +279,7 @@ jobs:
     needs: [build-and-deploy-documentation]
     steps:
       - name: Access haddock outputs
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: documentation
       - name: Check for warnings in Haddock output
