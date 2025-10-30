@@ -17,15 +17,15 @@ module Cooked.MockChain.Staged
     everywhere,
     everywhere',
     withTweak,
-    withModification,
     there,
     there',
+    labeled,
   )
 where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Monad (MonadPlus (..), msum)
+import Control.Monad (MonadPlus (..), guard, msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -37,6 +37,7 @@ import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
+import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
@@ -196,6 +197,27 @@ there n = there' n . LtlAtom . UntypedTweak
 there' :: (MonadModal m) => Integer -> Ltl (Modification m) -> m a -> m a
 there' n ltl = modifyLtl (ltlDelay n ltl)
 
+-- | Apply a tweak to every transaction which has a specific label. This can
+-- be useful to apply a tweak to every transaction in a set of associated
+-- transactions.
+--
+-- >
+-- > someEndpoint = do
+-- >   ..
+-- >   validateTxSkel' txSkelTemplate
+-- >      { txSkelLabels =
+-- >         [TxSkelLabel @Text "InitialMinting", TxSkelLabel @Text "AuctionWorkflow"]
+-- >      }
+-- >
+-- > someTest = someEndpoint & labled @Text "InitialMinting" someTweak
+labeled :: (LabelConstrs lbl, MonadModalBlockChain m) => lbl -> Tweak InterpMockChain b -> m a -> m a
+labeled lbl tweak = everywhere (hasLabel >> tweak)
+  where
+    hasLabel = do
+      -- using 'hasLabelTweak' causes a cyclic dependency
+      lbls <- viewTweak txSkelLabelL
+      guard (Set.member (TxSkelLabel lbl) lbls)
+
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
 -- enables an idiom like
@@ -209,10 +231,6 @@ there' n ltl = modifyLtl (ltlDelay n ltl)
 -- returned by this endpoint in the following way".
 withTweak :: (MonadModalBlockChain m) => m x -> Tweak InterpMockChain a -> m x
 withTweak = flip (there 0)
-
--- | Apply modification to the next transaction in a given trace. See 'withTweak'
-withModification :: (MonadModal m) => m a -> Ltl (Modification m) -> m a
-withModification = flip (there' 0)
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
