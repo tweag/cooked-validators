@@ -12,16 +12,20 @@ module Cooked.MockChain.Staged
     MonadModalBlockChain,
     InterpMockChain,
     somewhere,
+    somewhere',
     runTweak,
     everywhere,
+    everywhere',
     withTweak,
     there,
+    there',
+    labeled,
   )
 where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Monad (MonadPlus (..), msum)
+import Control.Monad (MonadPlus (..), guard, msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -33,6 +37,7 @@ import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
+import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
@@ -164,17 +169,54 @@ type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
 somewhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
-somewhere = modifyLtl . LtlUntil LtlTruth . LtlAtom . UntypedTweak
+somewhere = somewhere' . LtlAtom . UntypedTweak
+
+-- | Apply an Ltl modification somewhere in the given Trace. The modification
+-- must apply at least once.
+somewhere' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
+somewhere' ltl = modifyLtl (LtlUntil LtlTruth ltl)
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
 everywhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
-everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
+everywhere = everywhere' . LtlAtom . UntypedTweak
+
+-- | Apply an Ltl modification everywhere it can be (including nowhere if it
+-- does not apply). If the modification branches, this will branch at every
+-- location the modification can be applied.
+everywhere' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
+everywhere' ltl = modifyLtl (LtlRelease LtlFalsity ltl)
 
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
 there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
-there n = modifyLtl . ltlDelay n . LtlAtom . UntypedTweak
+there n = there' n . LtlAtom . UntypedTweak
+
+-- | Apply an Ltl modification to the (0-indexed) nth transaction in a
+-- given trace. Successful when this transaction exists and can be modified.
+there' :: (MonadModal m) => Integer -> Ltl (Modification m) -> m a -> m a
+there' n ltl = modifyLtl (ltlDelay n ltl)
+
+-- | Apply a tweak to every transaction which has a specific label. This can
+-- be useful to apply a tweak to every transaction in a set of associated
+-- transactions.
+--
+-- >
+-- > someEndpoint = do
+-- >   ..
+-- >   validateTxSkel' txSkelTemplate
+-- >      { txSkelLabels =
+-- >         [TxSkelLabel @Text "InitialMinting", TxSkelLabel @Text "AuctionWorkflow"]
+-- >      }
+-- >
+-- > someTest = someEndpoint & labled @Text "InitialMinting" someTweak
+labeled :: (LabelConstrs lbl, MonadModalBlockChain m) => lbl -> Tweak InterpMockChain b -> m a -> m a
+labeled lbl tweak = everywhere (hasLabel >> tweak)
+  where
+    hasLabel = do
+      -- using 'hasLabelTweak' causes a cyclic dependency
+      lbls <- viewTweak txSkelLabelL
+      guard (Set.member (TxSkelLabel lbl) lbls)
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that

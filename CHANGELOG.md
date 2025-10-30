@@ -13,6 +13,24 @@
 - A new documentation file around optics, in `doc/OPTICS.md`
 - New `forceOutputs` primitives to force the creation of new utxos from a list
   of `TxSkel`. Initial distributions are now handled using this primitive.
+- Added `somewhere'`, `everywhere'` and `there'` which accept arbitrary `Ltl`
+  expressions. 
+- Added `labeled` helper, which applies a tweak to every transaction that's
+  been labeled with a certain value.
+- Added `Cooked.Ltl.Combinators` with `anyOf[']` and `allOf[']` helpers to 
+  make combining multiple Ltl expressions together simpler:
+  
+  ```haskell
+  someTest = someTrace 
+    & everywhere' (anyOf 
+      [ UntypedTweak doubleSatAttack
+      , UntypedTweak addTokenAttack
+      , UntypedTweak customAttack ]
+      )
+  
+  tweakOneWorkflow = someTrace 
+    & labeled @Text "SomeWorkflow" someTweak
+  ```
 
 ### Removed
 

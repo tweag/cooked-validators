@@ -20,6 +20,7 @@ library
       Cooked.Attack.DupToken
       Cooked.InitialDistribution
       Cooked.Ltl
+      Cooked.Ltl.Combinators
       Cooked.MockChain
       Cooked.MockChain.AutoReferenceScripts
       Cooked.MockChain.Balancing

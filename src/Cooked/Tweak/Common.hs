@@ -15,6 +15,7 @@ module Cooked.Tweak.Common
     viewAllTweak,
     setTweak,
     overTweak,
+    modifySkel,
     overMaybeTweak,
     overMaybeSelectingTweak,
     selectP,
@@ -127,11 +128,15 @@ viewAllTweak optic = getTxSkel <&> toListOf optic
 
 -- | The tweak that sets a certain value in the 'TxSkel'.
 setTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> a -> m ()
-setTweak optic newValue = getTxSkel >>= putTxSkel . set optic newValue
+setTweak optic newValue = modifySkel $ set optic newValue
 
 -- | The tweak that modifies a certain value in the 'TxSkel'.
 overTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> (a -> a) -> m ()
-overTweak optic change = getTxSkel >>= putTxSkel . over optic change
+overTweak optic change = modifySkel $ over optic change
+
+-- | Apply an arbitrary modification function to the 'TxSkel'.
+modifySkel :: (MonadTweak m) => (TxSkel -> TxSkel) -> m ()
+modifySkel f = getTxSkel >>= putTxSkel . f
 
 -- | Like 'overTweak', but only modifies foci on which the argument function
 -- returns @Just@ the new focus. Returns a list of the foci that were modified,
