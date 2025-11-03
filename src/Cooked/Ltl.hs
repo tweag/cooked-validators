@@ -69,6 +69,8 @@ data Ltl a
     LtlRelease (Ltl a) (Ltl a)
   deriving (Show)
 
+{-# DEPRECATED ltlDelay "Use Cooked.Ltl.Combinators.delay instead" #-}
+
 -- | Delays a Ltl formula by @n@ time steps when @n > 0@
 ltlDelay :: Integer -> Ltl a -> Ltl a
 ltlDelay n | n <= 0 = id

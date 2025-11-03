@@ -5,6 +5,7 @@ module Cooked (module X) where
 import Cooked.Attack as X
 import Cooked.InitialDistribution as X
 import Cooked.Ltl as X (Ltl (..), MonadModal (..), ltlDelay)
+import Cooked.Ltl.Combinators as X (delay)
 import Cooked.MockChain as X
 import Cooked.Pretty as X
 import Cooked.ShowBS as X

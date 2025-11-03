@@ -31,6 +31,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Cooked.InitialDistribution
 import Cooked.Ltl
+import Cooked.Ltl.Combinators (always', delay, eventually')
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.Pretty.Hashable
@@ -166,36 +167,39 @@ runTweakFrom initDist tweak = runMockChainTFrom initDist . runTweakInChain tweak
 -- with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
+fromTweak :: Tweak m a -> Ltl (UntypedTweak m)
+fromTweak = LtlAtom . UntypedTweak
+
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
 somewhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
-somewhere = somewhere' . LtlAtom . UntypedTweak
+somewhere = somewhere' . fromTweak
 
 -- | Apply an Ltl modification somewhere in the given Trace. The modification
 -- must apply at least once.
 somewhere' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
-somewhere' ltl = modifyLtl (LtlUntil LtlTruth ltl)
+somewhere' = modifyLtl . eventually'
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
 everywhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
-everywhere = everywhere' . LtlAtom . UntypedTweak
+everywhere = everywhere' . fromTweak
 
 -- | Apply an Ltl modification everywhere it can be (including nowhere if it
 -- does not apply). If the modification branches, this will branch at every
 -- location the modification can be applied.
 everywhere' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
-everywhere' ltl = modifyLtl (LtlRelease LtlFalsity ltl)
+everywhere' = modifyLtl . always'
 
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
 there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
-there n = there' n . LtlAtom . UntypedTweak
+there n = there' n . fromTweak
 
 -- | Apply an Ltl modification to the (0-indexed) nth transaction in a
 -- given trace. Successful when this transaction exists and can be modified.
 there' :: (MonadModal m) => Integer -> Ltl (Modification m) -> m a -> m a
-there' n ltl = modifyLtl (ltlDelay n ltl)
+there' n = modifyLtl . delay n
 
 -- | Apply a tweak to every transaction which has a specific label. This can
 -- be useful to apply a tweak to every transaction in a set of associated

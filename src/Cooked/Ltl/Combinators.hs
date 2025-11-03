@@ -4,6 +4,11 @@ module Cooked.Ltl.Combinators
     allOf,
     anyOf',
     allOf',
+    delay,
+    eventually,
+    eventually',
+    always,
+    always',
   )
 where
 
@@ -29,3 +34,24 @@ allOf = allOf' . map LtlAtom
 -- 'LtlAnd' for semantics of conjunction.
 allOf' :: [Ltl a] -> Ltl a
 allOf' = foldr LtlAnd LtlTruth
+
+-- | Delays a Ltl formula by @n@ time steps when @n > 0@
+delay :: Integer -> Ltl a -> Ltl a
+delay n | n <= 0 = id
+delay n = LtlNext . delay (n - 1)
+
+-- | Apply a modification once somewhere.
+eventually :: a -> Ltl a
+eventually = eventually' . LtlAtom
+
+-- | Apply an Ltl expression once somewhere.
+eventually' :: Ltl a -> Ltl a
+eventually' = LtlUntil LtlTruth
+
+-- | Apply a modification everywhere.
+always :: a -> Ltl a
+always = always' . LtlAtom
+
+-- | Apply an Ltl expression everywhere.
+always' :: Ltl a -> Ltl a
+always' = LtlRelease LtlFalsity
