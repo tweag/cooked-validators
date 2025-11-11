@@ -55,5 +55,7 @@ data Payable :: [Symbol] -> Type where
   PayableAnd :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 
 -- | An infix-usable alias for 'PayableAnd'
+infixl 5 <&&>
+
 (<&&>) :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
 (<&&>) = PayableAnd

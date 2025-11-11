@@ -105,7 +105,7 @@ referenceMint mp1 mp2 n autoRefScript = do
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts =
-            [ wallet 1 `receives` (Value (Script.ada 2) <&&> ReferenceScript mp1),
+            [ wallet 1 `receives` Value (Script.ada 2) <&&> ReferenceScript mp1,
               wallet 1 `receives` Value (Script.ada 10)
             ],
           txSkelSigners = [wallet 1]

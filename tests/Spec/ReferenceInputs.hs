@@ -19,7 +19,7 @@ trace1 = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
-            [ fooTypedValidator `receives` (Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3)),
+            [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
               barTypedValidator `receives` Value (Script.ada 5)
             ],
           txSkelSigners = [wallet 2]
@@ -38,7 +38,7 @@ trace2 = do
     validateTxSkel'
       ( txSkelTemplate
           { txSkelOuts =
-              [ wallet 1 `receives` (Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer)),
+              [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
                 bazTypedValidator `receives` Value (Script.ada 10)
               ],
             txSkelSigners = [wallet 2]

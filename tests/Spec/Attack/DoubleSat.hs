@@ -35,8 +35,8 @@ instance PrettyCooked BRedeemer where
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution ((\n -> aValidator `receives` (VisibleHashedDatum ADatum <&&> Value (Script.ada n))) <$> [2, 3, 4, 5])
-    <> InitialDistribution ((\n -> bValidator `receives` (VisibleHashedDatum BDatum <&&> Value (Script.ada n))) <$> [6, 7])
+    <> InitialDistribution ((\n -> aValidator `receives` VisibleHashedDatum ADatum <&&> Value (Script.ada n)) <$> [2, 3, 4, 5])
+    <> InitialDistribution ((\n -> bValidator `receives` VisibleHashedDatum BDatum <&&> Value (Script.ada n)) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)

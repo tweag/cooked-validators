@@ -23,7 +23,7 @@ lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
-      txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> Value lockValue)],
+      txSkelOuts = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
       txSkelSigners = [wallet 1]
     }
 
@@ -36,7 +36,7 @@ relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
     { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
-      txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> Value lockValue)],
+      txSkelOuts = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
       txSkelSigners = [wallet 1]
     }
 
@@ -71,11 +71,11 @@ tests =
             x3 = Script.lovelace 9999
             skelIn =
               txSkelFromOuts
-                [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
-                  val1 `receives` (InlineDatum SecondLock <&&> Value x3),
-                  val2 `receives` (InlineDatum SecondLock <&&> Value x1),
-                  val1 `receives` (InlineDatum FirstLock <&&> Value x2),
-                  val1 `receives` (InlineDatum SecondLock <&&> Value x2)
+                [ val1 `receives` InlineDatum SecondLock <&&> Value x1,
+                  val1 `receives` InlineDatum SecondLock <&&> Value x3,
+                  val2 `receives` InlineDatum SecondLock <&&> Value x1,
+                  val1 `receives` InlineDatum FirstLock <&&> Value x2,
+                  val1 `receives` InlineDatum SecondLock <&&> Value x2
                 ]
             skelOut bound select =
               runTweak
@@ -94,11 +94,11 @@ tests =
                 { txSkelLabel =
                     Set.singleton . TxSkelLabel . DatumHijackingLbl $ Script.toCredential $ Script.toVersioned @Script.Script thief,
                   txSkelOuts =
-                    [ val1 `receives` (InlineDatum SecondLock <&&> Value x1),
-                      a `receives` (InlineDatum SecondLock <&&> Value x3),
-                      val2 `receives` (InlineDatum SecondLock <&&> Value x1),
-                      val1 `receives` (InlineDatum FirstLock <&&> Value x2),
-                      b `receives` (InlineDatum SecondLock <&&> Value x2)
+                    [ val1 `receives` InlineDatum SecondLock <&&> Value x1,
+                      a `receives` InlineDatum SecondLock <&&> Value x3,
+                      val2 `receives` InlineDatum SecondLock <&&> Value x1,
+                      val1 `receives` InlineDatum FirstLock <&&> Value x2,
+                      b `receives` InlineDatum SecondLock <&&> Value x2
                     ],
                   txSkelSigners = [wallet 1]
                 }

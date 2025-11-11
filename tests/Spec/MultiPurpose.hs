@@ -54,8 +54,8 @@ runScript = do
                 (oRefScript2, someTxSkelRedeemer Step)
               ],
           txSkelOuts =
-            [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue2),
-              script `receives` (InlineDatum (1 :: Integer) <&&> Value mintValue3)
+            [ script `receives` InlineDatum (0 :: Integer) <&&> Value mintValue2,
+              script `receives` InlineDatum (1 :: Integer) <&&> Value mintValue3
             ],
           txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn1 1]
         }
@@ -70,7 +70,7 @@ runScript = do
                 (oRefScript2', someTxSkelRedeemer Step)
               ],
           txSkelOuts =
-            [ script `receives` (InlineDatum (0 :: Integer) <&&> Value mintValue3)
+            [ script `receives` InlineDatum (0 :: Integer) <&&> Value mintValue3
             ],
           txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn2 1]
         }
@@ -90,7 +90,7 @@ runScript = do
        in ( txSkelTemplate
               { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,
                 txSkelMints = mints,
-                txSkelOuts = [script `receives` (InlineDatum ix <&&> Value (txSkelMintsValue mints))],
+                txSkelOuts = [script `receives` InlineDatum ix <&&> Value (txSkelMintsValue mints)],
                 txSkelSigners = [signer]
               },
             mintValue,
