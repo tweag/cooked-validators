@@ -15,8 +15,10 @@
   of `TxSkel`. Initial distributions are now handled using this primitive.
 - Added `somewhere'`, `everywhere'` and `there'` which accept arbitrary `Ltl`
   expressions. 
-- Added `labeled` helper, which applies a tweak to every transaction that's
-  been labeled with a certain value.
+- Added `labelled` and `labelled'` helpers, which applies a tweak to every 
+  transaction that's been labelled with a certain value.
+- Added `label` and as `IsString` instance for `TxSkelLabel` to make adding 
+  labels easier.
 - Added `Cooked.Ltl.Combinators` with `anyOf[']` and `allOf[']` helpers to 
   make combining multiple Ltl expressions together simpler:
   
@@ -29,7 +31,7 @@
       )
   
   tweakOneWorkflow = someTrace 
-    & labeled @Text "SomeWorkflow" someTweak
+    & labelled "SomeWorkflow" someTweak
   ```
 
 ### Removed
