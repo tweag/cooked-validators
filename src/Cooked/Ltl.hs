@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+
 -- | This modules provides the infrastructure to modify sequences of
 -- transactions using LTL formulaes with atomic modifications. This idea is to
 -- describe when to apply certain modifications within a trace. This is to be
@@ -67,7 +70,7 @@ data Ltl a
     --
     -- are equivalent.
     LtlRelease (Ltl a) (Ltl a)
-  deriving (Show)
+  deriving (Show, Eq, Functor, Foldable)
 
 {-# DEPRECATED ltlDelay "Use Cooked.Ltl.Combinators.delay instead" #-}
 
