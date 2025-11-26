@@ -19,14 +19,12 @@ module Cooked.MockChain.Staged
     withTweak,
     there,
     there',
-    labelled,
-    labelled',
   )
 where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Monad (MonadPlus (..), guard, msum)
+import Control.Monad (MonadPlus (..), msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -39,8 +37,6 @@ import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
-import Data.Set qualified as Set
-import Data.Text (Text)
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
@@ -200,49 +196,11 @@ there n = there' n . fromTweak
 
 -- | Apply an Ltl modification to the (0-indexed) nth transaction in a
 -- given trace. Successful when this transaction exists and can be modified.
+--
+-- See also `Cooked.Tweak.Labels.labelled'` to select transactions based on
+-- labels instead of their order.
 there' :: (MonadModal m) => Integer -> Ltl (Modification m) -> m a -> m a
 there' n = modifyLtl . delay n
-
--- | Apply a tweak to every transaction labelled with the given 'Text' value.
--- See 'labelled'', 'TxSkelLabel' is an instrance of 'Data.String.IsString' which
--- create 'Data.Text.Text' labels.
---
--- >
--- > someEndpoint = do
--- >   ...
--- >   validateTxSkel' txSkelTemplate
--- >      { txSkelLabels =
--- >         [ "InitialMinting"
--- >         , "AuctionWorkflow"
--- >         , label SomeLabelType]
--- >      }
--- >
--- > someTest = someEndpoint & labelled "ActionWorkflow" someTweak
-labelled :: (MonadModalBlockChain m) => Text -> Tweak InterpMockChain b -> m a -> m a
-labelled = labelled'
-
--- | Apply a tweak to every transaction which has a specific label. This can
--- be useful to apply a tweak to every transaction in a set of associated
--- transactions.
---
--- >
--- > someEndpoint = do
--- >   ...
--- >   validateTxSkel' txSkelTemplate
--- >      { txSkelLabels =
--- >         [ "InitialMinting"
--- >         , "AuctionWorkflow"
--- >         , label SomeLabelType]
--- >      }
--- >
--- > someTest = someEndpoint & labelled' SomeLabelType someTweak
-labelled' :: (LabelConstrs lbl, MonadModalBlockChain m) => lbl -> Tweak InterpMockChain b -> m a -> m a
-labelled' lbl tweak = everywhere (hasLabel >> tweak)
-  where
-    hasLabel = do
-      -- using 'hasLabelTweak' causes a cyclic dependency
-      lbls <- viewTweak txSkelLabelL
-      guard (Set.member (TxSkelLabel lbl) lbls)
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that

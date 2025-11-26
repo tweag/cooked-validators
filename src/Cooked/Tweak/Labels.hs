@@ -1,6 +1,8 @@
 -- | This module provides tweaks operating on transaction labels
 module Cooked.Tweak.Labels
-  ( addLabelTweak,
+  ( labelled,
+    labelled',
+    addLabelTweak,
     removeLabelTweak,
     hasLabelTweak,
   )
@@ -11,6 +13,7 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Functor
 import Data.Set qualified as Set
+import Data.Text (Text)
 
 -- | Adds a label to a 'TxSkel'.
 addLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
@@ -25,3 +28,41 @@ removeLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
 removeLabelTweak lbl = do
   hasLabelTweak lbl >>= guard
   overTweak txSkelLabelL . Set.delete $ TxSkelLabel lbl
+
+-- | `labelled'` specialised to Text labels.
+--
+-- >
+-- > someEndpoint = do
+-- >   ...
+-- >   validateTxSkel' txSkelTemplate
+-- >      { txSkelLabels =
+-- >         [ "InitialMinting"
+-- >         , "AuctionWorkflow"
+-- >         , "Spending"
+-- >         , label SomeLabelType]
+-- >      }
+-- >
+-- > someTest = someEndpoint & somewhere (labelled "Spending" doubleSatAttack)
+labelled :: (MonadTweak m) => Text -> m a -> m ()
+labelled = labelled'
+
+-- | Apply a tweak to a given transaction if it has a specific label. This
+-- can be useful to apply a tweak to every (or any) transaction in a set of
+-- associated transactions.
+--
+-- >
+-- > someEndpoint = do
+-- >   ...
+-- >   validateTxSkel' txSkelTemplate
+-- >      { txSkelLabels =
+-- >         [ "InitialMinting"
+-- >         , "AuctionWorkflow"
+-- >         , label SomeLabelType]
+-- >      }
+-- >
+-- > someTest = someEndpoint & eveywhere (labelled' SomeLabelType someTweak)
+-- > anotherTest = someEndpoint & somewhere (labelled' SomeLabelType someTweak)
+labelled' :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m ()
+labelled' lbl tweak = do
+  b <- hasLabelTweak lbl
+  when b $ void tweak
