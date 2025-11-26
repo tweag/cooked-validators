@@ -20,20 +20,23 @@ import Cooked.Ltl (Ltl (..))
 anyOf :: [a] -> Ltl a
 anyOf = anyOf' . map LtlAtom
 
--- | Combine a set of Ltl expressions into one where any of them may succeed.
--- Creates a branch for each input. See 'LtlOr' for the semantics of branching.
+-- | Combine a (non-empty) set of Ltl expressions into one where any of them may
+-- succeed. Creates a branch for each input. See 'LtlOr' for the semantics of
+-- branching.
 anyOf' :: [Ltl a] -> Ltl a
-anyOf' = foldr LtlOr LtlFalsity
+anyOf' [] = error "anyOf': Input must be non-empty"
+anyOf' xs = foldr1 LtlOr xs
 
 -- | Produce an Ltl expression which applies all the provided inputs. All must
 -- apply for this to succeed. See 'LtlAnd'.
 allOf :: [a] -> Ltl a
 allOf = allOf' . map LtlAtom
 
--- | Combine a set of Ltl expressions into one where all must succeed. See
--- 'LtlAnd' for semantics of conjunction.
+-- | Combine a (non-empty) set of Ltl expressions into one where all must
+-- succeed. See 'LtlAnd' for semantics of conjunction.
 allOf' :: [Ltl a] -> Ltl a
-allOf' = foldr LtlAnd LtlTruth
+allOf' [] = error "allOf': Input must be non-empty"
+allOf' xs = foldr1 LtlAnd xs
 
 -- | Delays a Ltl formula by @n@ time steps when @n > 0@
 delay :: Integer -> Ltl a -> Ltl a
