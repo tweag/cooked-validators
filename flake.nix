@@ -67,7 +67,7 @@
             pkgs.xz
             pkgs.zlib
             pkgs.lmdb
-            pkgs.openssl_3_5
+            pkgs.openssl_3_6
             pkgs.postgresql # For cardano-node-emulator
             pkgs.openldap # For freer-extras‽
             pkgs.libsodium
