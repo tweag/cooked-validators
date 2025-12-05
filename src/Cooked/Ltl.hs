@@ -100,8 +100,8 @@ nowLater (LtlAtom g) = [(g, LtlTruth)]
 nowLater (a `LtlOr` b) = nowLater a ++ nowLater b
 nowLater (a `LtlAnd` b) =
   [ (f <> g, ltlSimpl $ c `LtlAnd` d)
-    | (f, c) <- nowLater a,
-      (g, d) <- nowLater b
+  | (f, c) <- nowLater a,
+    (g, d) <- nowLater b
   ]
 nowLater (LtlNext a) = [(mempty, a)]
 nowLater (a `LtlUntil` b) =
@@ -133,8 +133,8 @@ nowLaterList = joinNowLaters . map nowLater
     joinNowLaters [] = [(mempty, [])]
     joinNowLaters (l : ls) =
       [ (g <> f, c : cs)
-        | (f, c) <- l,
-          (g, cs) <- joinNowLaters ls
+      | (f, c) <- l,
+        (g, cs) <- joinNowLaters ls
       ]
 
 -- | Straightforward simplification procedure for LTL formulas. This function

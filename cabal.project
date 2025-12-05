@@ -52,7 +52,7 @@ constraints:
 source-repository-package
     type: git
     location: https://github.com/intersectMBO/cardano-node-emulator
-    tag: mm/update-prot-version
+    tag: main
     subdir:
       plutus-script-utils
       plutus-ledger
