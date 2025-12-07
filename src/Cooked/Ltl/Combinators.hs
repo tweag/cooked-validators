@@ -24,7 +24,7 @@ anyOf = anyOf' . map LtlAtom
 -- succeed. Creates a branch for each input. See 'LtlOr' for the semantics of
 -- branching.
 anyOf' :: [Ltl a] -> Ltl a
-anyOf' [] = error "anyOf': Input must be non-empty"
+anyOf' [] = LtlFalsity
 anyOf' xs = foldr1 LtlOr xs
 
 -- | Produce an Ltl expression which applies all the provided inputs. All must
@@ -35,13 +35,17 @@ allOf = allOf' . map LtlAtom
 -- | Combine a (non-empty) set of Ltl expressions into one where all must
 -- succeed. See 'LtlAnd' for semantics of conjunction.
 allOf' :: [Ltl a] -> Ltl a
-allOf' [] = error "allOf': Input must be non-empty"
+allOf' [] = LtlTruth
 allOf' xs = foldr1 LtlAnd xs
 
--- | Delays a Ltl formula by @n@ time steps when @n > 0@
-delay :: Integer -> Ltl a -> Ltl a
-delay n | n <= 0 = id
-delay n = LtlNext . delay (n - 1)
+-- | Delays a value as an Ltl formula by @n@ time steps when @n > 0@
+delay :: Integer -> a -> Ltl a
+delay n = delay' . LtlAtom
+
+-- | Delays an Ltl formula by @n@ time steps when @n > 0@
+delay' :: Integer -> Ltl a -> Ltl a
+delay' n | n <= 0 = id
+delay' n = LtlNext . delay' (n - 1)
 
 -- | Apply a modification once somewhere.
 eventually :: a -> Ltl a
