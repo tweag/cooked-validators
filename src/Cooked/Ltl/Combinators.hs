@@ -5,6 +5,7 @@ module Cooked.Ltl.Combinators
     anyOf',
     allOf',
     delay,
+    delay',
     eventually,
     eventually',
     always,
@@ -40,7 +41,7 @@ allOf' xs = foldr1 LtlAnd xs
 
 -- | Delays a value as an Ltl formula by @n@ time steps when @n > 0@
 delay :: Integer -> a -> Ltl a
-delay n = delay' . LtlAtom
+delay n = delay' n . LtlAtom
 
 -- | Delays an Ltl formula by @n@ time steps when @n > 0@
 delay' :: Integer -> Ltl a -> Ltl a

@@ -15,10 +15,10 @@ tests =
       testCase "allOf [1] - no LtlAnd" $ allOf @Int [1] @?= LtlAtom 1,
       testCase "allOf [1,2] - single LtlAnd" $ allOf @Int [1, 2] @?= LtlAnd (LtlAtom 1) (LtlAtom 2),
       testCase "allOf [1,2,3] - right biased LtlAnd tree" $ allOf @Int [1, 2, 3] @?= LtlAnd (LtlAtom 1) (LtlAnd (LtlAtom 2) (LtlAtom 3)),
-      testCase "delay -1" $ delay @Int (-1) LtlTruth @?= LtlTruth,
-      testCase "delay 0" $ delay @Int 0 LtlTruth @?= LtlTruth,
-      testCase "delay 1" $ delay @Int 1 LtlTruth @?= LtlNext LtlTruth,
-      testCase "delay 2" $ delay @Int 2 LtlTruth @?= LtlNext (LtlNext LtlTruth),
+      testCase "delay' -1" $ delay' @Int (-1) LtlTruth @?= LtlTruth,
+      testCase "delay' 0" $ delay' @Int 0 LtlTruth @?= LtlTruth,
+      testCase "delay' 1" $ delay' @Int 1 LtlTruth @?= LtlNext LtlTruth,
+      testCase "delay' 2" $ delay' @Int 2 LtlTruth @?= LtlNext (LtlNext LtlTruth),
       testCase "eventually" $ eventually @Int 1 @?= LtlUntil LtlTruth (LtlAtom 1),
       testCase "always" $ always @Int 1 @?= LtlRelease LtlFalsity (LtlAtom 1)
     ]

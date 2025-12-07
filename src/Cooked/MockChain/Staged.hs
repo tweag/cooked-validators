@@ -30,7 +30,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Cooked.InitialDistribution
 import Cooked.Ltl
-import Cooked.Ltl.Combinators (always', delay, eventually')
+import Cooked.Ltl.Combinators (always', delay', eventually')
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.Pretty.Hashable
@@ -200,7 +200,7 @@ there n = there' n . fromTweak
 -- See also `Cooked.Tweak.Labels.labelled'` to select transactions based on
 -- labels instead of their order.
 there' :: (MonadModal m) => Integer -> Ltl (Modification m) -> m a -> m a
-there' n = modifyLtl . delay n
+there' n = modifyLtl . delay' n
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that

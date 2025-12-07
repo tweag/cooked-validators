@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 
 -- | This modules provides the infrastructure to modify sequences of
@@ -15,7 +14,6 @@ module Cooked.Ltl
     interpLtlAndPruneUnfinished,
     InterpLtl (..),
     MonadModal (..),
-    ltlDelay,
   )
 where
 
@@ -70,14 +68,7 @@ data Ltl a
     --
     -- are equivalent.
     LtlRelease (Ltl a) (Ltl a)
-  deriving (Show, Eq, Functor, Foldable)
-
-{-# DEPRECATED ltlDelay "Use Cooked.Ltl.Combinators.delay instead" #-}
-
--- | Delays a Ltl formula by @n@ time steps when @n > 0@
-ltlDelay :: Integer -> Ltl a -> Ltl a
-ltlDelay n | n <= 0 = id
-ltlDelay n = LtlNext . ltlDelay (n - 1)
+  deriving (Show, Eq, Functor)
 
 -- | Split an LTL formula that describes a modification of a computation into a
 -- list of @(doNow, doLater)@ pairs, where
