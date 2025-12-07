@@ -43,7 +43,7 @@ removeLabelTweak lbl = do
 -- >      }
 -- >
 -- > someTest = someEndpoint & somewhere (labelled "Spending" doubleSatAttack)
-labelled :: (MonadTweak m) => Text -> m a -> m ()
+labelled :: (MonadTweak m) => Text -> m a -> m a
 labelled = labelled'
 
 -- | Apply a tweak to a given transaction if it has a specific label. This
@@ -62,7 +62,7 @@ labelled = labelled'
 -- >
 -- > someTest = someEndpoint & eveywhere (labelled' SomeLabelType someTweak)
 -- > anotherTest = someEndpoint & somewhere (labelled' SomeLabelType someTweak)
-labelled' :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m ()
+labelled' :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m a
 labelled' lbl tweak = do
-  b <- hasLabelTweak lbl
-  when b $ void tweak
+  guard =<< hasLabelTweak lbl
+  tweak
