@@ -4,8 +4,6 @@
 
 ### Added
 
-- `LtlDelay` delays a Ltl formula by n timestamps. `there` is now implemented
-  in terms of `LtlDelay`.
 - `viewByRef` and `previewByRef` which call `txSkelOutByRef` and apply a getter
   and an affine fold on it, respectively.
 - Optics working on values in `Cooked.Skeleton.Output`
@@ -22,17 +20,21 @@
 - Added `Cooked.Ltl.Combinators` with `anyOf[']` and `allOf[']` helpers to 
   make combining multiple Ltl expressions together simpler:
   
-  ```haskell
-  someTest = someTrace 
-    & everywhere' (anyOf 
-      [ UntypedTweak doubleSatAttack
-      , UntypedTweak addTokenAttack
-      , UntypedTweak customAttack ]
-      )
-  
-  tweakOneWorkflow = someTrace 
-    & labelled "SomeWorkflow" someTweak
-  ```
+    ```haskell
+    someTest = someTrace 
+      & everywhere' (anyOf 
+        [ UntypedTweak doubleSatAttack
+        , UntypedTweak addTokenAttack
+        , UntypedTweak customAttack ]
+        )
+    
+    tweakOneWorkflow = someTrace 
+      & labelled "SomeWorkflow" someTweak
+    ```
+
+- `delay[']` delays an Ltl formula by n timestamps. 
+- `there`, `everywhere` and `somewhere` is now implemented
+  in terms of `Cooked.Ltl.Combinators`.
 
 ### Removed
 
