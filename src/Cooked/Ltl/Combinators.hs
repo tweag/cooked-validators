@@ -37,7 +37,7 @@ allOf' :: [Ltl a] -> Ltl a
 allOf' [] = LtlTruth
 allOf' xs = foldr1 LtlAnd xs
 
--- | Same as `delay''`, but first wraps the elements in the input list in atomic
+-- | Same as `delay'`, but first wraps the elements in the input list in atomic
 -- formulas.
 delay :: Integer -> a -> Ltl a
 delay n = delay' n . LtlAtom
@@ -48,7 +48,7 @@ delay' :: Integer -> Ltl a -> Ltl a
 delay' n | n <= 0 = id
 delay' n = LtlNext . delay' (n - 1)
 
--- | Same as `eventually''`, but first wraps the elements in the input list in
+-- | Same as `eventually'`, but first wraps the elements in the input list in
 -- atomic formulas.
 eventually :: a -> Ltl a
 eventually = eventually' . LtlAtom
@@ -57,7 +57,7 @@ eventually = eventually' . LtlAtom
 eventually' :: Ltl a -> Ltl a
 eventually' = LtlUntil LtlTruth
 
--- |  Same as `always''`, but first wraps the elements in the input list in
+-- |  Same as `always'`, but first wraps the elements in the input list in
 -- atomic formulas.
 always :: a -> Ltl a
 always = always' . LtlAtom
