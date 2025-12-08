@@ -187,7 +187,7 @@ computeFeeAndBalance balancingWallet minFee maxFee balancingUtxos mCollaterals s
         -- The skeleton was balanceable, we compute and analyse the resulting
         -- fee to seach upwards or downwards for an optimal solution
         Just (adjustedColsAndWallet, attemptedSkel) -> do
-          newFee <- estimateTxSkelFee attemptedSkel fee adjustedColsAndWallet
+          (_, newFee) <- estimateTxSkelFee attemptedSkel fee adjustedColsAndWallet
           return $ case fee - newFee of
             -- Current fee is insufficient, we look on the right (strictly)
             n | n < 0 -> (fee + 1, maxFee)
@@ -290,21 +290,25 @@ getOptimalCandidate candidates paymentTarget mceError = do
     [] -> throwError mceError
     (_, ret) : _ -> return ret
 
--- | This function was originally inspired by
--- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m Integer
+-- | Estimates the fee required to sustain the cost of a skeleton alongside fee
+-- and collaterals. In the process, the Cardano transaction body needs to be
+-- generated. Returns said body and the associated estimated fee.
+estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra, Integer)
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
   -- We build the index known to the skeleton
   index <- txSkelToIndex skel mCollaterals
-  -- We build the transaction body
+  -- We build the transaction body. We first attempt to build it with the actual
+  -- execution units.
   txBody <- txSkelToTxBody skel fee mCollaterals
-  -- We finally can the fee estimate function
-  return $
-    Cardano.unCoin $
-      Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody $
-        fromIntegral (length $ txSkelSigners skel)
+  -- We finally can run the fee estimate function
+  return
+    ( txBody,
+      Cardano.unCoin $
+        Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody $
+          fromIntegral (length $ txSkelSigners skel)
+    )
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted

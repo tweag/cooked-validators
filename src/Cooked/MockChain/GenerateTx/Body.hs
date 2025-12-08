@@ -86,15 +86,13 @@ txBodyContentToTxBody txBodyContent = do
     return
     (Emulator.createTransactionBody params (Ledger.CardanoBuildTx txBodyContent))
 
--- | Generates an index with utxos known to a 'TxSkel'
+-- | Generates an index with all the utxos known to a 'TxSkel' (inputs and
+-- reference inputs) as well as some additional collateral inputs.
 txSkelToIndex :: (MonadBlockChainBalancing m) => TxSkel -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.UTxO Cardano.ConwayEra)
 txSkelToIndex txSkel mCollaterals = do
-  -- We build the index of UTxOs which are known to this skeleton. This includes
-  -- collateral inputs, inputs and reference inputs.
-  let collateralIns = case mCollaterals of
-        Nothing -> []
-        Just (s, _) -> Set.toList s
-  -- We retrieve all the outputs known to the skeleton
+  -- We first collect the collateral inputs
+  let collateralIns = maybe [] (Set.toList . fst) mCollaterals
+  -- We add up the inputs and reference inputs
   (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (Set.toList (txSkelKnownTxOutRefs txSkel) <> collateralIns)
   -- We then compute their Cardano counterparts
   txOutL <- forM knownTxOuts toCardanoTxOut
@@ -104,15 +102,20 @@ txSkelToIndex txSkel mCollaterals = do
     return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
 
 -- | Generates a transaction body from a 'TxSkel' and associated fee and
--- collateral information. This transaction body accounts for the actual
--- execution units of each of the scripts involved in the skeleton.
+-- collateral information. At attempt is made at assigning proper execution
+-- units in the body. It can fail because of phase 2 failures or because the
+-- computed execution units do not match the body (which should never
+-- occur). When it does fail, the original body with default execution units is
+-- returned and an event is logged. The rational behind not throwing the error
+-- here is that technically, no validation has been asked. It just so happens
+-- that to fully fill the body, the scripts must be run for the execution units.
 txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra)
 txSkelToTxBody txSkel fee mCollaterals = do
   -- We create a first body content and body, without execution units
-  txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
-  txBody' <- txBodyContentToTxBody txBodyContent'
+  txBodyContent <- txSkelToTxBodyContent txSkel fee mCollaterals
+  txBody <- txBodyContentToTxBody txBodyContent
   -- We create a full transaction from the body
-  let tx' = Cardano.Tx txBody' (toKeyWitness txBody' <$> txSkelSigners txSkel)
+  let tx' = Cardano.Tx txBody (toKeyWitness txBody <$> txSkelSigners txSkel)
   -- We retrieve the index and parameters to feed to @getTxExUnitsWithLogs@
   index <- txSkelToIndex txSkel mCollaterals
   params <- getParams
@@ -120,14 +123,14 @@ txSkelToTxBody txSkel fee mCollaterals = do
   case Emulator.getTxExUnitsWithLogs params (Ledger.fromPlutusIndex index) tx' of
     -- Computing the execution units can result in all kinds of validation
     -- errors except for the ones related to the execution units themselves.
-    Left err -> throwError $ uncurry MCEValidationError err
+    Left _ -> logEvent MCLogExecutionUnitsErrorDeferred >> return txBody
     -- When no error arises, we get an execution unit for each script usage. We
     -- first have to transform this Ledger map to a cardano API map.
     Right (Map.mapKeysMonotonic (Cardano.toScriptIndex Cardano.AlonzoEraOnwardsConway) . fmap (Cardano.fromAlonzoExUnits . snd) -> exUnits) ->
       -- We can then assign the right execution units to the body content
-      case Cardano.substituteExecutionUnits exUnits txBodyContent' of
+      case Cardano.substituteExecutionUnits exUnits txBodyContent of
         -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
-        Left _ -> throwError $ FailWith "Error while assigning execution units"
+        Left _ -> logEvent MCLogExecutionUnitsErrorDeferred >> return txBody
         -- We now have a body content with proper execution units and can create
         -- the final body from it
-        Right txBody -> txBodyContentToTxBody txBody
+        Right txBodyContent' -> txBodyContentToTxBody txBodyContent'

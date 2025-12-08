@@ -274,15 +274,13 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         -- We retrieve the utxos created by the transaction
         let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
         -- We add the news utxos to the state
-        forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
+        forM_ (zip utxos $ txSkelOuts skel) $ modify' . uncurry addOutput
         -- And remove the old ones
         forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
       -- This is a theoretical unreachable case. Since we fail in Phase 2, it
       -- means the transaction involved script, and thus we must have generated
       -- collaterals.
-      (_, Ledger.FailPhase2 {})
-        | Nothing <- mCollaterals ->
-            fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
+      _ -> fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
     when txSkelOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
     -- We return the parameters to their original state

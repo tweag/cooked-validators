@@ -19,8 +19,10 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as C.Ledger
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Hashes qualified as C.Ledger
 import Cardano.Ledger.Shelley.API qualified as C.Ledger
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
@@ -28,6 +30,7 @@ import Cooked.Skeleton
 import Cooked.Wallet
 import Ledger.Address qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -114,22 +117,23 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
     _ -> throwError $ MCEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
 
 -- | Translates a script with its associated redeemer and datum to a script
--- witness. Note on the usage of 'Ledger.zeroExecutionUnits': at this stage of
--- the transaction create, we cannot know the execution units used by the
+-- witness. Note on the usage of 'maximumExUnits': at this stage of the
+-- transaction generation, we cannot know the execution units used by the
 -- script. They will be filled out later on once the full body has been
--- generated. So, for now, we temporarily leave them to 0.
+-- generated. So, for now, we temporarily leave them to the maximum value.
 toScriptWitness :: (MonadBlockChainBalancing m, ToVScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> m (Cardano.ScriptWitness b Cardano.ConwayEra)
 toScriptWitness (toVScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum = do
+  maximumExUnits <- Cardano.fromAlonzoExUnits . MicroLens.view Conway.ppMaxTxExUnitsL . Emulator.emulatorPParams <$> getParams
   let scriptData = Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
   case version of
     Script.PlutusV1 ->
-      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData maximumExUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
     Script.PlutusV2 ->
-      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData maximumExUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
     Script.PlutusV3 ->
-      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData maximumExUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
 
 -- | Generates a list of witnesses for a given wallet and body

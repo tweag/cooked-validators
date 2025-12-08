@@ -131,6 +131,8 @@ data MockChainLogEntry
     MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
     MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
+  | -- | An error while assigning execution units has been deferred
+    MCLogExecutionUnitsErrorDeferred
   deriving (Show)
 
 -- * Mockchain layers
