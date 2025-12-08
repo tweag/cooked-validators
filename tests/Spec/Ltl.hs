@@ -6,7 +6,7 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Writer
 import Cooked.Ltl
-import Cooked.Ltl.Combinators as LtlC
+import Cooked.Ltl.Combinators
 import Data.Set (fromList)
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -56,10 +56,10 @@ re-definition here, in my opinion.
 -}
 
 somewhere :: (MonadModal m) => Modification m -> m a -> m a
-somewhere = modifyLtl . LtlC.eventually
+somewhere = modifyLtl . eventually
 
 everywhere :: (MonadModal m) => Modification m -> m a -> m a
-everywhere = modifyLtl . LtlC.always
+everywhere = modifyLtl . always
 
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
 emitInteger i = Instr (Builtin (EmitInteger i)) Return

@@ -5,6 +5,7 @@ module Cooked.Tweak.Labels
     addLabelTweak,
     removeLabelTweak,
     hasLabelTweak,
+    ensureLabelTweak,
   )
 where
 
@@ -23,10 +24,14 @@ addLabelTweak = overTweak txSkelLabelL . Set.insert . TxSkelLabel
 hasLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m Bool
 hasLabelTweak = (viewTweak txSkelLabelL <&>) . Set.member . TxSkelLabel
 
+-- | Ensures a given label is present in the 'TxSkel'
+ensureLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
+ensureLabelTweak = hasLabelTweak >=> guard
+
 -- | Removes a label from a 'TxSkel' when possible, fails otherwise
 removeLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
 removeLabelTweak lbl = do
-  hasLabelTweak lbl >>= guard
+  ensureLabelTweak lbl
   overTweak txSkelLabelL . Set.delete $ TxSkelLabel lbl
 
 -- | `labelled'` specialised to Text labels.
@@ -63,6 +68,4 @@ labelled = labelled'
 -- > someTest = someEndpoint & eveywhere (labelled' SomeLabelType someTweak)
 -- > anotherTest = someEndpoint & somewhere (labelled' SomeLabelType someTweak)
 labelled' :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m a
-labelled' lbl tweak = do
-  guard =<< hasLabelTweak lbl
-  tweak
+labelled' lbl = (ensureLabelTweak lbl >>)

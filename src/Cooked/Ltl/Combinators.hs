@@ -15,51 +15,53 @@ where
 
 import Cooked.Ltl (Ltl (..))
 
--- | Produce an Ltl expression which branches on any of the provided
--- inputs. It will not attempt combinations, only one input will be
--- applied in any branch. See 'LtlOr'.
+-- | Same as `anyOf'`, but first wraps the elements in the input list in atomic
+-- formulas.
 anyOf :: [a] -> Ltl a
 anyOf = anyOf' . map LtlAtom
 
--- | Combine a (non-empty) set of Ltl expressions into one where any of them may
--- succeed. Creates a branch for each input. See 'LtlOr' for the semantics of
--- branching.
+-- | Produces an Ltl formula which consists of the disjunction of all the
+-- formulas in the input list.
 anyOf' :: [Ltl a] -> Ltl a
 anyOf' [] = LtlFalsity
 anyOf' xs = foldr1 LtlOr xs
 
--- | Produce an Ltl expression which applies all the provided inputs. All must
--- apply for this to succeed. See 'LtlAnd'.
+-- | Same as `allOf'`, but first wraps the elements in the input list in atomic
+-- formulas.
 allOf :: [a] -> Ltl a
 allOf = allOf' . map LtlAtom
 
--- | Combine a (non-empty) set of Ltl expressions into one where all must
--- succeed. See 'LtlAnd' for semantics of conjunction.
+-- | Produces an Ltl formula which consists of the conjunction of all the
+-- formulas in the input list.
 allOf' :: [Ltl a] -> Ltl a
 allOf' [] = LtlTruth
 allOf' xs = foldr1 LtlAnd xs
 
--- | Delays a value as an Ltl formula by @n@ time steps when @n > 0@
+-- | Same as `delay''`, but first wraps the elements in the input list in atomic
+-- formulas.
 delay :: Integer -> a -> Ltl a
 delay n = delay' n . LtlAtom
 
--- | Delays an Ltl formula by @n@ time steps when @n > 0@
+-- | Produces an Ltl formula which consists of the delay of the input formula by
+-- @n@ time steps, if @n > 0@. Otherwise, leaves the formula unchanged.
 delay' :: Integer -> Ltl a -> Ltl a
 delay' n | n <= 0 = id
 delay' n = LtlNext . delay' (n - 1)
 
--- | Apply a modification once somewhere.
+-- | Same as `eventually''`, but first wraps the elements in the input list in
+-- atomic formulas.
 eventually :: a -> Ltl a
 eventually = eventually' . LtlAtom
 
--- | Apply an Ltl expression once somewhere.
+-- | Produces an Ltl formula which consists the input formula eventually holds
 eventually' :: Ltl a -> Ltl a
 eventually' = LtlUntil LtlTruth
 
--- | Apply a modification everywhere.
+-- |  Same as `always''`, but first wraps the elements in the input list in
+-- atomic formulas.
 always :: a -> Ltl a
 always = always' . LtlAtom
 
--- | Apply an Ltl expression everywhere.
+-- | Produces an Ltl formula which ensures the input formula always holds
 always' :: Ltl a -> Ltl a
 always' = LtlRelease LtlFalsity
