@@ -35,7 +35,7 @@ paymentWithoutMinAda :: (MonadBlockChain m) => Integer -> m ()
 paymentWithoutMinAda paidLovelaces = do
   validateTxSkel_
     txSkelTemplate
-      { txSkelOuts = [wallet 2 `receives` (FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum)],
+      { txSkelOuts = [wallet 2 `receives` FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum],
         txSkelSigners = [wallet 1]
       }
 

@@ -24,6 +24,7 @@ import Data.Maybe (catMaybes)
 import Data.Ratio
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.Text (Text)
 import Numeric qualified
 import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prettyprinter (Doc, (<+>))
@@ -178,3 +179,6 @@ instance PrettyCooked () where
 
 instance PrettyCooked Rational where
   prettyCookedOpt opts q = "(" <+> prettyCookedOpt opts (numerator q) <+> "/" <+> prettyCookedOpt opts (denominator q) <+> ")"
+
+instance PrettyCooked Text where
+  prettyCookedOpt _ = PP.pretty

@@ -73,14 +73,13 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
       { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
         txSkelOuts =
           [ validator
-              `receives` ( Value (txSkelOutValue theOutput)
-                             <&&> ( case datumKindOnSecondPayment of
-                                      OnlyHash -> HiddenHashedDatum
-                                      Datum -> VisibleHashedDatum
-                                      Inline -> InlineDatum
-                                  )
-                               SecondPaymentDatum
-                         )
+              `receives` Value (txSkelOutValue theOutput)
+              <&&> ( case datumKindOnSecondPayment of
+                       OnlyHash -> HiddenHashedDatum
+                       Datum -> VisibleHashedDatum
+                       Inline -> InlineDatum
+                   )
+                SecondPaymentDatum
           ],
         txSkelSigners = [wallet 1]
       }

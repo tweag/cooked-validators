@@ -222,6 +222,8 @@ valueLovelaceP = valueAssetClassAmountP Api.adaSymbol Api.adaToken % re lovelace
 
 -- | Smart constructor to build a 'TxSkelOut' from an owner and payment. This
 -- should be the main way of building outputs.
+infix 1 `receives`
+
 receives :: (OwnerConstrs owner) => owner -> Payable els -> TxSkelOut
 receives owner =
   ( `go`

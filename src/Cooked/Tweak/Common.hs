@@ -127,7 +127,7 @@ viewAllTweak optic = getTxSkel <&> toListOf optic
 
 -- | The tweak that sets a certain value in the 'TxSkel'.
 setTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> a -> m ()
-setTweak optic newValue = getTxSkel >>= putTxSkel . set optic newValue
+setTweak optic = overTweak optic . const
 
 -- | The tweak that modifies a certain value in the 'TxSkel'.
 overTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> (a -> a) -> m ()

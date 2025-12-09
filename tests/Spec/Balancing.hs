@@ -30,15 +30,15 @@ banana = Script.multiPurposeScriptValue Script.trueMintingMPScript $ Api.TokenNa
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ Script.trueSpendingMPScript @() `receives` (FixedValue (Script.ada 42) <&&> VisibleHashedDatum ()),
+    [ Script.trueSpendingMPScript @() `receives` FixedValue (Script.ada 42) <&&> VisibleHashedDatum (),
       alice `receives` FixedValue (Script.ada 2 <> apple 3),
       alice `receives` FixedValue (Script.ada 25),
       alice `receives` FixedValue (Script.ada 40 <> orange 6),
       alice `receives` FixedValue (Script.ada 8),
       alice `receives` FixedValue (Script.ada 30),
-      alice `receives` (FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer)),
-      alice `receives` (FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (Script.trueSpendingMPScript @())),
-      alice `receives` (FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ())
+      alice `receives` FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer),
+      alice `receives` FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (Script.trueSpendingMPScript @()),
+      alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet), [Api.TxOutRef])
