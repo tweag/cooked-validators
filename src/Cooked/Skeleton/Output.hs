@@ -197,6 +197,8 @@ data Payable :: [PayableKind] -> Type where
 
 -- * Smart constructor to build 'TxSkelOut's
 
+infix 1 `receives`
+
 -- | Smart constructor to build a 'TxSkelOut' from an @owner@ and 'Payable'. This
 -- should be the main way of building outputs.
 receives :: (IsTxSkelOutAllowedOwner owner) => owner -> Payable els -> TxSkelOut

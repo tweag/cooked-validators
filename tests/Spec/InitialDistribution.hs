@@ -22,7 +22,7 @@ initialDistributionWithDatum =
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
   InitialDistribution $
-    (alice `receives` (Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @())))
+    (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
       : replicate 2 (bob `receives` Value (Script.ada 100))
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]

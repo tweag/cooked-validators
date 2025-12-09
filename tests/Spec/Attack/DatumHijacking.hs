@@ -23,7 +23,7 @@ lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
-      txSkelOuts = [v `receives` (InlineDatum FirstLock <&&> Value lockValue)],
+      txSkelOuts = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
       txSkelSigners = [wallet 1]
     }
 
@@ -36,7 +36,7 @@ relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
     { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
-      txSkelOuts = [v `receives` (InlineDatum SecondLock <&&> Value lockValue)],
+      txSkelOuts = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
       txSkelSigners = [wallet 1]
     }
 
@@ -69,11 +69,11 @@ tests =
             x3 = Script.lovelace 9999
             skelIn =
               txSkelFromOuts
-                [ carelessValidator `receives` (InlineDatum SecondLock <&&> Value x1),
-                  carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3),
-                  carefulValidator `receives` (InlineDatum SecondLock <&&> Value x1),
-                  carelessValidator `receives` (InlineDatum FirstLock <&&> Value x2),
-                  carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)
+                [ carelessValidator `receives` InlineDatum SecondLock <&&> Value x1,
+                  carelessValidator `receives` InlineDatum SecondLock <&&> Value x3,
+                  carefulValidator `receives` InlineDatum SecondLock <&&> Value x1,
+                  carelessValidator `receives` InlineDatum FirstLock <&&> Value x2,
+                  carelessValidator `receives` InlineDatum SecondLock <&&> Value x2
                 ]
             skelOut bound select =
               ( fmap (second txSkelOuts)
@@ -94,11 +94,11 @@ tests =
                     skelIn
               )
             outsExpected a b =
-              [ carelessValidator `receives` (InlineDatum SecondLock <&&> Value x1),
-                a `receives` (InlineDatum SecondLock <&&> Value x3),
-                carefulValidator `receives` (InlineDatum SecondLock <&&> Value x1),
-                carelessValidator `receives` (InlineDatum FirstLock <&&> Value x2),
-                b `receives` (InlineDatum SecondLock <&&> Value x2)
+              [ carelessValidator `receives` InlineDatum SecondLock <&&> Value x1,
+                a `receives` InlineDatum SecondLock <&&> Value x3,
+                carefulValidator `receives` InlineDatum SecondLock <&&> Value x1,
+                carelessValidator `receives` InlineDatum FirstLock <&&> Value x2,
+                b `receives` InlineDatum SecondLock <&&> Value x2
               ]
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? mcrValue <$> skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $

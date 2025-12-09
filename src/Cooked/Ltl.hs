@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor #-}
+
 -- | This modules provides the infrastructure to modify sequences of
 -- transactions using LTL formulaes with atomic modifications. This idea is to
 -- describe when to apply certain modifications within a trace. This is to be
@@ -12,7 +14,6 @@ module Cooked.Ltl
     interpLtlAndPruneUnfinished,
     InterpLtl (..),
     MonadModal (..),
-    ltlDelay,
   )
 where
 
@@ -67,12 +68,7 @@ data Ltl a
     --
     -- are equivalent.
     LtlRelease (Ltl a) (Ltl a)
-  deriving (Show)
-
--- | Delays a Ltl formula by @n@ time steps when @n > 0@
-ltlDelay :: Integer -> Ltl a -> Ltl a
-ltlDelay n | n <= 0 = id
-ltlDelay n = LtlNext . ltlDelay (n - 1)
+  deriving (Show, Eq, Functor)
 
 -- | Split an LTL formula that describes a modification of a computation into a
 -- list of @(doNow, doLater)@ pairs, where
