@@ -113,7 +113,7 @@
 </span><a href="Cooked.Skeleton.html#txSkelWithdrawals"><span class="hs-identifier hs-var hs-var">txSkelWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span>
 </span><span id="line-104"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-105"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-106"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679805262"><span id="local-6989586621679805292"><span id="local-6989586621679805296"><span class="annot"><span class="annottext">Int -&gt; TxSkel -&gt; ShowS
+</span><span id="line-106"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679809318"><span id="local-6989586621679809348"><span id="local-6989586621679809352"><span class="annot"><span class="annottext">Int -&gt; TxSkel -&gt; ShowS
 [TxSkel] -&gt; ShowS
 TxSkel -&gt; String
 (Int -&gt; TxSkel -&gt; ShowS)
@@ -126,7 +126,7 @@ $cshow :: TxSkel -&gt; String
 show :: TxSkel -&gt; String
 $cshowList :: [TxSkel] -&gt; ShowS
 showList :: [TxSkel] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679805327"><span id="local-6989586621679805356"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679809383"><span id="local-6989586621679809412"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkel -&gt; Bool
 (TxSkel -&gt; TxSkel -&gt; Bool)
 -&gt; (TxSkel -&gt; TxSkel -&gt; Bool) -&gt; Eq TxSkel
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -237,7 +237,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span id="line-158"></span><span class="annot"><span class="hs-comment">-- | All 'Api.TxOutRef's in reference inputs from redeemers</span></span><span>
 </span><span id="line-159"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-type">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
 </span><span id="line-160"></span><span id="txSkelInsReferenceInRedeemers"><span class="annot"><span class="annottext">txSkelInsReferenceInRedeemers :: TxSkel -&gt; Set TxOutRef
-</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var hs-var">txSkelInsReferenceInRedeemers</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679805547"><span id="local-6989586621679805548"><span id="local-6989586621679805549"><span id="local-6989586621679805550"><span id="local-6989586621679805551"><span id="local-6989586621679805552"><span id="local-6989586621679805553"><span id="local-6989586621679805554"><span id="local-6989586621679805555"><span id="local-6989586621679805556"><span class="annot"><span class="annottext">[Wallet]
+</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var hs-var">txSkelInsReferenceInRedeemers</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679809603"><span id="local-6989586621679809604"><span id="local-6989586621679809605"><span id="local-6989586621679809606"><span id="local-6989586621679809607"><span id="local-6989586621679809608"><span id="local-6989586621679809609"><span id="local-6989586621679809610"><span id="local-6989586621679809611"><span id="local-6989586621679809612"><span class="annot"><span class="annottext">[Wallet]
 [TxSkelProposal]
 [TxSkelOut]
 Set TxOutRef
@@ -283,7 +283,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-163"></span><span>      </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [TxSkelRedeemer]
 forall k a. Map k a -&gt; [a]
 </span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805552"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
+</span><a href="#local-6989586621679809608"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
 </span><span id="line-164"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Versioned Script, TxSkelRedeemer) -&gt; TxSkelRedeemer
@@ -296,7 +296,7 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">mapMaybe</span></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Maybe (Versioned Script, TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalWitness"><span class="hs-identifier hs-var">txSkelProposalWitness</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679805555"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679809611"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-165"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkelRedeemer, NEMap TokenName (NonZero Integer))
@@ -311,7 +311,7 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 -&gt; [(TxSkelRedeemer, NEMap TokenName (NonZero Integer))]
 forall k a. Map k a -&gt; [a]
 </span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679805549"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679809605"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-166"></span><span>        </span><span class="annot"><span class="annottext">[TxSkelRedeemer] -&gt; [TxSkelRedeemer] -&gt; [TxSkelRedeemer]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkelRedeemer, Lovelace) -&gt; TxSkelRedeemer
@@ -322,7 +322,7 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals -&gt; [(TxSkelRedeemer, Lovelace)]
 forall k a. Map k a -&gt; [a]
 </span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
-</span><a href="#local-6989586621679805556"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679809612"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-167"></span><span>
 </span><span id="line-168"></span><span class="hs-comment">-- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes</span><span>
 </span><span id="line-169"></span><span class="hs-comment">-- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference</span><span>
@@ -331,8 +331,8 @@ forall k a. Map k a -&gt; [a]
 </span><span id="line-172"></span><span class="hs-comment">-- inputs, as they are not part of the skeleton.</span><span>
 </span><span id="line-173"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-type">txSkelKnownTxOutRefs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
 </span><span id="line-174"></span><span id="txSkelKnownTxOutRefs"><span class="annot"><span class="annottext">txSkelKnownTxOutRefs :: TxSkel -&gt; Set TxOutRef
-</span><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-var hs-var">txSkelKnownTxOutRefs</span></a></span></span><span> </span><span id="local-6989586621679805565"><span class="annot"><span class="annottext">skel :: TxSkel
-</span><a href="#local-6989586621679805565"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679805566"><span id="local-6989586621679805567"><span id="local-6989586621679805568"><span id="local-6989586621679805569"><span id="local-6989586621679805570"><span id="local-6989586621679805571"><span id="local-6989586621679805572"><span id="local-6989586621679805573"><span id="local-6989586621679805574"><span id="local-6989586621679805575"><span class="annot"><span class="annottext">[Wallet]
+</span><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-var hs-var">txSkelKnownTxOutRefs</span></a></span></span><span> </span><span id="local-6989586621679809621"><span class="annot"><span class="annottext">skel :: TxSkel
+</span><a href="#local-6989586621679809621"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679809622"><span id="local-6989586621679809623"><span id="local-6989586621679809624"><span id="local-6989586621679809625"><span id="local-6989586621679809626"><span id="local-6989586621679809627"><span id="local-6989586621679809628"><span id="local-6989586621679809629"><span id="local-6989586621679809630"><span id="local-6989586621679809631"><span class="annot"><span class="annottext">[Wallet]
 [TxSkelProposal]
 [TxSkelOut]
 Set TxOutRef
@@ -365,17 +365,17 @@ txSkelWithdrawals :: TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelLabel"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-175"></span><span>  </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679805565"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><a href="#local-6989586621679809621"><span class="hs-identifier hs-var">skel</span></a></span><span>
 </span><span id="line-176"></span><span>    </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; Set TxOutRef
 forall k a. Map k a -&gt; Set k
 </span><span class="hs-identifier hs-var">Map.keysSet</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679805571"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
+</span><a href="#local-6989586621679809627"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
 </span><span id="line-177"></span><span>    </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679805572"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span>
+</span><a href="#local-6989586621679809628"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span>
 </span><span id="line-178"></span><span>
 </span><span id="line-179"></span><span class="annot"><span class="hs-comment">-- | Returns the total value withdrawn in this 'TxSkel'</span></span><span>
 </span><span id="line-180"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelWithdrawnValue"><span class="hs-identifier hs-type">txSkelWithdrawnValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>

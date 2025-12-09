@@ -44,17 +44,17 @@
 </span><span id="line-44"></span><span class="annot"><span class="hs-comment">-- * Requirements to be able to own a 'TxSkelOut'</span></span><span>
 </span><span id="line-45"></span><span>
 </span><span id="line-46"></span><span class="annot"><span class="hs-comment">-- | A 'TxSkelOut' can either be owned by a pubkeyhash or a versioned validator</span></span><span>
-</span><span id="line-47"></span><span class="hs-keyword">class</span><span> </span><span id="IsTxSkelOutAllowedOwner"><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-var">IsTxSkelOutAllowedOwner</span></a></span></span><span> </span><span id="local-6989586621679804247"><span class="annot"><a href="#local-6989586621679804247"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-48"></span><span>  </span><span id="toPKHOrValidator"><span class="annot"><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-type">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679804247"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span class="hs-keyword">class</span><span> </span><span id="IsTxSkelOutAllowedOwner"><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-var">IsTxSkelOutAllowedOwner</span></a></span></span><span> </span><span id="local-6989586621679808303"><span class="annot"><a href="#local-6989586621679808303"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span id="toPKHOrValidator"><span class="annot"><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-type">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679808303"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span class="hs-special">)</span><span>
 </span><span id="line-49"></span><span>
 </span><span id="line-50"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-51"></span><span>  </span><span id="local-6989586621679804548"><span class="annot"><span class="annottext">toPKHOrValidator :: PubKeyHash -&gt; Either PubKeyHash (Versioned Validator)
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679808604"><span class="annot"><span class="annottext">toPKHOrValidator :: PubKeyHash -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Either PubKeyHash (Versioned Validator)
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span>
 </span><span id="line-52"></span><span>
 </span><span id="line-53"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-54"></span><span>  </span><span id="local-6989586621679804553"><span class="annot"><span class="annottext">toPKHOrValidator :: Wallet -&gt; Either PubKeyHash (Versioned Validator)
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679808609"><span class="annot"><span class="annottext">toPKHOrValidator :: Wallet -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Either PubKeyHash (Versioned Validator)
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; Either PubKeyHash (Versioned Validator))
@@ -67,13 +67,13 @@ forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
 </span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span>
 </span><span id="line-55"></span><span>
 </span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-57"></span><span>  </span><span id="local-6989586621679804557"><span class="annot"><span class="annottext">toPKHOrValidator :: Versioned Validator -&gt; Either PubKeyHash (Versioned Validator)
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679808613"><span class="annot"><span class="annottext">toPKHOrValidator :: Versioned Validator -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; Either PubKeyHash (Versioned Validator)
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span>
 </span><span id="line-58"></span><span>
-</span><span id="line-59"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679804258"><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679804258"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-60"></span><span>  </span><span id="local-6989586621679804563"><span class="annot"><span class="annottext">toPKHOrValidator :: TypedValidator a -&gt; Either PubKeyHash (Versioned Validator)
+</span><span id="line-59"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679808314"><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679808314"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679808619"><span class="annot"><span class="annottext">toPKHOrValidator :: TypedValidator a -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; Either PubKeyHash (Versioned Validator)
 forall a.
 IsTxSkelOutAllowedOwner a =&gt;
@@ -87,7 +87,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span>
 </span><span id="line-61"></span><span>
 </span><span id="line-62"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-63"></span><span>  </span><span id="local-6989586621679804570"><span class="annot"><span class="annottext">toPKHOrValidator :: Versioned Script -&gt; Either PubKeyHash (Versioned Validator)
+</span><span id="line-63"></span><span>  </span><span id="local-6989586621679808626"><span class="annot"><span class="annottext">toPKHOrValidator :: Versioned Script -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; Either PubKeyHash (Versioned Validator)
 forall a.
 IsTxSkelOutAllowedOwner a =&gt;
@@ -104,15 +104,15 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">Script.Validator</span></span><span>
 </span><span id="line-64"></span><span>
 </span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-66"></span><span>  </span><span id="local-6989586621679804574"><span class="annot"><span class="annottext">toPKHOrValidator :: Either PubKeyHash (Versioned Validator)
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679808630"><span class="annot"><span class="annottext">toPKHOrValidator :: Either PubKeyHash (Versioned Validator)
 -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either PubKeyHash (Versioned Validator)
 -&gt; Either PubKeyHash (Versioned Validator)
 forall a. a -&gt; a
 </span><span class="hs-identifier hs-var">id</span></span><span>
 </span><span id="line-67"></span><span>
-</span><span id="line-68"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679804272"><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.MultiPurposeScript</span></span><span> </span><span class="annot"><a href="#local-6989586621679804272"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-69"></span><span>  </span><span id="local-6989586621679804581"><span class="annot"><span class="annottext">toPKHOrValidator :: MultiPurposeScript a -&gt; Either PubKeyHash (Versioned Validator)
+</span><span id="line-68"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679808328"><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.MultiPurposeScript</span></span><span> </span><span class="annot"><a href="#local-6989586621679808328"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>  </span><span id="local-6989586621679808637"><span class="annot"><span class="annottext">toPKHOrValidator :: MultiPurposeScript a -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPKHOrValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; Either PubKeyHash (Versioned Validator)
 forall a.
 IsTxSkelOutAllowedOwner a =&gt;
@@ -126,7 +126,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span>
 </span><span id="line-70"></span><span>
 </span><span id="line-71"></span><span class="annot"><span class="hs-comment">-- | Retrieves the credential of a 'TxSkelOut' allowed owner</span></span><span>
-</span><span id="line-72"></span><span id="local-6989586621679804275"><span class="annot"><a href="Cooked.Skeleton.Output.html#ownerCredentialG"><span class="hs-identifier hs-type">ownerCredentialG</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804275"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Getter</span></span><span> </span><span class="annot"><a href="#local-6989586621679804275"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span></span><span>
+</span><span id="line-72"></span><span id="local-6989586621679808331"><span class="annot"><a href="Cooked.Skeleton.Output.html#ownerCredentialG"><span class="hs-identifier hs-type">ownerCredentialG</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808331"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Getter</span></span><span> </span><span class="annot"><a href="#local-6989586621679808331"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span></span><span>
 </span><span id="line-73"></span><span id="ownerCredentialG"><span class="annot"><span class="annottext">ownerCredentialG :: forall owner.
 IsTxSkelOutAllowedOwner owner =&gt;
 Getter owner Credential
@@ -161,21 +161,21 @@ a -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var">toPKHOrValidator</span></a></span><span>
 </span><span id="line-74"></span><span>
 </span><span id="line-75"></span><span class="annot"><span class="hs-comment">-- | Type constraints over the owner of a 'TxSkelOut'</span></span><span>
-</span><span id="line-76"></span><span class="hs-keyword">type</span><span> </span><span id="OwnerConstrs"><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-var">OwnerConstrs</span></a></span></span><span> </span><span id="local-6989586621679804593"><span class="annot"><a href="#local-6989586621679804593"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804593"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679804593"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-79"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679804593"><span class="hs-identifier hs-type">owner</span></a></span><span>
+</span><span id="line-76"></span><span class="hs-keyword">type</span><span> </span><span id="OwnerConstrs"><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-var">OwnerConstrs</span></a></span></span><span> </span><span id="local-6989586621679808649"><span class="annot"><a href="#local-6989586621679808649"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808649"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679808649"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679808649"><span class="hs-identifier hs-type">owner</span></a></span><span>
 </span><span id="line-80"></span><span>  </span><span class="hs-special">)</span><span>
 </span><span id="line-81"></span><span>
 </span><span id="line-82"></span><span class="annot"><span class="hs-comment">-- * Definition of 'Cooked.Skeleton.TxSkel' outputs with associated optics</span></span><span>
 </span><span id="line-83"></span><span>
 </span><span id="line-84"></span><span class="annot"><span class="hs-comment">-- | A rich output to be put into a 'Cooked.Skeleton.TxSkel'</span></span><span>
 </span><span id="line-85"></span><span class="hs-keyword">data</span><span> </span><span id="TxSkelOut"><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-var">TxSkelOut</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-86"></span><span>  </span><span id="local-6989586621679804594"><span id="TxSkelOut"><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-var">TxSkelOut</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-87"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804594"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679808650"><span id="TxSkelOut"><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-var">TxSkelOut</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808650"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-88"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- The target of this payment</span><span>
 </span><span id="line-89"></span><span>      </span><span id="txSkelOutOwner"><span class="annot"><span class="annottext">()
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var hs-var">txSkelOutOwner</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679804594"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span>
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var hs-var">txSkelOutOwner</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679808650"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-90"></span><span>      </span><span class="hs-comment">-- What staking credential should be attached to this payment</span><span>
 </span><span id="line-91"></span><span>      </span><span id="txSkelOutStakingCredential"><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe StakingCredential
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutStakingCredential"><span class="hs-identifier hs-var hs-var">txSkelOutStakingCredential</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.StakingCredential</span></span><span class="hs-special">,</span><span>
@@ -194,7 +194,7 @@ a -&gt; Either PubKeyHash (Versioned Validator)
 </span><span id="line-100"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-101"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
 </span><span id="line-102"></span><span>
-</span><span id="line-103"></span><span id="local-6989586621679804607"><span id="local-6989586621679804609"><span id="local-6989586621679804613"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span></span></span><span>
+</span><span id="line-103"></span><span id="local-6989586621679808663"><span id="local-6989586621679808665"><span id="local-6989586621679808669"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span></span></span><span>
 </span><span id="line-104"></span><span>
 </span><span id="line-105"></span><span class="annot"><span class="hs-comment">-- | A lens to get or set the 'Maybe Api.StakingCredential' from a 'TxSkelOut'</span></span><span>
 </span><span id="line-106"></span><span id="txSkelOutStakingCredentialL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;txSkelOutStakingCredential&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;txSkelOutStakingCredentialL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">TxSkelOut</span></span><span>
@@ -219,7 +219,7 @@ forall s a. (s -&gt; a) -&gt; Getter s a
 </span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">((TxSkelOut -&gt; Credential) -&gt; Getter TxSkelOut Credential)
 -&gt; (TxSkelOut -&gt; Credential) -&gt; Getter TxSkelOut Credential
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679804687"><span class="annot"><span class="annottext">owner
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679808743"><span class="annot"><span class="annottext">owner
 txSkelOutOwner :: ()
 txSkelOutOwner :: owner
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var hs-var">txSkelOutOwner</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx owner Credential -&gt; owner -&gt; Credential
@@ -231,11 +231,11 @@ forall owner.
 IsTxSkelOutAllowedOwner owner =&gt;
 Getter owner Credential
 </span><a href="Cooked.Skeleton.Output.html#ownerCredentialG"><span class="hs-identifier hs-var">ownerCredentialG</span></a></span><span> </span><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804687"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span>
+</span><a href="#local-6989586621679808743"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span>
 </span><span id="line-123"></span><span>
 </span><span id="line-124"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToCredential</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-125"></span><span>  </span><span id="local-6989586621679804693"><span class="annot"><span class="annottext">toCredential :: TxSkelOut -&gt; Credential
-</span><a href="#local-6989586621679804693"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCredential</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Credential -&gt; TxSkelOut -&gt; Credential
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679808749"><span class="annot"><span class="annottext">toCredential :: TxSkelOut -&gt; Credential
+</span><a href="#local-6989586621679808749"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCredential</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Credential -&gt; TxSkelOut -&gt; Credential
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
@@ -250,8 +250,8 @@ forall s a. (s -&gt; a) -&gt; Getter s a
 </span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">((TxSkelOut -&gt; Address) -&gt; Getter TxSkelOut Address)
 -&gt; (TxSkelOut -&gt; Address) -&gt; Getter TxSkelOut Address
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679804695"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804695"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679808751"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808751"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-130"></span><span>  </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><span class="hs-identifier hs-var">Api.Address</span></span><span>
 </span><span id="line-131"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Getter TxSkelOut Credential -&gt; TxSkelOut -&gt; Credential
@@ -260,7 +260,7 @@ Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Credential
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutCredentialG"><span class="hs-identifier hs-var">txSkelOutCredentialG</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804695"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679808751"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-132"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkelOut (Maybe StakingCredential)
 -&gt; TxSkelOut -&gt; Maybe StakingCredential
 forall k (is :: IxList) s a.
@@ -268,11 +268,11 @@ Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut (Maybe StakingCredential)
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutStakingCredentialL"><span class="hs-identifier hs-var">txSkelOutStakingCredentialL</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804695"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679808751"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-133"></span><span>
 </span><span id="line-134"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToAddress</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-135"></span><span>  </span><span id="local-6989586621679804701"><span class="annot"><span class="annottext">toAddress :: TxSkelOut -&gt; Address
-</span><a href="#local-6989586621679804701"><span class="hs-identifier hs-var hs-var hs-var hs-var">toAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Address -&gt; TxSkelOut -&gt; Address
+</span><span id="line-135"></span><span>  </span><span id="local-6989586621679808757"><span class="annot"><span class="annottext">toAddress :: TxSkelOut -&gt; Address
+</span><a href="#local-6989586621679808757"><span class="hs-identifier hs-var hs-var hs-var hs-var">toAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Address -&gt; TxSkelOut -&gt; Address
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
@@ -280,7 +280,7 @@ Optic' k is s a -&gt; s -&gt; a
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutAddressG"><span class="hs-identifier hs-var">txSkelOutAddressG</span></a></span><span>
 </span><span id="line-136"></span><span>
 </span><span id="line-137"></span><span class="annot"><span class="hs-comment">-- | Attempts to retrieve or set a typed owner from this 'TxSkelOut'</span></span><span>
-</span><span id="line-138"></span><span id="local-6989586621679804330"><span id="local-6989586621679804331"><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-type">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804330"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804331"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804330"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804331"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
+</span><span id="line-138"></span><span id="local-6989586621679808386"><span id="local-6989586621679808387"><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-type">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808386"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808387"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808386"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808387"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
 </span><span id="line-139"></span><span id="txSkelOutTypedOwnerAT"><span class="annot"><span class="annottext">txSkelOutTypedOwnerAT :: forall a b.
 (OwnerConstrs a, OwnerConstrs b) =&gt;
 AffineTraversal TxSkelOut TxSkelOut a b
@@ -291,8 +291,8 @@ AffineTraversal TxSkelOut TxSkelOut a b
 forall s t a b.
 (s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
 </span><span class="hs-identifier hs-var">atraversal</span></span><span>
-</span><span id="line-141"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679804706"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
-</span><a href="#local-6989586621679804706"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679804711"><span class="annot"><span class="annottext">owner
+</span><span id="line-141"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679808762"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
+</span><a href="#local-6989586621679808762"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679808767"><span class="annot"><span class="annottext">owner
 txSkelOutOwner :: ()
 txSkelOutOwner :: owner
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var hs-var">txSkelOutOwner</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either TxSkelOut a
@@ -301,29 +301,29 @@ forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Either TxSkelOut a
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804706"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either TxSkelOut a
+</span><a href="#local-6989586621679808762"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either TxSkelOut a
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">owner -&gt; Maybe a
 forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
 </span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804711"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-142"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679804714"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804714"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679804715"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679804715"><span class="hs-identifier hs-var">newOwner</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804714"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679804715"><span class="hs-identifier hs-type">newOwner</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679808767"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679808770"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808770"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679808771"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679808771"><span class="hs-identifier hs-var">newOwner</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808770"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679808771"><span class="hs-identifier hs-type">newOwner</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
 </span><span id="line-143"></span><span>
-</span><span id="line-144"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679804718"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-145"></span><span>  </span><span id="local-6989586621679804745"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804745"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679804746"><span class="annot"><span class="annottext">== :: TxSkelOut -&gt; TxSkelOut -&gt; Bool
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span id="local-6989586621679804747"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804747"><span class="hs-identifier hs-var">txSkelOut'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-144"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679808774"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-145"></span><span>  </span><span id="local-6989586621679808801"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808801"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679808802"><span class="annot"><span class="annottext">== :: TxSkelOut -&gt; TxSkelOut -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span id="local-6989586621679808803"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808803"><span class="hs-identifier hs-var">txSkelOut'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-146"></span><span>    </span><span class="annot"><span class="annottext">Getter TxSkelOut Address -&gt; TxSkelOut -&gt; Address
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Address
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutAddressG"><span class="hs-identifier hs-var">txSkelOutAddressG</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804745"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Address -&gt; Address -&gt; Bool
+</span><a href="#local-6989586621679808801"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Address -&gt; Address -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Address -&gt; TxSkelOut -&gt; Address
 forall k (is :: IxList) s a.
@@ -331,23 +331,23 @@ Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Getter TxSkelOut Address
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutAddressG"><span class="hs-identifier hs-var">txSkelOutAddressG</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804747"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><a href="#local-6989586621679808803"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
 </span><span id="line-147"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatum"><span class="hs-identifier hs-var">txSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804745"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum -&gt; TxSkelOutDatum -&gt; Bool
+</span><a href="#local-6989586621679808801"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum -&gt; TxSkelOutDatum -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatum"><span class="hs-identifier hs-var">txSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804747"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><a href="#local-6989586621679808803"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
 </span><span id="line-148"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValue"><span class="hs-identifier hs-var">txSkelOutValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804745"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
+</span><a href="#local-6989586621679808801"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValue"><span class="hs-identifier hs-var">txSkelOutValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804747"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><a href="#local-6989586621679808803"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
 </span><span id="line-149"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineFold NoIx TxSkelOut ScriptHash
 -&gt; TxSkelOut -&gt; Maybe ScriptHash
@@ -376,7 +376,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   ScriptHash
   ScriptHash
 </span><a href="Cooked.Skeleton.ReferenceScript.html#txSkelOutReferenceScriptHashAF"><span class="hs-identifier hs-var">txSkelOutReferenceScriptHashAF</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804745"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679808801"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-150"></span><span>        </span><span class="annot"><span class="annottext">Maybe ScriptHash -&gt; Maybe ScriptHash -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineFold NoIx TxSkelOut ScriptHash
@@ -406,7 +406,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   ScriptHash
   ScriptHash
 </span><a href="Cooked.Skeleton.ReferenceScript.html#txSkelOutReferenceScriptHashAF"><span class="hs-identifier hs-var">txSkelOutReferenceScriptHashAF</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804747"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><a href="#local-6989586621679808803"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
 </span><span id="line-151"></span><span>
 </span><span id="line-152"></span><span class="annot"><span class="hs-comment">-- | Returns the optional private key owning a given 'TxSkelOut'</span></span><span>
 </span><span id="line-153"></span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutPKHashAT"><span class="hs-identifier hs-type">txSkelOutPKHashAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span>
@@ -418,8 +418,8 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall s t a b.
 (s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
 </span><span class="hs-identifier hs-var">atraversal</span></span><span>
-</span><span id="line-156"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679804752"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
-</span><a href="#local-6989586621679804752"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679804756"><span class="annot"><span class="annottext">owner
+</span><span id="line-156"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679808808"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
+</span><a href="#local-6989586621679808808"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679808812"><span class="annot"><span class="annottext">owner
 txSkelOutOwner :: ()
 txSkelOutOwner :: owner
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var hs-var">txSkelOutOwner</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; Either TxSkelOut PubKeyHash)
@@ -435,7 +435,7 @@ forall a b. a -&gt; b -&gt; a
 </span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Either TxSkelOut PubKeyHash
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804752"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either PubKeyHash (Versioned Validator)
+</span><a href="#local-6989586621679808808"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either PubKeyHash (Versioned Validator)
  -&gt; Either TxSkelOut PubKeyHash)
 -&gt; Either PubKeyHash (Versioned Validator)
 -&gt; Either TxSkelOut PubKeyHash
@@ -445,11 +445,11 @@ forall a.
 IsTxSkelOutAllowedOwner a =&gt;
 a -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var">toPKHOrValidator</span></a></span><span> </span><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804756"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-157"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679804758"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804758"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679804759"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679804759"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804758"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679804759"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679808812"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679808814"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808814"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679808815"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679808815"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808814"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679808815"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
 </span><span id="line-158"></span><span>
 </span><span id="line-159"></span><span class="annot"><span class="hs-comment">-- | Returns the optional validator owning a given 'TxSkelOut'</span></span><span>
 </span><span id="line-160"></span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutValidatorAT"><span class="hs-identifier hs-type">txSkelOutValidatorAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span class="hs-special">)</span><span>
@@ -461,8 +461,8 @@ a -&gt; Either PubKeyHash (Versioned Validator)
 forall s t a b.
 (s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
 </span><span class="hs-identifier hs-var">atraversal</span></span><span>
-</span><span id="line-163"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679804760"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
-</span><a href="#local-6989586621679804760"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679804764"><span class="annot"><span class="annottext">owner
+</span><span id="line-163"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679808816"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
+</span><a href="#local-6989586621679808816"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679808820"><span class="annot"><span class="annottext">owner
 txSkelOutOwner :: ()
 txSkelOutOwner :: owner
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var hs-var">txSkelOutOwner</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; Either TxSkelOut (Versioned Validator))
@@ -482,7 +482,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Either TxSkelOut (Versioned Validator)
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804760"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; Either TxSkelOut (Versioned Validator)
+</span><a href="#local-6989586621679808816"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; Either TxSkelOut (Versioned Validator)
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(Either PubKeyHash (Versioned Validator)
  -&gt; Either TxSkelOut (Versioned Validator))
@@ -494,11 +494,11 @@ forall a.
 IsTxSkelOutAllowedOwner a =&gt;
 a -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var">toPKHOrValidator</span></a></span><span> </span><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804764"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-164"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679804765"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804765"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679804766"><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679804766"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679804765"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679804766"><span class="hs-identifier hs-type">val</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679808820"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-164"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679808821"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808821"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span id="local-6989586621679808822"><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679808822"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679808821"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutOwner"><span class="hs-identifier hs-var">txSkelOutOwner</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679808822"><span class="hs-identifier hs-type">val</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
 </span><span id="line-165"></span><span>
 </span><span id="line-166"></span><span class="annot"><span class="hs-comment">-- | Returns the optional validator hash owning a given 'TxSkelOut'</span></span><span>
 </span><span id="line-167"></span><span class="annot"><a href="Cooked.Skeleton.Output.html#txSkelOutValidatorHashAF"><span class="hs-identifier hs-type">txSkelOutValidatorHashAF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineFold</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ValidatorHash</span></span><span>
@@ -534,7 +534,7 @@ forall a. ToValidatorHash a =&gt; a -&gt; ValidatorHash
 </span><span id="line-171"></span><span>
 </span><span id="line-172"></span><span class="hs-comment">-- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'</span><span>
 </span><span id="line-173"></span><span class="hs-comment">-- from a given 'Api.Value'. This removes the entry if the new amount is 0.</span><span>
-</span><span id="line-174"></span><span id="local-6989586621679804371"><span class="annot"><a href="Cooked.Skeleton.Output.html#valueAssetClassAmountL"><span class="hs-identifier hs-type">valueAssetClassAmountL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679804371"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679804371"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-174"></span><span id="local-6989586621679808427"><span class="annot"><a href="Cooked.Skeleton.Output.html#valueAssetClassAmountL"><span class="hs-identifier hs-type">valueAssetClassAmountL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679808427"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679808427"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
 </span><span id="line-175"></span><span id="valueAssetClassAmountL"><span class="annot"><span class="annottext">valueAssetClassAmountL :: forall mp.
 ToMintingPolicyHash mp =&gt;
 mp -&gt; TokenName -&gt; Lens' Value Integer
@@ -542,9 +542,9 @@ mp -&gt; TokenName -&gt; Lens' Value Integer
 forall script.
 ToMintingPolicyHash script =&gt;
 script -&gt; CurrencySymbol
-</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679804791"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679804792"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804792"><span class="hs-identifier hs-var">tk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679808847"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679808848"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679808848"><span class="hs-identifier hs-var">tk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-176"></span><span>  </span><span class="annot"><span class="annottext">(Value -&gt; Integer)
 -&gt; (Value -&gt; Integer -&gt; Value) -&gt; Lens' Value Integer
 forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
@@ -552,26 +552,26 @@ forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
 </span><span id="line-177"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value -&gt; AssetClass -&gt; Integer
 </span><span class="hs-operator hs-var">`Api.assetClassValueOf`</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
 </span><span class="hs-identifier hs-var">Api.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804792"><span class="hs-identifier hs-var">tk</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-178"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679804796"><span class="annot"><span class="annottext">v :: Value
-</span><a href="#local-6989586621679804796"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span id="local-6989586621679804797"><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679804797"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679804798"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804798"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679808848"><span class="hs-identifier hs-var">tk</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-178"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679808852"><span class="annot"><span class="annottext">v :: Value
+</span><a href="#local-6989586621679808852"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span id="local-6989586621679808853"><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679808853"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679808854"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808854"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 -&gt; Maybe (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Maybe v
 </span><span class="hs-identifier hs-var">PMap.lookup</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679804797"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679808853"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-179"></span><span>        </span><span class="hs-comment">-- No previous cs entry and nothing to add.</span><span>
 </span><span id="line-180"></span><span>        </span><span class="annot"><span class="annottext">Maybe (Map TokenName Integer)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804798"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679808854"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679804796"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><a href="#local-6989586621679808852"><span class="hs-identifier hs-var">v</span></a></span><span>
 </span><span id="line-181"></span><span>        </span><span class="hs-comment">-- No previous cs entry, and something to add.</span><span>
 </span><span id="line-182"></span><span>        </span><span class="annot"><span class="annottext">Maybe (Map TokenName Integer)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
@@ -584,27 +584,27 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Integer -&gt; Map TokenName Integer
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Integer -&gt; Map TokenName Integer
 forall k v. k -&gt; v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.singleton</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804792"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804798"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679804797"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679808848"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808854"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679808853"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-183"></span><span>        </span><span class="hs-comment">-- A previous cs and tk entry, which needs to be removed and the whole</span><span>
 </span><span id="line-184"></span><span>        </span><span class="hs-comment">-- cs entry as well because it only containes this tk.</span><span>
 </span><span id="line-185"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TokenName Integer -&gt; [(TokenName, Integer)]
 forall k v. Map k v -&gt; [(k, v)]
-</span><span class="hs-identifier hs-var">PMap.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679804803"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804803"><span class="hs-identifier hs-var">tk'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-identifier hs-var">PMap.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679808859"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679808859"><span class="hs-identifier hs-var">tk'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804798"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679808854"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804792"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; TokenName -&gt; Bool
+</span><a href="#local-6989586621679808848"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; TokenName -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804803"><span class="hs-identifier hs-var">tk'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
+</span><a href="#local-6989586621679808859"><span class="hs-identifier hs-var">tk'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 </span><span class="hs-identifier hs-var">Api.Value</span></span><span> </span><span class="annot"><span class="annottext">(Map CurrencySymbol (Map TokenName Integer) -&gt; Value)
 -&gt; Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -613,13 +613,13 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.delete</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679804797"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679808853"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-186"></span><span>        </span><span class="hs-comment">-- A previous cs and tk entry, which needs to be removed, but the whole</span><span>
 </span><span id="line-187"></span><span>        </span><span class="hs-comment">-- cs entry has other tokens and thus is kept.</span><span>
-</span><span id="line-188"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679804805"><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679804805"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804798"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span id="line-188"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679808861"><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679808861"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808854"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
@@ -632,16 +632,16 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Map TokenName Integer -&gt; Map TokenName Integer
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Map TokenName Integer -&gt; Map TokenName Integer
 forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.delete</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804792"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679804805"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679804797"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679808848"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679808861"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679808853"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-189"></span><span>        </span><span class="hs-comment">-- A previous cs entry, in which we insert the new tk (regarless of</span><span>
 </span><span id="line-190"></span><span>        </span><span class="hs-comment">-- whether the tk was already present).</span><span>
-</span><span id="line-191"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679804806"><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679804806"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
+</span><span id="line-191"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679808862"><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679808862"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 </span><span class="hs-identifier hs-var">Api.Value</span></span><span> </span><span class="annot"><span class="annottext">(Map CurrencySymbol (Map TokenName Integer) -&gt; Value)
 -&gt; Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -651,14 +651,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804791"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679808847"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
 -&gt; Integer -&gt; Map TokenName Integer -&gt; Map TokenName Integer
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804792"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804798"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679804806"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679804797"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679808848"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808854"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679808862"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679808853"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-192"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-193"></span><span>
 </span><span id="line-194"></span><span class="annot"><span class="hs-comment">-- | Isomorphism between 'Api.Lovelace' and integers</span></span><span>
@@ -701,7 +701,7 @@ Optic k is s t a b -&gt; Optic (ReversedOptic k) is b a t s
 </span><span id="line-201"></span><span>
 </span><span id="line-202"></span><span class="hs-comment">-- | A prism to build a value from an asset class and amount, or retrieves the</span><span>
 </span><span id="line-203"></span><span class="hs-comment">-- amount from this asset class if it is not zero</span><span>
-</span><span id="line-204"></span><span id="local-6989586621679804406"><span class="annot"><a href="Cooked.Skeleton.Output.html#valueAssetClassAmountP"><span class="hs-identifier hs-type">valueAssetClassAmountP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679804406"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679804406"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-204"></span><span id="local-6989586621679808462"><span class="annot"><a href="Cooked.Skeleton.Output.html#valueAssetClassAmountP"><span class="hs-identifier hs-type">valueAssetClassAmountP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679808462"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679808462"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
 </span><span id="line-205"></span><span id="valueAssetClassAmountP"><span class="annot"><span class="annottext">valueAssetClassAmountP :: forall mp.
 ToMintingPolicyHash mp =&gt;
 mp -&gt; TokenName -&gt; Prism' Value Integer
@@ -709,52 +709,52 @@ mp -&gt; TokenName -&gt; Prism' Value Integer
 forall script.
 ToMintingPolicyHash script =&gt;
 script -&gt; CurrencySymbol
-</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679804821"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804821"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679804822"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804822"><span class="hs-identifier hs-var">tk</span></a></span></span><span>
-</span><span id="line-206"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679804823"><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679804823"><span class="hs-identifier hs-var">ac</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679808877"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679808877"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679808878"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679808878"><span class="hs-identifier hs-var">tk</span></a></span></span><span>
+</span><span id="line-206"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679808879"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679808879"><span class="hs-identifier hs-var">ac</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
 </span><span class="hs-identifier hs-var">Api.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679804821"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679804822"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679808877"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679808878"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-207"></span><span>      </span><span class="annot"><span class="annottext">(Integer -&gt; Value)
 -&gt; (Value -&gt; Either Value Integer) -&gt; Prism' Value Integer
 forall b t s a. (b -&gt; t) -&gt; (s -&gt; Either t a) -&gt; Prism s t a b
 </span><span class="hs-identifier hs-var">prism</span></span><span>
 </span><span id="line-208"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-209"></span><span>            </span><span id="local-6989586621679804825"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804825"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804825"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span id="line-209"></span><span>            </span><span id="local-6989586621679808881"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808881"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808881"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
-</span><span id="line-210"></span><span>            </span><span id="local-6989586621679804826"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804826"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><span id="line-210"></span><span>            </span><span id="local-6989586621679808882"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808882"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Api.assetClassValue</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679804823"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804826"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679808879"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808882"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-211"></span><span>        </span><span class="hs-special">)</span><span>
-</span><span id="line-212"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679804828"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679804828"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679804828"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; AssetClass -&gt; Integer
+</span><span id="line-212"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679808884"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679808884"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679808884"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; AssetClass -&gt; Integer
 </span><span class="hs-operator hs-var">`Api.assetClassValueOf`</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679804823"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-213"></span><span>            </span><span id="local-6989586621679804829"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804829"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804829"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679808879"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-213"></span><span>            </span><span id="local-6989586621679808885"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808885"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808885"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Either Value Integer
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679804828"><span class="hs-identifier hs-var">val</span></a></span><span>
-</span><span id="line-214"></span><span>            </span><span id="local-6989586621679804830"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804830"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Either Value Integer
+</span><a href="#local-6989586621679808884"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-214"></span><span>            </span><span id="local-6989586621679808886"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679808886"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Either Value Integer
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679804830"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679808886"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-215"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-216"></span><span>
 </span><span id="line-217"></span><span class="annot"><span class="hs-comment">-- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'</span></span><span>
@@ -789,16 +789,18 @@ Optic k is s t a b -&gt; Optic (ReversedOptic k) is b a t s
 </span><span id="line-222"></span><span>
 </span><span id="line-223"></span><span class="hs-comment">-- | Smart constructor to build a 'TxSkelOut' from an owner and payment. This</span><span>
 </span><span id="line-224"></span><span class="hs-comment">-- should be the main way of building outputs.</span><span>
-</span><span id="line-225"></span><span id="local-6989586621679804415"><span id="local-6989586621679804416"><span class="annot"><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-type">receives</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804415"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679804415"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Payable.html#Payable"><span class="hs-identifier hs-type">Payable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804416"><span class="hs-identifier hs-type">els</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span></span><span>
-</span><span id="line-226"></span><span id="receives"><span class="annot"><span class="annottext">receives :: forall owner (els :: [Symbol]).
+</span><span id="line-225"></span><span class="hs-keyword">infix</span><span> </span><span class="hs-number">1</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-operator hs-type">`receives`</span></a></span><span>
+</span><span id="line-226"></span><span>
+</span><span id="line-227"></span><span id="local-6989586621679808471"><span id="local-6989586621679808472"><span class="annot"><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-type">receives</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808471"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679808471"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Payable.html#Payable"><span class="hs-identifier hs-type">Payable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808472"><span class="hs-identifier hs-type">els</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span></span><span>
+</span><span id="line-228"></span><span id="receives"><span class="annot"><span class="annottext">receives :: forall owner (els :: [Symbol]).
 OwnerConstrs owner =&gt;
 owner -&gt; Payable els -&gt; TxSkelOut
-</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-var hs-var">receives</span></a></span></span><span> </span><span id="local-6989586621679804850"><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804850"><span class="hs-identifier hs-var">owner</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-227"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Payable els -&gt; TxSkelOut -&gt; TxSkelOut
+</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-var hs-var">receives</span></a></span></span><span> </span><span id="local-6989586621679808906"><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679808906"><span class="hs-identifier hs-var">owner</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-229"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Payable els -&gt; TxSkelOut -&gt; TxSkelOut
 forall (els :: [Symbol]). Payable els -&gt; TxSkelOut -&gt; TxSkelOut
-</span><a href="#local-6989586621679804851"><span class="hs-operator hs-var">`go`</span></a></span><span>
-</span><span id="line-228"></span><span>      </span><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679808907"><span class="hs-operator hs-var">`go`</span></a></span><span>
+</span><span id="line-230"></span><span>      </span><span class="annot"><span class="annottext">owner
 -&gt; Maybe StakingCredential
 -&gt; TxSkelOutDatum
 -&gt; Value
@@ -815,26 +817,26 @@ owner
 -&gt; TxSkelOutReferenceScript
 -&gt; TxSkelOut
 </span><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-var">TxSkelOut</span></a></span><span>
-</span><span id="line-229"></span><span>        </span><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804850"><span class="hs-identifier hs-var">owner</span></a></span><span>
-</span><span id="line-230"></span><span>        </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><span id="line-231"></span><span>        </span><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679808906"><span class="hs-identifier hs-var">owner</span></a></span><span>
+</span><span id="line-232"></span><span>        </span><span class="annot"><span class="annottext">Maybe StakingCredential
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-comment">-- No staking credential by default</span><span>
-</span><span id="line-231"></span><span>        </span><span class="annot"><span class="annottext">TxSkelOutDatum
-</span><a href="#local-6989586621679804852"><span class="hs-identifier hs-var">defaultTxSkelDatum</span></a></span><span> </span><span class="hs-comment">-- Default datum defined below</span><span>
-</span><span id="line-232"></span><span>        </span><span class="annot"><span class="annottext">Value
+</span><span id="line-233"></span><span>        </span><span class="annot"><span class="annottext">TxSkelOutDatum
+</span><a href="#local-6989586621679808908"><span class="hs-identifier hs-var">defaultTxSkelDatum</span></a></span><span> </span><span class="hs-comment">-- Default datum defined below</span><span>
+</span><span id="line-234"></span><span>        </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="hs-comment">-- Empty value by default</span><span>
-</span><span id="line-233"></span><span>        </span><span class="annot"><span class="annottext">Bool
+</span><span id="line-235"></span><span>        </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-comment">-- the value is adjustable to min ADA by default</span><span>
-</span><span id="line-234"></span><span>        </span><span class="annot"><span class="annottext">TxSkelOutReferenceScript
+</span><span id="line-236"></span><span>        </span><span class="annot"><span class="annottext">TxSkelOutReferenceScript
 </span><a href="Cooked.Skeleton.ReferenceScript.html#NoTxSkelOutReferenceScript"><span class="hs-identifier hs-var">NoTxSkelOutReferenceScript</span></a></span><span> </span><span class="hs-comment">-- No reference script by default</span><span>
-</span><span id="line-235"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-236"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-237"></span><span>    </span><span id="local-6989586621679804427"><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Payable.html#Payable"><span class="hs-identifier hs-type">Payable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679804427"><span class="hs-identifier hs-type">els</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
-</span><span id="line-238"></span><span>    </span><span id="local-6989586621679804851"><span class="annot"><span class="annottext">go :: forall (els :: [Symbol]). Payable els -&gt; TxSkelOut -&gt; TxSkelOut
-</span><a href="#local-6989586621679804851"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#VisibleHashedDatum"><span class="hs-identifier hs-type">VisibleHashedDatum</span></a></span><span> </span><span id="local-6989586621679804860"><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804860"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutDatum
+</span><span id="line-237"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-238"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-239"></span><span>    </span><span id="local-6989586621679808483"><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Payable.html#Payable"><span class="hs-identifier hs-type">Payable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679808483"><span class="hs-identifier hs-type">els</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span></span><span>
+</span><span id="line-240"></span><span>    </span><span id="local-6989586621679808907"><span class="annot"><span class="annottext">go :: forall (els :: [Symbol]). Payable els -&gt; TxSkelOut -&gt; TxSkelOut
+</span><a href="#local-6989586621679808907"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#VisibleHashedDatum"><span class="hs-identifier hs-type">VisibleHashedDatum</span></a></span><span> </span><span id="local-6989586621679808916"><span class="annot"><span class="annottext">a1
+</span><a href="#local-6989586621679808916"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutDatum
 -&gt; TxSkelOutDatum -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
@@ -843,11 +845,11 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a1 -&gt; DatumKind -&gt; TxSkelOutDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; DatumKind -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804860"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumResolved -&gt; DatumKind
+</span><a href="#local-6989586621679808916"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumResolved -&gt; DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-var">Hashed</span></a></span><span> </span><span class="annot"><span class="annottext">DatumResolved
 </span><a href="Cooked.Skeleton.Datum.html#Resolved"><span class="hs-identifier hs-var">Resolved</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-239"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#InlineDatum"><span class="hs-identifier hs-type">InlineDatum</span></a></span><span> </span><span id="local-6989586621679804870"><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804870"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutDatum
+</span><span id="line-241"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#InlineDatum"><span class="hs-identifier hs-type">InlineDatum</span></a></span><span> </span><span id="local-6989586621679808926"><span class="annot"><span class="annottext">a1
+</span><a href="#local-6989586621679808926"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutDatum
 -&gt; TxSkelOutDatum -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
@@ -856,10 +858,10 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a1 -&gt; DatumKind -&gt; TxSkelOutDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; DatumKind -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804870"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679808926"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Inline"><span class="hs-identifier hs-var">Inline</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-240"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#HiddenHashedDatum"><span class="hs-identifier hs-type">HiddenHashedDatum</span></a></span><span> </span><span id="local-6989586621679804877"><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804877"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutDatum
+</span><span id="line-242"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#HiddenHashedDatum"><span class="hs-identifier hs-type">HiddenHashedDatum</span></a></span><span> </span><span id="local-6989586621679808933"><span class="annot"><span class="annottext">a1
+</span><a href="#local-6989586621679808933"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutDatum
 -&gt; TxSkelOutDatum -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
@@ -868,11 +870,11 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a1 -&gt; DatumKind -&gt; TxSkelOutDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; DatumKind -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804877"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumResolved -&gt; DatumKind
+</span><a href="#local-6989586621679808933"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumResolved -&gt; DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-var">Hashed</span></a></span><span> </span><span class="annot"><span class="annottext">DatumResolved
 </span><a href="Cooked.Skeleton.Datum.html#NotResolved"><span class="hs-identifier hs-var">NotResolved</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-241"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#FixedValue"><span class="hs-identifier hs-type">FixedValue</span></a></span><span> </span><span id="local-6989586621679804885"><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804885"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value -&gt; Value -&gt; TxSkelOut -&gt; TxSkelOut
+</span><span id="line-243"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#FixedValue"><span class="hs-identifier hs-type">FixedValue</span></a></span><span> </span><span id="local-6989586621679808941"><span class="annot"><span class="annottext">a1
+</span><a href="#local-6989586621679808941"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value -&gt; Value -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
@@ -880,7 +882,7 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a1 -&gt; Value
 forall a. ToValue a =&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Script.toValue</span></span><span> </span><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804885"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; TxSkelOut)
+</span><a href="#local-6989586621679808941"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; TxSkelOut)
 -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut -&gt; TxSkelOut
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Bool -&gt; Bool -&gt; TxSkelOut -&gt; TxSkelOut
@@ -890,8 +892,8 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Bool
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueAutoAdjustL"><span class="hs-identifier hs-var">txSkelOutValueAutoAdjustL</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
-</span><span id="line-242"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span> </span><span id="local-6989586621679804893"><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804893"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value -&gt; Value -&gt; TxSkelOut -&gt; TxSkelOut
+</span><span id="line-244"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span> </span><span id="local-6989586621679808949"><span class="annot"><span class="annottext">a1
+</span><a href="#local-6989586621679808949"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value -&gt; Value -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
@@ -899,7 +901,7 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a1 -&gt; Value
 forall a. ToValue a =&gt; a -&gt; Value
 </span><span class="hs-identifier hs-var">Script.toValue</span></span><span> </span><span class="annot"><span class="annottext">a1
-</span><a href="#local-6989586621679804893"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; TxSkelOut)
+</span><a href="#local-6989586621679808949"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; TxSkelOut)
 -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut -&gt; TxSkelOut
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Bool -&gt; Bool -&gt; TxSkelOut -&gt; TxSkelOut
@@ -909,8 +911,8 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Bool
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueAutoAdjustL"><span class="hs-identifier hs-var">txSkelOutValueAutoAdjustL</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span>
-</span><span id="line-243"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#ReferenceScript"><span class="hs-identifier hs-type">ReferenceScript</span></a></span><span> </span><span id="local-6989586621679804899"><span class="annot"><span class="annottext">s
-</span><a href="#local-6989586621679804899"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutReferenceScript
+</span><span id="line-245"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#ReferenceScript"><span class="hs-identifier hs-type">ReferenceScript</span></a></span><span> </span><span id="local-6989586621679808955"><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679808955"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutReferenceScript
 -&gt; TxSkelOutReferenceScript -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
@@ -919,9 +921,9 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutReferenceScriptL"><span class="hs-identifier hs-var">txSkelOutReferenceScriptL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">s -&gt; TxSkelOutReferenceScript
 forall a. ReferenceScriptConstrs a =&gt; a -&gt; TxSkelOutReferenceScript
 </span><a href="Cooked.Skeleton.ReferenceScript.html#SomeTxSkelOutReferenceScript"><span class="hs-identifier hs-var">SomeTxSkelOutReferenceScript</span></a></span><span> </span><span class="annot"><span class="annottext">s
-</span><a href="#local-6989586621679804899"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-244"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#StakingCredential"><span class="hs-identifier hs-type">StakingCredential</span></a></span><span> </span><span id="local-6989586621679804906"><span class="annot"><span class="annottext">cred
-</span><a href="#local-6989586621679804906"><span class="hs-identifier hs-var">stCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut (Maybe StakingCredential)
+</span><a href="#local-6989586621679808955"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-246"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#StakingCredential"><span class="hs-identifier hs-type">StakingCredential</span></a></span><span> </span><span id="local-6989586621679808962"><span class="annot"><span class="annottext">cred
+</span><a href="#local-6989586621679808962"><span class="hs-identifier hs-var">stCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut (Maybe StakingCredential)
 -&gt; Maybe StakingCredential -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
@@ -932,32 +934,32 @@ forall a.
 ToMaybeStakingCredential a =&gt;
 a -&gt; Maybe StakingCredential
 </span><span class="hs-identifier hs-var">Script.toMaybeStakingCredential</span></span><span> </span><span class="annot"><span class="annottext">cred
-</span><a href="#local-6989586621679804906"><span class="hs-identifier hs-var">stCred</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-245"></span><span>    </span><span class="annot"><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#PayableAnd"><span class="hs-identifier hs-type">PayableAnd</span></a></span><span> </span><span id="local-6989586621679804911"><span class="annot"><span class="annottext">Payable els
-</span><a href="#local-6989586621679804911"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span id="local-6989586621679804912"><span class="annot"><span class="annottext">Payable els'
-</span><a href="#local-6989586621679804912"><span class="hs-identifier hs-var">p2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Payable els' -&gt; TxSkelOut -&gt; TxSkelOut
+</span><a href="#local-6989586621679808962"><span class="hs-identifier hs-var">stCred</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-247"></span><span>    </span><span class="annot"><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Payable.html#PayableAnd"><span class="hs-identifier hs-type">PayableAnd</span></a></span><span> </span><span id="local-6989586621679808967"><span class="annot"><span class="annottext">Payable els
+</span><a href="#local-6989586621679808967"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span id="local-6989586621679808968"><span class="annot"><span class="annottext">Payable els'
+</span><a href="#local-6989586621679808968"><span class="hs-identifier hs-var">p2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Payable els' -&gt; TxSkelOut -&gt; TxSkelOut
 forall (els :: [Symbol]). Payable els -&gt; TxSkelOut -&gt; TxSkelOut
-</span><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Payable els'
-</span><a href="#local-6989586621679804912"><span class="hs-identifier hs-var">p2</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; TxSkelOut)
+</span><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Payable els'
+</span><a href="#local-6989586621679808968"><span class="hs-identifier hs-var">p2</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; TxSkelOut)
 -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut -&gt; TxSkelOut
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Payable els -&gt; TxSkelOut -&gt; TxSkelOut
 forall (els :: [Symbol]). Payable els -&gt; TxSkelOut -&gt; TxSkelOut
-</span><a href="#local-6989586621679804851"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Payable els
-</span><a href="#local-6989586621679804911"><span class="hs-identifier hs-var">p1</span></a></span><span>
-</span><span id="line-246"></span><span>
-</span><span id="line-247"></span><span>    </span><span id="local-6989586621679804852"><span class="annot"><span class="annottext">defaultTxSkelDatum :: TxSkelOutDatum
-</span><a href="#local-6989586621679804852"><span class="hs-identifier hs-var hs-var">defaultTxSkelDatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">owner -&gt; Either PubKeyHash (Versioned Validator)
+</span><a href="#local-6989586621679808907"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Payable els
+</span><a href="#local-6989586621679808967"><span class="hs-identifier hs-var">p1</span></a></span><span>
+</span><span id="line-248"></span><span>
+</span><span id="line-249"></span><span>    </span><span id="local-6989586621679808908"><span class="annot"><span class="annottext">defaultTxSkelDatum :: TxSkelOutDatum
+</span><a href="#local-6989586621679808908"><span class="hs-identifier hs-var hs-var">defaultTxSkelDatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">owner -&gt; Either PubKeyHash (Versioned Validator)
 forall a.
 IsTxSkelOutAllowedOwner a =&gt;
 a -&gt; Either PubKeyHash (Versioned Validator)
 </span><a href="Cooked.Skeleton.Output.html#toPKHOrValidator"><span class="hs-identifier hs-var">toPKHOrValidator</span></a></span><span> </span><span class="annot"><span class="annottext">owner
-</span><a href="#local-6989586621679804850"><span class="hs-identifier hs-var">owner</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-248"></span><span>      </span><span class="hs-comment">-- V1 and V2 script always need a datum, even if empty</span><span>
-</span><span id="line-249"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Validator
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679804914"><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679804914"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679804914"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Language -&gt; Language -&gt; Bool
+</span><a href="#local-6989586621679808906"><span class="hs-identifier hs-var">owner</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-250"></span><span>      </span><span class="hs-comment">-- V1 and V2 script always need a datum, even if empty</span><span>
+</span><span id="line-251"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Validator
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679808970"><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679808970"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679808970"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Language -&gt; Language -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Script.PlutusV2</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; DatumKind -&gt; TxSkelOutDatum
@@ -965,8 +967,8 @@ forall dat. DatumConstrs dat =&gt; dat -&gt; DatumKind -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumResolved -&gt; DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-var">Hashed</span></a></span><span> </span><span class="annot"><span class="annottext">DatumResolved
 </span><a href="Cooked.Skeleton.Datum.html#NotResolved"><span class="hs-identifier hs-var">NotResolved</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-250"></span><span>      </span><span class="hs-comment">-- V3 script and PKH do not necessarily need a datum</span><span>
-</span><span id="line-251"></span><span>      </span><span class="annot"><span class="annottext">Either PubKeyHash (Versioned Validator)
+</span><span id="line-252"></span><span>      </span><span class="hs-comment">-- V3 script and PKH do not necessarily need a datum</span><span>
+</span><span id="line-253"></span><span>      </span><span class="annot"><span class="annottext">Either PubKeyHash (Versioned Validator)
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span>
-</span><span id="line-252"></span></pre></body></html>
+</span><span id="line-254"></span></pre></body></html>

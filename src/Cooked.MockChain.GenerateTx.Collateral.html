@@ -28,11 +28,11 @@
 </span><span id="line-28"></span><span class="hs-comment">-- * An output returning excess collateral value when collaterals are used</span><span>
 </span><span id="line-29"></span><span class="hs-comment">-- These quantity should satisfy the equation (in terms of their values):</span><span>
 </span><span id="line-30"></span><span class="hs-comment">-- collateral inputs = total collateral + return collateral</span><span>
-</span><span id="line-31"></span><span id="local-6989586621679813475"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#toCollateralTriplet"><span class="hs-identifier hs-type">toCollateralTriplet</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-32"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679813475"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-31"></span><span id="local-6989586621679817575"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#toCollateralTriplet"><span class="hs-identifier hs-type">toCollateralTriplet</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679817575"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-33"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-34"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-35"></span><span>  </span><span class="annot"><a href="#local-6989586621679813475"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><a href="#local-6989586621679817575"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-36"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxInsCollateral</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">,</span><span>
 </span><span id="line-37"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxTotalCollateral</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">,</span><span>
 </span><span id="line-38"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxReturnCollateral</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.CtxTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span>
@@ -58,25 +58,25 @@ forall era. TxTotalCollateral era
 </span><span class="hs-identifier hs-var">Cardano.TxTotalCollateralNone</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
 forall ctx era. TxReturnCollateral ctx era
 </span><span class="hs-identifier hs-var">Cardano.TxReturnCollateralNone</span></span><span class="hs-special">)</span><span>
-</span><span id="line-41"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#toCollateralTriplet"><span class="hs-identifier hs-var">toCollateralTriplet</span></a></span><span> </span><span id="local-6989586621679813643"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813643"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
+</span><span id="line-41"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Collateral.html#toCollateralTriplet"><span class="hs-identifier hs-var">toCollateralTriplet</span></a></span><span> </span><span id="local-6989586621679817743"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679817743"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
 forall a. Set a -&gt; [a]
-</span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679813645"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679813645"><span class="hs-identifier hs-var">collateralInsList</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679813646"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679813646"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679817745"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679817745"><span class="hs-identifier hs-var">collateralInsList</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679817746"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679817746"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-42"></span><span>  </span><span class="hs-comment">-- We build the collateral inputs from this list</span><span>
-</span><span id="line-43"></span><span>  </span><span id="local-6989586621679813647"><span class="annot"><span class="annottext">TxInsCollateral ConwayEra
-</span><a href="#local-6989586621679813647"><span class="hs-identifier hs-var">txInsCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679817747"><span class="annot"><span class="annottext">TxInsCollateral ConwayEra
+</span><a href="#local-6989586621679817747"><span class="hs-identifier hs-var">txInsCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-44"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679813645"><span class="hs-identifier hs-var">collateralInsList</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679817745"><span class="hs-identifier hs-var">collateralInsList</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-45"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxInsCollateral ConwayEra -&gt; m (TxInsCollateral ConwayEra)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxInsCollateral ConwayEra
 forall era. TxInsCollateral era
 </span><span class="hs-identifier hs-var">Cardano.TxInsCollateralNone</span></span><span>
-</span><span id="line-46"></span><span>      </span><span id="local-6989586621679813648"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679813648"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String
+</span><span id="line-46"></span><span>      </span><span id="local-6989586621679817748"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679817748"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String
 -&gt; Either ToCardanoError (TxInsCollateral ConwayEra)
 -&gt; m (TxInsCollateral ConwayEra)
 forall (m :: * -&gt; *) a.
@@ -103,18 +103,18 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Ledger.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679813648"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><a href="#local-6989586621679817748"><span class="hs-identifier hs-var">l</span></a></span><span>
 </span><span id="line-47"></span><span>  </span><span class="hs-comment">-- Retrieving the total value in collateral inputs. This fails if one of the</span><span>
 </span><span id="line-48"></span><span>  </span><span class="hs-comment">-- collateral inputs has not been successfully resolved.</span><span>
-</span><span id="line-49"></span><span>  </span><span id="local-6989586621679813655"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679813655"><span class="hs-identifier hs-var">collateralInsValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679817755"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679817755"><span class="hs-identifier hs-var">collateralInsValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-50"></span><span>    </span><span class="annot"><span class="annottext">(Value -&gt; TxOutRef -&gt; m Value) -&gt; Value -&gt; [TxOutRef] -&gt; m Value
 forall (t :: * -&gt; *) (m :: * -&gt; *) b a.
 (Foldable t, Monad m) =&gt;
 (b -&gt; a -&gt; m b) -&gt; b -&gt; t a -&gt; m b
-</span><span class="hs-identifier hs-var">foldM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679813657"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679813657"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679813657"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><span class="hs-identifier hs-var">foldM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679817757"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679817757"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679817757"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Value) -&gt; m Value -&gt; m Value
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -129,12 +129,12 @@ Optic' g is TxSkelOut c -&gt; TxOutRef -&gt; m c
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679813645"><span class="hs-identifier hs-var">collateralInsList</span></a></span><span>
+</span><a href="#local-6989586621679817745"><span class="hs-identifier hs-var">collateralInsList</span></a></span><span>
 </span><span id="line-51"></span><span>  </span><span class="hs-comment">-- We retrieve the collateral percentage compared to fees. By default, we use</span><span>
 </span><span id="line-52"></span><span>  </span><span class="hs-comment">-- 150% which is the current value in the parameters, although the default</span><span>
 </span><span id="line-53"></span><span>  </span><span class="hs-comment">-- value should never be used here, as the call is supposed to always succeed.</span><span>
-</span><span id="line-54"></span><span>  </span><span id="local-6989586621679813661"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813661"><span class="hs-identifier hs-var">collateralPercentage</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Integer
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679817761"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679817761"><span class="hs-identifier hs-var">collateralPercentage</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Integer
 forall a. Integral a =&gt; a -&gt; Integer
 </span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">(Natural -&gt; Integer) -&gt; (Params -&gt; Natural) -&gt; Params -&gt; Integer
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -155,21 +155,21 @@ forall (m :: * -&gt; *). MonadBlockChainBalancing m =&gt; m Params
 </span><a href="Cooked.MockChain.BlockChain.html#getParams"><span class="hs-identifier hs-var">getParams</span></a></span><span>
 </span><span id="line-55"></span><span>  </span><span class="hs-comment">-- The total collateral corresponds to the fees multiplied by the collateral</span><span>
 </span><span id="line-56"></span><span>  </span><span class="hs-comment">-- percentage. We add 1 because the ledger apparently rounds up this value.</span><span>
-</span><span id="line-57"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679813666"><span class="annot"><span class="annottext">coinTotalCollateral :: Integer
-</span><a href="#local-6989586621679813666"><span class="hs-identifier hs-var hs-var">coinTotalCollateral</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span id="line-57"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679817766"><span class="annot"><span class="annottext">coinTotalCollateral :: Integer
+</span><a href="#local-6989586621679817766"><span class="hs-identifier hs-var hs-var">coinTotalCollateral</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813643"><span class="hs-identifier hs-var">fee</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679817743"><span class="hs-identifier hs-var">fee</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813661"><span class="hs-identifier hs-var">collateralPercentage</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679817761"><span class="hs-identifier hs-var">collateralPercentage</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Integral a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">100</span></span><span>
 </span><span id="line-58"></span><span>  </span><span class="hs-comment">-- We create the total collateral based on the computed value</span><span>
-</span><span id="line-59"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679813670"><span class="annot"><span class="annottext">txTotalCollateral :: TxTotalCollateral ConwayEra
-</span><a href="#local-6989586621679813670"><span class="hs-identifier hs-var hs-var">txTotalCollateral</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra -&gt; Coin -&gt; TxTotalCollateral ConwayEra
+</span><span id="line-59"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679817770"><span class="annot"><span class="annottext">txTotalCollateral :: TxTotalCollateral ConwayEra
+</span><a href="#local-6989586621679817770"><span class="hs-identifier hs-var hs-var">txTotalCollateral</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra -&gt; Coin -&gt; TxTotalCollateral ConwayEra
 forall era. BabbageEraOnwards era -&gt; Coin -&gt; TxTotalCollateral era
 </span><span class="hs-identifier hs-var">Cardano.TxTotalCollateral</span></span><span> </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.BabbageEraOnwardsConway</span></span><span> </span><span class="annot"><span class="annottext">(Coin -&gt; TxTotalCollateral ConwayEra)
@@ -177,25 +177,25 @@ forall era. BabbageEraOnwards era -&gt; Coin -&gt; TxTotalCollateral era
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 </span><span class="hs-identifier hs-var">Cardano.Coin</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813666"><span class="hs-identifier hs-var">coinTotalCollateral</span></a></span><span>
+</span><a href="#local-6989586621679817766"><span class="hs-identifier hs-var">coinTotalCollateral</span></a></span><span>
 </span><span id="line-60"></span><span>  </span><span class="hs-comment">-- We compute a return collateral value by subtracting the total collateral to</span><span>
 </span><span id="line-61"></span><span>  </span><span class="hs-comment">-- the value in collateral inputs</span><span>
-</span><span id="line-62"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679813674"><span class="annot"><span class="annottext">returnCollateralValue :: Value
-</span><a href="#local-6989586621679813674"><span class="hs-identifier hs-var hs-var">returnCollateralValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679813655"><span class="hs-identifier hs-var">collateralInsValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><span id="line-62"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679817774"><span class="annot"><span class="annottext">returnCollateralValue :: Value
+</span><a href="#local-6989586621679817774"><span class="hs-identifier hs-var hs-var">returnCollateralValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679817755"><span class="hs-identifier hs-var">collateralInsValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">PlutusTx.negate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Script.lovelace</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679813666"><span class="hs-identifier hs-var">coinTotalCollateral</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679817766"><span class="hs-identifier hs-var">coinTotalCollateral</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-63"></span><span>  </span><span class="hs-comment">-- The return collateral is then computed</span><span>
-</span><span id="line-64"></span><span>  </span><span id="local-6989586621679813677"><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
-</span><a href="#local-6989586621679813677"><span class="hs-identifier hs-var">txReturnCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679817777"><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
+</span><a href="#local-6989586621679817777"><span class="hs-identifier hs-var">txReturnCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-65"></span><span>    </span><span class="hs-comment">-- If the total collateral equal what the inputs provide, we return</span><span>
 </span><span id="line-66"></span><span>    </span><span class="hs-comment">-- `TxReturnCollateralNone`, otherwise, we compute the new output</span><span>
 </span><span id="line-67"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679813674"><span class="hs-identifier hs-var">returnCollateralValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
+</span><a href="#local-6989586621679817774"><span class="hs-identifier hs-var">returnCollateralValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
@@ -209,8 +209,8 @@ forall ctx era. TxReturnCollateral ctx era
 </span><span class="hs-identifier hs-var">Cardano.TxReturnCollateralNone</span></span><span>
 </span><span id="line-69"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-70"></span><span>        </span><span class="hs-comment">-- The value is a translation of the remaining value</span><span>
-</span><span id="line-71"></span><span>        </span><span id="local-6989586621679813678"><span class="annot"><span class="annottext">TxOutValue ConwayEra
-</span><a href="#local-6989586621679813678"><span class="hs-identifier hs-var">txReturnCollateralValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-71"></span><span>        </span><span id="local-6989586621679817778"><span class="annot"><span class="annottext">TxOutValue ConwayEra
+</span><a href="#local-6989586621679817778"><span class="hs-identifier hs-var">txReturnCollateralValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-72"></span><span>          </span><span class="annot"><span class="annottext">Value -&gt; TxOutValue ConwayEra
 </span><span class="hs-identifier hs-var">Ledger.toCardanoTxOutValue</span></span><span>
 </span><span id="line-73"></span><span>            </span><span class="annot"><span class="annottext">(Value -&gt; TxOutValue ConwayEra)
@@ -225,18 +225,18 @@ String -&gt; Either ToCardanoError a -&gt; m a
 </span><span class="hs-string">&quot;toCollateralTriplet: cannot build return collateral value&quot;</span></span><span>
 </span><span id="line-75"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value -&gt; Either ToCardanoError Value
 </span><span class="hs-identifier hs-var">Ledger.toCardanoValue</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679813674"><span class="hs-identifier hs-var">returnCollateralValue</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679817774"><span class="hs-identifier hs-var">returnCollateralValue</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-76"></span><span>        </span><span class="hs-comment">-- The address is the one from the return collateral wallet, which is</span><span>
 </span><span id="line-77"></span><span>        </span><span class="hs-comment">-- required to exist here.</span><span>
-</span><span id="line-78"></span><span>        </span><span id="local-6989586621679813681"><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679813681"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; NetworkId
+</span><span id="line-78"></span><span>        </span><span id="local-6989586621679817781"><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679817781"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; NetworkId
 </span><span class="hs-identifier hs-var">Emulator.pNetworkId</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; NetworkId) -&gt; m Params -&gt; m NetworkId
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">m Params
 forall (m :: * -&gt; *). MonadBlockChainBalancing m =&gt; m Params
 </span><a href="Cooked.MockChain.BlockChain.html#getParams"><span class="hs-identifier hs-var">getParams</span></a></span><span>
-</span><span id="line-79"></span><span>        </span><span id="local-6989586621679813683"><span class="annot"><span class="annottext">AddressInEra ConwayEra
-</span><a href="#local-6989586621679813683"><span class="hs-identifier hs-var">address</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-79"></span><span>        </span><span id="local-6989586621679817783"><span class="annot"><span class="annottext">AddressInEra ConwayEra
+</span><a href="#local-6989586621679817783"><span class="hs-identifier hs-var">address</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-80"></span><span>          </span><span class="annot"><span class="annottext">String
 -&gt; Either ToCardanoError (AddressInEra ConwayEra)
 -&gt; m (AddressInEra ConwayEra)
@@ -253,10 +253,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-81"></span><span>            </span><span class="annot"><span class="annottext">NetworkId
 -&gt; Address -&gt; Either ToCardanoError (AddressInEra ConwayEra)
 </span><span class="hs-identifier hs-var">Ledger.toCardanoAddressInEra</span></span><span> </span><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679813681"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Address
+</span><a href="#local-6989586621679817781"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Address
 forall a. ToAddress a =&gt; a -&gt; Address
 </span><span class="hs-identifier hs-var">Script.toAddress</span></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679813646"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679817746"><span class="hs-identifier hs-var">returnCollateralWallet</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-82"></span><span>        </span><span class="hs-comment">-- The return collateral is built up from those elements</span><span>
 </span><span id="line-83"></span><span>        </span><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
 -&gt; m (TxReturnCollateral CtxTx ConwayEra)
@@ -290,8 +290,8 @@ AddressInEra era
 -&gt; ReferenceScript era
 -&gt; TxOut ctx era
 </span><span class="hs-identifier hs-var">Cardano.TxOut</span></span><span> </span><span class="annot"><span class="annottext">AddressInEra ConwayEra
-</span><a href="#local-6989586621679813683"><span class="hs-identifier hs-var">address</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutValue ConwayEra
-</span><a href="#local-6989586621679813678"><span class="hs-identifier hs-var">txReturnCollateralValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx ConwayEra
+</span><a href="#local-6989586621679817783"><span class="hs-identifier hs-var">address</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutValue ConwayEra
+</span><a href="#local-6989586621679817778"><span class="hs-identifier hs-var">txReturnCollateralValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx ConwayEra
 forall ctx era. TxOutDatum ctx era
 </span><span class="hs-identifier hs-var">Cardano.TxOutDatumNone</span></span><span> </span><span class="annot"><span class="annottext">ReferenceScript ConwayEra
 forall era. ReferenceScript era
@@ -303,7 +303,7 @@ forall era. ReferenceScript era
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxInsCollateral ConwayEra
-</span><a href="#local-6989586621679813647"><span class="hs-identifier hs-var">txInsCollateral</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxTotalCollateral ConwayEra
-</span><a href="#local-6989586621679813670"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
-</span><a href="#local-6989586621679813677"><span class="hs-identifier hs-var">txReturnCollateral</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679817747"><span class="hs-identifier hs-var">txInsCollateral</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxTotalCollateral ConwayEra
+</span><a href="#local-6989586621679817770"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxReturnCollateral CtxTx ConwayEra
+</span><a href="#local-6989586621679817777"><span class="hs-identifier hs-var">txReturnCollateral</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-87"></span></pre></body></html>

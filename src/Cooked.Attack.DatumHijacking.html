@@ -24,11 +24,11 @@
 </span><span id="line-24"></span><span class="hs-comment">-- | Redirects some outputs from one owner to another owner, which can be of</span><span>
 </span><span id="line-25"></span><span class="hs-comment">-- different types.</span><span>
 </span><span id="line-26"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAll"><span class="hs-identifier hs-type">redirectOutputTweakAll</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-27"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679819595"><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679819597"><span class="annot"><a href="#local-6989586621679819597"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679819593"><span class="annot"><a href="#local-6989586621679819593"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819593"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819597"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679823727"><span class="annot"><a href="#local-6989586621679823727"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679823729"><span class="annot"><a href="#local-6989586621679823729"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679823725"><span class="annot"><a href="#local-6989586621679823725"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823725"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823727"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823729"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-29"></span><span>  </span><span class="hs-comment">-- | Return 'Just' the new owner, or 'Nothing' if you want to leave this</span><span>
 </span><span id="line-30"></span><span>  </span><span class="hs-comment">-- output unchanged.</span><span>
-</span><span id="line-31"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679819597"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679823729"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-32"></span><span>  </span><span class="hs-comment">-- | The redirection described by the previous argument might apply to more</span><span>
 </span><span id="line-33"></span><span>  </span><span class="hs-comment">-- than one of the outputs of the transaction. Use this predicate to select</span><span>
 </span><span id="line-34"></span><span>  </span><span class="hs-comment">-- which of the redirectable outputs to actually redirect. We count the</span><span>
@@ -37,23 +37,23 @@
 </span><span id="line-37"></span><span>  </span><span class="hs-comment">-- | Returns the list of outputs it redirected (as they were</span><span>
 </span><span id="line-38"></span><span>  </span><span class="hs-comment">-- before the modification), in the order in which they occurred on the original</span><span>
 </span><span id="line-39"></span><span>  </span><span class="hs-comment">-- transaction.</span><span>
-</span><span id="line-40"></span><span>  </span><span class="annot"><a href="#local-6989586621679819593"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-40"></span><span>  </span><span class="annot"><a href="#local-6989586621679823725"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-41"></span><span id="redirectOutputTweakAll"><span class="annot"><span class="annottext">redirectOutputTweakAll :: forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Maybe owner') -&gt; (Integer -&gt; Bool) -&gt; m [TxSkelOut]
-</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAll"><span class="hs-identifier hs-var hs-var">redirectOutputTweakAll</span></a></span></span><span> </span><span id="local-6989586621679819759"><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
-</span><a href="#local-6989586621679819759"><span class="hs-identifier hs-var">outputPred</span></a></span></span><span> </span><span id="local-6989586621679819760"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819760"><span class="hs-identifier hs-var">indexPred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-42"></span><span>  </span><span id="local-6989586621679819761"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819761"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
+</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAll"><span class="hs-identifier hs-var hs-var">redirectOutputTweakAll</span></a></span></span><span> </span><span id="local-6989586621679823891"><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
+</span><a href="#local-6989586621679823891"><span class="hs-identifier hs-var">outputPred</span></a></span></span><span> </span><span id="local-6989586621679823892"><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679823892"><span class="hs-identifier hs-var">indexPred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679823893"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823893"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; m a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span>
-</span><span id="line-43"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819764"><span class="annot"><span class="annottext">[Maybe TxSkelOut]
-</span><a href="#local-6989586621679819764"><span class="hs-identifier hs-var">changed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819765"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819765"><span class="hs-identifier hs-var">newOutputs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Maybe TxSkelOut, TxSkelOut)] -&gt; ([Maybe TxSkelOut], [TxSkelOut])
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679823896"><span class="annot"><span class="annottext">[Maybe TxSkelOut]
+</span><a href="#local-6989586621679823896"><span class="hs-identifier hs-var">changed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679823897"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823897"><span class="hs-identifier hs-var">newOutputs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Maybe TxSkelOut, TxSkelOut)] -&gt; ([Maybe TxSkelOut], [TxSkelOut])
 forall a b. [(a, b)] -&gt; ([a], [b])
 </span><span class="hs-identifier hs-var">unzip</span></span><span> </span><span class="annot"><span class="annottext">([(Maybe TxSkelOut, TxSkelOut)]
  -&gt; ([Maybe TxSkelOut], [TxSkelOut]))
@@ -61,8 +61,8 @@ forall a b. [(a, b)] -&gt; ([a], [b])
 -&gt; ([Maybe TxSkelOut], [TxSkelOut])
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [(Maybe TxSkelOut, TxSkelOut)]
-</span><a href="#local-6989586621679819767"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819761"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823899"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823893"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span>
 </span><span id="line-44"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; [TxSkelOut] -&gt; m ()
 forall (m :: * -&gt; *) k (is :: IxList) a.
@@ -70,7 +70,7 @@ forall (m :: * -&gt; *) k (is :: IxList) a.
 Optic' k is TxSkel a -&gt; a -&gt; m ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819765"><span class="hs-identifier hs-var">newOutputs</span></a></span><span>
+</span><a href="#local-6989586621679823897"><span class="hs-identifier hs-var">newOutputs</span></a></span><span>
 </span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; m [TxSkelOut]
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -79,15 +79,15 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Maybe TxSkelOut] -&gt; [TxSkelOut]
 forall a. [Maybe a] -&gt; [a]
 </span><span class="hs-identifier hs-var">catMaybes</span></span><span> </span><span class="annot"><span class="annottext">[Maybe TxSkelOut]
-</span><a href="#local-6989586621679819764"><span class="hs-identifier hs-var">changed</span></a></span><span>
+</span><a href="#local-6989586621679823896"><span class="hs-identifier hs-var">changed</span></a></span><span>
 </span><span id="line-46"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-47"></span><span>    </span><span id="local-6989586621679819767"><span class="annot"><span class="annottext">go :: [TxSkelOut] -&gt; Integer -&gt; [(Maybe TxSkelOut, TxSkelOut)]
-</span><a href="#local-6989586621679819767"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span id="line-47"></span><span>    </span><span id="local-6989586621679823899"><span class="annot"><span class="annottext">go :: [TxSkelOut] -&gt; Integer -&gt; [(Maybe TxSkelOut, TxSkelOut)]
+</span><a href="#local-6989586621679823899"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-48"></span><span>    </span><span class="annot"><a href="#local-6989586621679819767"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819770"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679819771"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819771"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679819772"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819772"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-48"></span><span>    </span><span class="annot"><a href="#local-6989586621679823899"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679823902"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679823903"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823903"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679823904"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823904"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-49"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx TxSkelOut owner
 -&gt; TxSkelOut -&gt; Maybe owner
 forall k (is :: IxList) s a.
@@ -96,49 +96,49 @@ Optic' k is s a -&gt; s -&gt; Maybe a
 </span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall a b.
 (OwnerConstrs a, OwnerConstrs b) =&gt;
 AffineTraversal TxSkelOut TxSkelOut a b
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe owner -&gt; Maybe owner' -&gt; Maybe owner'
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823727"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe owner -&gt; Maybe owner' -&gt; Maybe owner'
 forall a b. Maybe a -&gt; Maybe b -&gt; Maybe b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
-</span><a href="#local-6989586621679819759"><span class="hs-identifier hs-var">outputPred</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679823891"><span class="hs-identifier hs-var">outputPred</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-50"></span><span>        </span><span class="annot"><span class="annottext">Maybe owner'
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe TxSkelOut
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut, TxSkelOut)
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut, TxSkelOut)
 -&gt; [(Maybe TxSkelOut, TxSkelOut)] -&gt; [(Maybe TxSkelOut, TxSkelOut)]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [(Maybe TxSkelOut, TxSkelOut)]
-</span><a href="#local-6989586621679819767"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819771"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819772"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-51"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679819775"><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819775"><span class="hs-identifier hs-var">newOwner</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819760"><span class="hs-identifier hs-var">indexPred</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819772"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe TxSkelOut
+</span><a href="#local-6989586621679823899"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823903"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823904"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679823907"><span class="annot"><span class="annottext">owner'
+</span><a href="#local-6989586621679823907"><span class="hs-identifier hs-var">newOwner</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679823892"><span class="hs-identifier hs-var">indexPred</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823904"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe TxSkelOut
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">forall a b.
 (OwnerConstrs a, OwnerConstrs b) =&gt;
 AffineTraversal TxSkelOut TxSkelOut a b
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819595"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal TxSkelOut TxSkelOut owner owner'
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823727"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal TxSkelOut TxSkelOut owner owner'
 -&gt; owner' -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819775"><span class="hs-identifier hs-var">newOwner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut, TxSkelOut)
+</span><a href="#local-6989586621679823907"><span class="hs-identifier hs-var">newOwner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut, TxSkelOut)
 -&gt; [(Maybe TxSkelOut, TxSkelOut)] -&gt; [(Maybe TxSkelOut, TxSkelOut)]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [(Maybe TxSkelOut, TxSkelOut)]
-</span><a href="#local-6989586621679819767"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819771"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819772"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679823899"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823903"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823904"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
@@ -146,13 +146,13 @@ forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe TxSkelOut
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819770"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut, TxSkelOut)
+</span><a href="#local-6989586621679823902"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut, TxSkelOut)
 -&gt; [(Maybe TxSkelOut, TxSkelOut)] -&gt; [(Maybe TxSkelOut, TxSkelOut)]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [(Maybe TxSkelOut, TxSkelOut)]
-</span><a href="#local-6989586621679819767"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819771"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819772"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679823899"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823903"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823904"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
@@ -161,17 +161,17 @@ forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span id="line-55"></span><span class="hs-comment">-- outputs targeted by the input predicates in the same transaction, we modify</span><span>
 </span><span id="line-56"></span><span class="hs-comment">-- one of them at a time, relying on the 'MonadPlus' instance of @m@.</span><span>
 </span><span id="line-57"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAny"><span class="hs-identifier hs-type">redirectOutputTweakAny</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-58"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679819652"><span class="annot"><a href="#local-6989586621679819652"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679819653"><span class="annot"><a href="#local-6989586621679819653"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679819651"><span class="annot"><a href="#local-6989586621679819651"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-59"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819651"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819652"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819653"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-60"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679819653"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679823784"><span class="annot"><a href="#local-6989586621679823784"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679823785"><span class="annot"><a href="#local-6989586621679823785"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679823783"><span class="annot"><a href="#local-6989586621679823783"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823783"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823784"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823785"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679823785"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-61"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-62"></span><span>  </span><span class="annot"><a href="#local-6989586621679819651"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
+</span><span id="line-62"></span><span>  </span><span class="annot"><a href="#local-6989586621679823783"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
 </span><span id="line-63"></span><span id="redirectOutputTweakAny"><span class="annot"><span class="annottext">redirectOutputTweakAny :: forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Maybe owner') -&gt; (Integer -&gt; Bool) -&gt; m TxSkelOut
-</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAny"><span class="hs-identifier hs-var hs-var">redirectOutputTweakAny</span></a></span></span><span> </span><span id="local-6989586621679819809"><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
-</span><a href="#local-6989586621679819809"><span class="hs-identifier hs-var">outputPred</span></a></span></span><span> </span><span id="local-6989586621679819810"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819810"><span class="hs-identifier hs-var">indexPred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
+</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAny"><span class="hs-identifier hs-var hs-var">redirectOutputTweakAny</span></a></span></span><span> </span><span id="local-6989586621679823941"><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
+</span><a href="#local-6989586621679823941"><span class="hs-identifier hs-var">outputPred</span></a></span></span><span> </span><span id="local-6989586621679823942"><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679823942"><span class="hs-identifier hs-var">indexPred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; m [TxSkelOut]
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; m a
@@ -180,38 +180,38 @@ Optic' k is TxSkel a -&gt; m a
 forall a b. m a -&gt; (a -&gt; m b) -&gt; m b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
-</span><a href="#local-6989586621679819811"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823943"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span>
 </span><span id="line-64"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-65"></span><span>    </span><span id="local-6989586621679819811"><span class="annot"><span class="annottext">go :: [TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
-</span><a href="#local-6989586621679819811"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><span id="line-65"></span><span>    </span><span id="local-6989586621679823943"><span class="annot"><span class="annottext">go :: [TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
+</span><a href="#local-6989586621679823943"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m TxSkelOut
 forall a. m a
 forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
 </span><span class="hs-identifier hs-var">mzero</span></span><span>
-</span><span id="line-66"></span><span>    </span><span class="annot"><a href="#local-6989586621679819811"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679819813"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819813"><span class="hs-identifier hs-var">l'</span></a></span></span><span> </span><span id="local-6989586621679819814"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819814"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819815"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679819816"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819816"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>    </span><span class="annot"><a href="#local-6989586621679823943"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679823945"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823945"><span class="hs-identifier hs-var">l'</span></a></span></span><span> </span><span id="local-6989586621679823946"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823946"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679823947"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679823948"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823948"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span>
 </span><span id="line-67"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819810"><span class="hs-identifier hs-var">indexPred</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819814"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679823942"><span class="hs-identifier hs-var">indexPred</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823946"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-68"></span><span>          </span><span class="annot"><span class="annottext">m TxSkelOut -&gt; Maybe (m TxSkelOut) -&gt; m TxSkelOut
 forall a. a -&gt; Maybe a -&gt; a
 </span><span class="hs-identifier hs-var">fromMaybe</span></span><span>
 </span><span id="line-69"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
-</span><a href="#local-6989586621679819811"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819813"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679823943"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823945"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819814"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823946"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819816"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679823948"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-70"></span><span>            </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-71"></span><span>                </span><span class="annot"><span class="annottext">Maybe owner -&gt; Maybe ()
 forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
@@ -225,12 +225,12 @@ Optic' k is s a -&gt; s -&gt; Maybe a
 </span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall a b.
 (OwnerConstrs a, OwnerConstrs b) =&gt;
 AffineTraversal TxSkelOut TxSkelOut a b
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819652"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span><span>
-</span><span id="line-72"></span><span>                </span><span id="local-6989586621679819819"><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819819"><span class="hs-identifier hs-var">newOwner</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
-</span><a href="#local-6989586621679819809"><span class="hs-identifier hs-var">outputPred</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span><span>
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823784"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span><span>
+</span><span id="line-72"></span><span>                </span><span id="local-6989586621679823951"><span class="annot"><span class="annottext">owner'
+</span><a href="#local-6989586621679823951"><span class="hs-identifier hs-var">newOwner</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe owner'
+</span><a href="#local-6989586621679823941"><span class="hs-identifier hs-var">outputPred</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span><span>
 </span><span id="line-73"></span><span>                </span><span class="annot"><span class="annottext">m TxSkelOut -&gt; Maybe (m TxSkelOut)
 forall a. a -&gt; Maybe a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -248,55 +248,55 @@ forall (m :: * -&gt; *) k (is :: IxList) a.
 Optic' k is TxSkel a -&gt; a -&gt; m ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819813"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679823945"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">forall a b.
 (OwnerConstrs a, OwnerConstrs b) =&gt;
 AffineTraversal TxSkelOut TxSkelOut a b
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819652"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal TxSkelOut TxSkelOut owner owner'
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutTypedOwnerAT"><span class="hs-identifier hs-var">txSkelOutTypedOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823784"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal TxSkelOut TxSkelOut owner owner'
 -&gt; owner' -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819819"><span class="hs-identifier hs-var">newOwner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679823951"><span class="hs-identifier hs-var">newOwner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819816"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">m () -&gt; m TxSkelOut -&gt; m TxSkelOut
+</span><a href="#local-6989586621679823948"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">m () -&gt; m TxSkelOut -&gt; m TxSkelOut
 forall a b. m a -&gt; m b -&gt; m b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-76"></span><span>                    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
-</span><a href="#local-6989586621679819811"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819813"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679823943"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823945"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819815"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819814"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679823947"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823946"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819816"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679823948"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-77"></span><span>            </span><span class="hs-special">)</span><span>
-</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679819811"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679819821"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819821"><span class="hs-identifier hs-var">l'</span></a></span></span><span> </span><span id="local-6989586621679819822"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819822"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819823"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819823"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679819824"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819824"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
-</span><a href="#local-6989586621679819811"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819821"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679823943"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679823953"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823953"><span class="hs-identifier hs-var">l'</span></a></span></span><span> </span><span id="local-6989586621679823954"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823954"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679823955"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823955"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679823956"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823956"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Integer -&gt; [TxSkelOut] -&gt; m TxSkelOut
+</span><a href="#local-6989586621679823943"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823953"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819823"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679819822"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819824"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><a href="#local-6989586621679823955"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679823954"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823956"><span class="hs-identifier hs-var">l</span></a></span><span>
 </span><span id="line-79"></span><span>
 </span><span id="line-80"></span><span class="hs-comment">-- | A datum hijacking attack, simplified: This attack tries to substitute a</span><span>
 </span><span id="line-81"></span><span class="hs-comment">-- different recipient on outputs belonging to scripts, but leaves the datum as</span><span>
@@ -313,8 +313,8 @@ forall a. [a] -&gt; [a] -&gt; [a]
 </span><span id="line-92"></span><span class="hs-comment">-- they occurred on the original transaction. If no output is redirected, this</span><span>
 </span><span id="line-93"></span><span class="hs-comment">-- attack fails.</span><span>
 </span><span id="line-94"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAll"><span class="hs-identifier hs-type">datumHijackingAttackAll</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-95"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679819666"><span class="annot"><a href="#local-6989586621679819666"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679819667"><span class="annot"><a href="#local-6989586621679819667"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679819665"><span class="annot"><a href="#local-6989586621679819665"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-96"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819665"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819666"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819667"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679823798"><span class="annot"><a href="#local-6989586621679823798"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679823799"><span class="annot"><a href="#local-6989586621679823799"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679823797"><span class="annot"><a href="#local-6989586621679823797"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823797"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823798"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823799"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-97"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
 </span><span id="line-98"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
 </span><span id="line-99"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
@@ -323,29 +323,29 @@ forall a. [a] -&gt; [a] -&gt; [a]
 </span><span id="line-102"></span><span>  </span><span class="hs-comment">-- starting at zero) chosen by the selection predicate with this predicate.</span><span>
 </span><span id="line-103"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-104"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The thief</span></span><span>
-</span><span id="line-105"></span><span>  </span><span class="annot"><a href="#local-6989586621679819667"><span class="hs-identifier hs-type">owner'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-106"></span><span>  </span><span class="annot"><a href="#local-6989586621679819665"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><a href="#local-6989586621679823799"><span class="hs-identifier hs-type">owner'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-106"></span><span>  </span><span class="annot"><a href="#local-6989586621679823797"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-107"></span><span id="datumHijackingAttackAll"><span class="annot"><span class="annottext">datumHijackingAttackAll :: forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Bool) -&gt; (Integer -&gt; Bool) -&gt; owner' -&gt; m [TxSkelOut]
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAll"><span class="hs-identifier hs-var hs-var">datumHijackingAttackAll</span></a></span></span><span> </span><span id="local-6989586621679819862"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679819862"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679819863"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819863"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span id="local-6989586621679819864"><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819864"><span class="hs-identifier hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-108"></span><span>  </span><span id="local-6989586621679819865"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819865"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall owner owner' (m :: * -&gt; *).
+</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAll"><span class="hs-identifier hs-var hs-var">datumHijackingAttackAll</span></a></span></span><span> </span><span id="local-6989586621679823994"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
+</span><a href="#local-6989586621679823994"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679823995"><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679823995"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span id="local-6989586621679823996"><span class="annot"><span class="annottext">owner'
+</span><a href="#local-6989586621679823996"><span class="hs-identifier hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679823997"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679823997"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Maybe owner') -&gt; (Integer -&gt; Bool) -&gt; m [TxSkelOut]
-</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAll"><span class="hs-identifier hs-var">redirectOutputTweakAll</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819666"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679819866"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819866"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679819862"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819866"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">owner' -&gt; Maybe owner'
+</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAll"><span class="hs-identifier hs-var">redirectOutputTweakAll</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823798"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679823998"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823998"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
+</span><a href="#local-6989586621679823994"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679823998"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">owner' -&gt; Maybe owner'
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819864"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe owner'
+</span><a href="#local-6989586621679823996"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe owner'
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819863"><span class="hs-identifier hs-var">select</span></a></span><span>
+</span><a href="#local-6989586621679823995"><span class="hs-identifier hs-var">select</span></a></span><span>
 </span><span id="line-109"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; (Bool -&gt; Bool) -&gt; Bool -&gt; m ()
@@ -357,7 +357,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. [a] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819865"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><a href="#local-6989586621679823997"><span class="hs-identifier hs-var">redirected</span></a></span><span>
 </span><span id="line-110"></span><span>  </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(DatumHijackingLbl -&gt; m ()) -&gt; DatumHijackingLbl -&gt; m ()
@@ -375,18 +375,18 @@ forall owner.
 IsTxSkelOutAllowedOwner owner =&gt;
 Getter owner Credential
 </span><a href="Cooked.Skeleton.Output.html#ownerCredentialG"><span class="hs-identifier hs-var">ownerCredentialG</span></a></span><span> </span><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819864"><span class="hs-identifier hs-var">thief</span></a></span><span>
+</span><a href="#local-6989586621679823996"><span class="hs-identifier hs-var">thief</span></a></span><span>
 </span><span id="line-111"></span><span>  </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; m [TxSkelOut]
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819865"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><a href="#local-6989586621679823997"><span class="hs-identifier hs-var">redirected</span></a></span><span>
 </span><span id="line-112"></span><span>
 </span><span id="line-113"></span><span class="hs-comment">-- | A version of datumHijackingAttackAll relying on the rules of</span><span>
 </span><span id="line-114"></span><span class="hs-comment">-- 'redirectOutputTweakAny'.</span><span>
 </span><span id="line-115"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAny"><span class="hs-identifier hs-type">datumHijackingAttackAny</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-116"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679819697"><span class="annot"><a href="#local-6989586621679819697"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679819698"><span class="annot"><a href="#local-6989586621679819698"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679819696"><span class="annot"><a href="#local-6989586621679819696"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-117"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819696"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819697"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819698"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679823829"><span class="annot"><a href="#local-6989586621679823829"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679823830"><span class="annot"><a href="#local-6989586621679823830"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679823828"><span class="annot"><a href="#local-6989586621679823828"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-117"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823828"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823829"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823830"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-118"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
 </span><span id="line-119"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
 </span><span id="line-120"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
@@ -395,29 +395,29 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span id="line-123"></span><span>  </span><span class="hs-comment">-- starting at zero) chosen by the selection predicate with this predicate.</span><span>
 </span><span id="line-124"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-125"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The thief</span></span><span>
-</span><span id="line-126"></span><span>  </span><span class="annot"><a href="#local-6989586621679819698"><span class="hs-identifier hs-type">owner'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-127"></span><span>  </span><span class="annot"><a href="#local-6989586621679819696"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
+</span><span id="line-126"></span><span>  </span><span class="annot"><a href="#local-6989586621679823830"><span class="hs-identifier hs-type">owner'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><a href="#local-6989586621679823828"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
 </span><span id="line-128"></span><span id="datumHijackingAttackAny"><span class="annot"><span class="annottext">datumHijackingAttackAny :: forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Bool) -&gt; (Integer -&gt; Bool) -&gt; owner' -&gt; m TxSkelOut
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAny"><span class="hs-identifier hs-var hs-var">datumHijackingAttackAny</span></a></span></span><span> </span><span id="local-6989586621679819893"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679819893"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679819894"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819894"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span id="local-6989586621679819895"><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819895"><span class="hs-identifier hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-129"></span><span>  </span><span id="local-6989586621679819896"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819896"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall owner owner' (m :: * -&gt; *).
+</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAny"><span class="hs-identifier hs-var hs-var">datumHijackingAttackAny</span></a></span></span><span> </span><span id="local-6989586621679824025"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
+</span><a href="#local-6989586621679824025"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679824026"><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679824026"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span id="local-6989586621679824027"><span class="annot"><span class="annottext">owner'
+</span><a href="#local-6989586621679824027"><span class="hs-identifier hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-129"></span><span>  </span><span id="local-6989586621679824028"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679824028"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Maybe owner') -&gt; (Integer -&gt; Bool) -&gt; m TxSkelOut
-</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAny"><span class="hs-identifier hs-var">redirectOutputTweakAny</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819697"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679819897"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819897"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679819893"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819897"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">owner' -&gt; Maybe owner'
+</span><a href="Cooked.Attack.DatumHijacking.html#redirectOutputTweakAny"><span class="hs-identifier hs-var">redirectOutputTweakAny</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823829"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679824029"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679824029"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
+</span><a href="#local-6989586621679824025"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679824029"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">owner' -&gt; Maybe owner'
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819895"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe owner'
+</span><a href="#local-6989586621679824027"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe owner'
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679819894"><span class="hs-identifier hs-var">select</span></a></span><span>
+</span><a href="#local-6989586621679824026"><span class="hs-identifier hs-var">select</span></a></span><span>
 </span><span id="line-130"></span><span>  </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(DatumHijackingLbl -&gt; m ()) -&gt; DatumHijackingLbl -&gt; m ()
@@ -435,27 +435,27 @@ forall owner.
 IsTxSkelOutAllowedOwner owner =&gt;
 Getter owner Credential
 </span><a href="Cooked.Skeleton.Output.html#ownerCredentialG"><span class="hs-identifier hs-var">ownerCredentialG</span></a></span><span> </span><span class="annot"><span class="annottext">owner'
-</span><a href="#local-6989586621679819895"><span class="hs-identifier hs-var">thief</span></a></span><span>
+</span><a href="#local-6989586621679824027"><span class="hs-identifier hs-var">thief</span></a></span><span>
 </span><span id="line-131"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m TxSkelOut
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679819896"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><a href="#local-6989586621679824028"><span class="hs-identifier hs-var">redirected</span></a></span><span>
 </span><span id="line-132"></span><span>
 </span><span id="line-133"></span><span class="hs-comment">-- | The default datum hijacking attack. It tries to redirect any output for</span><span>
 </span><span id="line-134"></span><span class="hs-comment">-- which the owner is of type @owner@ and branches at each attempt.</span><span>
 </span><span id="line-135"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-type">datumHijackingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-136"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679819703"><span class="annot"><a href="#local-6989586621679819703"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679819704"><span class="annot"><a href="#local-6989586621679819704"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679819702"><span class="annot"><a href="#local-6989586621679819702"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-137"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819702"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819703"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679819704"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-138"></span><span>  </span><span class="annot"><a href="#local-6989586621679819704"><span class="hs-identifier hs-type">owner'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-139"></span><span>  </span><span class="annot"><a href="#local-6989586621679819702"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
+</span><span id="line-136"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679823835"><span class="annot"><a href="#local-6989586621679823835"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679823836"><span class="annot"><a href="#local-6989586621679823836"><span class="hs-identifier hs-type">owner'</span></a></span></span><span> </span><span id="local-6989586621679823834"><span class="annot"><a href="#local-6989586621679823834"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823834"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823835"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#OwnerConstrs"><span class="hs-identifier hs-type">OwnerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679823836"><span class="hs-identifier hs-type">owner'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-138"></span><span>  </span><span class="annot"><a href="#local-6989586621679823836"><span class="hs-identifier hs-type">owner'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-139"></span><span>  </span><span class="annot"><a href="#local-6989586621679823834"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
 </span><span id="line-140"></span><span id="datumHijackingAttack"><span class="annot"><span class="annottext">datumHijackingAttack :: forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 owner' -&gt; m TxSkelOut
 </span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-var hs-var">datumHijackingAttack</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall owner owner' (m :: * -&gt; *).
 (MonadTweak m, OwnerConstrs owner, OwnerConstrs owner') =&gt;
 (TxSkelOut -&gt; Bool) -&gt; (Integer -&gt; Bool) -&gt; owner' -&gt; m TxSkelOut
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAny"><span class="hs-identifier hs-var">datumHijackingAttackAny</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679819703"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; TxSkelOut -&gt; Bool
+</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttackAny"><span class="hs-identifier hs-var">datumHijackingAttackAny</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679823835"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; TxSkelOut -&gt; Bool
 forall a b. a -&gt; b -&gt; a
 </span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Integer -&gt; Bool
@@ -466,7 +466,7 @@ forall a b. a -&gt; b -&gt; a
 </span><span id="line-142"></span><span class="hs-comment">-- | A label that is added to a 'TxSkel' that has successfully been modified by</span><span>
 </span><span id="line-143"></span><span class="hs-comment">-- any of the datum hijacking attacks</span><span>
 </span><span id="line-144"></span><span class="hs-keyword">newtype</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span>
-</span><span id="line-145"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819906"><span id="local-6989586621679819912"><span id="local-6989586621679819915"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
+</span><span id="line-145"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679824038"><span id="local-6989586621679824044"><span id="local-6989586621679824047"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
 [DatumHijackingLbl] -&gt; ShowS
 DatumHijackingLbl -&gt; String
 (Int -&gt; DatumHijackingLbl -&gt; ShowS)
@@ -481,7 +481,7 @@ $cshow :: DatumHijackingLbl -&gt; String
 show :: DatumHijackingLbl -&gt; String
 $cshowList :: [DatumHijackingLbl] -&gt; ShowS
 showList :: [DatumHijackingLbl] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819919"><span id="local-6989586621679819924"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679824051"><span id="local-6989586621679824056"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
 -&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
 -&gt; Eq DatumHijackingLbl
@@ -490,7 +490,7 @@ $c== :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 == :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 $c/= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 /= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819931"><span id="local-6989586621679819936"><span id="local-6989586621679819940"><span id="local-6989586621679819944"><span id="local-6989586621679819948"><span id="local-6989586621679819952"><span id="local-6989586621679819956"><span class="annot"><span class="annottext">Eq DatumHijackingLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679824063"><span id="local-6989586621679824068"><span id="local-6989586621679824072"><span id="local-6989586621679824076"><span id="local-6989586621679824080"><span id="local-6989586621679824084"><span id="local-6989586621679824088"><span class="annot"><span class="annottext">Eq DatumHijackingLbl
 Eq DatumHijackingLbl =&gt;
 (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering)
 -&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
@@ -529,16 +529,16 @@ $cmin :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
 min :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-146"></span><span>
-</span><span id="line-147"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819962"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-type">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-148"></span><span>  </span><span id="local-6989586621679819969"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; DatumHijackingLbl -&gt; DocCooked
-</span><a href="#local-6989586621679819969"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679819971"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679819971"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-type">DatumHijackingLbl</span></a></span><span> </span><span id="local-6989586621679819972"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679819972"><span class="hs-identifier hs-var">address</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-147"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679824094"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-type">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-148"></span><span>  </span><span id="local-6989586621679824101"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; DatumHijackingLbl -&gt; DocCooked
+</span><a href="#local-6989586621679824101"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679824103"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679824103"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-type">DatumHijackingLbl</span></a></span><span> </span><span id="local-6989586621679824104"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679824104"><span class="hs-identifier hs-var">address</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;DatumHijacking&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Credential -&gt; DocCooked
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679819971"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679819972"><span class="hs-identifier hs-var">address</span></a></span><span>
+</span><a href="#local-6989586621679824103"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679824104"><span class="hs-identifier hs-var">address</span></a></span><span>
 </span><span id="line-149"></span></pre></body></html>
