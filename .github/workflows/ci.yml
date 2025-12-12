@@ -110,7 +110,7 @@ jobs:
       ## Example from
       ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
       - name: Accessing the Cabal cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/cabal/packages
@@ -231,7 +231,7 @@ jobs:
       ## Example from
       ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
       - name: Accessing the Cabal cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/cabal/packages
