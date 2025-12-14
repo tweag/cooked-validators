@@ -1,13 +1,6 @@
 packages:
   .
 
-package cooked-validators
-  coverage: True
-  library-coverage: True
-  
-package cardano-crypto-praos
-  flags: -external-libsodium-vrf
-
 -- Custom repository for cardano haskell packages
 -- See https://github.com/IntersectMBO/cardano-haskell-packages
 -- on how to use CHaP in a Haskell project.
@@ -33,16 +26,22 @@ write-ghc-environment-files: never
 -- 'tasty' output.
 test-show-details: direct
 
--- These packages appear in our dependency tree and are very slow to build.
--- Empirically, turning off optimization shaves off ~50% build time.
--- It also mildly improves recompilation avoidance.
--- For dev work we don't care about performance so much, so this is okay.
+-- We activate test coverage by default 
+package cooked-validators
+  coverage: True
+  library-coverage: True
+
+-- Removing optimization for these packages reduces their build time
+-- drastically and is not an issue for dev work
 package cardano-ledger-alonzo
   optimization: False
+  
 package ouroboros-consensus-cardano
   optimization: False
+  
 package cardano-api
   optimization: False
+  
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
   
@@ -52,9 +51,8 @@ constraints:
 source-repository-package
     type: git
     location: https://github.com/intersectMBO/cardano-node-emulator
-    tag: main
+    tag: a265da66259245cdb96e23959de575400ea99400
     subdir:
       plutus-script-utils
       plutus-ledger
       cardano-node-emulator
-      freer-extras
