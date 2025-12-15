@@ -12,15 +12,12 @@ import Control.Monad
 import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
-import Data.List.NonEmpty qualified as NEList
 import Data.Map qualified as Map
-import Data.Map.NonEmpty qualified as NEMap
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 import Prettyprinter qualified as PP
-import Test.QuickCheck.Modifiers
 
 -- | This attack adds extra tokens of any kind for minting policies already
 -- present in the minted value. The additional minted value is redirected to a
@@ -71,8 +68,8 @@ dupTokenAttack change attacker = do
       ( \s ->
           maybe
             []
-            (\(_, subMap) -> [(tk, change s tk n - n) | (tk, NonZero n) <- NEList.toList $ NEMap.toList subMap])
-            (s `Map.lookup` mints)
+            (\(_, subMap) -> [(tk, change s tk n - n) | (tk, n) <- Map.toList subMap])
+            (view (txSkelMintsPolicyTokensL s) mints)
       )
       attacker
   removeLabelTweak AddTokenLbl

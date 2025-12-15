@@ -25,7 +25,6 @@ where
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
 import Data.Bifunctor (bimap)
-import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Typeable (Typeable, cast)
@@ -36,7 +35,7 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Withdrawals associate either a script or a private key with a redeemer and
--- a certain amount of ada.
+-- a certain amount of ada. They are uniquely identified by the hash of either.
 type TxSkelWithdrawals = Map Api.BuiltinByteString (User IsEither Redemption, Api.Lovelace)
 
 -- | A single 'Withdrawal', owned by a pubkey or redeemed script
@@ -100,6 +99,3 @@ instance {-# OVERLAPPING #-} Semigroup TxSkelWithdrawals where
 
 instance {-# OVERLAPPING #-} Monoid TxSkelWithdrawals where
   mempty = Map.empty
-
-instance Default TxSkelWithdrawals where
-  def = mempty

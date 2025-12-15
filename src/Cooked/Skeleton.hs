@@ -149,17 +149,17 @@ makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
 txSkelTemplate :: TxSkel
 txSkelTemplate =
   TxSkel
-    { txSkelLabel = Set.empty,
+    { txSkelLabel = mempty,
       txSkelOpts = def,
-      txSkelMints = Map.empty,
+      txSkelMints = mempty,
       txSkelValidityRange = Api.always,
-      txSkelSigners = [],
-      txSkelIns = Map.empty,
-      txSkelInsReference = Set.empty,
-      txSkelOuts = [],
-      txSkelProposals = [],
-      txSkelWithdrawals = Map.empty,
-      txSkelCertificates = []
+      txSkelSigners = mempty,
+      txSkelIns = mempty,
+      txSkelInsReference = mempty,
+      txSkelOuts = mempty,
+      txSkelProposals = mempty,
+      txSkelWithdrawals = mempty,
+      txSkelCertificates = mempty
     }
 
 -- | Returns the full value contained in the skeleton outputs
@@ -172,7 +172,7 @@ txSkelInsReferenceInRedeemers TxSkel {..} =
   Set.fromList $
     toListOf (to Map.elems % traversed % txSkelRedeemerReferenceInputAT) txSkelIns
       <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelProposals
-      <> toListOf (to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputAT) txSkelMints
+      <> toListOf (txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelMints
       <> toListOf (to Map.elems % traversed % _1 % userTxSkelRedeemerAT % txSkelRedeemerReferenceInputAT) txSkelWithdrawals
       <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelCertificates
 

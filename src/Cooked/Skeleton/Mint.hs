@@ -7,7 +7,7 @@
 module Cooked.Skeleton.Mint
   ( -- * Data types
     Mint (..),
-    TxSkelMints,
+    TxSkelMints (unTxSkelMints),
 
     -- * Optics
     mintRedeemedScriptL,
@@ -16,6 +16,7 @@ module Cooked.Skeleton.Mint
     txSkelMintsListI,
     txSkelMintsAssetClassAmountL,
     txSkelMintsAssetClassesG,
+    txSkelMintsPolicyTokensL,
 
     -- * Smart constructors
     mint,
@@ -24,23 +25,21 @@ module Cooked.Skeleton.Mint
   )
 where
 
-import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
 import Data.Bifunctor
-import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Map.NonEmpty (NEMap)
-import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
 import Data.String (IsString (fromString))
+import Data.Typeable
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
+import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.AssocMap qualified as PMap
-import Test.QuickCheck (NonZero (..))
 
 -- * Describing single mint entries
 
@@ -62,11 +61,11 @@ instance IsString Api.TokenName where
   fromString = Api.TokenName . fromString
 
 -- | Builds some 'Mint' when a single type of token is minted for a given MP
-mint :: (ToVScript a, RedeemerConstrs red) => a -> red -> Api.TokenName -> Integer -> Mint
-mint mp red tn n = Mint (UserRedeemedScript (toVScript mp) (someTxSkelRedeemer red)) [(tn, n)]
+mint :: (ToVScript script, Typeable script, RedeemerConstrs red) => script -> red -> Api.TokenName -> Integer -> Mint
+mint mp red tn n = Mint (UserRedeemedScript mp (someTxSkelRedeemer red)) [(tn, n)]
 
 -- | Similar to 'mint' but deducing the tokens instead
-burn :: (ToVScript a, RedeemerConstrs red) => a -> red -> Api.TokenName -> Integer -> Mint
+burn :: (ToVScript script, Typeable script, RedeemerConstrs red) => script -> red -> Api.TokenName -> Integer -> Mint
 burn mp red tn n = mint mp red tn (-n)
 
 -- * Optics to manipulate elements of 'Mint'
@@ -92,10 +91,16 @@ mintCurrencySymbolG =
 
 -- | A description of what a transaction mints. For every policy, there can only
 -- be one 'TxSkelRedeemer', and if there is, there must be some token names, each
--- with a non-zero amount of tokens.
---
--- You'll probably not construct this by hand, but use 'review txSkelMintsListI'.
-type TxSkelMints = Map VScript (TxSkelRedeemer, NEMap Api.TokenName (NonZero Integer))
+-- with a non-zero amount of tokens. This invariant is guaranteed because the
+-- raw constructor is not exposed, and functions working around it preserve it.
+-- To build a 'TxSkelMints', use 'txSkelMintsFromList'.
+newtype TxSkelMints = TxSkelMints
+  { unTxSkelMints ::
+      Map
+        Api.ScriptHash
+        (User 'IsScript 'Redemption, Map Api.TokenName Integer)
+  }
+  deriving (Show, Eq)
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'
 
@@ -112,29 +117,37 @@ type TxSkelMints = Map VScript (TxSkelRedeemer, NEMap Api.TokenName (NonZero Int
 -- for instance to modify an existing redeemer, or @ix mp % _2 % ix tk@ to
 -- modify a token amount. Another option is to use the optics working on 'Mint'
 -- and combining them with 'txSkelMintsListI'.
-txSkelMintsAssetClassAmountL :: (ToVScript mp) => mp -> Api.TokenName -> Lens' TxSkelMints (Maybe TxSkelRedeemer, Integer)
-txSkelMintsAssetClassAmountL (toVScript -> mp) tk =
+txSkelMintsAssetClassAmountL :: (ToVScript mp, Typeable mp) => mp -> Api.TokenName -> Lens' TxSkelMints (Maybe TxSkelRedeemer, Integer)
+txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
   lens
     -- We return (Nothing, 0) when the mp is not in the map, (Just red, 0) when
     -- the mp is present but not the token, and (Just red, n) otherwise.
-    (maybe (Nothing, 0) (bimap Just (maybe 0 getNonZero . NEMap.lookup tk)) . Map.lookup mp)
-    ( \mints (newRed, i) -> case Map.lookup mp mints of
+    (maybe (Nothing, 0) (bimap (Just . view userTxSkelRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . unTxSkelMints)
+    ( \(TxSkelMints mints) (newRed, i) -> TxSkelMints $ case Map.lookup mph mints of
         -- No previous mp entry and nothing to add
         Nothing | i == 0 -> mints
         -- No previous mp entry and something to add but no redeemer to attach
         Nothing | Nothing <- newRed -> mints
         -- No previous mp entry, something to add and a redeemer to attach
-        Nothing | Just newRed' <- newRed -> Map.insert mp (newRed', NEMap.singleton tk (NonZero i)) mints
+        Nothing | Just newRed' <- newRed -> Map.insert mph (UserRedeemedScript mp newRed', Map.singleton tk i) mints
         -- A previous mp and tk entry, which needs to be removed and the whole
-        -- mp entry as well because it only containes this tk.
-        Just (NEMap.nonEmptyMap . NEMap.delete tk . snd -> Nothing) | i == 0 -> Map.delete mp mints
-        -- A prevous mp and tk entry, which needs to be removed, but the whole
-        -- mp entry has other tokens and thus is kept with the new redeemer if
-        -- it exists. If it does not, the previous one is kept.
-        Just (prevRed, NEMap.nonEmptyMap . NEMap.delete tk -> Just tokenMap) | i == 0 -> Map.insert mp (fromMaybe prevRed newRed, tokenMap) mints
-        -- A previous mp entry, in which we insert the new tk, regardless if
-        -- it's already there or not, with the new redeemer.
-        Just (prevRed, tokenMap) -> Map.insert mp (fromMaybe prevRed newRed, NEMap.insert tk (NonZero i) tokenMap) mints
+        -- mp entry as well because it only contains this tk.
+        Just (Map.delete tk . snd -> subMap) | subMap == mempty, i == 0 -> Map.delete mph mints
+        -- A prevous mp and tk entry, which either needs to be removed in case
+        -- of i == 0, or updated otherwise.
+        Just (prevUser, if i == 0 then Map.delete tk else Map.insert tk i -> subMap)
+          | newUser <- maybe prevUser (flip (set userTxSkelRedeemerL) prevUser) newRed -> Map.insert mph (newUser, subMap) mints
+    )
+
+-- | Focuses on the submap for a given minting policy, following the same rules
+-- as 'txSkelMintsAssetClassAmountL' when setting a new submap.
+txSkelMintsPolicyTokensL :: (ToVScript mp, Typeable mp) => mp -> Lens' TxSkelMints (Maybe (TxSkelRedeemer, Map Api.TokenName Integer))
+txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
+  lens
+    (fmap (first (view userTxSkelRedeemerL)) . view (to unTxSkelMints % at mph))
+    ( \mints -> \case
+        Nothing -> TxSkelMints . Map.delete mph . unTxSkelMints $ mints
+        Just (red, Map.toList -> tokens) -> foldl (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
     )
 
 instance Script.ToValue TxSkelMints where
@@ -143,15 +156,11 @@ instance Script.ToValue TxSkelMints where
       . PMap.unsafeFromList
       . fmap
         ( bimap
-            (Script.toCurrencySymbol . Script.toScriptHash)
-            ( PMap.unsafeFromList
-                . fmap (second getNonZero)
-                . NEList.toList
-                . NEMap.toList
-                . snd
-            )
+            Script.toCurrencySymbol
+            (PMap.unsafeFromList . Map.toList . snd)
         )
       . Map.toList
+      . unTxSkelMints
 
 -- | The list of assets classes contained in this 'TxSkelMints'
 txSkelMintsAssetClassesG :: Getter TxSkelMints [(VScript, Api.TokenName)]
@@ -161,7 +170,7 @@ txSkelMintsAssetClassesG = txSkelMintsListI % to (\l -> [(toVScript mp, tk) | Mi
 txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
-    (map (\(p, (r, m)) -> Mint (UserRedeemedScript p r) $ second getNonZero <$> NEList.toList (NEMap.toList m)) . Map.toList)
+    (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . unTxSkelMints)
     ( foldl
         ( \mints (Mint (UserRedeemedScript mp red) tks) ->
             foldl
@@ -169,7 +178,7 @@ txSkelMintsListI =
               mints
               tks
         )
-        Map.empty
+        mempty
     )
 
 -- | Builds a 'TxSkelMints' from a list of 'Mint'. This is equivalent to calling
@@ -191,11 +200,11 @@ txSkelMintsFromList = review txSkelMintsListI
 --
 -- In every case, if you add mints with a different redeemer for the same
 -- policy, the redeemer used in the right argument takes precedence.
-instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
+instance Semigroup TxSkelMints where
   txSkelM <> txSkelM' =
     review txSkelMintsListI $
       view txSkelMintsListI txSkelM
         <> view txSkelMintsListI txSkelM'
 
-instance {-# OVERLAPPING #-} Monoid TxSkelMints where
-  mempty = Map.empty
+instance Monoid TxSkelMints where
+  mempty = TxSkelMints Map.empty
