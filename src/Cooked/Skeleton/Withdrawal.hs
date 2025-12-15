@@ -8,7 +8,7 @@
 module Cooked.Skeleton.Withdrawal
   ( -- * Data types
     Withdrawal (..),
-    TxSkelWithdrawals,
+    TxSkelWithdrawals (unTxSkelWithdrawals),
 
     -- * Optics
     withdrawalUserL,
@@ -24,7 +24,6 @@ where
 
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
-import Data.Bifunctor (bimap)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Typeable (Typeable, cast)
@@ -36,7 +35,8 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Withdrawals associate either a script or a private key with a redeemer and
 -- a certain amount of ada. They are uniquely identified by the hash of either.
-type TxSkelWithdrawals = Map Api.BuiltinByteString (User IsEither Redemption, Api.Lovelace)
+newtype TxSkelWithdrawals = TxSkelWithdrawals {unTxSkelWithdrawals :: Map Api.BuiltinByteString Withdrawal}
+  deriving (Show, Eq)
 
 -- | A single 'Withdrawal', owned by a pubkey or redeemed script
 data Withdrawal where
@@ -63,13 +63,14 @@ makeLensesFor [("withdrawalUser", "withdrawalUserL")] ''Withdrawal
 txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
 txSkelWithdrawalsListI =
   iso
-    (fmap (uncurry Withdrawal) . Map.elems)
+    (Map.elems . unTxSkelWithdrawals)
     ( foldl
-        ( \withdrawals (Withdrawal user@(view userHashG -> hash) amount) ->
-            over
-              (at hash)
-              (maybe (Just (user, amount)) (Just . bimap (const user) (+ amount)))
-              withdrawals
+        ( \(TxSkelWithdrawals withdrawals) withdrawal@(Withdrawal (view userHashG -> hash) amount) ->
+            TxSkelWithdrawals $
+              over
+                (at hash)
+                (maybe (Just withdrawal) (Just . over withdrawalAmountL (+ amount)))
+                withdrawals
         )
         mempty
     )
@@ -89,13 +90,13 @@ txSkelWithdrawalsFromList = review txSkelWithdrawalsListI
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where
-  toValue = foldl (\val -> (val <>) . Script.toValue . snd) mempty
+  toValue = foldl (\val -> (val <>) . Script.toValue . view withdrawalAmountL) mempty . unTxSkelWithdrawals
 
-instance {-# OVERLAPPING #-} Semigroup TxSkelWithdrawals where
+instance Semigroup TxSkelWithdrawals where
   txSkelW <> txSkelW' =
     review txSkelWithdrawalsListI $
       view txSkelWithdrawalsListI txSkelW
         <> view txSkelWithdrawalsListI txSkelW'
 
-instance {-# OVERLAPPING #-} Monoid TxSkelWithdrawals where
-  mempty = Map.empty
+instance Monoid TxSkelWithdrawals where
+  mempty = TxSkelWithdrawals mempty

@@ -53,10 +53,10 @@ toTxSkelWithReferenceScripts txSkel = do
     case preview (txSkelProposalMConstitutionAT % _Just) prop of
       Nothing -> return prop
       Just rs -> flip (set (txSkelProposalMConstitutionAT % _Just)) prop <$> updateRedeemedScript inputs rs
-  newWithdrawals <- forM (toListOf (txSkelWithdrawalsL % to Map.toList % traversed) txSkel) $
-    \(hash, (user, lv)) -> case preview userEitherScriptP user of
-      Nothing -> return (hash, (user, lv))
-      Just urs -> (hash,) . (,lv) . review userEitherScriptP <$> updateRedeemedScript inputs urs
+  newWithdrawals <- forM (view (txSkelWithdrawalsL % txSkelWithdrawalsListI) txSkel) $
+    \withdrawal@(Withdrawal user lv) -> case preview userEitherScriptP user of
+      Nothing -> return withdrawal
+      Just urs -> (`Withdrawal` lv) . review userEitherScriptP <$> updateRedeemedScript inputs urs
   return $
     txSkel
       & txSkelMintsL
@@ -67,4 +67,5 @@ toTxSkelWithReferenceScripts txSkel = do
       & txSkelProposalsL
       .~ newProposals
       & txSkelWithdrawalsL
-      .~ Map.fromList newWithdrawals
+      % txSkelWithdrawalsListI
+      .~ newWithdrawals

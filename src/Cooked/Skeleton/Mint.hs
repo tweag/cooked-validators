@@ -94,12 +94,7 @@ mintCurrencySymbolG =
 -- with a non-zero amount of tokens. This invariant is guaranteed because the
 -- raw constructor is not exposed, and functions working around it preserve it.
 -- To build a 'TxSkelMints', use 'txSkelMintsFromList'.
-newtype TxSkelMints = TxSkelMints
-  { unTxSkelMints ::
-      Map
-        Api.ScriptHash
-        (User 'IsScript 'Redemption, Map Api.TokenName Integer)
-  }
+newtype TxSkelMints = TxSkelMints {unTxSkelMints :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)}
   deriving (Show, Eq)
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'

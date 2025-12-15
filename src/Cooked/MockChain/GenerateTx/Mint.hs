@@ -17,7 +17,7 @@ import PlutusTx.Builtins.Internal qualified as PlutusTx
 
 -- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'
 toMintValue :: (MonadBlockChainBalancing m) => TxSkelMints -> m (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
-toMintValue (unTxSkelMints -> mints) | null mints = return Cardano.TxMintNone
+toMintValue txSkelMints | txSkelMints == mempty = return Cardano.TxMintNone
 toMintValue (unTxSkelMints -> mints) = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $
   forM (Map.toList mints) $ \(policyHash, (UserRedeemedScript policy red, Map.toList -> assets)) -> do
     policyId <-
