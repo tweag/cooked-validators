@@ -16,6 +16,7 @@ module Cooked.Skeleton.User
     User (..),
 
     -- * Optics
+    userHashG,
     userCredentialG,
     userTxSkelRedeemerAT,
     userVScriptAT,
@@ -114,6 +115,15 @@ instance Script.ToCredential (User kind mode) where
   toCredential (UserRedeemedScript (toVScript -> vScript) _) = Script.toCredential vScript
 
 -- * Optics on various possible families of users
+
+userHashG :: forall kind mode. Getter (User kind mode) Api.BuiltinByteString
+userHashG =
+  to
+    ( \case
+        UserPubKey (Script.toPubKeyHash -> Api.PubKeyHash hs) -> hs
+        UserScript (Script.toScriptHash . toVScript -> Api.ScriptHash hs) -> hs
+        UserRedeemedScript (Script.toScriptHash . toVScript -> Api.ScriptHash hs) _ -> hs
+    )
 
 -- | Retrieves a possible typed user from a 'User'
 userTypedAF :: forall user kind mode. (Typeable user) => AffineFold (User kind mode) user

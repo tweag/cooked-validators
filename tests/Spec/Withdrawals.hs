@@ -3,6 +3,7 @@ module Spec.Withdrawals where
 import Cooked
 import Optics.Core
 import Plutus.Withdrawals
+import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 
 testWithdrawingScript :: (MonadModalBlockChain m) => Integer -> Integer -> Integer -> Integer -> m ()
@@ -12,6 +13,20 @@ testWithdrawingScript reward deposit inRedeemer actual = do
     txSkelTemplate
       { txSkelSigners = [wallet 1],
         txSkelWithdrawals = review txSkelWithdrawalsListI [scriptWithdrawal checkWithdrawalMPScript (inRedeemer * 1_000) (actual * 1_000)]
+      }
+
+testWithdrawingPK :: (MonadModalBlockChain m) => m ()
+testWithdrawingPK = do
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSigners = [wallet 1],
+        txSkelCertificates = [pubKeyCertificate (wallet 1) $ StakingRegisterDelegate $ Api.DelegVote Api.DRepAlwaysAbstain]
+      }
+  registerStakingCred (wallet 1) 2_000_000 0
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSigners = [wallet 1],
+        txSkelWithdrawals = review txSkelWithdrawalsListI [pubKeyWithdrawal (wallet 1) 2_000_000]
       }
 
 tests :: TestTree
@@ -26,15 +41,10 @@ tests =
       testCooked "We cannot withdraw if we are not registered" $
         mustFailInPhase1WithMsgTest "WithdrawalsNotInRewardsCERTS" $
           testWithdrawingScript 2 2 2 2
-            `withTweak` setTweak
-              (txSkelWithdrawalsL % txSkelWithdrawalsListI)
-              [scriptWithdrawal trueWithdrawalMPScript (2_000 :: Integer) 2_000] -- ,
-              -- testCooked "A wallet can also make a withdrawal" $
-              --   mustSucceedTest $
-              --     testWithdrawingScript 2 2 2 2
-              --       `withTweak` do
-              --         registerStakingCred (wallet 1) 2_000 0
-              --         setTweak
-              --           (txSkelWithdrawalsL % txSkelWithdrawalsListI)
-              --           [pkWithdrawal (wallet 1) 2_000]
+            `withTweak` do
+              setTweak
+                (txSkelWithdrawalsL % txSkelWithdrawalsListI % _head % withdrawalUserL % userEitherScriptP % userTypedScriptAT)
+                trueWithdrawalMPScript,
+      testCooked "A wallet can also make a withdrawal" $
+        mustSucceedTest testWithdrawingPK
     ]

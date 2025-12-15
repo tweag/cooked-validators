@@ -158,7 +158,7 @@ txSkelTemplate =
       txSkelInsReference = Set.empty,
       txSkelOuts = [],
       txSkelProposals = [],
-      txSkelWithdrawals = def,
+      txSkelWithdrawals = Map.empty,
       txSkelCertificates = []
     }
 
@@ -173,7 +173,7 @@ txSkelInsReferenceInRedeemers TxSkel {..} =
     toListOf (to Map.elems % traversed % txSkelRedeemerReferenceInputAT) txSkelIns
       <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelProposals
       <> toListOf (to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputAT) txSkelMints
-      <> toListOf (txSkelWithdrawalsByScriptsL % to Map.elems % traversed % _1 % txSkelRedeemerReferenceInputAT) txSkelWithdrawals
+      <> toListOf (to Map.elems % traversed % _1 % userTxSkelRedeemerAT % txSkelRedeemerReferenceInputAT) txSkelWithdrawals
       <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelCertificates
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
@@ -190,7 +190,7 @@ txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
 txSkelWithdrawingScripts :: TxSkel -> [VScript]
-txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsByScriptsL % to Map.keys % traversed)
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % to Map.elems % traversed % _1 % userVScriptAT)
 
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [VScript]

@@ -8,15 +8,11 @@
 module Cooked.Skeleton.Withdrawal
   ( -- * Data types
     Withdrawal (..),
-    TxSkelWithdrawals (..),
+    TxSkelWithdrawals,
 
     -- * Optics
     withdrawalUserL,
     withdrawalAmountL,
-    txSkelWithdrawalsByPubKeysL,
-    txSkelWithdrawalsByScriptsL,
-    txSkelWithdrawalsByScriptL,
-    txSkelWithdrawalsByPubKeyL,
     txSkelWithdrawalsListI,
 
     -- * Smart constructors
@@ -28,6 +24,7 @@ where
 
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
+import Data.Bifunctor (bimap)
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -40,25 +37,7 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Withdrawals associate either a script or a private key with a redeemer and
 -- a certain amount of ada.
-data TxSkelWithdrawals = TxSkelWithdrawals
-  { txSkelWithdrawalsByPubKeys :: Map Api.PubKeyHash Api.Lovelace,
-    txSkelWithdrawalsByScripts :: Map VScript (TxSkelRedeemer, Api.Lovelace)
-  }
-  deriving (Show, Eq)
-
--- | Focuses on the pubkey withdrawals part of this 'TxSkelWithdrawals'
-makeLensesFor [("txSkelWithdrawalsByPubKeys", "txSkelWithdrawalsByPubKeysL")] ''TxSkelWithdrawals
-
--- | Focuses on the script withdrawals part of this 'TxSkelWithdrawals'
-makeLensesFor [("txSkelWithdrawalsByScripts", "txSkelWithdrawalsByScriptsL")] ''TxSkelWithdrawals
-
--- | Focuses on the deposit and redeemer for a given 'VScript'
-txSkelWithdrawalsByScriptL :: (ToVScript script) => script -> Lens' TxSkelWithdrawals (Maybe (TxSkelRedeemer, Api.Lovelace))
-txSkelWithdrawalsByScriptL = (txSkelWithdrawalsByScriptsL %) . at . toVScript
-
--- | Focuses on the deposit of a given 'Api.PubKeyHash'
-txSkelWithdrawalsByPubKeyL :: (Script.ToPubKeyHash pkh) => pkh -> Lens' TxSkelWithdrawals (Maybe Api.Lovelace)
-txSkelWithdrawalsByPubKeyL = (txSkelWithdrawalsByPubKeysL %) . at . Script.toPubKeyHash
+type TxSkelWithdrawals = Map Api.BuiltinByteString (User IsEither Redemption, Api.Lovelace)
 
 -- | A single 'Withdrawal', owned by a pubkey or redeemed script
 data Withdrawal where
@@ -85,24 +64,15 @@ makeLensesFor [("withdrawalUser", "withdrawalUserL")] ''Withdrawal
 txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
 txSkelWithdrawalsListI =
   iso
-    ( \TxSkelWithdrawals {..} ->
-        fmap (\(pkh, amount) -> Withdrawal (UserPubKey pkh) amount) (Map.toList txSkelWithdrawalsByPubKeys)
-          ++ fmap (\(script, (red, amount)) -> Withdrawal (UserRedeemedScript script red) amount) (Map.toList txSkelWithdrawalsByScripts)
-    )
+    (fmap (uncurry Withdrawal) . Map.elems)
     ( foldl
-        ( \withdrawals (Withdrawal user amount) -> case user of
-            UserPubKey pkh ->
-              over
-                (txSkelWithdrawalsByPubKeyL pkh)
-                (maybe (Just amount) (Just . (amount +)))
-                withdrawals
-            UserRedeemedScript script red ->
-              over
-                (txSkelWithdrawalsByScriptL script)
-                (maybe (Just (red, amount)) (Just . (red,) . (amount +) . snd))
-                withdrawals
+        ( \withdrawals (Withdrawal user@(view userHashG -> hash) amount) ->
+            over
+              (at hash)
+              (maybe (Just (user, amount)) (Just . bimap (const user) (+ amount)))
+              withdrawals
         )
-        (TxSkelWithdrawals mempty mempty)
+        mempty
     )
 
 -- | Creates a 'Withdrawal' from a private key hash and lovelace amount
@@ -120,18 +90,16 @@ txSkelWithdrawalsFromList = review txSkelWithdrawalsListI
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where
-  toValue (TxSkelWithdrawals pkW scW) =
-    foldl (\val -> (val <>) . Script.toValue) mempty pkW
-      <> foldl (\val -> (val <>) . Script.toValue . snd) mempty scW
+  toValue = foldl (\val -> (val <>) . Script.toValue . snd) mempty
 
-instance Semigroup TxSkelWithdrawals where
+instance {-# OVERLAPPING #-} Semigroup TxSkelWithdrawals where
   txSkelW <> txSkelW' =
     review txSkelWithdrawalsListI $
       view txSkelWithdrawalsListI txSkelW
         <> view txSkelWithdrawalsListI txSkelW'
 
-instance Monoid TxSkelWithdrawals where
-  mempty = TxSkelWithdrawals mempty mempty
+instance {-# OVERLAPPING #-} Monoid TxSkelWithdrawals where
+  mempty = Map.empty
 
 instance Default TxSkelWithdrawals where
   def = mempty

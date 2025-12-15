@@ -340,9 +340,17 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Script.
   -- to be repercuted on the missing value on the right.
   let missingLeft' = missingLeft <> missingAdaValue
       missingRight' = missingRight <> missingAdaValue
+  -- At this point, we only need to account for the possible case were the
+  -- inputs are empty and there is nothing missing on the left, as the ledger
+  -- does not allow for transaction to have no inputs. When this is the case, we
+  -- artificially add a requirement of 1 lovelace to force the consumption of a
+  -- dummy input.
+  let noInputs = inValue == mempty && missingLeft == mempty
+      missingLeft'' = if noInputs then Script.lovelace 1 else missingLeft'
+      missingRight'' = if noInputs then missingRight' <> Script.lovelace 1 else missingRight'
   -- This gives us what we need to run our `reachValue` algorithm and append to
   -- the resulting values whatever payment was missing in the initial skeleton
-  let candidatesRaw = second (<> missingRight') <$> reachValue balancingUtxos missingLeft' (toInteger $ length balancingUtxos)
+  let candidatesRaw = second (<> missingRight'') <$> reachValue balancingUtxos missingLeft'' (toInteger $ length balancingUtxos)
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing wallet
   let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos

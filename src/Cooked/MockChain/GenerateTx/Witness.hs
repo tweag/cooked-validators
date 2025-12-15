@@ -17,7 +17,6 @@ module Cooked.MockChain.GenerateTx.Witness
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as C.Ledger
 import Cardano.Ledger.Hashes qualified as C.Ledger
 import Cardano.Ledger.Shelley.API qualified as C.Ledger
@@ -70,7 +69,7 @@ toStakePoolKeyHash = toKeyHash Cardano.AsStakePoolKey Cardano.unStakePoolKeyHash
 toVRFVerKeyHash :: (MonadBlockChainBalancing m) => Api.PubKeyHash -> m (C.Ledger.VRFVerKeyHash a)
 toVRFVerKeyHash (Api.PubKeyHash pkh) = do
   Cardano.VrfKeyHash key <- deserialiseFromBuiltinByteString (Cardano.AsHash Cardano.AsVrfKey) pkh
-  return $ Cardano.toVRFVerKeyHash key
+  return $ C.Ledger.toVRFVerKeyHash key
 
 -- | Converts an 'Api.Credential' to a Cardano Credential of the expected kind
 toCardanoCredential ::
