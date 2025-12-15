@@ -162,7 +162,7 @@ jobs:
           '
 
       - name: Upload build and test outputs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: cooked-validators-checks
           path: |
@@ -261,7 +261,7 @@ jobs:
           '
 
       - name: Upload documentation as artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: documentation
           path: ./docs
