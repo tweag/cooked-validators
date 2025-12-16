@@ -116,6 +116,7 @@ instance Script.ToCredential (User kind mode) where
 
 -- * Optics on various possible families of users
 
+-- | Retrieves the hash of the script or pubkey represented by this user
 userHashG :: forall kind mode. Getter (User kind mode) Api.BuiltinByteString
 userHashG =
   to
