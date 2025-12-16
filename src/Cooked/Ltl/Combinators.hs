@@ -53,7 +53,7 @@ delay' n = LtlNext . delay' (n - 1)
 eventually :: a -> Ltl a
 eventually = eventually' . LtlAtom
 
--- | Produces an Ltl formula which consists the input formula eventually holds
+-- | Produces an Ltl formula which ensures the input formula eventually holds
 eventually' :: Ltl a -> Ltl a
 eventually' = LtlUntil LtlTruth
 
