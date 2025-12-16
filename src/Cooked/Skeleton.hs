@@ -47,10 +47,10 @@ import Cooked.Skeleton.Option as X
 import Cooked.Skeleton.Output as X
 import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
+import Cooked.Skeleton.Signer as X
 import Cooked.Skeleton.User as X
 import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
-import Cooked.Wallet
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -79,7 +79,7 @@ data TxSkel where
       -- one element. By default, the first signer will pay for fees and
       -- balancing. You can change that with
       -- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.
-      txSkelSigners :: [Wallet],
+      txSkelSigners :: [TxSkelSigner],
       txSkelValidityRange :: Ledger.SlotRange,
       -- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that

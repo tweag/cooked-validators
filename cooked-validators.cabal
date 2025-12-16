@@ -63,6 +63,7 @@ library
       Cooked.Skeleton.Output
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
+      Cooked.Skeleton.Signer
       Cooked.Skeleton.User
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal

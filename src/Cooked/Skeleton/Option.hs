@@ -28,12 +28,14 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
-import Cooked.Wallet
 import Data.Default
 import Data.Set (Set)
 import Optics.Core
 import Optics.TH
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+
+type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh)
 
 -- | What fee policy to use in the transaction.
 data FeePolicy
@@ -70,43 +72,58 @@ instance Default BalanceOutputPolicy where
 data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
     -- and no reference script) belonging to the balancing wallet.
-    BalancingUtxosFromBalancingWallet
+    BalancingUtxosFromBalancingUser
   | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
     BalancingUtxosFromSet (Set Api.TxOutRef)
   deriving (Eq, Ord, Show)
 
 instance Default BalancingUtxos where
-  def = BalancingUtxosFromBalancingWallet
+  def = BalancingUtxosFromBalancingUser
 
 -- | Whether to balance the transaction or not, and which wallet to use to
 -- provide outputs for balancing.
-data BalancingPolicy
-  = -- | Balance with the first signer of the list of signers
-    BalanceWithFirstSigner
-  | -- | Balance using a given wallet
-    BalanceWith Wallet
-  | -- | Do not perform balancing at all
-    DoNotBalance
-  deriving (Eq, Ord, Show)
+data BalancingPolicy where
+  -- | Balance with the first signer of the list of signers
+  BalanceWithFirstSigner :: BalancingPolicy
+  -- | Balance using a given wallet
+  BalanceWith :: (UserConstraints pkh) => pkh -> BalancingPolicy
+  -- | Do not perform balancing at all
+  DoNotBalance :: BalancingPolicy
+
+instance Eq BalancingPolicy where
+  DoNotBalance == DoNotBalance = True
+  BalanceWithFirstSigner == BalanceWithFirstSigner = True
+  BalanceWith pkh == BalanceWith pkh1 = Script.toPubKeyHash pkh == Script.toPubKeyHash pkh1
+  _ == _ = False
+
+deriving instance Show BalancingPolicy
 
 instance Default BalancingPolicy where
   def = BalanceWithFirstSigner
 
 -- | Describe which UTxOs to use as collaterals
-data CollateralUtxos
-  = -- | Rely on automated computation with only-value UTxOs from the balancing
-    -- wallet. Return collaterals will be sent to this wallet.
-    CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computation with only-value UTxOs from a given
-    -- wallet. Return collaterals will be sent to this wallet.
-    CollateralUtxosFromWallet Wallet
-  | -- | Manually provide a set of candidate UTxOs to be used as collaterals
-    -- alongside a wallet to send return collaterals back to.
-    CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
-  deriving (Eq, Show)
+data CollateralUtxos where
+  -- | Rely on automated computation with only-value UTxOs from the balancing
+  -- wallet. Return collaterals will be sent to this wallet.
+  CollateralUtxosFromBalancingUser :: CollateralUtxos
+  -- | Rely on automated computation with only-value UTxOs from a given
+  -- wallet. Return collaterals will be sent to this wallet.
+  CollateralUtxosFromUser :: (UserConstraints pkh) => pkh -> CollateralUtxos
+  -- | Manually provide a set of candidate UTxOs to be used as collaterals
+  -- alongside a wallet to send return collaterals back to.
+  CollateralUtxosFromSet :: (UserConstraints pkh) => Set Api.TxOutRef -> pkh -> CollateralUtxos
+
+instance Eq CollateralUtxos where
+  CollateralUtxosFromSet set0 pkh == CollateralUtxosFromSet set1 pkh1 =
+    Script.toPubKeyHash pkh == Script.toPubKeyHash pkh1 && set0 == set1
+  CollateralUtxosFromUser pkh == CollateralUtxosFromUser pkh1 = Script.toPubKeyHash pkh == Script.toPubKeyHash pkh1
+  CollateralUtxosFromBalancingUser == CollateralUtxosFromBalancingUser = True
+  _ == _ = False
+
+deriving instance Show CollateralUtxos
 
 instance Default CollateralUtxos where
-  def = CollateralUtxosFromBalancingWallet
+  def = CollateralUtxosFromBalancingUser
 
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
@@ -157,7 +174,7 @@ data TxSkelOpts = TxSkelOpts
     -- or rely on automatic searches for utxos with values only belonging to the
     -- balancing wallet.
     --
-    -- Default is 'BalancingUtxosFromBalancingWallet'.
+    -- Default is 'BalancingUtxosFromBalancingUser'.
     txSkelOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is obviously a very
@@ -175,7 +192,7 @@ data TxSkelOpts = TxSkelOpts
     -- | Which utxos to use as collaterals. They can be given manually, or
     -- computed automatically from a given, or the balancing, wallet.
     --
-    -- Default is 'CollateralUtxosFromBalancingWallet'
+    -- Default is 'CollateralUtxosFromBalancingUser'
     txSkelOptCollateralUtxos :: CollateralUtxos
   }
 
