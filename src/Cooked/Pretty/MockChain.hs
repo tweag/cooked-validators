@@ -18,7 +18,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
-import Optics.Core
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -38,6 +38,9 @@ instance (Show a) => PrettyCooked (MockChainReturn a) where
                Right a -> "🟢 Returned value:" <+> PP.viaShow a
            ]
 
+instance PrettyCooked Peer where
+  prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
+
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
@@ -47,7 +50,7 @@ instance PrettyCooked MockChainError where
       opts
       "Unbalanceable:"
       "-"
-      [ prettyHash opts (view userPubKeyHashI balWallet) <+> "does not have enough funds",
+      [ prettyCookedOpt opts balWallet <+> "does not have enough funds",
         if missingValue == mempty
           then "Not enough funds to sustain the minimal ada of the return utxo"
           else "Unable to find" <+> prettyCookedOpt opts missingValue
@@ -113,7 +116,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
                    ["No collateral required"]
                    ( \(collaterals, returnWallet) ->
                        [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
-                         "Return collateral target:" <+> prettyHash opts (view userPubKeyHashI returnWallet)
+                         "Return collateral target:" <+> prettyCookedOpt opts returnWallet
                        ]
                    )
                    mCollaterals
@@ -141,7 +144,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
       "Warning"
       "-"
       [ "Request for using specific collateral inputs was disregarded",
-        "Source:" <+> either (prettyHash opts . view userPubKeyHashI) (("Given set of size" <+>) . PP.pretty . length) source,
+        "Source:" <+> either (prettyCookedOpt opts) (("Given set of size" <+>) . PP.pretty . length) source,
         "The transaction does not require any collateral"
       ]
   prettyCookedOpt opts (Contextualized _ (MCLogAddedReferenceScript red oRef sHash)) =

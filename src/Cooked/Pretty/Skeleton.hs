@@ -217,7 +217,7 @@ instance PrettyCookedList (TxSkelOpts, [TxSkelSignatory]) where
   prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
     prettyCookedOpt opts firstSigner <+> "[balancing]" : prettyCookedOptList opts signers
   prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWith balancingUser}, signers) =
-    (\s -> if view txSkelSignatoryPubKeyHashL s == Script.toPubKeyHash balancingUser then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s)
+    (\s -> if Script.toPubKeyHash s == Script.toPubKeyHash balancingUser then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s)
       <$> signers
   -- The following case should never happen for real transactions
   prettyCookedOptList _ (_, []) = []
