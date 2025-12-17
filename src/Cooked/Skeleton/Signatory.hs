@@ -67,7 +67,7 @@ signatoryWallet w = TxSkelSignatory (Script.toPubKeyHash w) (Just $ walletSK w)
 
 -- | Builds a signatory from a pubkey, which will no be able to actually sign
 -- the transaction, but will act as a requirement.
-signatoryPubKey :: Api.PubKeyHash -> TxSkelSignatory
+signatoryPubKey :: (Script.ToPubKeyHash pkh, Show pkh) => pkh -> TxSkelSignatory
 signatoryPubKey = (`TxSkelSignatory` Nothing)
 
 -- | Builds a list of signatories from a list of wallets
