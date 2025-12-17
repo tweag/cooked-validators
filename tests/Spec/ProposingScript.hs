@@ -22,11 +22,11 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [wallet 1 `receives` ReferenceScript constitution],
-        txSkelSigners = txSkelSignatoriesFromList [wallet 1]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = txSkelSignatoriesFromList [wallet 1],
+      { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
         txSkelProposals =
           [ TxSkelProposal
               (wallet 1)

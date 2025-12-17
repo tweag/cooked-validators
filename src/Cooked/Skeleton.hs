@@ -20,7 +20,7 @@ module Cooked.Skeleton
     txSkelMintsL,
     txSkelValidityRangeL,
     txSkelProposalsL,
-    txSkelSignersL,
+    txSkelSignatoriesL,
     txSkelInsL,
     txSkelInsReferenceL,
     txSkelOutsL,
@@ -79,7 +79,7 @@ data TxSkel where
       -- one element. By default, the first signer will pay for fees and
       -- balancing. You can change that with
       -- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.
-      txSkelSigners :: [TxSkelSignatory],
+      txSkelSignatories :: [TxSkelSignatory],
       txSkelValidityRange :: Ledger.SlotRange,
       -- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that
@@ -123,7 +123,7 @@ makeLensesFor [("txSkelMints", "txSkelMintsL")] ''TxSkel
 makeLensesFor [("txSkelValidityRange", "txSkelValidityRangeL")] ''TxSkel
 
 -- | Focusing on the signers of a 'TxSkel'
-makeLensesFor [("txSkelSigners", "txSkelSignersL")] ''TxSkel
+makeLensesFor [("txSkelSignatories", "txSkelSignatoriesL")] ''TxSkel
 
 -- | Focusing on the inputs of a 'TxSkel'
 makeLensesFor [("txSkelIns", "txSkelInsL")] ''TxSkel
@@ -153,7 +153,7 @@ txSkelTemplate =
       txSkelOpts = def,
       txSkelMints = mempty,
       txSkelValidityRange = Api.always,
-      txSkelSigners = mempty,
+      txSkelSignatories = mempty,
       txSkelIns = mempty,
       txSkelInsReference = mempty,
       txSkelOuts = mempty,

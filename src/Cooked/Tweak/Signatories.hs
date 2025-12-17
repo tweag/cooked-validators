@@ -17,19 +17,19 @@ module Cooked.Tweak.Signatories
   )
 where
 
-import Cooked.Skeleton (TxSkelSignatory, txSkelSignersL)
+import Cooked.Skeleton (TxSkelSignatory, txSkelSignatoriesL)
 import Cooked.Tweak.Common (MonadTweak, setTweak, viewTweak)
 import Data.List (delete, (\\))
 
 -- | Returns the current list of signers
 getSignersTweak :: (MonadTweak m) => m [TxSkelSignatory]
-getSignersTweak = viewTweak txSkelSignersL
+getSignersTweak = viewTweak txSkelSignatoriesL
 
 -- | Apply a function to the list of signers and return the old ones
 modifySignersTweak :: (MonadTweak m) => ([TxSkelSignatory] -> [TxSkelSignatory]) -> m [TxSkelSignatory]
 modifySignersTweak f = do
   oldSigners <- getSignersTweak
-  setTweak txSkelSignersL (f oldSigners)
+  setTweak txSkelSignatoriesL (f oldSigners)
   return oldSigners
 
 -- | Change the current signers and return the old ones

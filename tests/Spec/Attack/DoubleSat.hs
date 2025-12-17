@@ -70,7 +70,7 @@ tests =
               txSkelTemplate
                 { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
                   txSkelOuts = [wallet 2 `receives` Value (Script.lovelace 2_500_000)],
-                  txSkelSigners = txSkelSignatoriesFromList [wallet 1]
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                 }
 
             -- apply the 'doubleSatAttack' to the input skeleton
@@ -152,7 +152,7 @@ tests =
                     [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
                       wallet 6 `receives` Value (foldMap (view txSkelOutValueL . snd . snd) bInputs)
                     ],
-                  txSkelSigners = txSkelSignatoriesFromList [wallet 1]
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                 }
          in [ testGroup "with separate skeletons for each modification" $
                 let thePredicate ::

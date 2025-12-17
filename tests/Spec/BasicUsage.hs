@@ -17,7 +17,7 @@ pkToPk sender recipient amount =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [recipient `receives` Value (Script.ada amount)],
-        txSkelSigners = txSkelSignatoriesFromList [sender]
+        txSkelSignatories = txSkelSignatoriesFromList [sender]
       }
 
 multiplePksToPks :: (MonadBlockChain m) => m ()
@@ -33,7 +33,7 @@ mintingQuickValue =
     txSkelTemplate
       { txSkelMints = review txSkelMintsListI [mint (Script.trueMintingMPScript @()) () (Api.TokenName "banana") 10],
         txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue (Script.trueMintingMPScript @()) (Api.TokenName "banana") 10)],
-        txSkelSigners = txSkelSignatoriesFromList [alice]
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
 payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
@@ -42,7 +42,7 @@ payToAlwaysTrueValidator =
     <$> ( validateTxSkel' $
             txSkelTemplate
               { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
-                txSkelSigners = txSkelSignatoriesFromList [alice]
+                txSkelSignatories = txSkelSignatoriesFromList [alice]
               }
         )
 
@@ -53,7 +53,7 @@ consumeAlwaysTrueValidator = do
     txSkelTemplate
       { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
         txSkelOuts = [alice `receives` Value (Script.ada 10)],
-        txSkelSigners = txSkelSignatoriesFromList [alice]
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
 tests :: TestTree

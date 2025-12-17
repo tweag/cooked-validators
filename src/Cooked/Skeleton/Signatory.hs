@@ -57,6 +57,9 @@ instance Eq TxSkelSignatory where
     Script.toPubKeyHash pkh == Script.toPubKeyHash pkh1
       && (fmap Crypto.unXPrv sk == fmap Crypto.unXPrv sk1)
 
+instance Script.ToPubKeyHash TxSkelSignatory where
+  toPubKeyHash = view txSkelSignatoryPubKeyHashL
+
 -- | Builds a signatory from a wallet, which will be able to actually sign the
 -- transaction.
 signerWallet :: Wallet -> TxSkelSignatory

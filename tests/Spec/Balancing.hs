@@ -94,7 +94,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
                         then CollateralUtxosFromBalancingUser
                         else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
                   },
-            txSkelSigners = txSkelSignatoriesFromList [alice]
+            txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   (skel', fee, mCols) <- balanceTxSkel skel
   validateTxSkel_ skel
@@ -147,7 +147,7 @@ noBalanceMaxFee = do
             { txSkelOptBalancingPolicy = DoNotBalance,
               txSkelOptFeePolicy = AutoFeeComputation
             },
-        txSkelSigners = txSkelSignatoriesFromList [alice]
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
 balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer)
@@ -155,7 +155,7 @@ balanceReduceFee = do
   let skelAutoFee =
         txSkelTemplate
           { txSkelOuts = [bob `receives` Value (Script.ada 50)],
-            txSkelSigners = txSkelSignatoriesFromList [alice]
+            txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   (skelBalanced, feeBalanced, mCols) <- balanceTxSkel skelAutoFee
   feeBalanced' <- estimateTxSkelFee skelBalanced feeBalanced mCols
@@ -176,7 +176,7 @@ reachingMagic = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
-        txSkelSigners = txSkelSignatoriesFromList [alice],
+        txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelOpts =
           def
             { txSkelOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)

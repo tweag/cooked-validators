@@ -48,7 +48,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- redirected to them, and utxos will be taken from their user if associated
   -- with the BalancingUtxosFromBalancingUser policy
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
-    BalanceWithFirstSigner -> case txSkelSigners of
+    BalanceWithFirstSigner -> case txSkelSignatories of
       [] -> throwError $ MCEMissingBalancingUser "The list of signers is empty, but the balancing user is supposed to be the first signer."
       bw : _ -> return $ Just $ UserPubKey $ view txSkelSignatoryPubKeyHashL bw
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
@@ -302,7 +302,7 @@ estimateTxSkelFee skel fee mCollaterals = do
   return $
     Cardano.unCoin $
       Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) index txBody $
-        fromIntegral (length $ txSkelSigners skel)
+        fromIntegral (length $ txSkelSignatories skel)
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
