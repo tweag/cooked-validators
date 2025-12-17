@@ -17,7 +17,7 @@ publishCertificate :: (MonadModalBlockChain m) => TxSkelCertificate -> m ()
 publishCertificate cert =
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [alice],
+      { txSkelSigners = txSkelSignatoriesFromList [alice],
         txSkelCertificates = [cert],
         -- This fee is huge, we use it to force an output to be consumed when
         -- the balancing equation is in favour of the output value.
@@ -28,7 +28,7 @@ withdraw :: (MonadBlockChain m) => User IsEither Redemption -> m ()
 withdraw user =
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [alice],
+      { txSkelSigners = txSkelSignatoriesFromList [alice],
         txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user 0],
         txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
       }

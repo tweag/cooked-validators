@@ -20,7 +20,7 @@ dupTokenTrace pol tName amount recipient = validateTxSkel_ skel
        in txSkelTemplate
             { txSkelMints = mints,
               txSkelOuts = [recipient `receives` Value mintedValue],
-              txSkelSigners = [wallet 3]
+              txSkelSigners = txSkelSignatoriesFromList [wallet 3]
             }
 
 tests :: TestTree
@@ -47,7 +47,7 @@ tests =
                     [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                       wallet 2 `receives` Value (Api.assetClassValue ac2 2)
                     ],
-                  txSkelSigners = [wallet 3]
+                  txSkelSigners = txSkelSignatoriesFromList [wallet 3]
                 }
             skelOut select = runTweak (dupTokenAttack select attacker) skelIn
             skelExpected v1 v2 =
@@ -67,7 +67,7 @@ tests =
                                 wallet 2 `receives` Value (Api.assetClassValue ac2 2),
                                 attacker `receives` Value increment
                               ],
-                            txSkelSigners = [wallet 3]
+                            txSkelSigners = txSkelSignatoriesFromList [wallet 3]
                           }
                       )
                   ]
@@ -100,7 +100,7 @@ tests =
               txSkelTemplate
                 { txSkelMints = review txSkelMintsListI [mint pol () tName1 1],
                   txSkelOuts = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
-                  txSkelSigners = [wallet 2]
+                  txSkelSigners = txSkelSignatoriesFromList [wallet 2]
                 }
             skelExpected =
               [ Right
@@ -112,7 +112,7 @@ tests =
                           [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),
                             attacker `receives` Value (Api.assetClassValue ac1 1)
                           ],
-                        txSkelSigners = [wallet 2]
+                        txSkelSigners = txSkelSignatoriesFromList [wallet 2]
                       }
                   )
               ]

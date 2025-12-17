@@ -24,7 +24,7 @@ lockTxSkel o v =
   txSkelTemplate
     { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
       txSkelOuts = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
-      txSkelSigners = [wallet 1]
+      txSkelSigners = txSkelSignatoriesFromList [wallet 1]
     }
 
 txLock :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m Api.TxOutRef
@@ -37,7 +37,7 @@ relockTxSkel v o =
   txSkelTemplate
     { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
       txSkelOuts = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
-      txSkelSigners = [wallet 1]
+      txSkelSigners = txSkelSignatoriesFromList [wallet 1]
     }
 
 txRelock ::
@@ -52,7 +52,7 @@ datumHijackingTrace v = do
   txLock v >>= txRelock v
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
-txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSigners = [wallet 1]}
+txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSigners = txSkelSignatoriesFromList [wallet 1]}
 
 -- * TestTree for the datum hijacking attack
 

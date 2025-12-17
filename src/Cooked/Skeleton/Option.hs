@@ -30,12 +30,13 @@ import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
 import Data.Default
 import Data.Set (Set)
+import Data.Typeable
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
-type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh)
+type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh, Typeable pkh)
 
 -- | What fee policy to use in the transaction.
 data FeePolicy

@@ -14,6 +14,7 @@ module Cooked.Skeleton.User
     UserMode (..),
     UserKind (..),
     User (..),
+    Peer,
 
     -- * Optics
     userHashG,
@@ -85,6 +86,9 @@ data User :: UserKind -> UserMode -> Type where
   -- script is needed for redemption mode.
   UserRedeemedScript :: forall script kind. (kind ∈ [IsScript, IsEither], ToVScript script, Typeable script) => script -> TxSkelRedeemer -> User kind Redemption
 
+-- | An alias for 'User IsPubKey Allocation'
+type Peer = User IsPubKey Allocation
+
 instance Show (User kind mode) where
   show (UserPubKey (Script.toPubKeyHash -> pkh)) = "UserPubKey " <> show pkh
   show (UserScript (toVScript -> vScript)) = "UserScript " <> show (Script.toScriptHash vScript)
@@ -109,10 +113,16 @@ instance Ord (User kind mode) where
   compare (UserRedeemedScript (Script.toScriptHash . toVScript -> sh) red) (UserRedeemedScript (Script.toScriptHash . toVScript -> sh') red') =
     compare (sh, red) (sh', red')
 
+instance Script.ToPubKeyHash (User IsPubKey mode) where
+  toPubKeyHash = view userPubKeyHashI
+
 instance Script.ToCredential (User kind mode) where
   toCredential (UserPubKey (Script.toPubKeyHash -> pkh)) = Script.toCredential pkh
   toCredential (UserScript (toVScript -> vScript)) = Script.toCredential vScript
   toCredential (UserRedeemedScript (toVScript -> vScript) _) = Script.toCredential vScript
+
+instance Script.ToAddress (User kind mode) where
+  toAddress user = Api.Address (Script.toCredential user) Nothing
 
 -- * Optics on various possible families of users
 

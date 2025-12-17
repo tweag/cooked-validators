@@ -9,14 +9,11 @@ import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Skeleton
-import Cooked.Wallet
-import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
 -- | Computes the collateral triplet from the fees and the collateral inputs in
@@ -28,8 +25,8 @@ import PlutusTx.Numeric qualified as PlutusTx
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
   (MonadBlockChainBalancing m) =>
-  Integer ->
-  Maybe (Set Api.TxOutRef, Wallet) ->
+  Fee ->
+  Collaterals ->
   m
     ( Cardano.TxInsCollateral Cardano.ConwayEra,
       Cardano.TxTotalCollateral Cardano.ConwayEra,

@@ -24,7 +24,6 @@ import Control.Monad.Except (throwError)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Skeleton
-import Cooked.Wallet
 import Ledger.Address qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
@@ -132,9 +131,11 @@ toScriptWitness (toVScript -> script@(Script.Versioned _ version)) (TxSkelRedeem
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
 
 -- | Generates a list of witnesses for a given wallet and body
-toKeyWitness :: Cardano.TxBody Cardano.ConwayEra -> Wallet -> Cardano.KeyWitness Cardano.ConwayEra
+toKeyWitness :: Cardano.TxBody Cardano.ConwayEra -> TxSkelSignatory -> Maybe (Cardano.KeyWitness Cardano.ConwayEra)
 toKeyWitness txBody =
-  Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody
-    . Ledger.toWitness
-    . Ledger.PaymentPrivateKey
-    . walletSK
+  fmap
+    ( Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody
+        . Ledger.toWitness
+        . Ledger.PaymentPrivateKey
+    )
+    . preview txSkelSignatoryPrivateKeyAT

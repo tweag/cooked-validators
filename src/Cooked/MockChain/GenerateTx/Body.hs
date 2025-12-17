@@ -5,6 +5,8 @@ module Cooked.MockChain.GenerateTx.Body
     txBodyContentToTxBody,
     txSkelToTxBodyContent,
     txSkelToIndex,
+    txSignersAndBodyToCardanoTx,
+    txSkelToCardanoTx,
   )
 where
 
@@ -24,26 +26,15 @@ import Cooked.MockChain.GenerateTx.ReferenceInputs
 import Cooked.MockChain.GenerateTx.Withdrawals
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.Skeleton
-import Cooked.Wallet
 import Data.Map qualified as Map
-import Data.Set (Set)
+import Data.Maybe
 import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.Script.Utils.Address qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import Optics.Core
 
 -- | Generates a body content from a skeleton
-txSkelToTxBodyContent ::
-  (MonadBlockChainBalancing m) =>
-  -- | The skeleton from which the body is created
-  TxSkel ->
-  -- | The fee to set in the body
-  Integer ->
-  -- | The collaterals to set in the body
-  Maybe (Set Api.TxOutRef, Wallet) ->
-  -- | Returns a Cardano body content
-  m (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
+txSkelToTxBodyContent :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   txIns <- mapM toTxInAndWitness $ Map.toList txSkelIns
   txInsReference <- toInsReference skel
@@ -61,7 +52,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
         throwOnToCardanoErrorOrApply
           "txSkelToBodyContent: Unable to translate the required signers"
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
-          $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSigners
+          $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . view txSkelSignatoryPubKeyHashL) txSkelSigners
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
   txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> toProposalProcedures txSkelProposals
   txWithdrawals <- toWithdrawals txSkelWithdrawals
@@ -87,7 +78,7 @@ txBodyContentToTxBody txBodyContent = do
     (Emulator.createTransactionBody params (Ledger.CardanoBuildTx txBodyContent))
 
 -- | Generates an index with utxos known to a 'TxSkel'
-txSkelToIndex :: (MonadBlockChainBalancing m) => TxSkel -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.UTxO Cardano.ConwayEra)
+txSkelToIndex :: (MonadBlockChainBalancing m) => TxSkel -> Collaterals -> m (Cardano.UTxO Cardano.ConwayEra)
 txSkelToIndex txSkel mCollaterals = do
   -- We build the index of UTxOs which are known to this skeleton. This includes
   -- collateral inputs, inputs and reference inputs.
@@ -106,13 +97,13 @@ txSkelToIndex txSkel mCollaterals = do
 -- | Generates a transaction body from a 'TxSkel' and associated fee and
 -- collateral information. This transaction body accounts for the actual
 -- execution units of each of the scripts involved in the skeleton.
-txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Integer -> Maybe (Set Api.TxOutRef, Wallet) -> m (Cardano.TxBody Cardano.ConwayEra)
+txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.TxBody Cardano.ConwayEra)
 txSkelToTxBody txSkel fee mCollaterals = do
   -- We create a first body content and body, without execution units
   txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
   txBody' <- txBodyContentToTxBody txBodyContent'
   -- We create a full transaction from the body
-  let tx' = Cardano.Tx txBody' (toKeyWitness txBody' <$> txSkelSigners txSkel)
+  let tx' = txSignersAndBodyToCardanoTx (txSkelSigners txSkel) txBody'
   -- We retrieve the index and parameters to feed to @getTxExUnitsWithLogs@
   index <- txSkelToIndex txSkel mCollaterals
   params <- getParams
@@ -131,3 +122,11 @@ txSkelToTxBody txSkel fee mCollaterals = do
         -- We now have a body content with proper execution units and can create
         -- the final body from it
         Right txBody -> txBodyContentToTxBody txBody
+
+-- | Generates a Cardano transaction and signs it
+txSignersAndBodyToCardanoTx :: [TxSkelSignatory] -> Cardano.TxBody Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
+txSignersAndBodyToCardanoTx signers txBody = Cardano.Tx txBody $ mapMaybe (toKeyWitness txBody) signers
+
+-- | Generates a full Cardano transaction from a skeleton, fees and collaterals
+txSkelToCardanoTx :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.Tx Cardano.ConwayEra)
+txSkelToCardanoTx txSkel fee = fmap (txSignersAndBodyToCardanoTx (txSkelSigners txSkel)) . txSkelToTxBody txSkel fee

@@ -11,7 +11,7 @@ testWithdrawingScript reward deposit inRedeemer actual = do
   registerStakingCred checkWithdrawalMPScript (reward * 1_000) (deposit * 1_000)
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [wallet 1],
+      { txSkelSigners = txSkelSignatoriesFromList [wallet 1],
         txSkelWithdrawals = review txSkelWithdrawalsListI [scriptWithdrawal checkWithdrawalMPScript (inRedeemer * 1_000) (actual * 1_000)]
       }
 
@@ -19,13 +19,13 @@ testWithdrawingPK :: (MonadModalBlockChain m) => m ()
 testWithdrawingPK = do
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [wallet 1],
+      { txSkelSigners = txSkelSignatoriesFromList [wallet 1],
         txSkelCertificates = [pubKeyCertificate (wallet 1) $ StakingRegisterDelegate $ Api.DelegVote Api.DRepAlwaysAbstain]
       }
   registerStakingCred (wallet 1) 2_000_000 0
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [wallet 1],
+      { txSkelSigners = txSkelSignatoriesFromList [wallet 1],
         txSkelWithdrawals = review txSkelWithdrawalsListI [pubKeyWithdrawal (wallet 1) 2_000_000]
       }
 

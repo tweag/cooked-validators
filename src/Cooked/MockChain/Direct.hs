@@ -21,7 +21,7 @@ import Cooked.InitialDistribution
 import Cooked.MockChain.AutoReferenceScripts
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
-import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.MockChain.MinAda

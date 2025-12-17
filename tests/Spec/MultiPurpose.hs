@@ -31,7 +31,7 @@ runScript = do
             [ alice `receives` Value (Script.ada 3),
               alice `receives` Value (Script.ada 5)
             ],
-          txSkelSigners = [bob]
+          txSkelSigners = txSkelSignatoriesFromList [bob]
         }
 
   script <- define "My multipurpose script" $ mpScript txId
@@ -46,7 +46,7 @@ runScript = do
   (oRefScript1' : oRefScript2' : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelSigners = [alice],
+        { txSkelSigners = txSkelSignatoriesFromList [alice],
           txSkelIns =
             HMap.fromList
               [ (oRefScript, someTxSkelRedeemer Close),
@@ -63,7 +63,7 @@ runScript = do
   (oRefScript2'' : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelSigners = [bob],
+        { txSkelSigners = txSkelSignatoriesFromList [bob],
           txSkelIns =
             HMap.fromList
               [ (oRefScript1', someTxSkelRedeemer Close),
@@ -77,7 +77,7 @@ runScript = do
 
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [alice],
+      { txSkelSigners = txSkelSignatoriesFromList [alice],
         txSkelIns = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
         txSkelMints = review txSkelMintsListI [burn script BurnToken tn3 1]
       }
@@ -91,7 +91,7 @@ runScript = do
               { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,
                 txSkelMints = mints,
                 txSkelOuts = [script `receives` InlineDatum index <&&> Value mintValue],
-                txSkelSigners = [signer]
+                txSkelSigners = txSkelSignatoriesFromList [signer]
               },
             mintValue,
             tn

@@ -9,7 +9,6 @@ import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
-import Cooked.Wallet
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -23,8 +22,9 @@ import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
-instance PrettyCooked Wallet where
-  prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
+instance PrettyCooked TxSkelSignatory where
+  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) Nothing) = prettyHash opts pkh <+> "(no private key attached)"
+  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) Just {}) = prettyHash opts pkh
 
 -- | Some elements of a skeleton can only be printed when they are associated
 -- with a context. This is typically the case for elements that need some
@@ -212,12 +212,13 @@ instance PrettyCooked (GovernanceAction a) where
     Just sHash -> "New constitution:" <+> prettyHash opts sHash
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
-instance PrettyCookedList (TxSkelOpts, [Wallet]) where
+instance PrettyCookedList (TxSkelOpts, [TxSkelSignatory]) where
   prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = DoNotBalance}, signers) = prettyCookedOptList opts signers
   prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWithFirstSigner}, firstSigner : signers) =
     prettyCookedOpt opts firstSigner <+> "[balancing]" : prettyCookedOptList opts signers
-  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWith balancingWallet}, signers) =
-    (\s -> if s == balancingWallet then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s) <$> signers
+  prettyCookedOptList opts (TxSkelOpts {txSkelOptBalancingPolicy = BalanceWith balancingUser}, signers) =
+    (\s -> if view txSkelSignatoryPubKeyHashL s == Script.toPubKeyHash balancingUser then prettyCookedOpt opts s <+> "[balancing]" else prettyCookedOpt opts s)
+      <$> signers
   -- The following case should never happen for real transactions
   prettyCookedOptList _ (_, []) = []
 
@@ -309,10 +310,10 @@ instance PrettyCookedList TxSkelOpts where
         prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
         prettyBalancingPolicy :: BalancingPolicy -> DocCooked
         prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
-        prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts w
+        prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyHash opts (Script.toPubKeyHash w)
         prettyBalancingPolicy DoNotBalance = "Do not balance"
         prettyCollateralUtxos :: CollateralUtxos -> DocCooked
-        prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
+        prettyCollateralUtxos CollateralUtxosFromBalancingUser =
           prettyItemize
             opts
             "Collateral policy:"
@@ -320,14 +321,14 @@ instance PrettyCookedList TxSkelOpts where
             [ "Use value-only utxos from balancing wallet" :: DocCooked,
               "Send return collaterals to balancing wallet"
             ]
-        prettyCollateralUtxos (CollateralUtxosFromWallet w)
-          | prettyWallet <- prettyCookedOpt opts w =
+        prettyCollateralUtxos (CollateralUtxosFromUser w)
+          | prettyUser <- prettyHash opts (Script.toPubKeyHash w) =
               prettyItemize
                 opts
                 "Collateral policy:"
                 "-"
-                [ "Use value-only utxos from" <+> prettyWallet,
-                  "Send return collaterals to" <+> prettyWallet
+                [ "Use value-only utxos from" <+> prettyUser,
+                  "Send return collaterals to" <+> prettyUser
                 ]
         prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
           prettyItemize
@@ -335,10 +336,10 @@ instance PrettyCookedList TxSkelOpts where
             "Collateral policy:"
             "-"
             [ prettyItemize opts "Choose among the following TxOutRefs:" "-" txOutRefs,
-              "Send return collaterals to" <+> prettyCookedOpt opts w
+              "Send return collaterals to" <+> prettyHash opts (Script.toPubKeyHash w)
             ]
         prettyBalancingUtxos :: BalancingUtxos -> DocCooked
-        prettyBalancingUtxos BalancingUtxosFromBalancingWallet = "Balance with 'only value' utxos from the balancing wallet"
+        prettyBalancingUtxos BalancingUtxosFromBalancingUser = "Balance with 'only value' utxos from the balancing wallet"
         prettyBalancingUtxos (BalancingUtxosFromSet utxos) = prettyItemize opts "Balance with the following utxos:" "-" utxos
         prettyBalanceFeePolicy :: FeePolicy -> DocCooked
         prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"

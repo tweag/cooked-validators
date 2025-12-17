@@ -141,6 +141,9 @@ class IsTxSkelOutAllowedOwner a where
 instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrVScript = UserPubKey
 
+instance IsTxSkelOutAllowedOwner (User 'IsPubKey 'Allocation) where
+  toPKHOrVScript (UserPubKey pkh) = UserPubKey pkh
+
 instance IsTxSkelOutAllowedOwner Wallet where
   toPKHOrVScript = UserPubKey
 

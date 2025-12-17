@@ -14,5 +14,5 @@ import Cooked.Tweak.Labels as X
 import Cooked.Tweak.Mint as X
 import Cooked.Tweak.OutPermutations as X hiding (distinctPermutations)
 import Cooked.Tweak.Outputs as X
-import Cooked.Tweak.Signers as X
+import Cooked.Tweak.Signatories as X
 import Cooked.Tweak.ValidityRange as X

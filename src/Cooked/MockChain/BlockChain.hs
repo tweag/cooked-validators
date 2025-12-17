@@ -14,7 +14,11 @@
 -- In addition, you will find here many helpers functions which can be derived
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
-  ( MockChainError (..),
+  ( Fee,
+    CollateralIns,
+    Collaterals,
+    Utxos,
+    MockChainError (..),
     MockChainLogEntry (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
@@ -63,7 +67,6 @@ import Control.Monad.Writer
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
-import Cooked.Wallet
 import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -79,6 +82,20 @@ import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
+-- * Type aliases
+
+-- | An alias for Integers used as fees
+type Fee = Integer
+
+-- | An alias for sets of utxos used as collateral inputs
+type CollateralIns = Set Api.TxOutRef
+
+-- | An alias for optional pairs of collateral inputs and return collateral peer
+type Collaterals = Maybe (CollateralIns, Peer)
+
+-- | An alias for lists of utxos with their associated output
+type Utxos = [(Api.TxOutRef, TxSkelOut)]
+
 -- * Mockchain errors
 
 -- | Errors that can be produced by the blockchain
@@ -86,9 +103,9 @@ data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
   | -- | The balancing wallet does not have enough funds
-    MCEUnbalanceable Wallet Api.Value
+    MCEUnbalanceable Peer Api.Value
   | -- | The balancing wallet is required but missing
-    MCEMissingBalancingWallet String
+    MCEMissingBalancingUser String
   | -- | No suitable collateral could be associated with a skeleton
     MCENoSuitableCollateral Integer Integer Api.Value
   | -- | Translating a skeleton element to its Cardano counterpart failed
@@ -115,7 +132,7 @@ data MockChainLogEntry
     MCLogSubmittedTxSkel TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral wallet.
-    MCLogAdjustedTxSkel TxSkel Integer (Maybe (Set Api.TxOutRef, Wallet))
+    MCLogAdjustedTxSkel TxSkel Fee Collaterals
   | -- | Logging the successful validation of a new transaction, with its id and
     -- number of produced outputs.
     MCLogNewTx Api.TxId Integer
@@ -126,7 +143,7 @@ data MockChainLogEntry
     -- because the transaction does not involve scripts. There are 2 cases,
     -- depending on whether the user has provided an explicit wallet or a set of
     -- utxos to be used as collaterals.
-    MCLogUnusedCollaterals (Either Wallet (Set Api.TxOutRef))
+    MCLogUnusedCollaterals (Either Peer CollateralIns)
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
@@ -142,7 +159,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   getParams :: m Emulator.Params
 
   -- | Returns a list of all UTxOs at a certain address.
-  utxosAt :: (Script.ToAddress a) => a -> m [(Api.TxOutRef, TxSkelOut)]
+  utxosAt :: (Script.ToAddress a) => a -> m Utxos
 
   -- | Returns an output given a reference to it. If the output does not exist,
   -- throws a 'MCEUnknownOutRef' error.
@@ -157,7 +174,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
 -- 'Cooked.MockChain.Tweak.Common.Tweak's are plugged to.
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
-  allUtxos :: m [(Api.TxOutRef, TxSkelOut)]
+  allUtxos :: m Utxos
 
   -- | Updates parameters
   setParams :: Emulator.Params -> m ()

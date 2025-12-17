@@ -25,7 +25,6 @@ library
       Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
-      Cooked.MockChain.GenerateTx
       Cooked.MockChain.GenerateTx.Anchor
       Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Certificate
@@ -63,7 +62,7 @@ library
       Cooked.Skeleton.Output
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
-      Cooked.Skeleton.Signer
+      Cooked.Skeleton.Signatory
       Cooked.Skeleton.User
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
@@ -74,7 +73,7 @@ library
       Cooked.Tweak.Mint
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.Outputs
-      Cooked.Tweak.Signers
+      Cooked.Tweak.Signatories
       Cooked.Tweak.ValidityRange
       Cooked.Wallet
   other-modules:
