@@ -75,9 +75,10 @@ data TxSkel where
       -- | Any value minted or burned by the transaction. You'll probably want
       -- to use 'Cooked.Skeleton.Mint.txSkelMintsFromList' to construct this.
       txSkelMints :: TxSkelMints,
-      -- | The wallets signing the transaction. This list must contain at least
-      -- one element. By default, the first signer will pay for fees and
-      -- balancing. You can change that with
+      -- | The signatories of the transaction. When auto-balancing is enabled,
+      -- this list must contain at least one element, which is always expected
+      -- to be case in practice anyway. By default, the first signatory will pay
+      -- for fees and balancing. You can change that with
       -- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.
       txSkelSignatories :: [TxSkelSignatory],
       txSkelValidityRange :: Ledger.SlotRange,
@@ -122,7 +123,7 @@ makeLensesFor [("txSkelMints", "txSkelMintsL")] ''TxSkel
 -- | Focusing on the validity range of a 'TxSkel'
 makeLensesFor [("txSkelValidityRange", "txSkelValidityRangeL")] ''TxSkel
 
--- | Focusing on the signers of a 'TxSkel'
+-- | Focusing on the signatories of a 'TxSkel'
 makeLensesFor [("txSkelSignatories", "txSkelSignatoriesL")] ''TxSkel
 
 -- | Focusing on the inputs of a 'TxSkel'

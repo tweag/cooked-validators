@@ -236,7 +236,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- they can be found in the index and are allowed to be auto filled
     minAdaRefScriptsSkelUnbalWithConst <- toTxSkelWithReferenceScripts minAdaSkelUnbalWithConst
     -- We balance the skeleton when requested in the skeleton option, and get
-    -- the associated fee, collateral inputs and return collateral wallet
+    -- the associated fee, collateral inputs and return collateral user
     (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbalWithConst
     -- We log the adjusted skeleton
     logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
@@ -252,7 +252,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
       (_, Ledger.FailPhase1 _ err) -> throwError $ MCEValidationError Ledger.Phase1 err
-      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColWallet) <- mCollaterals -> do
+      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColUser) <- mCollaterals -> do
         -- We update the emulated ledger state
         modify' (set mcstLedgerStateL newELedgerState)
         -- We remove the collateral utxos from our own stored outputs
@@ -263,7 +263,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
           modify' $
             addOutput
               (Ledger.fromCardanoTxIn txIn)
-              (retColWallet `receives` Value (Api.txOutValue . Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut $ txOut))
+              (retColUser `receives` Value (Api.txOutValue . Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut $ txOut))
         -- We throw a mockchain error
         throwError $ MCEValidationError Ledger.Phase2 err
       -- In case of success, we update the index with all inputs and outputs
@@ -321,7 +321,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We retrieve the forcefully validated transaction associated with the
     -- body, handling errors in the process.
     cardanoTx <-
-      Ledger.CardanoEmulatorEraTx . txSignersAndBodyToCardanoTx []
+      Ledger.CardanoEmulatorEraTx . txSignatoriesAndBodyToCardanoTx []
         <$> either (throwError . MCEToCardanoError "forceOutputs :") return transactionBody
     -- We need to adjust our internal state to account for the forced
     -- transaction. We beging by computing the new map of outputs.

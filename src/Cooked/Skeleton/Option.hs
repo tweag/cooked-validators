@@ -42,7 +42,7 @@ type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh, Typeable 
 data FeePolicy
   = -- | Use automatic fee computation. If balancing is activated, an optimal
     -- fee will be computed based on the transaction and existing utxos in the
-    -- balancing wallet. Otherwise, the maximum transaction fee will be applied.
+    -- balancing user. Otherwise, the maximum transaction fee will be applied.
     AutoFeeComputation
   | -- | Provide a fee to the transaction. If the autobalancing is activated, it
     -- will be attempted around this fee, which might lead to failure if it is
@@ -53,7 +53,7 @@ data FeePolicy
 instance Default FeePolicy where
   def = AutoFeeComputation
 
--- | Whether to adjust a potentially existing output to the balancing wallet
+-- | Whether to adjust a potentially existing output to the balancing user
 -- with the change during transaction balancing.
 data BalanceOutputPolicy
   = -- | Try to adjust an existing public key output with the change. If no
@@ -72,7 +72,7 @@ instance Default BalanceOutputPolicy where
 -- will be filtered out during balancing.
 data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
-    -- and no reference script) belonging to the balancing wallet.
+    -- and no reference script) belonging to the balancing user.
     BalancingUtxosFromBalancingUser
   | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
     BalancingUtxosFromSet (Set Api.TxOutRef)
@@ -81,37 +81,37 @@ data BalancingUtxos
 instance Default BalancingUtxos where
   def = BalancingUtxosFromBalancingUser
 
--- | Whether to balance the transaction or not, and which wallet to use to
+-- | Whether to balance the transaction or not, and which user to use to
 -- provide outputs for balancing.
 data BalancingPolicy where
-  -- | Balance with the first signer of the list of signers
-  BalanceWithFirstSigner :: BalancingPolicy
-  -- | Balance using a given wallet
+  -- | Balance with the first signatory of the list of signatories
+  BalanceWithFirstSignatory :: BalancingPolicy
+  -- | Balance using a given user
   BalanceWith :: (UserConstraints pkh) => pkh -> BalancingPolicy
   -- | Do not perform balancing at all
   DoNotBalance :: BalancingPolicy
 
 instance Eq BalancingPolicy where
   DoNotBalance == DoNotBalance = True
-  BalanceWithFirstSigner == BalanceWithFirstSigner = True
+  BalanceWithFirstSignatory == BalanceWithFirstSignatory = True
   BalanceWith pkh == BalanceWith pkh1 = Script.toPubKeyHash pkh == Script.toPubKeyHash pkh1
   _ == _ = False
 
 deriving instance Show BalancingPolicy
 
 instance Default BalancingPolicy where
-  def = BalanceWithFirstSigner
+  def = BalanceWithFirstSignatory
 
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos where
   -- | Rely on automated computation with only-value UTxOs from the balancing
-  -- wallet. Return collaterals will be sent to this wallet.
+  -- user. Return collaterals will be sent to this user.
   CollateralUtxosFromBalancingUser :: CollateralUtxos
   -- | Rely on automated computation with only-value UTxOs from a given
-  -- wallet. Return collaterals will be sent to this wallet.
+  -- user. Return collaterals will be sent to this user.
   CollateralUtxosFromUser :: (UserConstraints pkh) => pkh -> CollateralUtxos
   -- | Manually provide a set of candidate UTxOs to be used as collaterals
-  -- alongside a wallet to send return collaterals back to.
+  -- alongside a user to send return collaterals back to.
   CollateralUtxosFromSet :: (UserConstraints pkh) => Set Api.TxOutRef -> pkh -> CollateralUtxos
 
 instance Eq CollateralUtxos where
@@ -152,7 +152,7 @@ data TxSkelOpts = TxSkelOpts
     --
     -- Default is @[]@.
     txSkelOptModTx :: Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra,
-    -- | Whether to balance the transaction or not, and which wallet should
+    -- | Whether to balance the transaction or not, and which user should
     -- provide/reclaim the missing and surplus value. Balancing ensures that
     --
     -- > input + mints == output + fees + burns
@@ -161,7 +161,7 @@ data TxSkelOpts = TxSkelOpts
     -- satisfying that equation by hand unless you use @ManualFee@. You will
     -- likely see a error about value preservation.
     --
-    -- Default is 'BalanceWithFirstSigner'
+    -- Default is 'BalanceWithFirstSignatory'
     txSkelOptBalancingPolicy :: BalancingPolicy,
     -- | The fee to use when balancing the transaction
     --
@@ -173,7 +173,7 @@ data TxSkelOpts = TxSkelOpts
     txSkelOptBalanceOutputPolicy :: BalanceOutputPolicy,
     -- | Which UTxOs to use during balancing. This can either be a precise list,
     -- or rely on automatic searches for utxos with values only belonging to the
-    -- balancing wallet.
+    -- balancing user.
     --
     -- Default is 'BalancingUtxosFromBalancingUser'.
     txSkelOptBalancingUtxos :: BalancingUtxos,
@@ -191,7 +191,7 @@ data TxSkelOpts = TxSkelOpts
     -- Default is 'Nothing'.
     txSkelOptModParams :: Emulator.Params -> Emulator.Params,
     -- | Which utxos to use as collaterals. They can be given manually, or
-    -- computed automatically from a given, or the balancing, wallet.
+    -- computed automatically from a given, or the balancing, user.
     --
     -- Default is 'CollateralUtxosFromBalancingUser'
     txSkelOptCollateralUtxos :: CollateralUtxos

@@ -29,7 +29,7 @@ addTokenAttack ::
   -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
   (VScript -> [(Api.TokenName, Integer)]) ->
-  -- | The wallet of the attacker where extra tokens will be paid to
+  -- | The attacker, who receives the extra tokens.
   o ->
   m Api.Value
 addTokenAttack extraTokens attacker = do
@@ -58,7 +58,7 @@ dupTokenAttack ::
   (VScript -> Api.TokenName -> Integer -> Integer) ->
   -- | The target of the extra tokens. Any additional tokens that are minted by
   -- the modified transaction but were not minted by the original transaction
-  -- are paid to this wallet.
+  -- are paid to this target.
   o ->
   m Api.Value
 dupTokenAttack change attacker = do

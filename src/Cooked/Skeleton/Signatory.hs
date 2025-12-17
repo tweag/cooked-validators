@@ -1,4 +1,4 @@
--- | This module exposes the notion of signer for out 'Cooked.Skeleton.TxSkel'
+-- | This module exposes the notion of signatory for out 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Signatory
   ( -- * Data types
     TxSkelSignatory (..),
@@ -9,8 +9,8 @@ module Cooked.Skeleton.Signatory
     txSkelSignatoryPubKeyHashL,
 
     -- * Smart constructors
-    signerWallet,
-    signerPubKey,
+    signatoryWallet,
+    signatoryPubKey,
     txSkelSignatoriesFromList,
   )
 where
@@ -26,9 +26,9 @@ import PlutusLedgerApi.V3 qualified as Api
 data TxSkelSignatory where
   TxSkelSignatory ::
     (Script.ToPubKeyHash pkh, Show pkh) =>
-    { -- | Identifying the signer with their pubkey hash
+    { -- | Identifying the signatory with their pubkey hash
       txSkelSignatoryPubKeyHash :: pkh,
-      -- | The private key with which this signer should sign. If set to
+      -- | The private key with which this signatory should sign. If set to
       -- @Nothing@ the signature won't be added (but will be needed later on).oiu clairement
       txSkelSignatoryPrivateKey :: Maybe Crypto.XPrv
     } ->
@@ -62,14 +62,14 @@ instance Script.ToPubKeyHash TxSkelSignatory where
 
 -- | Builds a signatory from a wallet, which will be able to actually sign the
 -- transaction.
-signerWallet :: Wallet -> TxSkelSignatory
-signerWallet w = TxSkelSignatory (Script.toPubKeyHash w) (Just $ walletSK w)
+signatoryWallet :: Wallet -> TxSkelSignatory
+signatoryWallet w = TxSkelSignatory (Script.toPubKeyHash w) (Just $ walletSK w)
 
 -- | Builds a signatory from a pubkey, which will no be able to actually sign
 -- the transaction, but will act as a requirement.
-signerPubKey :: Api.PubKeyHash -> TxSkelSignatory
-signerPubKey = (`TxSkelSignatory` Nothing)
+signatoryPubKey :: Api.PubKeyHash -> TxSkelSignatory
+signatoryPubKey = (`TxSkelSignatory` Nothing)
 
--- | Builds a list of signers from a list of wallets
+-- | Builds a list of signatories from a list of wallets
 txSkelSignatoriesFromList :: [Wallet] -> [TxSkelSignatory]
-txSkelSignatoriesFromList = map signerWallet
+txSkelSignatoriesFromList = map signatoryWallet

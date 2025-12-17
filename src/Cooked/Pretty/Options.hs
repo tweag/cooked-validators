@@ -76,7 +76,7 @@ data PrettyCookedHashOpts = PrettyCookedHashOpts
   { -- | Length of printed hash prefix. By default: 7
     pcOptHashLength :: Int,
     -- | Association between hashes and given names to ease readability.  For
-    -- example @Map.singleton (walletPKHash (wallet 1)) "Alice"@ By default:
+    -- example @Map.singleton (toHash (wallet 1)) "Alice"@ By default:
     -- "defaultHashNames" which assigns Lovelace, Quick, and Permanent as names
     -- for the associated currency symbols
     pcOptHashNames :: Map Api.BuiltinByteString String,

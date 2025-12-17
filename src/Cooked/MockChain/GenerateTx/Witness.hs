@@ -130,7 +130,8 @@ toScriptWitness (toVScript -> script@(Script.Versioned _ version)) (TxSkelRedeem
       (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
 
--- | Generates a list of witnesses for a given wallet and body
+-- | Generates a key witnesses for a given signatory and body, when the
+-- signatory contains a private key.
 toKeyWitness :: Cardano.TxBody Cardano.ConwayEra -> TxSkelSignatory -> Maybe (Cardano.KeyWitness Cardano.ConwayEra)
 toKeyWitness txBody =
   fmap

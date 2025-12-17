@@ -33,7 +33,7 @@ toCollateralTriplet ::
       Cardano.TxReturnCollateral Cardano.CtxTx Cardano.ConwayEra
     )
 toCollateralTriplet _ Nothing = return (Cardano.TxInsCollateralNone, Cardano.TxTotalCollateralNone, Cardano.TxReturnCollateralNone)
-toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateralWallet)) = do
+toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateralUser)) = do
   -- We build the collateral inputs from this list
   txInsCollateral <-
     case collateralInsList of
@@ -68,12 +68,12 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
             <$> throwOnToCardanoError
               "toCollateralTriplet: cannot build return collateral value"
               (Ledger.toCardanoValue returnCollateralValue)
-        -- The address is the one from the return collateral wallet, which is
+        -- The address is the one from the return collateral user, which is
         -- required to exist here.
         networkId <- Emulator.pNetworkId <$> getParams
         address <-
           throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-            Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralWallet)
+            Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralUser)
         -- The return collateral is built up from those elements
         return $
           Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $

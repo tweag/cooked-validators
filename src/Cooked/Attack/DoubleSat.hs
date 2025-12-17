@@ -13,7 +13,6 @@ import Cooked.MockChain.BlockChain
 import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
-import Cooked.Wallet
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Optics.Core
@@ -67,7 +66,7 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 -- value contained in new inputs to the transaction is then paid to the
 -- attacker.
 doubleSatAttack ::
-  (MonadTweak m, Eq is, Is k A_Traversal) =>
+  (MonadTweak m, Eq is, Is k A_Traversal, IsTxSkelOutAllowedOwner owner) =>
   -- | how to combine modifications from caused by different foci. See the
   -- comment at 'combineModsTweak', which uses the same logic.
   ([is] -> [[is]]) ->
@@ -98,19 +97,19 @@ doubleSatAttack ::
   --
   -- ###################################
   (is -> a -> m [(a, DoubleSatDelta)]) ->
-  -- | The wallet of the attacker, where any surplus is paid to.
+  -- | The attacker, who receives any surplus.
   --
   -- In the example, the extra value in the added input will be paid to the
   -- attacker.
-  Wallet ->
+  owner ->
   m ()
-doubleSatAttack groupings optic change attacker = do
+doubleSatAttack groupings optic change target = do
   deltas <- combineModsTweak groupings optic change
   let delta = joinDoubleSatDeltas deltas
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta
   if addedValue `Api.gt` mempty
-    then addOutputTweak $ attacker `receives` Value addedValue
+    then addOutputTweak $ target `receives` Value addedValue
     else failingTweak
   addLabelTweak DoubleSatLbl
   where

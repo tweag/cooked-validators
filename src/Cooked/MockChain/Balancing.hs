@@ -48,8 +48,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- redirected to them, and utxos will be taken from their user if associated
   -- with the BalancingUtxosFromBalancingUser policy
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
-    BalanceWithFirstSigner -> case txSkelSignatories of
-      [] -> throwError $ MCEMissingBalancingUser "The list of signers is empty, but the balancing user is supposed to be the first signer."
+    BalanceWithFirstSignatory -> case txSkelSignatories of
+      [] -> throwError $ MCEMissingBalancingUser "The list of signatories is empty, but the balancing user is supposed to be the first signatory."
       bw : _ -> return $ Just $ UserPubKey $ view txSkelSignatoryPubKeyHashL bw
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
     DoNotBalance -> return Nothing

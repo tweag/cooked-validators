@@ -10,12 +10,12 @@ import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
-import Cooked.Wallet
 import Data.Default
 import Data.List (isInfixOf)
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Ledger qualified
+import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import Test.QuickCheck qualified as QC
 import Test.Tasty qualified as HU
@@ -374,10 +374,10 @@ didNotHappen eventName _ _ = testFailureMsg $ "The event " <> show eventName <> 
 
 -- * Specific properties over successes
 
--- | Ensures that the given wallets satisfy certain amount requirements over a
+-- | Ensures that the given addresses satisfy certain amount requirements over a
 -- list of given asset classes in the end of the run
-isInWallets :: (IsProp prop) => [(Wallet, [(Api.AssetClass, Integer -> Bool)])] -> SuccessProp a prop
-isInWallets walletsReqs _ _ _ utxoState =
+isAtAddress :: (IsProp prop, Script.ToAddress addr, Show addr) => [(addr, [(Api.AssetClass, Integer -> Bool)])] -> SuccessProp a prop
+isAtAddress addressesReqs _ _ _ utxoState =
   testAll
     ( \(w, assetsReqs) ->
         let ownedValue = holdsInState w utxoState
@@ -390,12 +390,12 @@ isInWallets walletsReqs _ _ _ utxoState =
               )
               assetsReqs
     )
-    walletsReqs
+    addressesReqs
 
--- | Ensures that a given wallet possesses exactly a certain amount of a given
+-- | Ensures that a given address possesses exactly a certain amount of a given
 -- asset class in the end of the run
-isInWallet :: (IsProp prop) => (Wallet, Api.AssetClass, Integer) -> SuccessProp a prop
-isInWallet (w, ac, n) = isInWallets [(w, [(ac, (== n))])]
+possesses :: (IsProp prop, Script.ToAddress addr, Show addr) => addr -> Api.AssetClass -> Integer -> SuccessProp a prop
+possesses w ac n = isAtAddress [(w, [(ac, (== n))])]
 
 -- * Advanced test templates
 

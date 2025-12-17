@@ -5,7 +5,7 @@ module Cooked.MockChain.GenerateTx.Body
     txBodyContentToTxBody,
     txSkelToTxBodyContent,
     txSkelToIndex,
-    txSignersAndBodyToCardanoTx,
+    txSignatoriesAndBodyToCardanoTx,
     txSkelToCardanoTx,
   )
 where
@@ -50,7 +50,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
       then return Cardano.TxExtraKeyWitnessesNone
       else
         throwOnToCardanoErrorOrApply
-          "txSkelToBodyContent: Unable to translate the required signers"
+          "txSkelToBodyContent: Unable to translate the required signatories"
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSignatories
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
@@ -103,7 +103,7 @@ txSkelToTxBody txSkel fee mCollaterals = do
   txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
   txBody' <- txBodyContentToTxBody txBodyContent'
   -- We create a full transaction from the body
-  let tx' = txSignersAndBodyToCardanoTx (txSkelSignatories txSkel) txBody'
+  let tx' = txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel) txBody'
   -- We retrieve the index and parameters to feed to @getTxExUnitsWithLogs@
   index <- txSkelToIndex txSkel mCollaterals
   params <- getParams
@@ -124,9 +124,9 @@ txSkelToTxBody txSkel fee mCollaterals = do
         Right txBody -> txBodyContentToTxBody txBody
 
 -- | Generates a Cardano transaction and signs it
-txSignersAndBodyToCardanoTx :: [TxSkelSignatory] -> Cardano.TxBody Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
-txSignersAndBodyToCardanoTx signers txBody = Cardano.Tx txBody $ mapMaybe (toKeyWitness txBody) signers
+txSignatoriesAndBodyToCardanoTx :: [TxSkelSignatory] -> Cardano.TxBody Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
+txSignatoriesAndBodyToCardanoTx signatories txBody = Cardano.Tx txBody $ mapMaybe (toKeyWitness txBody) signatories
 
 -- | Generates a full Cardano transaction from a skeleton, fees and collaterals
 txSkelToCardanoTx :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.Tx Cardano.ConwayEra)
-txSkelToCardanoTx txSkel fee = fmap (txSignersAndBodyToCardanoTx (txSkelSignatories txSkel)) . txSkelToTxBody txSkel fee
+txSkelToCardanoTx txSkel fee = fmap (txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel)) . txSkelToTxBody txSkel fee

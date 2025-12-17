@@ -102,9 +102,9 @@ type Utxos = [(Api.TxOutRef, TxSkelOut)]
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
-  | -- | The balancing wallet does not have enough funds
+  | -- | The balancing user does not have enough funds
     MCEUnbalanceable Peer Api.Value
-  | -- | The balancing wallet is required but missing
+  | -- | The balancing user is required but missing
     MCEMissingBalancingUser String
   | -- | No suitable collateral could be associated with a skeleton
     MCENoSuitableCollateral Integer Integer Api.Value
@@ -131,7 +131,7 @@ data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
     MCLogSubmittedTxSkel TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
-    -- alongside fee, and possible collateral utxos and return collateral wallet.
+    -- alongside fee, and possible collateral utxos and return collateral user.
     MCLogAdjustedTxSkel TxSkel Fee Collaterals
   | -- | Logging the successful validation of a new transaction, with its id and
     -- number of produced outputs.
@@ -141,7 +141,7 @@ data MockChainLogEntry
     MCLogDiscardedUtxos Integer String
   | -- | Logging the fact that utxos provided as collaterals will not be used
     -- because the transaction does not involve scripts. There are 2 cases,
-    -- depending on whether the user has provided an explicit wallet or a set of
+    -- depending on whether the user has provided an explicit user or a set of
     -- utxos to be used as collaterals.
     MCLogUnusedCollaterals (Either Peer CollateralIns)
   | -- | Logging the automatic addition of a reference script

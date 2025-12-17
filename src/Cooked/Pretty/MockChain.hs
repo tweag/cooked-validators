@@ -44,13 +44,13 @@ instance PrettyCooked Peer where
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
-  prettyCookedOpt _ (MCEMissingBalancingUser msg) = "Missing balancing wallet:" <+> PP.pretty msg
-  prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue) =
+  prettyCookedOpt _ (MCEMissingBalancingUser msg) = "Missing balancing user:" <+> PP.pretty msg
+  prettyCookedOpt opts (MCEUnbalanceable balUser missingValue) =
     prettyItemize
       opts
       "Unbalanceable:"
       "-"
-      [ prettyCookedOpt opts balWallet <+> "does not have enough funds",
+      [ prettyCookedOpt opts balUser <+> "does not have enough funds",
         if missingValue == mempty
           then "Not enough funds to sustain the minimal ada of the return utxo"
           else "Unable to find" <+> prettyCookedOpt opts missingValue
@@ -114,9 +114,9 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
           ++ ( ("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee))
                  : maybe
                    ["No collateral required"]
-                   ( \(collaterals, returnWallet) ->
+                   ( \(collaterals, returnUser) ->
                        [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
-                         "Return collateral target:" <+> prettyCookedOpt opts returnWallet
+                         "Return collateral target:" <+> prettyCookedOpt opts returnUser
                        ]
                    )
                    mCollaterals
