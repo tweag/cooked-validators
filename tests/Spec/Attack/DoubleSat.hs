@@ -41,7 +41,7 @@ customInitDist =
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
-  case mcrValue $ runMockChainFrom customInitDist $ do
+  case mcrValue $ runMockChainFromInitDist customInitDist $ do
     [a1, a2, a3, a4] <- runUtxoSearch $ utxosOwnedBySearch aValidator
     [b1, b2] <- runUtxoSearch $ utxosOwnedBySearch bValidator
     return (a1, a2, a3, a4, b1, b2) of

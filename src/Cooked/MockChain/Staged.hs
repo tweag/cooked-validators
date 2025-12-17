@@ -156,7 +156,7 @@ runTweak = runTweakFrom def
 -- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
 -- mockchain
 runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn (a, TxSkel)]
-runTweakFrom initDist tweak = runMockChainTFrom initDist . runTweakInChain tweak
+runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInChain tweak
 
 -- ** Modalities
 

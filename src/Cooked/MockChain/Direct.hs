@@ -120,6 +120,8 @@ combineMockChainT f ma mb = MockChainT $
           resB = runWriterT $ runStateT (runExceptT (unMockChain mb)) s
        in WriterT $ f resA resB
 
+-- * 'MockChain' return types
+
 -- | The returned type when running a 'MockChainT'. This is both a reorganizing
 -- and filtering of the natural returned type @((Either MockChainError a,
 -- MockChainState), MockChainBook)@, which is much easier to query.
@@ -139,29 +141,74 @@ data MockChainReturn a where
     MockChainReturn a
   deriving (Functor)
 
--- | Runs a 'MockChainT' from a default 'MockChainState'
-runMockChainTRaw :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
-runMockChainTRaw = fmap mkMockChainReturn . runWriterT . flip runStateT def . runExceptT . unMockChain
-  where
-    mkMockChainReturn ((val, st), MockChainBook journal aliases) =
-      MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases
+-- | Raw return type of running a 'MockChainT'
+type RawMockChainReturn a = ((Either MockChainError a, MockChainState), MockChainBook)
 
--- | Runs a 'MockChainT' from an initial 'MockChainState' built from a given
--- 'InitialDistribution'.
-runMockChainTFrom :: (Monad m) => InitialDistribution -> MockChainT m a -> m (MockChainReturn a)
-runMockChainTFrom (InitialDistribution i0) = runMockChainTRaw . (forceOutputs i0 >>)
+-- | Building a 'MockChainReturn' from a 'RawMockChainReturn'
+unRawMockChainReturn :: RawMockChainReturn a -> MockChainReturn a
+unRawMockChainReturn ((val, st), MockChainBook journal aliases) = MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases
 
--- | Executes a 'MockChainT' from the canonical initial state and environment.
-runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
-runMockChainT = runMockChainTFrom def
+-- * 'MockChain' configurations
+
+-- | Configuration to run a 'MockChainT'
+data MockChainConf a b where
+  MockChainConf ::
+    { -- | The initial state from which to run the 'MockChainT'
+      mcfInitialState :: MockChainState,
+      -- | The initial payments to issue in the run
+      mcfInitialDistribution :: InitialDistribution,
+      -- | The function to apply on the result of the run
+      mcfFunOnResult :: RawMockChainReturn a -> b
+    } ->
+    MockChainConf a b
+
+-- | A configuration with a default initial state, a given distribution,
+-- returning a 'MockChainReturn'
+initDistConf :: InitialDistribution -> MockChainConf a (MockChainReturn a)
+initDistConf i0 = MockChainConf def i0 unRawMockChainReturn
+
+-- | A configuration with a given initial 'MockChainState', a default initial
+-- distribution, returning the final 'MockChainState'
+mockChainStateConf :: MockChainState -> MockChainConf a MockChainState
+mockChainStateConf s0 = MockChainConf s0 def (snd . fst)
+
+-- * 'MockChain' runs
+
+---
+-- We give the possibility to run a 'MockChain' or a 'MockChainT' from an
+-- arbitrary 'MockChainConf', and instance for configuration with a given
+-- 'InitialDistribution', which is the most used in our tests. All other
+-- configuration can freely be built and used for runs.
+
+-- | Runs a 'MockChainT' using a certain configuration
+runMockChainTFromConf :: (Monad m) => MockChainConf a b -> MockChainT m a -> m b
+runMockChainTFromConf MockChainConf {..} =
+  fmap mcfFunOnResult
+    . runWriterT
+    . flip runStateT mcfInitialState
+    . runExceptT
+    . unMockChain
+    . (forceOutputs (unInitialDistribution mcfInitialDistribution) >>)
+
+-- | Runs a 'MockChain' using a certain configuration
+runMockChainFromConf :: MockChainConf a b -> MockChain a -> b
+runMockChainFromConf conf = runIdentity . runMockChainTFromConf conf
+
+-- | Runs a 'MockChainT' from an initial 'InitialDistribution'
+runMockChainTFromInitDist :: (Monad m) => InitialDistribution -> MockChainT m a -> m (MockChainReturn a)
+runMockChainTFromInitDist i0 = runMockChainTFromConf (initDistConf i0)
 
 -- | See 'runMockChainTFrom'
-runMockChainFrom :: InitialDistribution -> MockChain a -> MockChainReturn a
-runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
+runMockChainFromInitDist :: InitialDistribution -> MockChain a -> MockChainReturn a
+runMockChainFromInitDist i0 = runIdentity . runMockChainTFromInitDist i0
 
--- | See 'runMockChainT'
+-- | Uses 'runMockChainTFromInitDist' with a default 'InitialDistribution'
+runMockChainT :: (Monad m) => MockChainT m a -> m (MockChainReturn a)
+runMockChainT = runMockChainTFromInitDist def
+
+-- | Uses 'runMockChainFromInitDist' with a default 'InitialDistribution'
 runMockChain :: MockChain a -> MockChainReturn a
-runMockChain = runIdentity . runMockChainT
+runMockChain = runMockChainFromInitDist def
 
 -- * Direct Interpretation of Operations
 

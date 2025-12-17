@@ -210,7 +210,7 @@ data Test a prop = Test
 -- to pretty print messages when applicable.
 testToProp :: (IsProp prop, Show a) => Test a prop -> prop
 testToProp Test {..} =
-  let results = interpretAndRunWith (runMockChainTFrom testInitDist) testTrace
+  let results = interpretAndRunWith (runMockChainTFromInitDist testInitDist) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
           ( \ret@(MockChainReturn outcome _ state mcLog names) ->
