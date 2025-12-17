@@ -154,11 +154,11 @@ unRawMockChainReturn ((val, st), MockChainBook journal aliases) = MockChainRetur
 data MockChainConf a b where
   MockChainConf ::
     { -- | The initial state from which to run the 'MockChainT'
-      mcfInitialState :: MockChainState,
+      mccInitialState :: MockChainState,
       -- | The initial payments to issue in the run
-      mcfInitialDistribution :: InitialDistribution,
+      mccInitialDistribution :: InitialDistribution,
       -- | The function to apply on the result of the run
-      mcfFunOnResult :: RawMockChainReturn a -> b
+      mccFunOnResult :: RawMockChainReturn a -> b
     } ->
     MockChainConf a b
 
@@ -174,7 +174,6 @@ mockChainStateConf s0 = MockChainConf s0 def (snd . fst)
 
 -- * 'MockChain' runs
 
----
 -- We give the possibility to run a 'MockChain' or a 'MockChainT' from an
 -- arbitrary 'MockChainConf', and instance for configuration with a given
 -- 'InitialDistribution', which is the most used in our tests. All other
@@ -183,12 +182,12 @@ mockChainStateConf s0 = MockChainConf s0 def (snd . fst)
 -- | Runs a 'MockChainT' using a certain configuration
 runMockChainTFromConf :: (Monad m) => MockChainConf a b -> MockChainT m a -> m b
 runMockChainTFromConf MockChainConf {..} =
-  fmap mcfFunOnResult
+  fmap mccFunOnResult
     . runWriterT
-    . flip runStateT mcfInitialState
+    . flip runStateT mccInitialState
     . runExceptT
     . unMockChain
-    . (forceOutputs (unInitialDistribution mcfInitialDistribution) >>)
+    . (forceOutputs (unInitialDistribution mccInitialDistribution) >>)
 
 -- | Runs a 'MockChain' using a certain configuration
 runMockChainFromConf :: MockChainConf a b -> MockChain a -> b
@@ -198,7 +197,7 @@ runMockChainFromConf conf = runIdentity . runMockChainTFromConf conf
 runMockChainTFromInitDist :: (Monad m) => InitialDistribution -> MockChainT m a -> m (MockChainReturn a)
 runMockChainTFromInitDist i0 = runMockChainTFromConf (initDistConf i0)
 
--- | See 'runMockChainTFrom'
+-- | See 'runMockChainTFromInitDist'
 runMockChainFromInitDist :: InitialDistribution -> MockChain a -> MockChainReturn a
 runMockChainFromInitDist i0 = runIdentity . runMockChainTFromInitDist i0
 

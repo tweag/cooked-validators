@@ -46,7 +46,7 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | Interprets the staged mockchain then runs the resulting computation with a
 -- custom function. This can be used, for example, to supply a custom
--- 'InitialDistribution' by providing 'runMockChainTFrom'.
+-- 'InitialDistribution' by providing 'runMockChainTFromInitDist'.
 interpretAndRunWith ::
   (forall m. (Monad m) => MockChainT m a -> m res) ->
   StagedMockChain a ->
@@ -85,9 +85,9 @@ data MockChainBuiltin a where
   GetConstitutionScript :: MockChainBuiltin (Maybe VScript)
   RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
   ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
-  -- | The empty set of traces
+  -- The empty set of traces
   Empty :: MockChainBuiltin a
-  -- | The union of two sets of traces
+  -- The union of two sets of traces
   Alt :: StagedMockChain a -> StagedMockChain a -> MockChainBuiltin a
   -- for the 'MonadFail' instance
   Fail :: String -> MockChainBuiltin a

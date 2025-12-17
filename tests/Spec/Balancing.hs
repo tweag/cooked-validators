@@ -1,7 +1,6 @@
 module Spec.Balancing where
 
 import Cooked
-import Cooked.MockChain.Staged
 import Data.Default
 import Data.List qualified as List
 import Data.Map (Map)

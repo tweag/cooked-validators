@@ -9,10 +9,15 @@ module Cooked.Skeleton.Families
     type (∉),
     type (⩀),
 
-    -- * Type-level functions
+    -- * Main type-level functions
     type (∪),
     type Rev,
     type (++),
+
+    -- * Auxiliary type-level functions
+    type RevAux,
+    type Member,
+    type NonMember,
   )
 where
 

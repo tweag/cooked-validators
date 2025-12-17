@@ -3,6 +3,7 @@
 -- the default behavior of cooked-validators's transaction generation mechanism.
 module Cooked.Skeleton.Option
   ( -- * Data types
+    UserConstraints,
     BalanceOutputPolicy (..),
     FeePolicy (..),
     BalancingPolicy (..),
@@ -36,6 +37,7 @@ import Optics.TH
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
+-- | Set of constraints that need to be satisfied by users in options
 type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh, Typeable pkh)
 
 -- | What fee policy to use in the transaction.
