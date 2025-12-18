@@ -50,6 +50,9 @@
 - Module `Cooked.Skeleton.Value` which exposes useful optics around values.
 - New function `txSkelCertifyingScripts` collecting all certifying script from a
   skeleton.
+- Balancing will now automatically attach an input utxo when there are not and
+  the balancing is in favour of the output, to avoid sending transaction with no
+  inputs.
   
 ### Removed
 

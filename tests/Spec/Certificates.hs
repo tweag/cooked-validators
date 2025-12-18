@@ -1,7 +1,6 @@
 module Spec.Certificates where
 
 import Cooked
-import Data.Default
 import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -18,10 +17,7 @@ publishCertificate cert =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelCertificates = [cert],
-        -- This fee is huge, we use it to force an output to be consumed when
-        -- the balancing equation is in favour of the output value.
-        txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
+        txSkelCertificates = [cert]
       }
 
 withdraw :: (MonadBlockChain m) => User IsEither Redemption -> m ()
@@ -29,8 +25,7 @@ withdraw user =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user Nothing],
-        txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
+        txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user Nothing]
       }
 
 trueScriptUser :: User IsEither Redemption
