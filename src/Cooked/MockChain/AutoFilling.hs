@@ -74,7 +74,7 @@ updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkel
     -- If a reference input is found, we assign it and log the event
     ( \oRef -> do
         logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
-        return $ over userTxSkelRedeemerAT (autoFillReferenceInput oRef) rs
+        return $ over userTxSkelRedeemerAT (fillReferenceInput oRef) rs
     )
     $ case oRefsInInputs of
       [] -> Nothing

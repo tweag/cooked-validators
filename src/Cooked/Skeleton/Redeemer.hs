@@ -21,7 +21,7 @@ module Cooked.Skeleton.Redeemer
     emptyTxSkelRedeemerNoAutoFill,
 
     -- * Utilities
-    autoFillReferenceInput,
+    fillReferenceInput,
   )
 where
 
@@ -134,5 +134,5 @@ emptyTxSkelRedeemerNoAutoFill = someTxSkelRedeemerNoAutoFill ()
 -- | Attaches a reference input to this 'TxSkelRedeemer' when none is already
 -- attached. Is meant to be used by the automated attachment process during
 -- transaction generation.
-autoFillReferenceInput :: Api.TxOutRef -> TxSkelRedeemer -> TxSkelRedeemer
-autoFillReferenceInput refInput = over txSkelRedeemerMReferenceInputL (maybe (Just refInput) Just)
+fillReferenceInput :: Api.TxOutRef -> TxSkelRedeemer -> TxSkelRedeemer
+fillReferenceInput refInput = over txSkelRedeemerMReferenceInputL (maybe (Just refInput) Just)
