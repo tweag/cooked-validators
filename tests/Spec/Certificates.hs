@@ -29,7 +29,7 @@ withdraw user =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user 0],
+        txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user Nothing],
         txSkelOpts = def {txSkelOptFeePolicy = ManualFee 5_000_000}
       }
 

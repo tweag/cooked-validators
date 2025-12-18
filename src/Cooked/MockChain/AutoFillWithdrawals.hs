@@ -19,7 +19,7 @@ toTxSkelWithAutoFilledWithdrawalAmounts txSkel = do
       Nothing -> return withdrawal
       Just reward -> do
         let newWithdrawal = autoFillAmount reward withdrawal
-        when (view withdrawalMAmountL withdrawal == view withdrawalMAmountL newWithdrawal) $
+        when (view withdrawalMAmountL withdrawal /= view withdrawalMAmountL newWithdrawal) $
           logEvent $
             MCLogAutoFilledWithdrawalAmount (view (withdrawalUserL % to Script.toCredential) withdrawal) reward
         return newWithdrawal
