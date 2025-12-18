@@ -29,7 +29,7 @@ main =
         Ltl.tests,
         MinAda.tests,
         MultiPurpose.tests,
-        -- ProposingScript.tests,
+        ProposingScript.tests,
         ReferenceInputs.tests,
         ReferenceScripts.tests,
         Slot.tests,

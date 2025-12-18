@@ -110,14 +110,6 @@ tests =
               publishCertificate $
                 TxSkelCertificate falseScriptUser DRepRegister
         ],
-      -- testGroup
-      --   "Pool registration certificates"
-      --   [
-      --     testCooked "Success when registering a pool" $
-      --       mustSucceedTest $
-      --         publishCertificate $
-      --           TxSkelCertificate aliceUser (PoolRegister undefined)
-      --   ],
       testGroup
         "Staking delegation certificates"
         [ testCooked "Failure when delegating vote for a non registered credential" $
@@ -130,8 +122,3 @@ tests =
               publishCertificate $ TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegVote Api.DRepAlwaysAbstain)
         ]
     ]
-
--- gov action: 1
--- d rep: 1
--- pool: 0
--- address: 2

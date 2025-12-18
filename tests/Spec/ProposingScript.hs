@@ -2,7 +2,11 @@ module Spec.ProposingScript where
 
 import Cooked
 import Plutus.ProposingScript
+import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
+
+alice :: Wallet
+alice = wallet 1
 
 testProposingScript ::
   (MonadBlockChain m) =>
@@ -21,15 +25,20 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
   setConstitutionScript constitution
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelOuts = [wallet 1 `receives` ReferenceScript constitution],
-        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
+      { txSkelOuts = [alice `receives` ReferenceScript constitution],
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelCertificates = [pubKeyCertificate alice $ StakingRegisterDelegate (Api.DelegVote Api.DRepAlwaysAbstain)]
+      }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelProposals =
           [ TxSkelProposal
-              (wallet 1)
+              alice
               govAction
               ( if autoConstitution
                   then
