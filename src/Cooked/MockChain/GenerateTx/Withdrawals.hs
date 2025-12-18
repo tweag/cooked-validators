@@ -20,18 +20,21 @@ toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano
 toWithdrawals withdrawals | withdrawals == mempty = return Cardano.TxWithdrawalsNone
 toWithdrawals (view txSkelWithdrawalsListI -> withdrawals) = do
   networkId <- Emulator.pNetworkId <$> getParams
-  cardanoWithdrawals <- forM withdrawals $ \case
-    Withdrawal (UserPubKey (Script.toPubKeyHash -> pkh)) amount -> do
-      sCred <-
-        throwOnToCardanoError "toWithdrawals: unable to translate pkh stake credential" $
-          Cardano.StakeCredentialByKey <$> Ledger.toCardanoStakeKeyHash pkh
-      return (Cardano.makeStakeAddress networkId sCred, coerce amount, Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForStakeAddr)
-    Withdrawal (UserRedeemedScript (toVScript -> vScript) red) amount -> do
-      witness <-
-        Cardano.ScriptWitness Cardano.ScriptWitnessForStakeAddr
-          <$> toScriptWitness vScript red Cardano.NoScriptDatumForStake
-      sCred <-
-        throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
-          Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash vScript)
-      return (Cardano.makeStakeAddress networkId sCred, coerce amount, Cardano.BuildTxWith witness)
+  cardanoWithdrawals <- forM withdrawals $ \(Withdrawal user amount) -> do
+    let coinAmount = maybe (Cardano.Coin 0) coerce amount
+    (sCred, witness) <- case user of
+      UserPubKey (Script.toPubKeyHash -> pkh) -> do
+        sCred <-
+          throwOnToCardanoError "toWithdrawals: unable to translate pkh stake credential" $
+            Cardano.StakeCredentialByKey <$> Ledger.toCardanoStakeKeyHash pkh
+        return (sCred, Cardano.KeyWitness Cardano.KeyWitnessForStakeAddr)
+      UserRedeemedScript (toVScript -> vScript) red -> do
+        witness <-
+          Cardano.ScriptWitness Cardano.ScriptWitnessForStakeAddr
+            <$> toScriptWitness vScript red Cardano.NoScriptDatumForStake
+        sCred <-
+          throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
+            Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash vScript)
+        return (sCred, witness)
+    return (Cardano.makeStakeAddress networkId sCred, coinAmount, Cardano.BuildTxWith witness)
   return $ Cardano.TxWithdrawals Cardano.ShelleyBasedEraConway cardanoWithdrawals

@@ -90,10 +90,10 @@ instance PrettyCooked Api.DRep where
   prettyCookedOpt opt (Api.DRep (Api.DRepCredential cred)) = prettyCookedOpt opt cred
 
 instance PrettyCooked Withdrawal where
-  prettyCookedOpt opts (Withdrawal (UserRedeemedScript (toVScript -> vScript) red) lv) =
-    prettyItemize opts (prettyHash opts vScript) "-" $ prettyCookedOptList opts red ++ [prettyCookedOpt opts (Script.toValue lv)]
-  prettyCookedOpt opts (Withdrawal (UserPubKey (Script.toPubKeyHash -> pkh)) lv) =
-    prettyItemize opts (prettyHash opts pkh) "-" [prettyCookedOpt opts (Script.toValue lv)]
+  prettyCookedOpt opts (Withdrawal user mAmount) =
+    prettyItemize opts "Withdrawal" "-" $
+      prettyCookedOptList opts user
+        ++ [maybe "Amount to be autofilled" (("Amount: " <>) . PP.pretty . Api.getLovelace) mAmount]
 
 instance PrettyCooked ParameterChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n

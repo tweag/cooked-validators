@@ -143,9 +143,8 @@ data ParameterChange where
   deriving (Show, Eq)
 
 -- | This lists the various possible governance actions. Only two of these
--- action need to be witnessed by the constitution script, which we call
--- "witnessed gov actions" while the other do not need any witness, which we
--- call "simple gov actions".
+-- action need to be witnessed by the constitution script, which are annotated
+-- by 'IsScript'.
 data GovernanceAction :: UserKind -> Type where
   -- If several parameter changes are of the same kind, only the last
   -- one will take effect

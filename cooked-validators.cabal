@@ -21,6 +21,7 @@ library
       Cooked.Ltl
       Cooked.Ltl.Combinators
       Cooked.MockChain
+      Cooked.MockChain.AutoFillWithdrawals
       Cooked.MockChain.AutoReferenceScripts
       Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain

@@ -6,27 +6,33 @@ import Plutus.Withdrawals
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 
-testWithdrawingScript :: (MonadModalBlockChain m) => Integer -> Integer -> Integer -> Integer -> m ()
-testWithdrawingScript reward deposit inRedeemer actual = do
-  registerStakingCred checkWithdrawalMPScript (reward * 1_000) (deposit * 1_000)
+alice :: Wallet
+alice = wallet 1
+
+testWithdrawingScript :: (MonadModalBlockChain m) => Integer -> Integer -> m ()
+testWithdrawingScript inRedeemer actual = do
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
-        txSkelWithdrawals = review txSkelWithdrawalsListI [scriptWithdrawal checkWithdrawalMPScript (inRedeemer * 1_000) (actual * 1_000)]
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelCertificates = [scriptCertificate checkWithdrawalMPScript () StakingRegister]
+      }
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelWithdrawals = txSkelWithdrawalsFromList [scriptWithdrawal checkWithdrawalMPScript (inRedeemer * 1_000_000)]
       }
 
 testWithdrawingPK :: (MonadModalBlockChain m) => m ()
 testWithdrawingPK = do
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
-        txSkelCertificates = [pubKeyCertificate (wallet 1) $ StakingRegisterDelegate $ Api.DelegVote Api.DRepAlwaysAbstain]
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelCertificates = [pubKeyCertificate alice (StakingRegisterDelegate $ Api.DelegVote Api.DRepAlwaysAbstain)]
       }
-  registerStakingCred (wallet 1) 2_000_000 0
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
-        txSkelWithdrawals = review txSkelWithdrawalsListI [pubKeyWithdrawal (wallet 1) 2_000_000]
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelWithdrawals = txSkelWithdrawalsFromList [pubKeyWithdrawal alice]
       }
 
 tests :: TestTree

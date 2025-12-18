@@ -26,6 +26,7 @@ checkWithdrawalMPScript =
       Script.mkMultiPurposeScript
         $ Script.falseTypedMultiPurposeScript
         `Script.withRewardingPurpose` checkWithdrawalPurpose
+        `Script.withCertifyingPurpose` ((\_ _ _ _ -> True) :: Script.CertifyingPurposeType' () Api.TxInfo)
 
 trueWithdrawalMPScript :: Script.MultiPurposeScript ()
 trueWithdrawalMPScript =

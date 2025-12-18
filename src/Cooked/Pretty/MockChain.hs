@@ -157,6 +157,12 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
         ]
           ++ prettyCookedOptList opts red
       )
+  prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledWithdrawalAmount cred amount)) =
+    prettyItemize
+      opts
+      "New auto-filled withdrawal amount:"
+      "-"
+      [prettyCookedOpt opts cred, prettyCookedOpt opts (Script.toValue amount)]
 
 instance PrettyCookedList UtxoState where
   prettyCookedOptList opts (UtxoState available consumed) =

@@ -83,7 +83,7 @@ data MockChainBuiltin a where
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
   SetConstitutionScript :: (ToVScript s) => s -> MockChainBuiltin ()
   GetConstitutionScript :: MockChainBuiltin (Maybe VScript)
-  RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
+  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainBuiltin (Maybe Api.Lovelace)
   ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
   -- The empty set of traces
   Empty :: MockChainBuiltin a
@@ -144,7 +144,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (Define name hash) = define name hash
   interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
   interpBuiltin GetConstitutionScript = getConstitutionScript
-  interpBuiltin (RegisterStakingCred cred reward deposit) = registerStakingCred cred reward deposit
+  interpBuiltin (GetCurrentReward cred) = getCurrentReward cred
   interpBuiltin (ForceOutputs outs) = forceOutputs outs
 
 -- ** Helpers to run tweaks for use in tests for tweaks
@@ -237,7 +237,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   define name = singletonBuiltin . Define name
   setConstitutionScript = singletonBuiltin . SetConstitutionScript
   getConstitutionScript = singletonBuiltin GetConstitutionScript
-  registerStakingCred cred reward deposit = singletonBuiltin $ RegisterStakingCred cred reward deposit
+  getCurrentReward = singletonBuiltin . GetCurrentReward
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

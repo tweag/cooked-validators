@@ -146,6 +146,8 @@ data MockChainLogEntry
     MCLogUnusedCollaterals (Either Peer CollateralIns)
   | -- | Logging the automatic addition of a reference script
     MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
+  | -- | Logging the automatic addition of a withdrawal amount
+    MCLogAutoFilledWithdrawalAmount Api.Credential Api.Lovelace
   | -- | Logging the automatic adjusment of a min ada amount
     MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
   deriving (Show)
@@ -193,8 +195,8 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Gets the current official constitution script
   getConstitutionScript :: m (Maybe VScript)
 
-  -- | Registers a staking credential with a given reward and deposit
-  registerStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> m ()
+  -- | Gets the current reward associated with a credential
+  getCurrentReward :: (Script.ToCredential c) => c -> m (Maybe Api.Lovelace)
 
 -- | The final layer of our blockchain, adding transaction validation to the
 -- mix. This is the only primitive that actually modifies the ledger state.
@@ -271,18 +273,21 @@ txSkelDepositedValueInCertificates :: (MonadBlockChainBalancing m) => TxSkel -> 
 txSkelDepositedValueInCertificates txSkel = do
   sDep <- stakeAddressDeposit
   dDep <- dRepDeposit
+  pDep <- stakePoolDeposit
   return $
     foldOf
       ( txSkelCertificatesL
           % traversed
-          % txSkelCertificateActionAT @IsEither
           % to
             ( \case
-                StakingRegister {} -> sDep
-                StakingRegisterDelegate {} -> sDep
-                StakingUnRegister {} -> -sDep
-                DRepRegister {} -> dDep
-                DRepUnRegister {} -> -dDep
+                TxSkelCertificate _ StakingRegister {} -> sDep
+                TxSkelCertificate _ StakingRegisterDelegate {} -> sDep
+                TxSkelCertificate _ StakingUnRegister {} -> -sDep
+                TxSkelCertificate _ DRepRegister {} -> dDep
+                TxSkelCertificate _ DRepUnRegister {} -> -dDep
+                TxSkelCertificate _ PoolRegister {} -> pDep
+                -- There is no special case for 'PoolRetire' because the deposit
+                -- is given back to the reward account.
                 _ -> Api.Lovelace 0
             )
       )
@@ -434,7 +439,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
   define name = lift . define name
   setConstitutionScript = lift . setConstitutionScript
   getConstitutionScript = lift getConstitutionScript
-  registerStakingCred cred reward deposit = lift $ registerStakingCred cred reward deposit
+  getCurrentReward = lift . getCurrentReward
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
@@ -480,7 +485,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidatio
   define name = lift . define name
   setConstitutionScript = lift . setConstitutionScript
   getConstitutionScript = lift getConstitutionScript
-  registerStakingCred cred reward deposit = lift $ registerStakingCred cred reward deposit
+  getCurrentReward = lift . getCurrentReward
 
 instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel

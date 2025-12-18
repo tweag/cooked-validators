@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 -- | This module provides a direct (as opposed to 'Cooked.MockChain.Staged')
 -- implementation of the `MonadBlockChain` specification. This rely on the
@@ -18,6 +19,7 @@ import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Control.Monad.Writer
 import Cooked.InitialDistribution
+import Cooked.MockChain.AutoFillWithdrawals
 import Cooked.MockChain.AutoReferenceScripts
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
@@ -29,10 +31,11 @@ import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
+import Data.Coerce
 import Data.Default
 import Data.Map (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe
 import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as Ledger
@@ -249,22 +252,15 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
           (Cardano.SJust . Cardano.toShelleyScriptHash . Script.toCardanoScriptHash)
             cScript
   getConstitutionScript = gets (view mcstConstitutionL)
-  registerStakingCred (Script.toCredential -> cred) reward deposit = do
+  getCurrentReward (Script.toCredential -> cred) = do
     stakeCredential <- toStakeCredential cred
-    modify' $
-      over
-        mcstLedgerStateL
-        ( Emulator.registerStakeCredential
-            stakeCredential
-            (Cardano.Coin reward)
-            (Cardano.Coin deposit)
-        )
+    gets (fmap coerce . Emulator.getReward stakeCredential . view mcstLedgerStateL)
 
 -- | Most of the logic of the direct emulation happens here
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal | TxSkelOpts {..} <- txSkelOpts skelUnbal = do
+  validateTxSkel txSkel | TxSkelOpts {..} <- txSkelOpts txSkel = do
     -- We log the submission of a new skeleton
-    logEvent $ MCLogSubmittedTxSkel skelUnbal
+    logEvent $ MCLogSubmittedTxSkel txSkel
     -- We retrieve the current parameters
     oldParams <- getParams
     -- We compute the optionally modified parameters
@@ -273,22 +269,23 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
-    minAdaSkelUnbal <- toTxSkelWithMinAda skelUnbal
+    txSkel <- toTxSkelWithMinAda txSkel
     -- We retrieve the official constitution script and attach it to each
     -- proposal that requires it, if it's not empty
-    minAdaSkelUnbalWithConst <-
-      getConstitutionScript <&> maybe minAdaSkelUnbal (flip (over (txSkelProposalsL % traversed)) minAdaSkelUnbal . autoFillConstitution)
+    txSkel <- getConstitutionScript <&> maybe txSkel (flip (over (txSkelProposalsL % traversed)) txSkel . autoFillConstitution)
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are allowed to be auto filled
-    minAdaRefScriptsSkelUnbalWithConst <- toTxSkelWithReferenceScripts minAdaSkelUnbalWithConst
+    txSkel <- toTxSkelWithReferenceScripts txSkel
+    -- We attach the reward amount to withdrawals when applicable
+    txSkel <- toTxSkelWithAutoFilledWithdrawalAmounts txSkel
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral user
-    (skel, fee, mCollaterals) <- balanceTxSkel minAdaRefScriptsSkelUnbalWithConst
+    (txSkel, fee, mCollaterals) <- balanceTxSkel txSkel
     -- We log the adjusted skeleton
-    logEvent $ MCLogAdjustedTxSkel skel fee mCollaterals
+    logEvent $ MCLogAdjustedTxSkel txSkel fee mCollaterals
     -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
-    cardanoTx <- Ledger.CardanoEmulatorEraTx . txSkelOptModTx <$> txSkelToCardanoTx skel fee mCollaterals
+    cardanoTx <- Ledger.CardanoEmulatorEraTx . txSkelOptModTx <$> txSkelToCardanoTx txSkel fee mCollaterals
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
     -- We finally run the emulated validation. We update our internal state
@@ -320,9 +317,9 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         -- We retrieve the utxos created by the transaction
         let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
         -- We add the news utxos to the state
-        forM_ (zip utxos (txSkelOuts skel)) $ modify' . uncurry addOutput
+        forM_ (zip utxos (txSkelOuts txSkel)) $ modify' . uncurry addOutput
         -- And remove the old ones
-        forM_ (Map.toList $ txSkelIns skel) $ modify' . removeOutput . fst
+        forM_ (Map.toList $ txSkelIns txSkel) $ modify' . removeOutput . fst
       -- This is a theoretical unreachable case. Since we fail in Phase 2, it
       -- means the transaction involved script, and thus we must have generated
       -- collaterals.
@@ -343,13 +340,12 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     params <- getParams
     -- The emulator takes for granted transactions with a single pseudo input,
     -- which we build to force transaction validation
-    let inputs =
-          [ ( Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) $
-                Cardano.GenesisUTxOKeyHash $
-                  Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
-              Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-            )
-          ]
+    let input =
+          ( Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) $
+              Cardano.GenesisUTxOKeyHash $
+                Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
+            Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+          )
     -- We adjust the outputs for the minimal required ADA if needed
     outputsMinAda <- mapM toTxSkelOutWithMinAda outputs
     -- We transform these outputs to Cardano outputs
@@ -361,7 +357,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             Ledger.CardanoBuildTx
               ( Ledger.emptyTxBodyContent
                   { Cardano.txOuts = outputs',
-                    Cardano.txIns = inputs
+                    Cardano.txIns = [input]
                   }
               )
     -- We retrieve the forcefully validated transaction associated with the
