@@ -343,7 +343,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   -- does not allow for transaction to have no inputs. When this is the case, we
   -- artificially add a requirement of 1 lovelace to force the consumption of a
   -- dummy input.
-  let noInputs = inValue == mempty && missingLeft == mempty
+  let noInputs = inValue == mempty && missingLeft' == mempty
       missingLeft'' = if noInputs then Script.lovelace 1 else missingLeft'
       missingRight'' = if noInputs then missingRight' <> Script.lovelace 1 else missingRight'
   -- This gives us what we need to run our `reachValue` algorithm and append to
