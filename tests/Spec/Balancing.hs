@@ -1,12 +1,10 @@
 module Spec.Balancing where
 
 import Cooked
-import Cooked.MockChain.Staged
 import Data.Default
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Set
 import Data.Set qualified as Set
 import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
@@ -41,7 +39,7 @@ initialDistributionBalancing =
       alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
     ]
 
-type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Maybe (Set Api.TxOutRef, Wallet), [Api.TxOutRef])
+type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Collaterals, [Api.TxOutRef])
 
 spendsScriptUtxo :: (MonadBlockChain m) => Bool -> m (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
@@ -88,14 +86,14 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
                 def
                   { txSkelOptBalancingUtxos =
                       if List.null toBalanceUtxos
-                        then BalancingUtxosFromBalancingWallet
+                        then BalancingUtxosFromBalancingUser
                         else BalancingUtxosFromSet $ Set.fromList toBalanceUtxos,
                     txSkelOptCollateralUtxos =
                       if List.null toCollateralUtxos
-                        then CollateralUtxosFromBalancingWallet
+                        then CollateralUtxosFromBalancingUser
                         else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
                   },
-            txSkelSigners = [alice]
+            txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   (skel', fee, mCols) <- balanceTxSkel skel
   validateTxSkel_ skel
@@ -105,14 +103,14 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 aliceNonOnlyValueUtxos =
   utxosOwnedBySearch alice `filterWithPred` \o ->
-    is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP) o
+    is txSkelOutReferenceScriptAT o
       || is (txSkelOutDatumL % txSkelOutDatumKindAT) o
 
 aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m TxSkelOut
 aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` ((== Api.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is (txSkelOutReferenceScriptL % txSkelOutReferenceScriptVersionedP)
+aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is txSkelOutReferenceScriptAT
 
 emptySearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
 emptySearch = ListT.fromFoldable []
@@ -148,7 +146,7 @@ noBalanceMaxFee = do
             { txSkelOptBalancingPolicy = DoNotBalance,
               txSkelOptFeePolicy = AutoFeeComputation
             },
-        txSkelSigners = [alice]
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
 balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer)
@@ -156,7 +154,7 @@ balanceReduceFee = do
   let skelAutoFee =
         txSkelTemplate
           { txSkelOuts = [bob `receives` Value (Script.ada 50)],
-            txSkelSigners = [alice]
+            txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   (skelBalanced, feeBalanced, mCols) <- balanceTxSkel skelAutoFee
   feeBalanced' <- estimateTxSkelFee skelBalanced feeBalanced mCols
@@ -177,7 +175,7 @@ reachingMagic = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
-        txSkelSigners = [alice],
+        txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelOpts =
           def
             { txSkelOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
@@ -210,7 +208,7 @@ testBalancingSucceedsWith msg props run =
       `withResultProp` \res -> testConjoin (($ res) <$> props)
 
 failsAtBalancingWith :: Api.Value -> Wallet -> MockChainError -> Assertion
-failsAtBalancingWith val' wal' (MCEUnbalanceable wal val) = testBool $ val' == val && wal' == wal
+failsAtBalancingWith val' wal' (MCEUnbalanceable wal val) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
 failsAtBalancingWith _ _ _ = testBool False
 
 failsAtBalancing :: MockChainError -> Assertion
@@ -238,7 +236,7 @@ failsAtCollaterals MCENoSuitableCollateral {} = testBool True
 failsAtCollaterals _ = testBool False
 
 failsLackOfCollateralWallet :: MockChainError -> Assertion
-failsLackOfCollateralWallet (MCEMissingBalancingWallet msg) = "Collateral utxos should be taken from the balancing wallet, but it does not exist." .==. msg
+failsLackOfCollateralWallet (MCEMissingBalancingUser msg) = "Collateral utxos should be taken from the balancing user, but it does not exist." .==. msg
 failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree
@@ -253,7 +251,7 @@ tests =
   let setFixedFee fee txSkelOpts = txSkelOpts {txSkelOptFeePolicy = ManualFee fee}
       setDontAdjustOutput txSkelOpts = txSkelOpts {txSkelOptBalanceOutputPolicy = DontAdjustExistingOutput}
       setDontBalance txSkelOpts = txSkelOpts {txSkelOptBalancingPolicy = DoNotBalance}
-      setCollateralWallet wallet' txSkelOpts = txSkelOpts {txSkelOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
+      setCollateralWallet wallet' txSkelOpts = txSkelOpts {txSkelOptCollateralUtxos = CollateralUtxosFromUser wallet'}
    in testGroup
         "Balancing"
         [ testGroup

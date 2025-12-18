@@ -6,6 +6,8 @@ module Cooked.Tweak.Labels
     removeLabelTweak,
     hasLabelTweak,
     ensureLabelTweak,
+    labelledT,
+    labelledT',
   )
 where
 
@@ -34,7 +36,32 @@ removeLabelTweak lbl = do
   ensureLabelTweak lbl
   overTweak txSkelLabelL . Set.delete $ TxSkelLabel lbl
 
--- | `labelled'` specialised to Text labels.
+-- | Apply a tweak to a given transaction if it has a specific label. Fails if
+-- it does not.This can be useful to apply a tweak to any transaction in a trace
+-- using 'Cooked.MockChain.Staged.somewhere'.
+--
+-- >
+-- > someEndpoint = do
+-- >   ...
+-- >   validateTxSkel' txSkelTemplate
+-- >      { txSkelLabels =
+-- >         [ "InitialMinting"
+-- >         , "AuctionWorkflow"
+-- >         , label SomeLabelType]
+-- >      }
+-- >
+-- > someTest = someEndpoint & eveywhere (labelled SomeLabelType someTweak)
+-- > anotherTest = someEndpoint & somewhere (labelled SomeLabelType someTweak)
+labelled :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m a
+labelled lbl = (ensureLabelTweak lbl >>)
+
+-- | Similar to 'labelled', but does not fail when the label is not present,
+-- thus making this tweak suitable to be used with
+-- 'Cooked.MockChain.Staged.everywhere'
+labelled' :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m ()
+labelled' lbl tweak = hasLabelTweak lbl >>= (`when` void tweak)
+
+-- | `labelled'` specialised to Text labels
 --
 -- >
 -- > someEndpoint = do
@@ -47,25 +74,10 @@ removeLabelTweak lbl = do
 -- >         , label SomeLabelType]
 -- >      }
 -- >
--- > someTest = someEndpoint & somewhere (labelled "Spending" doubleSatAttack)
-labelled :: (MonadTweak m) => Text -> m a -> m a
-labelled = labelled'
+-- > someTest = someEndpoint & somewhere (labelledT "Spending" doubleSatAttack)
+labelledT :: (MonadTweak m) => Text -> m a -> m a
+labelledT = labelled
 
--- | Apply a tweak to a given transaction if it has a specific label. This
--- can be useful to apply a tweak to every (or any) transaction in a set of
--- associated transactions.
---
--- >
--- > someEndpoint = do
--- >   ...
--- >   validateTxSkel' txSkelTemplate
--- >      { txSkelLabels =
--- >         [ "InitialMinting"
--- >         , "AuctionWorkflow"
--- >         , label SomeLabelType]
--- >      }
--- >
--- > someTest = someEndpoint & eveywhere (labelled' SomeLabelType someTweak)
--- > anotherTest = someEndpoint & somewhere (labelled' SomeLabelType someTweak)
-labelled' :: (MonadTweak m, LabelConstrs lbl) => lbl -> m a -> m a
-labelled' lbl = (ensureLabelTweak lbl >>)
+-- | 'labelledT' specialised to Text labels
+labelledT' :: (MonadTweak m) => Text -> m a -> m ()
+labelledT' = labelled'

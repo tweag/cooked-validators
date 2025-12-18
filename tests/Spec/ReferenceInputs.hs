@@ -22,14 +22,14 @@ trace1 = do
             [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
               barTypedValidator `receives` Value (Script.ada 5)
             ],
-          txSkelSigners = [wallet 2]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
         }
   validateTxSkel_
     txSkelTemplate
       { txSkelIns = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
         txSkelInsReference = Set.singleton txOutRefFoo,
         txSkelOuts = [wallet 4 `receives` Value (Script.ada 5)],
-        txSkelSigners = [wallet 3]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
       }
 
 trace2 :: (MonadBlockChain m) => m ()
@@ -41,12 +41,12 @@ trace2 = do
               [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
                 bazTypedValidator `receives` Value (Script.ada 10)
               ],
-            txSkelSigners = [wallet 2]
+            txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
           }
       )
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [wallet 1],
+      { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
         txSkelIns = Map.singleton scriptORef (someTxSkelRedeemer ()),
         txSkelInsReference = Set.singleton refORef
       }

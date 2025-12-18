@@ -1,7 +1,10 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Spec.Attack.DupToken (tests) where
 
 import Cooked
 import Data.Set qualified as Set
+import Optics.Core
 import Plutus.Attack.DupToken
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -12,12 +15,12 @@ dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy ->
 dupTokenTrace pol tName amount recipient = validateTxSkel_ skel
   where
     skel =
-      let mints = txSkelMintsFromList [mint pol emptyTxSkelRedeemer tName amount]
-          mintedValue = txSkelMintsValue mints
+      let mints = review txSkelMintsListI [mint pol () tName amount]
+          mintedValue = Script.toValue mints
        in txSkelTemplate
             { txSkelMints = mints,
               txSkelOuts = [recipient `receives` Value mintedValue],
-              txSkelSigners = [wallet 3]
+              txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
             }
 
 tests :: TestTree
@@ -35,15 +38,16 @@ tests =
             skelIn =
               txSkelTemplate
                 { txSkelMints =
-                    txSkelMintsFromList
-                      [ mint pol1 emptyTxSkelRedeemer tName1 5,
-                        mint pol2 emptyTxSkelRedeemer tName2 7
+                    review
+                      txSkelMintsListI
+                      [ mint pol1 () tName1 5,
+                        mint pol2 () tName2 7
                       ],
                   txSkelOuts =
                     [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                       wallet 2 `receives` Value (Api.assetClassValue ac2 2)
                     ],
-                  txSkelSigners = [wallet 3]
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
                 }
             skelOut select = runTweak (dupTokenAttack select attacker) skelIn
             skelExpected v1 v2 =
@@ -53,37 +57,38 @@ tests =
                         txSkelTemplate
                           { txSkelLabel = Set.singleton $ TxSkelLabel DupTokenLbl,
                             txSkelMints =
-                              txSkelMintsFromList
-                                [ mint pol1 emptyTxSkelRedeemer tName1 v1,
-                                  mint pol2 emptyTxSkelRedeemer tName2 v2
+                              review
+                                txSkelMintsListI
+                                [ mint pol1 () tName1 v1,
+                                  mint pol2 () tName2 v2
                                 ],
                             txSkelOuts =
                               [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                                 wallet 2 `receives` Value (Api.assetClassValue ac2 2),
                                 attacker `receives` Value increment
                               ],
-                            txSkelSigners = [wallet 3]
+                            txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
                           }
                       )
                   ]
          in [ testCase "add one token in every asset class" $
-                skelExpected 6 8 @=? mcrValue <$> skelOut (\_ n -> n + 1),
+                skelExpected 6 8 @=? mcrValue <$> skelOut (\_ _ n -> n + 1),
               testCase "no modified transaction if no increase in value specified" $
-                [] @=? mcrValue <$> skelOut (\_ n -> n),
+                [] @=? mcrValue <$> skelOut (\_ _ n -> n),
               testCase "add tokens depending on the asset class" $
-                skelExpected 10 7 @=? mcrValue <$> skelOut (\ac n -> if ac == ac1 then n + 5 else n)
+                skelExpected 10 7 @=? mcrValue <$> skelOut (\mp tk n -> if Api.assetClass (Script.toCurrencySymbol mp) tk == ac1 then n + 5 else n)
             ],
       testCooked "careful minting policy" $
         let tName = Api.TokenName "MockToken"
             pol = carefulPolicy tName 1
          in mustFailInPhase2Test $
               somewhere
-                (dupTokenAttack (\_ n -> n + 1) (wallet 6))
+                (dupTokenAttack (\_ _ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCooked "careless minting policy" $
         mustSucceedTest $
           somewhere
-            (dupTokenAttack (\_ n -> n + 1) (wallet 6))
+            (dupTokenAttack (\_ _ n -> n + 1) (wallet 6))
             (dupTokenTrace carelessPolicy (Api.TokenName "MockToken") 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
@@ -93,24 +98,24 @@ tests =
             ac2 = Api.assetClass (Script.toCurrencySymbol Script.trueMintingMPScript) (Api.TokenName "preExistingToken")
             skelIn =
               txSkelTemplate
-                { txSkelMints = txSkelMintsFromList [mint pol emptyTxSkelRedeemer tName1 1],
+                { txSkelMints = review txSkelMintsListI [mint pol () tName1 1],
                   txSkelOuts = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
-                  txSkelSigners = [wallet 2]
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
                 }
             skelExpected =
               [ Right
                   ( Api.assetClassValue ac1 1,
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxSkelLabel DupTokenLbl,
-                        txSkelMints = txSkelMintsFromList [mint pol emptyTxSkelRedeemer tName1 2],
+                        txSkelMints = review txSkelMintsListI [mint pol () tName1 2],
                         txSkelOuts =
                           [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),
                             attacker `receives` Value (Api.assetClassValue ac1 1)
                           ],
-                        txSkelSigners = [wallet 2]
+                        txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
                       }
                   )
               ]
-            skelOut = runTweak (dupTokenAttack (\_ i -> i + 1) attacker) skelIn
+            skelOut = runTweak (dupTokenAttack (\_ _ i -> i + 1) attacker) skelIn
          in skelExpected @=? mcrValue <$> skelOut
     ]

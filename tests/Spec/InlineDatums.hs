@@ -28,7 +28,7 @@ listUtxosTestTrace useInlineDatum validator =
     =<< validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
 
 -- | This defines two traces of two transactions each: @spendOutputTestTrace
@@ -48,7 +48,7 @@ spendOutputTestTrace useInlineDatum validator = do
   validateTxSkel_
     txSkelTemplate
       { txSkelIns = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
-        txSkelSigners = [wallet 1]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
 
 -- | This defines two traces of two transactions each: On the first transaction,
@@ -81,7 +81,7 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
                    )
                 SecondPaymentDatum
           ],
-        txSkelSigners = [wallet 1]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
 
 tests :: TestTree

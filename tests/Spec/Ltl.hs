@@ -14,11 +14,12 @@ import Test.Tasty.HUnit
 data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
   GetInteger :: TestBuiltin Integer
+  EmitUnmodified :: Integer -> TestBuiltin ()
 
 type TestModification = Integer -> Integer
 
 instance {-# OVERLAPS #-} Semigroup TestModification where
-  a <> b = a . b
+  a <> b = b . a
 
 instance {-# OVERLAPS #-} Monoid TestModification where
   mempty = id
@@ -29,6 +30,11 @@ instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integ
     get
       >>= msum
         . map (\(now, later) -> tell [now i] <* put later)
+        . nowLaterList
+  interpBuiltin (EmitUnmodified i) = do
+    get
+      >>= msum
+        . map (\(now, later) -> guard (now i == i) >> tell [now i] <* put later)
         . nowLaterList
 
 {- Remark: Why are we re-defining 'somewhere' and 'everywhere' here?
@@ -66,6 +72,9 @@ emitInteger i = Instr (Builtin (EmitInteger i)) Return
 
 getInteger :: Staged (LtlOp TestModification TestBuiltin) Integer
 getInteger = Instr (Builtin GetInteger) Return
+
+emitUnmodified :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
+emitUnmodified i = Instr (Builtin (EmitUnmodified i)) Return
 
 go :: Staged (LtlOp TestModification TestBuiltin) a -> [[Integer]]
 go = execWriterT . flip execStateT [] . interpLtl
@@ -129,7 +138,6 @@ tests =
         "unit tests"
         [ testCase "LtlNext changes the second step" $
             let n = 3
-
                 incSeconds :: [[Integer]] -> [[Integer]]
                 incSeconds = filter (/= []) . map incSecond
                   where
@@ -144,7 +152,6 @@ tests =
                   ),
           testCase "everywhere changes everything" $
             let n = 3
-
                 incAll :: [[Integer]] -> [[Integer]]
                 incAll = map (map (+ n))
              in assertAll
@@ -152,7 +159,6 @@ tests =
                   (\tr -> assertEqualSets (go $ everywhere (n +) tr) (incAll $ go tr)),
           testCase "somewhere case-splits" $
             let n = 3
-
                 caseSplit :: [[Integer]] -> [[Integer]]
                 caseSplit = concatMap alternatives
                   where
@@ -176,9 +182,13 @@ tests =
             let tr = emitInteger 42 >> emitInteger 3
              in assertEqualSets
                   (go $ somewhere (1 +) $ somewhere (2 +) tr)
-                  [[42 + 1 + 2, 3], [42, 3 + 1 + 2], [42 + 1, 3 + 2], [42 + 2, 3 + 1]],
+                  [ [42 + 1 + 2, 3],
+                    [42, 3 + 1 + 2],
+                    [42 + 1, 3 + 2],
+                    [42 + 2, 3 + 1]
+                  ],
           testCase "modality order is respected" $
-            assertEqualSets (go $ everywhere (1 +) $ everywhere (const 2) $ emitInteger 1) [[3]],
+            assertEqualSets (go $ everywhere (1 +) $ everywhere (const 2) $ emitInteger 1) [[2]],
           testCase "nested everywhere combines modifications" $
             assertEqualSets
               ( go $
@@ -191,6 +201,75 @@ tests =
                         )
                       >> emitInteger 45
               )
-              [[42 + 1, 43 + 1 + 2, 44 * 3 + 1 + 2, 45 + 1]]
-        ]
+              [[42 + 1, 43 + 1 + 2, (44 + 1 + 2) * 3, 45 + 1]]
+        ],
+      testGroup
+        "LTL Combinators"
+        $ let traceSolo = emitInteger 24
+              traceDuo = emitInteger 24 >> emitInteger 13
+              traceFail = traceSolo >> emitUnmodified 35 >> traceSolo
+           in [ testCase "anyOf" $
+                  assertEqualSets
+                    (go $ modifyLtl (anyOf [(+ 5), (* 5)]) traceSolo)
+                    [ [24 + 5],
+                      [24 * 5]
+                    ],
+                testCase "anyOf [always, eventually]" $
+                  assertEqualSets
+                    (go $ modifyLtl (anyOf' [always (+ 5), eventually (* 5)]) traceDuo)
+                    [ [24 + 5, 13 + 5],
+                      [24 * 5, 13],
+                      [24, 13 * 5]
+                    ],
+                testCase "anyOf [always anyOf, eventually anyOf]" $
+                  assertEqualSets
+                    (go $ modifyLtl (anyOf' [always' (anyOf [(+ 5), (* 5)]), eventually' (anyOf [(+ 5), (* 5)])]) traceDuo)
+                    [ [24 + 5, 13 + 5],
+                      [24 + 5, 13 * 5],
+                      [24 * 5, 13 * 5],
+                      [24 * 5, 13 + 5],
+                      [24 + 5, 13],
+                      [24 * 5, 13],
+                      [24, 13 + 5],
+                      [24, 13 * 5]
+                    ],
+                testCase "allOf" $
+                  assertEqualSets
+                    (go $ modifyLtl (allOf [(+ 5), (* 5)]) traceSolo)
+                    [[(24 + 5) * 5]],
+                testCase "allOf [anyOf, anyOf]" $
+                  assertEqualSets
+                    (go $ modifyLtl (allOf' [anyOf [(+ 5), (* 5)], anyOf [(+ 5), (* 5)]]) traceSolo)
+                    [ [24 + 5 + 5],
+                      [24 * 5 + 5],
+                      [24 * 5 * 5],
+                      [(24 + 5) * 5]
+                    ],
+                testCase "delay (neg)" $
+                  assertEqualSets
+                    (go $ modifyLtl (delay 0 (+ 5)) traceDuo)
+                    (go $ modifyLtl (delay (-10) (+ 5)) traceDuo),
+                testCase "delay (pos)" $
+                  assertEqualSets
+                    (go $ modifyLtl (delay 1 (+ 5)) traceDuo)
+                    [[24, 13 + 5]],
+                testCase "delay (anyOf [eventually, always])" $
+                  assertEqualSets
+                    (go $ modifyLtl (delay' 3 (anyOf' [eventually (+ 5), always (* 5)])) (traceDuo >> traceDuo >> traceDuo))
+                    [ [24, 13, 24, 13 + 5, 24, 13],
+                      [24, 13, 24, 13, 24 + 5, 13],
+                      [24, 13, 24, 13, 24, 13 + 5],
+                      [24, 13, 24, 13 * 5, 24 * 5, 13 * 5]
+                    ],
+                testCase "always fails if a step cannot be modified" $
+                  assertEqualSets
+                    (go $ modifyLtl (always (+ 5)) traceFail)
+                    [],
+                testCase "eventually succeeds if a step cannot be modified" $
+                  assertEqualSets
+                    (go $ modifyLtl (eventually (+ 5)) traceFail)
+                    [ [24 + 5, 35, 24],
+                      [24, 35, 24 + 5]
+                    ]
+              ]
     ]

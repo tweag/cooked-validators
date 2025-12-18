@@ -40,14 +40,13 @@ import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- * Interpreting and running 'StagedMockChain'
 
 -- | Interprets the staged mockchain then runs the resulting computation with a
 -- custom function. This can be used, for example, to supply a custom
--- 'InitialDistribution' by providing 'runMockChainTFrom'.
+-- 'InitialDistribution' by providing 'runMockChainTFromInitDist'.
 interpretAndRunWith ::
   (forall m. (Monad m) => MockChainT m a -> m res) ->
   StagedMockChain a ->
@@ -82,13 +81,13 @@ data MockChainBuiltin a where
   UtxosAt :: (Script.ToAddress a) => a -> MockChainBuiltin [(Api.TxOutRef, TxSkelOut)]
   LogEvent :: MockChainLogEntry -> MockChainBuiltin ()
   Define :: (ToHash a) => String -> a -> MockChainBuiltin a
-  SetConstitutionScript :: (Script.ToVersioned Script.Script s) => s -> MockChainBuiltin ()
-  GetConstitutionScript :: MockChainBuiltin (Maybe (Script.Versioned Script.Script))
-  RegisterStakingCred :: (Script.ToCredential c) => c -> Integer -> Integer -> MockChainBuiltin ()
+  SetConstitutionScript :: (ToVScript s) => s -> MockChainBuiltin ()
+  GetConstitutionScript :: MockChainBuiltin (Maybe VScript)
+  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainBuiltin (Maybe Api.Lovelace)
   ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
-  -- | The empty set of traces
+  -- The empty set of traces
   Empty :: MockChainBuiltin a
-  -- | The union of two sets of traces
+  -- The union of two sets of traces
   Alt :: StagedMockChain a -> StagedMockChain a -> MockChainBuiltin a
   -- for the 'MonadFail' instance
   Fail :: String -> MockChainBuiltin a
@@ -145,7 +144,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (Define name hash) = define name hash
   interpBuiltin (SetConstitutionScript script) = setConstitutionScript script
   interpBuiltin GetConstitutionScript = getConstitutionScript
-  interpBuiltin (RegisterStakingCred cred reward deposit) = registerStakingCred cred reward deposit
+  interpBuiltin (GetCurrentReward cred) = getCurrentReward cred
   interpBuiltin (ForceOutputs outs) = forceOutputs outs
 
 -- ** Helpers to run tweaks for use in tests for tweaks
@@ -157,7 +156,7 @@ runTweak = runTweakFrom def
 -- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
 -- mockchain
 runTweakFrom :: InitialDistribution -> Tweak InterpMockChain a -> TxSkel -> [MockChainReturn (a, TxSkel)]
-runTweakFrom initDist tweak = runMockChainTFrom initDist . runTweakInChain tweak
+runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInChain tweak
 
 -- ** Modalities
 
@@ -238,7 +237,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   define name = singletonBuiltin . Define name
   setConstitutionScript = singletonBuiltin . SetConstitutionScript
   getConstitutionScript = singletonBuiltin GetConstitutionScript
-  registerStakingCred cred reward deposit = singletonBuiltin $ RegisterStakingCred cred reward deposit
+  getCurrentReward = singletonBuiltin . GetCurrentReward
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

@@ -13,29 +13,47 @@
   of `TxSkel`. Initial distributions are now handled using this primitive.
 - Added `somewhere'`, `everywhere'` and `there'` which accept arbitrary `Ltl`
   expressions. 
-- Added `labelled` and `labelled'` tweaks, to apply a tweak to transactions with
-  a specific label.
+- Added `labelled[T][']` tweaks, to apply a tweak to transactions with a
+  specific label.
 - Added `label` and as `IsString` instance for `TxSkelLabel` to make adding 
   labels easier.
 - Added `Cooked.Ltl.Combinators` with `anyOf[']` and `allOf[']` helpers to 
-  make combining multiple `Ltl` expressions together simpler:
-  
-    ```haskell
-    someTest = someTrace 
-      & everywhere' (anyOf 
-        [ UntypedTweak doubleSatAttack
-        , UntypedTweak addTokenAttack
-        , UntypedTweak customAttack ]
-        )
-    
-    tweakOneWorkflow = someTrace 
-      & labelled "SomeWorkflow" someTweak
-    ```
-
+  make combining multiple `Ltl` expressions together simpler.
 - `delay[']` delays an Ltl formula by n timestamps. 
 - `there`, `everywhere` and `somewhere` is now implemented
   in terms of `Cooked.Ltl.Combinators`.
-
+- Module `Cooked.MockChain.AutoFilling` to gather all automated filling of
+  skeleton parts performed during pre-validation phase. This include the new
+  automated assignment of withdrawn amounts, and automated assignment of
+  constitution script.
+- Log events `MCLogAutoFilledConstitution` and `MCLogAutoFilledWithdrawalAmount`
+  to log the respective auto filling occurrences.
+- Handling certificates
+- A notion of `User`, now used widely in the library, in module
+  `Cooked.Skeleton.User`, alongside relevant type families around the type, in
+  module `Cooked.Skeleton.Families`.
+- Aliases for fees (`Fee`), collaterals (`CollateralIns`, `Collaterals`) and
+  list of utxos (`Utxos`).
+- `TxSkelSignatory` in module `Cooked.Skeleton.Signatory`. Signatories are no
+  longer forced to expose a private key, in which case they will be in required
+  signer, but will not sign the transaction. This opens up the possibility to
+  delay signatures.
+- Primitive `getCurrentReward` to retrieve the current rewards of a staking
+  credential, which will always be 0 at this point.
+- Functions to fetch, from the protocol parameters, the current deposits values
+  (`dRepDeposit`, `stakeAddressDeposit` and `stakePoolDeposit`).
+- Function `txSkelDepositedValueInCertificates` to fetch the total value
+  deposited in certificates (which can be negative in case of deregistration).
+- Anchors have their own builtin depiction and generation function.
+- `txSkelMintsPolicyTokensL` to focus on the submap of a specific currency
+  symbol within a `TxSkelMints`.
+- Module `Cooked.Skeleton.Value` which exposes useful optics around values.
+- New function `txSkelCertifyingScripts` collecting all certifying script from a
+  skeleton.
+- Balancing will now automatically attach an input utxo when there are not and
+  the balancing is in favour of the output, to avoid sending transaction with no
+  inputs.
+  
 ### Removed
 
 - Module `Cooked.Skeleton.Value`. `TxSkelOutValue` no longer exists and has been
@@ -47,6 +65,17 @@
   `previewByRef`.
 - `DatumContent`. In a `TxSkelOutDatum` the datum is now stored as is, and a new
   type, `UtxoPayloadDatum` is used to store datum in utxo payloads.
+- Module `Cooked.Attack.DupToken`, now regrouped with `Cooked.Attack.AddToken`
+- Module `Cooked.MockChain.GenerateTx`, whose content can now be found in
+  `Cooked.MockChain.GenerateTx.Body`
+- Modules `Cooked.MockChain.MinAda`, `Cooked.MockChain.AutoReferenceScript`,
+  regrouped in module `Cooked.MockChain.AutoFilling`
+- Primitive `registerStakingCred` from the `MonadBlockChain` class, no longer
+  needed thanks to the handling of certificates.
+- Module `Cooked.Skeleton.Payable`, spread across `Cooked.Skeleton.Output` and
+  `Cooked.Skeleton.Families`.
+- Module `Cooked.Skeleton.ReferenceScript`, now directly handled in
+  `Cooked.Skeleton.Output`.
 
 ### Changed
 
@@ -69,6 +98,31 @@
   and are replaced by their optics counterpart, such as `view txSkelOuValueL`. 
 - `addMintTweak` replaced by `addMintsTweak` which can add multiple mint
   constraints in one go.
+- Improved, and regrouped, token duplication and token addition attacks.
+- Fully reworked datum hijacking attacks, with a new `DatumHijackingParams` type
+  to pilot how the datum hijacking should be performed.
+- Wallets are no longer integral to cooked. They are still present but only for
+  testing purposes. They have been replaced by relevant replacements, in
+  particular `User` where applicable.
+- `txSkelSigners` has been replaced by `txSkelSignatories`, which is a list of
+  `TxSkelSignatory`. It can still be built by lists of wallets using
+  `txSkelSignatoriesFromList`. All occurrences of 'signer' in the codebase have
+  been replaced by 'signatory'.
+- `txSkelInputsValidators` renamed to `txSkelInputScripts`
+- `txSkelProposalsDeposit` renamed to `txSkelDepositedValueInProposals`
+- Functions to run a `MockChainT` have been revisited to be more flexible. A
+  type `MockChainConf` has been added to pilot the run. It contains an initial
+  state, an initial distribution of funds, and a function to apply on the raw
+  result of the run.
+- Testing functions `isInWallets` and `isInWallet` have been changed and renamed
+  to `isAtAddress` and `possesses`.
+- Full upgrade and reworking of the withdrawals. 
+- Module `Cooked` now exposes much more of the library. The idea is to hide as
+  few definitions as possible, only those that are really not meant to be used,
+  such as unsafe constructors.
+- Versions of our nix dependencies, hackage and chap index states, and Cardano
+  library have been updated. In particular, the current version of cardano-api
+  is now 10.18.1.0, the last one before Dijsktra.
 
 ### Fixed
 

@@ -1,7 +1,6 @@
 module Spec.ReferenceScripts where
 
-import Cardano.Api.Internal.Tx.Body qualified as Cardano
-import Cardano.Api.Internal.Tx.Sign qualified as Cardano
+import Cardano.Api qualified as Cardano
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -24,7 +23,7 @@ putRefScriptOnWalletOutput recipient referenceScript =
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
 
 putRefScriptOnScriptOutput ::
@@ -37,11 +36,8 @@ putRefScriptOnScriptOutput recipient referenceScript =
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
-
-retrieveRefScriptHash :: (MonadBlockChain m) => V3.TxOutRef -> m (Maybe Api.ScriptHash)
-retrieveRefScriptHash = previewByRef (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF)
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>
@@ -53,13 +49,13 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` Value (Script.ada 42)],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_
     txSkelTemplate
       { txSkelIns = Map.singleton oref emptyTxSkelRedeemer,
         txSkelInsReference = Set.singleton refScriptOref,
-        txSkelSigners = [wallet 1]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
 
 -- The boolean states whether or not the input hosting the reference script
@@ -73,15 +69,15 @@ useReferenceScript spendingSubmitter consumeScriptOref theScript = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel
     txSkelTemplate
       { txSkelIns =
           Map.fromList $
-            (oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref)
+            (oref, TxSkelRedeemer () (Just scriptOref) False)
               : [(scriptOref, emptyTxSkelRedeemer) | consumeScriptOref],
-        txSkelSigners = spendingSubmitter : [wallet 3 | consumeScriptOref]
+        txSkelSignatories = txSkelSignatoriesFromList $ spendingSubmitter : [wallet 3 | consumeScriptOref]
       }
 
 useReferenceScriptInInputs :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
@@ -91,12 +87,12 @@ useReferenceScriptInInputs spendingSubmitter theScript = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_
     txSkelTemplate
-      { txSkelIns = Map.fromList [(oref, emptyTxSkelRedeemer `withReferenceInput` scriptOref), (scriptOref, emptyTxSkelRedeemer)],
-        txSkelSigners = [spendingSubmitter]
+      { txSkelIns = Map.fromList [(oref, TxSkelRedeemer () (Just scriptOref) False), (scriptOref, emptyTxSkelRedeemer)],
+        txSkelSignatories = txSkelSignatoriesFromList [spendingSubmitter]
       }
 
 referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
@@ -108,16 +104,18 @@ referenceMint mp1 mp2 n autoRefScript = do
             [ wallet 1 `receives` Value (Script.ada 2) <&&> ReferenceScript mp1,
               wallet 1 `receives` Value (Script.ada 10)
             ],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_ $
     txSkelTemplate
       { txSkelMints =
-          txSkelMintsFromList
-            [ mint mp2 (if autoRefScript then emptyTxSkelRedeemer else emptyTxSkelRedeemer `withReferenceInput` mpOutRef) (Api.TokenName "banana") 3
+          review
+            txSkelMintsListI
+            [ set (mintRedeemedScriptL % userTxSkelRedeemerL) (if autoRefScript then emptyTxSkelRedeemer else TxSkelRedeemer () (Just mpOutRef) False) $
+                mint mp2 () (Api.TokenName "banana") 3
             ],
         txSkelOuts = [wallet 1 `receives` Value (Script.ada 2 <> Api.assetClassValue (Api.AssetClass (Script.toCurrencySymbol mp2, Api.TokenName "banana")) 3)],
-        txSkelSigners = [wallet 1]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
 
 tests :: TestTree
@@ -129,11 +127,11 @@ tests =
             theRefScriptHash = Script.toScriptHash theRefScript
          in [ testCooked "on a public key output" $
                 mustSucceedTest
-                  (putRefScriptOnWalletOutput (wallet 3) theRefScript >>= retrieveRefScriptHash)
+                  (putRefScriptOnWalletOutput (wallet 3) theRefScript >>= previewByRef txSkelOutReferenceScriptHashAF)
                   `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.)),
               testCooked "on a script output" $
                 mustSucceedTest
-                  (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= retrieveRefScriptHash)
+                  (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= previewByRef txSkelOutReferenceScriptHashAF)
                   `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.))
             ],
       testGroup
@@ -161,12 +159,12 @@ tests =
                       txSkelTemplate
                         { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                           txSkelIns = Map.singleton consumedOref emptyTxSkelRedeemer,
-                          txSkelSigners = [wallet 1]
+                          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                         }
                   validateTxSkel_
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (emptyTxSkelRedeemer `withReferenceInput` consumedOref),
-                        txSkelSigners = [wallet 1]
+                      { txSkelIns = Map.singleton oref (TxSkelRedeemer () (Just consumedOref) False),
+                        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                       }
               )
               `withErrorProp` \case
@@ -180,12 +178,12 @@ tests =
                     validateTxSkel'
                       txSkelTemplate
                         { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
-                          txSkelSigners = [wallet 1]
+                          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                         }
                   validateTxSkel_
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (emptyTxSkelRedeemer `withReferenceInput` scriptOref),
-                        txSkelSigners = [wallet 1]
+                      { txSkelIns = Map.singleton oref (TxSkelRedeemer () (Just scriptOref) False),
+                        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                       }
               )
               `withErrorProp` \case
@@ -198,13 +196,13 @@ tests =
                 validateTxSkel'
                   txSkelTemplate
                     { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
-                      txSkelSigners = [wallet 1]
+                      txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                     }
               validateTxSkel_
                 txSkelTemplate
                   { txSkelIns = Map.singleton oref emptyTxSkelRedeemerNoAutoFill,
                     txSkelInsReference = Set.singleton scriptOref,
-                    txSkelSigners = [wallet 1]
+                    txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                   },
           testCooked "fail if reference script's requirement is violated" $
             mustFailInPhase2WithMsgTest "the required signer is missing" $

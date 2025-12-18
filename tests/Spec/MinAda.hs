@@ -27,7 +27,7 @@ paymentWithMinAda = do
     validateTxSkel
       txSkelTemplate
         { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
-          txSkelSigners = [wallet 1]
+          txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0) <$> utxosFromCardanoTx tx
 
@@ -36,7 +36,7 @@ paymentWithoutMinAda paidLovelaces = do
   validateTxSkel_
     txSkelTemplate
       { txSkelOuts = [wallet 2 `receives` FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum],
-        txSkelSigners = [wallet 1]
+        txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
 
 tests :: TestTree

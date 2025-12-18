@@ -28,7 +28,6 @@ dependencies:
   - microlens
   - monad-control
   - mtl
-  - nonempty-containers
   - optics-core
   - optics-th
   - ordered-containers

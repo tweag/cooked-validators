@@ -16,16 +16,11 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- * Initial distribution of funds
 
--- | Describes the initial distribution of UTxOs per wallet. This is important
--- since transaction validation must specify a /collateral/. Hence, wallets must
--- have more than one UTxO to begin with in order to execute a transaction and
--- have some collateral option. The @txCollateral@ is transferred to the node
--- operator in case the transaction fails to validate.
+-- | Describes the initial distribution of UTxOs per user.
 --
 --  The following specifies a starting state where @wallet 1@ owns two UTxOs,
 --  one with 42 Ada and one with 2 Ada and one "TOK" token; @wallet 2@ owns a
---  single UTxO with 10 Ada and @wallet 3@ has 10 Ada and a permanent value. See
---  "Cooked.Currencies" for more information on quick and permanent values.
+--  single UTxO with 10 Ada and @wallet 3@ has 10 Ada and a permanent value
 --
 --  > i0 = distributionFromList $
 --  >        [ (wallet 1 , [ ada 42 , ada 2 <> quickValue "TOK" 1 ]
@@ -33,9 +28,8 @@ import PlutusLedgerApi.V3 qualified as Api
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 --  >        ]
 --
--- Note that initial distribution can lead to payments that would not be
--- accepted if part of an actual transaction, such as payment without enough ada
--- to sustain themselves.
+-- Note that payment issued through an initial distribution will be attached
+-- enough ADA to sustain themselves.
 data InitialDistribution where
   InitialDistribution ::
     {unInitialDistribution :: [TxSkelOut]} ->
@@ -51,6 +45,6 @@ instance Semigroup InitialDistribution where
 instance Monoid InitialDistribution where
   mempty = InitialDistribution mempty
 
--- | Creating a initial distribution with simple values assigned to wallets
-distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution
+-- | Creating a initial distribution with simple values assigned to owners
+distributionFromList :: (IsTxSkelOutAllowedOwner owner) => [(owner, [Api.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (receives user . Value) values) []

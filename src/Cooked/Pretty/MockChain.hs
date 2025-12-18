@@ -10,13 +10,15 @@ import Cooked.MockChain.UtxoState
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
-import Cooked.Wallet
+import Cooked.Skeleton.User
+import Cooked.Wallet (walletPKHashToId)
 import Data.Function (on)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
+import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -36,16 +38,19 @@ instance (Show a) => PrettyCooked (MockChainReturn a) where
                Right a -> "🟢 Returned value:" <+> PP.viaShow a
            ]
 
+instance PrettyCooked Peer where
+  prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
+
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
-  prettyCookedOpt _ (MCEMissingBalancingWallet msg) = "Missing balancing wallet:" <+> PP.pretty msg
-  prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue) =
+  prettyCookedOpt _ (MCEMissingBalancingUser msg) = "Missing balancing user:" <+> PP.pretty msg
+  prettyCookedOpt opts (MCEUnbalanceable balUser missingValue) =
     prettyItemize
       opts
       "Unbalanceable:"
       "-"
-      [ prettyCookedOpt opts balWallet <+> "does not have enough funds",
+      [ prettyCookedOpt opts balUser <+> "does not have enough funds",
         if missingValue == mempty
           then "Not enough funds to sustain the minimal ada of the return utxo"
           else "Unable to find" <+> prettyCookedOpt opts missingValue
@@ -109,9 +114,9 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
           ++ ( ("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee))
                  : maybe
                    ["No collateral required"]
-                   ( \(collaterals, returnWallet) ->
+                   ( \(collaterals, returnUser) ->
                        [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
-                         "Return collateral target:" <+> prettyCookedOpt opts returnWallet
+                         "Return collateral target:" <+> prettyCookedOpt opts returnUser
                        ]
                    )
                    mCollaterals
@@ -152,6 +157,14 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
         ]
           ++ prettyCookedOptList opts red
       )
+  prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledWithdrawalAmount cred amount)) =
+    prettyItemize
+      opts
+      "New auto-filled withdrawal amount:"
+      "-"
+      [prettyCookedOpt opts cred, prettyCookedOpt opts (Script.toValue amount)]
+  prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledConstitution constitution)) =
+    "New auto-filled constitution:" <+> prettyHash opts constitution
 
 instance PrettyCookedList UtxoState where
   prettyCookedOptList opts (UtxoState available consumed) =

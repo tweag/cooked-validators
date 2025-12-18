@@ -1,8 +1,13 @@
--- | This module exposes the labels that can be used to stamp
+-- | This module exposes the labels that can be used to stamp a
 -- 'Cooked.Skeleton.TxSkel' with additional arbitrary pieces of information.
 module Cooked.Skeleton.Label
-  ( LabelConstrs,
+  ( -- * Type constraints
+    LabelConstrs,
+
+    -- * Data types
     TxSkelLabel (..),
+
+    -- * Optics
     txSkelLabelTypedP,
     label,
   )

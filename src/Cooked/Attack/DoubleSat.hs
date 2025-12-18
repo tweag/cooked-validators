@@ -13,10 +13,10 @@ import Cooked.MockChain.BlockChain
 import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
-import Cooked.Wallet
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Optics.Core
+import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -66,7 +66,7 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 -- value contained in new inputs to the transaction is then paid to the
 -- attacker.
 doubleSatAttack ::
-  (MonadTweak m, Eq is, Is k A_Traversal) =>
+  (MonadTweak m, Eq is, Is k A_Traversal, IsTxSkelOutAllowedOwner owner) =>
   -- | how to combine modifications from caused by different foci. See the
   -- comment at 'combineModsTweak', which uses the same logic.
   ([is] -> [[is]]) ->
@@ -97,19 +97,19 @@ doubleSatAttack ::
   --
   -- ###################################
   (is -> a -> m [(a, DoubleSatDelta)]) ->
-  -- | The wallet of the attacker, where any surplus is paid to.
+  -- | The attacker, who receives any surplus.
   --
   -- In the example, the extra value in the added input will be paid to the
   -- attacker.
-  Wallet ->
+  owner ->
   m ()
-doubleSatAttack groupings optic change attacker = do
+doubleSatAttack groupings optic change target = do
   deltas <- combineModsTweak groupings optic change
   let delta = joinDoubleSatDeltas deltas
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta
   if addedValue `Api.gt` mempty
-    then addOutputTweak $ attacker `receives` Value addedValue
+    then addOutputTweak $ target `receives` Value addedValue
     else failingTweak
   addLabelTweak DoubleSatLbl
   where
@@ -118,10 +118,7 @@ doubleSatAttack groupings optic change attacker = do
     deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Api.Value
     deltaBalance (inputs, outputs, mints) = do
       inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
-      return $ inValue <> PlutusTx.negate outValue <> mintValue
-      where
-        outValue = foldOf (traversed % txSkelOutValueL) outputs
-        mintValue = view txSkelMintsValueG mints
+      return $ inValue <> PlutusTx.negate (foldOf (traversed % txSkelOutValueL) outputs) <> Script.toValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
     addDoubleSatDeltaTweak :: (MonadTweak m) => DoubleSatDelta -> m ()

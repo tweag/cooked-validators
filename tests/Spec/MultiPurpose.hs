@@ -3,8 +3,8 @@
 module Spec.MultiPurpose where
 
 import Cooked
-import Data.Default
 import Data.Map qualified as HMap
+import Optics.Core
 import Plutus.MultiPurpose
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -31,7 +31,7 @@ runScript = do
             [ alice `receives` Value (Script.ada 3),
               alice `receives` Value (Script.ada 5)
             ],
-          txSkelSigners = [bob]
+          txSkelSignatories = txSkelSignatoriesFromList [bob]
         }
 
   script <- define "My multipurpose script" $ mpScript txId
@@ -46,7 +46,7 @@ runScript = do
   (oRefScript1' : oRefScript2' : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelSigners = [alice],
+        { txSkelSignatories = txSkelSignatoriesFromList [alice],
           txSkelIns =
             HMap.fromList
               [ (oRefScript, someTxSkelRedeemer Close),
@@ -57,13 +57,13 @@ runScript = do
             [ script `receives` InlineDatum (0 :: Integer) <&&> Value mintValue2,
               script `receives` InlineDatum (1 :: Integer) <&&> Value mintValue3
             ],
-          txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn1 1]
+          txSkelMints = review txSkelMintsListI [burn script BurnToken tn1 1]
         }
 
   (oRefScript2'' : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelSigners = [bob],
+        { txSkelSignatories = txSkelSignatoriesFromList [bob],
           txSkelIns =
             HMap.fromList
               [ (oRefScript1', someTxSkelRedeemer Close),
@@ -72,26 +72,26 @@ runScript = do
           txSkelOuts =
             [ script `receives` InlineDatum (0 :: Integer) <&&> Value mintValue3
             ],
-          txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn2 1]
+          txSkelMints = review txSkelMintsListI [burn script BurnToken tn2 1]
         }
 
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelSigners = [alice],
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelIns = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
-        txSkelMints = txSkelMintsFromList [burn script (someTxSkelRedeemer BurnToken) tn3 1]
+        txSkelMints = review txSkelMintsListI [burn script BurnToken tn3 1]
       }
   where
     mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript MPTag -> (TxSkel, Api.Value, Api.TokenName)
-    mkMintSkel signer oRef@(Api.TxOutRef _ ix) script =
+    mkMintSkel signer oRef@(Api.TxOutRef _ index) script =
       let tn = txOutRefToToken oRef
-          mints = txSkelMintsFromList [mint script (someTxSkelRedeemer (MintToken oRef)) tn 1]
-          mintValue = txSkelMintsValue mints
+          mints = review txSkelMintsListI [mint script (MintToken oRef) tn 1]
+          mintValue = Script.toValue mints
        in ( txSkelTemplate
               { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,
                 txSkelMints = mints,
-                txSkelOuts = [script `receives` InlineDatum ix <&&> Value (txSkelMintsValue mints)],
-                txSkelSigners = [signer]
+                txSkelOuts = [script `receives` InlineDatum index <&&> Value mintValue],
+                txSkelSignatories = txSkelSignatoriesFromList [signer]
               },
             mintValue,
             tn
@@ -101,21 +101,21 @@ tests :: TestTree
 tests =
   testGroup
     "Multi purpose scripts"
-    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript `withPrettyOpts` def {pcOptPrintTxOutRefs = PCOptTxOutRefsFull},
+    [ testCooked "Using a script as minting and spending in the same scenario" $ mustSucceedTest runScript,
       testGroup
         "The Spending purpose behaves properly"
         [ testCooked "We cannot redirect any output to a private key" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack @(Script.MultiPurposeScript MPTag) alice) runScript,
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams alice) runScript,
           testCooked "We cannot redirect any output to another script" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack @(Script.MultiPurposeScript MPTag) (Script.trueSpendingMPScript @())) runScript
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams $ Script.trueSpendingMPScript @()) runScript
         ],
       testGroup
         "The Minting purpose behaves properly"
         [ testCooked "We cannot duplicate the tokens" $
             mustFailWithSizeTest 6 $
-              somewhere (dupTokenAttack (\_ n -> n + 1) alice) runScript,
+              somewhere (dupTokenAttack (\_ _ n -> n + 1) alice) runScript,
           testCooked "We cannot mint additional tokens" $
             mustFailWithSizeTest 6 $
               somewhere (addTokenAttack (const [(Api.TokenName "myToken", 1)]) alice) runScript

@@ -21,20 +21,23 @@ import Data.Map.Strict qualified as Map
 import Ledger.Orphans ()
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | The state used to run the simulation in 'Cooked.MockChain.Direct'
-data MockChainState = MockChainState
-  { mcstParams :: Emulator.Params,
-    mcstLedgerState :: Emulator.EmulatedLedgerState,
-    -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
-    -- alongside a boolean to state whether this UTxO is still present in the
-    -- index ('True') or has already been consumed ('False').
-    mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
-    -- | The constitution script to be used with proposals
-    mcstConstitution :: Maybe (Script.Versioned Script.Script)
-  }
+data MockChainState where
+  MockChainState ::
+    { -- | The parametors of the emulated blockchain
+      mcstParams :: Emulator.Params,
+      -- | The ledger state of the emulated blockchain
+      mcstLedgerState :: Emulator.EmulatedLedgerState,
+      -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
+      -- alongside a boolean to state whether this UTxO is still present in the
+      -- index ('True') or has already been consumed ('False').
+      mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+      -- | The constitution script to be used with proposals
+      mcstConstitution :: Maybe VScript
+    } ->
+    MockChainState
   deriving (Show)
 
 -- | A lens to set or get the parameters of the 'MockChainState'
@@ -69,7 +72,7 @@ mcstToUtxoState =
                       NoTxSkelOutDatum -> NoUtxoPayloadDatum
                       SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)
                   )
-                  (preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) txSkelOut)
+                  (preview txSkelOutReferenceScriptHashAF txSkelOut)
               ]
        in if bool
             then utxoState {availableUtxos = Map.insertWith (<>) newAddress newPayloadSet (availableUtxos utxoState)}

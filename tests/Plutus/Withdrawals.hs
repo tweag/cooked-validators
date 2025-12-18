@@ -2,6 +2,7 @@
 
 module Plutus.Withdrawals where
 
+import Cooked.ShowBS
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx
@@ -14,7 +15,7 @@ checkWithdrawalPurpose cred quantity (Api.TxInfo {txInfoWdrl}) =
   case Map.toList txInfoWdrl of
     [(cred', Api.Lovelace n)] ->
       if cred == cred'
-        then (n == quantity) || traceError "Wrong quantity."
+        then (n == quantity) || traceError ("Wrong quantity: " <> showBS n <> " instead of " <> showBS quantity)
         else traceError "Wrong credential."
     _ -> traceError "Wrong withdrawal."
 
@@ -26,6 +27,7 @@ checkWithdrawalMPScript =
       Script.mkMultiPurposeScript
         $ Script.falseTypedMultiPurposeScript
         `Script.withRewardingPurpose` checkWithdrawalPurpose
+        `Script.withCertifyingPurpose` ((\_ _ _ _ -> True) :: Script.CertifyingPurposeType' () Api.TxInfo)
 
 trueWithdrawalMPScript :: Script.MultiPurposeScript ()
 trueWithdrawalMPScript =

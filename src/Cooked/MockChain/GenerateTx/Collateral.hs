@@ -3,22 +3,17 @@
 module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Common
 import Cooked.Skeleton
-import Cooked.Wallet
-import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
 -- | Computes the collateral triplet from the fees and the collateral inputs in
@@ -30,15 +25,15 @@ import PlutusTx.Numeric qualified as PlutusTx
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
   (MonadBlockChainBalancing m) =>
-  Integer ->
-  Maybe (Set Api.TxOutRef, Wallet) ->
+  Fee ->
+  Collaterals ->
   m
     ( Cardano.TxInsCollateral Cardano.ConwayEra,
       Cardano.TxTotalCollateral Cardano.ConwayEra,
       Cardano.TxReturnCollateral Cardano.CtxTx Cardano.ConwayEra
     )
 toCollateralTriplet _ Nothing = return (Cardano.TxInsCollateralNone, Cardano.TxTotalCollateralNone, Cardano.TxReturnCollateralNone)
-toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateralWallet)) = do
+toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateralUser)) = do
   -- We build the collateral inputs from this list
   txInsCollateral <-
     case collateralInsList of
@@ -73,12 +68,12 @@ toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateral
             <$> throwOnToCardanoError
               "toCollateralTriplet: cannot build return collateral value"
               (Ledger.toCardanoValue returnCollateralValue)
-        -- The address is the one from the return collateral wallet, which is
+        -- The address is the one from the return collateral user, which is
         -- required to exist here.
         networkId <- Emulator.pNetworkId <$> getParams
         address <-
           throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-            Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralWallet)
+            Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralUser)
         -- The return collateral is built up from those elements
         return $
           Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $

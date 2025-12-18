@@ -41,7 +41,7 @@ customInitDist =
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
-  case mcrValue $ runMockChainFrom customInitDist $ do
+  case mcrValue $ runMockChainFromInitDist customInitDist $ do
     [a1, a2, a3, a4] <- runUtxoSearch $ utxosOwnedBySearch aValidator
     [b1, b2] <- runUtxoSearch $ utxosOwnedBySearch bValidator
     return (a1, a2, a3, a4, b1, b2) of
@@ -70,7 +70,7 @@ tests =
               txSkelTemplate
                 { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
                   txSkelOuts = [wallet 2 `receives` Value (Script.lovelace 2_500_000)],
-                  txSkelSigners = [wallet 1]
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                 }
 
             -- apply the 'doubleSatAttack' to the input skeleton
@@ -93,14 +93,14 @@ tests =
                               | aOref == fst aUtxo1 ->
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                      | (bOref, bOut) <- bUtxos,
-                                        view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                    | (bOref, bOut) <- bUtxos,
+                                      view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                      | (bOref, _) <- bUtxos,
-                                        bOref == fst bUtxo1
+                                    | (bOref, _) <- bUtxos,
+                                      bOref == fst bUtxo1
                                     ]
                               | aOref == fst aUtxo3 ->
                                   return $
@@ -152,7 +152,7 @@ tests =
                     [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
                       wallet 6 `receives` Value (foldMap (view txSkelOutValueL . snd . snd) bInputs)
                     ],
-                  txSkelSigners = [wallet 1]
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                 }
          in [ testGroup "with separate skeletons for each modification" $
                 let thePredicate ::

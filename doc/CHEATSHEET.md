@@ -34,16 +34,16 @@
   ```haskell
   initDist :: InitialDistribution
   initDist = InitialDistribution
-	[ wallet 3 `receives` (Value $ ada 6)
-    , fooTypedValidator `receives` (Value (myToken 6) <&&> InlineDatum fooTypedDatum)
-	, wallet 2 `receives` (Value (ada 2) <&&> VisibleHashedDatum fooDatum)
-	, wallet 1 `receives` (Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred)
+	[ wallet 3 `receives` Value (ada 6)
+    , fooTypedValidator `receives` Value (myToken 6) <&&> InlineDatum fooTypedDatum
+	, wallet 2 `receives` Value (ada 2) <&&> VisibleHashedDatum fooDatum
+	, wallet 1 `receives` Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred
 	]
   ```
 #### Usage
 
 * In a test ``testCooked "foo" $ mustSucceedTest foo `withInitDist` myInitiDist``
-* In the REPL `printCooked $ interpretAndRunWith (runMockChainTFrom initDist) foo`
+* In the REPL `printCooked $ interpretAndRunWith (runMockChainTFromInitDist initDist) foo`
 
 ### Give human-readable names to pubkey/script/minting hashes
 
@@ -170,12 +170,42 @@ foo = do
 * `Script.toAddress (wallet 3)`
 * `Script.toPubKeyHash (wallet 2)`
 
-### Sign a transaction with one or more wallets
+### Sign a transaction
+
+* With one or more wallets, including their private key. They will both be part
+  of the required, and actual signers of the transaction.
 
 ```haskell
 txSkelTemplate
     { ...
-      txSkelSigners = [wallet 1, ...]
+      txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
+      ...
+    }
+```
+
+* With anything that has a pubkey (including wallets) . The will only be part of
+  the required signatories, but the actual signatories are postponed for later.
+  
+```haskell
+instance Script.ToPubKeyHash MyType where
+	... 
+
+myUser1 myUser2 :: MyType
+myUser1 = ...
+myUser2 = ...
+
+txSkelTemplate
+    { ...
+      txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
+      ...
+    }
+```
+
+* With direct signatories:
+```haskell
+txSkelTemplate
+    { ...
+      txSkelSignatories = [TxSkelSignatory myUser (Just privateKey) , TxSkelSignatory myUser2 Nothing , ...]
       ...
     }
 ```
@@ -309,24 +339,24 @@ txSkelTemplate
 
 ## Balancing
 
-### Choose which wallet provides UTxOs to balance a transaction
+### Choose which user provides UTxOs to balance a transaction
 
-First signer (default):
+First signatory (default):
 
 ```haskell
 txSkelTemplate
   { ...
-    txSkelSigners = [wallet 1, wallet 2]
+    txSkelSignatories = [signatory1, signatory2]
     ...
   }
 ```
 
-Another signer:
+Another signatory:
 
 ```haskell
 txSkelTemplate
   { ...
-    txSkelSigners = [wallet 1, wallet 2],
+    txSkelSignatories = [signatory1, signatory2],
     txOpts = def {txOptBalancingPolicy = BalanceWith (wallet 2)}
     ...
   }
@@ -337,7 +367,6 @@ txSkelTemplate
 ```haskell
 txSkelTemplate
   { ...
-    txSkelSigners = [wallet 1, wallet 2],
     txOpts = def {txOptBalancingPolicy = DoNotBalance}
     ...
   }
@@ -350,7 +379,7 @@ From first signer (default):
 ```
 txSkelTemplate
   { ...
-    txSkelSigners = [wallet 1, wallet 2]
+     txSkelSignatories = [signatory1, signatory2],
     ...
   }
 ```
@@ -360,18 +389,17 @@ From another wallet:
 ```
 txSkelTemplate
   { ...
-    txSkelSigners = [wallet 1],
-	txSkelCollateralUtxos = CollateralUtxosFromWallet (wallet 2)
+    txSkelSignatories = [TxSkelSignatory user1 ... , TxSkelSignatory user2 ... ],
+	txSkelCollateralUtxos = CollateralUtxosFromUser user2
     ...
   }
 ```
 
-From a direct Utxo list:
+From a direct Utxo list (make sure the owner of these utxo sign the transaction):
 
 ```
 txSkelTemplate
   { ...
-    txSkelSigners = [wallet 1],
 	txSkelCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2])
     ...
   }
@@ -467,9 +495,9 @@ foo = do
 foo :: MonadBlockChain m => m ()
 foo = do
     bar `withTweak` ( do
-                        addSignersTweak [alice, bob]
-                        replaceFirstSigner carol
-                        removeSigners [eve]
+                        addSignatoriesTweak [signatory1, signatory2]
+                        replaceFirstSigner signatory3
+                        removeSigners [signatory2]
                     )
 ```
 
@@ -554,41 +582,54 @@ txSkelTemplate
    txSkelProposalAutoConstitution = True
 ```
 
-### Anchor resolution policy
-
-* Auto resolution using a given map with resolved page content as bytestrings
-  (default behavior)
-
-```haskell 
-    txSkelOpts = def 
-	  { txOptAnchorResolution = AnchorResolutionLocal $ Map.singleton "https://www.tweag.io/" someByteString
-	  }
-```
-
-* Auto resolution using web requests (very unsafe, prevents reproducibility)
-
-```haskell 
-    txSkelOpts = def 
-	  { txOptAnchorResolution = AnchorResolutionHttp
-	  }
-```	
-
 ## Withdrawals
 
-* Register a certain credential as a staker with a certain amount of deposit and reward
-
-```haskell 
-do
-  ...
-  registerStakingCred myWithdrawingScript myReward myDeposit
-  ...
-```	
-
-* Withdraw the reward
+* Automatic withdrawal of the available rewards
 
 ```haskell 
     txSkelTemplate
-      { txSkelWithdrawals = scriptWithdrawal myWithdrawingScript myTxSkelRedeemer myReward,
+      { txSkelWithdrawals = txSkelWithdrawalsFromList 
+	      [ scriptWithdrawal myWithdrawingScript myTxSkelRedeemer,
+		    pubKeyWithdrawal myWithdrawingPubKey,
+		    ...
+	      ]
 	    ...
       }
 ```	
+
+* Manual withdrawal of a certain amount (for testing purposes only)
+
+```haskell 
+    txSkelTemplate
+      { txSkelWithdrawals = txSkelWithdrawalsFromList 
+	      [ TxSkelWithdrawal myWithdraingPeer (Just 2_000_000),
+		    ...
+	      ]
+	    ...
+      }
+```	
+
+## Certificates
+
+* Build certificate actions
+
+```
+	myCertificateAction = CommitteResign ...
+	myCertificateAction2 = DRepUpdate ...
+	...
+```
+
+* Add certificates to transactions. Make sure the kind of certificate
+  corresponds to the kind of allowed user.
+
+```haskell
+    txSkelTemplate
+      { txSkelCertificates = 
+	      [ TxSkelCertificate myUser myCertificateAction,
+		    pubKeyCertificate myPubKey myCertificateAction1,
+			scriptCertificate myScript myRedeemer myCertificateAction2
+		  ],
+        ... 
+      }
+```
+

@@ -37,13 +37,13 @@ spendReferenceAlwaysTrueValidator = do
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
-          txSkelSigners = [bob]
+          txSkelSignatories = txSkelSignatoriesFromList [bob]
         }
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [alice `receives` Value (Script.ada 2)],
-        txSkelIns = Map.singleton scriptTxOutRef $ someTxSkelRedeemer () `withReferenceInput` referenceScriptTxOutRef,
-        txSkelSigners = [bob]
+        txSkelIns = Map.singleton scriptTxOutRef $ TxSkelRedeemer () (Just referenceScriptTxOutRef) False,
+        txSkelSignatories = txSkelSignatoriesFromList [bob]
       }
 
 tests :: TestTree

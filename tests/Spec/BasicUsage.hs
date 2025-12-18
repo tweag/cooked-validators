@@ -2,6 +2,7 @@ module Spec.BasicUsage where
 
 import Cooked
 import Data.Map qualified as Map
+import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -16,7 +17,7 @@ pkToPk sender recipient amount =
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [recipient `receives` Value (Script.ada amount)],
-        txSkelSigners = [sender]
+        txSkelSignatories = txSkelSignatoriesFromList [sender]
       }
 
 multiplePksToPks :: (MonadBlockChain m) => m ()
@@ -30,9 +31,9 @@ mintingQuickValue :: (MonadBlockChain m) => m ()
 mintingQuickValue =
   validateTxSkel_
     txSkelTemplate
-      { txSkelMints = txSkelMintsFromList [mint Script.trueMintingMPScript emptyTxSkelRedeemer (Api.TokenName "banana") 10],
-        txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue Script.trueMintingMPScript (Api.TokenName "banana") 10)],
-        txSkelSigners = [alice]
+      { txSkelMints = review txSkelMintsListI [mint (Script.trueMintingMPScript @()) () (Api.TokenName "banana") 10],
+        txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue (Script.trueMintingMPScript @()) (Api.TokenName "banana") 10)],
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
 payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
@@ -41,7 +42,7 @@ payToAlwaysTrueValidator =
     <$> ( validateTxSkel' $
             txSkelTemplate
               { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
-                txSkelSigners = [alice]
+                txSkelSignatories = txSkelSignatoriesFromList [alice]
               }
         )
 
@@ -52,7 +53,7 @@ consumeAlwaysTrueValidator = do
     txSkelTemplate
       { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
         txSkelOuts = [alice `receives` Value (Script.ada 10)],
-        txSkelSigners = [alice]
+        txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
 tests :: TestTree

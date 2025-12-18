@@ -70,10 +70,10 @@ mpMintingPurpose txId cs@(Api.CurrencySymbol hash) (MintToken oRef@(Api.TxOutRef
         == requiredMintedValue
         && length
           [ val
-            | Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash hash')) _) val (Api.OutputDatum (Api.Datum dat)) _ <- txInfoOutputs,
-              hash == hash',
-              Script.currencyValueOf val cs == requiredMintedValue,
-              Api.fromBuiltinData dat == Just ix
+          | Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash hash')) _) val (Api.OutputDatum (Api.Datum dat)) _ <- txInfoOutputs,
+            hash == hash',
+            Script.currencyValueOf val cs == requiredMintedValue,
+            Api.fromBuiltinData dat == Just ix
           ]
         == 1
         && oRef
@@ -85,12 +85,12 @@ mpMintingPurpose _ cs@(Api.CurrencySymbol hash) BurnToken (Api.TxInfo {..}) =
     ( Map.singleton cs
         $ Map.safeFromList
           [ (tn, n)
-            | Api.TxInInfo scriptRef (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash hash')) _) val (Api.OutputDatum (Api.Datum dat)) _) <- txInfoInputs,
-              hash' == hash,
-              Api.fromBuiltinData @Integer dat == Just 0,
-              (cs', tn, n) <- Api.flattenValue val,
-              cs == cs',
-              Map.lookup (Api.Spending scriptRef) txInfoRedeemers == Just (Api.Redeemer (Api.toBuiltinData Close))
+          | Api.TxInInfo scriptRef (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash hash')) _) val (Api.OutputDatum (Api.Datum dat)) _) <- txInfoInputs,
+            hash' == hash,
+            Api.fromBuiltinData @Integer dat == Just 0,
+            (cs', tn, n) <- Api.flattenValue val,
+            cs == cs',
+            Map.lookup (Api.Spending scriptRef) txInfoRedeemers == Just (Api.Redeemer (Api.toBuiltinData Close))
           ]
     )
     == negate (Script.toValue txInfoMint)
@@ -101,20 +101,20 @@ mpSpendingPurpose oRef (Just x) Close Api.TxInfo {..}
   | x == 0 =
       length
         [ h
-          | Api.TxInInfo oRef' (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h)) _) _ _ _) <- txInfoInputs,
-            oRef == oRef',
-            Map.lookup (Api.Minting (Api.CurrencySymbol h)) txInfoRedeemers == Just (Api.Redeemer (Api.toBuiltinData BurnToken))
+        | Api.TxInInfo oRef' (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h)) _) _ _ _) <- txInfoInputs,
+          oRef == oRef',
+          Map.lookup (Api.Minting (Api.CurrencySymbol h)) txInfoRedeemers == Just (Api.Redeemer (Api.toBuiltinData BurnToken))
         ]
         == 1
 mpSpendingPurpose oRef (Just x) Step Api.TxInfo {..} =
   length
     [ h
-      | Api.TxInInfo oRef' (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h)) _) val _ _) <- txInfoInputs,
-        oRef == oRef',
-        Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h')) _) val' (Api.OutputDatum (Api.Datum dat')) _ <- txInfoOutputs,
-        h' == h,
-        Script.noAdaValue val == Script.noAdaValue val',
-        Api.fromBuiltinData dat' == Just (x - 1)
+    | Api.TxInInfo oRef' (Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h)) _) val _ _) <- txInfoInputs,
+      oRef == oRef',
+      Api.TxOut (Api.Address (Api.ScriptCredential (Api.ScriptHash h')) _) val' (Api.OutputDatum (Api.Datum dat')) _ <- txInfoOutputs,
+      h' == h,
+      Script.noAdaValue val == Script.noAdaValue val',
+      Api.fromBuiltinData dat' == Just (x - 1)
     ]
     == 1
 mpSpendingPurpose _ _ _ _ = False

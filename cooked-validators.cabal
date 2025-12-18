@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.37.0.
+-- This file has been generated from package.yaml by hpack version 0.38.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -17,17 +17,17 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
-      Cooked.Attack.DupToken
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.Ltl.Combinators
       Cooked.MockChain
-      Cooked.MockChain.AutoReferenceScripts
+      Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
-      Cooked.MockChain.GenerateTx
+      Cooked.MockChain.GenerateTx.Anchor
       Cooked.MockChain.GenerateTx.Body
+      Cooked.MockChain.GenerateTx.Certificate
       Cooked.MockChain.GenerateTx.Collateral
       Cooked.MockChain.GenerateTx.Common
       Cooked.MockChain.GenerateTx.Input
@@ -37,7 +37,6 @@ library
       Cooked.MockChain.GenerateTx.ReferenceInputs
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
-      Cooked.MockChain.MinAda
       Cooked.MockChain.MockChainState
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
@@ -52,15 +51,19 @@ library
       Cooked.Pretty.Skeleton
       Cooked.ShowBS
       Cooked.Skeleton
+      Cooked.Skeleton.Anchor
+      Cooked.Skeleton.Certificate
       Cooked.Skeleton.Datum
+      Cooked.Skeleton.Families
       Cooked.Skeleton.Label
       Cooked.Skeleton.Mint
       Cooked.Skeleton.Option
       Cooked.Skeleton.Output
-      Cooked.Skeleton.Payable
       Cooked.Skeleton.Proposal
       Cooked.Skeleton.Redeemer
-      Cooked.Skeleton.ReferenceScript
+      Cooked.Skeleton.Signatory
+      Cooked.Skeleton.User
+      Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
@@ -69,7 +72,7 @@ library
       Cooked.Tweak.Mint
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.Outputs
-      Cooked.Tweak.Signers
+      Cooked.Tweak.Signatories
       Cooked.Tweak.ValidityRange
       Cooked.Wallet
   other-modules:
@@ -130,7 +133,6 @@ library
     , microlens
     , monad-control
     , mtl
-    , nonempty-containers
     , optics-core
     , optics-th
     , ordered-containers
@@ -170,10 +172,10 @@ test-suite spec
       Spec.Attack.DupToken
       Spec.Balancing
       Spec.BasicUsage
+      Spec.Certificates
       Spec.InitialDistribution
       Spec.InlineDatums
       Spec.Ltl
-      Spec.Ltl.Combinators
       Spec.MinAda
       Spec.MultiPurpose
       Spec.ProposingScript
@@ -244,7 +246,6 @@ test-suite spec
     , microlens
     , monad-control
     , mtl
-    , nonempty-containers
     , optics-core
     , optics-th
     , ordered-containers

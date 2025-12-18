@@ -1,34 +1,41 @@
--- | This module exposes outputs as they can be defined in a
--- 'Cooked.Skeleton.TxSkel' with various utilities around them.
+-- | This module exposes the outputs constructs used in a
+-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To build payments in
+-- a skeleton, the usual way is to invoke @txSkelIns = [pk `receives` Value v,
+-- script `receives` (InlineDatum dat <&&> ReferenceScript script)]@
 module Cooked.Skeleton.Output
-  ( TxSkelOut (..),
-    receives,
+  ( -- * Type constraints
+    IsTxSkelOutAllowedOwner (..),
+
+    -- * Data types
+    PayableKind (..),
+    Payable (..),
+    TxSkelOut (..),
+
+    -- * Optics
     txSkelOutValueL,
     txSkelOutValueAutoAdjustL,
     txSkelOutDatumL,
-    txSkelOutReferenceScriptL,
-    txSkelOutStakingCredentialL,
-    txSkelOutValidatorAT,
-    IsTxSkelOutAllowedOwner (..),
-    OwnerConstrs,
+    txSkelOutMReferenceScriptL,
+    txSkelOutReferenceScriptAT,
+    txSkelOutMStakingCredentialL,
+    txSkelOutStakingCredentialAT,
     txSkelOutCredentialG,
     txSkelOutAddressG,
-    txSkelOutPKHashAT,
-    txSkelOutTypedOwnerAT,
-    txSkelOutValidatorHashAF,
-    valueAssetClassAmountL,
-    lovelaceIntegerI,
-    valueLovelaceL,
-    valueAssetClassAmountP,
-    valueLovelaceP,
-    ownerCredentialG,
+    txSkelOutReferenceScriptHashAF,
+    txSkelOutOwnerL,
+
+    -- * Smart constructors
+    (<&&>),
+    receives,
   )
 where
 
 import Cooked.Skeleton.Datum
-import Cooked.Skeleton.Payable
-import Cooked.Skeleton.ReferenceScript
+import Cooked.Skeleton.Families
+import Cooked.Skeleton.User
+import Cooked.Skeleton.Value ()
 import Cooked.Wallet
+import Data.Kind
 import Data.Typeable
 import Optics.Core
 import Optics.TH (makeLensesFor)
@@ -39,54 +46,14 @@ import Plutus.Script.Utils.V3.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.AssocMap qualified as PMap
 
--- * Requirements to be able to own a 'TxSkelOut'
+-- * Definition of 'Cooked.Skeleton.TxSkel' outputs
 
--- | A 'TxSkelOut' can either be owned by a pubkeyhash or a versioned validator
-class IsTxSkelOutAllowedOwner a where
-  toPKHOrValidator :: a -> Either Api.PubKeyHash (Script.Versioned Script.Validator)
-
-instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
-  toPKHOrValidator = Left
-
-instance IsTxSkelOutAllowedOwner Wallet where
-  toPKHOrValidator = Left . Script.toPubKeyHash
-
-instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
-  toPKHOrValidator = Right
-
-instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
-  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
-
-instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Script) where
-  toPKHOrValidator = toPKHOrValidator . fmap Script.Validator
-
-instance IsTxSkelOutAllowedOwner (Either Api.PubKeyHash (Script.Versioned Script.Validator)) where
-  toPKHOrValidator = id
-
-instance IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
-  toPKHOrValidator = toPKHOrValidator . Script.toVersioned @Script.Validator
-
--- | Retrieves the credential of a 'TxSkelOut' allowed owner
-ownerCredentialG :: (IsTxSkelOutAllowedOwner owner) => Getter owner Api.Credential
-ownerCredentialG = to $ either Api.PubKeyCredential (Api.ScriptCredential . Script.toScriptHash) . toPKHOrValidator
-
--- | Type constraints over the owner of a 'TxSkelOut'
-type OwnerConstrs owner =
-  ( IsTxSkelOutAllowedOwner owner,
-    Typeable owner,
-    Show owner
-  )
-
--- * Definition of 'Cooked.Skeleton.TxSkel' outputs with associated optics
-
--- | A rich output to be put into a 'Cooked.Skeleton.TxSkel'
+-- | An output to be put into a 'Cooked.Skeleton.TxSkel'
 data TxSkelOut where
   TxSkelOut ::
-    (OwnerConstrs owner) =>
-    { -- The target of this payment
-      txSkelOutOwner :: owner,
+    { -- The owner of this payment
+      txSkelOutOwner :: User IsEither Allocation,
       -- What staking credential should be attached to this payment
       txSkelOutStakingCredential :: Maybe Api.StakingCredential,
       -- What datum should be placed in this payment
@@ -96,136 +63,149 @@ data TxSkelOut where
       -- Whether the paid value can be auto-adjusted for min ADA
       txSkelOutValueAutoAdjust :: Bool,
       -- What reference script should be attached to this payment
-      txSkelOutReferenceScript :: TxSkelOutReferenceScript
+      txSkelOutReferenceScript :: Maybe VScript
     } ->
     TxSkelOut
+  deriving (Eq, Ord, Show)
 
-deriving instance Show TxSkelOut
+-- * Optics focusing on the reference script of a 'TxSkelOut'
 
--- | A lens to get or set the 'Maybe Api.StakingCredential' from a 'TxSkelOut'
-makeLensesFor [("txSkelOutStakingCredential", "txSkelOutStakingCredentialL")] ''TxSkelOut
+-- | Focuses on the @Maybe VScript@ corresponding to the possible reference
+-- script contained in this 'TxSkelOut'
+makeLensesFor [("txSkelOutReferenceScript", "txSkelOutMReferenceScriptL")] ''TxSkelOut
 
--- | A lens to get or set the 'TxSkelOutDatum' from a 'TxSkelOut'
+-- | Focuses on the reference script of this 'TxSkelOut'
+txSkelOutReferenceScriptAT :: AffineTraversal' TxSkelOut VScript
+txSkelOutReferenceScriptAT = txSkelOutMReferenceScriptL % _Just
+
+-- | Returns the possible reference script has of this 'TxSkelOut'
+txSkelOutReferenceScriptHashAF :: AffineFold TxSkelOut Api.ScriptHash
+txSkelOutReferenceScriptHashAF = txSkelOutReferenceScriptAT % to Script.toScriptHash
+
+-- * Optics focusing on the staking credential of a 'TxSkelOut'
+
+-- | Focuses on the @Maybe StakingCredential@ of this 'TxSkelOut'
+makeLensesFor [("txSkelOutStakingCredential", "txSkelOutMStakingCredentialL")] ''TxSkelOut
+
+-- | Focuses on the staking credential of this 'TxSkelOut'
+txSkelOutStakingCredentialAT :: AffineTraversal' TxSkelOut Api.StakingCredential
+txSkelOutStakingCredentialAT = txSkelOutMStakingCredentialL % _Just
+
+-- | Optics focusing on the datum of a 'TxSkelOut'
+
+-- | Focuses on the 'TxSkelOutDatum' of this 'TxSkelOut'
 makeLensesFor [("txSkelOutDatum", "txSkelOutDatumL")] ''TxSkelOut
 
--- | A lens to get or set the 'Api.Value' from a 'TxSkelOut'
+-- * Optics focusing on the value of this 'TxSkelOut'
+
+-- | Focuses on the 'Api.Value' of this 'TxSkelOut'
 makeLensesFor [("txSkelOutValue", "txSkelOutValueL")] ''TxSkelOut
 
--- | A lens to get or set if the value can be auto-adjusted if needed
+-- | Focuses on whether the 'Api.Value' contained in this 'TxSkelOut' can be
+-- adjusted to min ADA during transaction generation
 makeLensesFor [("txSkelOutValueAutoAdjust", "txSkelOutValueAutoAdjustL")] ''TxSkelOut
 
--- | A lens to get or set the 'TxSkelOutReferenceScript' from a 'TxSkelOut'
-makeLensesFor [("txSkelOutReferenceScript", "txSkelOutReferenceScriptL")] ''TxSkelOut
+-- * Optics focusing on the owner of this 'TxSkelOut'
+
+-- | Focuses on the user of this 'TxSkelOut'
+makeLensesFor [("txSkelOutOwner", "txSkelOutOwnerL")] ''TxSkelOut
+
+-- * Additional optics around a 'TxSkelOut'
 
 -- | Returns the credential of this 'TxSkelOut'
 txSkelOutCredentialG :: Getter TxSkelOut Api.Credential
-txSkelOutCredentialG = to $ \(TxSkelOut {txSkelOutOwner}) -> view ownerCredentialG txSkelOutOwner
-
-instance Script.ToCredential TxSkelOut where
-  toCredential = view txSkelOutCredentialG
+txSkelOutCredentialG = to $ \(TxSkelOut {txSkelOutOwner}) -> Script.toCredential txSkelOutOwner
 
 -- | Returns the address of this 'TxSkelOut'
 txSkelOutAddressG :: Getter TxSkelOut Api.Address
 txSkelOutAddressG = to $ \txSkelOut ->
   Api.Address
     (view txSkelOutCredentialG txSkelOut)
-    (view txSkelOutStakingCredentialL txSkelOut)
+    (view txSkelOutMStakingCredentialL txSkelOut)
+
+-- * Instances for 'TxSkelOut'
+
+instance Script.ToCredential TxSkelOut where
+  toCredential = view txSkelOutCredentialG
 
 instance Script.ToAddress TxSkelOut where
   toAddress = view txSkelOutAddressG
 
--- | Attempts to retrieve or set a typed owner from this 'TxSkelOut'
-txSkelOutTypedOwnerAT :: (OwnerConstrs a, OwnerConstrs b) => AffineTraversal TxSkelOut TxSkelOut a b
-txSkelOutTypedOwnerAT =
-  atraversal
-    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> maybe (Left txSkelOut) Right (cast txSkelOutOwner))
-    (\txSkelOut newOwner -> txSkelOut {txSkelOutOwner = newOwner})
+-- * Smart constructing the owner of a 'TxSkelOut'
 
-instance Eq TxSkelOut where
-  txSkelOut == txSkelOut' =
-    view txSkelOutAddressG txSkelOut == view txSkelOutAddressG txSkelOut'
-      && txSkelOutDatum txSkelOut == txSkelOutDatum txSkelOut'
-      && txSkelOutValue txSkelOut == txSkelOutValue txSkelOut'
-      && preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) txSkelOut
-        == preview (txSkelOutReferenceScriptL % txSkelOutReferenceScriptHashAF) txSkelOut'
+-- | A conveniency typeclass to automated the creation of 'TxSkelOut' owners, to
+-- be used alongside 'Payable' with the smart constructor 'receives'.
+class IsTxSkelOutAllowedOwner a where
+  toPKHOrVScript :: a -> User IsEither Allocation
 
--- | Returns the optional private key owning a given 'TxSkelOut'
-txSkelOutPKHashAT :: AffineTraversal' TxSkelOut Api.PubKeyHash
-txSkelOutPKHashAT =
-  atraversal
-    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> either Right (const (Left txSkelOut)) $ toPKHOrValidator txSkelOutOwner)
-    (\txSkelOut pkh -> txSkelOut {txSkelOutOwner = pkh})
+instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
+  toPKHOrVScript = UserPubKey
 
--- | Returns the optional validator owning a given 'TxSkelOut'
-txSkelOutValidatorAT :: AffineTraversal' TxSkelOut (Script.Versioned Script.Validator)
-txSkelOutValidatorAT =
-  atraversal
-    (\txSkelOut@(TxSkelOut {txSkelOutOwner}) -> either (const $ Left txSkelOut) Right $ toPKHOrValidator txSkelOutOwner)
-    (\txSkelOut val -> txSkelOut {txSkelOutOwner = val})
+instance IsTxSkelOutAllowedOwner (User 'IsPubKey 'Allocation) where
+  toPKHOrVScript (UserPubKey pkh) = UserPubKey pkh
 
--- | Returns the optional validator hash owning a given 'TxSkelOut'
-txSkelOutValidatorHashAF :: AffineFold TxSkelOut Script.ValidatorHash
-txSkelOutValidatorHashAF = txSkelOutValidatorAT % to Script.toValidatorHash
+instance IsTxSkelOutAllowedOwner Wallet where
+  toPKHOrVScript = UserPubKey
 
--- * Additional optics revolving around 'Api.Value'
+instance IsTxSkelOutAllowedOwner VScript where
+  toPKHOrVScript = UserScript
 
--- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'
--- from a given 'Api.Value'. This removes the entry if the new amount is 0.
-valueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' Api.Value Integer
-valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
-  lens
-    (`Api.assetClassValueOf` Api.assetClass cs tk)
-    ( \v@(Api.Value val) i -> case PMap.lookup cs val of
-        -- No previous cs entry and nothing to add.
-        Nothing | i == 0 -> v
-        -- No previous cs entry, and something to add.
-        Nothing -> Api.Value $ PMap.insert cs (PMap.singleton tk i) val
-        -- A previous cs and tk entry, which needs to be removed and the whole
-        -- cs entry as well because it only containes this tk.
-        Just (PMap.toList -> [(tk', _)]) | i == 0, tk == tk' -> Api.Value $ PMap.delete cs val
-        -- A previous cs and tk entry, which needs to be removed, but the whole
-        -- cs entry has other tokens and thus is kept.
-        Just tokenMap | i == 0 -> Api.Value $ PMap.insert cs (PMap.delete tk tokenMap) val
-        -- A previous cs entry, in which we insert the new tk (regarless of
-        -- whether the tk was already present).
-        Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
-    )
+instance (Typeable a) => IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
+  toPKHOrVScript = UserScript
 
--- | Isomorphism between 'Api.Lovelace' and integers
-lovelaceIntegerI :: Iso' Api.Lovelace Integer
-lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
+instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
+  toPKHOrVScript = UserScript
 
--- | Focus the Lovelace part in a value.
-valueLovelaceL :: Lens' Api.Value Api.Lovelace
-valueLovelaceL = valueAssetClassAmountL Api.adaSymbol Api.adaToken % re lovelaceIntegerI
+instance (Typeable a) => IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
+  toPKHOrVScript = UserScript
 
--- | A prism to build a value from an asset class and amount, or retrieves the
--- amount from this asset class if it is not zero
-valueAssetClassAmountP :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Prism' Api.Value Integer
-valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
-  | ac <- Api.assetClass cs tk =
-      prism
-        ( \case
-            i | i == 0 -> mempty
-            i -> Api.assetClassValue ac i
-        )
-        ( \val -> case val `Api.assetClassValueOf` ac of
-            i | i == 0 -> Left val
-            i -> Right i
-        )
+instance IsTxSkelOutAllowedOwner (User IsEither Allocation) where
+  toPKHOrVScript = id
 
--- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'
-valueLovelaceP :: Prism' Api.Value Api.Lovelace
-valueLovelaceP = valueAssetClassAmountP Api.adaSymbol Api.adaToken % re lovelaceIntegerI
+-- * Smart constructing the payload of a 'TxSkelOut'
+
+-- | The kind of possible components of a 'TxSkelOut', other than the owner
+data PayableKind where
+  IsDatum :: PayableKind
+  IsReferenceScript :: PayableKind
+  IsValue :: PayableKind
+  IsStakingCredential :: PayableKind
+
+-- | Payable elements. Created from concrete elements or composed. Notice that
+-- there is no way of building an element of Type @Payable '[]@ so when using an
+-- element of Type @Payable els@ we are sure that something was in fact
+-- paid. Also, there is no way of building an element of type @Payable '[a,a]@
+-- so we also know at most one occurrence of each type of payment is performed.
+data Payable :: [PayableKind] -> Type where
+  -- | Hashed datums visible in the transaction are payable
+  VisibleHashedDatum :: (DatumConstrs a) => a -> Payable '[IsDatum]
+  -- | Inline datums are payable
+  InlineDatum :: (DatumConstrs a) => a -> Payable '[IsDatum]
+  -- | Hashed datums hidden from the transaction are payable
+  HiddenHashedDatum :: (DatumConstrs a) => a -> Payable '[IsDatum]
+  -- | Reference scripts are payable
+  ReferenceScript :: (ToVScript s) => s -> Payable '[IsReferenceScript]
+  -- | Values are payable and are subject to min ada adjustment
+  Value :: (Script.ToValue a) => a -> Payable '[IsValue]
+  -- | Fixed Values are payable but are NOT subject to min ada adjustment
+  FixedValue :: (Script.ToValue a) => a -> Payable '[IsValue]
+  -- | Staking credentials are payable
+  StakingCredential :: (Script.ToMaybeStakingCredential cred) => cred -> Payable '[IsStakingCredential]
+  -- | Payables can be combined as long as their list of tags are disjoint
+  PayableAnd :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
+
+-- | An infix-usable alias for 'PayableAnd'
+(<&&>) :: (els ⩀ els') => Payable els -> Payable els' -> Payable (els ∪ els')
+(<&&>) = PayableAnd
 
 -- * Smart constructor to build 'TxSkelOut's
 
--- | Smart constructor to build a 'TxSkelOut' from an owner and payment. This
--- should be the main way of building outputs.
 infix 1 `receives`
 
-receives :: (OwnerConstrs owner) => owner -> Payable els -> TxSkelOut
-receives owner =
+-- | Smart constructor to build a 'TxSkelOut' from an @owner@ and 'Payable'. This
+-- should be the main way of building outputs.
+receives :: (IsTxSkelOutAllowedOwner owner) => owner -> Payable els -> TxSkelOut
+receives (toPKHOrVScript -> owner) =
   ( `go`
       TxSkelOut
         owner
@@ -233,21 +213,21 @@ receives owner =
         defaultTxSkelDatum -- Default datum defined below
         mempty -- Empty value by default
         True -- the value is adjustable to min ADA by default
-        NoTxSkelOutReferenceScript -- No reference script by default
+        Nothing -- No reference script by default)
   )
   where
     go :: Payable els -> TxSkelOut -> TxSkelOut
     go (VisibleHashedDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat (Hashed Resolved))
     go (InlineDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat Inline)
     go (HiddenHashedDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat (Hashed NotResolved))
-    go (FixedValue v) = set txSkelOutValueL (Script.toValue v) . set txSkelOutValueAutoAdjustL False
-    go (Value v) = set txSkelOutValueL (Script.toValue v) . set txSkelOutValueAutoAdjustL True
-    go (ReferenceScript script) = set txSkelOutReferenceScriptL (SomeTxSkelOutReferenceScript script)
-    go (StakingCredential stCred) = set txSkelOutStakingCredentialL (Script.toMaybeStakingCredential stCred)
+    go (FixedValue (Script.toValue -> v)) = set txSkelOutValueL v . set txSkelOutValueAutoAdjustL False
+    go (Value (Script.toValue -> v)) = set txSkelOutValueL v . set txSkelOutValueAutoAdjustL True
+    go (ReferenceScript (toVScript -> vScript)) = set txSkelOutMReferenceScriptL (Just vScript)
+    go (StakingCredential (Script.toMaybeStakingCredential -> mStCred)) = set txSkelOutMStakingCredentialL mStCred
     go (PayableAnd p1 p2) = go p2 . go p1
 
-    defaultTxSkelDatum = case toPKHOrValidator owner of
+    defaultTxSkelDatum = case owner of
       -- V1 and V2 script always need a datum, even if empty
-      Right (Script.Versioned _ v) | v <= Script.PlutusV2 -> SomeTxSkelOutDatum () (Hashed NotResolved)
+      UserScript (toVScript -> Script.Versioned _ v) | v <= Script.PlutusV2 -> SomeTxSkelOutDatum () (Hashed NotResolved)
       -- V3 script and PKH do not necessarily need a datum
       _ -> NoTxSkelOutDatum
