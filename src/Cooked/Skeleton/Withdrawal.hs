@@ -22,7 +22,7 @@ module Cooked.Skeleton.Withdrawal
     txSkelWithdrawalsFromList,
 
     -- * Utilities
-    autoFillAmount,
+    fillAmount,
   )
 where
 
@@ -99,8 +99,8 @@ txSkelWithdrawalsFromList :: [Withdrawal] -> TxSkelWithdrawals
 txSkelWithdrawalsFromList = review txSkelWithdrawalsListI
 
 -- | Fills a given amount of lovelace to withdraw, if not already set
-autoFillAmount :: Api.Lovelace -> Withdrawal -> Withdrawal
-autoFillAmount newAmount = over withdrawalMAmountL (maybe (Just newAmount) Just)
+fillAmount :: Api.Lovelace -> Withdrawal -> Withdrawal
+fillAmount newAmount = over withdrawalMAmountL (maybe (Just newAmount) Just)
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where

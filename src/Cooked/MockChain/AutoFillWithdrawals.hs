@@ -3,6 +3,7 @@ module Cooked.MockChain.AutoFillWithdrawals where
 import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.Skeleton
+import Data.Maybe
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 
@@ -15,12 +16,13 @@ toTxSkelWithAutoFilledWithdrawalAmounts txSkel = do
   let withdrawals = view (txSkelWithdrawalsL % txSkelWithdrawalsListI) txSkel
   newWithdrawals <- forM withdrawals $ \withdrawal -> do
     currentReward <- getCurrentReward $ view withdrawalUserL withdrawal
-    case currentReward of
-      Nothing -> return withdrawal
-      Just reward -> do
-        let newWithdrawal = autoFillAmount reward withdrawal
-        when (view withdrawalMAmountL withdrawal /= view withdrawalMAmountL newWithdrawal) $
-          logEvent $
-            MCLogAutoFilledWithdrawalAmount (view (withdrawalUserL % to Script.toCredential) withdrawal) reward
-        return newWithdrawal
+    let (changed, newWithdrawal) = case currentReward of
+          Nothing -> (False, withdrawal)
+          Just reward -> (isn't withdrawalAmountAT withdrawal, fillAmount reward withdrawal)
+    when changed $
+      logEvent $
+        MCLogAutoFilledWithdrawalAmount
+          (view (withdrawalUserL % to Script.toCredential) newWithdrawal)
+          (fromJust (preview withdrawalAmountAT newWithdrawal))
+    return newWithdrawal
   return $ txSkel & txSkelWithdrawalsL % txSkelWithdrawalsListI .~ newWithdrawals
