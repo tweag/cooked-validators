@@ -163,6 +163,8 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
       "New auto-filled withdrawal amount:"
       "-"
       [prettyCookedOpt opts cred, prettyCookedOpt opts (Script.toValue amount)]
+  prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledConstitution constitution)) =
+    "New auto-filled constitution:" <+> prettyHash opts constitution
 
 instance PrettyCookedList UtxoState where
   prettyCookedOptList opts (UtxoState available consumed) =

@@ -19,7 +19,7 @@ module Cooked.Skeleton.Proposal
     simpleProposal,
 
     -- * Utilities
-    autoFillConstitution,
+    fillConstitution,
   )
 where
 
@@ -225,8 +225,8 @@ simpleProposal cred action = TxSkelProposal cred action Nothing Nothing
 
 -- | Sets the constitution script with an empty redeemer when empty. This will
 -- not tamper with an existing constitution script and redeemer.
-autoFillConstitution :: (ToVScript script, Typeable script) => script -> TxSkelProposal -> TxSkelProposal
-autoFillConstitution constitution =
+fillConstitution :: (ToVScript script, Typeable script) => script -> TxSkelProposal -> TxSkelProposal
+fillConstitution constitution =
   over
     (txSkelProposalMConstitutionAT @IsScript)
     (maybe (Just $ UserRedeemedScript constitution emptyTxSkelRedeemer) Just)

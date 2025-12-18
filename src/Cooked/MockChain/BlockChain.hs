@@ -148,6 +148,8 @@ data MockChainLogEntry
     MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
   | -- | Logging the automatic addition of a withdrawal amount
     MCLogAutoFilledWithdrawalAmount Api.Credential Api.Lovelace
+  | -- | Logging the automatic addition of the constitution script
+    MCLogAutoFilledConstitution Api.ScriptHash
   | -- | Logging the automatic adjusment of a min ada amount
     MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
   deriving (Show)

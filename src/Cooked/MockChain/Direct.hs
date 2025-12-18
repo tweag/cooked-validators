@@ -19,14 +19,12 @@ import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Control.Monad.Writer
 import Cooked.InitialDistribution
-import Cooked.MockChain.AutoFillWithdrawals
-import Cooked.MockChain.AutoReferenceScripts
+import Cooked.MockChain.AutoFilling
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.MinAda
 import Cooked.MockChain.MockChainState
 import Cooked.MockChain.UtxoState (UtxoState)
 import Cooked.Pretty.Hashable
@@ -269,15 +267,15 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
-    txSkel <- toTxSkelWithMinAda txSkel
+    txSkel <- autoFillMinAda txSkel
     -- We retrieve the official constitution script and attach it to each
     -- proposal that requires it, if it's not empty
-    txSkel <- getConstitutionScript <&> maybe txSkel (flip (over (txSkelProposalsL % traversed)) txSkel . autoFillConstitution)
+    txSkel <- autoFillConstitution txSkel
     -- We add reference scripts in the various redeemers of the skeleton, when
     -- they can be found in the index and are allowed to be auto filled
-    txSkel <- toTxSkelWithReferenceScripts txSkel
+    txSkel <- autoFillReferenceScripts txSkel
     -- We attach the reward amount to withdrawals when applicable
-    txSkel <- toTxSkelWithAutoFilledWithdrawalAmounts txSkel
+    txSkel <- autoFillWithdrawalAmounts txSkel
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral user
     (txSkel, fee, mCollaterals) <- balanceTxSkel txSkel

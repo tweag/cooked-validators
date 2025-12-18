@@ -66,31 +66,40 @@ tests =
     [ testGroup
         "No automated constitution attachment"
         [ testCooked "Failure when executing the wrong constitution script" $
-            mustFailInPhase1WithMsgTest "InvalidPolicyHash" $
-              testProposingScript False False checkProposingScript (Just alwaysTrueProposingValidator) (ParameterChange [FeePerByte 100]),
+            mustFailTest
+              (testProposingScript False False checkProposingScript (Just alwaysTrueProposingValidator) (ParameterChange [FeePerByte 100]))
+              `withFailureProp` isPhase1FailureWithMsg "InvalidPolicyHash"
+              `withJournalProp` didNotHappen "MCLogAutoFilledConstitution",
           testCooked "Success when executing the right constitution script" $
-            mustSucceedTest $
-              testProposingScript False False alwaysTrueProposingValidator (Just alwaysTrueProposingValidator) (ParameterChange [FeePerByte 100]),
+            mustSucceedTest
+              (testProposingScript False False alwaysTrueProposingValidator (Just alwaysTrueProposingValidator) (ParameterChange [FeePerByte 100]))
+              `withJournalProp` didNotHappen "MCLogAutoFilledConstitution",
           testCooked "Success when executing a more complex constitution script" $
-            mustSucceedTest $
-              testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 100]),
+            mustSucceedTest
+              (testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 100]))
+              `withJournalProp` didNotHappen "MCLogAutoFilledConstitution",
           testCooked "Failure when executing a more complex constitution script with the wrong proposal" $
-            mustFailInPhase2Test $
-              testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 50]),
+            mustFailInPhase2Test
+              (testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 50]))
+              `withJournalProp` didNotHappen "MCLogAutoFilledConstitution",
           testCooked "Success when executing a more complex constitution script as a reference script" $
             mustSucceedTest (testProposingScript True False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 100]))
               `withJournalProp` happened "MCLogAddedReferenceScript"
+              `withJournalProp` didNotHappen "MCLogAutoFilledConstitution"
         ],
       testGroup
         "Automated constitution attachment"
         [ testCooked "Success when auto assigning the constitution script" $
-            mustSucceedTest $
-              testProposingScript False True checkProposingScript Nothing (ParameterChange [FeePerByte 100]),
+            mustSucceedTest
+              (testProposingScript False True checkProposingScript Nothing (ParameterChange [FeePerByte 100]))
+              `withJournalProp` happened "MCLogAutoFilledConstitution",
           testCooked "Success when auto assigning the constitution script and using it as a reference script" $
             mustSucceedTest (testProposingScript True True checkProposingScript Nothing (ParameterChange [FeePerByte 100]))
-              `withJournalProp` happened "MCLogAddedReferenceScript",
+              `withJournalProp` happened "MCLogAddedReferenceScript"
+              `withJournalProp` happened "MCLogAutoFilledConstitution",
           testCooked "Success when auto assigning the constitution script while overriding an existing one" $
-            mustSucceedTest $
-              testProposingScript False True checkProposingScript (Just alwaysFalseProposingValidator) (ParameterChange [FeePerByte 100])
+            mustSucceedTest
+              (testProposingScript False True checkProposingScript (Just alwaysFalseProposingValidator) (ParameterChange [FeePerByte 100]))
+              `withJournalProp` happened "MCLogAutoFilledConstitution"
         ]
     ]

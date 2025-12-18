@@ -21,8 +21,7 @@ library
       Cooked.Ltl
       Cooked.Ltl.Combinators
       Cooked.MockChain
-      Cooked.MockChain.AutoFillWithdrawals
-      Cooked.MockChain.AutoReferenceScripts
+      Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
@@ -38,7 +37,6 @@ library
       Cooked.MockChain.GenerateTx.ReferenceInputs
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
-      Cooked.MockChain.MinAda
       Cooked.MockChain.MockChainState
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing

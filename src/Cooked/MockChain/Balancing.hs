@@ -16,9 +16,9 @@ import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Control.Monad.Except
+import Cooked.MockChain.AutoFilling
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Body
-import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Data.Bifunctor
