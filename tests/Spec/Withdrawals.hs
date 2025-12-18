@@ -32,7 +32,7 @@ testWithdrawingScript userCertifying userRewarding mAmount = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelWithdrawals = txSkelWithdrawalsFromList [Withdrawal userRewarding (Api.Lovelace <$> mAmount)]
+        txSkelWithdrawals = txSkelWithdrawalsFromList [Withdrawal userRewarding (Api.Lovelace . (1_000_000 *) <$> mAmount)]
       }
 
 aliceUser :: User IsEither Redemption
@@ -47,8 +47,16 @@ scriptUserWithdrawing amount = UserRedeemedScript checkWithdrawalMPScript (someT
 tests :: TestTree
 tests =
   testGroup
-    "Withdrawing scripts"
-    [ testCooked "We can register a script and use it to withdraw rewards..." $
+    "Withdrawals"
+    [ testCooked "We cannot withdraw rewards without first registering..." $
+        mustFailTest
+          ( testWithdrawingScript
+              Nothing
+              (scriptUserWithdrawing 0)
+              Nothing
+          )
+          `withFailureProp` isPhase1FailureWithMsg "WithdrawalsNotInRewardsCERTS",
+      testCooked "We can register a script and use it to withdraw rewards..." $
         mustSucceedTest
           ( testWithdrawingScript
               (Just scriptUserCertifying)
@@ -56,14 +64,14 @@ tests =
               Nothing
           )
           `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount",
-      testCooked ".. but the script's logic might say No !" $
+      testCooked ".. but the script's logic might say No" $
         mustFailTest
           ( testWithdrawingScript
               (Just scriptUserCertifying)
               (scriptUserWithdrawing 2)
               Nothing
           )
-          `withFailureProp` isPhase2FailureWithMsg "Wrong quantity"
+          `withFailureProp` isPhase2FailureWithMsg "Wrong quantity: 0 instead of 2000000"
           `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount",
       testCooked "We cannot withdraw more than our rewards (0)" $
         mustFailTest
@@ -73,15 +81,13 @@ tests =
               (Just 2)
           )
           `withFailureProp` isPhase1FailureWithMsg "WithdrawalsNotInRewardsCERTS"
-          `withJournalProp` didNotHappen "MCLogAutoFilledWithdrawalAmount"
-          -- testCooked "We cannot withdraw less than our rewards either" $ mustFailInPhase1WithMsgTest "WithdrawalsNotInRewardsCERTS" $ testWithdrawingScript 3 2 2 2,
-          -- testCooked "We cannot withdraw if we are not registered" $
-          --   mustFailInPhase1WithMsgTest "WithdrawalsNotInRewardsCERTS" $
-          --     testWithdrawingScript 2 2 2 2
-          --       `withTweak` do
-          --         setTweak
-          --           (txSkelWithdrawalsL % txSkelWithdrawalsListI % _head % withdrawalUserL % userEitherScriptP % userTypedScriptAT)
-          --           trueWithdrawalMPScript,
-          -- testCooked "A wallet can also make a withdrawal" $
-          --   mustSucceedTest testWithdrawingPK
+          `withJournalProp` didNotHappen "MCLogAutoFilledWithdrawalAmount",
+      testCooked "A peer can also make a withdrawal" $
+        mustSucceedTest
+          ( testWithdrawingScript
+              (Just aliceUser)
+              aliceUser
+              Nothing
+          )
+          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount"
     ]
