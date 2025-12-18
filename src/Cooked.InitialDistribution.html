@@ -16,36 +16,33 @@
 </span><span id="line-16"></span><span>
 </span><span id="line-17"></span><span class="annot"><span class="hs-comment">-- * Initial distribution of funds</span></span><span>
 </span><span id="line-18"></span><span>
-</span><span id="line-19"></span><span class="hs-comment">-- | Describes the initial distribution of UTxOs per wallet. This is important</span><span>
-</span><span id="line-20"></span><span class="hs-comment">-- since transaction validation must specify a /collateral/. Hence, wallets must</span><span>
-</span><span id="line-21"></span><span class="hs-comment">-- have more than one UTxO to begin with in order to execute a transaction and</span><span>
-</span><span id="line-22"></span><span class="hs-comment">-- have some collateral option. The @txCollateral@ is transferred to the node</span><span>
-</span><span id="line-23"></span><span class="hs-comment">-- operator in case the transaction fails to validate.</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- | Describes the initial distribution of UTxOs per user.</span><span>
+</span><span id="line-20"></span><span class="hs-comment">--</span><span>
+</span><span id="line-21"></span><span class="hs-comment">--  The following specifies a starting state where @wallet 1@ owns two UTxOs,</span><span>
+</span><span id="line-22"></span><span class="hs-comment">--  one with 42 Ada and one with 2 Ada and one &quot;TOK&quot; token; @wallet 2@ owns a</span><span>
+</span><span id="line-23"></span><span class="hs-comment">--  single UTxO with 10 Ada and @wallet 3@ has 10 Ada and a permanent value</span><span>
 </span><span id="line-24"></span><span class="hs-comment">--</span><span>
-</span><span id="line-25"></span><span class="hs-comment">--  The following specifies a starting state where @wallet 1@ owns two UTxOs,</span><span>
-</span><span id="line-26"></span><span class="hs-comment">--  one with 42 Ada and one with 2 Ada and one &quot;TOK&quot; token; @wallet 2@ owns a</span><span>
-</span><span id="line-27"></span><span class="hs-comment">--  single UTxO with 10 Ada and @wallet 3@ has 10 Ada and a permanent value. See</span><span>
-</span><span id="line-28"></span><span class="hs-comment">--  &quot;Cooked.Currencies&quot; for more information on quick and permanent values.</span><span>
-</span><span id="line-29"></span><span class="hs-comment">--</span><span>
-</span><span id="line-30"></span><span class="hs-comment">--  &gt; i0 = distributionFromList $</span><span>
-</span><span id="line-31"></span><span class="hs-comment">--  &gt;        [ (wallet 1 , [ ada 42 , ada 2 &lt;&gt; quickValue &quot;TOK&quot; 1 ]</span><span>
-</span><span id="line-32"></span><span class="hs-comment">--  &gt;        , (wallet 2 , [ ada 10 ])</span><span>
-</span><span id="line-33"></span><span class="hs-comment">--  &gt;        , (wallet 3 , [ ada 10 &lt;&gt; permanentValue &quot;XYZ&quot; 10])</span><span>
-</span><span id="line-34"></span><span class="hs-comment">--  &gt;        ]</span><span>
-</span><span id="line-35"></span><span class="hs-comment">--</span><span>
-</span><span id="line-36"></span><span class="hs-comment">-- Note that initial distribution can lead to payments that would not be</span><span>
-</span><span id="line-37"></span><span class="hs-comment">-- accepted if part of an actual transaction, such as payment without enough ada</span><span>
-</span><span id="line-38"></span><span class="hs-comment">-- to sustain themselves.</span><span>
-</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-40"></span><span>  </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-41"></span><span>    </span><span class="hs-special">{</span><span id="unInitialDistribution"><span class="annot"><span class="annottext">InitialDistribution -&gt; [TxSkelOut]
+</span><span id="line-25"></span><span class="hs-comment">--  &gt; i0 = distributionFromList $</span><span>
+</span><span id="line-26"></span><span class="hs-comment">--  &gt;        [ (wallet 1 , [ ada 42 , ada 2 &lt;&gt; quickValue &quot;TOK&quot; 1 ]</span><span>
+</span><span id="line-27"></span><span class="hs-comment">--  &gt;        , (wallet 2 , [ ada 10 ])</span><span>
+</span><span id="line-28"></span><span class="hs-comment">--  &gt;        , (wallet 3 , [ ada 10 &lt;&gt; permanentValue &quot;XYZ&quot; 10])</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--  &gt;        ]</span><span>
+</span><span id="line-30"></span><span class="hs-comment">--</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- Note that payment issued through an initial distribution will be attached</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- enough ADA to sustain themselves.</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">data</span><span> </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-34"></span><span>  </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-special">{</span><span id="unInitialDistribution"><span class="annot"><span class="annottext">InitialDistribution -&gt; [TxSkelOut]
 </span><a href="Cooked.InitialDistribution.html#unInitialDistribution"><span class="hs-identifier hs-var hs-var">unInitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-42"></span><span>    </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span>
-</span><span id="line-43"></span><span>
-</span><span id="line-44"></span><span class="annot"><span class="hs-comment">-- | 4 UTxOs with 100 Ada each, for each of the first 4 'knownWallets'</span></span><span>
-</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-46"></span><span>  </span><span id="local-6989586621679819548"><span class="annot"><span class="annottext">def :: InitialDistribution
-</span><a href="#local-6989586621679819548"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])] -&gt; InitialDistribution
+</span><span id="line-36"></span><span>    </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="annot"><span class="hs-comment">-- | 4 UTxOs with 100 Ada each, for each of the first 4 'knownWallets'</span></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679878568"><span class="annot"><span class="annottext">def :: InitialDistribution
+</span><a href="#local-6989586621679878568"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])] -&gt; InitialDistribution
+forall owner.
+IsTxSkelOutAllowedOwner owner =&gt;
+[(owner, [Value])] -&gt; InitialDistribution
 </span><a href="Cooked.InitialDistribution.html#distributionFromList"><span class="hs-identifier hs-var">distributionFromList</span></a></span><span> </span><span class="annot"><span class="annottext">([(Wallet, [Value])] -&gt; InitialDistribution)
 -&gt; (Value -&gt; [(Wallet, [Value])]) -&gt; Value -&gt; InitialDistribution
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -70,60 +67,62 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Script.ada</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">100</span></span><span>
-</span><span id="line-47"></span><span>
-</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819557"><span id="local-6989586621679819561"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-49"></span><span>  </span><span id="local-6989586621679819567"><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679819567"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679819568"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679819569"><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679819569"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; InitialDistribution
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679878577"><span id="local-6989586621679878581"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679878588"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679878588"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679878589"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679878590"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679878590"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; InitialDistribution
 </span><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">InitialDistribution -&gt; [TxSkelOut]
 </span><a href="Cooked.InitialDistribution.html#unInitialDistribution"><span class="hs-identifier hs-var">unInitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679819567"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679878588"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; [TxSkelOut]
 </span><a href="Cooked.InitialDistribution.html#unInitialDistribution"><span class="hs-identifier hs-var">unInitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679819569"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-50"></span><span>
-</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679819574"><span id="local-6989586621679819578"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-52"></span><span>  </span><span id="local-6989586621679819583"><span class="annot"><span class="annottext">mempty :: InitialDistribution
+</span><a href="#local-6989586621679878590"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679878595"><span id="local-6989586621679878599"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679878604"><span class="annot"><span class="annottext">mempty :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; InitialDistribution
 </span><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
-</span><span id="line-53"></span><span>
-</span><span id="line-54"></span><span class="annot"><span class="hs-comment">-- | Creating a initial distribution with simple values assigned to wallets</span></span><span>
-</span><span id="line-55"></span><span class="annot"><a href="Cooked.InitialDistribution.html#distributionFromList"><span class="hs-identifier hs-type">distributionFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span>
-</span><span id="line-56"></span><span id="distributionFromList"><span class="annot"><span class="annottext">distributionFromList :: [(Wallet, [Value])] -&gt; InitialDistribution
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="annot"><span class="hs-comment">-- | Creating a initial distribution with simple values assigned to owners</span></span><span>
+</span><span id="line-49"></span><span id="local-6989586621679878526"><span class="annot"><a href="Cooked.InitialDistribution.html#distributionFromList"><span class="hs-identifier hs-type">distributionFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679878526"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679878526"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span><span>
+</span><span id="line-50"></span><span id="distributionFromList"><span class="annot"><span class="annottext">distributionFromList :: forall owner.
+IsTxSkelOutAllowedOwner owner =&gt;
+[(owner, [Value])] -&gt; InitialDistribution
 </span><a href="Cooked.InitialDistribution.html#distributionFromList"><span class="hs-identifier hs-var hs-var">distributionFromList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; InitialDistribution
 </span><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; InitialDistribution)
--&gt; ([(Wallet, [Value])] -&gt; [TxSkelOut])
--&gt; [(Wallet, [Value])]
+-&gt; ([(owner, [Value])] -&gt; [TxSkelOut])
+-&gt; [(owner, [Value])]
 -&gt; InitialDistribution
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; (Wallet, [Value]) -&gt; [TxSkelOut])
--&gt; [TxSkelOut] -&gt; [(Wallet, [Value])] -&gt; [TxSkelOut]
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; (owner, [Value]) -&gt; [TxSkelOut])
+-&gt; [TxSkelOut] -&gt; [(owner, [Value])] -&gt; [TxSkelOut]
 forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
-</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679819584"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819584"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679819585"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679819585"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679819586"><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679819586"><span class="hs-identifier hs-var">values</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679819584"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679878612"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679878612"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679878613"><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679878613"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679878614"><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679878614"><span class="hs-identifier hs-var">values</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679878612"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxSkelOut) -&gt; [Value] -&gt; [TxSkelOut]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Payable '[&quot;Value&quot;] -&gt; TxSkelOut
-forall owner (els :: [Symbol]).
-OwnerConstrs owner =&gt;
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">owner -&gt; Payable '[ 'IsValue] -&gt; TxSkelOut
+forall owner (els :: [PayableKind]).
+IsTxSkelOutAllowedOwner owner =&gt;
 owner -&gt; Payable els -&gt; TxSkelOut
-</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-var">receives</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679819585"><span class="hs-identifier hs-var">user</span></a></span><span> </span><span class="annot"><span class="annottext">(Payable '[&quot;Value&quot;] -&gt; TxSkelOut)
--&gt; (Value -&gt; Payable '[&quot;Value&quot;]) -&gt; Value -&gt; TxSkelOut
+</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-var">receives</span></a></span><span> </span><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679878613"><span class="hs-identifier hs-var">user</span></a></span><span> </span><span class="annot"><span class="annottext">(Payable '[ 'IsValue] -&gt; TxSkelOut)
+-&gt; (Value -&gt; Payable '[ 'IsValue]) -&gt; Value -&gt; TxSkelOut
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Payable '[&quot;Value&quot;]
-forall a1. ToValue a1 =&gt; a1 -&gt; Payable '[&quot;Value&quot;]
-</span><a href="Cooked.Skeleton.Payable.html#Value"><span class="hs-identifier hs-var">Value</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679819586"><span class="hs-identifier hs-var">values</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-57"></span></pre></body></html>
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Payable '[ 'IsValue]
+forall a1. ToValue a1 =&gt; a1 -&gt; Payable '[ 'IsValue]
+</span><a href="Cooked.Skeleton.Output.html#Value"><span class="hs-identifier hs-var">Value</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679878614"><span class="hs-identifier hs-var">values</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-51"></span></pre></body></html>

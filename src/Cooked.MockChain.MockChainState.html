@@ -21,32 +21,35 @@
 </span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Orphans</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
 </span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.TH</span></span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
-</span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="annot"><span class="hs-comment">-- | The state used to run the simulation in 'Cooked.MockChain.Direct'</span></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainState"><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-var">MockChainState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MockChainState"><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-var">MockChainState</span></a></span></span><span>
-</span><span id="line-29"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="mcstParams"><span class="annot"><span class="annottext">MockChainState -&gt; Params
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="annot"><span class="hs-comment">-- | The state used to run the simulation in 'Cooked.MockChain.Direct'</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainState"><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-var">MockChainState</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>  </span><span id="MockChainState"><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-var">MockChainState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | The parametors of the emulated blockchain</span></span><span>
+</span><span id="line-30"></span><span>      </span><span id="mcstParams"><span class="annot"><span class="annottext">MockChainState -&gt; Params
 </span><a href="Cooked.MockChain.MockChainState.html#mcstParams"><span class="hs-identifier hs-var hs-var">mcstParams</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span class="hs-special">,</span><span>
-</span><span id="line-30"></span><span>    </span><span id="mcstLedgerState"><span class="annot"><span class="annottext">MockChainState -&gt; EmulatedLedgerState
+</span><span id="line-31"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The ledger state of the emulated blockchain</span></span><span>
+</span><span id="line-32"></span><span>      </span><span id="mcstLedgerState"><span class="annot"><span class="annottext">MockChainState -&gt; EmulatedLedgerState
 </span><a href="Cooked.MockChain.MockChainState.html#mcstLedgerState"><span class="hs-identifier hs-var hs-var">mcstLedgerState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatedLedgerState</span></span><span class="hs-special">,</span><span>
-</span><span id="line-31"></span><span>    </span><span class="hs-comment">-- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,</span><span>
-</span><span id="line-32"></span><span>    </span><span class="hs-comment">-- alongside a boolean to state whether this UTxO is still present in the</span><span>
-</span><span id="line-33"></span><span>    </span><span class="hs-comment">-- index ('True') or has already been consumed ('False').</span><span>
-</span><span id="line-34"></span><span>    </span><span id="mcstOutputs"><span class="annot"><span class="annottext">MockChainState -&gt; Map TxOutRef (TxSkelOut, Bool)
+</span><span id="line-33"></span><span>      </span><span class="hs-comment">-- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,</span><span>
+</span><span id="line-34"></span><span>      </span><span class="hs-comment">-- alongside a boolean to state whether this UTxO is still present in the</span><span>
+</span><span id="line-35"></span><span>      </span><span class="hs-comment">-- index ('True') or has already been consumed ('False').</span><span>
+</span><span id="line-36"></span><span>      </span><span id="mcstOutputs"><span class="annot"><span class="annottext">MockChainState -&gt; Map TxOutRef (TxSkelOut, Bool)
 </span><a href="Cooked.MockChain.MockChainState.html#mcstOutputs"><span class="hs-identifier hs-var hs-var">mcstOutputs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-35"></span><span>    </span><span class="annot"><span class="hs-comment">-- | The constitution script to be used with proposals</span></span><span>
-</span><span id="line-36"></span><span>    </span><span id="mcstConstitution"><span class="annot"><span class="annottext">MockChainState -&gt; Maybe (Versioned Script)
-</span><a href="Cooked.MockChain.MockChainState.html#mcstConstitution"><span class="hs-identifier hs-var hs-var">mcstConstitution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span><span>
-</span><span id="line-37"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-38"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810348"><span id="local-6989586621679810363"><span id="local-6989586621679810367"><span class="annot"><span class="annottext">Int -&gt; MockChainState -&gt; ShowS
+</span><span id="line-37"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The constitution script to be used with proposals</span></span><span>
+</span><span id="line-38"></span><span>      </span><span id="mcstConstitution"><span class="annot"><span class="annottext">MockChainState -&gt; Maybe VScript
+</span><a href="Cooked.MockChain.MockChainState.html#mcstConstitution"><span class="hs-identifier hs-var hs-var">mcstConstitution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#VScript"><span class="hs-identifier hs-type">VScript</span></a></span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868379"><span id="local-6989586621679868394"><span id="local-6989586621679868398"><span class="annot"><span class="annottext">Int -&gt; MockChainState -&gt; ShowS
 [MockChainState] -&gt; ShowS
 MockChainState -&gt; String
 (Int -&gt; MockChainState -&gt; ShowS)
 -&gt; (MockChainState -&gt; String)
 -&gt; ([MockChainState] -&gt; ShowS)
 -&gt; Show MockChainState
-forall a.
+forall (a :: OpticKind).
 (Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
 $cshowsPrec :: Int -&gt; MockChainState -&gt; ShowS
 showsPrec :: Int -&gt; MockChainState -&gt; ShowS
@@ -55,165 +58,156 @@ show :: MockChainState -&gt; String
 $cshowList :: [MockChainState] -&gt; ShowS
 showList :: [MockChainState] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-39"></span><span>
-</span><span id="line-40"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the parameters of the 'MockChainState'</span></span><span>
-</span><span id="line-41"></span><span id="mcstParamsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstParams&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstParamsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-42"></span><span>
-</span><span id="line-43"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the ledger state of the 'MockChainState'</span></span><span>
-</span><span id="line-44"></span><span id="mcstLedgerStateL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstLedgerState&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstLedgerStateL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
+</span><span id="line-43"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the parameters of the 'MockChainState'</span></span><span>
+</span><span id="line-44"></span><span id="mcstParamsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstParams&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstParamsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-45"></span><span>
-</span><span id="line-46"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the outputs of the 'MockChainState'</span></span><span>
-</span><span id="line-47"></span><span id="mcstOutputsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstOutputs&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstOutputsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
+</span><span id="line-46"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the ledger state of the 'MockChainState'</span></span><span>
+</span><span id="line-47"></span><span id="mcstLedgerStateL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstLedgerState&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstLedgerStateL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the constitution script of the 'MockChainState'</span></span><span>
-</span><span id="line-50"></span><span id="mcstConstitutionL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstConstitution&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstConstitutionL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
+</span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the outputs of the 'MockChainState'</span></span><span>
+</span><span id="line-50"></span><span id="mcstOutputsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstOutputs&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstOutputsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-51"></span><span>
-</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-53"></span><span>  </span><span id="local-6989586621679810422"><span class="annot"><span class="annottext">def :: MockChainState
-</span><a href="#local-6989586621679810422"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params
+</span><span id="line-52"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the constitution script of the 'MockChainState'</span></span><span>
+</span><span id="line-53"></span><span id="mcstConstitutionL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstConstitution&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstConstitutionL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679868453"><span class="annot"><span class="annottext">def :: MockChainState
+</span><a href="#local-6989586621679868453"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params
 -&gt; EmulatedLedgerState
 -&gt; Map TxOutRef (TxSkelOut, Bool)
--&gt; Maybe (Versioned Script)
+-&gt; Maybe VScript
 -&gt; MockChainState
 </span><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-var">MockChainState</span></a></span><span> </span><span class="annot"><span class="annottext">Params
-forall a. Default a =&gt; a
+forall (a :: OpticKind). Default a =&gt; a
 </span><span class="hs-identifier hs-var">def</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params -&gt; EmulatedLedgerState
 </span><span class="hs-identifier hs-var">Emulator.initialState</span></span><span> </span><span class="annot"><span class="annottext">Params
-forall a. Default a =&gt; a
+forall (a :: OpticKind). Default a =&gt; a
 </span><span class="hs-identifier hs-var">def</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef (TxSkelOut, Bool)
-forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span> </span><span class="annot"><span class="annottext">Maybe (Versioned Script)
-forall a. Maybe a
+forall (k :: OpticKind) (a :: OpticKind). Map k a
+</span><span class="hs-identifier hs-var">Map.empty</span></span><span> </span><span class="annot"><span class="annottext">Maybe VScript
+forall (a :: OpticKind). Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-54"></span><span>
-</span><span id="line-55"></span><span class="annot"><span class="hs-comment">-- | Builds a 'UtxoState' from a 'MockChainState'</span></span><span>
-</span><span id="line-56"></span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#mcstToUtxoState"><span class="hs-identifier hs-type">mcstToUtxoState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
-</span><span id="line-57"></span><span id="mcstToUtxoState"><span class="annot"><span class="annottext">mcstToUtxoState :: MockChainState -&gt; UtxoState
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="annot"><span class="hs-comment">-- | Builds a 'UtxoState' from a 'MockChainState'</span></span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#mcstToUtxoState"><span class="hs-identifier hs-type">mcstToUtxoState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
+</span><span id="line-60"></span><span id="mcstToUtxoState"><span class="annot"><span class="annottext">mcstToUtxoState :: MockChainState -&gt; UtxoState
 </span><a href="Cooked.MockChain.MockChainState.html#mcstToUtxoState"><span class="hs-identifier hs-var hs-var">mcstToUtxoState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-58"></span><span>  </span><span class="annot"><span class="annottext">(UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState)
+</span><span id="line-61"></span><span>  </span><span class="annot"><span class="annottext">(UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState)
 -&gt; UtxoState -&gt; [(TxOutRef, (TxSkelOut, Bool))] -&gt; UtxoState
-forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
-forall (t :: * -&gt; *) b a.
+forall (b :: OpticKind) (a :: OpticKind).
+(b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: OpticKind -&gt; OpticKind) (b :: OpticKind)
+       (a :: OpticKind).
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
 </span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="annot"><span class="annottext">UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
-</span><a href="#local-6989586621679810428"><span class="hs-identifier hs-var">extractPayload</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
-forall a. Monoid a =&gt; a
+</span><a href="#local-6989586621679868459"><span class="hs-identifier hs-var">extractPayload</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
+forall (a :: OpticKind). Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, (TxSkelOut, Bool))] -&gt; UtxoState)
 -&gt; (MockChainState -&gt; [(TxOutRef, (TxSkelOut, Bool))])
 -&gt; MockChainState
 -&gt; UtxoState
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
+(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef (TxSkelOut, Bool) -&gt; [(TxOutRef, (TxSkelOut, Bool))]
-forall k a. Map k a -&gt; [(k, a)]
+forall (k :: OpticKind) (a :: OpticKind). Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef (TxSkelOut, Bool) -&gt; [(TxOutRef, (TxSkelOut, Bool))])
 -&gt; (MockChainState -&gt; Map TxOutRef (TxSkelOut, Bool))
 -&gt; MockChainState
 -&gt; [(TxOutRef, (TxSkelOut, Bool))]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
+(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">MockChainState -&gt; Map TxOutRef (TxSkelOut, Bool)
 </span><a href="Cooked.MockChain.MockChainState.html#mcstOutputs"><span class="hs-identifier hs-var">mcstOutputs</span></a></span><span>
-</span><span id="line-59"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-60"></span><span>    </span><span class="annot"><a href="#local-6989586621679810428"><span class="hs-identifier hs-type">extractPayload</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
-</span><span id="line-61"></span><span>    </span><span id="local-6989586621679810428"><span class="annot"><span class="annottext">extractPayload :: UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
-</span><a href="#local-6989586621679810428"><span class="hs-identifier hs-var hs-var">extractPayload</span></a></span></span><span> </span><span id="local-6989586621679810431"><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679810431"><span class="hs-identifier hs-var">utxoState</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810432"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679810432"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679810433"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810433"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679810434"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679810434"><span class="hs-identifier hs-var">bool</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-62"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679810435"><span class="annot"><span class="annottext">newAddress :: Address
-</span><a href="#local-6989586621679810435"><span class="hs-identifier hs-var hs-var">newAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx TxSkelOut Address -&gt; TxSkelOut -&gt; Address
-forall k (is :: IxList) s a.
+</span><span id="line-62"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><a href="#local-6989586621679868459"><span class="hs-identifier hs-type">extractPayload</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span id="local-6989586621679868459"><span class="annot"><span class="annottext">extractPayload :: UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
+</span><a href="#local-6989586621679868459"><span class="hs-identifier hs-var hs-var">extractPayload</span></a></span></span><span> </span><span id="local-6989586621679868462"><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679868462"><span class="hs-identifier hs-var">utxoState</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868463"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679868463"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868464"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868464"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868465"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679868465"><span class="hs-identifier hs-var">bool</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-65"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679868466"><span class="annot"><span class="annottext">newAddress :: Address
+</span><a href="#local-6989586621679868466"><span class="hs-identifier hs-var hs-var">newAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx TxSkelOut Address -&gt; TxSkelOut -&gt; Address
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (a :: OpticKind).
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx TxSkelOut Address
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutAddressG"><span class="hs-identifier hs-var">txSkelOutAddressG</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810433"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-63"></span><span>          </span><span id="local-6989586621679810438"><span class="annot"><span class="annottext">newPayloadSet :: UtxoPayloadSet
-</span><a href="#local-6989586621679810438"><span class="hs-identifier hs-var hs-var">newPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-64"></span><span>            </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
+</span><a href="#local-6989586621679868464"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-66"></span><span>          </span><span id="local-6989586621679868469"><span class="annot"><span class="annottext">newPayloadSet :: UtxoPayloadSet
+</span><a href="#local-6989586621679868469"><span class="hs-identifier hs-var hs-var">newPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-67"></span><span>            </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
 </span><a href="Cooked.MockChain.UtxoState.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span><span>
-</span><span id="line-65"></span><span>              </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><span id="line-68"></span><span>              </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TxOutRef
 -&gt; Value -&gt; UtxoPayloadDatum -&gt; Maybe ScriptHash -&gt; UtxoPayload
 </span><a href="Cooked.MockChain.UtxoState.html#UtxoPayload"><span class="hs-identifier hs-var">UtxoPayload</span></a></span><span>
-</span><span id="line-66"></span><span>                  </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679810432"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
-</span><span id="line-67"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Value -&gt; TxSkelOut -&gt; Value
-forall k (is :: IxList) s a.
+</span><span id="line-69"></span><span>                  </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679868463"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
+</span><span id="line-70"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Value -&gt; TxSkelOut -&gt; Value
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (a :: OpticKind).
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810433"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-68"></span><span>                  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810433"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868464"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>                  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868464"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
 -&gt; Optic' A_Lens NoIx TxSkelOut TxSkelOutDatum -&gt; TxSkelOutDatum
-forall k s (is :: IxList) a.
+forall (k :: OpticKind) (s :: OpticKind) (is :: IxList)
+       (a :: OpticKind).
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-69"></span><span>                      </span><span class="annot"><span class="annottext">TxSkelOutDatum
+</span><span id="line-72"></span><span>                      </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.UtxoState.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span>
-</span><span id="line-70"></span><span>                      </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679810451"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679810451"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span id="local-6989586621679810452"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679810452"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Bool -&gt; UtxoPayloadDatum
-forall dat. DatumConstrs dat =&gt; dat -&gt; Bool -&gt; UtxoPayloadDatum
+</span><span id="line-73"></span><span>                      </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868482"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679868482"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span id="local-6989586621679868483"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868483"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Bool -&gt; UtxoPayloadDatum
+forall (dat :: OpticKind).
+DatumConstrs dat =&gt;
+dat -&gt; Bool -&gt; UtxoPayloadDatum
 </span><a href="Cooked.MockChain.UtxoState.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-var">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679810451"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679810452"><span class="hs-identifier hs-var">kind</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind -&gt; DatumKind -&gt; Bool
-forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><a href="#local-6989586621679868482"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868483"><span class="hs-identifier hs-var">kind</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind -&gt; DatumKind -&gt; Bool
+forall (a :: OpticKind). Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Inline"><span class="hs-identifier hs-var">Inline</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-71"></span><span>                  </span><span class="hs-special">)</span><span>
-</span><span id="line-72"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' An_AffineFold NoIx TxSkelOut ScriptHash
+</span><span id="line-74"></span><span>                  </span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' An_AffineFold NoIx TxSkelOut ScriptHash
 -&gt; TxSkelOut -&gt; Maybe ScriptHash
-forall k (is :: IxList) s a.
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (a :: OpticKind).
 Is k An_AffineFold =&gt;
 Optic' k is s a -&gt; s -&gt; Maybe a
-</span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutReferenceScript
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutReferenceScriptL"><span class="hs-identifier hs-var">txSkelOutReferenceScriptL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut TxSkelOutReferenceScript
--&gt; Optic
-     An_AffineFold
-     NoIx
-     TxSkelOutReferenceScript
-     TxSkelOutReferenceScript
-     ScriptHash
-     ScriptHash
--&gt; Optic' An_AffineFold NoIx TxSkelOut ScriptHash
-forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
-       b.
-(JoinKinds k l m, AppendIndices is js ks) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
-  An_AffineFold
-  NoIx
-  TxSkelOutReferenceScript
-  TxSkelOutReferenceScript
-  ScriptHash
-  ScriptHash
-</span><a href="Cooked.Skeleton.ReferenceScript.html#txSkelOutReferenceScriptHashAF"><span class="hs-identifier hs-var">txSkelOutReferenceScriptHashAF</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810433"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-73"></span><span>              </span><span class="hs-special">]</span><span>
-</span><span id="line-74"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679810434"><span class="hs-identifier hs-var">bool</span></a></span><span>
-</span><span id="line-75"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679810431"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679810435"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810438"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810431"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
-</span><span id="line-76"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679810431"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679810435"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810438"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679810431"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
-</span><span id="line-77"></span><span>
-</span><span id="line-78"></span><span class="annot"><span class="hs-comment">-- | Stores an output in a 'MockChainState'</span></span><span>
-</span><span id="line-79"></span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#addOutput"><span class="hs-identifier hs-type">addOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
-</span><span id="line-80"></span><span id="addOutput"><span class="annot"><span class="annottext">addOutput :: TxOutRef -&gt; TxSkelOut -&gt; MockChainState -&gt; MockChainState
-</span><a href="Cooked.MockChain.MockChainState.html#addOutput"><span class="hs-identifier hs-var hs-var">addOutput</span></a></span></span><span> </span><span id="local-6989586621679810463"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679810463"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span id="local-6989586621679810464"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810464"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
+</span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineFold NoIx TxSkelOut ScriptHash
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutReferenceScriptHashAF"><span class="hs-identifier hs-var">txSkelOutReferenceScriptHashAF</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868464"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>              </span><span class="hs-special">]</span><span>
+</span><span id="line-77"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679868465"><span class="hs-identifier hs-var">bool</span></a></span><span>
+</span><span id="line-78"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679868462"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679868466"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868469"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868462"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
+</span><span id="line-79"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679868462"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679868466"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868469"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868462"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><span class="hs-comment">-- | Stores an output in a 'MockChainState'</span></span><span>
+</span><span id="line-82"></span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#addOutput"><span class="hs-identifier hs-type">addOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
+</span><span id="line-83"></span><span id="addOutput"><span class="annot"><span class="annottext">addOutput :: TxOutRef -&gt; TxSkelOut -&gt; MockChainState -&gt; MockChainState
+</span><a href="Cooked.MockChain.MockChainState.html#addOutput"><span class="hs-identifier hs-var hs-var">addOutput</span></a></span></span><span> </span><span id="local-6989586621679868492"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679868492"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span id="local-6989586621679868493"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868493"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
 -&gt; (Map TxOutRef (TxSkelOut, Bool)
     -&gt; Map TxOutRef (TxSkelOut, Bool))
 -&gt; MockChainState
 -&gt; MockChainState
-forall k (is :: IxList) s t a b.
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind).
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 </span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
@@ -221,22 +215,25 @@ Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 -&gt; (TxSkelOut, Bool)
 -&gt; Map TxOutRef (TxSkelOut, Bool)
 -&gt; Map TxOutRef (TxSkelOut, Bool)
-forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+forall (k :: OpticKind) (a :: OpticKind).
+Ord k =&gt;
+k -&gt; a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679810463"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810464"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679868492"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868493"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-81"></span><span>
-</span><span id="line-82"></span><span class="annot"><span class="hs-comment">-- | Removes an output from the 'MockChainState'</span></span><span>
-</span><span id="line-83"></span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#removeOutput"><span class="hs-identifier hs-type">removeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
-</span><span id="line-84"></span><span id="removeOutput"><span class="annot"><span class="annottext">removeOutput :: TxOutRef -&gt; MockChainState -&gt; MockChainState
-</span><a href="Cooked.MockChain.MockChainState.html#removeOutput"><span class="hs-identifier hs-var hs-var">removeOutput</span></a></span></span><span> </span><span id="local-6989586621679810467"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679810467"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="annot"><span class="hs-comment">-- | Removes an output from the 'MockChainState'</span></span><span>
+</span><span id="line-86"></span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#removeOutput"><span class="hs-identifier hs-type">removeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.MockChainState.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
+</span><span id="line-87"></span><span id="removeOutput"><span class="annot"><span class="annottext">removeOutput :: TxOutRef -&gt; MockChainState -&gt; MockChainState
+</span><a href="Cooked.MockChain.MockChainState.html#removeOutput"><span class="hs-identifier hs-var hs-var">removeOutput</span></a></span></span><span> </span><span id="local-6989586621679868496"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679868496"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
 -&gt; (Map TxOutRef (TxSkelOut, Bool)
     -&gt; Map TxOutRef (TxSkelOut, Bool))
 -&gt; MockChainState
 -&gt; MockChainState
-forall k (is :: IxList) s t a b.
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind).
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 </span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
@@ -244,13 +241,15 @@ Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 -&gt; TxOutRef
 -&gt; Map TxOutRef (TxSkelOut, Bool)
 -&gt; Map TxOutRef (TxSkelOut, Bool)
-forall k a. Ord k =&gt; (a -&gt; Maybe a) -&gt; k -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.update</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679810469"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810469"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+forall (k :: OpticKind) (a :: OpticKind).
+Ord k =&gt;
+(a -&gt; Maybe a) -&gt; k -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.update</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679868498"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868498"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut, Bool) -&gt; Maybe (TxSkelOut, Bool)
-forall a. a -&gt; Maybe a
+forall (a :: OpticKind). a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679810469"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679868498"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679810467"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-85"></span></pre></body></html>
+</span><a href="#local-6989586621679868496"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span></pre></body></html>

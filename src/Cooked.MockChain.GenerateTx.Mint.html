@@ -8,33 +8,35 @@
 </span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Witness.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Witness</span></a></span><span>
 </span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
 </span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.NonEmpty</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">NEMap</span></span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">SMap</span></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromList</span></span><span class="hs-special">)</span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Builtins.Internal</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Modifiers</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NonZero</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NonZero</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-19"></span><span>
-</span><span id="line-20"></span><span class="annot"><span class="hs-comment">-- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'</span></span><span>
-</span><span id="line-21"></span><span id="local-6989586621679817315"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-type">toMintValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679817315"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679817315"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxMintValue</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
-</span><span id="line-22"></span><span id="toMintValue"><span class="annot"><span class="annottext">toMintValue :: forall (m :: * -&gt; *).
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">SMap</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromList</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Builtins.Internal</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="annot"><span class="hs-comment">-- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'</span></span><span>
+</span><span id="line-19"></span><span id="local-6989586621679875526"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-type">toMintValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875526"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Mint.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679875526"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxMintValue</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-20"></span><span id="toMintValue"><span class="annot"><span class="annottext">toMintValue :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkelMints -&gt; m (TxMintValue BuildTx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-var hs-var">toMintValue</span></a></span></span><span> </span><span id="local-6989586621679817423"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679817423"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Bool
-forall a. Map (Versioned MintingPolicy) a -&gt; Bool
-forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
-</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679817423"><span class="hs-identifier hs-var">mints</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMintValue BuildTx ConwayEra -&gt; m (TxMintValue BuildTx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-var hs-var">toMintValue</span></a></span></span><span> </span><span id="local-6989586621679875624"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679875624"><span class="hs-identifier hs-var">txSkelMints</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679875624"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; TxSkelMints -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMintValue BuildTx ConwayEra -&gt; m (TxMintValue BuildTx ConwayEra)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxMintValue BuildTx ConwayEra
 forall build era. TxMintValue build era
 </span><span class="hs-identifier hs-var">Cardano.TxMintNone</span></span><span>
-</span><span id="line-23"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-var">toMintValue</span></a></span><span> </span><span id="local-6989586621679817426"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679817426"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([(PolicyId,
+</span><span id="line-21"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Mint.html#toMintValue"><span class="hs-identifier hs-var">toMintValue</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints
+-&gt; Map
+     ScriptHash (User 'IsScript 'Redemption, Map TokenName Integer)
+</span><a href="Cooked.Skeleton.Mint.html#unTxSkelMints"><span class="hs-identifier hs-var">unTxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679875627"><span class="annot"><span class="annottext">Map ScriptHash (User 'IsScript 'Redemption, Map TokenName Integer)
+</span><a href="#local-6989586621679875627"><span class="hs-identifier hs-var">mints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([(PolicyId,
    (PolicyAssets,
     BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)))]
  -&gt; TxMintValue BuildTx ConwayEra)
@@ -92,10 +94,9 @@ forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 -&gt; m (TxMintValue BuildTx ConwayEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-24"></span><span>  </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy,
-  (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
--&gt; ((Versioned MintingPolicy,
-     (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))
+</span><span id="line-22"></span><span>  </span><span class="annot"><span class="annottext">[(ScriptHash, (User 'IsScript 'Redemption, Map TokenName Integer))]
+-&gt; ((ScriptHash,
+     (User 'IsScript 'Redemption, Map TokenName Integer))
     -&gt; m (PolicyId,
           (PolicyAssets,
            BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra))))
@@ -105,21 +106,20 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelMints
--&gt; [(Versioned MintingPolicy,
-     (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))]
+</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map ScriptHash (User 'IsScript 'Redemption, Map TokenName Integer)
+-&gt; [(ScriptHash,
+     (User 'IsScript 'Redemption, Map TokenName Integer))]
 forall k a. Map k a -&gt; [(k, a)]
-</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679817426"><span class="hs-identifier hs-var">mints</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Versioned MintingPolicy,
-   (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Map ScriptHash (User 'IsScript 'Redemption, Map TokenName Integer)
+</span><a href="#local-6989586621679875627"><span class="hs-identifier hs-var">mints</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((ScriptHash, (User 'IsScript 'Redemption, Map TokenName Integer))
   -&gt; m (PolicyId,
         (PolicyAssets,
          BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra))))
  -&gt; m [(PolicyId,
         (PolicyAssets,
          BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)))])
--&gt; ((Versioned MintingPolicy,
-     (TxSkelRedeemer, NEMap TokenName (NonZero Integer)))
+-&gt; ((ScriptHash,
+     (User 'IsScript 'Redemption, Map TokenName Integer))
     -&gt; m (PolicyId,
           (PolicyAssets,
            BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra))))
@@ -127,40 +127,32 @@ forall k a. Map k a -&gt; [(k, a)]
        (PolicyAssets,
         BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)))]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679817432"><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679817432"><span class="hs-identifier hs-var">policy</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679817433"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679817433"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Map TokenName (NonZero Integer) -&gt; [(TokenName, NonZero Integer)]
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679875633"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679875633"><span class="hs-identifier hs-var">policyHash</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span> </span><span id="local-6989586621679875650"><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679875650"><span class="hs-identifier hs-var">policy</span></a></span></span><span> </span><span id="local-6989586621679875651"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679875651"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer -&gt; [(TokenName, Integer)]
 forall k a. Map k a -&gt; [(k, a)]
-</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map TokenName (NonZero Integer) -&gt; [(TokenName, NonZero Integer)])
--&gt; (NEMap TokenName (NonZero Integer)
-    -&gt; Map TokenName (NonZero Integer))
--&gt; NEMap TokenName (NonZero Integer)
--&gt; [(TokenName, NonZero Integer)]
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
--&gt; Map TokenName (NonZero Integer)
-forall k a. NEMap k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">NEMap.toMap</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679817435"><span class="annot"><span class="annottext">[(TokenName, NonZero Integer)]
-</span><a href="#local-6989586621679817435"><span class="hs-identifier hs-var">assets</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-25"></span><span>    </span><span id="local-6989586621679817436"><span class="annot"><span class="annottext">PolicyId
-</span><a href="#local-6989586621679817436"><span class="hs-identifier hs-var">policyId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-26"></span><span>      </span><span class="annot"><span class="annottext">String -&gt; Either ToCardanoError PolicyId -&gt; m PolicyId
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679875652"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679875652"><span class="hs-identifier hs-var">assets</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-23"></span><span>    </span><span id="local-6989586621679875653"><span class="annot"><span class="annottext">PolicyId
+</span><a href="#local-6989586621679875653"><span class="hs-identifier hs-var">policyId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-24"></span><span>      </span><span class="annot"><span class="annottext">String -&gt; Either ToCardanoError PolicyId -&gt; m PolicyId
 forall (m :: * -&gt; *) a.
 MonadError MockChainError m =&gt;
 String -&gt; Either ToCardanoError a -&gt; m a
 </span><a href="Cooked.MockChain.GenerateTx.Common.html#throwOnToCardanoError"><span class="hs-identifier hs-var">throwOnToCardanoError</span></a></span><span>
-</span><span id="line-27"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span id="line-25"></span><span>        </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;toMintValue: Unable to translate minting policy hash&quot;</span></span><span>
-</span><span id="line-28"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicyHash -&gt; Either ToCardanoError PolicyId
+</span><span id="line-26"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicyHash -&gt; Either ToCardanoError PolicyId
 </span><span class="hs-identifier hs-var">Ledger.toCardanoPolicyId</span></span><span> </span><span class="annot"><span class="annottext">(MintingPolicyHash -&gt; Either ToCardanoError PolicyId)
 -&gt; MintingPolicyHash -&gt; Either ToCardanoError PolicyId
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; MintingPolicyHash
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; MintingPolicyHash
 forall a. ToMintingPolicyHash a =&gt; a -&gt; MintingPolicyHash
-</span><span class="hs-identifier hs-var">Script.toMintingPolicyHash</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679817432"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-29"></span><span>    </span><span id="local-6989586621679817440"><span class="annot"><span class="annottext">BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)
-</span><a href="#local-6989586621679817440"><span class="hs-identifier hs-var">mintWitness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ScriptWitness WitCtxMint ConwayEra
+</span><span class="hs-identifier hs-var">Script.toMintingPolicyHash</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679875633"><span class="hs-identifier hs-var">policyHash</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>    </span><span id="local-6989586621679875657"><span class="annot"><span class="annottext">BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)
+</span><a href="#local-6989586621679875657"><span class="hs-identifier hs-var">mintWitness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ScriptWitness WitCtxMint ConwayEra
 -&gt; BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)
 forall a. a -&gt; BuildTxWith BuildTx a
 </span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">(ScriptWitness WitCtxMint ConwayEra
@@ -168,19 +160,19 @@ forall a. a -&gt; BuildTxWith BuildTx a
 -&gt; m (ScriptWitness WitCtxMint ConwayEra)
 -&gt; m (BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra))
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">script
 -&gt; TxSkelRedeemer
 -&gt; ScriptDatum WitCtxMint
 -&gt; m (ScriptWitness WitCtxMint ConwayEra)
 forall (m :: * -&gt; *) a b.
-(MonadBlockChainBalancing m, ToVersioned Script a) =&gt;
+(MonadBlockChainBalancing m, ToVScript a) =&gt;
 a
 -&gt; TxSkelRedeemer -&gt; ScriptDatum b -&gt; m (ScriptWitness b ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679817432"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679817433"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxMint
+</span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679875650"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679875651"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxMint
 </span><span class="hs-identifier hs-var">Cardano.NoScriptDatumForMint</span></span><span>
-</span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">(PolicyId,
+</span><span id="line-28"></span><span>    </span><span class="annot"><span class="annottext">(PolicyId,
  (PolicyAssets,
   BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)))
 -&gt; m (PolicyId,
@@ -189,23 +181,23 @@ a
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span>
-</span><span id="line-31"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">PolicyId
-</span><a href="#local-6989586621679817436"><span class="hs-identifier hs-var">policyId</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-32"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">[Item PolicyAssets] -&gt; PolicyAssets
+</span><span id="line-29"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">PolicyId
+</span><a href="#local-6989586621679875653"><span class="hs-identifier hs-var">policyId</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-30"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">[Item PolicyAssets] -&gt; PolicyAssets
 forall l. IsList l =&gt; [Item l] -&gt; l
 </span><span class="hs-identifier hs-var">fromList</span></span><span>
-</span><span id="line-33"></span><span>            </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; AssetName
-</span><span class="hs-identifier hs-var">Cardano.AssetName</span></span><span> </span><span class="annot"><span class="annottext">ByteString
-</span><a href="#local-6989586621679817446"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Quantity
+</span><span id="line-31"></span><span>            </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; AssetName
+</span><span class="hs-identifier hs-var">Cardano.UnsafeAssetName</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679875663"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Quantity
 </span><span class="hs-identifier hs-var">Cardano.Quantity</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679817448"><span class="hs-identifier hs-var">quantity</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span>              </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PlutusTx.BuiltinByteString</span></span><span> </span><span id="local-6989586621679817446"><span class="annot"><span class="annottext">ByteString
-</span><a href="#local-6989586621679817446"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679817448"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679817448"><span class="hs-identifier hs-var">quantity</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(TokenName, NonZero Integer)]
-</span><a href="#local-6989586621679817435"><span class="hs-identifier hs-var">assets</span></a></span><span>
-</span><span id="line-35"></span><span>            </span><span class="hs-special">]</span><span class="hs-special">,</span><span>
-</span><span id="line-36"></span><span>          </span><span class="annot"><span class="annottext">BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)
-</span><a href="#local-6989586621679817440"><span class="hs-identifier hs-var">mintWitness</span></a></span><span>
-</span><span id="line-37"></span><span>        </span><span class="hs-special">)</span><span>
-</span><span id="line-38"></span><span>      </span><span class="hs-special">)</span><span>
-</span><span id="line-39"></span></pre></body></html>
+</span><a href="#local-6989586621679875665"><span class="hs-identifier hs-var">quantity</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PlutusTx.BuiltinByteString</span></span><span> </span><span id="local-6989586621679875663"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679875663"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679875665"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679875665"><span class="hs-identifier hs-var">quantity</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679875652"><span class="hs-identifier hs-var">assets</span></a></span><span>
+</span><span id="line-33"></span><span>            </span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-34"></span><span>          </span><span class="annot"><span class="annottext">BuildTxWith BuildTx (ScriptWitness WitCtxMint ConwayEra)
+</span><a href="#local-6989586621679875657"><span class="hs-identifier hs-var">mintWitness</span></a></span><span>
+</span><span id="line-35"></span><span>        </span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span></pre></body></html>

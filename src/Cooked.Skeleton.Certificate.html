@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module exposes the certificate constructs used in a</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To emit certificates</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- in a skeleton, the usual way is to invoke @txSkelCertificates =</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- [pubKeyCertificate pk action, scriptCertificate script redeemer action ...]@</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.Certificate</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Data types</span></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier">CertificateAction</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Optics</span></span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateOwnerAT"><span class="hs-identifier">txSkelCertificateOwnerAT</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateActionAT"><span class="hs-identifier">txSkelCertificateActionAT</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Smart constructors</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#pubKeyCertificate"><span class="hs-identifier">pubKeyCertificate</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#scriptCertificate"><span class="hs-identifier">scriptCertificate</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Families.html"><span class="hs-identifier">Cooked.Skeleton.Families</span></a></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html"><span class="hs-identifier">Cooked.Skeleton.Redeemer</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html"><span class="hs-identifier">Cooked.Skeleton.User</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Kind</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Type</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Typeable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Typeable</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">cast</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | The depiction of the possible actions in a certificate. Each actions</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- exposes, in its types, the possible owners it can have.</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">data</span><span> </span><span id="CertificateAction"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-var">CertificateAction</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#UserKind"><span class="hs-identifier hs-type">UserKind</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Type</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>  </span><span id="StakingRegister"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingRegister"><span class="hs-identifier hs-var">StakingRegister</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span id="StakingUnRegister"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingUnRegister"><span class="hs-identifier hs-var">StakingUnRegister</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span id="StakingDelegate"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingDelegate"><span class="hs-identifier hs-var">StakingDelegate</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Delegatee</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span id="StakingRegisterDelegate"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingRegisterDelegate"><span class="hs-identifier hs-var">StakingRegisterDelegate</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Delegatee</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span id="DRepRegister"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#DRepRegister"><span class="hs-identifier hs-var">DRepRegister</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span id="DRepUpdate"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#DRepUpdate"><span class="hs-identifier hs-var">DRepUpdate</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span id="DRepUnRegister"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#DRepUnRegister"><span class="hs-identifier hs-var">DRepUnRegister</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span id="PoolRegister"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#PoolRegister"><span class="hs-identifier hs-var">PoolRegister</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsPubKey"><span class="hs-identifier hs-type">IsPubKey</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span id="PoolRetire"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#PoolRetire"><span class="hs-identifier hs-var">PoolRetire</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsPubKey"><span class="hs-identifier hs-type">IsPubKey</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span id="CommitteeRegisterHot"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CommitteeRegisterHot"><span class="hs-identifier hs-var">CommitteeRegisterHot</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span id="CommitteeResign"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CommitteeResign"><span class="hs-identifier hs-var">CommitteeResign</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span id="local-6989586621679865744"><span id="local-6989586621679865869"><span id="local-6989586621679865871"><span id="local-6989586621679865874"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865744"><span class="hs-identifier hs-type">req</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span id="local-6989586621679865746"><span id="local-6989586621679865878"><span id="local-6989586621679865880"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865746"><span class="hs-identifier hs-type">req</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | Certificates used in 'Cooked.Skeleton.TxSkel'. The types ensure that each</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- certificate action is associated with a proper owner.</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">data</span><span> </span><span id="TxSkelCertificate"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-var">TxSkelCertificate</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679865884"><span id="TxSkelCertificate"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-var">TxSkelCertificate</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679865884"><span class="hs-identifier hs-type">kind</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | All owners of certificates must be in 'Redemption' mode</span></span><span>
+</span><span id="line-55"></span><span>      </span><span id="txSkelCertificateOwner"><span class="annot"><span class="annottext">()
+</span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateOwner"><span class="hs-identifier hs-var hs-var">txSkelCertificateOwner</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865884"><span class="hs-identifier hs-type">kind</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-56"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The certificate itself does impose a 'UserKind'</span></span><span>
+</span><span id="line-57"></span><span>      </span><span id="txSkelCertificateAction"><span class="annot"><span class="annottext">()
+</span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateAction"><span class="hs-identifier hs-var hs-var">txSkelCertificateAction</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865884"><span class="hs-identifier hs-type">kind</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-59"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span id="local-6989586621679865889"><span id="local-6989586621679865891"><span id="local-6989586621679865895"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679865899"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span id="local-6989586621679865903"><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865903"><span class="hs-identifier hs-var">owner</span></a></span></span><span> </span><span id="local-6989586621679865904"><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865904"><span class="hs-identifier hs-var">action</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679865905"><span class="annot"><span class="annottext">== :: TxSkelCertificate -&gt; TxSkelCertificate -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span id="local-6989586621679865922"><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865922"><span class="hs-identifier hs-var">owner'</span></a></span></span><span> </span><span id="local-6989586621679865923"><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865923"><span class="hs-identifier hs-var">action'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Maybe (User kind 'Redemption)
+forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865903"><span class="hs-identifier hs-var">owner</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (User kind 'Redemption)
+-&gt; Maybe (User kind 'Redemption) -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Maybe (User kind 'Redemption)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865922"><span class="hs-identifier hs-var">owner'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind -&gt; Maybe (CertificateAction kind)
+forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865904"><span class="hs-identifier hs-var">action</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (CertificateAction kind)
+-&gt; Maybe (CertificateAction kind) -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind -&gt; Maybe (CertificateAction kind)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865923"><span class="hs-identifier hs-var">action'</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="annot"><span class="hs-comment">-- | Focuses on the owner of a 'TxSkelCertificate'</span></span><span>
+</span><span id="line-68"></span><span id="local-6989586621679865757"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateOwnerAT"><span class="hs-identifier hs-type">txSkelCertificateOwnerAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679865757"><span class="hs-identifier hs-type">user</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865757"><span class="hs-identifier hs-type">user</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-69"></span><span id="txSkelCertificateOwnerAT"><span class="annot"><span class="annottext">txSkelCertificateOwnerAT :: forall (user :: UserKind).
+Typeable user =&gt;
+AffineTraversal' TxSkelCertificate (User user 'Redemption)
+</span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateOwnerAT"><span class="hs-identifier hs-var hs-var">txSkelCertificateOwnerAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><span class="annottext">(TxSkelCertificate
+ -&gt; Either TxSkelCertificate (User user 'Redemption))
+-&gt; (TxSkelCertificate
+    -&gt; User user 'Redemption -&gt; TxSkelCertificate)
+-&gt; AffineTraversal
+     TxSkelCertificate
+     TxSkelCertificate
+     (User user 'Redemption)
+     (User user 'Redemption)
+forall s t a b.
+(s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
+</span><span class="hs-identifier hs-var">atraversal</span></span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679865927"><span class="annot"><span class="annottext">cert :: TxSkelCertificate
+</span><a href="#local-6989586621679865927"><span class="hs-identifier hs-var">cert</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679865935"><span class="annot"><span class="annottext">User kind 'Redemption
+txSkelCertificateOwner :: ()
+txSkelCertificateOwner :: User kind 'Redemption
+</span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateOwner"><span class="hs-identifier hs-var hs-var">txSkelCertificateOwner</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either TxSkelCertificate (User user 'Redemption)
+-&gt; (User user 'Redemption
+    -&gt; Either TxSkelCertificate (User user 'Redemption))
+-&gt; Maybe (User user 'Redemption)
+-&gt; Either TxSkelCertificate (User user 'Redemption)
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelCertificate
+-&gt; Either TxSkelCertificate (User user 'Redemption)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679865927"><span class="hs-identifier hs-var">cert</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">User user 'Redemption
+-&gt; Either TxSkelCertificate (User user 'Redemption)
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (User user 'Redemption)
+ -&gt; Either TxSkelCertificate (User user 'Redemption))
+-&gt; Maybe (User user 'Redemption)
+-&gt; Either TxSkelCertificate (User user 'Redemption)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Maybe (User user 'Redemption)
+forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865935"><span class="hs-identifier hs-var">txSkelCertificateOwner</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679865937"><span class="annot"><span class="annottext">cert :: TxSkelCertificate
+</span><a href="#local-6989586621679865937"><span class="hs-identifier hs-var">cert</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-glyph">@</span><span id="local-6989586621679865946"><span class="annot"><a href="#local-6989586621679865946"><span class="hs-identifier hs-type hs-type">user'</span></a></span></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679865947"><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865947"><span class="hs-identifier hs-var">action</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
+-&gt; (User kind 'Redemption -&gt; TxSkelCertificate)
+-&gt; Maybe (User kind 'Redemption)
+-&gt; TxSkelCertificate
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679865937"><span class="hs-identifier hs-var">cert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption
+-&gt; CertificateAction kind -&gt; TxSkelCertificate
+forall (kind :: UserKind).
+Typeable kind =&gt;
+User kind 'Redemption
+-&gt; CertificateAction kind -&gt; TxSkelCertificate
+</span><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-operator hs-var">`TxSkelCertificate`</span></a></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865947"><span class="hs-identifier hs-var">action</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe (User kind 'Redemption) -&gt; TxSkelCertificate)
+-&gt; (User user 'Redemption -&gt; Maybe (User kind 'Redemption))
+-&gt; User user 'Redemption
+-&gt; TxSkelCertificate
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865946"><span class="hs-identifier hs-type">user'</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="annot"><span class="hs-comment">-- | Focuses on the action of a 'TxSkelCertificate'</span></span><span>
+</span><span id="line-75"></span><span id="local-6989586621679865778"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateActionAT"><span class="hs-identifier hs-type">txSkelCertificateActionAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679865778"><span class="hs-identifier hs-type">user</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865778"><span class="hs-identifier hs-type">user</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-76"></span><span id="txSkelCertificateActionAT"><span class="annot"><span class="annottext">txSkelCertificateActionAT :: forall (user :: UserKind).
+Typeable user =&gt;
+AffineTraversal' TxSkelCertificate (CertificateAction user)
+</span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateActionAT"><span class="hs-identifier hs-var hs-var">txSkelCertificateActionAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><span class="annottext">(TxSkelCertificate
+ -&gt; Either TxSkelCertificate (CertificateAction user))
+-&gt; (TxSkelCertificate
+    -&gt; CertificateAction user -&gt; TxSkelCertificate)
+-&gt; AffineTraversal
+     TxSkelCertificate
+     TxSkelCertificate
+     (CertificateAction user)
+     (CertificateAction user)
+forall s t a b.
+(s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
+</span><span class="hs-identifier hs-var">atraversal</span></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679865950"><span class="annot"><span class="annottext">cert :: TxSkelCertificate
+</span><a href="#local-6989586621679865950"><span class="hs-identifier hs-var">cert</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679865955"><span class="annot"><span class="annottext">CertificateAction kind
+txSkelCertificateAction :: ()
+txSkelCertificateAction :: CertificateAction kind
+</span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateAction"><span class="hs-identifier hs-var hs-var">txSkelCertificateAction</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either TxSkelCertificate (CertificateAction user)
+-&gt; (CertificateAction user
+    -&gt; Either TxSkelCertificate (CertificateAction user))
+-&gt; Maybe (CertificateAction user)
+-&gt; Either TxSkelCertificate (CertificateAction user)
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelCertificate
+-&gt; Either TxSkelCertificate (CertificateAction user)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679865950"><span class="hs-identifier hs-var">cert</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction user
+-&gt; Either TxSkelCertificate (CertificateAction user)
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (CertificateAction user)
+ -&gt; Either TxSkelCertificate (CertificateAction user))
+-&gt; Maybe (CertificateAction user)
+-&gt; Either TxSkelCertificate (CertificateAction user)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind -&gt; Maybe (CertificateAction user)
+forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><a href="#local-6989586621679865955"><span class="hs-identifier hs-var">txSkelCertificateAction</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679865956"><span class="annot"><span class="annottext">cert :: TxSkelCertificate
+</span><a href="#local-6989586621679865956"><span class="hs-identifier hs-var">cert</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-glyph">@</span><span id="local-6989586621679865962"><span class="annot"><a href="#local-6989586621679865962"><span class="hs-identifier hs-type hs-type">user'</span></a></span></span><span> </span><span id="local-6989586621679865963"><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865963"><span class="hs-identifier hs-var">owner</span></a></span></span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
+-&gt; (CertificateAction kind -&gt; TxSkelCertificate)
+-&gt; Maybe (CertificateAction kind)
+-&gt; TxSkelCertificate
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679865956"><span class="hs-identifier hs-var">cert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption
+-&gt; CertificateAction kind -&gt; TxSkelCertificate
+forall (kind :: UserKind).
+Typeable kind =&gt;
+User kind 'Redemption
+-&gt; CertificateAction kind -&gt; TxSkelCertificate
+</span><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-var">TxSkelCertificate</span></a></span><span> </span><span class="annot"><span class="annottext">User kind 'Redemption
+</span><a href="#local-6989586621679865963"><span class="hs-identifier hs-var">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe (CertificateAction kind) -&gt; TxSkelCertificate)
+-&gt; (CertificateAction user -&gt; Maybe (CertificateAction kind))
+-&gt; CertificateAction user
+-&gt; TxSkelCertificate
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865962"><span class="hs-identifier hs-type">user'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><span class="hs-comment">-- | Smart constructor for a pubkey certificate</span></span><span>
+</span><span id="line-82"></span><span id="local-6989586621679865782"><span id="local-6989586621679865784"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#pubKeyCertificate"><span class="hs-identifier hs-type">pubKeyCertificate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679865782"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679865782"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679865784"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679865784"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Families.html#%2208"><span class="hs-operator hs-type">&#8712;</span></a></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.User.html#IsPubKey"><span class="hs-identifier hs-type">IsPubKey</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679865782"><span class="hs-identifier hs-type">pkh</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865784"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span></span></span><span>
+</span><span id="line-83"></span><span id="pubKeyCertificate"><span class="annot"><span class="annottext">pubKeyCertificate :: forall pkh (a :: UserKind).
+(ToPubKeyHash pkh, Typeable pkh, Typeable a,
+ a &#8712; '[ 'IsPubKey, 'IsEither]) =&gt;
+pkh -&gt; CertificateAction a -&gt; TxSkelCertificate
+</span><a href="Cooked.Skeleton.Certificate.html#pubKeyCertificate"><span class="hs-identifier hs-var hs-var">pubKeyCertificate</span></a></span></span><span> </span><span id="local-6989586621679865972"><span class="annot"><span class="annottext">pkh
+</span><a href="#local-6989586621679865972"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">User a 'Redemption -&gt; CertificateAction a -&gt; TxSkelCertificate
+forall (kind :: UserKind).
+Typeable kind =&gt;
+User kind 'Redemption
+-&gt; CertificateAction kind -&gt; TxSkelCertificate
+</span><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-var">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">pkh -&gt; User a 'Redemption
+forall pkh (a :: UserKind) (b :: UserMode).
+(a &#8712; '[ 'IsPubKey, 'IsEither], ToPubKeyHash pkh, Typeable pkh) =&gt;
+pkh -&gt; User a b
+</span><a href="Cooked.Skeleton.User.html#UserPubKey"><span class="hs-identifier hs-var">UserPubKey</span></a></span><span> </span><span class="annot"><span class="annottext">pkh
+</span><a href="#local-6989586621679865972"><span class="hs-identifier hs-var">pkh</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="annot"><span class="hs-comment">-- | Smart constructor for a script certificate</span></span><span>
+</span><span id="line-86"></span><span id="local-6989586621679865791"><span id="local-6989586621679865793"><span class="annot"><a href="Cooked.Skeleton.Certificate.html#scriptCertificate"><span class="hs-identifier hs-type">scriptCertificate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#ToVScript"><span class="hs-identifier hs-type">ToVScript</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865791"><span class="hs-identifier hs-type">script</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679865791"><span class="hs-identifier hs-type">script</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#RedeemerConstrs"><span class="hs-identifier hs-type">RedeemerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679865793"><span class="hs-identifier hs-type">red</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679865791"><span class="hs-identifier hs-type">script</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679865793"><span class="hs-identifier hs-type">red</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CertificateAction"><span class="hs-identifier hs-type">CertificateAction</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span></span></span><span>
+</span><span id="line-87"></span><span id="scriptCertificate"><span class="annot"><span class="annottext">scriptCertificate :: forall script red.
+(ToVScript script, Typeable script, RedeemerConstrs red) =&gt;
+script -&gt; red -&gt; CertificateAction 'IsEither -&gt; TxSkelCertificate
+</span><a href="Cooked.Skeleton.Certificate.html#scriptCertificate"><span class="hs-identifier hs-var hs-var">scriptCertificate</span></a></span></span><span> </span><span id="local-6989586621679865983"><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679865983"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span id="local-6989586621679865984"><span class="annot"><span class="annottext">red
+</span><a href="#local-6989586621679865984"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption
+-&gt; CertificateAction 'IsEither -&gt; TxSkelCertificate
+forall (kind :: UserKind).
+Typeable kind =&gt;
+User kind 'Redemption
+-&gt; CertificateAction kind -&gt; TxSkelCertificate
+</span><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-var">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; TxSkelRedeemer -&gt; User 'IsEither 'Redemption
+forall script (a :: UserKind).
+(a &#8712; '[ 'IsScript, 'IsEither], ToVScript script,
+ Typeable script) =&gt;
+script -&gt; TxSkelRedeemer -&gt; User a 'Redemption
+</span><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-var">UserRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679865983"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">red -&gt; TxSkelRedeemer
+forall redeemer.
+RedeemerConstrs redeemer =&gt;
+redeemer -&gt; TxSkelRedeemer
+</span><a href="Cooked.Skeleton.Redeemer.html#someTxSkelRedeemer"><span class="hs-identifier hs-var">someTxSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">red
+</span><a href="#local-6989586621679865984"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span></pre></body></html>

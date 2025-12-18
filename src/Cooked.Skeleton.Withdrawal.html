@@ -1,69 +1,392 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module exposes the notion of Withdrawal within a</span><span>
-</span><span id="line-2"></span><span class="hs-comment">-- 'Cooked.Skeleton.TxSkel'</span><span>
-</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.Withdrawal</span><span>
-</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier">TxSkelWithdrawals</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#pkWithdrawal"><span class="hs-identifier">pkWithdrawal</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#scriptWithdrawal"><span class="hs-identifier">scriptWithdrawal</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-8"></span><span class="hs-keyword">where</span><span>
-</span><span id="line-9"></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html"><span class="hs-identifier">Cooked.Skeleton.Redeemer</span></a></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
-</span><span id="line-16"></span><span>
-</span><span id="line-17"></span><span class="hs-comment">-- | Withdrawals associate either a script or a private key with a redeemer and</span><span>
-</span><span id="line-18"></span><span class="hs-comment">-- a certain amount of ada. Note that the redeemer will be ignored in the case</span><span>
-</span><span id="line-19"></span><span class="hs-comment">-- of a private key.</span><span>
-</span><span id="line-20"></span><span class="hs-keyword">type</span><span> </span><span id="TxSkelWithdrawals"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-var">TxSkelWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-21"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span>
-</span><span id="line-22"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">)</span><span>
-</span><span id="line-23"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span class="hs-special">)</span><span>
-</span><span id="line-24"></span><span>
-</span><span id="line-25"></span><span class="annot"><span class="hs-comment">-- | Creates a 'TxSkelWithdrawals' from a private key hash and amount</span></span><span>
-</span><span id="line-26"></span><span id="local-6989586621679806962"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#pkWithdrawal"><span class="hs-identifier hs-type">pkWithdrawal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679806962"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679806962"><span class="hs-identifier hs-type">pkh</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span></span><span>
-</span><span id="line-27"></span><span id="pkWithdrawal"><span class="annot"><span class="annottext">pkWithdrawal :: forall pkh. ToPubKeyHash pkh =&gt; pkh -&gt; Integer -&gt; TxSkelWithdrawals
-</span><a href="Cooked.Skeleton.Withdrawal.html#pkWithdrawal"><span class="hs-identifier hs-var hs-var">pkWithdrawal</span></a></span></span><span> </span><span id="local-6989586621679806989"><span class="annot"><span class="annottext">pkh
-</span><a href="#local-6989586621679806989"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679806990"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679806990"><span class="hs-identifier hs-var">amount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
--&gt; (TxSkelRedeemer, Lovelace) -&gt; TxSkelWithdrawals
-forall k a. k -&gt; a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.singleton</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Either (Versioned Script) PubKeyHash
-forall a b. b -&gt; Either a b
-</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; Either (Versioned Script) PubKeyHash)
--&gt; PubKeyHash -&gt; Either (Versioned Script) PubKeyHash
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">pkh -&gt; PubKeyHash
-forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="annot"><span class="annottext">pkh
-</span><a href="#local-6989586621679806989"><span class="hs-identifier hs-var">pkh</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="Cooked.Skeleton.Redeemer.html#emptyTxSkelRedeemer"><span class="hs-identifier hs-var">emptyTxSkelRedeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Lovelace
-</span><span class="hs-identifier hs-var">Api.Lovelace</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679806990"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | This module exposes the withdrawing constructs used in a</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- 'Cooked.Skeleton.TxSkel' and their associated utilities. To issue withdrawals</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- in a skeleton, the usual way is to invoke @txSkelWithdrawals =</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- txSkelWithdrawalsFromList [pubKeyWithdrawal pk amount, scriptWithdrawal</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- script redeemer amount, ...]@</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.Withdrawal</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Data types</span></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier">Withdrawal</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier">TxSkelWithdrawals</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#unTxSkelWithdrawals"><span class="hs-identifier">unTxSkelWithdrawals</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Optics</span></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier">withdrawalUserL</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#withdrawalMAmountL"><span class="hs-identifier">withdrawalMAmountL</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#withdrawalAmountAT"><span class="hs-identifier">withdrawalAmountAT</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier">txSkelWithdrawalsListI</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Smart constructors</span></span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#pubKeyWithdrawal"><span class="hs-identifier">pubKeyWithdrawal</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#scriptWithdrawal"><span class="hs-identifier">scriptWithdrawal</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsFromList"><span class="hs-identifier">txSkelWithdrawalsFromList</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Utilities</span></span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#fillAmount"><span class="hs-identifier">fillAmount</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">where</span><span>
 </span><span id="line-28"></span><span>
-</span><span id="line-29"></span><span class="annot"><span class="hs-comment">-- | Creates a 'TxSkelWithdrawals' from a script, redeemer and amount</span></span><span>
-</span><span id="line-30"></span><span id="local-6989586621679806980"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#scriptWithdrawal"><span class="hs-identifier hs-type">scriptWithdrawal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToVersioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Script</span></span><span> </span><span class="annot"><a href="#local-6989586621679806980"><span class="hs-identifier hs-type">script</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679806980"><span class="hs-identifier hs-type">script</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span></span><span>
-</span><span id="line-31"></span><span id="scriptWithdrawal"><span class="annot"><span class="annottext">scriptWithdrawal :: forall script.
-ToVersioned Script script =&gt;
-script -&gt; TxSkelRedeemer -&gt; Integer -&gt; TxSkelWithdrawals
-</span><a href="Cooked.Skeleton.Withdrawal.html#scriptWithdrawal"><span class="hs-identifier hs-var hs-var">scriptWithdrawal</span></a></span></span><span> </span><span id="local-6989586621679806997"><span class="annot"><span class="annottext">script
-</span><a href="#local-6989586621679806997"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span id="local-6989586621679806998"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679806998"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span id="local-6989586621679806999"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679806999"><span class="hs-identifier hs-var">amount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either (Versioned Script) PubKeyHash
--&gt; (TxSkelRedeemer, Lovelace) -&gt; TxSkelWithdrawals
-forall k a. k -&gt; a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.singleton</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned Script -&gt; Either (Versioned Script) PubKeyHash
-forall a b. a -&gt; Either a b
-</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(Versioned Script -&gt; Either (Versioned Script) PubKeyHash)
--&gt; Versioned Script -&gt; Either (Versioned Script) PubKeyHash
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html"><span class="hs-identifier">Cooked.Skeleton.Redeemer</span></a></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html"><span class="hs-identifier">Cooked.Skeleton.User</span></a></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Typeable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.TH</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | Withdrawals associate either a script or a private key with a redeemer and</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- a certain amount of ada. They are uniquely identified by the hash of either.</span><span>
+</span><span id="line-43"></span><span class="hs-keyword">newtype</span><span> </span><span id="TxSkelWithdrawals"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-var">TxSkelWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TxSkelWithdrawals"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-var">TxSkelWithdrawals</span></a></span></span><span> </span><span class="hs-special">{</span><span id="unTxSkelWithdrawals"><span class="annot"><span class="annottext">TxSkelWithdrawals -&gt; Map Credential Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#unTxSkelWithdrawals"><span class="hs-identifier hs-var hs-var">unTxSkelWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679864390"><span id="local-6989586621679864398"><span id="local-6989586621679864402"><span class="annot"><span class="annottext">Int -&gt; TxSkelWithdrawals -&gt; ShowS
+[TxSkelWithdrawals] -&gt; ShowS
+TxSkelWithdrawals -&gt; String
+(Int -&gt; TxSkelWithdrawals -&gt; ShowS)
+-&gt; (TxSkelWithdrawals -&gt; String)
+-&gt; ([TxSkelWithdrawals] -&gt; ShowS)
+-&gt; Show TxSkelWithdrawals
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; TxSkelWithdrawals -&gt; ShowS
+showsPrec :: Int -&gt; TxSkelWithdrawals -&gt; ShowS
+$cshow :: TxSkelWithdrawals -&gt; String
+show :: TxSkelWithdrawals -&gt; String
+$cshowList :: [TxSkelWithdrawals] -&gt; ShowS
+showList :: [TxSkelWithdrawals] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679864408"><span id="local-6989586621679864415"><span class="annot"><span class="annottext">TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool
+(TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool)
+-&gt; (TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool)
+-&gt; Eq TxSkelWithdrawals
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool
+== :: TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool
+$c/= :: TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool
+/= :: TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="annot"><span class="hs-comment">-- | A single 'Withdrawal', owned by a pubkey or redeemed script</span></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">data</span><span> </span><span id="Withdrawal"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-var">Withdrawal</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span id="Withdrawal"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-var">Withdrawal</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | The user making a withdrawals of their rewards</span></span><span>
+</span><span id="line-50"></span><span>      </span><span id="withdrawalUser"><span class="annot"><span class="annottext">Withdrawal -&gt; User 'IsEither 'Redemption
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUser"><span class="hs-identifier hs-var hs-var">withdrawalUser</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-51"></span><span>      </span><span class="hs-comment">-- | The amount of lovelace to withdraw. If set to 'Nothing', cooked will</span><span>
+</span><span id="line-52"></span><span>      </span><span class="hs-comment">-- attempt to fill this out with the current rewards for the user, which</span><span>
+</span><span id="line-53"></span><span>      </span><span class="hs-comment">-- is the only acceptable amount ledger-wise. Manually setting this value</span><span>
+</span><span id="line-54"></span><span>      </span><span class="hs-comment">-- is only left as a possibility for testing purposes.</span><span>
+</span><span id="line-55"></span><span>      </span><span id="withdrawalAmount"><span class="annot"><span class="annottext">Withdrawal -&gt; Maybe Lovelace
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalAmount"><span class="hs-identifier hs-var hs-var">withdrawalAmount</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-57"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679864428"><span id="local-6989586621679864436"><span id="local-6989586621679864439"><span class="annot"><span class="annottext">Int -&gt; Withdrawal -&gt; ShowS
+[Withdrawal] -&gt; ShowS
+Withdrawal -&gt; String
+(Int -&gt; Withdrawal -&gt; ShowS)
+-&gt; (Withdrawal -&gt; String)
+-&gt; ([Withdrawal] -&gt; ShowS)
+-&gt; Show Withdrawal
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; Withdrawal -&gt; ShowS
+showsPrec :: Int -&gt; Withdrawal -&gt; ShowS
+$cshow :: Withdrawal -&gt; String
+show :: Withdrawal -&gt; String
+$cshowList :: [Withdrawal] -&gt; ShowS
+showList :: [Withdrawal] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679864443"><span id="local-6989586621679864450"><span class="annot"><span class="annottext">Withdrawal -&gt; Withdrawal -&gt; Bool
+(Withdrawal -&gt; Withdrawal -&gt; Bool)
+-&gt; (Withdrawal -&gt; Withdrawal -&gt; Bool) -&gt; Eq Withdrawal
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: Withdrawal -&gt; Withdrawal -&gt; Bool
+== :: Withdrawal -&gt; Withdrawal -&gt; Bool
+$c/= :: Withdrawal -&gt; Withdrawal -&gt; Bool
+/= :: Withdrawal -&gt; Withdrawal -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional amount in a 'Withdrawal'</span></span><span>
+</span><span id="line-61"></span><span id="withdrawalMAmountL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;withdrawalAmount&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;withdrawalMAmountL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">Withdrawal</span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="annot"><span class="hs-comment">-- | Focuses on the user owning a 'Withdrawal'</span></span><span>
+</span><span id="line-64"></span><span id="withdrawalUserL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;withdrawalUser&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;withdrawalUserL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">Withdrawal</span></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="annot"><span class="hs-comment">-- | Focuses on the amount in a 'Withdrawal'</span></span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#withdrawalAmountAT"><span class="hs-identifier hs-type">withdrawalAmountAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span>
+</span><span id="line-68"></span><span id="withdrawalAmountAT"><span class="annot"><span class="annottext">withdrawalAmountAT :: AffineTraversal' Withdrawal Lovelace
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalAmountAT"><span class="hs-identifier hs-var hs-var">withdrawalAmountAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalMAmountL"><span class="hs-identifier hs-var">withdrawalMAmountL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+-&gt; Optic
+     A_Prism NoIx (Maybe Lovelace) (Maybe Lovelace) Lovelace Lovelace
+-&gt; AffineTraversal' Withdrawal Lovelace
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Prism NoIx (Maybe Lovelace) (Maybe Lovelace) Lovelace Lovelace
+forall a b. Prism (Maybe a) (Maybe b) a b
+</span><span class="hs-identifier hs-var">_Just</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | Transforms a @[Withdrawal]@ to a 'TxSkelWithdrawals and vice</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- versa. Accumulates amount of withdrawals with similar owners, and keep the</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- latest found redeemer in the case of scripts, discarding the previous ones.</span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-type">txSkelWithdrawalsListI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Iso'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-74"></span><span id="txSkelWithdrawalsListI"><span class="annot"><span class="annottext">txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var hs-var">txSkelWithdrawalsListI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="annottext">(TxSkelWithdrawals -&gt; [Withdrawal])
+-&gt; ([Withdrawal] -&gt; TxSkelWithdrawals)
+-&gt; Iso' TxSkelWithdrawals [Withdrawal]
+forall s a b t. (s -&gt; a) -&gt; (b -&gt; t) -&gt; Iso s t a b
+</span><span class="hs-identifier hs-var">iso</span></span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map Credential Withdrawal -&gt; [Withdrawal]
+forall k a. Map k a -&gt; [a]
+</span><span class="hs-identifier hs-var">Map.elems</span></span><span> </span><span class="annot"><span class="annottext">(Map Credential Withdrawal -&gt; [Withdrawal])
+-&gt; (TxSkelWithdrawals -&gt; Map Credential Withdrawal)
+-&gt; TxSkelWithdrawals
+-&gt; [Withdrawal]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals -&gt; Map Credential Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#unTxSkelWithdrawals"><span class="hs-identifier hs-var">unTxSkelWithdrawals</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">(TxSkelWithdrawals -&gt; Withdrawal -&gt; TxSkelWithdrawals)
+-&gt; TxSkelWithdrawals -&gt; [Withdrawal] -&gt; TxSkelWithdrawals
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span>
+</span><span id="line-78"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span> </span><span id="local-6989586621679864474"><span class="annot"><span class="annottext">Map Credential Withdrawal
+</span><a href="#local-6989586621679864474"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679864475"><span class="annot"><span class="annottext">withdrawal :: Withdrawal
+</span><a href="#local-6989586621679864475"><span class="hs-identifier hs-var">withdrawal</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Getter NoIx (User 'IsEither 'Redemption) Credential
+-&gt; User 'IsEither 'Redemption -&gt; Credential
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx (User 'IsEither 'Redemption) Credential
+forall (kind :: UserKind) (mode :: UserMode).
+Getter (User kind mode) Credential
+</span><a href="Cooked.Skeleton.User.html#userCredentialG"><span class="hs-identifier hs-var">userCredentialG</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679864478"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679864478"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679864479"><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679864479"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-79"></span><span>            </span><span class="annot"><span class="annottext">Map Credential Withdrawal -&gt; TxSkelWithdrawals
+</span><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-var">TxSkelWithdrawals</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Credential Withdrawal -&gt; TxSkelWithdrawals)
+-&gt; Map Credential Withdrawal -&gt; TxSkelWithdrawals
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">script -&gt; Versioned Script
-forall s a. ToVersioned s a =&gt; a -&gt; Versioned s
-</span><span class="hs-identifier hs-var">Script.toVersioned</span></span><span> </span><span class="annot"><span class="annottext">script
-</span><a href="#local-6989586621679806997"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679806998"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Lovelace
-</span><span class="hs-identifier hs-var">Api.Lovelace</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679806999"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-32"></span></pre></body></html>
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-80"></span><span>              </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (Map Credential Withdrawal)
+  (Map Credential Withdrawal)
+  (Maybe Withdrawal)
+  (Maybe Withdrawal)
+-&gt; (Maybe Withdrawal -&gt; Maybe Withdrawal)
+-&gt; Map Credential Withdrawal
+-&gt; Map Credential Withdrawal
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span>
+</span><span id="line-81"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Index (Map Credential Withdrawal)
+-&gt; Lens'
+     (Map Credential Withdrawal)
+     (Maybe (IxValue (Map Credential Withdrawal)))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index (Map Credential Withdrawal)
+Credential
+</span><a href="#local-6989586621679864478"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Withdrawal
+-&gt; (Withdrawal -&gt; Maybe Withdrawal)
+-&gt; Maybe Withdrawal
+-&gt; Maybe Withdrawal
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Withdrawal -&gt; Maybe Withdrawal
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679864475"><span class="hs-identifier hs-var">withdrawal</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Withdrawal -&gt; Maybe Withdrawal
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Withdrawal -&gt; Maybe Withdrawal)
+-&gt; (Withdrawal -&gt; Withdrawal) -&gt; Withdrawal -&gt; Maybe Withdrawal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+-&gt; (Maybe Lovelace -&gt; Maybe Lovelace) -&gt; Withdrawal -&gt; Withdrawal
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalMAmountL"><span class="hs-identifier hs-var">withdrawalMAmountL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Lovelace
+-&gt; (Lovelace -&gt; Maybe Lovelace) -&gt; Maybe Lovelace -&gt; Maybe Lovelace
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679864479"><span class="hs-identifier hs-var">amount</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace -&gt; Maybe Lovelace
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Lovelace -&gt; Maybe Lovelace)
+-&gt; (Lovelace -&gt; Lovelace) -&gt; Lovelace -&gt; Maybe Lovelace
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Lovelace
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Maybe Lovelace -&gt; Lovelace
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679864479"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-83"></span><span>                </span><span class="annot"><span class="annottext">Map Credential Withdrawal
+</span><a href="#local-6989586621679864474"><span class="hs-identifier hs-var">withdrawals</span></a></span><span>
+</span><span id="line-84"></span><span>        </span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span>        </span><span class="annot"><span class="annottext">TxSkelWithdrawals
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="annot"><span class="hs-comment">-- | Creates a 'Withdrawal' from a private key hash</span></span><span>
+</span><span id="line-89"></span><span id="local-6989586621679864322"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#pubKeyWithdrawal"><span class="hs-identifier hs-type">pubKeyWithdrawal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679864322"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679864322"><span class="hs-identifier hs-type">pkh</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679864322"><span class="hs-identifier hs-type">pkh</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span></span><span>
+</span><span id="line-90"></span><span id="pubKeyWithdrawal"><span class="annot"><span class="annottext">pubKeyWithdrawal :: forall pkh. (ToPubKeyHash pkh, Typeable pkh) =&gt; pkh -&gt; Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#pubKeyWithdrawal"><span class="hs-identifier hs-var hs-var">pubKeyWithdrawal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Maybe Lovelace -&gt; Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-operator hs-var">`Withdrawal`</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(User 'IsEither 'Redemption -&gt; Withdrawal)
+-&gt; (pkh -&gt; User 'IsEither 'Redemption) -&gt; pkh -&gt; Withdrawal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">pkh -&gt; User 'IsEither 'Redemption
+forall pkh (a :: UserKind) (b :: UserMode).
+(a &#8712; '[ 'IsPubKey, 'IsEither], ToPubKeyHash pkh, Typeable pkh) =&gt;
+pkh -&gt; User a b
+</span><a href="Cooked.Skeleton.User.html#UserPubKey"><span class="hs-identifier hs-var">UserPubKey</span></a></span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="annot"><span class="hs-comment">-- | Creates a 'Withdrawal' from a redeemed script and lovelace amount</span></span><span>
+</span><span id="line-93"></span><span id="local-6989586621679864330"><span id="local-6989586621679864332"><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#scriptWithdrawal"><span class="hs-identifier hs-type">scriptWithdrawal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#ToVScript"><span class="hs-identifier hs-type">ToVScript</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864330"><span class="hs-identifier hs-type">script</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679864330"><span class="hs-identifier hs-type">script</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#RedeemerConstrs"><span class="hs-identifier hs-type">RedeemerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864332"><span class="hs-identifier hs-type">red</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679864330"><span class="hs-identifier hs-type">script</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679864332"><span class="hs-identifier hs-type">red</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span></span></span><span>
+</span><span id="line-94"></span><span id="scriptWithdrawal"><span class="annot"><span class="annottext">scriptWithdrawal :: forall script red.
+(ToVScript script, Typeable script, RedeemerConstrs red) =&gt;
+script -&gt; red -&gt; Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#scriptWithdrawal"><span class="hs-identifier hs-var hs-var">scriptWithdrawal</span></a></span></span><span> </span><span id="local-6989586621679864500"><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679864500"><span class="hs-identifier hs-var">script</span></a></span></span><span> </span><span id="local-6989586621679864501"><span class="annot"><span class="annottext">red
+</span><a href="#local-6989586621679864501"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Maybe Lovelace -&gt; Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-var">Withdrawal</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; TxSkelRedeemer -&gt; User 'IsEither 'Redemption
+forall script (a :: UserKind).
+(a &#8712; '[ 'IsScript, 'IsEither], ToVScript script,
+ Typeable script) =&gt;
+script -&gt; TxSkelRedeemer -&gt; User a 'Redemption
+</span><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-var">UserRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679864500"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">red -&gt; TxSkelRedeemer
+forall redeemer.
+RedeemerConstrs redeemer =&gt;
+redeemer -&gt; TxSkelRedeemer
+</span><a href="Cooked.Skeleton.Redeemer.html#someTxSkelRedeemer"><span class="hs-identifier hs-var">someTxSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="annottext">red
+</span><a href="#local-6989586621679864501"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- | Builds a 'TxSkelWithdrawals' from a list of 'Withdrawal'. This is</span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- equivalent to calling @review txSkelWithdrawalsListI@</span><span>
+</span><span id="line-98"></span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsFromList"><span class="hs-identifier hs-type">txSkelWithdrawalsFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span>
+</span><span id="line-99"></span><span id="txSkelWithdrawalsFromList"><span class="annot"><span class="annottext">txSkelWithdrawalsFromList :: [Withdrawal] -&gt; TxSkelWithdrawals
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsFromList"><span class="hs-identifier hs-var hs-var">txSkelWithdrawalsFromList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+-&gt; [Withdrawal] -&gt; TxSkelWithdrawals
+forall k (is :: IxList) t b.
+Is k A_Review =&gt;
+Optic' k is t b -&gt; b -&gt; t
+</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="annot"><span class="hs-comment">-- | Fills a given amount of lovelace to withdraw, if not already set</span></span><span>
+</span><span id="line-102"></span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#fillAmount"><span class="hs-identifier hs-type">fillAmount</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span>
+</span><span id="line-103"></span><span id="fillAmount"><span class="annot"><span class="annottext">fillAmount :: Lovelace -&gt; Withdrawal -&gt; Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#fillAmount"><span class="hs-identifier hs-var hs-var">fillAmount</span></a></span></span><span> </span><span id="local-6989586621679864505"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679864505"><span class="hs-identifier hs-var">newAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+-&gt; (Maybe Lovelace -&gt; Maybe Lovelace) -&gt; Withdrawal -&gt; Withdrawal
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalMAmountL"><span class="hs-identifier hs-var">withdrawalMAmountL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Lovelace
+-&gt; (Lovelace -&gt; Maybe Lovelace) -&gt; Maybe Lovelace -&gt; Maybe Lovelace
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace -&gt; Maybe Lovelace
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679864505"><span class="hs-identifier hs-var">newAmount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Maybe Lovelace
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span class="annot"><span class="hs-comment">-- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'</span></span><span>
+</span><span id="line-106"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToValue</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621679864520"><span class="annot"><span class="annottext">toValue :: TxSkelWithdrawals -&gt; Value
+</span><a href="#local-6989586621679864520"><span class="hs-identifier hs-var hs-var hs-var hs-var">toValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Withdrawal -&gt; Value)
+-&gt; Value -&gt; Map Credential Withdrawal -&gt; Value
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Map Credential a -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679864522"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679864522"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679864522"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Value) -&gt; (Withdrawal -&gt; Value) -&gt; Withdrawal -&gt; Value
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; (Lovelace -&gt; Value) -&gt; Maybe Lovelace -&gt; Value
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Value
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Value
+forall a. ToValue a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">Script.toValue</span></span><span> </span><span class="annot"><span class="annottext">(Maybe Lovelace -&gt; Value)
+-&gt; (Withdrawal -&gt; Maybe Lovelace) -&gt; Withdrawal -&gt; Value
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace) -&gt; Withdrawal -&gt; Maybe Lovelace
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Lens' Withdrawal (Maybe Lovelace)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalMAmountL"><span class="hs-identifier hs-var">withdrawalMAmountL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">(Map Credential Withdrawal -&gt; Value)
+-&gt; (TxSkelWithdrawals -&gt; Map Credential Withdrawal)
+-&gt; TxSkelWithdrawals
+-&gt; Value
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals -&gt; Map Credential Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#unTxSkelWithdrawals"><span class="hs-identifier hs-var">unTxSkelWithdrawals</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679864525"><span id="local-6989586621679864529"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-110"></span><span>  </span><span id="local-6989586621679864540"><span class="annot"><span class="annottext">TxSkelWithdrawals
+</span><a href="#local-6989586621679864540"><span class="hs-identifier hs-var">txSkelW</span></a></span></span><span> </span><span id="local-6989586621679864541"><span class="annot"><span class="annottext">&lt;&gt; :: TxSkelWithdrawals -&gt; TxSkelWithdrawals -&gt; TxSkelWithdrawals
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679864542"><span class="annot"><span class="annottext">TxSkelWithdrawals
+</span><a href="#local-6989586621679864542"><span class="hs-identifier hs-var">txSkelW'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-111"></span><span>    </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+-&gt; [Withdrawal] -&gt; TxSkelWithdrawals
+forall k (is :: IxList) t b.
+Is k A_Review =&gt;
+Optic' k is t b -&gt; b -&gt; t
+</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span> </span><span class="annot"><span class="annottext">([Withdrawal] -&gt; TxSkelWithdrawals)
+-&gt; [Withdrawal] -&gt; TxSkelWithdrawals
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-112"></span><span>      </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+-&gt; TxSkelWithdrawals -&gt; [Withdrawal]
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
+</span><a href="#local-6989586621679864540"><span class="hs-identifier hs-var">txSkelW</span></a></span><span>
+</span><span id="line-113"></span><span>        </span><span class="annot"><span class="annottext">[Withdrawal] -&gt; [Withdrawal] -&gt; [Withdrawal]
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+-&gt; TxSkelWithdrawals -&gt; [Withdrawal]
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Iso' TxSkelWithdrawals [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
+</span><a href="#local-6989586621679864542"><span class="hs-identifier hs-var">txSkelW'</span></a></span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679864547"><span id="local-6989586621679864550"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-type">TxSkelWithdrawals</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-116"></span><span>  </span><span id="local-6989586621679864555"><span class="annot"><span class="annottext">mempty :: TxSkelWithdrawals
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Credential Withdrawal -&gt; TxSkelWithdrawals
+</span><a href="Cooked.Skeleton.Withdrawal.html#TxSkelWithdrawals"><span class="hs-identifier hs-var">TxSkelWithdrawals</span></a></span><span> </span><span class="annot"><span class="annottext">Map Credential Withdrawal
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-117"></span></pre></body></html>

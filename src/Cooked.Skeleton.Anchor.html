@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module exposes the notion of Anchor used in proposals and</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- certificates.</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.Anchor</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Data types</span></span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier">TxSkelAnchor</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Optics</span></span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorMResolvedPageAT"><span class="hs-identifier">txSkelAnchorMResolvedPageAT</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorResolvedPageAT"><span class="hs-identifier">txSkelAnchorResolvedPageAT</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorURLAT"><span class="hs-identifier">txSkelAnchorURLAT</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Smart constructors</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#simpleURLAnchor"><span class="hs-identifier">simpleURLAnchor</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- | A 'TxSkelAnchor' optionally bundles an URL as a String alongside an</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- optional resolved page as a ByteString.</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">type</span><span> </span><span id="TxSkelAnchor"><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-var">TxSkelAnchor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- The anchor URL</span><span>
+</span><span id="line-25"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-comment">-- The optional anchor resolved page</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="annot"><span class="hs-comment">-- | Focusing on the URL of a 'TxSkelAnchor'</span></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorURLAT"><span class="hs-identifier hs-type">txSkelAnchorURLAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-30"></span><span id="txSkelAnchorURLAT"><span class="annot"><span class="annottext">txSkelAnchorURLAT :: AffineTraversal' TxSkelAnchor String
+</span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorURLAT"><span class="hs-identifier hs-var hs-var">txSkelAnchorURLAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Prism
+  TxSkelAnchor
+  TxSkelAnchor
+  (String, Maybe ByteString)
+  (String, Maybe ByteString)
+forall a b. Prism (Maybe a) (Maybe b) a b
+</span><span class="hs-identifier hs-var">_Just</span></span><span> </span><span class="annot"><span class="annottext">Prism
+  TxSkelAnchor
+  TxSkelAnchor
+  (String, Maybe ByteString)
+  (String, Maybe ByteString)
+-&gt; Optic
+     A_Lens
+     NoIx
+     (String, Maybe ByteString)
+     (String, Maybe ByteString)
+     String
+     String
+-&gt; AffineTraversal' TxSkelAnchor String
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (String, Maybe ByteString)
+  (String, Maybe ByteString)
+  String
+  String
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="annot"><span class="hs-comment">-- | Focusing on the optional resolved page of a 'TxSkelAnchor'</span></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorMResolvedPageAT"><span class="hs-identifier hs-type">txSkelAnchorMResolvedPageAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span id="txSkelAnchorMResolvedPageAT"><span class="annot"><span class="annottext">txSkelAnchorMResolvedPageAT :: AffineTraversal' TxSkelAnchor (Maybe ByteString)
+</span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorMResolvedPageAT"><span class="hs-identifier hs-var hs-var">txSkelAnchorMResolvedPageAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Prism
+  TxSkelAnchor
+  TxSkelAnchor
+  (String, Maybe ByteString)
+  (String, Maybe ByteString)
+forall a b. Prism (Maybe a) (Maybe b) a b
+</span><span class="hs-identifier hs-var">_Just</span></span><span> </span><span class="annot"><span class="annottext">Prism
+  TxSkelAnchor
+  TxSkelAnchor
+  (String, Maybe ByteString)
+  (String, Maybe ByteString)
+-&gt; Optic
+     A_Lens
+     NoIx
+     (String, Maybe ByteString)
+     (String, Maybe ByteString)
+     (Maybe ByteString)
+     (Maybe ByteString)
+-&gt; AffineTraversal' TxSkelAnchor (Maybe ByteString)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (String, Maybe ByteString)
+  (String, Maybe ByteString)
+  (Maybe ByteString)
+  (Maybe ByteString)
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="annot"><span class="hs-comment">-- | Focusing on the existing resolved page of a 'TxSkelAnchor'</span></span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorResolvedPageAT"><span class="hs-identifier hs-type">txSkelAnchorResolvedPageAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-38"></span><span id="txSkelAnchorResolvedPageAT"><span class="annot"><span class="annottext">txSkelAnchorResolvedPageAT :: AffineTraversal' TxSkelAnchor ByteString
+</span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorResolvedPageAT"><span class="hs-identifier hs-var hs-var">txSkelAnchorResolvedPageAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AffineTraversal' TxSkelAnchor (Maybe ByteString)
+</span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorMResolvedPageAT"><span class="hs-identifier hs-var">txSkelAnchorMResolvedPageAT</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal' TxSkelAnchor (Maybe ByteString)
+-&gt; Optic
+     A_Prism
+     NoIx
+     (Maybe ByteString)
+     (Maybe ByteString)
+     ByteString
+     ByteString
+-&gt; AffineTraversal' TxSkelAnchor ByteString
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Prism
+  NoIx
+  (Maybe ByteString)
+  (Maybe ByteString)
+  ByteString
+  ByteString
+forall a b. Prism (Maybe a) (Maybe b) a b
+</span><span class="hs-identifier hs-var">_Just</span></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="annot"><span class="hs-comment">-- | Builds a simple Anchor with an URL</span></span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#simpleURLAnchor"><span class="hs-identifier hs-type">simpleURLAnchor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span>
+</span><span id="line-42"></span><span id="simpleURLAnchor"><span class="annot"><span class="annottext">simpleURLAnchor :: String -&gt; TxSkelAnchor
+</span><a href="Cooked.Skeleton.Anchor.html#simpleURLAnchor"><span class="hs-identifier hs-var hs-var">simpleURLAnchor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String, Maybe ByteString) -&gt; TxSkelAnchor
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">((String, Maybe ByteString) -&gt; TxSkelAnchor)
+-&gt; (String -&gt; (String, Maybe ByteString)) -&gt; String -&gt; TxSkelAnchor
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="annot"><span class="annottext">Maybe ByteString
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span></pre></body></html>
