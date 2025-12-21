@@ -112,9 +112,6 @@ the `packages` stanza.
   automated balancing mechanism and associated options (including options
   revolving around fees and collaterals).
 
-- The [CONWAY](doc/CONWAY.md) file describes the Conway features that are
-  currently supported by `cooked-validators`.
-
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
 
