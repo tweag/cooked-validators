@@ -24,7 +24,7 @@ where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Monad (MonadPlus (..), msum)
+import Control.Monad (MonadPlus (..), guard, msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -118,17 +118,15 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin GetParams = getParams
   interpBuiltin (SetParams params) = setParams params
   interpBuiltin (ValidateTxSkel skel) =
-    get
-      >>= msum
-        . map (uncurry interpretNow)
-        . nowLaterList
+    get >>= msum . map interpretNow . nowLaterList
     where
       interpretNow ::
-        UntypedTweak InterpMockChain ->
-        [Ltl (UntypedTweak InterpMockChain)] ->
+        ([UntypedTweak InterpMockChain], [UntypedTweak InterpMockChain], [Ltl (UntypedTweak InterpMockChain)]) ->
         StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Ledger.CardanoTx
-      interpretNow (UntypedTweak now) later = do
-        (_, skel') <- lift $ runTweakInChain now skel
+      interpretNow (now, notNow, later) = do
+        mcst <- lift get
+        guard $ all (\(UntypedTweak tweak) -> null $ runMockChainTFromConf (mockChainStateConf mcst) $ runTweakInChain tweak skel) notNow
+        (_, skel') <- lift $ runTweakInChain (foldl (\acc (UntypedTweak tweak) -> tweak >> acc) (return ()) now) skel
         put later
         validateTxSkel skel'
   interpBuiltin (TxSkelOutByRef o) = txSkelOutByRef o

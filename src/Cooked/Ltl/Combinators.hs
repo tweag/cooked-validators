@@ -10,6 +10,12 @@ module Cooked.Ltl.Combinators
     eventually',
     always,
     always',
+    wheneverPossible',
+    wheneverPossible,
+    ifPossible',
+    ifPossible,
+    ltlImplies',
+    ltlImplies,
   )
 where
 
@@ -57,7 +63,7 @@ eventually = eventually' . LtlAtom
 eventually' :: Ltl a -> Ltl a
 eventually' = LtlUntil LtlTruth
 
--- |  Same as `always'`, but first wraps the elements in the input list in
+-- | Same as `always'`, but first wraps the elements in the input list in
 -- atomic formulas.
 always :: a -> Ltl a
 always = always' . LtlAtom
@@ -65,3 +71,30 @@ always = always' . LtlAtom
 -- | Produces an Ltl formula which ensures the input formula always holds
 always' :: Ltl a -> Ltl a
 always' = LtlRelease LtlFalsity
+
+-- | Same as `ifPossible'`, but first wraps the input in an atomic formula
+ifPossible :: a -> Ltl a
+ifPossible = ifPossible' . LtlAtom
+
+-- | Produces an Ltl formula which attempts to apply a certain formula but does
+-- not fail in case it fails.
+ifPossible' :: Ltl a -> Ltl a
+ifPossible' f = f `LtlOr` LtlNot f
+
+-- | Same as `wheneverPossible'`, but first wraps the input in an atomic formula
+wheneverPossible :: a -> Ltl a
+wheneverPossible = wheneverPossible' . LtlAtom
+
+-- | Produces an Ltl formula which attempts to apply a certain formula whenever
+-- possible, while ignoring steps when it is not.
+wheneverPossible' :: Ltl a -> Ltl a
+wheneverPossible' = always' . ifPossible'
+
+-- | Same as `ltlImplies'` but first wraps the inputs in atoms
+ltlImplies :: a -> a -> Ltl a
+ltlImplies a1 a2 = ltlImplies' (LtlAtom a1) (LtlAtom a2)
+
+-- | Produces a formula that succeeds if the first formula fails, or if both
+-- formulas hold
+ltlImplies' :: Ltl a -> Ltl a -> Ltl a
+ltlImplies' f1 f2 = (f1 `LtlAnd` f2) `LtlOr` LtlNot f1

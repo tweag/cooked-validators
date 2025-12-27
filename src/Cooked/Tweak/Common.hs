@@ -5,7 +5,7 @@ module Cooked.Tweak.Common
   ( runTweakInChain,
     runTweakInChain',
     Tweak,
-    UntypedTweak (UntypedTweak),
+    UntypedTweak (..),
 
     -- * User API
     MonadTweak (..),
@@ -92,14 +92,7 @@ runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
 -- | This is a wrapper type used in the implementation of the Staged monad. You
 -- will probably never use it while you're building 'Tweak's.
 data UntypedTweak m where
-  UntypedTweak :: Tweak m a -> UntypedTweak m
-
-instance (Monad m) => Semigroup (UntypedTweak m) where
-  -- The right tweak is applied first
-  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
-
-instance (Monad m) => Monoid (UntypedTweak m) where
-  mempty = UntypedTweak $ return ()
+  UntypedTweak :: {getTypedTweak :: Tweak m a} -> UntypedTweak m
 
 -- * A few fundamental tweaks
 

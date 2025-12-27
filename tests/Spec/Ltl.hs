@@ -7,74 +7,43 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Cooked.Ltl
 import Cooked.Ltl.Combinators
-import Data.Set (fromList)
+import Cooked.MockChain.Testing
+import Data.Maybe (isNothing)
 import Test.Tasty
 import Test.Tasty.HUnit
 
 data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
   GetInteger :: TestBuiltin Integer
-  EmitUnmodified :: Integer -> TestBuiltin ()
 
-type TestModification = Integer -> Integer
+data TestModification
+  = Add Integer
+  | Mul Integer
+  | Fail
+  deriving (Show, Eq)
 
-instance {-# OVERLAPS #-} Semigroup TestModification where
-  a <> b = b . a
-
-instance {-# OVERLAPS #-} Monoid TestModification where
-  mempty = id
+applyMod :: Integer -> TestModification -> Maybe Integer
+applyMod _ Fail = Nothing
+applyMod i (Add i') = if i == i' then Nothing else Just $ i + i'
+applyMod i (Mul i') = if i == i' then Nothing else Just $ i * i'
 
 instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
   interpBuiltin GetInteger = return 42
-  interpBuiltin (EmitInteger i) =
-    get
+  interpBuiltin (EmitInteger i) = do
+    gets nowLaterList
       >>= msum
-        . map (\(now, later) -> tell [now i] <* put later)
-        . nowLaterList
-  interpBuiltin (EmitUnmodified i) = do
-    get
-      >>= msum
-        . map (\(now, later) -> guard (now i == i) >> tell [now i] <* put later)
-        . nowLaterList
-
-{- Remark: Why are we re-defining 'somewhere' and 'everywhere' here?
-
-In some sense, the following two definitions of 'somewhere' and
-'everywhere' are the correct ones, because they work in an arbitrary
-'MonadModal'. The definitions in "Cooked.MockChain.Monad.Staged" are
-necessary because we want functions with those names that we can
-directly apply to 'Attack's: Since the 'Modification's of any
-'MonadModal' (including 'MonadModalMockChain') have to be a constant
-type, but 'Attack' isn't, we use the definitions there to hide the
-'UntypedAttack' wrapper from the user.
-
-With the definitions below, one would have to write
-
-> somewhere (UntypedAttack a) trace
-
-instead of
-
-> somewhere a trace
-
-in the only use-case outside of tests. This justifies the
-re-definition here, in my opinion.
-
--}
-
-somewhere :: (MonadModal m) => Modification m -> m a -> m a
-somewhere = modifyLtl . eventually
-
-everywhere :: (MonadModal m) => Modification m -> m a -> m a
-everywhere = modifyLtl . always
+        . map
+          ( \(now, notNow, later) -> do
+              guard $ all (isNothing . applyMod i) notNow
+              maybe mzero ((put later >>) . tell . (: [])) $
+                foldl (\acc el -> acc >>= (`applyMod` el)) (Just i) now
+          )
 
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
 emitInteger i = Instr (Builtin (EmitInteger i)) Return
 
 getInteger :: Staged (LtlOp TestModification TestBuiltin) Integer
 getInteger = Instr (Builtin GetInteger) Return
-
-emitUnmodified :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
-emitUnmodified i = Instr (Builtin (EmitUnmodified i)) Return
 
 go :: Staged (LtlOp TestModification TestBuiltin) a -> [[Integer]]
 go = execWriterT . flip execStateT [] . interpLtl
@@ -92,48 +61,75 @@ emptyTraces = [return (), void getInteger]
 testTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
 testTraces = nonemptyTraces ++ emptyTraces
 
-assertAll :: [a] -> (a -> Assertion) -> Assertion
-assertAll space f = mapM_ f space
-
-assertEqualSets :: (Show a, Ord a) => [a] -> [a] -> Assertion
-assertEqualSets l r =
-  assertBool
-    ( "unequal sets:\n"
-        ++ "expected: "
-        ++ show r
-        ++ "\n"
-        ++ " but got: "
-        ++ show l
-    )
-    (fromList l == fromList r)
-
 tests :: TestTree
 tests =
   testGroup
     "LTL"
-    [ testGroup
-        "simple laws"
-        [ testCase "LtlFalsity fails on every computation" $
-            assertAll testTraces (\tr -> go (modifyLtl LtlFalsity tr) @?= []),
-          testCase "LtlTruth leaves every computation unchanged" $
-            assertAll testTraces (\tr -> go (modifyLtl LtlTruth tr) @?= go tr),
-          testCase "x `LtlUntil` y == y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))" $
-            let x = LtlAtom (1 +)
-                y = LtlAtom (2 +)
-                a = x `LtlUntil` y
-                b = y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))
-             in assertAll
-                  testTraces
-                  (\tr -> assertEqualSets (go $ modifyLtl a tr) (go $ modifyLtl b tr)),
-          testCase "x `LtlRelease` y == y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y)) for nonempty traces" $
-            let x = LtlAtom (1 +)
-                y = LtlAtom (2 +)
-                a = x `LtlRelease` y
-                b = y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y))
-             in assertAll
-                  nonemptyTraces
-                  (\tr -> assertEqualSets (go $ modifyLtl a tr) (go $ modifyLtl b tr))
-        ],
+    [ let add1 = LtlAtom $ Add 1
+          add2 = LtlAtom $ Add 2
+          add3 = LtlAtom $ Add 3
+          failMod = LtlAtom Fail
+          untilDirect = add1 `LtlUntil` add2
+          untilIndirect = add2 `LtlOr` (add1 `LtlAnd` LtlNext (add1 `LtlUntil` add2))
+          releaseDirect = add1 `LtlRelease` add2
+          releaseIndirect = add2 `LtlAnd` (add1 `LtlOr` LtlNext (add1 `LtlRelease` add2))
+       in testGroup
+            "simple laws"
+            [ testCase "LtlFalsity fails on every computation" $
+                testAll (\tr -> go (modifyLtl LtlFalsity tr) @?= []) testTraces,
+              testCase "LtlTruth leaves every computation unchanged" $
+                testAll (\tr -> go (modifyLtl LtlTruth tr) @?= go tr) testTraces,
+              testCase "x `LtlUntil` y == y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))" $
+                testAll
+                  (\tr -> assertSameSets (go $ modifyLtl untilDirect tr) (go $ modifyLtl untilIndirect tr))
+                  testTraces,
+              testCase "x `LtlRelease` y == y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y)) for nonempty traces" $
+                testAll
+                  (\tr -> assertSameSets (go $ modifyLtl releaseDirect tr) (go $ modifyLtl releaseIndirect tr))
+                  nonemptyTraces,
+              testCase "Negation of a failing atom" $
+                go (modifyLtl (LtlNot failMod) (emitInteger 3)) @?= [[3]],
+              testCase "Negation of a successful atom" $
+                go (modifyLtl (LtlNot add2) (emitInteger 3)) @?= [],
+              testCase "Negation of the conjunction of atoms" $
+                go . modifyLtl (LtlNot (add2 `LtlAnd` add3)) . emitInteger
+                  <$> [ 2, -- add2 will fail, thus it will succeed, unmodified
+                        3, -- add3 will fail, thus it will succeed, unmodified
+                        4 -- both would succeed, thus it fails
+                      ]
+                  @?= [ [[2]],
+                        [[3]],
+                        []
+                      ],
+              testCase "Negation of the disjunction of atoms" $
+                go . modifyLtl (LtlNot (add2 `LtlOr` failMod)) . emitInteger
+                  <$> [ 2, -- add2 will fail, and failMod too, thus it succeeds
+                        3 -- failMod fails, but not add2, thus it fails
+                      ]
+                  @?= [ [[2]],
+                        []
+                      ],
+              testCase "Conjunction" $
+                go (modifyLtl (add1 `LtlAnd` add2) (emitInteger 3)) @?= [[3 + 1 + 2]],
+              testCase "Implication when the first modification does not apply" $
+                go (modifyLtl (add1 `ltlImplies'` add2) (emitInteger 1)) @?= [[1]],
+              testCase "Implication when both modifications apply" $
+                go (modifyLtl (add1 `ltlImplies'` add2) (emitInteger 3)) @?= [[3 + 1 + 2]],
+              testCase "Implication when the first modification applies, but not the second" $
+                go (modifyLtl (add1 `ltlImplies'` add3) (emitInteger 2)) @?= [],
+              testCase "Implication backwards in time" $
+                go . modifyLtl (LtlNext add1 `ltlImplies'` add3) . mapM_ emitInteger
+                  <$> [ [2, 4], -- add1 applies to 4, and add3 to 2, thus they are both performed
+                        [2, 1], -- add1 does not apply to 1, thus add3 is not applied to 2, even though it could
+                        [3, 1], -- add1 does not apply to 1, thus it does not matter that add3 does not apply to 3
+                        [3, 2] -- add1 applies to 2, but add3 does not apply to 3, which is forbidden
+                      ]
+                  @?= [ [[2 + 3, 4 + 1]],
+                        [[2, 1]],
+                        [[3, 1]],
+                        []
+                      ]
+            ],
       testGroup
         "unit tests"
         [ testCase "LtlNext changes the second step" $
@@ -143,20 +139,20 @@ tests =
                   where
                     incSecond (a : b : cs) = a : b + n : cs
                     incSecond _ = []
-             in assertAll
-                  testTraces
+             in testAll
                   ( \tr ->
-                      assertEqualSets
-                        (go $ modifyLtl (LtlNext $ LtlAtom (n +)) tr)
+                      assertSameSets
+                        (go $ modifyLtl (LtlNext $ LtlAtom $ Add n) tr)
                         (incSeconds $ go tr)
-                  ),
+                  )
+                  testTraces,
           testCase "everywhere changes everything" $
             let n = 3
                 incAll :: [[Integer]] -> [[Integer]]
                 incAll = map (map (+ n))
-             in assertAll
-                  testTraces
-                  (\tr -> assertEqualSets (go $ everywhere (n +) tr) (incAll $ go tr)),
+             in testAll
+                  (\tr -> assertSameSets (go $ modifyLtl (always (Add n)) tr) (incAll $ go tr))
+                  testTraces,
           testCase "somewhere case-splits" $
             let n = 3
                 caseSplit :: [[Integer]] -> [[Integer]]
@@ -164,66 +160,57 @@ tests =
                   where
                     alternatives [] = []
                     alternatives (x : xs) = (x + n : xs) : map (x :) (alternatives xs)
-             in assertAll
-                  testTraces
-                  (\tr -> assertEqualSets (go $ somewhere (n +) tr) (caseSplit $ go tr)),
+             in testAll
+                  (\tr -> assertSameSets (go $ modifyLtl (eventually (Add n)) tr) (caseSplit $ go tr))
+                  testTraces,
           testCase "somewhere is exponential in branch number" $
-            -- If we have @tr = a >> b@, we expect
-            --
-            -- > somewhere f $ somewhere g tr
-            --
-            -- to describe the following four traces:
-            --
-            -- > 1. f (g a) >> b
-            -- > 2. f a >> g b
-            -- > 3. g a >> f b
-            -- > 4. a >> f (g b)
-            --
             let tr = emitInteger 42 >> emitInteger 3
-             in assertEqualSets
-                  (go $ somewhere (1 +) $ somewhere (2 +) tr)
+             in assertSameSets
+                  (go $ modifyLtl (eventually (Add 1)) $ modifyLtl (eventually (Add 2)) tr)
                   [ [42 + 1 + 2, 3],
                     [42, 3 + 1 + 2],
                     [42 + 1, 3 + 2],
                     [42 + 2, 3 + 1]
                   ],
-          testCase "modality order is respected" $
-            assertEqualSets (go $ everywhere (1 +) $ everywhere (const 2) $ emitInteger 1) [[2]],
+          testCase "Modification order using 'LtlAnd' is respected (left to right)" $
+            assertSameSets (go $ modifyLtl (LtlAtom (Add 1) `LtlAnd` LtlAtom (Mul 4)) $ emitInteger 2) [[12]],
+          testCase "Modification order using modalities is respected (inner to outer)" $
+            assertSameSets (go $ modifyLtl (LtlAtom (Add 1)) $ modifyLtl (LtlAtom (Mul 4)) $ emitInteger 2) [[9]],
           testCase "nested everywhere combines modifications" $
-            assertEqualSets
-              ( go $
-                  everywhere (1 +) $
+            assertSameSets
+              ( go $ do
+                  modifyLtl (always (Add 1)) $ do
                     emitInteger 42
-                      >> everywhere
-                        (2 +)
-                        ( emitInteger 43
-                            >> everywhere (3 *) (emitInteger 44)
-                        )
-                      >> emitInteger 45
+                    modifyLtl (always (Add 2)) $ do
+                      emitInteger 43
+                      modifyLtl (always (Add 3)) $ do
+                        emitInteger 44
+                      emitInteger 45
+                    emitInteger 46
+                  emitInteger 47
               )
-              [[42 + 1, 43 + 1 + 2, (44 + 1 + 2) * 3, 45 + 1]]
+              [[42 + 1, 43 + 1 + 2, 44 + 1 + 2 + 3, 45 + 1 + 2, 46 + 1, 47]]
         ],
       testGroup
         "LTL Combinators"
         $ let traceSolo = emitInteger 24
               traceDuo = emitInteger 24 >> emitInteger 13
-              traceFail = traceSolo >> emitUnmodified 35 >> traceSolo
            in [ testCase "anyOf" $
-                  assertEqualSets
-                    (go $ modifyLtl (anyOf [(+ 5), (* 5)]) traceSolo)
+                  assertSameSets
+                    (go $ modifyLtl (anyOf [Add 5, Mul 5]) traceSolo)
                     [ [24 + 5],
                       [24 * 5]
                     ],
                 testCase "anyOf [always, eventually]" $
-                  assertEqualSets
-                    (go $ modifyLtl (anyOf' [always (+ 5), eventually (* 5)]) traceDuo)
+                  assertSameSets
+                    (go $ modifyLtl (anyOf' [always (Add 5), eventually (Mul 5)]) traceDuo)
                     [ [24 + 5, 13 + 5],
                       [24 * 5, 13],
                       [24, 13 * 5]
                     ],
                 testCase "anyOf [always anyOf, eventually anyOf]" $
-                  assertEqualSets
-                    (go $ modifyLtl (anyOf' [always' (anyOf [(+ 5), (* 5)]), eventually' (anyOf [(+ 5), (* 5)])]) traceDuo)
+                  assertSameSets
+                    (go $ modifyLtl (anyOf' [always' (anyOf [Add 5, Mul 5]), eventually' (anyOf [Add 5, Mul 5])]) traceDuo)
                     [ [24 + 5, 13 + 5],
                       [24 + 5, 13 * 5],
                       [24 * 5, 13 * 5],
@@ -234,42 +221,50 @@ tests =
                       [24, 13 * 5]
                     ],
                 testCase "allOf" $
-                  assertEqualSets
-                    (go $ modifyLtl (allOf [(+ 5), (* 5)]) traceSolo)
+                  assertSameSets
+                    (go $ modifyLtl (allOf [Add 5, Mul 5]) traceSolo)
                     [[(24 + 5) * 5]],
                 testCase "allOf [anyOf, anyOf]" $
-                  assertEqualSets
-                    (go $ modifyLtl (allOf' [anyOf [(+ 5), (* 5)], anyOf [(+ 5), (* 5)]]) traceSolo)
+                  assertSameSets
+                    (go $ modifyLtl (allOf' [anyOf [Add 5, Mul 5], anyOf [Add 5, Mul 5]]) traceSolo)
                     [ [24 + 5 + 5],
                       [24 * 5 + 5],
                       [24 * 5 * 5],
                       [(24 + 5) * 5]
                     ],
                 testCase "delay (neg)" $
-                  assertEqualSets
-                    (go $ modifyLtl (delay 0 (+ 5)) traceDuo)
-                    (go $ modifyLtl (delay (-10) (+ 5)) traceDuo),
+                  assertSameSets
+                    (go $ modifyLtl (delay 0 (Add 5)) traceDuo)
+                    (go $ modifyLtl (delay (-10) (Add 5)) traceDuo),
                 testCase "delay (pos)" $
-                  assertEqualSets
-                    (go $ modifyLtl (delay 1 (+ 5)) traceDuo)
+                  assertSameSets
+                    (go $ modifyLtl (delay 1 (Add 5)) traceDuo)
                     [[24, 13 + 5]],
                 testCase "delay (anyOf [eventually, always])" $
-                  assertEqualSets
-                    (go $ modifyLtl (delay' 3 (anyOf' [eventually (+ 5), always (* 5)])) (traceDuo >> traceDuo >> traceDuo))
+                  assertSameSets
+                    (go $ modifyLtl (delay' 3 (anyOf' [eventually (Add 5), always (Mul 5)])) (traceDuo >> traceDuo >> traceDuo))
                     [ [24, 13, 24, 13 + 5, 24, 13],
                       [24, 13, 24, 13, 24 + 5, 13],
                       [24, 13, 24, 13, 24, 13 + 5],
                       [24, 13, 24, 13 * 5, 24 * 5, 13 * 5]
                     ],
                 testCase "always fails if a step cannot be modified" $
-                  assertEqualSets
-                    (go $ modifyLtl (always (+ 5)) traceFail)
+                  assertSameSets
+                    (go $ modifyLtl (always (Add 5)) (traceDuo >> emitInteger 5))
                     [],
                 testCase "eventually succeeds if a step cannot be modified" $
-                  assertEqualSets
-                    (go $ modifyLtl (eventually (+ 5)) traceFail)
-                    [ [24 + 5, 35, 24],
-                      [24, 35, 24 + 5]
-                    ]
+                  assertSameSets
+                    (go $ modifyLtl (eventually (Add 5)) (traceDuo >> emitInteger 5))
+                    [ [24 + 5, 13, 5],
+                      [24, 13 + 5, 5]
+                    ],
+                testCase "wherever possible succeeds if a few steps cannot be modified" $
+                  assertSameSets
+                    ( go $
+                        modifyLtl
+                          (wheneverPossible (Add 5))
+                          (traceDuo >> emitInteger 5 >> emitInteger 5 >> traceDuo >> emitInteger 5 >> traceDuo)
+                    )
+                    [[24 + 5, 13 + 5, 5, 5, 24 + 5, 13 + 5, 5, 24 + 5, 13 + 5]]
               ]
     ]

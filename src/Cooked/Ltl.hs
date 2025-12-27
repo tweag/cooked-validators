@@ -6,7 +6,6 @@
 -- be replaced later on with a dependency to https://github.com/tweag/graft.
 module Cooked.Ltl
   ( Ltl (..),
-    nowLater,
     nowLaterList,
     LtlOp (..),
     Staged (..),
@@ -59,6 +58,10 @@ data Ltl a
     --
     -- > a `LtlRelease` b <=> b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
     LtlRelease (Ltl a) (Ltl a)
+  | -- | Assert that the given formula must not hold at the current time
+    -- step. This will be interpreted as ensuring the appropriate modifications
+    -- fail.
+    LtlNot (Ltl a)
   deriving (Show, Eq, Functor)
 
 -- | Split an LTL formula that describes a modification of a computation into a
@@ -80,33 +83,6 @@ data Ltl a
 -- <> b@ as the modification that first applies @b@ and then @a@. Attention:
 -- Since we use '<>' to define conjunction, if '<>' is not commutative,
 -- conjunction will also fail to be commutative!
-nowLater :: (Monoid a) => Ltl a -> [(a, Ltl a)]
-nowLater LtlTruth = [(mempty, LtlTruth)]
-nowLater LtlFalsity = []
-nowLater (LtlAtom g) = [(g, LtlTruth)]
-nowLater (a `LtlOr` b) = nowLater a ++ nowLater b
-nowLater (a `LtlAnd` b) =
-  [ (f <> g, ltlSimpl $ c `LtlAnd` d)
-  | (f, c) <- nowLater a,
-    (g, d) <- nowLater b
-  ]
-nowLater (LtlNext a) = [(mempty, a)]
-nowLater (a `LtlUntil` b) =
-  nowLater $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
-nowLater (a `LtlRelease` b) =
-  nowLater $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
-
--- | If there are no more steps and the next step should satisfy the given
--- formula: Are we finished, i.e. was the initial formula satisfied by now?
-finished :: Ltl a -> Bool
-finished LtlTruth = True
-finished LtlFalsity = False --  we want falsity to fail always, even on the empty computation
-finished (LtlAtom _) = False
-finished (a `LtlAnd` b) = finished a && finished b
-finished (a `LtlOr` b) = finished a || finished b
-finished (LtlNext _) = False
-finished (LtlUntil _ _) = False
-finished (LtlRelease _ _) = True
 
 -- | Say we're passing around more than one formula from each time step to the
 -- next, where the intended meaning of a list of formulas is the modification
@@ -114,21 +90,54 @@ finished (LtlRelease _ _) = True
 -- then the third and so on. We'd still like to compute a list of @(doNow,
 -- doLater)@ pairs as in 'nowLater', only that the @doLater@ should again be a
 -- list of formulas.
-nowLaterList :: (Monoid a) => [Ltl a] -> [(a, [Ltl a])]
-nowLaterList = joinNowLaters . map nowLater
+nowLaterList :: [Ltl a] -> [([a], [a], [Ltl a])]
+nowLaterList =
+  foldr
+    ( \el acc -> do
+        (toApply, toFail, next) <- nowLater $ ltlSimpl el
+        (toApply', toFail', nexts) <- acc
+        return (toApply <> toApply', toFail <> toFail', next : nexts)
+    )
+    [([], [], [])]
   where
-    joinNowLaters [] = [(mempty, [])]
-    joinNowLaters (l : ls) =
-      [ (g <> f, c : cs)
-      | (f, c) <- l,
-        (g, cs) <- joinNowLaters ls
-      ]
+    nowLater :: Ltl a -> [([a], [a], Ltl a)]
+    nowLater LtlTruth = [([], [], LtlTruth)]
+    nowLater LtlFalsity = [([], [], LtlFalsity)]
+    nowLater (LtlAtom now) = [([now], [], LtlTruth)]
+    nowLater (f1 `LtlOr` f2) = nowLater f1 ++ nowLater f2
+    nowLater (f1 `LtlAnd` f2) = do
+      (toApply1, toFail1, next1) <- nowLater f1
+      (toApply2, toFail2, next2) <- nowLater f2
+      return (toApply1 <> toApply2, toFail1 <> toFail2, ltlSimpl $ next1 `LtlAnd` next2)
+    nowLater (LtlNext f) = [([], [], f)]
+    nowLater (LtlNot f) = do
+      (toApplys, toFails, next) <- nowLater f
+      [([], [toApply], LtlTruth) | toApply <- toApplys]
+        <> [([], [], ltlSimpl $ LtlNot next)]
+        <> [([toFail], [], LtlTruth) | toFail <- toFails]
+    nowLater (a `LtlUntil` b) =
+      nowLater $ ltlSimpl $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
+    nowLater (a `LtlRelease` b) =
+      nowLater $ ltlSimpl $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
+
+-- | If there are no more steps and the next step should satisfy the given
+-- formula: Are we finished, i.e. was the initial formula satisfied by now?
+finished :: Ltl a -> Bool
+finished LtlTruth = True
+finished LtlFalsity = False --  we want falsity to fail always, even on the empty computation
+finished (LtlAtom _) = False
+finished (f1 `LtlAnd` f2) = finished f1 && finished f2
+finished (f1 `LtlOr` f2) = finished f1 || finished f2
+finished (LtlNext _) = False
+finished (LtlUntil _ _) = False
+finished (LtlRelease _ _) = True
+finished (LtlNot f) = not $ finished f
 
 -- | Straightforward simplification procedure for LTL formulas. This function
--- knows how 'LtlTruth' and 'LtlFalsity' play with conjunction and disjunction
--- and recursively applies this knowledge; it does not do anything "fancy" like
--- computing a normal form and is only used to keep the formulas 'nowLater'
--- generates from growing too wildly.
+-- knows how 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and
+-- disjunction and recursively applies this knowledge; it does not do anything
+-- "fancy" like computing a normal form and is only used to keep the formulas
+-- 'nowLater' generates from growing too wildly.
 ltlSimpl :: Ltl a -> Ltl a
 ltlSimpl expr =
   let (expr', progress) = simpl expr
@@ -144,7 +153,16 @@ ltlSimpl expr =
             else (LtlNext a, False)
     simpl (LtlUntil a b) = recurse2 LtlUntil a b
     simpl (LtlRelease a b) = recurse2 LtlRelease a b
+    simpl (LtlNot f) = simplNot f
     simpl x = (x, False)
+
+    simplNot :: Ltl a -> (Ltl a, Bool)
+    simplNot (simpl -> (LtlTruth, _)) = (LtlFalsity, True)
+    simplNot (simpl -> (LtlFalsity, _)) = (LtlTruth, True)
+    simplNot (simpl -> (LtlAnd a b, _)) | (r, _) <- simplOr (LtlNot a) (LtlNot b) = (r, True)
+    simplNot (simpl -> (LtlOr a b, _)) | (r, _) <- simplAnd (LtlNot a) (LtlNot b) = (r, True)
+    simplNot (simpl -> (LtlNot a, _)) = (a, True)
+    simplNot (simpl -> (a, pa)) = (LtlNot a, pa)
 
     simplAnd :: Ltl a -> Ltl a -> (Ltl a, Bool)
     simplAnd a b =
