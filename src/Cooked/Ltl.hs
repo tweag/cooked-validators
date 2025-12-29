@@ -108,12 +108,12 @@ nowLaterList =
     nowLater (f1 `LtlAnd` f2) = do
       (toApply1, toFail1, next1) <- nowLater f1
       (toApply2, toFail2, next2) <- nowLater f2
-      return (toApply1 <> toApply2, toFail1 <> toFail2, ltlSimpl $ next1 `LtlAnd` next2)
+      return (toApply1 <> toApply2, toFail1 <> toFail2, next1 `LtlAnd` next2)
     nowLater (LtlNext f) = [([], [], f)]
     nowLater (LtlNot f) = do
       (toApplys, toFails, next) <- nowLater f
       [([], [toApply], LtlTruth) | toApply <- toApplys]
-        <> [([], [], ltlSimpl $ LtlNot next)]
+        <> [([], [], LtlNot next)]
         <> [([toFail], [], LtlTruth) | toFail <- toFails]
     nowLater (a `LtlUntil` b) =
       nowLater $ ltlSimpl $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
@@ -126,8 +126,8 @@ finished :: Ltl a -> Bool
 finished LtlTruth = True
 finished LtlFalsity = False --  we want falsity to fail always, even on the empty computation
 finished (LtlAtom _) = False
-finished (f1 `LtlAnd` f2) = finished f1 && finished f2
-finished (f1 `LtlOr` f2) = finished f1 || finished f2
+finished (LtlAnd f1 f2) = finished f1 && finished f2
+finished (LtlOr f1 f2) = finished f1 || finished f2
 finished (LtlNext _) = False
 finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
@@ -139,64 +139,26 @@ finished (LtlNot f) = not $ finished f
 -- "fancy" like computing a normal form and is only used to keep the formulas
 -- 'nowLater' generates from growing too wildly.
 ltlSimpl :: Ltl a -> Ltl a
-ltlSimpl expr =
-  let (expr', progress) = simpl expr
-   in if progress then expr' else expr
-  where
-    simpl :: Ltl a -> (Ltl a, Bool)
-    simpl (LtlAnd a b) = simplAnd a b
-    simpl (LtlOr a b) = simplOr a b
-    simpl (LtlNext a) =
-      let (a', pa) = simpl a
-       in if pa
-            then (LtlNext a', True)
-            else (LtlNext a, False)
-    simpl (LtlUntil a b) = recurse2 LtlUntil a b
-    simpl (LtlRelease a b) = recurse2 LtlRelease a b
-    simpl (LtlNot f) = simplNot f
-    simpl x = (x, False)
-
-    simplNot :: Ltl a -> (Ltl a, Bool)
-    simplNot (simpl -> (LtlTruth, _)) = (LtlFalsity, True)
-    simplNot (simpl -> (LtlFalsity, _)) = (LtlTruth, True)
-    simplNot (simpl -> (LtlAnd a b, _)) | (r, _) <- simplOr (LtlNot a) (LtlNot b) = (r, True)
-    simplNot (simpl -> (LtlOr a b, _)) | (r, _) <- simplAnd (LtlNot a) (LtlNot b) = (r, True)
-    simplNot (simpl -> (LtlNot a, _)) = (a, True)
-    simplNot (simpl -> (a, pa)) = (LtlNot a, pa)
-
-    simplAnd :: Ltl a -> Ltl a -> (Ltl a, Bool)
-    simplAnd a b =
-      let (a', pa) = simpl a
-          (b', pb) = simpl b
-       in case (a', b') of
-            (LtlTruth, _) -> (b', True)
-            (_, LtlTruth) -> (a', True)
-            (LtlFalsity, _) -> (LtlFalsity, True)
-            (_, LtlFalsity) -> (LtlFalsity, True)
-            _ -> if pa || pb then (LtlAnd a' b', True) else (LtlAnd a b, False)
-
-    simplOr :: Ltl a -> Ltl a -> (Ltl a, Bool)
-    simplOr a b =
-      let (a', pa) = simpl a
-          (b', pb) = simpl b
-       in case (a', b') of
-            (LtlTruth, _) -> (LtlTruth, True)
-            (_, LtlTruth) -> (LtlTruth, True)
-            (LtlFalsity, _) -> (b', True)
-            (_, LtlFalsity) -> (a', True)
-            _ -> if pa || pb then (LtlOr a' b', True) else (LtlOr a b, False)
-
-    recurse2 ::
-      (Ltl a -> Ltl a -> Ltl a) ->
-      Ltl a ->
-      Ltl a ->
-      (Ltl a, Bool)
-    recurse2 f a b =
-      let (a', pa) = simpl a
-          (b', pb) = simpl b
-       in if pa || pb
-            then (f a' b', True)
-            else (f a b, False)
+ltlSimpl (LtlAtom a) = LtlAtom a
+ltlSimpl LtlTruth = LtlTruth
+ltlSimpl LtlFalsity = LtlFalsity
+ltlSimpl (LtlNext f) = LtlNext f
+ltlSimpl (LtlRelease f1 f2) = ltlSimpl $ f2 `LtlAnd` (f1 `LtlOr` LtlNext (f1 `LtlRelease` f2))
+ltlSimpl (LtlUntil f1 f2) = ltlSimpl $ f2 `LtlOr` (f1 `LtlAnd` LtlNext (f1 `LtlUntil` f2))
+ltlSimpl (LtlNot (ltlSimpl -> LtlTruth)) = LtlFalsity
+ltlSimpl (LtlNot (ltlSimpl -> LtlFalsity)) = LtlTruth
+ltlSimpl (LtlNot (ltlSimpl -> LtlNot f)) = f
+ltlSimpl (LtlNot (ltlSimpl -> LtlAnd f1 f2)) = ltlSimpl $ LtlNot f1 `LtlOr` LtlNot f2
+ltlSimpl (LtlNot (ltlSimpl -> LtlOr f1 f2)) = ltlSimpl $ LtlNot f1 `LtlAnd` LtlNot f2
+ltlSimpl (LtlNot (ltlSimpl -> f)) = LtlNot f
+ltlSimpl (LtlAnd (ltlSimpl -> LtlFalsity) _) = LtlFalsity
+ltlSimpl (LtlAnd _ (ltlSimpl -> LtlFalsity)) = LtlFalsity
+ltlSimpl (LtlAnd (ltlSimpl -> LtlTruth) (ltlSimpl -> f2)) = f2
+ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> LtlTruth)) = f1
+ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlAnd f1 f2
+ltlSimpl (LtlOr (ltlSimpl -> LtlFalsity) (ltlSimpl -> f2)) = f2
+ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> LtlFalsity)) = f1
+ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlOr f1 f2
 
 -- * An AST for "reified computations"
 
