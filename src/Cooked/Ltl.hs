@@ -50,6 +50,10 @@ data Ltl a
     -- begins to hold, which must happen eventually. The following holds:
     --
     -- > a `LtlUntil` b <=> b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
+    --
+    -- `LtlUntil` could technically be defined as the above formula using
+    -- Haskell's laziness, but is left as a constructor to have a counterpart
+    -- for `LtlRelease`, which cannot.
     LtlUntil (Ltl a) (Ltl a)
   | -- | Assert that the second formula has to hold up to and including the
     -- point when the first begins to hold; if that never happens, the second
@@ -57,6 +61,9 @@ data Ltl a
     -- following holds:
     --
     -- > a `LtlRelease` b <=> b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
+    --
+    -- `LtlRelease` needs it own constructor, as it is considered valid on an
+    -- empty computation, which the above formula is not in most cases.
     LtlRelease (Ltl a) (Ltl a)
   | -- | Assert that the given formula must not hold at the current time
     -- step. This will be interpreted as ensuring the appropriate modifications
@@ -64,32 +71,25 @@ data Ltl a
     LtlNot (Ltl a)
   deriving (Show, Eq, Functor)
 
--- | Split an LTL formula that describes a modification of a computation into a
--- list of @(doNow, doLater)@ pairs, where
+-- | For each LTL formula that describes a modification of a computation in a
+-- list, split it into a list of @(doNow, mustFailNow, doLater)@ triplets, and
+-- then appropriately combine the results. The result of the splitting is bound
+-- to the following semantics:
 --
--- * @doNow@ is the modification to be applied to the current time step,
+-- * @doNow@ is the list of modifications to be consecutively applied to the
+-- * current time step,
+--
+-- * @mustFailNow@ is the list of modifications that each must fail when applied
+-- * to the current time step, and
 --
 -- * @doLater@ is an LTL formula describing the modification that should be
---   applied from the next time step onwards, and
+--   applied from the next time step onwards.
 --
 -- The return value is a list because a formula might be satisfied in different
 -- ways. For example, the modification described by @a `LtlUntil` b@ might be
 -- accomplished by applying the modification @b@ right now, or by applying @a@
 -- right now and @a `LtlUntil` b@ from the next step onwards; the returned list
 -- will contain these two options.
---
--- Modifications should form a 'Monoid', where 'mempty' is the do-nothing
--- modification, and '<>' is the composition of modifications. We interpret @a
--- <> b@ as the modification that first applies @b@ and then @a@. Attention:
--- Since we use '<>' to define conjunction, if '<>' is not commutative,
--- conjunction will also fail to be commutative!
-
--- | Say we're passing around more than one formula from each time step to the
--- next, where the intended meaning of a list of formulas is the modification
--- that applies the first formula in the list first, then the second formula,
--- then the third and so on. We'd still like to compute a list of @(doNow,
--- doLater)@ pairs as in 'nowLater', only that the @doLater@ should again be a
--- list of formulas.
 nowLaterList :: [Ltl a] -> [([a], [a], [Ltl a])]
 nowLaterList =
   foldr
@@ -104,21 +104,46 @@ nowLaterList =
     nowLater LtlTruth = [([], [], LtlTruth)]
     nowLater LtlFalsity = [([], [], LtlFalsity)]
     nowLater (LtlAtom now) = [([now], [], LtlTruth)]
+    nowLater (LtlNext f) = [([], [], f)]
+    nowLater (LtlNot (LtlAtom now)) = [([], [now], LtlTruth)]
     nowLater (f1 `LtlOr` f2) = nowLater f1 ++ nowLater f2
     nowLater (f1 `LtlAnd` f2) = do
       (toApply1, toFail1, next1) <- nowLater f1
       (toApply2, toFail2, next2) <- nowLater f2
       return (toApply1 <> toApply2, toFail1 <> toFail2, next1 `LtlAnd` next2)
-    nowLater (LtlNext f) = [([], [], f)]
-    nowLater (LtlNot f) = do
-      (toApplys, toFails, next) <- nowLater f
-      [([], [toApply], LtlTruth) | toApply <- toApplys]
-        <> [([], [], LtlNot next)]
-        <> [([toFail], [], LtlTruth) | toFail <- toFails]
-    nowLater (a `LtlUntil` b) =
-      nowLater $ ltlSimpl $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
-    nowLater (a `LtlRelease` b) =
-      nowLater $ ltlSimpl $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
+    nowLater _ = error "nowLater is always called after ltlSimpl which does not yield more cases."
+
+    -- Straightforward simplification procedure for LTL formulas. This function
+    -- knows how 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and
+    -- disjunction and recursively applies this knowledge; it is used to keep
+    -- the formulas 'nowLater' generates from growing too wildly.
+    ltlSimpl :: Ltl a -> Ltl a
+    ltlSimpl (LtlAtom a) = LtlAtom a
+    ltlSimpl LtlTruth = LtlTruth
+    ltlSimpl LtlFalsity = LtlFalsity
+    ltlSimpl (LtlNext f) = LtlNext f
+    ltlSimpl (LtlRelease f1 f2) = ltlSimpl $ f2 `LtlAnd` (f1 `LtlOr` LtlNext (f1 `LtlRelease` f2))
+    ltlSimpl (LtlUntil f1 f2) = ltlSimpl $ f2 `LtlOr` (f1 `LtlAnd` LtlNext (f1 `LtlUntil` f2))
+    ltlSimpl (LtlNot (ltlSimpl -> LtlTruth)) = LtlFalsity
+    ltlSimpl (LtlNot (ltlSimpl -> LtlFalsity)) = LtlTruth
+    ltlSimpl (LtlNot (ltlSimpl -> LtlNot f)) = f
+    ltlSimpl (LtlNot (ltlSimpl -> LtlAnd f1 f2)) = ltlSimpl $ LtlNot f1 `LtlOr` LtlNot f2
+    ltlSimpl (LtlNot (ltlSimpl -> LtlOr f1 f2)) = ltlSimpl $ LtlNot f1 `LtlAnd` LtlNot f2
+    ltlSimpl (LtlNot (ltlSimpl -> LtlNext f)) = LtlNext (LtlNot f)
+    -- The following will never occur, as `ltlSimpl` never returns something of
+    -- the shape `LtlUntil` or `LtlRelease`
+    ltlSimpl (LtlNot (ltlSimpl -> f)) = LtlNot f
+    ltlSimpl (LtlAnd (ltlSimpl -> LtlFalsity) _) = LtlFalsity
+    ltlSimpl (LtlAnd _ (ltlSimpl -> LtlFalsity)) = LtlFalsity
+    ltlSimpl (LtlAnd (ltlSimpl -> LtlTruth) (ltlSimpl -> f2)) = f2
+    ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> LtlTruth)) = f1
+    ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlAnd f1 f2
+    ltlSimpl (LtlOr (ltlSimpl -> LtlFalsity) (ltlSimpl -> f2)) = f2
+    ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> LtlFalsity)) = f1
+    -- We don't perform any reduction when `LtlOr` is applied to `LtlTruth` as
+    -- we still need to keep both branches, and certainly don't want to discard
+    -- the branch were potential meaningful modifications need to be applied.
+    ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlOr f1 f2
 
 -- | If there are no more steps and the next step should satisfy the given
 -- formula: Are we finished, i.e. was the initial formula satisfied by now?
@@ -132,33 +157,6 @@ finished (LtlNext _) = False
 finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
-
--- | Straightforward simplification procedure for LTL formulas. This function
--- knows how 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and
--- disjunction and recursively applies this knowledge; it does not do anything
--- "fancy" like computing a normal form and is only used to keep the formulas
--- 'nowLater' generates from growing too wildly.
-ltlSimpl :: Ltl a -> Ltl a
-ltlSimpl (LtlAtom a) = LtlAtom a
-ltlSimpl LtlTruth = LtlTruth
-ltlSimpl LtlFalsity = LtlFalsity
-ltlSimpl (LtlNext f) = LtlNext f
-ltlSimpl (LtlRelease f1 f2) = ltlSimpl $ f2 `LtlAnd` (f1 `LtlOr` LtlNext (f1 `LtlRelease` f2))
-ltlSimpl (LtlUntil f1 f2) = ltlSimpl $ f2 `LtlOr` (f1 `LtlAnd` LtlNext (f1 `LtlUntil` f2))
-ltlSimpl (LtlNot (ltlSimpl -> LtlTruth)) = LtlFalsity
-ltlSimpl (LtlNot (ltlSimpl -> LtlFalsity)) = LtlTruth
-ltlSimpl (LtlNot (ltlSimpl -> LtlNot f)) = f
-ltlSimpl (LtlNot (ltlSimpl -> LtlAnd f1 f2)) = ltlSimpl $ LtlNot f1 `LtlOr` LtlNot f2
-ltlSimpl (LtlNot (ltlSimpl -> LtlOr f1 f2)) = ltlSimpl $ LtlNot f1 `LtlAnd` LtlNot f2
-ltlSimpl (LtlNot (ltlSimpl -> f)) = LtlNot f
-ltlSimpl (LtlAnd (ltlSimpl -> LtlFalsity) _) = LtlFalsity
-ltlSimpl (LtlAnd _ (ltlSimpl -> LtlFalsity)) = LtlFalsity
-ltlSimpl (LtlAnd (ltlSimpl -> LtlTruth) (ltlSimpl -> f2)) = f2
-ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> LtlTruth)) = f1
-ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlAnd f1 f2
-ltlSimpl (LtlOr (ltlSimpl -> LtlFalsity) (ltlSimpl -> f2)) = f2
-ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> LtlFalsity)) = f1
-ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlOr f1 f2
 
 -- * An AST for "reified computations"
 
