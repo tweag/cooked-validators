@@ -39,8 +39,8 @@ instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integ
                   ( \acc el -> do
                       current <- acc
                       case el of
-                        Left modif -> applyMod current modif
-                        Right modif -> do
+                        Apply modif -> applyMod current modif
+                        EnsureFailure modif -> do
                           guard $ isNothing $ applyMod current modif
                           return current
                   )

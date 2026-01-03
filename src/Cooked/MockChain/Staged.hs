@@ -127,8 +127,8 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
           lift . (`runTweakInChain` skel) $
             foldr
               ( flip $ \acc -> \case
-                  Left (UntypedTweak tweak) -> tweak >> acc
-                  Right (UntypedTweak tweak) -> ensureFailingTweak tweak >> acc
+                  Apply (UntypedTweak tweak) -> tweak >> acc
+                  EnsureFailure (UntypedTweak tweak) -> ensureFailingTweak tweak >> acc
               )
               doNothingTweak
               now
