@@ -36,11 +36,12 @@ instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integ
           ( \(now, later) -> do
               maybe mzero (tell . (: [])) $
                 foldl
-                  ( \acc el -> do
+                  ( \acc (modif, el) -> do
                       current <- acc
-                      case el of
-                        Apply modif -> applyMod current modif
-                        EnsureFailure modif -> do
+                      if el
+                        then
+                          applyMod current modif
+                        else do
                           guard $ isNothing $ applyMod current modif
                           return current
                   )

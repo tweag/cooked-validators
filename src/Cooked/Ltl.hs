@@ -6,7 +6,6 @@
 -- be replaced later on with a dependency to https://github.com/tweag/graft.
 module Cooked.Ltl
   ( Ltl (..),
-    LtlModAction (..),
     nowLaterList,
     LtlOp (..),
     Staged (..),
@@ -73,21 +72,14 @@ data Ltl a
     LtlNot (Ltl a)
   deriving (Show, Eq, Functor)
 
--- | How to handle a specific atomic modification
-data LtlModAction a
-  = -- | Apply the modification
-    Apply a
-  | -- | Ensure the modification fails
-    EnsureFailure a
-
 -- | For each LTL formula that describes a modification of a computation in a
 -- list, split it into a list of @(doNow, doLater)@ pairs, and then
 -- appropriately combine the results. The result of the splitting is bound to
 -- the following semantics:
 --
 -- * @doNow@ is the list of modifications to be consecutively either applied to
--- the current time step (@Apply@), or that should fail at the current time step
--- (@MustFailMod@)
+-- the current time step (@True@), or that should fail at the current time step
+-- (@False@)
 --
 -- * @doLater@ is an LTL formula describing the modification that should be
 -- applied from the next time step onwards.
@@ -97,7 +89,7 @@ data LtlModAction a
 -- accomplished by applying the modification @b@ right now, or by applying @a@
 -- right now and @a `LtlUntil` b@ from the next step onwards; the returned list
 -- will contain these two options.
-nowLaterList :: [Ltl a] -> [([LtlModAction a], [Ltl a])]
+nowLaterList :: [Ltl a] -> [([(a, Bool)], [Ltl a])]
 nowLaterList =
   foldr
     ( \el acc -> do
@@ -107,12 +99,12 @@ nowLaterList =
     )
     [([], [])]
   where
-    nowLater :: Ltl a -> [([LtlModAction a], Ltl a)]
+    nowLater :: Ltl a -> [([(a, Bool)], Ltl a)]
     nowLater LtlTruth = [([], LtlTruth)]
     nowLater LtlFalsity = [([], LtlFalsity)]
-    nowLater (LtlAtom now) = [([Apply now], LtlTruth)]
+    nowLater (LtlAtom now) = [([(now, True)], LtlTruth)]
     nowLater (LtlNext f) = [([], f)]
-    nowLater (LtlNot (LtlAtom now)) = [([EnsureFailure now], LtlTruth)]
+    nowLater (LtlNot (LtlAtom now)) = [([(now, False)], LtlTruth)]
     nowLater (f1 `LtlOr` f2) = nowLater f1 ++ nowLater f2
     nowLater (f1 `LtlAnd` f2) = do
       (now1, next1) <- nowLater f1
