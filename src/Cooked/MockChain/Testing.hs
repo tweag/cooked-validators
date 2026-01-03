@@ -242,7 +242,7 @@ mustSucceedTest trace =
   Test
     { testTrace = trace,
       testInitDist = def,
-      testSizeProp = const testSuccess,
+      testSizeProp = isAtLeastOfSize 1,
       testFailureProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected failure!",
       testSuccessProp = \_ _ _ _ -> testSuccess,
       testPrettyOpts = def

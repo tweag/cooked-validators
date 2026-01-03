@@ -10,7 +10,6 @@ module Cooked.Ltl
     LtlOp (..),
     Staged (..),
     interpLtl,
-    interpLtlAndPruneUnfinished,
     InterpLtl (..),
     MonadModal (..),
   )
@@ -42,7 +41,9 @@ data Ltl a
   | -- | Conjunction will be interpreted as "apply both modifications".
     -- Attention: The "apply both" operation will be user-defined for atomic
     -- modifications, so that conjunction may for example fail to be commutative
-    -- if the operation on atomic modification is not commutative.
+    -- if the operation on atomic modification is not commutative. In
+    -- particular, this is the case for tweaks, where the second modification
+    -- will be applied first, to be consistent with nested modifications.
     LtlAnd (Ltl a) (Ltl a)
   | -- | Assert that the given formula holds at the next time step.
     LtlNext (Ltl a)
@@ -72,45 +73,47 @@ data Ltl a
   deriving (Show, Eq, Functor)
 
 -- | For each LTL formula that describes a modification of a computation in a
--- list, split it into a list of @(doNow, mustFailNow, doLater)@ triplets, and
--- then appropriately combine the results. The result of the splitting is bound
--- to the following semantics:
+-- list, split it into a list of @(doNow, doLater)@ pairs, and then
+-- appropriately combine the results. The result of the splitting is bound to
+-- the following semantics:
 --
--- * @doNow@ is the list of modifications to be consecutively applied to the
--- * current time step,
---
--- * @mustFailNow@ is the list of modifications that each must fail when applied
--- * to the current time step, and
+-- * @doNow@ is the list of modifications to be consecutively either applied to
+-- the current time step (@Left@), or that should fail at the current time step
+-- (@Right@)
 --
 -- * @doLater@ is an LTL formula describing the modification that should be
---   applied from the next time step onwards.
+-- applied from the next time step onwards.
 --
 -- The return value is a list because a formula might be satisfied in different
 -- ways. For example, the modification described by @a `LtlUntil` b@ might be
 -- accomplished by applying the modification @b@ right now, or by applying @a@
 -- right now and @a `LtlUntil` b@ from the next step onwards; the returned list
 -- will contain these two options.
-nowLaterList :: [Ltl a] -> [([a], [a], [Ltl a])]
+nowLaterList :: [Ltl a] -> [([Either a a], [Ltl a])]
 nowLaterList =
   foldr
     ( \el acc -> do
-        (toApply, toFail, next) <- nowLater $ ltlSimpl el
-        (toApply', toFail', nexts) <- acc
-        return (toApply <> toApply', toFail <> toFail', next : nexts)
+        (now, next) <- nowLater $ ltlSimpl el
+        (now', nexts) <- acc
+        return (now <> now', next : nexts)
     )
-    [([], [], [])]
+    [([], [])]
   where
-    nowLater :: Ltl a -> [([a], [a], Ltl a)]
-    nowLater LtlTruth = [([], [], LtlTruth)]
-    nowLater LtlFalsity = [([], [], LtlFalsity)]
-    nowLater (LtlAtom now) = [([now], [], LtlTruth)]
-    nowLater (LtlNext f) = [([], [], f)]
-    nowLater (LtlNot (LtlAtom now)) = [([], [now], LtlTruth)]
+    nowLater :: Ltl a -> [([Either a a], Ltl a)]
+    nowLater LtlTruth = [([], LtlTruth)]
+    nowLater LtlFalsity = [([], LtlFalsity)]
+    nowLater (LtlAtom now) = [([Left now], LtlTruth)]
+    nowLater (LtlNext f) = [([], f)]
+    nowLater (LtlNot (LtlAtom now)) = [([Right now], LtlTruth)]
     nowLater (f1 `LtlOr` f2) = nowLater f1 ++ nowLater f2
     nowLater (f1 `LtlAnd` f2) = do
-      (toApply1, toFail1, next1) <- nowLater f1
-      (toApply2, toFail2, next2) <- nowLater f2
-      return (toApply1 <> toApply2, toFail1 <> toFail2, next1 `LtlAnd` next2)
+      (now1, next1) <- nowLater f1
+      (now2, next2) <- nowLater f2
+      return (now2 <> now1, next2 `LtlAnd` next1)
+    -- Only the above cases are possible, which are the possible outcomes of
+    -- @ltlSimpl@. This is handy, as the remaining cases would lead to
+    -- complicated interactions and hard to handle growth in the number of
+    -- formulas.
     nowLater _ = error "nowLater is always called after ltlSimpl which does not yield more cases."
 
     -- Straightforward simplification procedure for LTL formulas. This function
@@ -149,7 +152,7 @@ nowLaterList =
 -- formula: Are we finished, i.e. was the initial formula satisfied by now?
 finished :: Ltl a -> Bool
 finished LtlTruth = True
-finished LtlFalsity = False --  we want falsity to fail always, even on the empty computation
+finished LtlFalsity = False
 finished (LtlAtom _) = False
 finished (LtlAnd f1 f2) = finished f1 && finished f2
 finished (LtlOr f1 f2) = finished f1 || finished f2
@@ -158,27 +161,7 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
 
--- * An AST for "reified computations"
-
--- | The idea is that a value of type @Staged (LtlOp modification builtin) a@
--- describes a set of (monadic) computations that return an @a@ such that
---
--- * every step of the computations that returns a @b@ is reified as a @builtin
---   b@, and
---
--- * every step can be modified by a @modification@.
-
--- | Operations for computations that can be modified using LTL formulas.
-data LtlOp (modification :: Type) (builtin :: Type -> Type) :: Type -> Type where
-  -- | The operation that introduces a new LTL formula that should be used to
-  -- modify the following computations. Think of this operation as coming
-  -- between time steps and adding a new formula to be applied before all of the
-  -- formulas that should already be applied to the next time step.
-  StartLtl :: Ltl modification -> LtlOp modification builtin ()
-  -- | The operation that removes the last LTL formula that was introduced. If
-  -- the formula is not yet finished, the current time line will fail.
-  StopLtl :: LtlOp modification builtin ()
-  Builtin :: builtin a -> LtlOp modification builtin a
+-- * Freer monad to represent an AST on a set of operations
 
 -- | The freer monad on @op@. We think of this as the AST of a computation with
 -- operations of types @op a@.
@@ -198,6 +181,24 @@ instance Monad (Staged op) where
   (Return x) >>= f = f x
   (Instr i m) >>= f = Instr i (m >=> f)
 
+-- * An AST for "reified computations"
+
+-- | The idea is that a value of type @Staged (LtlOp modification builtin) a@
+-- describes a set of (monadic) computations that return an @a@ such that
+--
+-- * every step of the computations that returns a @b@ is reified as a @builtin
+--   b@, and
+--
+-- * every step can be modified by a @modification@.
+
+-- | Operations for computations that can be modified using LTL formulas.
+data LtlOp (modification :: Type) (builtin :: Type -> Type) :: Type -> Type where
+  -- | The operation consisting of the reification of a builtin
+  Builtin :: builtin a -> LtlOp modification builtin a
+  -- | The operation consisting of wrapping a computation with a Ltl
+  -- formula that should be applied on the computation.
+  WrapLtl :: Ltl modification -> Staged (LtlOp modification builtin) a -> LtlOp modification builtin a
+
 -- * Interpreting the AST
 
 -- | To be a suitable semantic domain for computations modified by LTL formulas,
@@ -211,18 +212,7 @@ instance Monad (Staged op) where
 --
 -- This type class only requires from the user to specify how to interpret the
 -- (modified) builtins. In order to do so, it passes around the formulas that
--- are to be applied to the next time step in a @StateT@. A common idiom to
--- modify an operation should be this:
---
--- > interpBuiltin op =
--- >  get
--- >    >>= msum
--- >      . map (\(now, later) -> applyModification now op <* put later)
--- >      . nowLaterList
---
--- (But to write this, @modification@ has to be a 'Monoid' to make
--- 'nowLaterList' work!) Look at the tests for this module and at
--- "Cooked.MockChain.Monad.Staged" for examples of how to use this type class.
+-- are to be applied to the next time step in a @StateT@
 class (MonadPlus m) => InterpLtl modification builtin m where
   interpBuiltin :: builtin a -> StateT [Ltl modification] m a
 
@@ -233,40 +223,17 @@ interpLtl ::
   Staged (LtlOp modification builtin) a ->
   StateT [Ltl modification] m a
 interpLtl (Return res) = return res
-interpLtl (Instr (StartLtl formula) computation) = do
-  modify' (formula :)
-  interpLtl $ computation ()
-interpLtl (Instr StopLtl f) =
-  get >>= \case
-    formula : formulas -> do
-      guard $ finished formula
-      put formulas
-      interpLtl $ f ()
-    [] -> error "You called 'StopLtl' before 'StartLtl'. This is only possible if you're using internals."
 interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
-
--- | Interpret a 'Staged' computation into a suitable domain, using the function
--- 'interpBuiltin' to interpret the builtins. At the end of the computation,
--- prune branches that still have unfinished modifications applied to them.  See
--- the discussion on the regression test case for PRs 110 and 131 in
--- 'StagedSpec.hs' for a discussion on why this function has to exist.
-interpLtlAndPruneUnfinished ::
-  (InterpLtl modification builtin m) =>
-  Staged (LtlOp modification builtin) a ->
-  StateT [Ltl modification] m a
-interpLtlAndPruneUnfinished computation = do
-  res <- interpLtl computation
-  mods <- get
-  guard $ all finished mods
-  return res
+interpLtl (Instr (WrapLtl formula comp) nextComp) = do
+  modify' (formula :)
+  res <- interpLtl comp
+  formulas <- get
+  unless (null formulas) $ do
+    guard $ finished $ head formulas
+    put $ tail formulas
+  interpLtl $ nextComp res
 
 -- * Convenience functions
-
--- Users of this module should never use 'StartLtl' and 'StopLtl' explicitly.
--- Here are some safe-to-use functions that should be used instead. Most
--- functions like the ones below should be defined for the class 'MonadModal'
--- because there might be other possibilities to equip a monad with LTL
--- modifications beside the method above.
 
 -- | Monads that allow modifications with LTL formulas.
 class (Monad m) => MonadModal m where
@@ -275,8 +242,4 @@ class (Monad m) => MonadModal m where
 
 instance MonadModal (Staged (LtlOp modification builtin)) where
   type Modification (Staged (LtlOp modification builtin)) = modification
-  modifyLtl formula trace = do
-    Instr (StartLtl formula) Return
-    res <- trace
-    Instr StopLtl Return
-    return res
+  modifyLtl formula trace = Instr (WrapLtl formula trace) Return

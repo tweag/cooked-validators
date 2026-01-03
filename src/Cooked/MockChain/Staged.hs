@@ -19,24 +19,29 @@ module Cooked.MockChain.Staged
     withTweak,
     there,
     there',
+    nowhere',
+    nowhere,
+    whenAble',
+    whenAble,
   )
 where
 
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
-import Control.Monad (MonadPlus (..), guard, msum)
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Cooked.InitialDistribution
 import Cooked.Ltl
-import Cooked.Ltl.Combinators (always', delay', eventually')
+import Cooked.Ltl.Combinators
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.Pretty.Hashable
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
+import Data.Functor
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
@@ -47,11 +52,8 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | Interprets the staged mockchain then runs the resulting computation with a
 -- custom function. This can be used, for example, to supply a custom
 -- 'InitialDistribution' by providing 'runMockChainTFromInitDist'.
-interpretAndRunWith ::
-  (forall m. (Monad m) => MockChainT m a -> m res) ->
-  StagedMockChain a ->
-  [res]
-interpretAndRunWith f smc = f $ interpret smc
+interpretAndRunWith :: (forall m. (Monad m) => MockChainT m a -> m res) -> StagedMockChain a -> [res]
+interpretAndRunWith f = f . interpret
 
 -- | Same as 'interpretAndRunWith' but using 'runMockChainT' as the default way
 -- to run the computation.
@@ -65,7 +67,7 @@ type InterpMockChain = MockChainT []
 -- 'StagedMockChain' computation yields a potential list of 'MockChainT'
 -- computations.
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
+interpret = flip evalStateT [] . interpLtl
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
@@ -117,16 +119,19 @@ instance (MonadPlus m) => MonadPlus (MockChainT m) where
 instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockChain where
   interpBuiltin GetParams = getParams
   interpBuiltin (SetParams params) = setParams params
-  interpBuiltin (ValidateTxSkel skel) =
-    get >>= msum . map interpretNow . nowLaterList
-    where
-      interpretNow ::
-        ([UntypedTweak InterpMockChain], [UntypedTweak InterpMockChain], [Ltl (UntypedTweak InterpMockChain)]) ->
-        StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Ledger.CardanoTx
-      interpretNow (now, notNow, later) = do
-        mcst <- lift get
-        guard $ all (\(UntypedTweak tweak) -> null $ runMockChainTFromConf (mockChainStateConf mcst) $ runTweakInChain tweak skel) notNow
-        (_, skel') <- lift $ runTweakInChain (foldl (\acc (UntypedTweak tweak) -> tweak >> acc) (return ()) now) skel
+  interpBuiltin (ValidateTxSkel skel) = do
+    modifications <- gets nowLaterList
+    msum . (modifications <&>) $
+      \(now, later) -> do
+        (_, skel') <-
+          lift . (`runTweakInChain` skel) $
+            foldr
+              ( flip $ \acc -> \case
+                  Left (UntypedTweak tweak) -> tweak >> acc
+                  Right (UntypedTweak tweak) -> ensureFailingTweak tweak >> acc
+              )
+              doNothingTweak
+              now
         put later
         validateTxSkel skel'
   interpBuiltin (TxSkelOutByRef o) = txSkelOutByRef o
@@ -158,7 +163,7 @@ runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInCha
 
 -- ** Modalities
 
--- | A modal mock chain is a mock chain that allows us to use LTL modifications
+-- | A modal mockchain is a mockchain that allows us to use LTL modifications
 -- with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
@@ -185,6 +190,24 @@ everywhere = everywhere' . fromTweak
 -- location the modification can be applied.
 everywhere' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
 everywhere' = modifyLtl . always'
+
+-- | Ensures a given 'Tweak' can never successfully be applied in a computation
+nowhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
+nowhere = nowhere' . fromTweak
+
+-- | Ensures a given Ltl modification can never be applied on a computation
+nowhere' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
+nowhere' = modifyLtl . never'
+
+-- | Apply a given 'Tweak' at every location in a computation where it does not
+-- fail, which might never occur.
+whenAble :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
+whenAble = whenAble' . fromTweak
+
+-- | Apply an Ltl modification at every location in a computation where it is
+-- possible. Does not fail if no such position exists.
+whenAble' :: (MonadModal m) => Ltl (Modification m) -> m a -> m a
+whenAble' = modifyLtl . whenPossible'
 
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.

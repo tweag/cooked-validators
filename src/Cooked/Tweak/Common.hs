@@ -20,6 +20,7 @@ module Cooked.Tweak.Common
     selectP,
     combineModsTweak,
     iviewTweak,
+    ensureFailingTweak,
   )
 where
 
@@ -77,7 +78,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere',
 -- you should never have a reason to use this function.
 runTweakInChain :: (MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
-runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
+runTweakInChain tweak = ListT.alternate . runStateT tweak
 
 -- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
 -- to a transaction skeleton and get all results as a list.
@@ -86,13 +87,13 @@ runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 -- modified, consider using 'Cooked.MockChain.Staged.MonadModalBlockChain' and
 -- idioms like 'Cooked.MockChain.Staged.withTweak',
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere'.
-runTweakInChain' :: (MonadBlockChainWithoutValidation m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
-runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
+runTweakInChain' :: (MonadPlus m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
+runTweakInChain' tweak = ListT.toList . runStateT tweak
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You
 -- will probably never use it while you're building 'Tweak's.
 data UntypedTweak m where
-  UntypedTweak :: {getTypedTweak :: Tweak m a} -> UntypedTweak m
+  UntypedTweak :: Tweak m a -> UntypedTweak m
 
 -- * A few fundamental tweaks
 
@@ -103,6 +104,13 @@ failingTweak = mzero
 -- | The 'Tweak' that always applies and leaves the transaction unchanged.
 doNothingTweak :: (MonadTweak m) => m ()
 doNothingTweak = return ()
+
+-- | The 'Tweak' that ensures a given tweak fails
+ensureFailingTweak :: (MonadPlus m) => Tweak m a -> Tweak m ()
+ensureFailingTweak comp = do
+  skel <- get
+  res <- lift $ lift $ runTweakInChain' comp skel
+  guard $ null res
 
 -- * Constructing Tweaks from Optics
 

@@ -184,6 +184,7 @@ test-suite spec
       Spec.Slot
       Spec.Tweak
       Spec.Tweak.Common
+      Spec.Tweak.Labels
       Spec.Tweak.OutPermutations
       Spec.Tweak.TamperDatum
       Spec.Tweak.ValidityRange

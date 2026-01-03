@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Spec.Ltl (tests) where
+module Spec.Ltl where
 
 import Control.Monad
 import Control.Monad.State
@@ -8,7 +8,7 @@ import Control.Monad.Writer
 import Cooked.Ltl
 import Cooked.Ltl.Combinators
 import Cooked.MockChain.Testing
-import Data.Maybe (isNothing)
+import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -33,10 +33,20 @@ instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integ
     gets nowLaterList
       >>= msum
         . map
-          ( \(now, notNow, later) -> do
-              guard $ all (isNothing . applyMod i) notNow
-              maybe mzero ((put later >>) . tell . (: [])) $
-                foldl (\acc el -> acc >>= (`applyMod` el)) (Just i) now
+          ( \(now, later) -> do
+              maybe mzero (tell . (: [])) $
+                foldl
+                  ( \acc el -> do
+                      current <- acc
+                      case el of
+                        Left modif -> applyMod current modif
+                        Right modif -> do
+                          guard $ isNothing $ applyMod current modif
+                          return current
+                  )
+                  (Just i)
+                  now
+              put later
           )
 
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
@@ -173,7 +183,7 @@ tests =
                     [42 + 2, 3 + 1]
                   ],
           testCase "Modification order using 'LtlAnd' is respected (left to right)" $
-            assertSameSets (go $ modifyLtl (LtlAtom (Add 1) `LtlAnd` LtlAtom (Mul 4)) $ emitInteger 2) [[12]],
+            assertSameSets (go $ modifyLtl (LtlAtom (Add 1) `LtlAnd` LtlAtom (Mul 4)) $ emitInteger 2) [[2 * 4 + 1]],
           testCase "Modification order using modalities is respected (inner to outer)" $
             assertSameSets (go $ modifyLtl (LtlAtom (Add 1)) $ modifyLtl (LtlAtom (Mul 4)) $ emitInteger 2) [[9]],
           testCase "nested everywhere combines modifications" $
@@ -223,7 +233,7 @@ tests =
                 testCase "allOf" $
                   assertSameSets
                     (go $ modifyLtl (allOf [Add 5, Mul 5]) traceSolo)
-                    [[(24 + 5) * 5]],
+                    [[24 * 5 + 5]],
                 testCase "allOf [anyOf, anyOf]" $
                   assertSameSets
                     (go $ modifyLtl (allOf' [anyOf [Add 5, Mul 5], anyOf [Add 5, Mul 5]]) traceSolo)
@@ -262,9 +272,17 @@ tests =
                   assertSameSets
                     ( go $
                         modifyLtl
-                          (wheneverPossible (Add 5))
+                          (whenPossible (Add 5))
                           (traceDuo >> emitInteger 5 >> emitInteger 5 >> traceDuo >> emitInteger 5 >> traceDuo)
                     )
-                    [[24 + 5, 13 + 5, 5, 5, 24 + 5, 13 + 5, 5, 24 + 5, 13 + 5]]
+                    [[24 + 5, 13 + 5, 5, 5, 24 + 5, 13 + 5, 5, 24 + 5, 13 + 5]],
+                testCase "never succeeds when no step can be modified..." $
+                  assertSameSets
+                    (go $ modifyLtl (never (Add 5)) (replicateM 10 (emitInteger 5)))
+                    [replicate 10 5],
+                testCase "... and fails otherwise" $
+                  assertSameSets
+                    (go $ modifyLtl (never (Add 5)) $ modifyLtl (eventually (Add 1)) $ replicateM 10 (emitInteger 5))
+                    []
               ]
     ]
