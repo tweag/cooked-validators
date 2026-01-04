@@ -7,17 +7,10 @@
 module Cooked.Ltl
   ( Ltl (..),
     nowLaterList,
-    LtlOp (..),
-    Staged (..),
-    interpLtl,
-    InterpLtl (..),
-    MonadModal (..),
+    finished,
+    MonadLtl (..),
   )
 where
-
-import Control.Monad
-import Control.Monad.State
-import Data.Kind
 
 -- * LTL formulas and operations on them
 
@@ -160,85 +153,6 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
 
--- * Freer monad to represent an AST on a set of operations
-
--- | The freer monad on @op@. We think of this as the AST of a computation with
--- operations of types @op a@.
-data Staged (op :: Type -> Type) :: Type -> Type where
-  Return :: a -> Staged op a
-  Instr :: op a -> (a -> Staged op b) -> Staged op b
-
-instance Functor (Staged op) where
-  fmap f (Return x) = Return $ f x
-  fmap f (Instr op cont) = Instr op (fmap f . cont)
-
-instance Applicative (Staged op) where
-  pure = Return
-  (<*>) = ap
-
-instance Monad (Staged op) where
-  (Return x) >>= f = f x
-  (Instr i m) >>= f = Instr i (m >=> f)
-
--- * An AST for "reified computations"
-
--- | The idea is that a value of type @Staged (LtlOp modification builtin) a@
--- describes a set of (monadic) computations that return an @a@ such that
---
--- * every step of the computations that returns a @b@ is reified as a @builtin
---   b@, and
---
--- * every step can be modified by a @modification@.
-
--- | Operations for computations that can be modified using LTL formulas.
-data LtlOp (modification :: Type) (builtin :: Type -> Type) :: Type -> Type where
-  -- | The operation consisting of the reification of a builtin
-  Builtin :: builtin a -> LtlOp modification builtin a
-  -- | The operation consisting of wrapping a computation with a Ltl
-  -- formula that should be applied on the computation.
-  WrapLtl :: Ltl modification -> Staged (LtlOp modification builtin) a -> LtlOp modification builtin a
-
--- * Interpreting the AST
-
--- | To be a suitable semantic domain for computations modified by LTL formulas,
--- a monad @m@ has to
---
--- * have the right @builtin@ functions, which can be modified by the right
---   @modification@s,
---
--- * be a 'MonadPlus', because one LTL formula might yield different modified
---   versions of the computation, and
---
--- This type class only requires from the user to specify how to interpret the
--- (modified) builtins. In order to do so, it passes around the formulas that
--- are to be applied to the next time step in a @StateT@
-class (MonadPlus m) => InterpLtl modification builtin m where
-  interpBuiltin :: builtin a -> StateT [Ltl modification] m a
-
--- | Interpret a 'Staged' computation into a suitable domain, using the function
--- 'interpBuiltin' to interpret the builtins.
-interpLtl ::
-  (InterpLtl modification builtin m) =>
-  Staged (LtlOp modification builtin) a ->
-  StateT [Ltl modification] m a
-interpLtl (Return res) = return res
-interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
-interpLtl (Instr (WrapLtl formula comp) nextComp) = do
-  modify' (formula :)
-  res <- interpLtl comp
-  formulas <- get
-  unless (null formulas) $ do
-    guard $ finished $ head formulas
-    put $ tail formulas
-  interpLtl $ nextComp res
-
--- * Convenience functions
-
--- | Monads that allow modifications with LTL formulas.
-class (Monad m) => MonadModal m where
-  type Modification m :: Type
-  modifyLtl :: Ltl (Modification m) -> m a -> m a
-
-instance MonadModal (Staged (LtlOp modification builtin)) where
-  type Modification (Staged (LtlOp modification builtin)) = modification
-  modifyLtl formula trace = Instr (WrapLtl formula trace) Return
+-- | The effect of being able to modify a computation with an Ltl formula
+class (Monad m) => MonadLtl modification m where
+  modifyLtl :: Ltl modification -> m a -> m a

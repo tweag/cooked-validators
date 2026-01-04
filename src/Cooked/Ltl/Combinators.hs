@@ -83,7 +83,7 @@ ifPossible = ifPossible' . LtlAtom
 ifPossible' :: Ltl a -> Ltl a
 ifPossible' f = f `LtlOr` LtlNot f
 
--- | Same as `wheneverPossible'`, but first wraps the input in an atomic formula
+-- | Same as `whenPossible'`, but first wraps the input in an atomic formula
 whenPossible :: a -> Ltl a
 whenPossible = whenPossible' . LtlAtom
 

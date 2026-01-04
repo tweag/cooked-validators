@@ -7,6 +7,7 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Cooked.Ltl
 import Cooked.Ltl.Combinators
+import Cooked.MockChain.Staged
 import Cooked.MockChain.Testing
 import Data.Maybe
 import Test.Tasty
@@ -15,6 +16,10 @@ import Test.Tasty.HUnit
 data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
   GetInteger :: TestBuiltin Integer
+  WrapLtl :: Ltl TestModification -> Staged TestBuiltin a -> TestBuiltin a
+
+instance MonadLtl TestModification (Staged TestBuiltin) where
+  modifyLtl formula = singletonBuiltin . WrapLtl formula
 
 data TestModification
   = Add Integer
@@ -27,49 +32,57 @@ applyMod _ Fail = Nothing
 applyMod i (Add i') = if i == i' then Nothing else Just $ i + i'
 applyMod i (Mul i') = if i == i' then Nothing else Just $ i * i'
 
-instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
-  interpBuiltin GetInteger = return 42
-  interpBuiltin (EmitInteger i) = do
-    gets nowLaterList
-      >>= msum
-        . map
-          ( \(now, later) -> do
-              maybe mzero (tell . (: [])) $
-                foldl
-                  ( \acc (modif, el) -> do
-                      current <- acc
-                      if el
-                        then
-                          applyMod current modif
-                        else do
-                          guard $ isNothing $ applyMod current modif
-                          return current
-                  )
-                  (Just i)
-                  now
-              put later
-          )
+interpBuiltin :: (MonadPlus m) => TestBuiltin a -> StateT [Ltl TestModification] (WriterT [Integer] m) a
+interpBuiltin GetInteger = return 42
+interpBuiltin (EmitInteger i) = do
+  gets nowLaterList
+    >>= msum
+      . map
+        ( \(now, later) -> do
+            maybe mzero (tell . (: [])) $
+              foldl
+                ( \acc (modif, el) -> do
+                    current <- acc
+                    if el
+                      then
+                        applyMod current modif
+                      else do
+                        guard $ isNothing $ applyMod current modif
+                        return current
+                )
+                (Just i)
+                now
+            put later
+        )
+interpBuiltin (WrapLtl formula comp) = do
+  modify' (formula :)
+  res <- interpStaged interpBuiltin comp
+  formulas <- get
+  unless (null formulas) $ do
+    guard $ finished $ head formulas
+    put $ tail formulas
+  return res
 
-emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
-emitInteger i = Instr (Builtin (EmitInteger i)) Return
+emitInteger :: Integer -> Staged TestBuiltin ()
+emitInteger = singletonBuiltin . EmitInteger
 
-getInteger :: Staged (LtlOp TestModification TestBuiltin) Integer
-getInteger = Instr (Builtin GetInteger) Return
+getInteger :: Staged TestBuiltin Integer
+getInteger = singletonBuiltin GetInteger
 
-go :: Staged (LtlOp TestModification TestBuiltin) a -> [[Integer]]
-go = execWriterT . flip execStateT [] . interpLtl
+go :: Staged TestBuiltin a -> [[Integer]]
+go = execWriterT . flip execStateT [] . interpStaged interpBuiltin
 
-nonemptyTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
+nonemptyTraces :: [Staged TestBuiltin ()]
 nonemptyTraces =
   [ getInteger >>= emitInteger,
     emitInteger 1 >> emitInteger 2,
     emitInteger 1 >> getInteger >>= emitInteger >> emitInteger 2
   ]
 
-emptyTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
+emptyTraces :: [Staged TestBuiltin ()]
 emptyTraces = [return (), void getInteger]
 
-testTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
+testTraces :: [Staged TestBuiltin ()]
 testTraces = nonemptyTraces ++ emptyTraces
 
 tests :: TestTree
@@ -87,9 +100,9 @@ tests =
        in testGroup
             "simple laws"
             [ testCase "LtlFalsity fails on every computation" $
-                testAll (\tr -> go (modifyLtl LtlFalsity tr) @?= []) testTraces,
+                testAll (\tr -> go (modifyLtl @TestModification LtlFalsity tr) @?= []) testTraces,
               testCase "LtlTruth leaves every computation unchanged" $
-                testAll (\tr -> go (modifyLtl LtlTruth tr) @?= go tr) testTraces,
+                testAll (\tr -> go (modifyLtl @TestModification LtlTruth tr) @?= go tr) testTraces,
               testCase "x `LtlUntil` y == y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))" $
                 testAll
                   (\tr -> assertSameSets (go $ modifyLtl untilDirect tr) (go $ modifyLtl untilIndirect tr))
