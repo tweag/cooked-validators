@@ -41,7 +41,7 @@ import Optics.Core
 -- | A 'MonadTweak' is a 'MonadBlockChainWithoutValidation' where you can also
 -- retrieve and store a 'TxSkel'
 class (MonadPlus m, MonadBlockChainWithoutValidation m) => MonadTweak m where
-  -- | Retrieves the stores 'TxSkel'
+  -- | Retrieves the stored 'TxSkel'
   getTxSkel :: m TxSkel
 
   -- | Stores a 'TxSkel'

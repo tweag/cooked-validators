@@ -209,7 +209,11 @@ interpStagedMockChain = interpStaged $ \case
         (_, skel') <-
           lift . (`runTweakInChain` skel) $
             foldr
-              (\(UntypedTweak tweak, mode) acc -> if mode then tweak >> acc else ensureFailingTweak tweak >> acc)
+              ( \(UntypedTweak tweak, mode) acc ->
+                  if mode
+                    then tweak >> acc
+                    else ensureFailingTweak tweak >> acc
+              )
               doNothingTweak
               now
         put later
