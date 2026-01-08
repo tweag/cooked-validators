@@ -95,7 +95,7 @@ data LtlOp modification builtin :: Type -> Type where
   WrapLtl :: Ltl modification -> StagedLtl modification builtin a -> LtlOp modification builtin a
   Builtin :: builtin a -> LtlOp modification builtin a
 
--- | Building an singleton instruction in a staged monad
+-- | Building a singleton instruction in a `StagedLtl` monad
 singletonBuiltin :: builtin a -> StagedLtl modification builtin a
 singletonBuiltin = (`Instr` Return) . Builtin
 
@@ -106,7 +106,7 @@ class ModInterpBuiltin modification builtin m where
   modifyAndInterpBuiltin ::
     builtin a ->
     Either
-      (m a) -- only interpretx
+      (m a) -- only interpret
       ([Requirement modification] -> m a) -- modify and then interpret
 
 -- | Interpreting a staged computation of @Ltl op@ based on an interpretation of
@@ -212,9 +212,6 @@ data MockChainBuiltin a where
   GetConstitutionScript :: MockChainBuiltin (Maybe VScript)
   GetCurrentReward :: (Script.ToCredential c) => c -> MockChainBuiltin (Maybe Api.Lovelace)
   ForceOutputs :: [TxSkelOut] -> MockChainBuiltin [Api.TxOutRef]
-  -- TODO the following are effects outside of the mockchain builtins per se. It
-  -- would likely be more precise to use a dedicated library to handle those.
-  --
   -- The empty set of traces
   Empty :: MockChainBuiltin a
   -- The union of two sets of traces
@@ -228,8 +225,8 @@ data MockChainBuiltin a where
 instance ModInterpBuiltin MockChainTweak MockChainBuiltin InterpMockChain where
   modifyAndInterpBuiltin = \case
     GetParams -> Left getParams
-    (SetParams params) -> Left $ setParams params
-    (ValidateTxSkel skel) -> Right $ \now -> do
+    SetParams params -> Left $ setParams params
+    ValidateTxSkel skel -> Right $ \now -> do
       (_, skel') <-
         (`runTweakInChain` skel) $
           foldr
@@ -240,21 +237,21 @@ instance ModInterpBuiltin MockChainTweak MockChainBuiltin InterpMockChain where
             doNothingTweak
             now
       validateTxSkel skel'
-    (TxSkelOutByRef o) -> Left $ txSkelOutByRef o
-    (WaitNSlots s) -> Left $ waitNSlots s
+    TxSkelOutByRef o -> Left $ txSkelOutByRef o
+    WaitNSlots s -> Left $ waitNSlots s
     AllUtxos -> Left allUtxos
-    (UtxosAt address) -> Left $ utxosAt address
-    Empty -> Left mzero
-    (Alt l r) -> Left $ interpStagedLtl l `mplus` interpStagedLtl r
-    (Fail msg) -> Left $ fail msg
-    (ThrowError err) -> Left $ throwError err
-    (CatchError act handler) -> Left $ catchError (interpStagedLtl act) (interpStagedLtl . handler)
-    (LogEvent entry) -> Left $ logEvent entry
-    (Define name hash) -> Left $ define name hash
-    (SetConstitutionScript script) -> Left $ setConstitutionScript script
+    UtxosAt address -> Left $ utxosAt address
+    LogEvent entry -> Left $ logEvent entry
+    Define name hash -> Left $ define name hash
+    SetConstitutionScript script -> Left $ setConstitutionScript script
     GetConstitutionScript -> Left getConstitutionScript
-    (GetCurrentReward cred) -> Left $ getCurrentReward cred
-    (ForceOutputs outs) -> Left $ forceOutputs outs
+    GetCurrentReward cred -> Left $ getCurrentReward cred
+    ForceOutputs outs -> Left $ forceOutputs outs
+    Empty -> Left mzero
+    Alt l r -> Left $ interpStagedLtl l `mplus` interpStagedLtl r
+    Fail msg -> Left $ fail msg
+    ThrowError err -> Left $ throwError err
+    CatchError act handler -> Left $ catchError (interpStagedLtl act) (interpStagedLtl . handler)
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -339,5 +336,5 @@ there' n = modifyLtl . delay' n
 -- where @endpoint@ builds and validates a single transaction depending on the
 -- given @arguments@. Then `withTweak` says "I want to modify the transaction
 -- returned by this endpoint in the following way".
-withTweak :: (MonadModalBlockChain m) => m x -> Tweak InterpMockChain a -> m x
+withTweak :: (MonadModalBlockChain m) => m a -> Tweak InterpMockChain b -> m a
 withTweak = flip (there 0)
