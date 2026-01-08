@@ -81,9 +81,9 @@ data Ltl a
 -- | Simplification procedure for LTL formulas. This function knows how
 -- 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and disjunction
 -- and recursively applies this knowledge; it is used to keep the formulas
--- 'nowLater' generates from growing too wildly. While this function does not
--- compute a normal form per se (as it does not tamper with nested conjunction
--- and disjunction), it does ensure a few properties:
+-- 'nowLaterList' generates from growing too wildly. While this function does
+-- not compute a normal form per se (as it does not tamper with nested
+-- conjunction and disjunction), it does ensure a few properties:
 --
 -- * `LtlNext` is left unchanged
 --

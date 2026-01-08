@@ -145,7 +145,8 @@ instance ModInterpBuiltin MockChainTweak MockChainBuiltin InterpMockChain where
 
 -- | Interprets the staged mockchain then runs the resulting computation with a
 -- custom function. This can be used, for example, to supply a custom
--- 'InitialDistribution' by providing 'runMockChainTFromInitDist'.
+-- 'Cooked.InitialDistribution.InitialDistribution' by providing
+-- 'runMockChainTFromInitDist'.
 interpretAndRunWith :: (forall m. (Monad m) => MockChainT m a -> m res) -> StagedMockChain a -> [res]
 interpretAndRunWith f = f . interpStagedLtl
 
