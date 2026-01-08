@@ -6,7 +6,6 @@ import Control.Monad
 import Control.Monad.Writer
 import Cooked.Ltl
 import Cooked.Ltl.Combinators
-import Cooked.MockChain.Staged
 import Cooked.MockChain.Testing
 import Data.Maybe
 import Test.Tasty

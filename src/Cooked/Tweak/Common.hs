@@ -2,7 +2,9 @@
 -- our "domain specific language" for attacks. They are essentially skeleton
 -- modifications aware of the mockchain state.
 module Cooked.Tweak.Common
-  ( runTweakInChain,
+  ( runTweak,
+    runTweakFrom,
+    runTweakInChain,
     runTweakInChain',
     Tweak,
     UntypedTweak (..),
@@ -27,8 +29,11 @@ where
 import Control.Arrow (second)
 import Control.Monad
 import Control.Monad.State
+import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Direct
 import Cooked.Skeleton
+import Data.Default
 import Data.Either.Combinators (rightToMaybe)
 import Data.List (mapAccumL)
 import Data.Maybe
@@ -54,6 +59,8 @@ type Tweak m = StateT TxSkel (ListT m)
 instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
   getTxSkel = get
   putTxSkel = put
+
+-- * Running tweaks
 
 -- | This is the function that gives a meaning to 'Tweak's: A 'Tweak' is a
 -- computation that, depending on the state of the chain, looks at a transaction
@@ -89,6 +96,15 @@ runTweakInChain tweak = ListT.alternate . runStateT tweak
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere'.
 runTweakInChain' :: (MonadPlus m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
 runTweakInChain' tweak = ListT.toList . runStateT tweak
+
+-- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
+runTweak :: (MonadPlus m) => Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
+runTweak = runTweakFrom def
+
+-- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
+-- mockchain
+runTweakFrom :: (MonadPlus m) => InitialDistribution -> Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
+runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInChain tweak
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You
 -- will probably never use it while you're building 'Tweak's.

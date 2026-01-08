@@ -31,8 +31,7 @@ anyOf = anyOf' . map LtlAtom
 -- | Produces an Ltl formula which consists of the disjunction of all the
 -- formulas in the input list.
 anyOf' :: [Ltl a] -> Ltl a
-anyOf' [] = LtlFalsity
-anyOf' xs = foldr1 LtlOr xs
+anyOf' = foldr LtlOr LtlFalsity
 
 -- | Same as `allOf'`, but first wraps the elements in the input list in atomic
 -- formulas.
@@ -42,8 +41,7 @@ allOf = allOf' . map LtlAtom
 -- | Produces an Ltl formula which consists of the conjunction of all the
 -- formulas in the input list.
 allOf' :: [Ltl a] -> Ltl a
-allOf' [] = LtlTruth
-allOf' xs = foldr1 LtlAnd xs
+allOf' = foldr LtlAnd LtlTruth
 
 -- | Same as `delay'`, but first wraps the elements in the input list in atomic
 -- formulas.

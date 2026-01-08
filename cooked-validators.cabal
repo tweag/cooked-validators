@@ -65,6 +65,7 @@ library
       Cooked.Skeleton.User
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
+      Cooked.Staged
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs

@@ -7,11 +7,23 @@
 module Cooked.Ltl
   ( Ltl (..),
     nowLaterList,
+    ltlSimpl,
     finished,
     MonadLtl (..),
     Requirement (..),
+    interpStagedLtl,
+    singletonBuiltin,
+    LtlOp (..),
+    StagedLtl,
+    ModInterpBuiltin (..),
   )
 where
+
+import Control.Monad
+import Control.Monad.State
+import Cooked.Staged
+import Data.Functor
+import Data.Kind
 
 -- * LTL formulas and operations on them
 
@@ -66,6 +78,53 @@ data Ltl a
     LtlNot (Ltl a)
   deriving (Show, Eq, Functor)
 
+-- | Simplification procedure for LTL formulas. This function knows how
+-- 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and disjunction
+-- and recursively applies this knowledge; it is used to keep the formulas
+-- 'nowLater' generates from growing too wildly. While this function does not
+-- compute a normal form per se (as it does not tamper with nested conjunction
+-- and disjunction), it does ensure a few properties:
+--
+-- * `LtlNext` is left unchanged
+--
+-- * `LtlNot` only appears in the resulting formula wrapping up a `LtlAtom`
+--
+-- * `LtlUntil` and `LtlRelease` are interpreted in terms of other constructs,
+--   and thus are never returned.
+--
+-- * Two `LtlNext` appearing in both sides of an `LtlAnd` and `LtlOr` are
+--   merged. Thus a formula of shape @LtlAnd (LtlNext a) (LtlNext b)@ will never
+--   be returned, and similarly with @LtlOr@.
+ltlSimpl :: Ltl a -> Ltl a
+ltlSimpl (LtlAtom a) = LtlAtom a
+ltlSimpl LtlTruth = LtlTruth
+ltlSimpl LtlFalsity = LtlFalsity
+ltlSimpl (LtlNext f) = LtlNext f
+ltlSimpl (LtlRelease f1 f2) = ltlSimpl $ f2 `LtlAnd` (f1 `LtlOr` LtlNext (f1 `LtlRelease` f2))
+ltlSimpl (LtlUntil f1 f2) = ltlSimpl $ f2 `LtlOr` (f1 `LtlAnd` LtlNext (f1 `LtlUntil` f2))
+ltlSimpl (LtlNot (ltlSimpl -> LtlTruth)) = LtlFalsity
+ltlSimpl (LtlNot (ltlSimpl -> LtlFalsity)) = LtlTruth
+ltlSimpl (LtlNot (ltlSimpl -> LtlNot f)) = f
+ltlSimpl (LtlNot (ltlSimpl -> LtlAnd f1 f2)) = ltlSimpl $ LtlNot f1 `LtlOr` LtlNot f2
+ltlSimpl (LtlNot (ltlSimpl -> LtlOr f1 f2)) = ltlSimpl $ LtlNot f1 `LtlAnd` LtlNot f2
+ltlSimpl (LtlNot (ltlSimpl -> LtlNext f)) = LtlNext (LtlNot f)
+-- The following will never occur, as `ltlSimpl` never returns something of
+-- the shape `LtlUntil` or `LtlRelease`
+ltlSimpl (LtlNot (ltlSimpl -> f)) = LtlNot f
+ltlSimpl (LtlAnd (ltlSimpl -> LtlFalsity) _) = LtlFalsity
+ltlSimpl (LtlAnd _ (ltlSimpl -> LtlFalsity)) = LtlFalsity
+ltlSimpl (LtlAnd (ltlSimpl -> LtlTruth) (ltlSimpl -> f2)) = f2
+ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> LtlTruth)) = f1
+ltlSimpl (LtlAnd (ltlSimpl -> LtlNext f1) (ltlSimpl -> LtlNext f2)) = LtlNext $ f1 `LtlAnd` f2
+ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlAnd f1 f2
+ltlSimpl (LtlOr (ltlSimpl -> LtlFalsity) (ltlSimpl -> f2)) = f2
+ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> LtlFalsity)) = f1
+ltlSimpl (LtlOr (ltlSimpl -> LtlNext f1) (ltlSimpl -> LtlNext f2)) = LtlNext $ f1 `LtlOr` f2
+-- We don't perform any reduction when `LtlOr` is applied to `LtlTruth` as
+-- we still need to keep both branches, and certainly don't want to discard
+-- the branch were potential meaningful modifications need to be applied.
+ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlOr f1 f2
+
 -- | Requirements implied by a given formula at a given time step
 data Requirement a
   = -- | Apply this modification now
@@ -79,8 +138,8 @@ data Requirement a
 -- the following semantics:
 --
 -- * @doNow@ is the list of modifications to be consecutively either applied to
--- the current time step (@True@), or that should fail at the current time step
--- (@False@)
+-- the current time step (`Apply`), or that should fail at the current time step
+-- (`EnsureFailure`)
 --
 -- * @doLater@ is an LTL formula describing the modification that should be
 -- applied from the next time step onwards.
@@ -112,41 +171,9 @@ nowLaterList =
       (now2, next2) <- nowLater f2
       return (now2 <> now1, next2 `LtlAnd` next1)
     -- Only the above cases can occur, as they are outcomes of @ltlSimpl@. This
-    -- is handy, as the remaining cases would lead to complicated interactions
-    -- and hard to handle growth in the number of formulas.
+    -- is handy (and intended), as the remaining cases would lead to complicated
+    -- interactions and hard to handle growth in the number of formulas.
     nowLater _ = error "nowLater is always called after ltlSimpl which does not yield more cases."
-
-    -- Straightforward simplification procedure for LTL formulas. This function
-    -- knows how 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and
-    -- disjunction and recursively applies this knowledge; it is used to keep
-    -- the formulas 'nowLater' generates from growing too wildly.
-    ltlSimpl :: Ltl a -> Ltl a
-    ltlSimpl (LtlAtom a) = LtlAtom a
-    ltlSimpl LtlTruth = LtlTruth
-    ltlSimpl LtlFalsity = LtlFalsity
-    ltlSimpl (LtlNext f) = LtlNext f
-    ltlSimpl (LtlRelease f1 f2) = ltlSimpl $ f2 `LtlAnd` (f1 `LtlOr` LtlNext (f1 `LtlRelease` f2))
-    ltlSimpl (LtlUntil f1 f2) = ltlSimpl $ f2 `LtlOr` (f1 `LtlAnd` LtlNext (f1 `LtlUntil` f2))
-    ltlSimpl (LtlNot (ltlSimpl -> LtlTruth)) = LtlFalsity
-    ltlSimpl (LtlNot (ltlSimpl -> LtlFalsity)) = LtlTruth
-    ltlSimpl (LtlNot (ltlSimpl -> LtlNot f)) = f
-    ltlSimpl (LtlNot (ltlSimpl -> LtlAnd f1 f2)) = ltlSimpl $ LtlNot f1 `LtlOr` LtlNot f2
-    ltlSimpl (LtlNot (ltlSimpl -> LtlOr f1 f2)) = ltlSimpl $ LtlNot f1 `LtlAnd` LtlNot f2
-    ltlSimpl (LtlNot (ltlSimpl -> LtlNext f)) = LtlNext (LtlNot f)
-    -- The following will never occur, as `ltlSimpl` never returns something of
-    -- the shape `LtlUntil` or `LtlRelease`
-    ltlSimpl (LtlNot (ltlSimpl -> f)) = LtlNot f
-    ltlSimpl (LtlAnd (ltlSimpl -> LtlFalsity) _) = LtlFalsity
-    ltlSimpl (LtlAnd _ (ltlSimpl -> LtlFalsity)) = LtlFalsity
-    ltlSimpl (LtlAnd (ltlSimpl -> LtlTruth) (ltlSimpl -> f2)) = f2
-    ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> LtlTruth)) = f1
-    ltlSimpl (LtlAnd (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlAnd f1 f2
-    ltlSimpl (LtlOr (ltlSimpl -> LtlFalsity) (ltlSimpl -> f2)) = f2
-    ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> LtlFalsity)) = f1
-    -- We don't perform any reduction when `LtlOr` is applied to `LtlTruth` as
-    -- we still need to keep both branches, and certainly don't want to discard
-    -- the branch were potential meaningful modifications need to be applied.
-    ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlOr f1 f2
 
 -- | If there are no more steps and the next step should satisfy the given
 -- formula: Are we finished, i.e. was the initial formula satisfied by now?
@@ -161,6 +188,72 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
 
+-- * The `MonadLtl` effect and associated functions
+
+-- | Operations that either allow to use a builtin, or to modify a computation
+-- using an @Ltl@ formula.
+data LtlOp modification builtin :: Type -> Type where
+  WrapLtl :: Ltl modification -> StagedLtl modification builtin a -> LtlOp modification builtin a
+  Builtin :: builtin a -> LtlOp modification builtin a
+
+-- | An AST of builtins wrapped into an @Ltl@ setting
+type StagedLtl modification builtin = Staged (LtlOp modification builtin)
+
+-- | Building a singleton instruction in a `StagedLtl` monad
+singletonBuiltin :: builtin a -> StagedLtl modification builtin a
+singletonBuiltin = (`Instr` Return) . Builtin
+
 -- | The effect of being able to modify a computation with an Ltl formula
 class (Monad m) => MonadLtl modification m where
   modifyLtl :: Ltl modification -> m a -> m a
+
+instance MonadLtl modification (StagedLtl modification builtin) where
+  modifyLtl formula comp = Instr (WrapLtl formula comp) Return
+
+-- | The class that depicts the ability to modify certain builtins and interpret
+-- then in a certain domain. Each builtins should either be interpreted directly
+-- through @Apply@ or give or way to modify them with @Right@.
+class ModInterpBuiltin modification builtin m where
+  modifyAndInterpBuiltin ::
+    builtin a ->
+    Either
+      (m a) -- only interpret
+      ([Requirement modification] -> m a) -- modify and then interpret
+
+-- | Interpret a staged computation of @Ltl op@ based on an interpretation of
+-- @builtin@ with respect to possible modifications. This requires an
+-- intermediate interpretation with a state monad, and unfolds as follows:
+--
+-- * When a builtin is met, which is directly interpreted, we return the
+--   associated computation, with no changes to the @Ltl@ state.
+--
+-- * When a builtin is met, which requires a modification, we return the
+--   modified interpretation, and consume the current modification requirements.
+--
+-- * When a wrapped computation is met, we store the new associated formula, and
+--   ensure that when the computation ends, the formula is finished.
+interpStagedLtl ::
+  forall modification builtin m.
+  (MonadPlus m, ModInterpBuiltin modification builtin m) =>
+  forall a. StagedLtl modification builtin a -> m a
+interpStagedLtl = flip evalStateT [] . go
+  where
+    go :: forall a. Staged (LtlOp modification builtin) a -> StateT [Ltl modification] m a
+    go = interpStaged $ \case
+      WrapLtl formula comp -> do
+        modify' (formula :)
+        res <- go comp
+        formulas <- get
+        unless (null formulas) $ do
+          guard $ finished $ head formulas
+          put $ tail formulas
+        return res
+      Builtin builtin ->
+        case modifyAndInterpBuiltin builtin of
+          Left comp -> lift comp
+          Right applyMod -> do
+            modifications <- gets nowLaterList
+            msum . (modifications <&>) $
+              \(now, later) -> do
+                put later
+                lift $ applyMod now
