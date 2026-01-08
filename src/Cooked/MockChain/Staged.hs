@@ -26,9 +26,12 @@ module Cooked.MockChain.Staged
     Staged (..),
     singletonBuiltin,
     interpStaged,
-    interpStagedMockChain,
     MonadLtl (..),
     MockChainTweak,
+    LtlOp (..),
+    StagedLtl,
+    interpStagedLtl,
+    ModInterpBuiltin (..),
   )
 where
 
@@ -75,19 +78,68 @@ instance Monad (Staged op) where
   (Return x) >>= f = f x
   (Instr i m) >>= f = Instr i (m >=> f)
 
--- | Building an singleton instruction in a staged monad
-singletonBuiltin :: builtin a -> Staged builtin a
-singletonBuiltin = (`Instr` Return)
-
 -- | Interprets a staged computation given a interpreter of the builtins
 interpStaged :: forall op m. (Monad m) => (forall a. op a -> m a) -> forall a. Staged op a -> m a
 interpStaged _ (Return a) = return a
 interpStaged interpBuiltin (Instr op cont) = interpBuiltin op >>= interpStaged interpBuiltin . cont
 
--- | A 'StagedMockChain' is an AST of mockchain builtins. The idea is to keep
--- the builtins abstract and postpone interpretation, to open up the possibility
--- of applying tweaks before submitting transaction.
-type StagedMockChain = Staged MockChainBuiltin
+-- | An AST of builtins wrapped into an @Ltl@ setting
+type StagedLtl modification builtin = Staged (LtlOp modification builtin)
+
+instance MonadLtl modification (StagedLtl modification builtin) where
+  modifyLtl formula comp = Instr (WrapLtl formula comp) Return
+
+-- | Operations that either allow to wrap a builtin, or to modify a computation
+-- using an @Ltl@ formula.
+data LtlOp modification builtin :: Type -> Type where
+  WrapLtl :: Ltl modification -> StagedLtl modification builtin a -> LtlOp modification builtin a
+  Builtin :: builtin a -> LtlOp modification builtin a
+
+-- | Building an singleton instruction in a staged monad
+singletonBuiltin :: builtin a -> StagedLtl modification builtin a
+singletonBuiltin = (`Instr` Return) . Builtin
+
+-- | The class that depicts the ability to modify certain builtins and interpret
+-- then in a certain domain. Each builtins should either be interpreted directly
+-- through @Left@ or give or way to modify them with @Right@.
+class ModInterpBuiltin modification builtin m where
+  modifyAndInterpBuiltin ::
+    builtin a ->
+    Either
+      (m a) -- directly interpret
+      ([(modification, Bool)] -> m a) -- modify and then interpret
+
+-- | Interpreting a staged computation of @Ltl op@ based on an interpretation of
+-- @builtin@ with respect to possible modifications.
+interpStagedLtl ::
+  forall modification builtin m.
+  (MonadPlus m, ModInterpBuiltin modification builtin m) =>
+  forall a. Staged (LtlOp modification builtin) a -> m a
+interpStagedLtl = flip evalStateT [] . go
+  where
+    go :: forall a. Staged (LtlOp modification builtin) a -> StateT [Ltl modification] m a
+    go = interpStaged $ \case
+      WrapLtl formula comp -> do
+        modify' (formula :)
+        res <- go comp
+        formulas <- get
+        unless (null formulas) $ do
+          guard $ finished $ head formulas
+          put $ tail formulas
+        return res
+      Builtin builtin ->
+        case modifyAndInterpBuiltin builtin of
+          Left comp -> lift comp
+          Right applyMod -> do
+            modifications <- gets nowLaterList
+            msum . (modifications <&>) $
+              \(now, later) -> do
+                put later
+                lift $ applyMod now
+
+-- | A 'StagedMockChain' is an AST of mockchain builtins wrapped into
+-- @LtlOp@ to be subject to @Ltl@ modifications.
+type StagedMockChain = StagedLtl MockChainTweak MockChainBuiltin
 
 instance Alternative StagedMockChain where
   empty = singletonBuiltin Empty
@@ -99,9 +151,6 @@ instance MonadFail StagedMockChain where
 instance MonadError MockChainError StagedMockChain where
   throwError = singletonBuiltin . ThrowError
   catchError act = singletonBuiltin . CatchError act
-
-instance MonadLtl MockChainTweak StagedMockChain where
-  modifyLtl formula = singletonBuiltin . ModifyLtl formula
 
 instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
@@ -128,7 +177,7 @@ instance MonadBlockChain StagedMockChain where
 -- custom function. This can be used, for example, to supply a custom
 -- 'InitialDistribution' by providing 'runMockChainTFromInitDist'.
 interpretAndRunWith :: (forall m. (Monad m) => MockChainT m a -> m res) -> StagedMockChain a -> [res]
-interpretAndRunWith f = f . interpret
+interpretAndRunWith f = f . interpStagedLtl
 
 -- | Same as 'interpretAndRunWith' but using 'runMockChainT' as the default way
 -- to run the computation.
@@ -140,12 +189,6 @@ type InterpMockChain = MockChainT []
 
 -- | Tweaks operating within the 'InterpMockChain' domain
 type MockChainTweak = UntypedTweak InterpMockChain
-
--- | The 'interpret' function gives semantics to our traces. One
--- 'StagedMockChain' computation yields a potential list of 'MockChainT'
--- computations.
-interpret :: StagedMockChain a -> InterpMockChain a
-interpret = flip evalStateT [] . interpStagedMockChain
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
@@ -177,70 +220,38 @@ data MockChainBuiltin a where
   -- for the 'MonadError MockChainError' instance
   ThrowError :: MockChainError -> MockChainBuiltin a
   CatchError :: StagedMockChain a -> (MockChainError -> StagedMockChain a) -> MockChainBuiltin a
-  -- for the Ltl modifications
-  ModifyLtl :: Ltl MockChainTweak -> StagedMockChain a -> MockChainBuiltin a
 
--- * Interpreting the AST
-
--- | To be a suitable semantic domain for computations modified by LTL formulas,
--- a monad @m@ has to
---
--- * have the right @builtin@ functions, which can be modified by the right
---   @modification@s,
---
--- * be a 'MonadPlus', because one LTL formula might yield different modified
---   versions of the computation, and
---
--- This type class only requires from the user to specify how to interpret the
--- (modified) builtins. In order to do so, it passes around the formulas that
--- are to be applied to the next time step in a @StateT@
-
--- * 'InterpLtl' instance
-
--- | Interpret a 'Staged' computation into a suitable domain
-interpStagedMockChain :: StagedMockChain a -> StateT [Ltl MockChainTweak] InterpMockChain a
-interpStagedMockChain = interpStaged $ \case
-  GetParams -> getParams
-  (SetParams params) -> setParams params
-  (ValidateTxSkel skel) -> do
-    modifications <- gets nowLaterList
-    msum . (modifications <&>) $
-      \(now, later) -> do
-        (_, skel') <-
-          lift . (`runTweakInChain` skel) $
-            foldr
-              ( \(UntypedTweak tweak, mode) acc ->
-                  if mode
-                    then tweak >> acc
-                    else ensureFailingTweak tweak >> acc
-              )
-              doNothingTweak
-              now
-        put later
-        validateTxSkel skel'
-  (TxSkelOutByRef o) -> txSkelOutByRef o
-  (WaitNSlots s) -> waitNSlots s
-  AllUtxos -> allUtxos
-  (UtxosAt address) -> utxosAt address
-  Empty -> mzero
-  (Alt l r) -> interpStagedMockChain l `mplus` interpStagedMockChain r
-  (Fail msg) -> fail msg
-  (ThrowError err) -> throwError err
-  (CatchError act handler) -> catchError (interpStagedMockChain act) (interpStagedMockChain . handler)
-  (LogEvent entry) -> logEvent entry
-  (Define name hash) -> define name hash
-  (SetConstitutionScript script) -> setConstitutionScript script
-  GetConstitutionScript -> getConstitutionScript
-  (GetCurrentReward cred) -> getCurrentReward cred
-  (ForceOutputs outs) -> forceOutputs outs
-  (ModifyLtl formula comp) -> do
-    modify' (formula :)
-    res <- interpStagedMockChain comp
-    formulas <- get
-    unless (null formulas) $ do
-      guard $ finished $ head formulas
-      put $ tail formulas
-    return res
+instance ModInterpBuiltin MockChainTweak MockChainBuiltin InterpMockChain where
+  modifyAndInterpBuiltin = \case
+    GetParams -> Left getParams
+    (SetParams params) -> Left $ setParams params
+    (ValidateTxSkel skel) -> Right $ \now -> do
+      (_, skel') <-
+        (`runTweakInChain` skel) $
+          foldr
+            ( \(UntypedTweak tweak, mode) acc ->
+                if mode
+                  then tweak >> acc
+                  else ensureFailingTweak tweak >> acc
+            )
+            doNothingTweak
+            now
+      validateTxSkel skel'
+    (TxSkelOutByRef o) -> Left $ txSkelOutByRef o
+    (WaitNSlots s) -> Left $ waitNSlots s
+    AllUtxos -> Left allUtxos
+    (UtxosAt address) -> Left $ utxosAt address
+    Empty -> Left mzero
+    (Alt l r) -> Left $ interpStagedLtl l `mplus` interpStagedLtl r
+    (Fail msg) -> Left $ fail msg
+    (ThrowError err) -> Left $ throwError err
+    (CatchError act handler) -> Left $ catchError (interpStagedLtl act) (interpStagedLtl . handler)
+    (LogEvent entry) -> Left $ logEvent entry
+    (Define name hash) -> Left $ define name hash
+    (SetConstitutionScript script) -> Left $ setConstitutionScript script
+    GetConstitutionScript -> Left getConstitutionScript
+    (GetCurrentReward cred) -> Left $ getCurrentReward cred
+    (ForceOutputs outs) -> Left $ forceOutputs outs
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 

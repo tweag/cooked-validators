@@ -3,7 +3,6 @@
 module Spec.Ltl where
 
 import Control.Monad
-import Control.Monad.State
 import Control.Monad.Writer
 import Cooked.Ltl
 import Cooked.Ltl.Combinators
@@ -16,10 +15,6 @@ import Test.Tasty.HUnit
 data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
   GetInteger :: TestBuiltin Integer
-  WrapLtl :: Ltl TestModification -> Staged TestBuiltin a -> TestBuiltin a
-
-instance MonadLtl TestModification (Staged TestBuiltin) where
-  modifyLtl formula = singletonBuiltin . WrapLtl formula
 
 data TestModification
   = Add Integer
@@ -32,57 +27,45 @@ applyMod _ Fail = Nothing
 applyMod i (Add i') = if i == i' then Nothing else Just $ i + i'
 applyMod i (Mul i') = if i == i' then Nothing else Just $ i * i'
 
-interpBuiltin :: (MonadPlus m) => TestBuiltin a -> StateT [Ltl TestModification] (WriterT [Integer] m) a
-interpBuiltin GetInteger = return 42
-interpBuiltin (EmitInteger i) = do
-  gets nowLaterList
-    >>= msum
-      . map
-        ( \(now, later) -> do
-            maybe mzero (tell . (: [])) $
-              foldl
-                ( \acc (modif, el) -> do
-                    current <- acc
-                    if el
-                      then
-                        applyMod current modif
-                      else do
-                        guard $ isNothing $ applyMod current modif
-                        return current
-                )
-                (Just i)
-                now
-            put later
-        )
-interpBuiltin (WrapLtl formula comp) = do
-  modify' (formula :)
-  res <- interpStaged interpBuiltin comp
-  formulas <- get
-  unless (null formulas) $ do
-    guard $ finished $ head formulas
-    put $ tail formulas
-  return res
+type TestStaged = StagedLtl TestModification TestBuiltin
 
-emitInteger :: Integer -> Staged TestBuiltin ()
+instance (MonadPlus m, MonadWriter [Integer] m) => ModInterpBuiltin TestModification TestBuiltin m where
+  modifyAndInterpBuiltin GetInteger = Left (return 42)
+  modifyAndInterpBuiltin (EmitInteger i) = Right $ \now ->
+    maybe mzero (tell . (: [])) $
+      foldl
+        ( \acc (modif, el) -> do
+            current <- acc
+            if el
+              then
+                applyMod current modif
+              else do
+                guard $ isNothing $ applyMod current modif
+                return current
+        )
+        (Just i)
+        now
+
+emitInteger :: Integer -> TestStaged ()
 emitInteger = singletonBuiltin . EmitInteger
 
-getInteger :: Staged TestBuiltin Integer
+getInteger :: TestStaged Integer
 getInteger = singletonBuiltin GetInteger
 
-go :: Staged TestBuiltin a -> [[Integer]]
-go = execWriterT . flip execStateT [] . interpStaged interpBuiltin
+go :: TestStaged a -> [[Integer]]
+go = execWriterT . interpStagedLtl
 
-nonemptyTraces :: [Staged TestBuiltin ()]
+nonemptyTraces :: [TestStaged ()]
 nonemptyTraces =
   [ getInteger >>= emitInteger,
     emitInteger 1 >> emitInteger 2,
     emitInteger 1 >> getInteger >>= emitInteger >> emitInteger 2
   ]
 
-emptyTraces :: [Staged TestBuiltin ()]
+emptyTraces :: [TestStaged ()]
 emptyTraces = [return (), void getInteger]
 
-testTraces :: [Staged TestBuiltin ()]
+testTraces :: [TestStaged ()]
 testTraces = nonemptyTraces ++ emptyTraces
 
 tests :: TestTree
