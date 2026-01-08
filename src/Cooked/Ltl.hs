@@ -9,6 +9,7 @@ module Cooked.Ltl
     nowLaterList,
     finished,
     MonadLtl (..),
+    Requirement (..),
   )
 where
 
@@ -65,6 +66,13 @@ data Ltl a
     LtlNot (Ltl a)
   deriving (Show, Eq, Functor)
 
+-- | Requirements implied by a given formula at a given time step
+data Requirement a
+  = -- | Apply this modification now
+    Apply a
+  | -- | Ensure this modification fails now
+    EnsureFailure a
+
 -- | For each LTL formula that describes a modification of a computation in a
 -- list, split it into a list of @(doNow, doLater)@ pairs, and then
 -- appropriately combine the results. The result of the splitting is bound to
@@ -82,7 +90,7 @@ data Ltl a
 -- accomplished by applying the modification @b@ right now, or by applying @a@
 -- right now and @a `LtlUntil` b@ from the next step onwards; the returned list
 -- will contain these two options.
-nowLaterList :: [Ltl a] -> [([(a, Bool)], [Ltl a])]
+nowLaterList :: [Ltl a] -> [([Requirement a], [Ltl a])]
 nowLaterList =
   foldr
     ( \el acc -> do
@@ -92,12 +100,12 @@ nowLaterList =
     )
     [([], [])]
   where
-    nowLater :: Ltl a -> [([(a, Bool)], Ltl a)]
+    nowLater :: Ltl a -> [([Requirement a], Ltl a)]
     nowLater LtlTruth = [([], LtlTruth)]
     nowLater LtlFalsity = [([], LtlFalsity)]
-    nowLater (LtlAtom now) = [([(now, True)], LtlTruth)]
+    nowLater (LtlAtom now) = [([Apply now], LtlTruth)]
     nowLater (LtlNext f) = [([], f)]
-    nowLater (LtlNot (LtlAtom now)) = [([(now, False)], LtlTruth)]
+    nowLater (LtlNot (LtlAtom now)) = [([EnsureFailure now], LtlTruth)]
     nowLater (f1 `LtlOr` f2) = nowLater f1 ++ nowLater f2
     nowLater (f1 `LtlAnd` f2) = do
       (now1, next1) <- nowLater f1

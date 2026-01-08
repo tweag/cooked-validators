@@ -34,12 +34,11 @@ instance (MonadPlus m, MonadWriter [Integer] m) => ModInterpBuiltin TestModifica
   modifyAndInterpBuiltin (EmitInteger i) = Right $ \now ->
     maybe mzero (tell . (: [])) $
       foldl
-        ( \acc (modif, el) -> do
+        ( \acc el -> do
             current <- acc
-            if el
-              then
-                applyMod current modif
-              else do
+            case el of
+              Apply modif -> applyMod current modif
+              EnsureFailure modif -> do
                 guard $ isNothing $ applyMod current modif
                 return current
         )

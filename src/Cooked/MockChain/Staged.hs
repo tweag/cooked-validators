@@ -106,8 +106,8 @@ class ModInterpBuiltin modification builtin m where
   modifyAndInterpBuiltin ::
     builtin a ->
     Either
-      (m a) -- directly interpret
-      ([(modification, Bool)] -> m a) -- modify and then interpret
+      (m a) -- only interpretx
+      ([Requirement modification] -> m a) -- modify and then interpret
 
 -- | Interpreting a staged computation of @Ltl op@ based on an interpretation of
 -- @builtin@ with respect to possible modifications.
@@ -137,13 +137,17 @@ interpStagedLtl = flip evalStateT [] . go
                 put later
                 lift $ applyMod now
 
--- | A 'StagedMockChain' is an AST of mockchain builtins wrapped into
--- @LtlOp@ to be subject to @Ltl@ modifications.
+-- | A 'StagedMockChain' is an AST of mockchain builtins wrapped into @LtlOp@ to
+-- be subject to @Ltl@ modifications.
 type StagedMockChain = StagedLtl MockChainTweak MockChainBuiltin
 
 instance Alternative StagedMockChain where
   empty = singletonBuiltin Empty
   a <|> b = singletonBuiltin $ Alt a b
+
+instance MonadPlus StagedMockChain where
+  mzero = empty
+  mplus = (<|>)
 
 instance MonadFail StagedMockChain where
   fail = singletonBuiltin . Fail
@@ -229,10 +233,9 @@ instance ModInterpBuiltin MockChainTweak MockChainBuiltin InterpMockChain where
       (_, skel') <-
         (`runTweakInChain` skel) $
           foldr
-            ( \(UntypedTweak tweak, mode) acc ->
-                if mode
-                  then tweak >> acc
-                  else ensureFailingTweak tweak >> acc
+            ( \req acc -> case req of
+                Apply (UntypedTweak tweak) -> tweak >> acc
+                EnsureFailure (UntypedTweak tweak) -> ensureFailingTweak tweak >> acc
             )
             doNothingTweak
             now
@@ -320,8 +323,8 @@ there n = there' n . fromTweak
 -- | Apply an Ltl modification to the (0-indexed) nth transaction in a
 -- given trace. Successful when this transaction exists and can be modified.
 --
--- See also `Cooked.Tweak.Labels.labelled'` to select transactions based on
--- labels instead of their order.
+-- See also `Cooked.Tweak.Labels.labelled` to select transactions based on
+-- labels instead of their index.
 there' :: (MonadLtl mod m) => Integer -> Ltl mod -> m a -> m a
 there' n = modifyLtl . delay' n
 
