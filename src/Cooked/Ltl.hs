@@ -29,9 +29,7 @@ import Data.Kind
 
 -- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
 -- type of "modifications", then a value of type @Ltl a@ describes where to
--- apply modifications. Since there is no (obvious) semantics for a negated
--- modification or of one modification (possibly in the future) implying another
--- modification, implication and negation are currently absent.
+-- apply modifications.
 data Ltl a
   = -- | The modification that always applies but does noting
     LtlTruth
@@ -212,7 +210,7 @@ instance MonadLtl modification (StagedLtl modification builtin) where
 
 -- | The class that depicts the ability to modify certain builtins and interpret
 -- then in a certain domain. Each builtins should either be interpreted directly
--- through @Apply@ or give or way to modify them with @Right@.
+-- through @Left@ or give or way to modify them with @Right@.
 class ModInterpBuiltin modification builtin m where
   modifyAndInterpBuiltin ::
     builtin a ->
