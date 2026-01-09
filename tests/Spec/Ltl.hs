@@ -1,11 +1,8 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Spec.Ltl where
 
 import Control.Monad
 import Control.Monad.Writer
 import Cooked.Ltl
-import Cooked.Ltl.Combinators
 import Cooked.MockChain.Testing
 import Data.Maybe
 import Test.Tasty
@@ -117,13 +114,13 @@ tests =
               testCase "Conjunction" $
                 go (modifyLtl (add1 `LtlAnd` add2) (emitInteger 3)) @?= [[3 + 1 + 2]],
               testCase "Implication when the first modification does not apply" $
-                go (modifyLtl (add1 `ltlImplies'` add2) (emitInteger 1)) @?= [[1]],
+                go (modifyLtl (add1 `ltlImplies` add2) (emitInteger 1)) @?= [[1]],
               testCase "Implication when both modifications apply" $
-                go (modifyLtl (add1 `ltlImplies'` add2) (emitInteger 3)) @?= [[3 + 1 + 2]],
+                go (modifyLtl (add1 `ltlImplies` add2) (emitInteger 3)) @?= [[3 + 1 + 2]],
               testCase "Implication when the first modification applies, but not the second" $
-                go (modifyLtl (add1 `ltlImplies'` add3) (emitInteger 2)) @?= [],
+                go (modifyLtl (add1 `ltlImplies` add3) (emitInteger 2)) @?= [],
               testCase "Implication backwards in time" $
-                go . modifyLtl (LtlNext add1 `ltlImplies'` add3) . mapM_ emitInteger
+                go . modifyLtl (LtlNext add1 `ltlImplies` add3) . mapM_ emitInteger
                   <$> [ [2, 4], -- add1 applies to 4, and add3 to 2, thus they are both performed
                         [2, 1], -- add1 does not apply to 1, thus add3 is not applied to 2, even though it could
                         [3, 1], -- add1 does not apply to 1, thus it does not matter that add3 does not apply to 3
@@ -156,7 +153,7 @@ tests =
                 incAll :: [[Integer]] -> [[Integer]]
                 incAll = map (map (+ n))
              in testAll
-                  (\tr -> assertSameSets (go $ modifyLtl (always (Add n)) tr) (incAll $ go tr))
+                  (\tr -> assertSameSets (go $ modifyLtl (ltlAlways' (Add n)) tr) (incAll $ go tr))
                   testTraces,
           testCase "somewhere case-splits" $
             let n = 3
@@ -166,12 +163,12 @@ tests =
                     alternatives [] = []
                     alternatives (x : xs) = (x + n : xs) : map (x :) (alternatives xs)
              in testAll
-                  (\tr -> assertSameSets (go $ modifyLtl (eventually (Add n)) tr) (caseSplit $ go tr))
+                  (\tr -> assertSameSets (go $ modifyLtl (ltlEventually' (Add n)) tr) (caseSplit $ go tr))
                   testTraces,
           testCase "somewhere is exponential in branch number" $
             let tr = emitInteger 42 >> emitInteger 3
              in assertSameSets
-                  (go $ modifyLtl (eventually (Add 1)) $ modifyLtl (eventually (Add 2)) tr)
+                  (go $ modifyLtl (ltlEventually' (Add 1)) $ modifyLtl (ltlEventually' (Add 2)) tr)
                   [ [42 + 1 + 2, 3],
                     [42, 3 + 1 + 2],
                     [42 + 1, 3 + 2],
@@ -184,11 +181,11 @@ tests =
           testCase "nested everywhere combines modifications" $
             assertSameSets
               ( go $ do
-                  modifyLtl (always (Add 1)) $ do
+                  modifyLtl (ltlAlways' (Add 1)) $ do
                     emitInteger 42
-                    modifyLtl (always (Add 2)) $ do
+                    modifyLtl (ltlAlways' (Add 2)) $ do
                       emitInteger 43
-                      modifyLtl (always (Add 3)) $ do
+                      modifyLtl (ltlAlways' (Add 3)) $ do
                         emitInteger 44
                       emitInteger 45
                     emitInteger 46
@@ -200,22 +197,22 @@ tests =
         "LTL Combinators"
         $ let traceSolo = emitInteger 24
               traceDuo = emitInteger 24 >> emitInteger 13
-           in [ testCase "anyOf" $
+           in [ testCase "ltlAny" $
                   assertSameSets
-                    (go $ modifyLtl (anyOf [Add 5, Mul 5]) traceSolo)
+                    (go $ modifyLtl (ltlAny' [Add 5, Mul 5]) traceSolo)
                     [ [24 + 5],
                       [24 * 5]
                     ],
-                testCase "anyOf [always, eventually]" $
+                testCase "ltlAny [ltlAlways, ltlEventually]" $
                   assertSameSets
-                    (go $ modifyLtl (anyOf' [always (Add 5), eventually (Mul 5)]) traceDuo)
+                    (go $ modifyLtl (ltlAny [ltlAlways' (Add 5), ltlEventually' (Mul 5)]) traceDuo)
                     [ [24 + 5, 13 + 5],
                       [24 * 5, 13],
                       [24, 13 * 5]
                     ],
-                testCase "anyOf [always anyOf, eventually anyOf]" $
+                testCase "ltlAny [ltlAlways ltlAny, ltlEventually ltlAny]" $
                   assertSameSets
-                    (go $ modifyLtl (anyOf' [always' (anyOf [Add 5, Mul 5]), eventually' (anyOf [Add 5, Mul 5])]) traceDuo)
+                    (go $ modifyLtl (ltlAny [ltlAlways (ltlAny' [Add 5, Mul 5]), ltlEventually (ltlAny' [Add 5, Mul 5])]) traceDuo)
                     [ [24 + 5, 13 + 5],
                       [24 + 5, 13 * 5],
                       [24 * 5, 13 * 5],
@@ -225,59 +222,59 @@ tests =
                       [24, 13 + 5],
                       [24, 13 * 5]
                     ],
-                testCase "allOf" $
+                testCase "ltlAll" $
                   assertSameSets
-                    (go $ modifyLtl (allOf [Add 5, Mul 5]) traceSolo)
+                    (go $ modifyLtl (ltlAll' [Add 5, Mul 5]) traceSolo)
                     [[24 * 5 + 5]],
-                testCase "allOf [anyOf, anyOf]" $
+                testCase "ltlAall [ltlAny, ltlAny]" $
                   assertSameSets
-                    (go $ modifyLtl (allOf' [anyOf [Add 5, Mul 5], anyOf [Add 5, Mul 5]]) traceSolo)
+                    (go $ modifyLtl (ltlAll [ltlAny' [Add 5, Mul 5], ltlAny' [Add 5, Mul 5]]) traceSolo)
                     [ [24 + 5 + 5],
                       [24 * 5 + 5],
                       [24 * 5 * 5],
                       [(24 + 5) * 5]
                     ],
-                testCase "delay (neg)" $
+                testCase "ltlDelay (neg)" $
                   assertSameSets
-                    (go $ modifyLtl (delay 0 (Add 5)) traceDuo)
-                    (go $ modifyLtl (delay (-10) (Add 5)) traceDuo),
-                testCase "delay (pos)" $
+                    (go $ modifyLtl (ltlDelay' 0 (Add 5)) traceDuo)
+                    (go $ modifyLtl (ltlDelay' (-10) (Add 5)) traceDuo),
+                testCase "ltlDelay' (pos)" $
                   assertSameSets
-                    (go $ modifyLtl (delay 1 (Add 5)) traceDuo)
+                    (go $ modifyLtl (ltlDelay' 1 (Add 5)) traceDuo)
                     [[24, 13 + 5]],
-                testCase "delay (anyOf [eventually, always])" $
+                testCase "ltlDelay (ltlAny [ltlEventually, ltlAlways])" $
                   assertSameSets
-                    (go $ modifyLtl (delay' 3 (anyOf' [eventually (Add 5), always (Mul 5)])) (traceDuo >> traceDuo >> traceDuo))
+                    (go $ modifyLtl (ltlDelay 3 (ltlAny [ltlEventually' (Add 5), ltlAlways' (Mul 5)])) (traceDuo >> traceDuo >> traceDuo))
                     [ [24, 13, 24, 13 + 5, 24, 13],
                       [24, 13, 24, 13, 24 + 5, 13],
                       [24, 13, 24, 13, 24, 13 + 5],
                       [24, 13, 24, 13 * 5, 24 * 5, 13 * 5]
                     ],
-                testCase "always fails if a step cannot be modified" $
+                testCase "ltlAlways fails if a step cannot be modified" $
                   assertSameSets
-                    (go $ modifyLtl (always (Add 5)) (traceDuo >> emitInteger 5))
+                    (go $ modifyLtl (ltlAlways' (Add 5)) (traceDuo >> emitInteger 5))
                     [],
-                testCase "eventually succeeds if a step cannot be modified" $
+                testCase "ltlEventually succeeds if a step cannot be modified" $
                   assertSameSets
-                    (go $ modifyLtl (eventually (Add 5)) (traceDuo >> emitInteger 5))
+                    (go $ modifyLtl (ltlEventually' (Add 5)) (traceDuo >> emitInteger 5))
                     [ [24 + 5, 13, 5],
                       [24, 13 + 5, 5]
                     ],
-                testCase "wherever possible succeeds if a few steps cannot be modified" $
+                testCase "ltlWheneverPossible succeeds if a few steps cannot be modified" $
                   assertSameSets
                     ( go $
                         modifyLtl
-                          (whenPossible (Add 5))
+                          (ltlWhenPossible' (Add 5))
                           (traceDuo >> emitInteger 5 >> emitInteger 5 >> traceDuo >> emitInteger 5 >> traceDuo)
                     )
                     [[24 + 5, 13 + 5, 5, 5, 24 + 5, 13 + 5, 5, 24 + 5, 13 + 5]],
-                testCase "never succeeds when no step can be modified..." $
+                testCase "ltlNever succeeds when no step can be modified..." $
                   assertSameSets
-                    (go $ modifyLtl (never (Add 5)) (replicateM 10 (emitInteger 5)))
+                    (go $ modifyLtl (ltlNever' (Add 5)) (replicateM 10 (emitInteger 5)))
                     [replicate 10 5],
                 testCase "... and fails otherwise" $
                   assertSameSets
-                    (go $ modifyLtl (never (Add 5)) $ modifyLtl (eventually (Add 1)) $ replicateM 10 (emitInteger 5))
+                    (go $ modifyLtl (ltlNever' (Add 5)) $ modifyLtl (ltlEventually' (Add 1)) $ replicateM 10 (emitInteger 5))
                     []
               ]
     ]

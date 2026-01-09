@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 -- | This module provides a staged implementation of our `MonadBlockChain`. The
 -- motivation behind this is to be able to modify traces using `Cooked.Ltl` and
 -- `Cooked.Tweak` while they are interpreted.
@@ -30,7 +28,6 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Except
 import Cooked.Ltl
-import Cooked.Ltl.Combinators
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.Pretty.Hashable
@@ -172,7 +169,7 @@ somewhere = somewhere' . fromTweak
 -- | Apply an Ltl modification somewhere in the given Trace. The modification
 -- must apply at least once.
 somewhere' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
-somewhere' = modifyLtl . eventually'
+somewhere' = modifyLtl . ltlEventually
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
@@ -183,7 +180,7 @@ everywhere = everywhere' . fromTweak
 -- does not apply). If the modification branches, this will branch at every
 -- location the modification can be applied.
 everywhere' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
-everywhere' = modifyLtl . always'
+everywhere' = modifyLtl . ltlAlways
 
 -- | Ensures a given 'Tweak' can never successfully be applied in a computation
 nowhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
@@ -191,7 +188,7 @@ nowhere = nowhere' . fromTweak
 
 -- | Ensures a given Ltl modification can never be applied on a computation
 nowhere' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
-nowhere' = modifyLtl . never'
+nowhere' = modifyLtl . ltlNever
 
 -- | Apply a given 'Tweak' at every location in a computation where it does not
 -- fail, which might never occur.
@@ -201,7 +198,7 @@ whenAble = whenAble' . fromTweak
 -- | Apply an Ltl modification at every location in a computation where it is
 -- possible. Does not fail if no such position exists.
 whenAble' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
-whenAble' = modifyLtl . whenPossible'
+whenAble' = modifyLtl . ltlWhenPossible
 
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
@@ -214,7 +211,7 @@ there n = there' n . fromTweak
 -- See also `Cooked.Tweak.Labels.labelled` to select transactions based on
 -- labels instead of their index.
 there' :: (MonadLtl mod m) => Integer -> Ltl mod -> m a -> m a
-there' n = modifyLtl . delay' n
+there' n = modifyLtl . ltlDelay n
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that

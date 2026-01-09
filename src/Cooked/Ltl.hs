@@ -1,13 +1,36 @@
 -- | This modules provides the infrastructure to modify sequences of
--- transactions using pseudo-LTL formulaes with atomic modifications. This idea
--- is to describe when to apply certain modifications within a trace. This is to
--- be replaced later on with a dependency to https://github.com/tweag/graft.
+-- transactions using LTL formulaes with atomic modifications. This idea is to
+-- describe when to apply certain modifications within a trace.
 module Cooked.Ltl
   ( -- * LTL formulas
     Ltl (..),
-    Requirement (..),
 
-    -- * Using `Ltl` formulas to modify computations
+    -- * LTL combinators
+    ltlNot',
+    ltlOr',
+    ltlAnd',
+    ltlNext',
+    ltlAny,
+    ltlAny',
+    ltlAll,
+    ltlAll',
+    ltlDelay,
+    ltlDelay',
+    ltlEventually,
+    ltlEventually',
+    ltlAlways,
+    ltlAlways',
+    ltlWhenPossible,
+    ltlWhenPossible',
+    ltlIfPossible,
+    ltlIfPossible',
+    ltlImplies,
+    ltlImplies',
+    ltlNever,
+    ltlNever',
+
+    -- * Using LTL formulas to modify computations
+    Requirement (..),
     LtlOp (..),
     StagedLtl,
     singletonBuiltin,
@@ -51,7 +74,7 @@ data Ltl a
   | -- | Assert that the given formula holds at the next time step.
     LtlNext (Ltl a)
   | -- | Assert that the first formula holds at least until the second one
-    -- begins to hold, which must happen eventually. The following holds:
+    -- begins to hold, which must happen ltlEventually. The following holds:
     --
     -- > a `LtlUntil` b <=> b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
     --
@@ -60,7 +83,7 @@ data Ltl a
     -- for `LtlRelease`, which cannot.
     LtlUntil (Ltl a) (Ltl a)
   | -- | Assert that the second formula has to hold up to and including the
-    -- point when the first begins to hold; if that never happens, the second
+    -- point when the first begins to hold; if that ltlNever happens, the second
     -- formula has to remain true forever. View this as dual to 'LtlUntil'. The
     -- following holds:
     --
@@ -70,6 +93,103 @@ data Ltl a
     -- empty computation, which the above formula is not in most cases.
     LtlRelease (Ltl a) (Ltl a)
   deriving (Show, Eq, Functor)
+
+-- | Same as `LtlNot`, but first wraps the input in an atomic formula.
+ltlNot' :: a -> Ltl a
+ltlNot' = LtlNot . LtlAtom
+
+-- | Same as `LtlOr`, but first wraps the inputs in atomic formulas.
+ltlOr' :: a -> a -> Ltl a
+ltlOr' f1 f2 = LtlOr (LtlAtom f1) (LtlAtom f2)
+
+-- | Same as `LtlAnd`, but first wraps the inputs in atomic formulas.
+ltlAnd' :: a -> a -> Ltl a
+ltlAnd' f1 f2 = LtlAnd (LtlAtom f1) (LtlAtom f2)
+
+-- | Same as `LtlNext`, but first wraps the input in an atomic formula.
+ltlNext' :: a -> Ltl a
+ltlNext' = LtlNext . LtlAtom
+
+-- | Produces an Ltl formula which consists of the disjunction of all the
+-- formulas in the input list.
+ltlAny :: [Ltl a] -> Ltl a
+ltlAny = foldr LtlOr LtlFalsity
+
+-- | Same as `ltlAny`, but first wraps the elements in the input list in atomic
+-- formulas.
+ltlAny' :: [a] -> Ltl a
+ltlAny' = ltlAny . map LtlAtom
+
+-- | Produces an Ltl formula which consists of the conjunction of all the
+-- formulas in the input list.
+ltlAll :: [Ltl a] -> Ltl a
+ltlAll = foldr LtlAnd LtlTruth
+
+-- | Same as `ltlAll`, but first wraps the elements in the input list in atomic
+-- formulas.
+ltlAll' :: [a] -> Ltl a
+ltlAll' = ltlAll . map LtlAtom
+
+-- | Produces an Ltl formula which consists of the delay of the input formula by
+-- @n@ time steps, if @n > 0@.
+ltlDelay :: Integer -> Ltl a -> Ltl a
+ltlDelay n | n <= 0 = id
+ltlDelay n = LtlNext . ltlDelay (n - 1)
+
+-- | Same as `ltlDelay`, but first wraps the input in an atomic formula.
+ltlDelay' :: Integer -> a -> Ltl a
+ltlDelay' n = ltlDelay n . LtlAtom
+
+-- | Produces an Ltl formula which ensures the input formula eventually holds.
+ltlEventually :: Ltl a -> Ltl a
+ltlEventually = LtlUntil LtlTruth
+
+-- | Same as `ltlEventually`, but first wraps the input in an atomic formula.
+ltlEventually' :: a -> Ltl a
+ltlEventually' = ltlEventually . LtlAtom
+
+-- | Produces an Ltl formula which ensures the input formula always holds.
+ltlAlways :: Ltl a -> Ltl a
+ltlAlways = LtlRelease LtlFalsity
+
+-- | Same as `ltlAlways`, but first wraps the input in an atomic formula.
+ltlAlways' :: a -> Ltl a
+ltlAlways' = ltlAlways . LtlAtom
+
+-- | Produces an Ltl formula which either ensure the given formula does not
+-- hold, or apply its modifications.
+ltlIfPossible :: Ltl a -> Ltl a
+ltlIfPossible f = f `LtlOr` LtlNot f
+
+-- | Same as `ltlIfPossible`, but first wraps the input in an atomic formula.
+ltlIfPossible' :: a -> Ltl a
+ltlIfPossible' = ltlIfPossible . LtlAtom
+
+-- | Produces an Ltl formula which applies a formula whenever possible, while
+-- ignoring steps when it is not.
+ltlWhenPossible :: Ltl a -> Ltl a
+ltlWhenPossible = ltlAlways . ltlIfPossible
+
+-- | Same as `ltlWhenPossible`, but first wraps the input in an atomic formula.
+ltlWhenPossible' :: a -> Ltl a
+ltlWhenPossible' = ltlWhenPossible . LtlAtom
+
+-- | Produces an Ltl formula ensuring the given formula always fails.
+ltlNever :: Ltl a -> Ltl a
+ltlNever = ltlAlways . LtlNot
+
+-- | Same as `ltlNever`, but first wraps the input in an atomic formula.
+ltlNever' :: a -> Ltl a
+ltlNever' = ltlNever . LtlAtom
+
+-- | Produces a formula that succeeds if the first formula does not hold, or if
+-- both formulas hold.
+ltlImplies :: Ltl a -> Ltl a -> Ltl a
+ltlImplies f1 f2 = (f2 `LtlAnd` f1) `LtlOr` LtlNot f1
+
+-- | Same as `ltlImplies` but first wraps the inputs in atomic formulas.
+ltlImplies' :: a -> a -> Ltl a
+ltlImplies' a1 a2 = LtlAtom a1 `ltlImplies` LtlAtom a2
 
 -- | Simplification procedure for LTL formulas. This function knows how
 -- `LtlTruth` and `LtlFalsity` play with negation, conjunction and disjunction
@@ -201,9 +321,14 @@ class (Monad m) => MonadLtl modification m where
 instance MonadLtl modification (StagedLtl modification builtin) where
   modifyLtl formula comp = Instr (WrapLtl formula comp) Return
 
--- | Depicts the ability to modify certain builtins and interpret then in a
--- given domain. Each builtins should either be interpreted directly through
--- @Left@ or give or way to modify them with @Right@.
+-- | Depicts the ability to modify and interpret builtins in a given
+-- domain. Each builtin can either:
+--
+-- * be interpreted directly through @Left@, in which case it will not be
+--   considered as a timestep in a trace.
+--
+-- * be modified and only then interpreted through @Right@, in which case it
+--   will be considered as a timestep in a trace.
 class ModInterpBuiltin modification builtin m where
   modifyAndInterpBuiltin :: builtin a -> Either (m a) ([Requirement modification] -> m a)
 
