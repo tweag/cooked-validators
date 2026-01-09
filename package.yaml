@@ -65,6 +65,7 @@ library:
   default-extensions: &default-extensions
     - ConstraintKinds
     - DataKinds
+    - DeriveFunctor
     - DerivingStrategies
     - DerivingVia
     - FlexibleContexts

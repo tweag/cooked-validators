@@ -1,21 +1,19 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 -- | This modules provides the infrastructure to modify sequences of
 -- transactions using pseudo-LTL formulaes with atomic modifications. This idea
 -- is to describe when to apply certain modifications within a trace. This is to
 -- be replaced later on with a dependency to https://github.com/tweag/graft.
 module Cooked.Ltl
-  ( Ltl (..),
-    nowLaterList,
-    ltlSimpl,
-    finished,
-    MonadLtl (..),
+  ( -- * LTL formulas
+    Ltl (..),
     Requirement (..),
-    interpStagedLtl,
-    singletonBuiltin,
+
+    -- * Using `Ltl` formulas to modify computations
     LtlOp (..),
     StagedLtl,
+    singletonBuiltin,
+    MonadLtl (..),
     ModInterpBuiltin (..),
+    interpStagedLtl,
   )
 where
 
@@ -25,18 +23,19 @@ import Cooked.Staged
 import Data.Functor
 import Data.Kind
 
--- * LTL formulas and operations on them
-
 -- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
 -- type of "modifications", then a value of type @Ltl a@ describes where to
--- apply modifications.
+-- apply `Requirement`s in a trace.
 data Ltl a
-  = -- | The modification that always applies but does noting
+  = -- | The modification that always applies but does nothing.
     LtlTruth
-  | -- | The modification that never applies (i.e. always fails)
+  | -- | The modification that never applies (i.e. always fails).
     LtlFalsity
-  | -- | The atomic modification, applying at the current time step
+  | -- | The atomic modification, applying at the current time step.
     LtlAtom a
+  | -- | Assert that the given formula must not hold at the current time step
+    -- i.e. that the appropriate modifications fail.
+    LtlNot (Ltl a)
   | -- | Disjunction will be interpreted in an "intuitionistic" way, i.e. as
     -- branching into the "timeline" where the left disjunct holds and the one
     -- where the right disjunct holds. In that sense, it is an exclusive or, as
@@ -70,16 +69,12 @@ data Ltl a
     -- `LtlRelease` needs it own constructor, as it is considered valid on an
     -- empty computation, which the above formula is not in most cases.
     LtlRelease (Ltl a) (Ltl a)
-  | -- | Assert that the given formula must not hold at the current time
-    -- step. This will be interpreted as ensuring the appropriate modifications
-    -- fail.
-    LtlNot (Ltl a)
   deriving (Show, Eq, Functor)
 
 -- | Simplification procedure for LTL formulas. This function knows how
--- 'LtlTruth' and 'LtlFalsity' play with negation, conjunction and disjunction
+-- `LtlTruth` and `LtlFalsity` play with negation, conjunction and disjunction
 -- and recursively applies this knowledge; it is used to keep the formulas
--- 'nowLaterList' generates from growing too wildly. While this function does
+-- `nowLaterList` generates from growing too wildly. While this function does
 -- not compute a normal form per se (as it does not tamper with nested
 -- conjunction and disjunction), it does ensure a few properties:
 --
@@ -123,7 +118,7 @@ ltlSimpl (LtlOr (ltlSimpl -> LtlNext f1) (ltlSimpl -> LtlNext f2)) = LtlNext $ f
 -- the branch were potential meaningful modifications need to be applied.
 ltlSimpl (LtlOr (ltlSimpl -> f1) (ltlSimpl -> f2)) = LtlOr f1 f2
 
--- | Requirements implied by a given formula at a given time step
+-- | Requirements implied by a given `Ltl` formula at a given time step
 data Requirement a
   = -- | Apply this modification now
     Apply a
@@ -186,44 +181,37 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
 
--- * The `MonadLtl` effect and associated functions
-
 -- | Operations that either allow to use a builtin, or to modify a computation
--- using an @Ltl@ formula.
+-- using an `Ltl` formula.
 data LtlOp modification builtin :: Type -> Type where
   WrapLtl :: Ltl modification -> StagedLtl modification builtin a -> LtlOp modification builtin a
   Builtin :: builtin a -> LtlOp modification builtin a
 
--- | An AST of builtins wrapped into an @Ltl@ setting
+-- | An AST of builtins wrapped into an `Ltl` setting
 type StagedLtl modification builtin = Staged (LtlOp modification builtin)
 
--- | Building a singleton instruction in a `StagedLtl` monad
+-- | Builds a singleton instruction in a `StagedLtl` monad
 singletonBuiltin :: builtin a -> StagedLtl modification builtin a
 singletonBuiltin = (`Instr` Return) . Builtin
 
--- | The effect of being able to modify a computation with an Ltl formula
+-- | Depicts the ability to modify a computation with an `Ltl` formula
 class (Monad m) => MonadLtl modification m where
   modifyLtl :: Ltl modification -> m a -> m a
 
 instance MonadLtl modification (StagedLtl modification builtin) where
   modifyLtl formula comp = Instr (WrapLtl formula comp) Return
 
--- | The class that depicts the ability to modify certain builtins and interpret
--- then in a certain domain. Each builtins should either be interpreted directly
--- through @Left@ or give or way to modify them with @Right@.
+-- | Depicts the ability to modify certain builtins and interpret then in a
+-- given domain. Each builtins should either be interpreted directly through
+-- @Left@ or give or way to modify them with @Right@.
 class ModInterpBuiltin modification builtin m where
-  modifyAndInterpBuiltin ::
-    builtin a ->
-    Either
-      (m a) -- only interpret
-      ([Requirement modification] -> m a) -- modify and then interpret
+  modifyAndInterpBuiltin :: builtin a -> Either (m a) ([Requirement modification] -> m a)
 
--- | Interpret a staged computation of @Ltl op@ based on an interpretation of
--- @builtin@ with respect to possible modifications. This requires an
--- intermediate interpretation with a state monad, and unfolds as follows:
+-- | Interprets a `StagedLtl` computation based on an interpretation of
+-- @builtin@ with respect to possible modifications. This unfolds as follows:
 --
 -- * When a builtin is met, which is directly interpreted, we return the
---   associated computation, with no changes to the @Ltl@ state.
+--   associated computation, with no changes to the `Ltl` state.
 --
 -- * When a builtin is met, which requires a modification, we return the
 --   modified interpretation, and consume the current modification requirements.
@@ -232,8 +220,14 @@ class ModInterpBuiltin modification builtin m where
 --   ensure that when the computation ends, the formula is finished.
 interpStagedLtl ::
   forall modification builtin m.
-  (MonadPlus m, ModInterpBuiltin modification builtin m) =>
-  forall a. StagedLtl modification builtin a -> m a
+  ( MonadPlus m,
+    ModInterpBuiltin modification builtin m
+  ) =>
+  forall a.
+  -- | A staged computation `Ltl` compatible
+  StagedLtl modification builtin a ->
+  -- | Interpretation of the computation
+  m a
 interpStagedLtl = flip evalStateT [] . go
   where
     go :: forall a. Staged (LtlOp modification builtin) a -> StateT [Ltl modification] m a
