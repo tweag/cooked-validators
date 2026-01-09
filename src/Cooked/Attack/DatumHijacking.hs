@@ -87,16 +87,18 @@ datumOfDatumHijackingParams = defaultDatumHijackingParams (txSkelOutDatumL % txS
 
 -- | Redirects, in the same transaction, all the outputs targetted by an output
 -- and an index predicates. See 'DatumHijackingParams' for more information on
--- those predicates. Returns a pair of the old outputs before they were
--- redirected, and the new updated list of outputs.
+-- those predicates. Returns the list of outputs that were successfully
+-- modified, before the modification is applied.
 redirectOutputTweakAll ::
   (MonadTweak m, IsTxSkelOutAllowedOwner owner) =>
   (TxSkelOut -> Maybe owner) ->
   (Integer -> Bool) ->
-  m ([TxSkelOut], [TxSkelOut])
+  m [TxSkelOut]
 redirectOutputTweakAll outputPred indexPred = do
   outputs <- viewTweak txSkelOutsL
-  return $ go outputs 0
+  let (redirected, newOutputs) = go outputs 0
+  setTweak txSkelOutsL newOutputs
+  return redirected
   where
     go [] _ = ([], [])
     go (out : l) n =
@@ -112,8 +114,12 @@ redirectOutputTweakAny ::
   (MonadTweak m, IsTxSkelOutAllowedOwner owner) =>
   (TxSkelOut -> Maybe owner) ->
   (Integer -> Bool) ->
-  m ([TxSkelOut], [TxSkelOut])
-redirectOutputTweakAny outputPred indexPred = viewTweak txSkelOutsL >>= go [] 0
+  m [TxSkelOut]
+redirectOutputTweakAny outputPred indexPred = do
+  outputs <- viewTweak txSkelOutsL
+  (redirected, newOutputs) <- go [] 0 outputs
+  setTweak txSkelOutsL newOutputs
+  return redirected
   where
     go _ _ [] = mzero
     go l' n (out : l)
@@ -138,8 +144,7 @@ redirectOutputTweakAny outputPred indexPred = viewTweak txSkelOutsL >>= go [] 0
 -- such outputs have been redirected.
 datumHijackingAttack :: (MonadTweak m) => DatumHijackingParams -> m [TxSkelOut]
 datumHijackingAttack (DatumHijackingParams outputPred indexPred mode) = do
-  (redirected, newOutputs) <- (if mode then redirectOutputTweakAll else redirectOutputTweakAny) outputPred indexPred
+  redirected <- (if mode then redirectOutputTweakAll else redirectOutputTweakAny) outputPred indexPred
   guard $ not $ null redirected
-  setTweak txSkelOutsL newOutputs
   addLabelTweak $ DatumHijackingLabel redirected
   return redirected
