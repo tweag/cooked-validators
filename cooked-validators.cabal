@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.38.2.
+-- This file has been generated from package.yaml by hpack version 0.38.3.
 --
 -- see: https://github.com/sol/hpack
 
@@ -17,6 +17,7 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
+      Cooked.Effectful
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.MockChain
@@ -143,6 +144,7 @@ library
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
+    , polysemy
     , prettyprinter
     , random
     , random-shuffle
@@ -258,6 +260,7 @@ test-suite spec
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
+    , polysemy
     , prettyprinter
     , random
     , random-shuffle

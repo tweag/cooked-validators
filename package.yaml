@@ -37,6 +37,7 @@ dependencies:
   - plutus-script-utils
   - plutus-tx
   - plutus-tx-plugin
+  - polysemy
   - prettyprinter
   - random
   - random-shuffle

@@ -29,6 +29,10 @@ module Cooked.Ltl
     ltlNever,
     ltlNever',
 
+    -- * Functions on LTL formulas
+    finished,
+    nowLaterList,
+
     -- * Using LTL formulas to modify computations
     Requirement (..),
     LtlOp (..),
@@ -244,6 +248,7 @@ data Requirement a
     Apply a
   | -- | Ensure this modification fails now
     EnsureFailure a
+  deriving (Show, Eq)
 
 -- | For each LTL formula that describes a modification of a computation in a
 -- list, split it into a list of @(doNow, doLater)@ pairs, and then
