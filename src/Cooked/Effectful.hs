@@ -2,22 +2,30 @@
 
 module Cooked.Effectful where
 
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
+import Cardano.Api qualified as Cardano
+import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad (guard, msum, unless)
-import Cooked.Ltl (Ltl, Requirement, finished, nowLaterList)
-import Cooked.MockChain.BlockChain (MockChainError, MockChainLogEntry)
-import Cooked.MockChain.MockChainState (MockChainState)
-import Cooked.Pretty.Hashable (ToHash)
+import Cooked.Ltl (Ltl, Requirement (..), finished, nowLaterList)
+import Cooked.MockChain.BlockChain (MockChainError (..), MockChainLogEntry)
+import Cooked.MockChain.Direct (MockChainBook (..))
+import Cooked.MockChain.MockChainState (MockChainState (..), mcstConstitutionL, mcstLedgerStateL)
+import Cooked.Pretty.Hashable (ToHash, toHash)
 import Cooked.Skeleton (ToVScript, TxSkel, TxSkelOut, VScript)
-import Data.Functor ((<&>))
+import Data.Default
+import Data.Map qualified as Map
+import Data.Maybe (mapMaybe)
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
-import Polysemy.Final
+import Polysemy.Error (Error, runError, throw)
+import Polysemy.Fail (Fail (Fail))
+import Polysemy.Internal.Combinators (stateful)
 import Polysemy.NonDet
 import Polysemy.State
+import Polysemy.Writer (Writer, runWriter, tell)
 
 data ModifyGlobally a :: Effect where
   ModifyLtl :: Ltl a -> m b -> ModifyGlobally a m b
@@ -25,120 +33,277 @@ data ModifyGlobally a :: Effect where
 makeSem ''ModifyGlobally
 
 runModifyGlobally ::
-  forall f r a.
-  (Members '[State [Ltl f], NonDet] r) =>
-  Sem (ModifyGlobally f ': r) a ->
-  Sem r a
+  forall modification effs a.
+  (Members '[State [Ltl modification], NonDet] effs) =>
+  Sem (ModifyGlobally modification ': effs) a ->
+  Sem effs a
 runModifyGlobally =
   interpretH $ \case
     ModifyLtl formula comp -> do
       modify (formula :)
-      res <- runT comp
+      -- TODO : this is type-correct, but does it have the right semantics?
+      -- It seems weird to "run it twice" and recursively call the runner
+      -- that is currently being defined, which I assumed was already done
+      -- by "interpretH".
+      comp' <- runT comp
+      res <- raise $ runModifyGlobally comp'
       formulas <- get
       unless (null formulas) $ do
         guard (finished (head formulas))
         put (tail formulas)
-      pureT res
+      return res
 
--- runModifyGlobally ::
---   forall f effs a.
---   ( State [Ltl f] :> effs,
---     NonDet :> effs
---   ) =>
---   Eff (ModifyGlobally f : effs) a ->
---   Eff effs a
--- runModifyGlobally =
---   interpret $
---     \env (ModifyLtl formula comp) -> localSeqUnlift env $ \unlift -> do
---       modify (formula :)
---       res <- unlift comp
---       formulas :: [Ltl f] <- get
---       unless (null formulas) $ do
---         guard $ finished $ head formulas
---         put $ tail formulas
---       return res
+data ModifyLocally a :: Effect where
+  GetRequirements :: ModifyLocally a m [Requirement a]
 
--- data ModifyLocally a :: Effect where
---   GetRequirements :: ModifyLocally a m [Requirement a]
+makeSem ''ModifyLocally
 
--- makeEffect ''ModifyLocally
+runModifyLocally ::
+  forall modification effs a.
+  ( Members
+      '[ State [Ltl modification],
+         NonDet
+       ]
+      effs
+  ) =>
+  Sem (ModifyLocally modification : effs) a ->
+  Sem effs a
+runModifyLocally =
+  interpret $ \GetRequirements -> do
+    modifications <- gets nowLaterList
+    msum . (modifications <&>) $ \(now, later) -> put later >> return now
 
--- runModifyLocally ::
---   forall f effs a.
---   ( State [Ltl f] :> effs,
---     NonDet :> effs
---   ) =>
---   Eff (ModifyLocally f : effs) a ->
---   Eff effs a
--- runModifyLocally =
---   interpret $ \_ GetRequirements -> do
---     modifications <- gets nowLaterList
---     msum . (modifications <&>) $
---       \(now, later) -> do
---         put later
---         return now
+data MockChainRead :: Effect where
+  GetParams :: MockChainRead m Emulator.Params
+  TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
+  CurrentSlot :: MockChainRead m Ledger.Slot
+  AllUtxos :: MockChainRead m [(Api.TxOutRef, TxSkelOut)]
+  UtxosAt :: (Script.ToAddress a) => a -> MockChainRead m [(Api.TxOutRef, TxSkelOut)]
+  LogEvent :: MockChainLogEntry -> MockChainRead m ()
+  Define :: (ToHash a) => String -> a -> MockChainRead m a
+  GetConstitutionScript :: MockChainRead m (Maybe VScript)
+  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
 
--- data MockChainRead :: Effect where
---   GetParams :: MockChainRead m Emulator.Params
---   TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
---   GetSlot :: MockChainRead m Ledger.Slot
---   AllUtxos :: MockChainRead m [(Api.TxOutRef, TxSkelOut)]
---   UtxosAt :: (Script.ToAddress a) => a -> MockChainRead m [(Api.TxOutRef, TxSkelOut)]
---   LogEvent :: MockChainLogEntry -> MockChainRead m ()
---   Define :: (ToHash a) => String -> a -> MockChainRead m a
---   GetConstitutionScript :: MockChainRead m (Maybe VScript)
---   GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
+makeSem ''MockChainRead
 
--- makeEffect ''MockChainRead
+data MockChainWrite :: Effect where
+  WaitNSlots :: Integer -> MockChainWrite m Ledger.Slot
+  SetParams :: Emulator.Params -> MockChainWrite m ()
+  ValidateTxSkel :: TxSkel -> MockChainWrite m Ledger.CardanoTx
+  SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
+  ForceOutputs :: [TxSkelOut] -> MockChainWrite m [Api.TxOutRef]
 
--- data MockChainWrite :: Effect where
---   WaitNSlots :: Integer -> MockChainWrite m Ledger.Slot
---   SetParams :: Emulator.Params -> MockChainWrite m ()
---   ValidateTxSkel :: TxSkel -> MockChainWrite m Ledger.CardanoTx
---   SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
---   ForceOutputs :: [TxSkelOut] -> MockChainWrite m [Api.TxOutRef]
+makeSem ''MockChainWrite
 
--- makeEffect ''MockChainWrite
+data Tweak :: Effect where
+  GetTxSkel :: Tweak m TxSkel
+  SetTxSkel :: TxSkel -> Tweak m ()
 
--- data Tweak :: Effect where
---   GetTxSkel :: Tweak m TxSkel
---   SetTxSkel :: TxSkel -> Tweak m ()
+makeSem ''Tweak
 
--- makeEffect ''Tweak
+runTweak ::
+  forall effs a.
+  TxSkel ->
+  Sem (Tweak : effs) a ->
+  Sem effs (TxSkel, a)
+-- TODO : is stateful the right helper? It seems I have to rewrite the state
+-- primitives by hand. Can we have something like reinterpret in effectful
+-- where we can temporarily use another effect like a state?
+runTweak = stateful $ \tweak skel -> return $
+  case tweak of
+    GetTxSkel -> (skel, skel)
+    SetTxSkel skel' -> (skel', ())
 
--- runTweak ::
---   forall effs a.
---   TxSkel ->
---   Eff (Tweak : effs) a ->
---   Eff effs TxSkel
--- runTweak skel = reinterpret (execStateLocal skel) $ \_ -> \case
---   GetTxSkel -> get
---   SetTxSkel skel' -> put skel'
+data UntypedTweak effs where
+  UntypedTweak :: Sem (Tweak : NonDet : effs) a -> UntypedTweak effs
 
--- data UntypedTweak effs where
---   UntypedTweak :: Eff (Tweak : effs) a -> UntypedTweak effs
+runFail ::
+  forall effs a.
+  (Member (Error MockChainError) effs) =>
+  Sem (Fail : effs) a ->
+  Sem effs a
+runFail = interpret $ \case
+  Fail s -> throw $ FailWith s
 
--- runUntypedTweak ::
---   forall effs.
---   TxSkel ->
---   UntypedTweak effs ->
---   Eff effs TxSkel
--- runUntypedTweak skel (UntypedTweak tweak) = runTweak skel tweak
+runMockChainRead ::
+  forall effs a.
+  ( Members
+      '[ State MockChainState,
+         Error MockChainError,
+         Writer MockChainBook,
+         Fail
+       ]
+      effs
+  ) =>
+  Sem (MockChainRead : effs) a ->
+  Sem effs a
+runMockChainRead = interpret $ \case
+  GetParams -> gets mcstParams
+  TxSkelOutByRef oRef -> do
+    res <- gets $ Map.lookup oRef . mcstOutputs
+    case res of
+      Just (txSkelOut, True) -> return txSkelOut
+      _ -> throw $ MCEUnknownOutRef oRef
+  AllUtxos ->
+    gets $
+      mapMaybe
+        ( \(oRef, (txSkelOut, isAvailable)) ->
+            if isAvailable
+              then
+                Just (oRef, txSkelOut)
+              else Nothing
+        )
+        . Map.toList
+        . mcstOutputs
+  UtxosAt (Script.toAddress -> addr) ->
+    gets $
+      mapMaybe
+        ( \(oRef, (txSkelOut, isAvailable)) ->
+            if isAvailable && Script.toAddress txSkelOut == addr
+              then
+                Just (oRef, txSkelOut)
+              else Nothing
+        )
+        . Map.toList
+        . mcstOutputs
+  LogEvent event -> tell $ MockChainBook [event] Map.empty
+  CurrentSlot -> gets (Emulator.getSlot . mcstLedgerState)
+  GetConstitutionScript -> gets (view mcstConstitutionL)
+  GetCurrentReward (Script.toCredential -> cred) -> do
+    stakeCredential <- undefined -- TODO [Not a question] I need MonadBlockChainBalancing instance (toStakeCredential cred)
+    gets
+      ( fmap (Api.Lovelace . Cardano.unCoin)
+          . Emulator.getReward stakeCredential
+          . view mcstLedgerStateL
+      )
+  Define name hashable -> tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
 
--- runMockChain ::
---   forall effs a.
---   ( ModifyLocally (UntypedTweak effs) :> effs,
---     State MockChainState :> effs,
---     Error MockChainError :> effs,
---     Writer [MockChainLogEntry] :> effs,
---     MockChainRead :> effs,
---     Fail :> effs
---   ) =>
---   Eff (MockChainWrite : effs) a ->
---   Eff effs a
--- runMockChain = interpret $ \_ -> \case
---   ValidateTxSkel skel -> do
---     requirements :: [Requirement (UntypedTweak effs)] <- getRequirements
---     undefined
---   ForceOutputs outs -> undefined
---   builtin -> undefined
+interceptMockChainWriteWithTweak ::
+  forall effs a.
+  ( Members
+      '[ ModifyLocally (UntypedTweak effs),
+         MockChainWrite,
+         NonDet
+       ]
+      effs
+  ) =>
+  Sem effs a ->
+  Sem effs a
+interceptMockChainWriteWithTweak = intercept @MockChainWrite $ \case
+  ValidateTxSkel skel -> do
+    requirements <- getRequirements
+    let sumTweak =
+          foldr
+            ( \req acc -> case req of
+                Apply (UntypedTweak tweak) -> tweak >> acc
+                EnsureFailure (UntypedTweak tweak) -> do
+                  txSkel' <- getTxSkel
+                  results <- raise_ $ runNonDet @[] $ runTweak txSkel' tweak
+                  -- TODO : there are 2 NonDet on the stack, which once
+                  -- will be used? I'm assuming the first occurrence, starting
+                  -- from the top of the stack.
+                  guard $ null results
+                  acc
+            )
+            (return ())
+            requirements
+    -- TODO : can we somehow use raise_, or something similar, to distinguish
+    -- between tweakEffs and effs
+    (newSkel, ()) <- subsume $ runTweak skel sumTweak
+    validateTxSkel newSkel
+  -- TODO : can we factor this ??
+  ForceOutputs outs -> forceOutputs outs
+  WaitNSlots n -> waitNSlots n
+  SetConstitutionScript script -> setConstitutionScript script
+  SetParams params -> setParams params
+
+runMockChainWrite ::
+  forall effs a.
+  ( Members
+      '[ State MockChainState,
+         Error MockChainError,
+         Writer MockChainBook,
+         MockChainRead,
+         Fail
+       ]
+      effs
+  ) =>
+  Sem (MockChainWrite : effs) a ->
+  Sem effs a
+runMockChainWrite = interpret $ \case
+  ValidateTxSkel skel -> do
+    undefined
+  ForceOutputs outs -> undefined
+  builtin -> undefined
+
+type MockChainDirect a =
+  Sem
+    '[ MockChainWrite,
+       MockChainRead,
+       Fail,
+       Error MockChainError,
+       State MockChainState,
+       Writer MockChainBook
+     ]
+    a
+
+runMockChainDirect ::
+  MockChainDirect a ->
+  (MockChainBook, (MockChainState, Either MockChainError a))
+runMockChainDirect =
+  run
+    . runWriter
+    . runState def
+    . runError
+    . runFail
+    . runMockChainRead
+    . runMockChainWrite
+
+-- TODO : what I want the users to see are
+
+-- * ModifyGlobally
+
+-- * MockChainWrite
+
+-- * MockChainRead
+
+-- * Fail
+
+-- * NonDet
+
+-- The rest should be hidden and only used for interpretation.
+-- I also want users to be able use their own effects on top
+-- (or at the bottom, what's the best option there?)
+-- of this stacks, such as a new state to manipulate.
+
+type MockChainFull eff a =
+  Sem
+    '[ ModifyGlobally (UntypedTweak eff),
+       MockChainWrite,
+       ModifyLocally (UntypedTweak eff),
+       State [Ltl (UntypedTweak eff)],
+       MockChainRead,
+       Fail,
+       Error MockChainError,
+       State MockChainState,
+       Writer MockChainBook,
+       NonDet
+     ]
+    a
+
+runMockChainFull ::
+  MockChainFull eff a ->
+  [(MockChainBook, (MockChainState, Either MockChainError a))]
+runMockChainFull =
+  run
+    . runNonDet
+    . runWriter
+    . runState def
+    . runError
+    . runFail
+    . runMockChainRead
+    . evalState []
+    . runModifyLocally
+    . runMockChainWrite
+    . interceptMockChainWriteWithTweak
+    . runModifyGlobally

@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 -- | This module provides a direct (as opposed to 'Cooked.MockChain.Staged')

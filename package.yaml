@@ -38,6 +38,7 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - polysemy
+  - polysemy-plugin
   - prettyprinter
   - random
   - random-shuffle
@@ -63,6 +64,7 @@ library:
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
     -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+    -fplugin=Polysemy.Plugin
   default-extensions: &default-extensions
     - ConstraintKinds
     - DataKinds

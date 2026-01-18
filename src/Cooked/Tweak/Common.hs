@@ -26,6 +26,7 @@ module Cooked.Tweak.Common
   )
 where
 
+import Control.Applicative
 import Control.Arrow (second)
 import Control.Monad
 import Control.Monad.State
@@ -84,7 +85,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
 -- together with mechanisms like 'Cooked.MockChain.Staged.withTweak',
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere',
 -- you should never have a reason to use this function.
-runTweakInChain :: (MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
+runTweakInChain :: (Monad m, Alternative m) => Tweak m a -> TxSkel -> m (a, TxSkel)
 runTweakInChain tweak = ListT.alternate . runStateT tweak
 
 -- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
@@ -94,16 +95,16 @@ runTweakInChain tweak = ListT.alternate . runStateT tweak
 -- modified, consider using 'Cooked.MockChain.Staged.MonadModalBlockChain' and
 -- idioms like 'Cooked.MockChain.Staged.withTweak',
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere'.
-runTweakInChain' :: (MonadPlus m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
+runTweakInChain' :: (Monad m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
 runTweakInChain' tweak = ListT.toList . runStateT tweak
 
 -- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
-runTweak :: (MonadPlus m) => Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
+runTweak :: (Monad m, Alternative m) => Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
 runTweak = runTweakFrom def
 
 -- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
 -- mockchain
-runTweakFrom :: (MonadPlus m) => InitialDistribution -> Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
+runTweakFrom :: (Monad m, Alternative m) => InitialDistribution -> Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
 runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInChain tweak
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You

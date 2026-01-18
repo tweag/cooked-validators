@@ -1,5 +1,6 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
+  inputs.nixpkgs.url =
+    "github:NixOS/nixpkgs/28ace32529a63842e4f8103e4f9b24960cf6c23a";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
   inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
@@ -29,7 +30,7 @@
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
-            nixfmt-classic.enable = true;
+            nixfmt.enable = true;
             ormolu.enable = true;
             hpack.enable = true;
           };
@@ -46,7 +47,7 @@
           };
         };
       in {
-        formatter = pkgs.nixfmt-classic;
+        formatter = pkgs.nixfmt;
 
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
@@ -67,7 +68,7 @@
             pkgs.xz
             pkgs.zlib
             pkgs.lmdb
-            pkgs.openssl_3_6
+            pkgs.openssl_3_4
             pkgs.postgresql # For cardano-node-emulator
             pkgs.openldap # For freer-extras‽
             pkgs.libsodium
