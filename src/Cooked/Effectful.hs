@@ -11,6 +11,7 @@ import Cooked.MockChain.Direct (MockChainBook (..))
 import Cooked.MockChain.MockChainState (MockChainState (..), mcstConstitutionL, mcstLedgerStateL)
 import Cooked.Pretty.Hashable (ToHash, toHash)
 import Cooked.Skeleton (ToVScript, TxSkel, TxSkelOut, VScript)
+import Cooked.Skeleton.Families (type (++))
 import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
@@ -22,6 +23,7 @@ import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error (Error, runError, throw)
 import Polysemy.Fail (Fail (Fail))
+import Polysemy.Internal (Raise)
 import Polysemy.Internal.Combinators (stateful)
 import Polysemy.NonDet
 import Polysemy.State
@@ -179,17 +181,27 @@ runMockChainRead = interpret $ \case
   Define name hashable -> tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
 
 interceptMockChainWriteWithTweak ::
-  forall effs a.
+  forall tweakEffs effs a.
   ( Members
-      '[ ModifyLocally (UntypedTweak effs),
-         MockChainWrite,
+      '[ ModifyLocally (UntypedTweak tweakEffs),
          NonDet
        ]
-      effs
+      effs,
+    -- TODO : Ideally, I would want to avoid having a second NonDet in tweakEffs, and instead:
+    -- - Use the top NonDet when ensuring a tweak fails
+    -- - Forward to the NonDet in effs to apply tweaks
+    -- It seems I can't do it because of the limitations of Members and raise_
+    Member NonDet tweakEffs,
+    -- TODO : do we have a more flexible equivalent of raise (Typically Members) that
+    -- can be translated to some concrete transformations, like Raise allows?
+    Raise tweakEffs effs
   ) =>
-  Sem effs a ->
-  Sem effs a
-interceptMockChainWriteWithTweak = intercept @MockChainWrite $ \case
+  Sem (MockChainWrite : effs) a ->
+  Sem (MockChainWrite : effs) a
+-- TODO : I used reinterpret instead of intercept because it does not force
+-- the effect to be on top of the stack, which I do want. Is this the right
+-- way to proceed?
+interceptMockChainWriteWithTweak = reinterpret @MockChainWrite $ \case
   ValidateTxSkel skel -> do
     requirements <- getRequirements
     let sumTweak =
@@ -207,10 +219,10 @@ interceptMockChainWriteWithTweak = intercept @MockChainWrite $ \case
             )
             (return ())
             requirements
-    -- TODO : can we somehow use raise_, or something similar, to distinguish
-    -- between tweakEffs and effs
-    (newSkel, ()) <- subsume $ runTweak skel sumTweak
-    validateTxSkel newSkel
+        sumTweakRaised :: Sem effs TxSkel
+        sumTweakRaised = raise_ $ subsume $ fst <$> runTweak skel sumTweak
+    newTxSkel <- raise_ sumTweakRaised
+    validateTxSkel newTxSkel
   -- TODO : can we factor this ??
   ForceOutputs outs -> forceOutputs outs
   WaitNSlots n -> waitNSlots n
@@ -247,9 +259,7 @@ type MockChainDirect a =
      ]
     a
 
-runMockChainDirect ::
-  MockChainDirect a ->
-  (MockChainBook, (MockChainState, Either MockChainError a))
+runMockChainDirect :: MockChainDirect a -> (MockChainBook, (MockChainState, Either MockChainError a))
 runMockChainDirect =
   run
     . runWriter
@@ -276,24 +286,27 @@ runMockChainDirect =
 -- (or at the bottom, what's the best option there?)
 -- of this stacks, such as a new state to manipulate.
 
-type MockChainFull eff a =
+type BottomStack =
+  '[ MockChainRead,
+     Fail,
+     Error MockChainError,
+     State MockChainState,
+     Writer MockChainBook,
+     NonDet
+   ]
+
+type MockChainFull a =
   Sem
-    '[ ModifyGlobally (UntypedTweak eff),
-       MockChainWrite,
-       ModifyLocally (UntypedTweak eff),
-       State [Ltl (UntypedTweak eff)],
-       MockChainRead,
-       Fail,
-       Error MockChainError,
-       State MockChainState,
-       Writer MockChainBook,
-       NonDet
-     ]
+    ( [ ModifyGlobally (UntypedTweak BottomStack),
+        MockChainWrite,
+        ModifyLocally (UntypedTweak BottomStack),
+        State [Ltl (UntypedTweak BottomStack)]
+      ]
+        ++ BottomStack
+    )
     a
 
-runMockChainFull ::
-  MockChainFull eff a ->
-  [(MockChainBook, (MockChainState, Either MockChainError a))]
+runMockChainFull :: MockChainFull a -> [(MockChainBook, (MockChainState, Either MockChainError a))]
 runMockChainFull =
   run
     . runNonDet
