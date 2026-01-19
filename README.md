@@ -173,8 +173,8 @@ balancing.
 ## Blog posts
 
 Several blog posts have been written about `cooked-validators`. As the library
-evolves, some code snippets in these posts may become outdated. However, the
-core philosophy remains unchanged, and these articles still provide valuable
+evolves, some code snippets in these posts may have become outdated. However,
+the core philosophy remains unchanged, and these articles still provide valuable
 insight into how to use the library.
 
 1. [An article](https://www.tweag.io/blog/2023-05-11-audit-smart-contract/)
