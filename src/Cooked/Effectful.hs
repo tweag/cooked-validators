@@ -343,6 +343,9 @@ runMockChainDirect =
 -- (or at the bottom, what's the best option there?)
 -- of this stacks, such as a new state to manipulate.
 
+-- Should I keep a "MonadBlockChain" type class?. With instance
+-- "MockChainDirect" and "MockChainFull"?
+
 type BottomStack =
   '[ MockChainRead,
      Fail,
