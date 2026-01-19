@@ -16,6 +16,10 @@ The library is designed to:
 - make test scenarios more readable and maintainable,
 - facilitate adversarial testing and vulnerability discovery.
 
+Importantly, `cooked-validators` is non-invasive: everything it automates can
+also be done manually if needed, allowing users to retain full control over
+transaction construction when desired.
+
 ## Core features
 
 With `cooked-validators`, you can:
@@ -44,13 +48,9 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
     * specifying the expected number of outcomes in case branching occurred,
     * asserting exact error messages in case of failure,
 	* ensuring a specific event was triggered during the run,
-    * checking the assets present at a given address.
+    * checking that some specific assets are present at a given address.
 
 ## How to integrate `cooked-validators` in a project
-
-To use `cooked-validators`, you need
-- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_7.html) version 9.6.7
-- [Cabal](https://www.haskell.org/cabal) version 3.10 or later
 
 1. `cooked-validators` depends on
 [cardano-haskell-packages](https://github.com/input-output-hk/cardano-haskell-packages)
@@ -74,36 +74,76 @@ the `packages` stanza.
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
 
+3. Each release of `cooked-validators` is pinned to a specific version of
+   [`cardano-api`](https://github.com/IntersectMBO/cardano-api) which in turn
+   pins the versions of all other Cardano-related dependencies (including
+   Plutus). Make sure your project relies on the same version.
+
 ## Example
    
-1. Make your project
-   [depend](https://cabal.readthedocs.io/en/stable/getting-started.html#adding-dependencies)
-   on `cooked-validators` and `plutus-script-utils`
-   
-2. Enter a Cabal read-eval-print-loop (with `cabal repl`)
-   and create and validate a transaction which transfers 10 Ada
-   from wallet 1 to wallet 2:
-   ```haskell
+This example shows how to create and validate a simple transaction that
+transfers 10 Ada from wallet 1 to wallet 2, without manually handling fees or
+balancing.
+
+1. Enter a Cabal read-eval-print-loop (with `cabal repl`)
+
+2. Import your required dependencies
+   ``` haskell
    > import Cooked
    > import qualified Plutus.Script.Utils.Value as Script
-   > printCooked . runMockChain . validateTxSkel $
-         txSkelTemplate
-           { txSkelOuts = [wallet 2 `receives` Value (Script.ada 10)],
-             txSkelSigners = [wallet 1]
-           }
-   [...]
-   - UTxO state:
-     • pubkey wallet 1
-       - Lovelace: 89_828_471
-       - (×4) Lovelace: 100_000_000
-     • pubkey wallet 2
-       - Lovelace: 10_000_000
-       - (×5) Lovelace: 100_000_000
-     • pubkey wallet 3
-       - (×5) Lovelace: 100_000_000
-     • pubkey wallet 4
-       - (×5) Lovelace: 100_000_000
-   [...]
+   ```
+
+3. Define a transaction which transfers 10 Ada from wallet 1 to wallet 2
+   ``` haskell
+   let myTransaction = txSkelTemplate {txSkelOuts = [wallet 2 `receives` Value (Script.ada 10)], txSkelSignatories = txSkelSignatoriesFromList [wallet 1]}
+   ```
+
+4. Send the transaction for validation, and request the printing of the run
+   ``` haskell
+   printCooked . runMockChain . validateTxSkel_ $ myTransaction 
+   ```
+
+5. Observe the log of the run, including all the adjustments made by
+   `cooked-validators`, the final mockchain state and returned value.
+   ```haskell
+   📖 MockChain run log:
+	 ⁍ New raw skeleton submitted to the adjustment pipeline:
+	   - Validity interval: (-∞ , +∞)
+	   - Signatories:
+		 - wallet 1 [balancing]
+	   - Outputs:
+		 - Pays to pubkey wallet 2
+		   - Lovelace: 10_000_000
+	 ⁍ New adjusted skeleton submitted for validation:
+	   - Validity interval: (-∞ , +∞)
+	   - Signatories:
+		 - wallet 1 [balancing]
+	   - Inputs:
+		 - Spends #4480b35!3 from pubkey wallet 1
+		   - Redeemer ()
+		   - Lovelace: 100_000_000
+	   - Outputs:
+		 - Pays to pubkey wallet 2
+		   - Lovelace: 10_000_000
+		 - Pays to pubkey wallet 1
+		   - Lovelace: 89_828_383
+	   - Fee: Lovelace: 171_617
+	   - No collateral required
+	 ⁍ New transaction successfully validated:
+	   - Transaction id: #c095342
+	   - Number of new outputs: 2
+   ✅ UTxO state:
+	 • pubkey wallet 1
+	   - Lovelace: 89_828_383
+	   - (×3) Lovelace: 100_000_000
+	 • pubkey wallet 2
+	   - Lovelace: 10_000_000
+	   - (×4) Lovelace: 100_000_000
+	 • pubkey wallet 3
+	   - (×4) Lovelace: 100_000_000
+	 • pubkey wallet 4
+	   - (×4) Lovelace: 100_000_000
+   🟢 Returned value: () 
    ```
 
 ## Documentation
