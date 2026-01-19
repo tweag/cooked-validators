@@ -6,17 +6,17 @@ Copyright Tweag I/O 2026
 expressive off-chain code for Cardano smart contracts, with a primary focus on
 testing, auditing, and behavioral exploration.
 
-It allows you to describe transactions at a high level (via transaction
-skeletons) and automatically turn them into complete, valid transactions by
-handling all mechanical aspects such UTxO selection, balancing, minimum-Ada
-constraints, collaterals or fees.
+It allows you to describe transactions at a high level (via what we call
+transaction skeletons) and automatically turn them into complete, valid
+transactions by handling all mechanical aspects such UTxO selection, balancing,
+minimum-Ada constraints, collaterals or fees.
 
 The library is designed to:
 - drastically reduce off-chain boilerplate,
 - make test scenarios more readable and maintainable,
 - facilitate adversarial testing and vulnerability discovery.
 
-Importantly, `cooked-validators` is non-invasive: everything it automates can
+Importantly, `cooked-validators` is non-disruptive: everything it automates can
 also be done manually if needed, allowing users to retain full control over
 transaction construction when desired.
 
@@ -37,18 +37,19 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
 - Construct sequences of transactions in a clear, implementation-independent
   abstraction of the blockchain.
 - Run transaction sequences in an emulated blockchain.
-- Apply tweaks to transactions just before submission, where tweaks are
-  modifications aware of the current blockchain state.
+- Define modifications aware of the current blockchain state (tweaks), and apply
+  them to transactions just before submission.
 - Compose and deploy tweaks on sequences of transactions using idioms inspired
   by linear temporal logic.
 - Deploy automated attacks on existing transaction sequences, such as datum
   hijacking or double satisfaction attacks, to uncover vulnerabilities.
-- Express expected outcomes of runs in a precise and declarative way, for
-  example by:
+- Express expected outcomes on the result of running a trace in a precise and
+  declarative way, for example by:
     * specifying the expected number of outcomes in case branching occurred,
     * asserting exact error messages in case of failure,
 	* ensuring a specific event was triggered during the run,
-    * checking that some specific assets are present at a given address.
+    * checking that some specific assets are present at a given address in the
+      final blockchain state.
 
 ## How to integrate `cooked-validators` in a project
 
