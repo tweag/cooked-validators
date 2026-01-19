@@ -172,29 +172,29 @@ balancing.
 
 ## Blog posts
 
-Some blog posts have been written on `cooked-validators`. As the library is
-being updated, some code snippets there might find themselves outdated. However,
-the core philosophy of `cooked-validators` remains, and the they offer very
-useful insight on how to use the library.
+Several blog posts have been written about `cooked-validators`. As the library
+evolves, some code snippets in these posts may become outdated. However, the
+core philosophy remains unchanged, and these articles still provide valuable
+insight into how to use the library.
 
 1. [An article](https://www.tweag.io/blog/2023-05-11-audit-smart-contract/)
-   which explains how we use `cooked-validators` to conduct smart contract
-   audits.
+   explaining how we use `cooked-validators` to conduct smart contract audits.
    
 2. [An
    article](https://www.tweag.io/blog/2025-02-20-transaction-generation-automation-with-cooked-validators/)
-   which depicts how transaction skeleton are built in `cooked-validators` and
-   how the library builds comprehensive transactions from them.
+   describing how transaction skeletons are built in `cooked-validators` and how
+   the library constructs complete transactions from them.
 
 3. [An
    article](https://www.tweag.io/blog/2022-01-26-property-based-testing-of-monadic-code/)
-   depicting the original idea to use temporal modalities to modify sequences of
-   transactions.
+   presenting the original idea of using temporal modalities to modify sequences
+   of transactions.
 
-4. [An
-   article](https://www.tweag.io/blog/2022-01-26-property-based-testing-of-monadic-code/)
-   depicting how linear temporal logics is used in `cooked-validators` to deploy
-   modifications on time.
+
+4. [An article](https://www.tweag.io/blog/2022-10-14-ltl-attacks/) explaining
+   how [linear temporal
+   logic](https://en.wikipedia.org/wiki/Linear_temporal_logic) is used in
+   `cooked-validators` to deploy modifications over time.
 
 ## Additional resources
 
