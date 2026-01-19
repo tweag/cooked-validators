@@ -5,13 +5,13 @@ module Cooked.Effectful where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad (guard, msum, unless)
+import Cooked.Families (type (++))
 import Cooked.Ltl (Ltl, Requirement (..), finished, nowLaterList)
 import Cooked.MockChain.BlockChain (MockChainError (..), MockChainLogEntry)
 import Cooked.MockChain.Direct (MockChainBook (..))
 import Cooked.MockChain.MockChainState (MockChainState (..), mcstConstitutionL, mcstLedgerStateL)
 import Cooked.Pretty.Hashable (ToHash, toHash)
 import Cooked.Skeleton (ToVScript, TxSkel, TxSkelOut, VScript)
-import Cooked.Skeleton.Families (type (++))
 import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
@@ -270,16 +270,11 @@ runMockChainDirect =
     . runMockChainWrite
 
 -- TODO : what I want the users to see are
-
--- * ModifyGlobally
-
--- * MockChainWrite
-
--- * MockChainRead
-
--- * Fail
-
--- * NonDet
+-- - ModifyGlobally
+-- - MockChainWrite
+-- - MockChainRead
+-- - Fail
+-- - NonDet
 
 -- The rest should be hidden and only used for interpretation.
 -- I also want users to be able use their own effects on top

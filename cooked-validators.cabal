@@ -18,6 +18,7 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Effectful
+      Cooked.Families
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.MockChain
@@ -54,7 +55,6 @@ library
       Cooked.Skeleton.Anchor
       Cooked.Skeleton.Certificate
       Cooked.Skeleton.Datum
-      Cooked.Skeleton.Families
       Cooked.Skeleton.Label
       Cooked.Skeleton.Mint
       Cooked.Skeleton.Option
