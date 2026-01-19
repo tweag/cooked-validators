@@ -114,13 +114,13 @@ runTweak ::
   TxSkel ->
   Sem (Tweak : effs) a ->
   Sem effs (TxSkel, a)
--- TODO : is stateful the right helper? It seems I have to rewrite the state
--- primitives by hand. Can we have something like reinterpret in effectful
--- where we can temporarily use another effect like a state?
-runTweak = stateful $ \tweak skel -> return $
-  case tweak of
-    GetTxSkel -> (skel, skel)
-    SetTxSkel skel' -> (skel', ())
+runTweak txSkel =
+  runState txSkel
+    . reinterpret
+      ( \case
+          GetTxSkel -> get
+          SetTxSkel skel -> put skel
+      )
 
 -- | An UntypedTweak does three things on top of tweaks:
 -- - It erases the return type of the computation
