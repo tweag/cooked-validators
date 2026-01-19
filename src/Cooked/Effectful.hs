@@ -29,14 +29,29 @@ import Polysemy.NonDet
 import Polysemy.State
 import Polysemy.Writer (Writer, runWriter, tell)
 
+-- * ModifyGlobally
+
+-- | An effect to modify a computation with a Ltl Formula. The idea is that the
+-- formula pinpoints location where a modification should either be applied or
+-- yield an empty computation (when negated).
 data ModifyGlobally a :: Effect where
   ModifyLtl :: Ltl a -> m b -> ModifyGlobally a m b
 
 makeSem ''ModifyGlobally
 
+-- | Running the `ModifyGlobally` effect requires to have access of the current
+-- list of Ltl formulas, and to be able to return an empty computation. A new
+-- formula is appended at the head of the current list of formula. Then, the
+-- actual computation is run, after which the newly added formula must be
+-- finished, otherwise the empty computation is returned.
 runModifyGlobally ::
   forall modification effs a.
-  (Members '[State [Ltl modification], NonDet] effs) =>
+  ( Members
+      '[ State [Ltl modification],
+         NonDet
+       ]
+      effs
+  ) =>
   Sem (ModifyGlobally modification ': effs) a ->
   Sem effs a
 runModifyGlobally =
@@ -55,11 +70,20 @@ runModifyGlobally =
         put (tail formulas)
       return res
 
+-- * ModifyLocally
+
+-- | An effect to request and consume the modifications to be applied at the
+-- current time step.
 data ModifyLocally a :: Effect where
   GetRequirements :: ModifyLocally a m [Requirement a]
 
 makeSem ''ModifyLocally
 
+-- | Running the `ModifyLocally` effect requires to have access of the current
+-- list of Ltl formulas, and to be able to branch. The function `nowLaterList`
+-- is invoked to fetch the various paths implied by the current formulas, and a
+-- branching is performed to explore all of them. The new formulas are stored,
+-- and each path is given the requirements to satisfy at the current time step.
 runModifyLocally ::
   forall modification effs a.
   ( Members
@@ -75,34 +99,16 @@ runModifyLocally =
     modifications <- gets nowLaterList
     msum . (modifications <&>) $ \(now, later) -> put later >> return now
 
-data MockChainRead :: Effect where
-  GetParams :: MockChainRead m Emulator.Params
-  TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
-  CurrentSlot :: MockChainRead m Ledger.Slot
-  AllUtxos :: MockChainRead m [(Api.TxOutRef, TxSkelOut)]
-  UtxosAt :: (Script.ToAddress a) => a -> MockChainRead m [(Api.TxOutRef, TxSkelOut)]
-  LogEvent :: MockChainLogEntry -> MockChainRead m ()
-  Define :: (ToHash a) => String -> a -> MockChainRead m a
-  GetConstitutionScript :: MockChainRead m (Maybe VScript)
-  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
+-- * Tweak
 
-makeSem ''MockChainRead
-
-data MockChainWrite :: Effect where
-  WaitNSlots :: Integer -> MockChainWrite m Ledger.Slot
-  SetParams :: Emulator.Params -> MockChainWrite m ()
-  ValidateTxSkel :: TxSkel -> MockChainWrite m Ledger.CardanoTx
-  SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
-  ForceOutputs :: [TxSkelOut] -> MockChainWrite m [Api.TxOutRef]
-
-makeSem ''MockChainWrite
-
+-- | An effet that allows to store or retrieve a skeleton from the context
 data Tweak :: Effect where
   GetTxSkel :: Tweak m TxSkel
   SetTxSkel :: TxSkel -> Tweak m ()
 
 makeSem ''Tweak
 
+-- | Running a Tweak should be equivalent to running a state monad
 runTweak ::
   forall effs a.
   TxSkel ->
@@ -116,9 +122,21 @@ runTweak = stateful $ \tweak skel -> return $
     GetTxSkel -> (skel, skel)
     SetTxSkel skel' -> (skel', ())
 
+-- | An UntypedTweak does three things on top of tweaks:
+-- - It erases the return type of the computation
+-- - It stacks up a NonDet effect in the effects stacks
+-- - It makes the underlying effect stack visible in the type
+-- All of these will be useful to use them as modification.
 data UntypedTweak effs where
   UntypedTweak :: Sem (Tweak : NonDet : effs) a -> UntypedTweak effs
 
+-- * Fail
+
+-- | A possible semantics for fail that is interpreted in terms of Error. It
+-- could also technically be run in NonDet but the error message would be lost
+-- if transformed to mzero. This might not be the soundest interpretation, but
+-- this does the job. After all, the only use for this effect will be to allow
+-- partial assignments in our monadic setting.
 runFail ::
   forall effs a.
   (Member (Error MockChainError) effs) =>
@@ -127,13 +145,26 @@ runFail ::
 runFail = interpret $ \case
   Fail s -> throw $ FailWith s
 
+-- * MockChainRead
+
+-- | An effect that corresponds to querying the current state of the mockchain.
+data MockChainRead :: Effect where
+  GetParams :: MockChainRead m Emulator.Params
+  TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
+  CurrentSlot :: MockChainRead m Ledger.Slot
+  AllUtxos :: MockChainRead m [(Api.TxOutRef, TxSkelOut)]
+  UtxosAt :: (Script.ToAddress a) => a -> MockChainRead m [(Api.TxOutRef, TxSkelOut)]
+  GetConstitutionScript :: MockChainRead m (Maybe VScript)
+  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
+
+makeSem ''MockChainRead
+
+-- | This interpretation is fully domain-based
 runMockChainRead ::
   forall effs a.
   ( Members
       '[ State MockChainState,
-         Error MockChainError,
-         Writer MockChainBook,
-         Fail
+         Error MockChainError
        ]
       effs
   ) =>
@@ -157,6 +188,9 @@ runMockChainRead = interpret $ \case
         )
         . Map.toList
         . mcstOutputs
+  -- TODO : I could technically reinterpret UtxosAt in terms of AllUtxos when it
+  -- is available (in the emulator) but I don't want to go through the hassle of
+  -- forwarding by hand all the other constructors.
   UtxosAt (Script.toAddress -> addr) ->
     gets $
       mapMaybe
@@ -168,18 +202,35 @@ runMockChainRead = interpret $ \case
         )
         . Map.toList
         . mcstOutputs
-  LogEvent event -> tell $ MockChainBook [event] Map.empty
   CurrentSlot -> gets (Emulator.getSlot . mcstLedgerState)
   GetConstitutionScript -> gets (view mcstConstitutionL)
   GetCurrentReward (Script.toCredential -> cred) -> do
-    stakeCredential <- undefined -- TODO [Not a question] I need MonadBlockChainBalancing instance (toStakeCredential cred)
+    stakeCredential <- undefined
     gets
       ( fmap (Api.Lovelace . Cardano.unCoin)
           . Emulator.getReward stakeCredential
           . view mcstLedgerStateL
       )
-  Define name hashable -> tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
 
+-- * MockChainWrite
+
+-- | An effect that corresponds to all the primitives that are not
+-- read-only. They range from actual modification of the index state to storage
+-- of logging information.
+data MockChainWrite :: Effect where
+  WaitNSlots :: Integer -> MockChainWrite m Ledger.Slot
+  SetParams :: Emulator.Params -> MockChainWrite m ()
+  ValidateTxSkel :: TxSkel -> MockChainWrite m Ledger.CardanoTx
+  SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
+  ForceOutputs :: [TxSkelOut] -> MockChainWrite m [Api.TxOutRef]
+  LogEvent :: MockChainLogEntry -> MockChainWrite m ()
+  Define :: (ToHash a) => String -> a -> MockChainWrite m a
+
+makeSem ''MockChainWrite
+
+-- | 'MockChainWrite' is subject to be modified by UntypedTweak, when the event
+-- is a 'ValidateTxSkel'. To handle that we proposed a reinterpretation of the
+-- effect in itself, when the 'ModifyLocally' effect exists in the stack.
 interceptMockChainWriteWithTweak ::
   forall tweakEffs effs a.
   ( Members
@@ -228,7 +279,10 @@ interceptMockChainWriteWithTweak = reinterpret @MockChainWrite $ \case
   WaitNSlots n -> waitNSlots n
   SetConstitutionScript script -> setConstitutionScript script
   SetParams params -> setParams params
+  LogEvent event -> logEvent event
+  Define name hashable -> define name hashable
 
+-- | Interpreting the 'MockChainWrite' effect is purely domain-specific.
 runMockChainWrite ::
   forall effs a.
   ( Members
@@ -246,8 +300,14 @@ runMockChainWrite = interpret $ \case
   ValidateTxSkel skel -> do
     undefined
   ForceOutputs outs -> undefined
+  LogEvent event -> tell $ MockChainBook [event] Map.empty
+  Define name hashable -> tell (MockChainBook [] (Map.singleton (toHash hashable) name)) >> return hashable
   builtin -> undefined
 
+-- * MockChainDirect
+
+-- | A possible stack of effects to handle a direct interpretation of the
+-- mockchain, that is without any tweaks nor branching.
 type MockChainDirect a =
   Sem
     '[ MockChainWrite,
@@ -268,6 +328,8 @@ runMockChainDirect =
     . runFail
     . runMockChainRead
     . runMockChainWrite
+
+-- * MockChainFull
 
 -- TODO : what I want the users to see are
 -- - ModifyGlobally
@@ -290,6 +352,8 @@ type BottomStack =
      NonDet
    ]
 
+-- | A possible stack of effects to handle staged interpretation of the
+-- mockchain, that is with tweaks and branching.
 type MockChainFull a =
   Sem
     ( [ ModifyGlobally (UntypedTweak BottomStack),
