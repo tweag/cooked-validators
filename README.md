@@ -16,7 +16,7 @@ The library is designed to:
 - make test scenarios more readable and maintainable,
 - facilitate adversarial testing and vulnerability discovery.
 
-Importantly, `cooked-validators` is non-disruptive: everything it automates can
+Importantly, `cooked-validators` is non-opinionated: everything it automates can
 also be done manually if needed, allowing users to retain full control over
 transaction construction when desired.
 

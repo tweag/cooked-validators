@@ -29,7 +29,7 @@
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
-            nixfmt-classic.enable = true;
+            nixfmt.enable = true;
             ormolu.enable = true;
             hpack.enable = true;
           };
@@ -46,7 +46,7 @@
           };
         };
       in {
-        formatter = pkgs.nixfmt-classic;
+        formatter = pkgs.nixfmt;
 
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
