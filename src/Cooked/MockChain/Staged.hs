@@ -1,25 +1,31 @@
 -- | This module provides a staged implementation of our `MonadBlockChain`. The
--- motivation behind this is to be able to modify traces using `Cooked.Ltl` and
--- `Cooked.Tweak` while they are interpreted.
+-- motivation is to be able to modify transactions with `Cooked.Tweak`s deployed
+-- in time with `Cooked.Ltl` while the computation gets interpreted, and before
+-- the transactions are sent for validation.
 module Cooked.MockChain.Staged
-  ( interpretAndRunWith,
-    interpretAndRun,
-    StagedMockChain,
+  ( -- * 'StagedMockChain': An AST of mockchain computations
     MockChainBuiltin,
-    MockChainTweak,
-    MonadModalBlockChain,
     InterpMockChain,
+    MockChainTweak,
+    StagedMockChain,
+
+    -- * Interpreting and running a 'StagedMockChain'
+    interpretAndRunWith,
+    interpretAndRun,
+
+    -- * Temporal modalities
+    MonadModalBlockChain,
+    withTweak,
     somewhere,
     somewhere',
     everywhere,
     everywhere',
-    withTweak,
     there,
     there',
-    nowhere',
     nowhere,
-    whenAble',
+    nowhere',
     whenAble,
+    whenAble',
   )
 where
 
@@ -38,11 +44,9 @@ import Ledger.Tx qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- * 'StagedMockChain': An AST for 'MonadMockChain' computations
-
 -- | Abstract representation of all the builtin functions of a 'MonadBlockChain'
 data MockChainBuiltin a where
-  -- methods of 'MonadBlockChain'
+  -- Builtins of 'MonadBlockChain'
   GetParams :: MockChainBuiltin Emulator.Params
   SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
@@ -63,6 +67,12 @@ data MockChainBuiltin a where
   -- for the 'MonadError MockChainError' instance
   ThrowError :: MockChainError -> MockChainBuiltin a
   CatchError :: StagedMockChain a -> (MockChainError -> StagedMockChain a) -> MockChainBuiltin a
+
+-- | The domain in which 'StagedMockChain' gets interpreted
+type InterpMockChain = MockChainT []
+
+-- | Tweaks operating within the 'InterpMockChain' domain
+type MockChainTweak = UntypedTweak InterpMockChain
 
 -- | A 'StagedMockChain' is an AST of mockchain builtins wrapped into @LtlOp@ to
 -- be subject to @Ltl@ modifications.
@@ -101,14 +111,6 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
   forceOutputs = singletonBuiltin . ForceOutputs
-
--- * Interpreting and running 'StagedMockChain'
-
--- | The domain in which 'StagedMockChain' gets interpreted
-type InterpMockChain = MockChainT []
-
--- | Tweaks operating within the 'InterpMockChain' domain
-type MockChainTweak = UntypedTweak InterpMockChain
 
 instance ModInterpBuiltin MockChainTweak MockChainBuiltin InterpMockChain where
   modifyAndInterpBuiltin = \case
@@ -152,8 +154,6 @@ interpretAndRunWith f = f . interpStagedLtl
 interpretAndRun :: StagedMockChain a -> [MockChainReturn a]
 interpretAndRun = interpretAndRunWith runMockChainT
 
--- * Modalities
-
 -- | A modal mockchain is a mockchain that allows us to use LTL modifications
 -- with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadLtl MockChainTweak m)
@@ -161,32 +161,30 @@ type MonadModalBlockChain m = (MonadBlockChain m, MonadLtl MockChainTweak m)
 fromTweak :: Tweak m a -> Ltl (UntypedTweak m)
 fromTweak = LtlAtom . UntypedTweak
 
--- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
--- apply at least once.
+-- | Applies a 'Tweak' to every step in a trace where it is applicable,
+-- branching at any such locations. The tweak must apply at least once.
 somewhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 somewhere = somewhere' . fromTweak
 
--- | Apply an Ltl modification somewhere in the given Trace. The modification
--- must apply at least once.
+-- | Applies an Ltl modification following the same rules as `somewhere`.
 somewhere' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
 somewhere' = modifyLtl . ltlEventually
 
--- | Apply a 'Tweak' to every transaction in a given trace. This is also
--- successful if there are no transactions at all.
+-- | Applies a 'Tweak' to every transaction in a given trace. Fails if the tweak
+-- fails anywhere in the trace.
 everywhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 everywhere = everywhere' . fromTweak
 
--- | Apply an Ltl modification everywhere it can be (including nowhere if it
--- does not apply). If the modification branches, this will branch at every
--- location the modification can be applied.
+-- | Applies a Ltl modification following the sames rules as `everywhere`.
 everywhere' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
 everywhere' = modifyLtl . ltlAlways
 
--- | Ensures a given 'Tweak' can never successfully be applied in a computation
+-- | Ensures a given 'Tweak' can never successfully be applied in a computation,
+-- and leaves the computation unchanged.
 nowhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 nowhere = nowhere' . fromTweak
 
--- | Ensures a given Ltl modification can never be applied on a computation
+-- | Ensures a given Ltl modifications follow the same rules as `nowhere`.
 nowhere' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
 nowhere' = modifyLtl . ltlNever
 
@@ -195,27 +193,24 @@ nowhere' = modifyLtl . ltlNever
 whenAble :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 whenAble = whenAble' . fromTweak
 
--- | Apply an Ltl modification at every location in a computation where it is
--- possible. Does not fail if no such position exists.
+-- | Apply an Ltl modification following the same rules as `whenAble`.
 whenAble' :: (MonadLtl mod m) => Ltl mod -> m a -> m a
 whenAble' = modifyLtl . ltlWhenPossible
 
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
-there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
-there n = there' n . fromTweak
-
--- | Apply an Ltl modification to the (0-indexed) nth transaction in a
--- given trace. Successful when this transaction exists and can be modified.
 --
 -- See also `Cooked.Tweak.Labels.labelled` to select transactions based on
 -- labels instead of their index.
+there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
+there n = there' n . fromTweak
+
+-- | Apply an Ltl modification following the same rules as `there`.
 there' :: (MonadLtl mod m) => Integer -> Ltl mod -> m a -> m a
 there' n = modifyLtl . ltlDelay n
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
--- arguments is reversed compared to 'somewhere' and 'everywhere', because that
--- enables an idiom like
+-- arguments enables an idiom like
 --
 -- > do ...
 -- >    endpoint arguments `withTweak` someModification
