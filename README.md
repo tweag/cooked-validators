@@ -103,8 +103,12 @@ balancing.
    printCooked . runMockChain . validateTxSkel_ $ myTransaction 
    ```
 
-5. Observe the log of the run, including all the adjustments made by
-   `cooked-validators`, the final mockchain state and returned value.
+5. Observe the log of the run, including:
+    - The original skeleton, and its balanced counterpart
+	- The associated fee and collaterals
+	- The final mockchain state, with every wallet's assets (notice the 10 ADA
+      payment owned by wallet 2)
+	- The value returned by the run (here `()` as we used `validateTxSkel_`)
    ```haskell
    📖 MockChain run log:
 	 ⁍ New raw skeleton submitted to the adjustment pipeline:
@@ -165,6 +169,32 @@ balancing.
 
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
+
+## Blog posts
+
+Some blog posts have been written on `cooked-validators`. As the library is
+being updated, some code snippets there might find themselves outdated. However,
+the core philosophy of `cooked-validators` remains, and the they offer very
+useful insight on how to use the library.
+
+1. [An article](https://www.tweag.io/blog/2023-05-11-audit-smart-contract/)
+   which explains how we use `cooked-validators` to conduct smart contract
+   audits.
+   
+2. [An
+   article](https://www.tweag.io/blog/2025-02-20-transaction-generation-automation-with-cooked-validators/)
+   which depicts how transaction skeleton are built in `cooked-validators` and
+   how the library builds comprehensive transactions from them.
+
+3. [An
+   article](https://www.tweag.io/blog/2022-01-26-property-based-testing-of-monadic-code/)
+   depicting the original idea to use temporal modalities to modify sequences of
+   transactions.
+
+4. [An
+   article](https://www.tweag.io/blog/2022-01-26-property-based-testing-of-monadic-code/)
+   depicting how linear temporal logics is used in `cooked-validators` to deploy
+   modifications on time.
 
 ## Additional resources
 
