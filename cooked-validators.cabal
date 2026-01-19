@@ -1,11 +1,11 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.38.2.
+-- This file has been generated from package.yaml by hpack version 0.38.3.
 --
 -- see: https://github.com/sol/hpack
 
 name:           cooked-validators
-version:        7.0.0
+version:        8.0.0
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple

@@ -1,44 +1,55 @@
 # [Cooked Validators](https://github.com/tweag/cooked-validators/)
 
-Copyright Tweag I/O 2025
+Copyright Tweag I/O 2026
 
-`cooked-validators` is a Haskell library to conveniently and efficiently write
-off-chain code for Cardano smart contracts. This offchain code will be
-specifically geared to testing and auditing the smart contract in question with
-further builtin capabilities of the library.
+`cooked-validators` is a Haskell library for writing reliable, concise, and
+expressive off-chain code for Cardano smart contracts, with a primary focus on
+testing, auditing, and behavioral exploration.
 
-In particular, `cooked-validators` allows the user to:
-- interact with smart contracts written in Plutus or any other language that
-  compiles to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), like for
-  example [Plutarch](https://github.com/Plutonomicon/plutarch-plutus) or
-  [Aiken](https://aiken-lang.org/), by loading contracts from byte strings
-- define transactions in a high level, type-retaining data structure
-- submit transactions for validation, while automatically taking care of missing
-  inputs and outputs, balancing, minimum-Ada constraints, collaterals and fees
-- construct sequences of transactions in an easy-to-understand abstraction of
-  "the blockchain", which can be instantiated to different actual
-  implementations
-- run sequences of transactions in a simulated blockchain
-- apply "tweaks" to transactions right before submitting them, where "tweaks"
-  are modifications that are aware of the current state of the simulated
-  blockchain
-- compose and deploy tweaks with flexible idioms inspired by linear temporal
-  logic, in order to turn one sequence of transactions into many sequences that
-  might be useful test cases, generalized in
-  [Graft](https://github.com/tweag/graft)
-- deploy automated attacks over existing sequences of transactions, such as
-  datum hijacking or double satisfaction attacks, in an attempt to uncover
-  vulnerabilities
+It allows you to describe transactions at a high level (via transaction
+skeletons) and automatically turn them into complete, valid transactions by
+handling all mechanical aspects such UTxO selection, balancing, minimum-Ada
+constraints, collaterals or fees.
 
-You are free to copy, modify, and distribute `cooked-validators` under the terms
-of the MIT license. We provide `cooked-validators` as a research prototype under
-active development, and it comes _as is_ with no guarantees whatsoever. Check
-the [license](LICENSE) for details.
+The library is designed to:
+- drastically reduce off-chain boilerplate,
+- make test scenarios more readable and maintainable,
+- facilitate adversarial testing and vulnerability discovery.
+
+## Core features
+
+With `cooked-validators`, you can:
+- Interact with smart contracts written in Plutus or any language that compiles
+to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
+[Plutarch](https://github.com/Plutonomicon/plutarch-plutus) or
+[Aiken](https://aiken-lang.org/), by loading contracts from bytestrings.
+- Define transactions using a high-level, type-preserving data structure.
+- Submit transactions for validation while the library automatically:
+    * fills in missing inputs and outputs,
+    * performs balancing,
+    * enforces minimum-Ada constraints,
+    * computes and attaches optimal collaterals and fees,
+	* automatically adds script witnesses, including from reference inputs.
+- Construct sequences of transactions in a clear, implementation-independent
+  abstraction of the blockchain.
+- Run transaction sequences in an emulated blockchain.
+- Apply tweaks to transactions just before submission, where tweaks are
+  modifications aware of the current blockchain state.
+- Compose and deploy tweaks on sequences of transactions using idioms inspired
+  by linear temporal logic.
+- Deploy automated attacks on existing transaction sequences, such as datum
+  hijacking or double satisfaction attacks, to uncover vulnerabilities.
+- Express expected outcomes of runs in a precise and declarative way, for
+  example by:
+    * specifying the expected number of outcomes in case branching occurred,
+    * asserting exact error messages in case of failure,
+	* ensuring a specific event was triggered during the run,
+    * checking the assets present at a given address.
 
 ## How to integrate `cooked-validators` in a project
 
 To use `cooked-validators`, you need
-- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_6.html) version 9.6.6
+- [GHC](https://www.haskell.org/ghc/download_ghc_9_6_7.html) version 9.6.7
 - [Cabal](https://www.haskell.org/cabal) version 3.10 or later
 
 1. `cooked-validators` depends on
@@ -59,7 +70,7 @@ the `packages` stanza.
      subdir:
        .
    ```
-   where `myTag` is either a commit hash in the repo, or a tag, such as v7.0.0
+   where `myTag` is either a commit hash in the repo, or a tag, such as v8.0.0
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
 
@@ -112,9 +123,6 @@ the `packages` stanza.
   automated balancing mechanism and associated options (including options
   revolving around fees and collaterals).
 
-- The [CONWAY](doc/CONWAY.md) file describes the Conway features that are
-  currently supported by `cooked-validators`.
-
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
 
@@ -138,3 +146,10 @@ the `packages` stanza.
 - `cooked-validators` comes with a [template
   repository](https://github.com/tweag/cooked-template) which can be used to
   develop offchain code and/or audit code with the tool.
+
+## License
+
+You are free to copy, modify, and distribute `cooked-validators` under the terms
+of the MIT license. We provide `cooked-validators` as a research prototype under
+active development, and it comes _as is_ with no guarantees whatsoever. Check
+the [license](LICENSE) for details.

@@ -4,6 +4,16 @@
 
 ### Added
 
+### Removed
+
+### Changed
+
+### Fixed
+
+## [[8.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v8.0.0) - 2026-01-19
+
+### Added
+
 - `viewByRef` and `previewByRef` which call `txSkelOutByRef` and apply a getter
   and an affine fold on it, respectively.
 - Optics working on values in `Cooked.Skeleton.Output`
