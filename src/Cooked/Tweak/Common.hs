@@ -1,18 +1,18 @@
--- | This module defines 'Tweak's which are the fundamental building blocks of
--- our "domain specific language" for attacks. They are essentially skeleton
--- modifications aware of the mockchain state.
+{-# LANGUAGE TemplateHaskell #-}
+
+-- | This module defines 'Tweak's which are the building blocks of our DSL for
+-- attacks. They are skeleton modifications aware of the mockchain state.
 module Cooked.Tweak.Common
-  ( runTweak,
-    runTweakFrom,
-    runTweakInChain,
-    runTweakInChain',
-    Tweak,
+  ( -- * Tweak effect
+    TweakEff (..),
+    getTxSkel,
+    putTxSkel,
+    runTweak,
+
+    -- * Untyped tweaks
     UntypedTweak (..),
 
-    -- * User API
-    MonadTweak (..),
-    failingTweak,
-    doNothingTweak,
+    -- * Optics tweaks
     viewTweak,
     viewAllTweak,
     setTweak,
@@ -22,140 +22,94 @@ module Cooked.Tweak.Common
     selectP,
     combineModsTweak,
     iviewTweak,
-    ensureFailingTweak,
   )
 where
 
-import Control.Applicative
 import Control.Arrow (second)
 import Control.Monad
-import Control.Monad.State
-import Cooked.InitialDistribution
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.Direct
 import Cooked.Skeleton
-import Data.Default
 import Data.Either.Combinators (rightToMaybe)
 import Data.List (mapAccumL)
 import Data.Maybe
-import ListT (ListT)
-import ListT qualified
 import Optics.Core
+import Polysemy
+import Polysemy.NonDet
+import Polysemy.State
 
--- * The type of tweaks
+-- | An effet that allows to store or retrieve a `TxSkel` from a context
+data TweakEff :: Effect where
+  -- | Retrieves the `TxSkel` from the context
+  GetTxSkel :: TweakEff m TxSkel
+  -- | Overrides the `TxSkel` in the context
+  PutTxSkel :: TxSkel -> TweakEff m ()
 
--- | A 'MonadTweak' is a 'MonadBlockChainWithoutValidation' where you can also
--- retrieve and store a 'TxSkel'
-class (MonadPlus m, MonadBlockChainWithoutValidation m) => MonadTweak m where
-  -- | Retrieves the stored 'TxSkel'
-  getTxSkel :: m TxSkel
+makeSem ''TweakEff
 
-  -- | Stores a 'TxSkel'
-  putTxSkel :: TxSkel -> m ()
+-- | Running a Tweak is equivalent to running a state monad storing a `TxSkel`
+runTweak ::
+  TxSkel ->
+  Sem (TweakEff : effs) a ->
+  Sem effs (TxSkel, a)
+runTweak txSkel =
+  runState txSkel
+    . reinterpret
+      ( \case
+          GetTxSkel -> get
+          PutTxSkel skel -> put skel
+      )
 
--- | A 'Tweak' is the most natural instance of 'MonadTweak' where the storing
--- and retrieving of the 'TxSkel' is performed through a state monad
-type Tweak m = StateT TxSkel (ListT m)
-
-instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
-  getTxSkel = get
-  putTxSkel = put
-
--- * Running tweaks
-
--- | This is the function that gives a meaning to 'Tweak's: A 'Tweak' is a
--- computation that, depending on the state of the chain, looks at a transaction
--- and returns zero or more modified transactions, together with some additional
--- values.
---
--- Our intuition (and also the language of the comments pertaining to 'Tweak's)
--- is that a 'Tweak' @t@
---
--- - /fails/ if @runTweakInChain t skel@ is @mzero@.
---
--- - /returns/ the value in the first component of the pair returned by this
---   function (which is also the value it returns in the monad @Tweak m@).
---
--- - /modifies/ a 'TxSkel'. Since it can use every method of
---   'MonadBlockChainWithoutValidation' to do so, this also includes stateful
---   lookups or even things like waiting for a certain amount of time before
---   submitting the transaction.
---
--- If you're using tweaks in a 'Cooked.MockChain.Staged.MonadModalBlockChain'
--- together with mechanisms like 'Cooked.MockChain.Staged.withTweak',
--- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere',
--- you should never have a reason to use this function.
-runTweakInChain :: (Monad m, Alternative m) => Tweak m a -> TxSkel -> m (a, TxSkel)
-runTweakInChain tweak = ListT.alternate . runStateT tweak
-
--- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
--- to a transaction skeleton and get all results as a list.
---
--- If you're trying to apply a tweak to a transaction directly before it's
--- modified, consider using 'Cooked.MockChain.Staged.MonadModalBlockChain' and
--- idioms like 'Cooked.MockChain.Staged.withTweak',
--- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere'.
-runTweakInChain' :: (Monad m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
-runTweakInChain' tweak = ListT.toList . runStateT tweak
-
--- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
-runTweak :: (Monad m, Alternative m) => Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
-runTweak = runTweakFrom def
-
--- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
--- mockchain
-runTweakFrom :: (Monad m, Alternative m) => InitialDistribution -> Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
-runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInChain tweak
-
--- | This is a wrapper type used in the implementation of the Staged monad. You
--- will probably never use it while you're building 'Tweak's.
-data UntypedTweak m where
-  UntypedTweak :: Tweak m a -> UntypedTweak m
-
--- * A few fundamental tweaks
-
--- | The never-applicable 'Tweak'.
-failingTweak :: (MonadTweak m) => m a
-failingTweak = mzero
-
--- | The 'Tweak' that always applies and leaves the transaction unchanged.
-doNothingTweak :: (MonadTweak m) => m ()
-doNothingTweak = return ()
-
--- | The 'Tweak' that ensures a given tweak fails
-ensureFailingTweak :: (MonadPlus m) => Tweak m a -> Tweak m ()
-ensureFailingTweak comp = do
-  skel <- get
-  res <- lift $ lift $ runTweakInChain' comp skel
-  guard $ null res
-
--- * Constructing Tweaks from Optics
+-- | Untyped tweaks are tweaks that will be deployed in time using
+-- `Cooked.Ltl`. They encompass a computation which can branch and has access to
+-- a `TxSkel` on top of other effects.
+data UntypedTweak effs where
+  UntypedTweak :: Sem (TweakEff : NonDet : effs) a -> UntypedTweak effs
 
 -- | Retrieves some value from the 'TxSkel'
-viewTweak :: (MonadTweak m, Is k A_Getter) => Optic' k is TxSkel a -> m a
+viewTweak ::
+  (Member TweakEff effs, Is k A_Getter) =>
+  Optic' k is TxSkel a ->
+  Sem effs a
 viewTweak optic = getTxSkel <&> view optic
 
 -- | Like 'viewTweak', only for indexed optics.
-iviewTweak :: (MonadTweak m, Is k A_Getter) => Optic' k (WithIx is) TxSkel a -> m (is, a)
+iviewTweak ::
+  (Member TweakEff effs, Is k A_Getter) =>
+  Optic' k (WithIx is) TxSkel a ->
+  Sem effs (is, a)
 iviewTweak optic = getTxSkel <&> iview optic
 
 -- | Like the 'viewTweak', but returns a list of all foci
-viewAllTweak :: (MonadTweak m, Is k A_Fold) => Optic' k is TxSkel a -> m [a]
+viewAllTweak ::
+  (Member TweakEff effs, Is k A_Fold) =>
+  Optic' k is TxSkel a ->
+  Sem effs [a]
 viewAllTweak optic = getTxSkel <&> toListOf optic
 
 -- | The tweak that sets a certain value in the 'TxSkel'.
-setTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> a -> m ()
+setTweak ::
+  (Member TweakEff effs, Is k A_Setter) =>
+  Optic' k is TxSkel a ->
+  a ->
+  Sem effs ()
 setTweak optic = overTweak optic . const
 
 -- | The tweak that modifies a certain value in the 'TxSkel'.
-overTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> (a -> a) -> m ()
+overTweak ::
+  (Member TweakEff effs, Is k A_Setter) =>
+  Optic' k is TxSkel a ->
+  (a -> a) ->
+  Sem effs ()
 overTweak optic change = getTxSkel >>= putTxSkel . over optic change
 
 -- | Like 'overTweak', but only modifies foci on which the argument function
 -- returns @Just@ the new focus. Returns a list of the foci that were modified,
 -- as they were /before/ the tweak, and in the order in which they occurred on
 -- the original transaction.
-overMaybeTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> Maybe a) -> m [a]
+overMaybeTweak ::
+  (Member TweakEff effs, Is k A_Traversal) =>
+  Optic' k is TxSkel a ->
+  (a -> Maybe a) ->
+  Sem effs [a]
 overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True)
 
 -- | Sometimes 'overMaybeTweak' modifies too many foci. This might be the case
@@ -164,16 +118,14 @@ overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True
 -- argument can be used to select which of the modifiable foci should be
 -- actually modified.
 overMaybeSelectingTweak ::
-  forall a m k is.
-  (MonadTweak m, Is k A_Traversal) =>
+  (Member TweakEff effs, Is k A_Traversal) =>
   Optic' k is TxSkel a ->
   (a -> Maybe a) ->
   (Integer -> Bool) ->
-  m [a]
+  Sem effs [a]
 overMaybeSelectingTweak optic mChange select = do
   allFoci <- viewTweak $ partsOf optic
-  let evaluatedFoci :: [(a, Maybe a)]
-      evaluatedFoci =
+  let evaluatedFoci =
         snd $
           mapAccumL
             ( \i unmodifiedFocus ->
@@ -208,7 +160,7 @@ overMaybeSelectingTweak optic mChange select = do
 -- - Each of the foci of the @Optic k (WithIx is) TxSkel x@ argument is
 --   something in the transaction that we might want to modify.
 --
--- - The @is -> x -> m [(x, l)]@ argument computes a list of possible
+-- - The @is -> x -> Sem effs [(x, l)]@ argument computes a list of possible
 --   modifications for each focus, depending on its index. For each modified
 --   focus, it also returns a "label" of type @l@, which somehow describes the
 --   modification that was made.
@@ -286,11 +238,11 @@ overMaybeSelectingTweak optic mChange select = do
 -- So you see that tweaks constructed like this can branch quite wildly. Use
 -- with caution!
 combineModsTweak ::
-  (Eq is, Is k A_Traversal, MonadTweak m) =>
+  (Eq is, Is k A_Traversal, Members '[TweakEff, NonDet] effs) =>
   ([is] -> [[is]]) ->
   Optic' k (WithIx is) TxSkel x ->
-  (is -> x -> m [(x, l)]) ->
-  m [l]
+  (is -> x -> Sem effs [(x, l)]) ->
+  Sem effs [l]
 combineModsTweak groupings optic changes = do
   (indexes, foci) <- iviewTweak (ipartsOf optic)
   msum $
