@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | This modules provides the infrastructure to modify sequences of
 -- transactions using LTL formulaes with atomic modifications. This idea is to
 -- describe when to apply certain modifications within a trace.
@@ -35,20 +37,20 @@ module Cooked.Ltl
 
     -- * Using LTL formulas to modify computations
     Requirement (..),
-    LtlOp (..),
-    StagedLtl,
-    singletonBuiltin,
-    MonadLtl (..),
-    ModInterpBuiltin (..),
-    interpStagedLtl,
+    ModifyGlobally (..),
+    modifyLtl,
+    runModifyGlobally,
+    ModifyLocally,
+    getRequirements,
+    runModifyLocally,
   )
 where
 
 import Control.Monad
-import Control.Monad.State
-import Cooked.Staged
 import Data.Functor
-import Data.Kind
+import Polysemy
+import Polysemy.NonDet
+import Polysemy.State
 
 -- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
 -- type of "modifications", then a value of type @Ltl a@ describes where to
@@ -306,76 +308,66 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
 
--- | Operations that either allow to use a builtin, or to modify a computation
--- using an `Ltl` formula.
-data LtlOp modification builtin :: Type -> Type where
-  WrapLtl :: Ltl modification -> StagedLtl modification builtin a -> LtlOp modification builtin a
-  Builtin :: builtin a -> LtlOp modification builtin a
+-- | An effect to modify a computation with an `Ltl` Formula. The idea is that
+-- the formula pinpoints locations where `Requirement`s should be enforced.
+data ModifyGlobally a :: Effect where
+  ModifyLtl :: Ltl a -> m b -> ModifyGlobally a m b
 
--- | An AST of builtins wrapped into an `Ltl` setting
-type StagedLtl modification builtin = Staged (LtlOp modification builtin)
+makeSem ''ModifyGlobally
 
--- | Builds a singleton instruction in a `StagedLtl` monad
-singletonBuiltin :: builtin a -> StagedLtl modification builtin a
-singletonBuiltin = (`Instr` Return) . Builtin
-
--- | Depicts the ability to modify a computation with an `Ltl` formula
-class (Monad m) => MonadLtl modification m where
-  modifyLtl :: Ltl modification -> m a -> m a
-
-instance MonadLtl modification (StagedLtl modification builtin) where
-  modifyLtl formula comp = Instr (WrapLtl formula comp) Return
-
--- | Depicts the ability to modify and interpret builtins in a given
--- domain. Each builtin can either:
+-- | Running the `ModifyGlobally` effect requires to have access of the current
+-- list of `Ltl` formulas, and to have access to an empty computation.
 --
--- * be interpreted directly through @Left@, in which case it will not be
---   considered as a timestep in a trace.
---
--- * be modified and only then interpreted through @Right@, in which case it
---   will be considered as a timestep in a trace.
-class ModInterpBuiltin modification builtin m where
-  modifyAndInterpBuiltin :: builtin a -> Either (m a) ([Requirement modification] -> m a)
-
--- | Interprets a `StagedLtl` computation based on an interpretation of
--- @builtin@ with respect to possible modifications. This unfolds as follows:
---
--- * When a builtin is met, which is directly interpreted, we return the
---   associated computation, with no changes to the `Ltl` state.
---
--- * When a builtin is met, which requires a modification, we return the
---   modified interpretation, and consume the current modification requirements.
---
--- * When a wrapped computation is met, we store the new associated formula, and
---   ensure that when the computation ends, the formula is finished.
-interpStagedLtl ::
-  forall modification builtin m.
-  ( MonadPlus m,
-    ModInterpBuiltin modification builtin m
+-- A new formula is appended at the head of the current list of formula. Then,
+-- the actual computation is run, after which the newly added formula must be
+-- finished, otherwise the empty computation is returned.
+runModifyGlobally ::
+  forall modification effs a.
+  ( Members
+      '[ State [Ltl modification],
+         NonDet
+       ]
+      effs
   ) =>
-  forall a.
-  -- | A staged computation `Ltl` compatible
-  StagedLtl modification builtin a ->
-  -- | Interpretation of the computation
-  m a
-interpStagedLtl = flip evalStateT [] . go
-  where
-    go :: forall a. Staged (LtlOp modification builtin) a -> StateT [Ltl modification] m a
-    go = interpStaged $ \case
-      WrapLtl formula comp -> do
-        modify' (formula :)
-        res <- go comp
-        formulas <- get
-        unless (null formulas) $ do
-          guard $ finished $ head formulas
-          put $ tail formulas
-        return res
-      Builtin builtin ->
-        case modifyAndInterpBuiltin builtin of
-          Left comp -> lift comp
-          Right applyMod -> do
-            modifications <- gets nowLaterList
-            msum . (modifications <&>) $
-              \(now, later) -> do
-                put later
-                lift $ applyMod now
+  Sem (ModifyGlobally modification ': effs) a ->
+  Sem effs a
+runModifyGlobally =
+  interpretH $ \case
+    ModifyLtl formula comp -> do
+      modify (formula :)
+      comp' <- runT comp
+      res <- raise $ runModifyGlobally comp'
+      formulas <- get
+      unless (null formulas) $ do
+        guard (finished (head formulas))
+        put (tail formulas)
+      return res
+
+-- | An effect to request and consume the list of requirements that should be
+-- enforced at the current time step.
+data ModifyLocally a :: Effect where
+  GetRequirements :: ModifyLocally a m [Requirement a]
+
+makeSem ''ModifyLocally
+
+-- | Running the `ModifyLocally` effect requires to have access to the current
+-- list of `Ltl` formulas, and to be able to branch.
+--
+-- The function `nowLaterList` is invoked to fetch the various paths implied by
+-- the current formulas, and a branching is performed to explore all of
+-- them. The new formulas for next steps are stored, and each path is given the
+-- requirements to enforce at the current time step.
+runModifyLocally ::
+  forall modification effs a.
+  ( Members
+      '[ State [Ltl modification],
+         NonDet
+       ]
+      effs
+  ) =>
+  Sem (ModifyLocally modification : effs) a ->
+  Sem effs a
+runModifyLocally =
+  interpret $ \GetRequirements -> do
+    modifications <- gets nowLaterList
+    msum . (modifications <&>) $ \(now, later) -> put later >> return now
