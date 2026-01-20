@@ -31,11 +31,7 @@ module Cooked.Ltl
     ltlNever,
     ltlNever',
 
-    -- * Functions on LTL formulas
-    finished,
-    nowLaterList,
-
-    -- * Using LTL formulas to modify computations
+    -- * LTL Effects
     Requirement (..),
     ModifyGlobally (..),
     modifyLtl,
