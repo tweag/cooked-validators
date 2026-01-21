@@ -12,6 +12,9 @@ module Cooked.Tweak.Common
     -- * Untyped tweaks
     UntypedTweak (..),
 
+    -- * Optics
+    selectP,
+
     -- * Optics tweaks
     viewTweak,
     viewAllTweak,
@@ -19,7 +22,6 @@ module Cooked.Tweak.Common
     overTweak,
     overMaybeTweak,
     overMaybeSelectingTweak,
-    selectP,
     combineModsTweak,
     iviewTweak,
   )
