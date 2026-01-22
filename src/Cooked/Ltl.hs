@@ -33,12 +33,12 @@ module Cooked.Ltl
 
     -- * LTL Effects
     Requirement (..),
-    ModifyLtlEff (..),
+    ModifyGlobally,
     modifyLtl,
-    runModifyLtl,
-    FetchRequirementsEff,
+    runModifyGlobally,
+    ModifyLocally,
     getRequirements,
-    runFetchRequirements,
+    runModifyLocally,
   )
 where
 
@@ -306,18 +306,18 @@ finished (LtlNot f) = not $ finished f
 
 -- | An effect to modify a computation with an `Ltl` Formula. The idea is that
 -- the formula pinpoints locations where `Requirement`s should be enforced.
-data ModifyLtlEff a :: Effect where
-  ModifyLtl :: Ltl a -> m b -> ModifyLtlEff a m b
+data ModifyGlobally a :: Effect where
+  ModifyLtl :: Ltl a -> m b -> ModifyGlobally a m b
 
-makeSem ''ModifyLtlEff
+makeSem ''ModifyGlobally
 
--- | Running the `ModifyLtlEff` effect requires to have access of the current
+-- | Running the `ModifyGlobally` effect requires to have access of the current
 -- list of `Ltl` formulas, and to have access to an empty computation.
 --
 -- A new formula is appended at the head of the current list of formula. Then,
 -- the actual computation is run, after which the newly added formula must be
 -- finished, otherwise the empty computation is returned.
-runModifyLtl ::
+runModifyGlobally ::
   forall modification effs a.
   ( Members
       '[ State [Ltl modification],
@@ -325,14 +325,14 @@ runModifyLtl ::
        ]
       effs
   ) =>
-  Sem (ModifyLtlEff modification ': effs) a ->
+  Sem (ModifyGlobally modification ': effs) a ->
   Sem effs a
-runModifyLtl =
+runModifyGlobally =
   interpretH $ \case
     ModifyLtl formula comp -> do
       modify (formula :)
       comp' <- runT comp
-      res <- raise $ runModifyLtl comp'
+      res <- raise $ runModifyGlobally comp'
       formulas <- get
       unless (null formulas) $ do
         guard (finished (head formulas))
@@ -341,19 +341,19 @@ runModifyLtl =
 
 -- | An effect to request and consume the list of requirements that should be
 -- enforced at the current time step.
-data FetchRequirementsEff a :: Effect where
-  GetRequirements :: FetchRequirementsEff a m [Requirement a]
+data ModifyLocally a :: Effect where
+  GetRequirements :: ModifyLocally a m [Requirement a]
 
-makeSem ''FetchRequirementsEff
+makeSem ''ModifyLocally
 
--- | Running the `FetchRequirementsEff` effect requires to have access to the current
+-- | Running the `ModifyLocally` effect requires to have access to the current
 -- list of `Ltl` formulas, and to be able to branch.
 --
 -- The function `nowLaterList` is invoked to fetch the various paths implied by
 -- the current formulas, and a branching is performed to explore all of
 -- them. The new formulas for next steps are stored, and each path is given the
 -- requirements to enforce at the current time step.
-runFetchRequirements ::
+runModifyLocally ::
   forall modification effs a.
   ( Members
       '[ State [Ltl modification],
@@ -361,9 +361,9 @@ runFetchRequirements ::
        ]
       effs
   ) =>
-  Sem (FetchRequirementsEff modification : effs) a ->
+  Sem (ModifyLocally modification : effs) a ->
   Sem effs a
-runFetchRequirements =
+runModifyLocally =
   interpret $ \GetRequirements -> do
     modifications <- gets nowLaterList
     msum . (modifications <&>) $ \(now, later) -> put later >> return now

@@ -17,7 +17,6 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
-      Cooked.Effectful
       Cooked.Families
       Cooked.InitialDistribution
       Cooked.Ltl
@@ -44,7 +43,6 @@ library
       Cooked.MockChain.Misc
       Cooked.MockChain.MockChainState
       Cooked.MockChain.Read
-      Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState

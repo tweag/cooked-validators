@@ -5,7 +5,7 @@
 module Cooked.MockChain.Write
   ( -- * The `MockChainWrite` effect
     MockChainWrite,
-    reinterpretMockChainWriteWithTweaks,
+    reinterpretMockChainWriteWithTweak,
     runMockChainWrite,
 
     -- * Modifications of the current time
@@ -28,13 +28,24 @@ module Cooked.MockChain.Write
 where
 
 import Cardano.Node.Emulator qualified as Emulator
+import Control.Monad
 import Cooked.Ltl
+import Cooked.MockChain.Error
+import Cooked.MockChain.Log
+import Cooked.MockChain.MockChainState
+import Cooked.MockChain.Read
 import Cooked.Skeleton
-import Cooked.Tweak
+import Cooked.Tweak.Common
+import Data.Coerce
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
+import Polysemy.Error
+import Polysemy.Fail
+import Polysemy.Internal
+import Polysemy.NonDet
+import Polysemy.State
 
 -- | An effect that offers all the primitives that are performing modifications
 -- on the blockchain state.
@@ -104,23 +115,23 @@ runMockChainWrite = interpret $ \case
 waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs Ledger.Slot
 
 -- | Wait for a certain slot, or throws an error if the slot is already past
-awaitSlot :: (Member MockChainWrite effs, Integral i) => i -> m Ledger.Slot
+awaitSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Integer -> Sem effs Ledger.Slot
 awaitSlot slot = currentSlot >>= waitNSlots . (slot -) . fromIntegral
 
 -- | Waits until the current slot becomes greater or equal to the slot
 --  containing the given POSIX time.  Note that that it might not wait for
 --  anything if the current slot is large enough.
-awaitEnclosingSlot :: (Member MockChainWrite effs) => Api.POSIXTime -> m Ledger.Slot
-awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
+awaitEnclosingSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Api.POSIXTime -> Sem effs Ledger.Slot
+awaitEnclosingSlot time = getEnclosingSlot time >>= (\(Ledger.Slot s) -> awaitSlot s)
 
 -- | Wait a given number of ms from the lower bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotLowerBound :: (Member MockChainWrite effs, Integral i) => i -> m Ledger.Slot
+waitNMSFromSlotLowerBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs Ledger.Slot
 waitNMSFromSlotLowerBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | Wait a given number of ms from the upper bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotUpperBound :: (Member MockChainWrite effs, Integral i) => i -> m Ledger.Slot
+waitNMSFromSlotUpperBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs Ledger.Slot
 waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | Generates, balances and validates a transaction from a skeleton, and
@@ -128,18 +139,18 @@ waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ 
 validateTxSkel :: (Member MockChainWrite effs) => TxSkel -> Sem effs Ledger.CardanoTx
 
 -- | Same as `validateTxSkel`, but only returns the generated UTxOs
-validateTxSkel' :: (Member MockChainWrite effs) => TxSkel -> m [Api.TxOutRef]
+validateTxSkel' :: (Members '[MockChainRead, MockChainWrite] effs) => TxSkel -> Sem effs [Api.TxOutRef]
 validateTxSkel' = ((fmap fst <$>) . utxosFromCardanoTx) <=< validateTxSkel
 
 -- | Same as `validateTxSkel`, but discards the returned transaction
-validateTxSkel_ :: (Member MockChainWrite effs) => TxSkel -> m ()
+validateTxSkel_ :: (Member MockChainWrite effs) => TxSkel -> Sem effs ()
 validateTxSkel_ = void . validateTxSkel
 
 -- | Updates the current parameters
 setParams :: (Member MockChainWrite effs) => Emulator.Params -> Sem effs ()
 
 -- | Sets the current script to act as the official constitution script
-setConstitutionScript :: (Member MockChainWrite effs, ToVScript s) => s -> Sem eff ()
+setConstitutionScript :: (Member MockChainWrite effs, ToVScript s) => s -> Sem effs ()
 
 -- | Forces the generation of utxos corresponding to certain `TxSkelOut`
 forceOutputs :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs [Api.TxOutRef]
