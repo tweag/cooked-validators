@@ -5,9 +5,9 @@ module Cooked.MockChain.Testing where
 import Control.Exception qualified as E
 import Control.Monad
 import Cooked.InitialDistribution
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.Direct
-import Cooked.MockChain.Staged
+import Cooked.MockChain.Error
+import Cooked.MockChain.Instances
+import Cooked.MockChain.Log
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Data.Default
