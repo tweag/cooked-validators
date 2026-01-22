@@ -4,8 +4,9 @@
 -- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.Direct
+import Cooked.MockChain.Error
+import Cooked.MockChain.Instances
+import Cooked.MockChain.Log
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
@@ -64,12 +65,8 @@ instance PrettyCooked MockChainError where
         "Percentage in params was" <+> prettyCookedOpt opts percentage,
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
-  prettyCookedOpt opts (MCEToCardanoError msg cardanoError) =
-    prettyItemize @[DocCooked]
-      opts
-      "Transaction generation error:"
-      "-"
-      [PP.pretty msg, PP.pretty cardanoError]
+  prettyCookedOpt _ (MCEToCardanoError cardanoError) =
+    "Transaction generation error:" <+> PP.pretty cardanoError
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
   prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
     "Unable to fetch the following reference script:"
@@ -84,7 +81,7 @@ instance PrettyCooked MockChainError where
       <+> PP.viaShow current
       <+> "; target slot:"
       <+> PP.viaShow target
-  prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
+  prettyCookedOpt _ (MCEFailure msg) = "Failed with:" <+> PP.pretty msg
 
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where
   prettyCookedOpt opts (Contextualized outputs entries) =

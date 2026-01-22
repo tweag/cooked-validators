@@ -5,7 +5,6 @@ module Cooked.MockChain (module X) where
 import Cooked.MockChain.AutoFilling as X
 import Cooked.MockChain.Balancing as X
 import Cooked.MockChain.Common as X
-import Cooked.MockChain.Direct as X
 import Cooked.MockChain.Error as X
 import Cooked.MockChain.Instances as X
 import Cooked.MockChain.Misc as X
