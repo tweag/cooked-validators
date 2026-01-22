@@ -24,12 +24,12 @@ library
       Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
       Cooked.MockChain.Common
-      Cooked.MockChain.Direct
       Cooked.MockChain.Error
       Cooked.MockChain.GenerateTx.Anchor
       Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Certificate
       Cooked.MockChain.GenerateTx.Collateral
+      Cooked.MockChain.GenerateTx.Credential
       Cooked.MockChain.GenerateTx.Input
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output

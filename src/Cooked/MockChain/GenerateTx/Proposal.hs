@@ -11,6 +11,7 @@ import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Anchor
+import Cooked.MockChain.GenerateTx.Credential
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.MockChain.Read
 import Cooked.Skeleton.Proposal

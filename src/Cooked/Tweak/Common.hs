@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | This module defines 'Tweak's which are the building blocks of our DSL for
@@ -7,9 +6,6 @@ module Cooked.Tweak.Common
   ( -- * Tweak effect
     Tweak (..),
     runTweak,
-
-    -- * Untyped tweaks
-    UntypedTweak (..),
 
     -- * Optics
     selectP,
@@ -62,15 +58,6 @@ runTweak txSkel =
           GetTxSkel -> get
           PutTxSkel skel -> put skel
       )
-
--- | Untyped tweaks are tweaks that will be deployed in time using
--- `Cooked.Ltl`. They encompass a computation which can branch and has access to
--- a `TxSkel` on top of other effects.
-data UntypedTweak effs where
-  UntypedTweak ::
-    (Members tweakEffs effs) =>
-    Sem (Tweak : NonDet : effs) a ->
-    UntypedTweak effs
 
 -- | Retrieves some value from the 'TxSkel'
 viewTweak ::

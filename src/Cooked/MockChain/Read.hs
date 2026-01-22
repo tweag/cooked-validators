@@ -51,6 +51,7 @@ import Control.Lens qualified as Lens
 import Control.Monad
 import Cooked.MockChain.Common
 import Cooked.MockChain.Error
+import Cooked.MockChain.GenerateTx.Credential (toStakeCredential)
 import Cooked.MockChain.MockChainState
 import Cooked.Skeleton
 import Data.Coerce (coerce)
@@ -106,7 +107,7 @@ runMockChainRead = interpret $ \case
   CurrentSlot -> gets $ view $ mcstLedgerStateL % to Emulator.getSlot
   GetConstitutionScript -> gets $ view mcstConstitutionL
   GetCurrentReward (Script.toCredential -> cred) -> do
-    stakeCredential <- undefined
+    stakeCredential <- toStakeCredential cred
     gets $
       preview $
         mcstLedgerStateL

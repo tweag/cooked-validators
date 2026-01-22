@@ -9,6 +9,7 @@ import Cardano.Ledger.PoolParams qualified as Ledger
 import Cardano.Ledger.Shelley.TxCert qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.MockChain.Error
+import Cooked.MockChain.GenerateTx.Credential
 import Cooked.MockChain.GenerateTx.Witness
 import Cooked.MockChain.Read
 import Cooked.Skeleton.Certificate
