@@ -12,7 +12,7 @@ module Cooked.Attack.DatumHijacking
     scriptsDatumHijackingParams,
     defaultDatumHijackingParams,
     datumOfDatumHijackingParams,
-    txSkelOutPredDatumHijackingParams,
+    outPredDatumHijackingParams,
   )
 where
 
@@ -25,14 +25,6 @@ import Data.Kind (Type)
 import Data.Maybe
 import Data.Typeable
 import Optics.Core
-
--- | The 'DatumHijackingLabel' stores the outputs that have been redirected,
--- before their destination were changed.
-newtype DatumHijackingLabel = DatumHijackingLabel [TxSkelOut]
-  deriving (Show, Eq, Ord)
-
-instance PrettyCooked DatumHijackingLabel where
-  prettyCookedOpt opts (DatumHijackingLabel txSkelOuts) = prettyItemize opts "Redirected outputs" "-" txSkelOuts
 
 -- | Parameters of the datum hijacking attacks. They state precisely which
 -- outputs should have their owner changed, wich owner should be assigned, to
@@ -73,12 +65,12 @@ defaultDatumHijackingParams optic thief =
 
 -- | Targets all the outputs satisfying a given predicate, and redirects each of
 -- them in a separate transaction.
-txSkelOutPredDatumHijackingParams ::
+outPredDatumHijackingParams ::
   (IsTxSkelOutAllowedOwner owner) =>
   (TxSkelOut -> Bool) ->
   owner ->
   DatumHijackingParams
-txSkelOutPredDatumHijackingParams = defaultDatumHijackingParams . filtered
+outPredDatumHijackingParams = defaultDatumHijackingParams . filtered
 
 -- | Datum hijacking parameters targetting all the outputs owned by a certain
 -- type of owner, and redirecting each of them in a separate transaction.
@@ -163,6 +155,14 @@ redirectOutputTweakAny outputPred indexPred = do
                     (go (l' ++ [out]) (n + 1) l)
             )
     go l' n (out : l) = go (l' ++ [out]) n l
+
+-- | The 'DatumHijackingLabel' stores the outputs that have been redirected,
+-- before their destination were changed.
+newtype DatumHijackingLabel = DatumHijackingLabel [TxSkelOut]
+  deriving (Show, Eq, Ord)
+
+instance PrettyCooked DatumHijackingLabel where
+  prettyCookedOpt opts (DatumHijackingLabel txSkelOuts) = prettyItemize opts "Redirected outputs" "-" txSkelOuts
 
 -- | The datum hijacking tries to substitute a different recipient on certain
 -- outputs based on a 'DatumHijackingParams'.

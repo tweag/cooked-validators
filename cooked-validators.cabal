@@ -24,8 +24,9 @@ library
       Cooked.MockChain
       Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
-      Cooked.MockChain.BlockChain
+      Cooked.MockChain.Common
       Cooked.MockChain.Direct
+      Cooked.MockChain.Error
       Cooked.MockChain.GenerateTx.Anchor
       Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Certificate
@@ -38,11 +39,16 @@ library
       Cooked.MockChain.GenerateTx.ReferenceInputs
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
+      Cooked.MockChain.Instances
+      Cooked.MockChain.Log
+      Cooked.MockChain.Misc
       Cooked.MockChain.MockChainState
+      Cooked.MockChain.Read
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState
+      Cooked.MockChain.Write
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable

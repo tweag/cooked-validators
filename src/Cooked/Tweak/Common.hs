@@ -4,9 +4,7 @@
 -- attacks. They are skeleton modifications aware of the mockchain state.
 module Cooked.Tweak.Common
   ( -- * Tweak effect
-    TweakEff (..),
-    getTxSkel,
-    putTxSkel,
+    Tweak (..),
     runTweak,
 
     -- * Untyped tweaks
@@ -14,6 +12,10 @@ module Cooked.Tweak.Common
 
     -- * Optics
     selectP,
+
+    -- * Tweak primitives
+    getTxSkel,
+    putTxSkel,
 
     -- * Optics tweaks
     viewTweak,
@@ -39,18 +41,18 @@ import Polysemy.NonDet
 import Polysemy.State
 
 -- | An effet that allows to store or retrieve a `TxSkel` from a context
-data TweakEff :: Effect where
+data Tweak :: Effect where
   -- | Retrieves the `TxSkel` from the context
-  GetTxSkel :: TweakEff m TxSkel
+  GetTxSkel :: Tweak m TxSkel
   -- | Overrides the `TxSkel` in the context
-  PutTxSkel :: TxSkel -> TweakEff m ()
+  PutTxSkel :: TxSkel -> Tweak m ()
 
-makeSem ''TweakEff
+makeSem ''Tweak
 
 -- | Running a Tweak is equivalent to running a state monad storing a `TxSkel`
 runTweak ::
   TxSkel ->
-  Sem (TweakEff : effs) a ->
+  Sem (Tweak : effs) a ->
   Sem effs (TxSkel, a)
 runTweak txSkel =
   runState txSkel
@@ -64,32 +66,32 @@ runTweak txSkel =
 -- `Cooked.Ltl`. They encompass a computation which can branch and has access to
 -- a `TxSkel` on top of other effects.
 data UntypedTweak effs where
-  UntypedTweak :: Sem (TweakEff : NonDet : effs) a -> UntypedTweak effs
+  UntypedTweak :: Sem (Tweak : NonDet : effs) a -> UntypedTweak effs
 
 -- | Retrieves some value from the 'TxSkel'
 viewTweak ::
-  (Member TweakEff effs, Is k A_Getter) =>
+  (Member Tweak effs, Is k A_Getter) =>
   Optic' k is TxSkel a ->
   Sem effs a
 viewTweak optic = getTxSkel <&> view optic
 
 -- | Like 'viewTweak', only for indexed optics.
 iviewTweak ::
-  (Member TweakEff effs, Is k A_Getter) =>
+  (Member Tweak effs, Is k A_Getter) =>
   Optic' k (WithIx is) TxSkel a ->
   Sem effs (is, a)
 iviewTweak optic = getTxSkel <&> iview optic
 
 -- | Like the 'viewTweak', but returns a list of all foci
 viewAllTweak ::
-  (Member TweakEff effs, Is k A_Fold) =>
+  (Member Tweak effs, Is k A_Fold) =>
   Optic' k is TxSkel a ->
   Sem effs [a]
 viewAllTweak optic = getTxSkel <&> toListOf optic
 
 -- | The tweak that sets a certain value in the 'TxSkel'.
 setTweak ::
-  (Member TweakEff effs, Is k A_Setter) =>
+  (Member Tweak effs, Is k A_Setter) =>
   Optic' k is TxSkel a ->
   a ->
   Sem effs ()
@@ -97,7 +99,7 @@ setTweak optic = overTweak optic . const
 
 -- | The tweak that modifies a certain value in the 'TxSkel'.
 overTweak ::
-  (Member TweakEff effs, Is k A_Setter) =>
+  (Member Tweak effs, Is k A_Setter) =>
   Optic' k is TxSkel a ->
   (a -> a) ->
   Sem effs ()
@@ -108,7 +110,7 @@ overTweak optic change = getTxSkel >>= putTxSkel . over optic change
 -- as they were /before/ the tweak, and in the order in which they occurred on
 -- the original transaction.
 overMaybeTweak ::
-  (Member TweakEff effs, Is k A_Traversal) =>
+  (Member Tweak effs, Is k A_Traversal) =>
   Optic' k is TxSkel a ->
   (a -> Maybe a) ->
   Sem effs [a]
@@ -120,7 +122,7 @@ overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True
 -- argument can be used to select which of the modifiable foci should be
 -- actually modified.
 overMaybeSelectingTweak ::
-  (Member TweakEff effs, Is k A_Traversal) =>
+  (Member Tweak effs, Is k A_Traversal) =>
   Optic' k is TxSkel a ->
   (a -> Maybe a) ->
   (Integer -> Bool) ->
@@ -240,7 +242,7 @@ overMaybeSelectingTweak optic mChange select = do
 -- So you see that tweaks constructed like this can branch quite wildly. Use
 -- with caution!
 combineModsTweak ::
-  (Eq is, Is k A_Traversal, Members '[TweakEff, NonDet] effs) =>
+  (Eq is, Is k A_Traversal, Members '[Tweak, NonDet] effs) =>
   ([is] -> [[is]]) ->
   Optic' k (WithIx is) TxSkel x ->
   (is -> x -> Sem effs [(x, l)]) ->
