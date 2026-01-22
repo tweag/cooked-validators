@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | This module defines 'Tweak's which are the building blocks of our DSL for
@@ -66,7 +67,10 @@ runTweak txSkel =
 -- `Cooked.Ltl`. They encompass a computation which can branch and has access to
 -- a `TxSkel` on top of other effects.
 data UntypedTweak effs where
-  UntypedTweak :: Sem (Tweak : NonDet : effs) a -> UntypedTweak effs
+  UntypedTweak ::
+    (Members tweakEffs effs) =>
+    Sem (Tweak : NonDet : effs) a ->
+    UntypedTweak effs
 
 -- | Retrieves some value from the 'TxSkel'
 viewTweak ::

@@ -13,11 +13,10 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Control.Monad.Except
-import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Common
+import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Certificate
 import Cooked.MockChain.GenerateTx.Collateral
-import Cooked.MockChain.GenerateTx.Common
 import Cooked.MockChain.GenerateTx.Input
 import Cooked.MockChain.GenerateTx.Mint
 import Cooked.MockChain.GenerateTx.Output
@@ -25,6 +24,7 @@ import Cooked.MockChain.GenerateTx.Proposal
 import Cooked.MockChain.GenerateTx.ReferenceInputs
 import Cooked.MockChain.GenerateTx.Withdrawals
 import Cooked.MockChain.GenerateTx.Witness
+import Cooked.MockChain.Read
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Maybe
@@ -32,27 +32,31 @@ import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.Script.Utils.Address qualified as Script
+import Polysemy
+import Polysemy.Error
+import Polysemy.Fail
 
 -- | Generates a body content from a skeleton
-txSkelToTxBodyContent :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
+txSkelToTxBodyContent ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  TxSkel ->
+  Fee ->
+  Collaterals ->
+  Sem effs (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   txIns <- mapM toTxInAndWitness $ Map.toList txSkelIns
   txInsReference <- toInsReference skel
   (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet fee mCollaterals
   txOuts <- mapM toCardanoTxOut txSkelOuts
-  (txValidityLowerBound, txValidityUpperBound) <-
-    throwOnToCardanoError
-      "txSkelToBodyContent: Unable to translate transaction validity range."
-      $ Ledger.toCardanoValidityRange txSkelValidityRange
+  (txValidityLowerBound, txValidityUpperBound) <- fromEither $ Ledger.toCardanoValidityRange txSkelValidityRange
   txMintValue <- toMintValue txSkelMints
   txExtraKeyWits <-
     if null txSkelSignatories
       then return Cardano.TxExtraKeyWitnessesNone
       else
-        throwOnToCardanoErrorOrApply
-          "txSkelToBodyContent: Unable to translate the required signatories"
-          (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
-          $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSignatories
+        Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway
+          <$> fromEither
+            (mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSignatories)
   txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
   txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> toProposalProcedures txSkelProposals
   txWithdrawals <- toWithdrawals txSkelWithdrawals
@@ -68,17 +72,21 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   return Cardano.TxBodyContent {..}
 
 -- | Generates a transaction body from a body content
-txBodyContentToTxBody :: (MonadBlockChainBalancing m) => Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra -> m (Cardano.TxBody Cardano.ConwayEra)
+txBodyContentToTxBody ::
+  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra ->
+  Sem effs (Cardano.TxBody Cardano.ConwayEra)
 txBodyContentToTxBody txBodyContent = do
   params <- getParams
   -- We create the associated Shelley TxBody
-  either
-    (throwError . MCEToCardanoError "generateTx :")
-    return
-    (Emulator.createTransactionBody params (Ledger.CardanoBuildTx txBodyContent))
+  fromEither $ Emulator.createTransactionBody params $ Ledger.CardanoBuildTx txBodyContent
 
 -- | Generates an index with utxos known to a 'TxSkel'
-txSkelToIndex :: (MonadBlockChainBalancing m) => TxSkel -> Collaterals -> m (Cardano.UTxO Cardano.ConwayEra)
+txSkelToIndex ::
+  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  TxSkel ->
+  Collaterals ->
+  Sem effs (Cardano.UTxO Cardano.ConwayEra)
 txSkelToIndex txSkel mCollaterals = do
   -- We build the index of UTxOs which are known to this skeleton. This includes
   -- collateral inputs, inputs and reference inputs.
@@ -90,14 +98,18 @@ txSkelToIndex txSkel mCollaterals = do
   -- We then compute their Cardano counterparts
   txOutL <- forM knownTxOuts toCardanoTxOut
   -- We build the index and handle the possible error
-  either (throwError . MCEToCardanoError "txSkelToIndex:") return $ do
-    txInL <- forM knownTxORefs Ledger.toCardanoTxIn
-    return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
+  txInL <- fromEither $ forM knownTxORefs Ledger.toCardanoTxIn
+  return $ Cardano.UTxO $ Map.fromList $ zip txInL $ Cardano.toCtxUTxOTxOut <$> txOutL
 
 -- | Generates a transaction body from a 'TxSkel' and associated fee and
 -- collateral information. This transaction body accounts for the actual
 -- execution units of each of the scripts involved in the skeleton.
-txSkelToTxBody :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.TxBody Cardano.ConwayEra)
+txSkelToTxBody ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  TxSkel ->
+  Fee ->
+  Collaterals ->
+  Sem effs (Cardano.TxBody Cardano.ConwayEra)
 txSkelToTxBody txSkel fee mCollaterals = do
   -- We create a first body content and body, without execution units
   txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
@@ -111,22 +123,32 @@ txSkelToTxBody txSkel fee mCollaterals = do
   case Emulator.getTxExUnitsWithLogs params (Ledger.fromPlutusIndex index) tx' of
     -- Computing the execution units can result in all kinds of validation
     -- errors except for the ones related to the execution units themselves.
-    Left err -> throwError $ uncurry MCEValidationError err
+    Left err -> throw $ uncurry MCEValidationError err
     -- When no error arises, we get an execution unit for each script usage. We
     -- first have to transform this Ledger map to a cardano API map.
     Right (Map.mapKeysMonotonic (Cardano.toScriptIndex Cardano.AlonzoEraOnwardsConway) . fmap (Cardano.fromAlonzoExUnits . snd) -> exUnits) ->
       -- We can then assign the right execution units to the body content
       case Cardano.substituteExecutionUnits exUnits txBodyContent' of
         -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
-        Left _ -> throwError $ FailWith "Error while assigning execution units"
+        Left _ -> fail "Error while assigning execution units"
         -- We now have a body content with proper execution units and can create
         -- the final body from it
         Right txBody -> txBodyContentToTxBody txBody
 
 -- | Generates a Cardano transaction and signs it
-txSignatoriesAndBodyToCardanoTx :: [TxSkelSignatory] -> Cardano.TxBody Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
+txSignatoriesAndBodyToCardanoTx ::
+  [TxSkelSignatory] ->
+  Cardano.TxBody Cardano.ConwayEra ->
+  Cardano.Tx Cardano.ConwayEra
 txSignatoriesAndBodyToCardanoTx signatories txBody = Cardano.Tx txBody $ mapMaybe (toKeyWitness txBody) signatories
 
 -- | Generates a full Cardano transaction from a skeleton, fees and collaterals
-txSkelToCardanoTx :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m (Cardano.Tx Cardano.ConwayEra)
-txSkelToCardanoTx txSkel fee = fmap (txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel)) . txSkelToTxBody txSkel fee
+txSkelToCardanoTx ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  TxSkel ->
+  Fee ->
+  Collaterals ->
+  Sem effs (Cardano.Tx Cardano.ConwayEra)
+txSkelToCardanoTx txSkel fee =
+  fmap (txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel))
+    . txSkelToTxBody txSkel fee

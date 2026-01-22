@@ -30,7 +30,6 @@ library
       Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Certificate
       Cooked.MockChain.GenerateTx.Collateral
-      Cooked.MockChain.GenerateTx.Common
       Cooked.MockChain.GenerateTx.Input
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output

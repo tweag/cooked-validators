@@ -19,10 +19,15 @@ import Data.List (partition)
 import Data.Maybe
 import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
+import Polysemy
+import Polysemy.NonDet
 
 -- | Ensures that a certain output is produced by a transaction. The return
 -- value will be @Just@ the added output, when applicable.
-ensureOutputTweak :: (MonadTweak m) => TxSkelOut -> m (Maybe TxSkelOut)
+ensureOutputTweak ::
+  (Member Tweak effs) =>
+  TxSkelOut ->
+  Sem effs (Maybe TxSkelOut)
 ensureOutputTweak txSkelOut = do
   presentOutputs <- viewTweak txSkelOutsL
   if txSkelOut `elem` presentOutputs
@@ -33,12 +38,18 @@ ensureOutputTweak txSkelOut = do
 
 -- | Adds a transaction output, at the end of the current list of outputs, thus
 -- retaining the initial outputs order.
-addOutputTweak :: (MonadTweak m) => TxSkelOut -> m ()
+addOutputTweak ::
+  (Member Tweak effs) =>
+  TxSkelOut ->
+  Sem effs ()
 addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
 
 -- | Removes transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
-removeOutputTweak :: (MonadTweak m) => (TxSkelOut -> Bool) -> m [TxSkelOut]
+removeOutputTweak ::
+  (Member Tweak effs) =>
+  (TxSkelOut -> Bool) ->
+  Sem effs [TxSkelOut]
 removeOutputTweak removePred = do
   presentOutputs <- viewTweak txSkelOutsL
   let (removed, kept) = partition removePred presentOutputs
@@ -58,7 +69,13 @@ instance PrettyCooked TamperDatumLbl where
 --
 -- The tweak returns a list of the modified datums, as they were *before* the
 -- modification was applied to them.
-tamperDatumTweak :: forall a m. (MonadTweak m, DatumConstrs a) => (a -> Maybe a) -> m [a]
+tamperDatumTweak ::
+  forall a effs.
+  ( Members '[Tweak, NonDet] effs,
+    DatumConstrs a
+  ) =>
+  (a -> Maybe a) ->
+  Sem effs [a]
 tamperDatumTweak change = do
   beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
   guard . not . null $ beforeModification
@@ -83,7 +100,13 @@ tamperDatumTweak change = do
 -- > == (k_1 + 1) * ... * (k_n + 1) - 1
 --
 -- modified transactions.
-malformDatumTweak :: forall a m. (MonadTweak m, DatumConstrs a) => (a -> [Api.BuiltinData]) -> m ()
+malformDatumTweak ::
+  forall a effs.
+  ( Members '[Tweak, NonDet] effs,
+    DatumConstrs a
+  ) =>
+  (a -> [Api.BuiltinData]) ->
+  Sem effs ()
 malformDatumTweak change = do
   outputs <- viewAllTweak (txSkelOutsL % traversed)
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs

@@ -14,6 +14,8 @@ where
 import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Polysemy
+import Polysemy.NonDet
 import System.Random
 import System.Random.Shuffle
 
@@ -39,7 +41,10 @@ data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 --
 -- (In particular, this is clever enough to generate only the distinct
 -- permutations, even if some outputs are identical.)
-allOutPermutsTweak :: (MonadTweak m) => PermutOutTweakMode -> m ()
+allOutPermutsTweak ::
+  (Members '[Tweak, NonDet] effs) =>
+  PermutOutTweakMode ->
+  Sem effs ()
 allOutPermutsTweak mode = do
   oldOut <- viewTweak txSkelOutsL
   msum $
@@ -90,7 +95,10 @@ nonIdentityPermutations l = removeFirst l $ distinctPermutations l
 
 -- | This randomly permutes the outputs of a transaction with a given seed. Can
 -- be used to assess if a certain validator is order-dependant
-singleOutPermutTweak :: (MonadTweak m) => Int -> m ()
+singleOutPermutTweak ::
+  (Members '[Tweak, NonDet] effs) =>
+  Int ->
+  Sem effs ()
 singleOutPermutTweak seed = do
   outputs <- viewTweak txSkelOutsL
   let outputs' = shuffle' outputs (length outputs) (mkStdGen seed)

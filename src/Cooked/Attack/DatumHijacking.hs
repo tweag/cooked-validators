@@ -20,11 +20,14 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak
+import Cooked.Tweak.Common
 import Data.Bifunctor
 import Data.Kind (Type)
 import Data.Maybe
 import Data.Typeable
 import Optics.Core
+import Polysemy
+import Polysemy.NonDet
 
 -- | Parameters of the datum hijacking attacks. They state precisely which
 -- outputs should have their owner changed, wich owner should be assigned, to

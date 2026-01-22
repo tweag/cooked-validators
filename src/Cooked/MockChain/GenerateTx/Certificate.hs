@@ -8,27 +8,41 @@ import Cardano.Ledger.DRep qualified as Ledger
 import Cardano.Ledger.PoolParams qualified as Ledger
 import Cardano.Ledger.Shelley.TxCert qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Witness
+import Cooked.MockChain.Read
 import Cooked.Skeleton.Certificate
 import Cooked.Skeleton.User
 import Data.Default
 import Data.Maybe.Strict
+import Ledger.Tx qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+import Polysemy
+import Polysemy.Error
+import Polysemy.Fail
 
-toDRep :: (MonadBlockChainBalancing m) => Api.DRep -> m Ledger.DRep
+toDRep ::
+  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  Api.DRep ->
+  Sem effs Ledger.DRep
 toDRep Api.DRepAlwaysAbstain = return Ledger.DRepAlwaysAbstain
 toDRep Api.DRepAlwaysNoConfidence = return Ledger.DRepAlwaysNoConfidence
 toDRep (Api.DRep (Api.DRepCredential cred)) = Ledger.DRepCredential <$> toDRepCredential cred
 
-toDelegatee :: (MonadBlockChainBalancing m) => Api.Delegatee -> m Conway.Delegatee
+toDelegatee ::
+  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  Api.Delegatee ->
+  Sem effs Conway.Delegatee
 toDelegatee (Api.DelegStake pkh) = Conway.DelegStake <$> toStakePoolKeyHash pkh
 toDelegatee (Api.DelegVote dRep) = Conway.DelegVote <$> toDRep dRep
 toDelegatee (Api.DelegStakeVote pkh dRep) = liftA2 Conway.DelegStakeVote (toStakePoolKeyHash pkh) (toDRep dRep)
 
-toCertificate :: (MonadBlockChainBalancing m) => TxSkelCertificate -> m (Cardano.Certificate Cardano.ConwayEra)
+toCertificate ::
+  (Members '[MockChainRead, Error Ledger.ToCardanoError, Fail] effs) =>
+  TxSkelCertificate ->
+  Sem effs (Cardano.Certificate Cardano.ConwayEra)
 toCertificate txSkelCert =
   do
     depositStake <- Cardano.Coin . Api.getLovelace <$> stakeAddressDeposit
@@ -74,7 +88,10 @@ toCertificate txSkelCert =
       TxSkelCertificate (Script.toCredential -> cred) CommitteeResign ->
         Conway.ConwayTxCertGov . (`Conway.ConwayResignCommitteeColdKey` SNothing) <$> toColdCredential cred
 
-toCertificateWitness :: (MonadBlockChainBalancing m) => TxSkelCertificate -> m (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
+toCertificateWitness ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  TxSkelCertificate ->
+  Sem effs (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toCertificateWitness =
   maybe
     (return Nothing)
@@ -85,7 +102,10 @@ toCertificateWitness =
     . preview (txSkelCertificateOwnerAT @IsEither)
 
 -- | Builds a 'Cardano.TxCertificates' from a list of 'TxSkelCertificate'
-toCertificates :: (MonadBlockChainBalancing m) => [TxSkelCertificate] -> m (Cardano.TxCertificates Cardano.BuildTx Cardano.ConwayEra)
+toCertificates ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  [TxSkelCertificate] ->
+  Sem effs (Cardano.TxCertificates Cardano.BuildTx Cardano.ConwayEra)
 toCertificates =
   fmap (Cardano.mkTxCertificates Cardano.ShelleyBasedEraConway)
     . mapM (\txSkelCert -> liftA2 (,) (toCertificate txSkelCert) (toCertificateWitness txSkelCert))
