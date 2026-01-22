@@ -13,8 +13,12 @@ module Cooked.MockChain.Misc
   )
 where
 
-import Cooked.Pretty
+import Cooked.Pretty.Hashable
+import Data.Map (Map)
+import Data.Map qualified as Map
+import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
+import Polysemy.Writer
 
 -- | An effect that corresponds to extra QOL capabilities of the MockChain
 data MockChainMisc :: Effect where
@@ -34,9 +38,9 @@ runMockChainMisc = interpret $
     tell $ Map.singleton (toHash hashable) name
     return hashable
 
--- | Stores an alias matching a hashable data for pretty printing purpose
-define :: (Member MockChainMisc effs, ToHash a) => String -> a -> Sem effs a
+-- -- | Stores an alias matching a hashable data for pretty printing purpose
+define :: forall effs a. (Member MockChainMisc effs, ToHash a) => String -> a -> Sem effs a
 
 -- | Like `define`, but binds the result of a monadic computation instead
-defineM :: (Member MockChainMisc effs) => String -> Sem effs a -> Sem effs a
+defineM :: (Member MockChainMisc effs, ToHash a) => String -> Sem effs a -> Sem effs a
 defineM name = (define name =<<)

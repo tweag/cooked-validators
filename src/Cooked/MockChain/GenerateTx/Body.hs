@@ -90,9 +90,7 @@ txSkelToIndex ::
 txSkelToIndex txSkel mCollaterals = do
   -- We build the index of UTxOs which are known to this skeleton. This includes
   -- collateral inputs, inputs and reference inputs.
-  let collateralIns = case mCollaterals of
-        Nothing -> []
-        Just (s, _) -> Set.toList s
+  let collateralIns = maybe [] (Set.toList . fst) mCollaterals
   -- We retrieve all the outputs known to the skeleton
   (knownTxORefs, knownTxOuts) <- unzip . Map.toList <$> lookupUtxos (Set.toList (txSkelKnownTxOutRefs txSkel) <> collateralIns)
   -- We then compute their Cardano counterparts

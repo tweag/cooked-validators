@@ -15,11 +15,12 @@ import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Control.Monad.Except
 import Cooked.MockChain.AutoFilling
-import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Common
+import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Body
-import Cooked.MockChain.UtxoSearch
+import Cooked.MockChain.Log
+import Cooked.MockChain.Read
 import Cooked.Skeleton
 import Data.Bifunctor
 import Data.Function
@@ -27,6 +28,7 @@ import Data.List (find, partition, sortBy)
 import Data.Map qualified as Map
 import Data.Ratio qualified as Rat
 import Data.Set qualified as Set
+import Ledger.Tx qualified as Ledger
 import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
 import Optics.Core.Extras
@@ -35,6 +37,9 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Prelude qualified as PlutusTx
+import Polysemy
+import Polysemy.Error
+import Polysemy.Fail
 
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and returns a (possibly) balanced skeleton alongside the
@@ -42,14 +47,17 @@ import PlutusTx.Prelude qualified as PlutusTx
 -- be empty when no script is involved in the transaction. The options from the
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
-balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Collaterals)
+balanceTxSkel ::
+  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  TxSkel ->
+  Sem effs (TxSkel, Fee, Collaterals)
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing user. Any extra payment will be
   -- redirected to them, and utxos will be taken from their user if associated
   -- with the BalancingUtxosFromBalancingUser policy
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSignatory -> case txSkelSignatories of
-      [] -> throwError $ MCEMissingBalancingUser "The list of signatories is empty, but the balancing user is supposed to be the first signatory."
+      [] -> throw $ MCEMissingBalancingUser "The list of signatories is empty, but the balancing user is supposed to be the first signatory."
       bw : _ -> return $ Just $ UserPubKey $ view txSkelSignatoryPubKeyHashL bw
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
     DoNotBalance -> return Nothing
@@ -74,10 +82,10 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       (True, CollateralUtxosFromUser cUser) -> logEvent (MCLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
       (True, CollateralUtxosFromBalancingUser) -> return Nothing
       (False, CollateralUtxosFromSet utxos rUser) -> return $ Just (utxos, UserPubKey rUser)
-      (False, CollateralUtxosFromUser cUser) -> Just . (,UserPubKey cUser) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch $ Script.toPubKeyHash cUser)
+      (False, CollateralUtxosFromUser cUser) -> Just . (,UserPubKey cUser) . Set.fromList . map fst <$> undefined -- runUtxoSearch (onlyValueOutputsAtSearch $ Script.toPubKeyHash cUser)
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
-        Nothing -> throwError $ MCEMissingBalancingUser "Collateral utxos should be taken from the balancing user, but it does not exist."
-        Just bUser -> Just . (,bUser) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch bUser)
+        Nothing -> throw $ MCEMissingBalancingUser "Collateral utxos should be taken from the balancing user, but it does not exist."
+        Just bUser -> Just . (,bUser) . Set.fromList . map fst <$> undefined -- runUtxoSearch (onlyValueOutputsAtSearch bUser)
 
   -- At this point, the presence (or absence) of balancing user dictates
   -- whether the transaction should be automatically balanced or not.
@@ -94,12 +102,12 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> runUtxoSearch $ onlyValueOutputsAtSearch bUser
+          BalancingUtxosFromBalancingUser -> undefined -- runUtxoSearch $ onlyValueOutputsAtSearch bUser
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            runUtxoSearch (txSkelOutByRefSearch (Set.toList utxos))
-              -- We filter out those belonging to scripts, while throwing a
-              -- warning if any was actually discarded.
+            undefined -- runUtxoSearch (txSkelOutByRefSearch (Set.toList utxos))
+            -- We filter out those belonging to scripts, while throwing a
+            -- warning if any was actually discarded.
               >>= filterAndWarn (is (txSkelOutOwnerL % userPubKeyHashAT) . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
@@ -125,7 +133,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters and its number of scripts.
-getMinAndMaxFee :: (MonadBlockChainBalancing m) => Fee -> m (Fee, Fee)
+getMinAndMaxFee :: (Member MockChainRead effs) => Fee -> Sem effs (Fee, Fee)
 getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
   -- for a transaction. There are quite a few of them.
@@ -154,10 +162,18 @@ getMinAndMaxFee nbOfScripts = do
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
-computeFeeAndBalance :: (MonadBlockChainBalancing m) => Peer -> Fee -> Fee -> Utxos -> Collaterals -> TxSkel -> m (TxSkel, Fee, Collaterals)
+computeFeeAndBalance ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  Peer ->
+  Fee ->
+  Fee ->
+  Utxos ->
+  Collaterals ->
+  TxSkel ->
+  Sem effs (TxSkel, Fee, Collaterals)
 computeFeeAndBalance _ minFee maxFee _ _ _
   | minFee > maxFee =
-      throwError $ FailWith "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
+      fail "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
 computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals skel
   | minFee == maxFee = do
       -- The fee interval is reduced to a single element, we balance around it
@@ -168,7 +184,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
       -- The fee interval is larger than a single element. We attempt to balance
       -- around its central point, which can fail due to missing value in
       -- balancing utxos or collateral utxos.
-      attemptedBalancing <- catchError
+      attemptedBalancing <- catch
         (Just <$> attemptBalancingAndCollaterals balancingUser balancingUtxos fee mCollaterals skel)
         $ \case
           -- If it fails, and the remaining fee interval is not reduced to the
@@ -177,7 +193,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
           -- fails and we spread the error.
           MCEUnbalanceable {} | fee - minFee > 0 -> return Nothing
           MCENoSuitableCollateral {} | fee - minFee > 0 -> return Nothing
-          err -> throwError err
+          err -> throw err
 
       (newMinFee, newMaxFee) <- case attemptedBalancing of
         -- The skeleton was not balanceable, we try strictly smaller fee
@@ -208,7 +224,14 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
 
 -- | Helper function to group the two real steps of the balancing: balance a
 -- skeleton around a given fee, and compute the associated collateral inputs
-attemptBalancingAndCollaterals :: (MonadBlockChainBalancing m) => Peer -> Utxos -> Fee -> Collaterals -> TxSkel -> m (Collaterals, TxSkel)
+attemptBalancingAndCollaterals ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  Peer ->
+  Utxos ->
+  Fee ->
+  Collaterals ->
+  TxSkel ->
+  Sem effs (Collaterals, TxSkel)
 attemptBalancingAndCollaterals balancingUser balancingUtxos fee mCollaterals skel = do
   adjustedCollateralIns <- collateralsFromFees fee mCollaterals
   attemptedSkel <- computeBalancedTxSkel balancingUser balancingUtxos skel fee
@@ -218,7 +241,12 @@ attemptBalancingAndCollaterals balancingUser balancingUtxos fee mCollaterals ske
 -- accounting for the ratio to respect between fees and total collaterals, the
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
-collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> CollateralIns -> Peer -> m CollateralIns
+collateralInsFromFees ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  Fee ->
+  CollateralIns ->
+  Peer ->
+  Sem effs CollateralIns
 collateralInsFromFees fee collateralIns returnCollateralUser = do
   -- We retrieve the protocal parameters
   params <- Emulator.pEmulatorPParams <$> getParams
@@ -232,7 +260,7 @@ collateralInsFromFees fee collateralIns returnCollateralUser = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- runUtxoSearch (txSkelOutByRefSearch $ Set.toList collateralIns)
+  collateralTxOuts <- undefined -- runUtxoSearch (txSkelOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
   let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
   -- Preparing a possible collateral error
@@ -241,7 +269,11 @@ collateralInsFromFees fee collateralIns returnCollateralUser = do
   Set.fromList . fst <$> getOptimalCandidate candidatesRaw returnCollateralUser noSuitableCollateralError
 
 -- | This adjusts collateral inputs when necessary
-collateralsFromFees :: (MonadBlockChainBalancing m) => Fee -> Collaterals -> m Collaterals
+collateralsFromFees ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  Fee ->
+  Collaterals ->
+  Sem effs Collaterals
 collateralsFromFees _ Nothing = return Nothing
 collateralsFromFees fee (Just (collateralIns, returnCollateralUser)) =
   Just . (,returnCollateralUser) <$> collateralInsFromFees fee collateralIns returnCollateralUser
@@ -251,7 +283,11 @@ collateralsFromFees fee (Just (collateralIns, returnCollateralUser)) =
 -- stops when the target is reached, not adding superfluous UTxOs. Despite
 -- optimizations, this function is theoretically in 2^n where n is the number of
 -- candidate UTxOs. Use with caution.
-reachValue :: Utxos -> Api.Value -> Fee -> [(Utxos, Api.Value)]
+reachValue ::
+  Utxos ->
+  Api.Value ->
+  Fee ->
+  [(Utxos, Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
 reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
@@ -276,7 +312,12 @@ reachValue (h@(_, view txSkelOutValueL -> hVal) : t) target maxEls =
 -- | A helper function to grab an optimal candidate in terms of having a minimal
 -- enough amount of ada to sustain itself meant to be used after calling
 -- `reachValue`. This throws an error when there are no suitable candidates.
-getOptimalCandidate :: (MonadBlockChainBalancing m) => [(Utxos, Api.Value)] -> Peer -> MockChainError -> m ([Api.TxOutRef], Api.Value)
+getOptimalCandidate ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  [(Utxos, Api.Value)] ->
+  Peer ->
+  MockChainError ->
+  Sem effs ([Api.TxOutRef], Api.Value)
 getOptimalCandidate candidates paymentTarget mceError = do
   -- We decorate the candidates with their current ada and min ada requirements
   candidatesDecorated <- forM candidates $ \(output, val) ->
@@ -285,12 +326,17 @@ getOptimalCandidate candidates paymentTarget mceError = do
   let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Api.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
     -- If the list of candidates is empty, we throw an error
-    [] -> throwError mceError
+    [] -> throw mceError
     (_, ret) : _ -> return ret
 
 -- | This function was originally inspired by
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Collaterals -> m Fee
+estimateTxSkelFee ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  TxSkel ->
+  Fee ->
+  Collaterals ->
+  Sem effs Fee
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
@@ -307,7 +353,13 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
-computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Peer -> Utxos -> TxSkel -> Fee -> m TxSkel
+computeBalancedTxSkel ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  Peer ->
+  Utxos ->
+  TxSkel ->
+  Fee ->
+  Sem effs TxSkel
 computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lovelace -> feeValue) = do
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
