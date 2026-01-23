@@ -186,10 +186,10 @@ type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
 -- enforced here, but it will often be assumed that @prop@ satisfies 'IsProp'.
 data Test a prop = Test
   { -- | The mockchain trace to test, which returns a result of type a
-    testTrace :: MockChainFull a,
+    testTrace :: StagedMockChain a,
     -- | The initial distribution from which the trace should be run
     testInitDist :: InitialDistribution,
-    -- | The requirement on the number of results, as 'MockChainFull' is a
+    -- | The requirement on the number of results, as 'StagedMockChain' is a
     -- 'Control.Monad.MonadPlus'
     testSizeProp :: SizeProp prop,
     -- | The property that should hold in case of failure over the resulting
@@ -237,7 +237,7 @@ testCookedQC name = QC.testProperty name . testToProp
 -- * Simple test templates
 
 -- | A test template which expects a success from a trace
-mustSucceedTest :: (IsProp prop) => MockChainFull a -> Test a prop
+mustSucceedTest :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustSucceedTest trace =
   Test
     { testTrace = trace,
@@ -249,7 +249,7 @@ mustSucceedTest trace =
     }
 
 -- | A test template which expects a failure from a trace
-mustFailTest :: (IsProp prop) => MockChainFull a -> Test a prop
+mustFailTest :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailTest trace =
   Test
     { testTrace = trace,
@@ -413,25 +413,25 @@ possesses w ac n = isAtAddress [(w, [(ac, (== n))])]
 --}
 
 -- | A test template which expects a Phase 2 failure
-mustFailInPhase2Test :: (IsProp prop) => MockChainFull a -> Test a prop
+mustFailInPhase2Test :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailInPhase2Test run = mustFailTest run `withFailureProp` isPhase2Failure
 
 -- | A test template which expects a specific phase 2 error message
-mustFailInPhase2WithMsgTest :: (IsProp prop) => String -> MockChainFull a -> Test a prop
+mustFailInPhase2WithMsgTest :: (IsProp prop) => String -> StagedMockChain a -> Test a prop
 mustFailInPhase2WithMsgTest msg run = mustFailTest run `withFailureProp` isPhase2FailureWithMsg msg
 
 -- | A test template which expects a Phase 1 failure
-mustFailInPhase1Test :: (IsProp prop) => MockChainFull a -> Test a prop
+mustFailInPhase1Test :: (IsProp prop) => StagedMockChain a -> Test a prop
 mustFailInPhase1Test run = mustFailTest run `withFailureProp` isPhase1Failure
 
 -- | A test template which expects a specific phase 1 error message
-mustFailInPhase1WithMsgTest :: (IsProp prop) => String -> MockChainFull a -> Test a prop
+mustFailInPhase1WithMsgTest :: (IsProp prop) => String -> StagedMockChain a -> Test a prop
 mustFailInPhase1WithMsgTest msg run = mustFailTest run `withFailureProp` isPhase1FailureWithMsg msg
 
 -- | A test template which expects a certain number of successful outcomes
-mustSucceedWithSizeTest :: (IsProp prop) => Integer -> MockChainFull a -> Test a prop
+mustSucceedWithSizeTest :: (IsProp prop) => Integer -> StagedMockChain a -> Test a prop
 mustSucceedWithSizeTest size run = mustSucceedTest run `withSizeProp` (testBool . (== size))
 
 -- | A test template which expects a certain number of unsuccessful outcomes
-mustFailWithSizeTest :: (IsProp prop) => Integer -> MockChainFull a -> Test a prop
+mustFailWithSizeTest :: (IsProp prop) => Integer -> StagedMockChain a -> Test a prop
 mustFailWithSizeTest size run = mustFailTest run `withSizeProp` isOfSize size

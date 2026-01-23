@@ -146,13 +146,13 @@ type FullEffs =
 
 -- | A possible stack of effects to handle staged interpretation of the
 -- mockchain, that is with tweaks and branching.
-type MockChainFull a = Sem FullEffs a
+type StagedMockChain a = Sem FullEffs a
 
-runMockChainFull ::
+runStagedMockChain ::
   MockChainState ->
-  MockChainFull a ->
+  StagedMockChain a ->
   [RawMockChainReturn a]
-runMockChainFull mcst =
+runStagedMockChain mcst =
   run
     . runNonDet
     . runWriter
@@ -185,7 +185,7 @@ runMockChainFull mcst =
 -- | A default configuration to run a staged mockchain run. The intended usage
 -- is @runMockChainConf $ mockChainConfFullTemplate myFullRun@.
 mockChainConfFullTemplate ::
-  MockChainFull a ->
+  StagedMockChain a ->
   MockChainConf FullEffs a (MockChainReturn a)
 mockChainConfFullTemplate currentRun =
-  MockChainConf def def unRawMockChainReturn currentRun runMockChainFull
+  MockChainConf def def unRawMockChainReturn currentRun runStagedMockChain
