@@ -3,11 +3,14 @@
 -- - extract pieces of information from them
 module Cooked.MockChain.UtxoSearch
   ( -- * UTxO searches
-    UtxoSearchResult,
     UtxoSearch,
     beginSearch,
+
+    -- * Processing search result
+    UtxoSearchResult,
     getOutputs,
     getOutputsAndExtracts,
+    getExtracts,
     getTxOutRefs,
     getTxOutRefsAndOutputs,
 
@@ -77,8 +80,15 @@ getOutputs = fmap (fmap (hHead . snd))
 -- extracted elements
 getOutputsAndExtracts ::
   Sem effs (UtxoSearchResult elems) ->
-  Sem effs [HList (TxSkelOut ': elems)]
-getOutputsAndExtracts = fmap (fmap snd)
+  Sem effs [(TxSkelOut, HList elems)]
+getOutputsAndExtracts =
+  fmap (fmap (\(_, HCons output l) -> (output, l)))
+
+-- | Retrieves the extracted elements from a `UtxoSearchResult`
+getExtracts ::
+  Sem effs (UtxoSearchResult elems) ->
+  Sem effs [HList elems]
+getExtracts = fmap (fmap (hTail . snd))
 
 -- | Retrieves the `Api.TxOutRef`s from a `UtxoSearchResult`
 getTxOutRefs ::
@@ -113,7 +123,8 @@ txSkelOutByRefSearch ::
   [Api.TxOutRef] ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
-txSkelOutByRefSearch utxos filters = filters $ beginSearch (zip utxos <$> mapM txSkelOutByRef utxos)
+txSkelOutByRefSearch utxos filters =
+  filters $ beginSearch (zip utxos <$> mapM txSkelOutByRef utxos)
 
 -- | Extracts a new element from the currently selected outputs, filtering in
 -- the process out utxos for which this element is not available
