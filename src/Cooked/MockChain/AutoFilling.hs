@@ -9,6 +9,7 @@ import Control.Monad
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.Log
 import Cooked.MockChain.Read
+import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.List (find)
@@ -75,7 +76,7 @@ autoFillConstitution = do
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
 updateRedeemedScript ::
-  (Member MockChainLog effs) =>
+  (Members '[MockChainLog, MockChainRead] effs) =>
   [Api.TxOutRef] ->
   User IsScript Redemption ->
   Sem effs (User IsScript Redemption)
@@ -85,7 +86,7 @@ updateRedeemedScript
          (toVScript -> vScript)
          txSkelRed@(TxSkelRedeemer {txSkelRedeemerAutoFill = True})
        ) = do
-    oRefsInInputs <- undefined -- runUtxoSearch (referenceScriptOutputsSearch vScript)
+    oRefsInInputs <- getTxOutRefs $ allUtxosSearch $ ensureProperReferenceScript vScript
     maybe
       -- We leave the redeemer unchanged if no reference input was found
       (return rs)
@@ -97,9 +98,9 @@ updateRedeemedScript
       $ case oRefsInInputs of
         [] -> Nothing
         -- If possible, we use a reference input appearing in regular inputs
-        l | Just (oRefM', _) <- find (\(r, _) -> r `elem` inputs) l -> Just oRefM'
+        l | Just oRefM' <- find (`elem` inputs) l -> Just oRefM'
         -- If none exist, we use the first one we find elsewhere
-        ((oRefM', _) : _) -> Just oRefM'
+        (oRefM' : _) -> Just oRefM'
 updateRedeemedScript _ rs = return rs
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,

@@ -18,9 +18,10 @@ where
 
 import Control.Monad
 import Cooked.Pretty.Class
+import Cooked.Pretty.Skeleton ()
 import Cooked.Skeleton
-import Cooked.Tweak
 import Cooked.Tweak.Common
+import Cooked.Tweak.Labels
 import Data.Bifunctor
 import Data.Kind (Type)
 import Data.Maybe

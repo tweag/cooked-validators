@@ -18,6 +18,11 @@ module Cooked.Families
     type RevAux,
     type Member,
     type NonMember,
+
+    -- * Heterogeneous lists
+    HList (..),
+    hHead,
+    hTail,
   )
 where
 
@@ -70,3 +75,16 @@ type (∉) el els = NonMember el els '[]
 type family (⩀) (els :: [a]) (els' :: [a]) :: Constraint where
   '[] ⩀ _ = ()
   (x ': xs) ⩀ ys = (x ∉ ys, xs ⩀ ys)
+
+-- | Heterogeneous lists
+data HList :: [Type] -> Type where
+  HEmpty :: HList '[]
+  HCons :: a -> HList l -> HList (a ': l)
+
+-- | Head of an heterogeneous list
+hHead :: HList (a ': l) -> a
+hHead (HCons a _) = a
+
+-- | Tail of an heterogeneous list
+hTail :: HList (a ': l) -> HList l
+hTail (HCons _ l) = l

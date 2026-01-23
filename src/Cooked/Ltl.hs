@@ -31,11 +31,15 @@ module Cooked.Ltl
     ltlNever,
     ltlNever',
 
-    -- * LTL Effects
+    -- * Requirements from a formula
     Requirement (..),
+
+    -- * Modifying a computation on time
     ModifyGlobally,
     modifyLtl,
     runModifyGlobally,
+
+    -- * Fetching the current requirements
     ModifyLocally,
     getRequirements,
     runModifyLocally,
@@ -318,14 +322,14 @@ makeSem ''ModifyGlobally
 -- the actual computation is run, after which the newly added formula must be
 -- finished, otherwise the empty computation is returned.
 runModifyGlobally ::
-  forall modification effs a.
+  forall mod effs a.
   ( Members
-      '[ State [Ltl modification],
+      '[ State [Ltl mod],
          NonDet
        ]
       effs
   ) =>
-  Sem (ModifyGlobally modification ': effs) a ->
+  Sem (ModifyGlobally mod ': effs) a ->
   Sem effs a
 runModifyGlobally =
   interpretH $ \case

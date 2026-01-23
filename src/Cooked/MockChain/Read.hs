@@ -77,7 +77,7 @@ data MockChainRead :: Effect where
   TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
   CurrentSlot :: MockChainRead m Ledger.Slot
   AllUtxos :: MockChainRead m Utxos
-  UtxosAt :: (Script.ToAddress a) => a -> MockChainRead m Utxos
+  UtxosAt :: (Script.ToCredential a) => a -> MockChainRead m Utxos
   GetConstitutionScript :: MockChainRead m (Maybe VScript)
   GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
 
@@ -103,7 +103,7 @@ runMockChainRead = interpret $ \case
       Just (txSkelOut, True) -> return txSkelOut
       _ -> throw $ MCEUnknownOutRef oRef
   AllUtxos -> fetchUtxos $ const True
-  UtxosAt (Script.toAddress -> addr) -> fetchUtxos $ (== addr) . Script.toAddress
+  UtxosAt (Script.toCredential -> cred) -> fetchUtxos $ (== cred) . Script.toCredential
   CurrentSlot -> gets $ view $ mcstLedgerStateL % to Emulator.getSlot
   GetConstitutionScript -> gets $ view mcstConstitutionL
   GetCurrentReward (Script.toCredential -> cred) -> do
@@ -338,9 +338,9 @@ allUtxos ::
 -- | Returns a list of all UTxOs at a certain address.
 utxosAt ::
   ( Member MockChainRead effs,
-    Script.ToAddress a
+    Script.ToCredential cred
   ) =>
-  a ->
+  cred ->
   Sem effs Utxos
 
 -- | Returns an output given a reference to it

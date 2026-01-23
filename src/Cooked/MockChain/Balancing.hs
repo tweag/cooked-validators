@@ -21,6 +21,7 @@ import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.Log
 import Cooked.MockChain.Read
+import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Data.Bifunctor
 import Data.Function
@@ -82,10 +83,12 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       (True, CollateralUtxosFromUser cUser) -> logEvent (MCLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
       (True, CollateralUtxosFromBalancingUser) -> return Nothing
       (False, CollateralUtxosFromSet utxos rUser) -> return $ Just (utxos, UserPubKey rUser)
-      (False, CollateralUtxosFromUser cUser) -> Just . (,UserPubKey cUser) . Set.fromList . map fst <$> undefined -- runUtxoSearch (onlyValueOutputsAtSearch $ Script.toPubKeyHash cUser)
+      (False, CollateralUtxosFromUser (Script.toPubKeyHash -> cUser)) ->
+        Just . (,UserPubKey cUser) . Set.fromList
+          <$> getTxOutRefs (utxosAtSearch cUser ensureOnlyValueOutputs)
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
         Nothing -> throw $ MCEMissingBalancingUser "Collateral utxos should be taken from the balancing user, but it does not exist."
-        Just bUser -> Just . (,bUser) . Set.fromList . map fst <$> undefined -- runUtxoSearch (onlyValueOutputsAtSearch bUser)
+        Just bUser -> Just . (,bUser) . Set.fromList <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
 
   -- At this point, the presence (or absence) of balancing user dictates
   -- whether the transaction should be automatically balanced or not.
@@ -102,12 +105,12 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> undefined -- runUtxoSearch $ onlyValueOutputsAtSearch bUser
+          BalancingUtxosFromBalancingUser -> getTxOutRefsAndOutputs $ utxosAtSearch bUser ensureOnlyValueOutputs
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            undefined -- runUtxoSearch (txSkelOutByRefSearch (Set.toList utxos))
-            -- We filter out those belonging to scripts, while throwing a
-            -- warning if any was actually discarded.
+            getTxOutRefsAndOutputs (txSkelOutByRefSearch (Set.toList utxos) id)
+              -- We filter out those belonging to scripts, while throwing a
+              -- warning if any was actually discarded.
               >>= filterAndWarn (is (txSkelOutOwnerL % userPubKeyHashAT) . snd) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
@@ -260,7 +263,7 @@ collateralInsFromFees fee collateralIns returnCollateralUser = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- undefined -- runUtxoSearch (txSkelOutByRefSearch $ Set.toList collateralIns)
+  collateralTxOuts <- getTxOutRefsAndOutputs $ txSkelOutByRefSearch (Set.toList collateralIns) id
   -- Candidate subsets of utxos to be used as collaterals
   let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
   -- Preparing a possible collateral error
