@@ -44,16 +44,13 @@ customInitDist =
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
   case mcrValue
-    <$> runMockChainConf @DirectEffs
-      ( mockChainConfTemplate
-          ( do
-              [a1, a2, a3, a4] <- utxosAt aValidator
-              [b1, b2] <- utxosAt bValidator
-              return (a1, a2, a3, a4, b1, b2)
-          )
-      )
-        { mccInitialDistribution = customInitDist
-        } of
+    <$> runMockChainFromConf @DirectEffs
+      (mockChainConfTemplate {mccInitialDistribution = customInitDist})
+      ( do
+          [a1, a2, a3, a4] <- utxosAt aValidator
+          [b1, b2] <- utxosAt bValidator
+          return (a1, a2, a3, a4, b1, b2)
+      ) of
     [Right a] -> a
     _ -> error "Initial distribution error"
 
@@ -91,6 +88,7 @@ tests =
             skelsOut splitMode aInputs =
               mapMaybe
                 ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . mcrValue)
+                --
                 ( runTweakFrom
                     customInitDist
                     ( doubleSatAttack
