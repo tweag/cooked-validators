@@ -12,11 +12,10 @@ alice :: Wallet
 alice = wallet 1
 
 testWithdrawingScript ::
-  (MonadModalBlockChain m) =>
   Maybe (User IsEither Redemption) ->
   User IsEither Redemption ->
   Maybe Integer ->
-  m ()
+  StagedMockChain ()
 testWithdrawingScript userCertifying userRewarding mAmount = do
   when (isJust userCertifying) $
     validateTxSkel_ $

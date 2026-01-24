@@ -14,10 +14,9 @@ import PlutusLedgerApi.V3 qualified as V3
 import Test.Tasty
 
 putRefScriptOnWalletOutput ::
-  (MonadBlockChain m) =>
   Wallet ->
   Script.Versioned Script.Validator ->
-  m V3.TxOutRef
+  DirectMockChain V3.TxOutRef
 putRefScriptOnWalletOutput recipient referenceScript =
   head
     <$> validateTxSkel'
@@ -27,10 +26,9 @@ putRefScriptOnWalletOutput recipient referenceScript =
         }
 
 putRefScriptOnScriptOutput ::
-  (MonadBlockChain m) =>
   Script.Versioned Script.Validator ->
   Script.Versioned Script.Validator ->
-  m V3.TxOutRef
+  DirectMockChain V3.TxOutRef
 putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkel'
@@ -40,10 +38,9 @@ putRefScriptOnScriptOutput recipient referenceScript =
         }
 
 checkReferenceScriptOnOref ::
-  (MonadBlockChain m) =>
   Api.ScriptHash ->
   V3.TxOutRef ->
-  m ()
+  DirectMockChain ()
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
@@ -62,7 +59,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
 -- should be consumed in the transaction or not. If it should, then at
 -- transaction generation no reference input should appear, as inputs also act
 -- as reference inputs.
-useReferenceScript :: (MonadBlockChain m) => Wallet -> Bool -> Script.Versioned Script.Validator -> m Ledger.CardanoTx
+useReferenceScript :: Wallet -> Bool -> Script.Versioned Script.Validator -> DirectMockChain Ledger.CardanoTx
 useReferenceScript spendingSubmitter consumeScriptOref theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
   oref : _ <-
@@ -80,7 +77,7 @@ useReferenceScript spendingSubmitter consumeScriptOref theScript = do
         txSkelSignatories = txSkelSignatoriesFromList $ spendingSubmitter : [wallet 3 | consumeScriptOref]
       }
 
-useReferenceScriptInInputs :: (MonadBlockChain m) => Wallet -> Script.Versioned Script.Validator -> m ()
+useReferenceScriptInInputs :: Wallet -> Script.Versioned Script.Validator -> DirectMockChain ()
 useReferenceScriptInInputs spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
   oref : _ <-
@@ -95,7 +92,7 @@ useReferenceScriptInInputs spendingSubmitter theScript = do
         txSkelSignatories = txSkelSignatoriesFromList [spendingSubmitter]
       }
 
-referenceMint :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> m ()
+referenceMint :: Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> DirectMockChain ()
 referenceMint mp1 mp2 n autoRefScript = do
   ((!! n) -> mpOutRef) <-
     validateTxSkel' $
@@ -147,13 +144,10 @@ tests =
         ],
       testGroup
         "using reference scripts"
-        [ testCooked "fail from transaction generation for missing reference scripts" $
+        [ testCooked @DirectEffs "fail from transaction generation for missing reference scripts" $
             mustFailTest
               ( do
-                  (consumedOref, _) : _ <-
-                    runUtxoSearch $
-                      utxosOwnedBySearch (wallet 1)
-                        `filterWithValuePred` (`Api.geq` Script.lovelace 42_000_000)
+                  consumedOref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
                   oref : _ <-
                     validateTxSkel'
                       txSkelTemplate

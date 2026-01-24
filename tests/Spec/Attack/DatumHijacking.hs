@@ -3,13 +3,14 @@
 module Spec.Attack.DatumHijacking (tests) where
 
 import Cooked
-import Data.Bifunctor
 import Data.Map qualified as Map
 import Optics.Core
 import Plutus.Attack.DatumHijacking
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
+import Polysemy
+import Polysemy.NonDet
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -27,9 +28,9 @@ lockTxSkel o v =
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
     }
 
-txLock :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m Api.TxOutRef
+txLock :: Script.MultiPurposeScript DHContract -> StagedMockChain Api.TxOutRef
 txLock v = do
-  (oref, _) : _ <- runUtxoSearch $ utxosOwnedBySearch (wallet 1) `filterWithValuePred` (`Api.geq` lockValue)
+  oref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
   head <$> validateTxSkel' (lockTxSkel oref v)
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
@@ -41,13 +42,12 @@ relockTxSkel v o =
     }
 
 txRelock ::
-  (MonadBlockChain m) =>
   Script.MultiPurposeScript DHContract ->
   Api.TxOutRef ->
-  m ()
+  StagedMockChain ()
 txRelock v oref = validateTxSkel_ $ relockTxSkel v oref
 
-datumHijackingTrace :: (MonadBlockChain m) => Script.MultiPurposeScript DHContract -> m ()
+datumHijackingTrace :: Script.MultiPurposeScript DHContract -> StagedMockChain ()
 datumHijackingTrace v = do
   txLock v >>= txRelock v
 
@@ -76,23 +76,20 @@ tests =
                   carelessValidator `receives` InlineDatum SecondLock <&&> Value x2
                 ]
             skelOut bound select =
-              ( fmap (second txSkelOuts)
-                  <$> runTweak
-                    ( datumHijackingAttack $
-                        ( txSkelOutPredDatumHijackingParams
-                            ( \out ->
-                                preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carelessValidator)
-                                  && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
-                                  && bound `Api.geq` view txSkelOutValueL out
-                            )
-                            thief
+              (run . runNonDet . evalTweak skelIn)
+                ( datumHijackingAttack $
+                    ( outPredDatumHijackingParams
+                        ( \out ->
+                            preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carelessValidator)
+                              && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
+                              && bound `Api.geq` view txSkelOutValueL out
                         )
-                          { dhpAllOutputs = True,
-                            dhpIndexPred = select
-                          }
+                        thief
                     )
-                    skelIn
-              )
+                      { dhpAllOutputs = True,
+                        dhpIndexPred = select
+                      }
+                )
             outsExpected a b =
               [ carelessValidator `receives` InlineDatum SecondLock <&&> Value x1,
                 a `receives` InlineDatum SecondLock <&&> Value x3,
@@ -100,36 +97,31 @@ tests =
                 carelessValidator `receives` InlineDatum FirstLock <&&> Value x2,
                 b `receives` InlineDatum SecondLock <&&> Value x2
               ]
-         in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? mcrValue <$> skelOut mempty (const True),
+         in [ testCase "no modified transactions if no interesting outputs to steal" $
+                [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
-                [ Right
-                    ( [carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3)],
-                      outsExpected thief carelessValidator
-                    )
+                [ [carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3)],
+                  outsExpected thief carelessValidator
                 ]
-                  @=? mcrValue <$> skelOut x2 (0 ==),
+                  @=? skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
-                [ Right
-                    ( [ carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3),
-                        carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)
-                      ],
-                      outsExpected thief thief
-                    )
+                [ [ carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3),
+                    carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)
+                  ],
+                  outsExpected thief thief
                 ]
-                  @=? mcrValue <$> skelOut x2 (const True),
+                  @=? skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
-                [ Right
-                    ( [carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)],
-                      outsExpected carelessValidator thief
-                    )
+                [ [carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)],
+                  outsExpected carelessValidator thief
                 ]
-                  @=? mcrValue <$> skelOut x2 (1 ==)
+                  @=? skelOut x2 (1 ==)
             ],
       testCooked "careful validator" $
         mustFailInPhase2Test $
           somewhere
             ( datumHijackingAttack $
-                ( txSkelOutPredDatumHijackingParams
+                ( outPredDatumHijackingParams
                     ( \out ->
                         preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carefulValidator)
                           && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
@@ -144,7 +136,7 @@ tests =
         mustSucceedTest $
           somewhere
             ( datumHijackingAttack $
-                ( txSkelOutPredDatumHijackingParams
+                ( outPredDatumHijackingParams
                     ( \out ->
                         preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carelessValidator)
                           && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline

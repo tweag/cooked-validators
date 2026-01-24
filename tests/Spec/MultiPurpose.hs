@@ -22,7 +22,7 @@ alice, bob :: Wallet
 alice = wallet 1
 bob = wallet 2
 
-runScript :: (MonadModalBlockChain m) => m ()
+runScript :: StagedMockChain ()
 runScript = do
   [oRef@(Api.TxOutRef txId _), oRef', oRef''] <-
     validateTxSkel' $

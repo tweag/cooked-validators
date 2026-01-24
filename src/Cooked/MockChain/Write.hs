@@ -96,7 +96,7 @@ fromTweak = LtlAtom . UntypedTweak
 -- branching at any such locations. The tweak must apply at least once.
 somewhere ::
   (Members '[ModifyGlobally (UntypedTweak tweakEffs)] effs) =>
-  TypedTweak tweakEffs a ->
+  TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
 somewhere = modifyLtl . ltlEventually . fromTweak
@@ -105,7 +105,7 @@ somewhere = modifyLtl . ltlEventually . fromTweak
 -- fails anywhere in the trace.
 everywhere ::
   (Members '[ModifyGlobally (UntypedTweak tweakEffs)] effs) =>
-  TypedTweak tweakEffs a ->
+  TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
 everywhere = modifyLtl . ltlAlways . fromTweak
@@ -114,7 +114,7 @@ everywhere = modifyLtl . ltlAlways . fromTweak
 -- and leaves the computation unchanged.
 nowhere ::
   (Members '[ModifyGlobally (UntypedTweak tweakEffs)] effs) =>
-  TypedTweak tweakEffs a ->
+  TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
 nowhere = modifyLtl . ltlNever . fromTweak
@@ -123,7 +123,7 @@ nowhere = modifyLtl . ltlNever . fromTweak
 -- fail, which might never occur.
 whenAble ::
   (Members '[ModifyGlobally (UntypedTweak tweakEffs)] effs) =>
-  TypedTweak tweakEffs a ->
+  TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
 whenAble = modifyLtl . ltlWhenPossible . fromTweak
@@ -136,7 +136,7 @@ whenAble = modifyLtl . ltlWhenPossible . fromTweak
 there ::
   (Members '[ModifyGlobally (UntypedTweak tweakEffs)] effs) =>
   Integer ->
-  TypedTweak tweakEffs a ->
+  TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
 there n = modifyLtl . ltlDelay n . fromTweak
@@ -154,7 +154,7 @@ there n = modifyLtl . ltlDelay n . fromTweak
 withTweak ::
   (Members '[ModifyGlobally (UntypedTweak tweakEffs)] effs) =>
   Sem effs a ->
-  TypedTweak tweakEffs a ->
+  TypedTweak tweakEffs b ->
   Sem effs a
 withTweak = flip (there 0)
 
@@ -360,14 +360,16 @@ runMockChainWrite = interpret $ \case
 waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs Ledger.Slot
 
 -- | Wait for a certain slot, or throws an error if the slot is already past
-awaitSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Integer -> Sem effs Ledger.Slot
-awaitSlot slot = currentSlot >>= waitNSlots . (slot -) . fromIntegral
+awaitSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Ledger.Slot -> Sem effs Ledger.Slot
+awaitSlot (Ledger.Slot targetSlot) = do
+  Ledger.Slot now <- currentSlot
+  waitNSlots (targetSlot - now)
 
 -- | Waits until the current slot becomes greater or equal to the slot
 --  containing the given POSIX time.  Note that that it might not wait for
 --  anything if the current slot is large enough.
 awaitEnclosingSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Api.POSIXTime -> Sem effs Ledger.Slot
-awaitEnclosingSlot time = getEnclosingSlot time >>= (\(Ledger.Slot s) -> awaitSlot s)
+awaitEnclosingSlot time = getEnclosingSlot time >>= awaitSlot
 
 -- | Wait a given number of ms from the lower bound of the current slot and
 -- returns the current slot after waiting.

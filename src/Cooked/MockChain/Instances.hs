@@ -1,3 +1,20 @@
+-- | This module exposes concrete instances to run a mockchain. There are 3 of
+-- them :
+--
+-- - `DirectMockChain` exposes the minimal set of effects required to run a
+--   mockchain, without the ability to branch or modify runs. Use this only if
+--   you specifically want to disallow Ltl modifications (which behaves the same
+--   in the absence of modifications). In should also perform somewhat better,
+--   also in most cases this will be insignificant.
+--
+-- - `StagedMockChain` exposes all the primitives required to run a mockchain,
+--   with the addition of branching and Ltl modifications using tweaks. This
+--   should be the environement to use in 99% of the cases.
+--
+-- - `FullMockChain` exposes all the effects used to process a mockchain run,
+--   including intermediate effects usually hidden. This should only be used
+--   when the users requires to manually execute internal primitives of cooked,
+--   such as balancing.
 module Cooked.MockChain.Instances where
 
 import Cooked.InitialDistribution
@@ -10,6 +27,7 @@ import Cooked.MockChain.Read
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Write
 import Cooked.Skeleton.Output
+import Cooked.Tweak.Common
 import Data.Default
 import Data.Map (Map)
 import Ledger.Tx qualified as Ledger
@@ -91,6 +109,20 @@ runMockChainConf ::
 runMockChainConf (MockChainConf initialState initialDist funOnRes currentRun runner) =
   funOnRes <$> runner initialState (forceOutputs (unInitialDistribution initialDist) >> currentRun)
 
+class MockChain effs where
+  runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
+
+runMockChainDef :: (MockChain effs) => Sem effs a -> [RawMockChainReturn a]
+runMockChainDef = runMockChain def
+
+-- | A default configuration to run a mockchain run.
+mockChainConfTemplate ::
+  (MockChain effs) =>
+  Sem effs a ->
+  MockChainConf effs a (MockChainReturn a)
+mockChainConfTemplate currentRun =
+  MockChainConf def def unRawMockChainReturn currentRun runMockChain
+
 type DirectEffs =
   '[ MockChainWrite,
      MockChainRead,
@@ -100,43 +132,37 @@ type DirectEffs =
 
 -- | A possible stack of effects to handle a direct interpretation of the
 -- mockchain, that is without any tweaks nor branching.
-type MockChainDirect a = Sem DirectEffs a
+type DirectMockChain a = Sem DirectEffs a
 
-runMockChainDirect :: MockChainState -> MockChainDirect a -> [RawMockChainReturn a]
-runMockChainDirect mcst =
-  (: [])
-    . run
-    . runWriter
-    . runWriter
-    . runMockChainLog
-    . runState mcst
-    . runError
-    . runToCardanoErrorInMockChainError
-    . runFailInMockChainError
-    . runMockChainMisc
-    . runMockChainRead
-    . runMockChainWrite
-    . insertAt @4
-      @[ Error Ledger.ToCardanoError,
-         Error MockChainError,
-         State MockChainState,
-         MockChainLog,
-         Writer [MockChainLogEntry],
-         Writer (Map Api.BuiltinByteString String)
-       ]
+instance MockChain DirectEffs where
+  runMockChain mcst =
+    (: [])
+      . run
+      . runWriter
+      . runWriter
+      . runMockChainLog
+      . runState mcst
+      . runError
+      . runToCardanoErrorInMockChainError
+      . runFailInMockChainError
+      . runMockChainMisc
+      . runMockChainRead
+      . runMockChainWrite
+      . insertAt @4
+        @[ Error Ledger.ToCardanoError,
+           Error MockChainError,
+           State MockChainState,
+           MockChainLog,
+           Writer [MockChainLogEntry],
+           Writer (Map Api.BuiltinByteString String)
+         ]
 
--- | A default configuration to run a direct mockchain run. The intended usage
--- is @runMockChainConf $ mockChainConfDirectTemplate myDirectRun@.
-mockChainConfDirectTemplate ::
-  MockChainDirect a ->
-  MockChainConf DirectEffs a (MockChainReturn a)
-mockChainConfDirectTemplate currentRun =
-  MockChainConf def def unRawMockChainReturn currentRun runMockChainDirect
+type StagedTweakEffs = '[MockChainRead, Fail, NonDet]
 
-type TweakEffs = '[MockChainRead, Fail, NonDet]
+type StagedTweak a = Sem (Tweak : NonDet : StagedTweakEffs) a
 
-type FullEffs =
-  '[ ModifyGlobally (UntypedTweak TweakEffs),
+type StagedEffs =
+  '[ ModifyGlobally (UntypedTweak StagedTweakEffs),
      MockChainWrite,
      MockChainMisc,
      MockChainRead,
@@ -146,46 +172,87 @@ type FullEffs =
 
 -- | A possible stack of effects to handle staged interpretation of the
 -- mockchain, that is with tweaks and branching.
-type StagedMockChain a = Sem FullEffs a
+type StagedMockChain a = Sem StagedEffs a
 
-runStagedMockChain ::
-  MockChainState ->
-  StagedMockChain a ->
-  [RawMockChainReturn a]
-runStagedMockChain mcst =
-  run
-    . runNonDet
-    . runWriter
-    . runWriter
-    . runMockChainLog
-    . runState mcst
-    . runError
-    . runToCardanoErrorInMockChainError
-    . runFailInMockChainError
-    . runMockChainRead
-    . runMockChainMisc
-    . evalState []
-    . runModifyLocally
-    . runMockChainWrite
-    . insertAt @6
-      @[ Error Ledger.ToCardanoError,
-         Error MockChainError,
-         State MockChainState,
-         MockChainLog,
-         Writer [MockChainLogEntry],
-         Writer (Map Api.BuiltinByteString String)
-       ]
-    . reinterpretMockChainWriteWithTweak
-    . runModifyGlobally
-    . insertAt @2
-      @[ ModifyLocally (UntypedTweak TweakEffs),
-         State [Ltl (UntypedTweak TweakEffs)]
-       ]
+instance MockChain StagedEffs where
+  runMockChain mcst =
+    run
+      . runNonDet
+      . runWriter
+      . runWriter
+      . runMockChainLog
+      . runState mcst
+      . runError
+      . runToCardanoErrorInMockChainError
+      . runFailInMockChainError
+      . runMockChainRead
+      . runMockChainMisc
+      . evalState []
+      . runModifyLocally
+      . runMockChainWrite
+      . insertAt @6
+        @[ Error Ledger.ToCardanoError,
+           Error MockChainError,
+           State MockChainState,
+           MockChainLog,
+           Writer [MockChainLogEntry],
+           Writer (Map Api.BuiltinByteString String)
+         ]
+      . reinterpretMockChainWriteWithTweak
+      . runModifyGlobally
+      . insertAt @2
+        @[ ModifyLocally (UntypedTweak StagedTweakEffs),
+           State [Ltl (UntypedTweak StagedTweakEffs)]
+         ]
 
--- | A default configuration to run a staged mockchain run. The intended usage
--- is @runMockChainConf $ mockChainConfFullTemplate myFullRun@.
-mockChainConfFullTemplate ::
-  StagedMockChain a ->
-  MockChainConf FullEffs a (MockChainReturn a)
-mockChainConfFullTemplate currentRun =
-  MockChainConf def def unRawMockChainReturn currentRun runStagedMockChain
+type FullTweakEffs =
+  '[ MockChainRead,
+     Fail,
+     Error Ledger.ToCardanoError,
+     Error MockChainError,
+     State MockChainState,
+     MockChainLog,
+     Writer [MockChainLogEntry],
+     Writer (Map Api.BuiltinByteString String),
+     NonDet
+   ]
+
+type FullTweak a = Sem (Tweak : NonDet : FullTweakEffs) a
+
+type FullEffs =
+  '[ ModifyGlobally (UntypedTweak FullTweakEffs),
+     MockChainWrite,
+     ModifyLocally (UntypedTweak FullTweakEffs),
+     State [Ltl (UntypedTweak FullTweakEffs)],
+     MockChainMisc,
+     MockChainRead,
+     Fail,
+     Error Ledger.ToCardanoError,
+     Error MockChainError,
+     State MockChainState,
+     MockChainLog,
+     Writer [MockChainLogEntry],
+     Writer (Map Api.BuiltinByteString String),
+     NonDet
+   ]
+
+type FullMockChain a = Sem FullEffs a
+
+instance MockChain FullEffs where
+  runMockChain mcst =
+    run
+      . runNonDet
+      . runWriter
+      . runWriter
+      . runMockChainLog
+      . runState mcst
+      . runError
+      . runToCardanoErrorInMockChainError
+      . runFailInMockChainError
+      . runMockChainRead
+      . runMockChainMisc
+      . evalState []
+      . runModifyLocally
+      . runMockChainWrite
+      . reinterpretMockChainWriteWithTweak
+      . runModifyGlobally

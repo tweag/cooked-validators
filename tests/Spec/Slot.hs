@@ -1,7 +1,5 @@
 module Spec.Slot (tests) where
 
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.Direct
 import Ledger.Slot qualified as Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty

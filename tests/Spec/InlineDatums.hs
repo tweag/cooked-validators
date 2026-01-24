@@ -19,10 +19,9 @@ instance PrettyCooked SimpleContractDatum where
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use
 -- a datum hash.
 listUtxosTestTrace ::
-  (MonadBlockChain m) =>
   Bool ->
   Script.Versioned Script.Validator ->
-  m (Api.TxOutRef, TxSkelOut)
+  DirectMockChain (Api.TxOutRef, TxSkelOut)
 listUtxosTestTrace useInlineDatum validator =
   (\oref -> (oref,) <$> txSkelOutByRef oref) . head
     =<< validateTxSkel'
@@ -39,10 +38,9 @@ listUtxosTestTrace useInlineDatum validator =
 -- This is used to test whether a validator will correctly see the
 -- _input data_ of a transaction as inline datums or datum hashes.
 spendOutputTestTrace ::
-  (MonadBlockChain m) =>
   Bool ->
   Script.Versioned Script.Validator ->
-  m ()
+  DirectMockChain ()
 spendOutputTestTrace useInlineDatum validator = do
   (theTxOutRef, _) <- listUtxosTestTrace useInlineDatum validator
   validateTxSkel_
@@ -62,10 +60,9 @@ spendOutputTestTrace useInlineDatum validator = do
 -- This is used to test whether a validator will correctly see the _output data_
 -- of atransaction as inline datums or datum hashes.
 continuingOutputTestTrace ::
-  (MonadBlockChain m) =>
   OutputDatumKind ->
   Script.Versioned Script.Validator ->
-  m ()
+  DirectMockChain ()
 continuingOutputTestTrace datumKindOnSecondPayment validator = do
   (theTxOutRef, theOutput) <- listUtxosTestTrace True validator
   validateTxSkel_

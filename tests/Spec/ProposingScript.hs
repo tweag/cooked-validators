@@ -9,7 +9,6 @@ alice :: Wallet
 alice = wallet 1
 
 testProposingScript ::
-  (MonadBlockChain m) =>
   -- | Whether or not to automatically fetch a reference script
   Bool ->
   -- | Whether or not to automatically attach the constitution
@@ -20,7 +19,7 @@ testProposingScript ::
   Maybe VScript ->
   -- | The governance action to propose
   GovernanceAction IsScript ->
-  m ()
+  DirectMockChain ()
 testProposingScript autoRefScript autoConstitution constitution mScript govAction = do
   setConstitutionScript constitution
   validateTxSkel_ $

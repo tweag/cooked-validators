@@ -18,6 +18,7 @@ module Cooked.MockChain.UtxoSearch
     utxosAtSearch,
     allUtxosSearch,
     txSkelOutByRefSearch,
+    txSkelOutByRefSearch',
 
     -- * Extracting new information from UTxOs
     extract,
@@ -117,7 +118,7 @@ allUtxosSearch ::
   UtxoSearch effs els
 allUtxosSearch filters = filters $ beginSearch allUtxos
 
--- | Searches for utxos belonging to a given list
+-- | Searches for utxos belonging to a given list with a given filter
 txSkelOutByRefSearch ::
   (Member MockChainRead effs) =>
   [Api.TxOutRef] ->
@@ -125,6 +126,13 @@ txSkelOutByRefSearch ::
   UtxoSearch effs els
 txSkelOutByRefSearch utxos filters =
   filters $ beginSearch (zip utxos <$> mapM txSkelOutByRef utxos)
+
+-- | Searches for utxos belonging to a given list with no filter
+txSkelOutByRefSearch' ::
+  (Member MockChainRead effs) =>
+  [Api.TxOutRef] ->
+  UtxoSearch effs '[]
+txSkelOutByRefSearch' = (`txSkelOutByRefSearch` id)
 
 -- | Extracts a new element from the currently selected outputs, filtering in
 -- the process out utxos for which this element is not available

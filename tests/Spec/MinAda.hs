@@ -21,7 +21,7 @@ heavyDatum = HeavyDatum (take 100 [0 ..])
 instance PrettyCooked HeavyDatum where
   prettyCookedOpt opts (HeavyDatum ints) = prettyItemizeNoTitle opts "-" ints
 
-paymentWithMinAda :: (MonadBlockChain m) => m Integer
+paymentWithMinAda :: DirectMockChain Integer
 paymentWithMinAda = do
   tx <-
     validateTxSkel
@@ -31,7 +31,7 @@ paymentWithMinAda = do
         }
   view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0) <$> utxosFromCardanoTx tx
 
-paymentWithoutMinAda :: (MonadBlockChain m) => Integer -> m ()
+paymentWithoutMinAda :: Integer -> DirectMockChain ()
 paymentWithoutMinAda paidLovelaces = do
   validateTxSkel_
     txSkelTemplate

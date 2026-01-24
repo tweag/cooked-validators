@@ -6,6 +6,8 @@ module Cooked.Tweak.Common
   ( -- * Tweak effect
     Tweak (..),
     runTweak,
+    evalTweak,
+    execTweak,
 
     -- * Optics
     selectP,
@@ -58,6 +60,20 @@ runTweak txSkel =
           GetTxSkel -> get
           PutTxSkel skel -> put skel
       )
+
+-- | Same as `runTweak` but discards the returned `TxSkel`
+evalTweak ::
+  TxSkel ->
+  Sem (Tweak : effs) a ->
+  Sem effs a
+evalTweak skel = (snd <$>) . runTweak skel
+
+-- | Same as `runTweak` but discards the returned value
+execTweak ::
+  TxSkel ->
+  Sem (Tweak : effs) a ->
+  Sem effs TxSkel
+execTweak skel = (fst <$>) . runTweak skel
 
 -- | Retrieves some value from the 'TxSkel'
 viewTweak ::
