@@ -35,18 +35,27 @@ instance PrettyCooked BRedeemer where
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution ((\n -> aValidator `receives` VisibleHashedDatum ADatum <&&> Value (Script.ada n)) <$> [2, 3, 4, 5])
-    <> InitialDistribution ((\n -> bValidator `receives` VisibleHashedDatum BDatum <&&> Value (Script.ada n)) <$> [6, 7])
+    <> InitialDistribution
+      ( ((\n -> aValidator `receives` VisibleHashedDatum ADatum <&&> Value (Script.ada n)) <$> [2, 3, 4, 5])
+          <> ((\n -> bValidator `receives` VisibleHashedDatum BDatum <&&> Value (Script.ada n)) <$> [6, 7])
+      )
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
-  case mcrValue $ runMockChainFromInitDist customInitDist $ do
-    [a1, a2, a3, a4] <- runUtxoSearch $ utxosOwnedBySearch aValidator
-    [b1, b2] <- runUtxoSearch $ utxosOwnedBySearch bValidator
-    return (a1, a2, a3, a4, b1, b2) of
-    Left _ -> error "Initial distribution error"
-    Right a -> a
+  case mcrValue
+    <$> runMockChainConf @DirectEffs
+      ( mockChainConfTemplate
+          ( do
+              [a1, a2, a3, a4] <- utxosAt aValidator
+              [b1, b2] <- utxosAt bValidator
+              return (a1, a2, a3, a4, b1, b2)
+          )
+      )
+        { mccInitialDistribution = customInitDist
+        } of
+    [Right a] -> a
+    _ -> error "Initial distribution error"
 
 tests :: TestTree
 tests =
@@ -88,19 +97,19 @@ tests =
                         splitMode
                         (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
                         ( \aOref _aRedeemer -> do
-                            bUtxos <- runUtxoSearch $ utxosOwnedBySearch bValidator
+                            bUtxos <- utxosAt bValidator
                             if
                               | aOref == fst aUtxo1 ->
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                    | (bOref, bOut) <- bUtxos,
-                                      view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                      | (bOref, bOut) <- bUtxos,
+                                        view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                     ]
                               | aOref == fst aUtxo2 ->
                                   return
                                     [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                    | (bOref, _) <- bUtxos,
-                                      bOref == fst bUtxo1
+                                      | (bOref, _) <- bUtxos,
+                                        bOref == fst bUtxo1
                                     ]
                               | aOref == fst aUtxo3 ->
                                   return $

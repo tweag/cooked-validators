@@ -219,9 +219,7 @@ testToProp ::
   Test effs a prop ->
   prop
 testToProp Test {..} =
-  let results =
-        runMockChainConf $
-          (mockChainConfTemplate testTrace) {mccInitialDistribution = testInitDist}
+  let results = runMockChainFromConf (mockChainConfTemplate {mccInitialDistribution = testInitDist}) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
           ( \ret@(MockChainReturn outcome _ state mcLog names) ->

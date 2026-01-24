@@ -84,44 +84,44 @@ stateFromMockChainReturn :: FunOnMockChainResult a MockChainState
 stateFromMockChainReturn = fst . snd . snd
 
 -- | Configuration to run a mockchain
-data MockChainConf effs a b where
+data MockChainConf a b where
   MockChainConf ::
     { -- | The initial state from which to run the 'MockChainT'
       mccInitialState :: MockChainState,
       -- | The initial payments to issue in the run
       mccInitialDistribution :: InitialDistribution,
       -- | The function to apply on the results of the run
-      mccFunOnResult :: FunOnMockChainResult a b,
-      -- | The actual run to execute
-      mccRun :: Sem effs a,
-      -- | The interpreter for the run. We always expect several possible
-      -- outcomes for a run, even when the effect stack does not make use of
-      -- `NonDet` in which case the list will be a singleton.
-      mccRunner :: forall a'. MockChainState -> Sem effs a' -> [RawMockChainReturn a']
+      mccFunOnResult :: FunOnMockChainResult a b
     } ->
-    MockChainConf effs a b
+    MockChainConf a b
 
--- | Running a mockchain conf to get a list of results of the expected type
-runMockChainConf ::
-  (Member MockChainWrite effs) =>
-  MockChainConf effs a b ->
-  [b]
-runMockChainConf (MockChainConf initialState initialDist funOnRes currentRun runner) =
-  funOnRes <$> runner initialState (forceOutputs (unInitialDistribution initialDist) >> currentRun)
+mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
+mockChainConfTemplate = MockChainConf def def unRawMockChainReturn
+
+-- -- | Running a mockchain conf to get a list of results of the expected type
+-- runMockChainConf ::
+--   (Member MockChainWrite effs) =>
+--   MockChainConf effs a b ->
+--   [b]
+-- runMockChainConf (MockChainConf initialState initialDist funOnRes currentRun runner) =
+--   funOnRes <$> runner initialState (forceOutputs (unInitialDistribution initialDist) >> currentRun)
 
 class MockChain effs where
   runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
 
-runMockChainDef :: (MockChain effs) => Sem effs a -> [RawMockChainReturn a]
-runMockChainDef = runMockChain def
-
--- | A default configuration to run a mockchain run.
-mockChainConfTemplate ::
-  (MockChain effs) =>
+runMockChainFromConf ::
+  (MockChain effs, Member MockChainWrite effs) =>
+  MockChainConf a b ->
   Sem effs a ->
-  MockChainConf effs a (MockChainReturn a)
-mockChainConfTemplate currentRun =
-  MockChainConf def def unRawMockChainReturn currentRun runMockChain
+  [b]
+runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
+  funOnResult <$> runMockChain initState (forceOutputs (unInitialDistribution initDist) >> currentRun)
+
+runMockChainDef ::
+  (MockChain effs, Member MockChainWrite effs) =>
+  Sem effs a ->
+  [MockChainReturn a]
+runMockChainDef = runMockChainFromConf mockChainConfTemplate
 
 type DirectEffs =
   '[ MockChainWrite,
