@@ -9,6 +9,7 @@ import Data.Set qualified as Set
 import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
 import Optics.Core
+import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -101,8 +102,9 @@ aliceNonOnlyValueUtxos :: FullMockChain [Api.TxOutRef]
 aliceNonOnlyValueUtxos =
   getTxOutRefs $
     utxosAtSearch alice $
-      ensureAFoldIs txSkelOutReferenceScriptAT
-        . ensureAFoldIs (txSkelOutDatumL % txSkelOutDatumKindAT)
+      ensurePure $ \skel ->
+        is txSkelOutReferenceScriptAT skel
+          || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel
 
 aliceNAdaUtxos :: Integer -> FullMockChain [Api.TxOutRef]
 aliceNAdaUtxos n =
@@ -175,7 +177,7 @@ balanceReduceFee = do
 
 reachingMagic :: FullMockChain ()
 reachingMagic = do
-  bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 <=))
+  bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
@@ -189,20 +191,20 @@ reachingMagic = do
 type ResProp = TestBalancingOutcome -> Assertion
 
 hasFee :: Integer -> ResProp
-hasFee fee (_, _, fee', _, _) = testBool $ fee == fee'
+hasFee fee (_, _, fee', _, _) = testBoolMsg "hasFee" $ fee == fee'
 
 additionalOutsNb :: Int -> ResProp
-additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
+additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBoolMsg "AdditionalOutsNb" $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
 
 insNb :: Int -> ResProp
-insNb n (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == n
+insNb n (_, TxSkel {..}, _, _, _) = testBoolMsg "insNb" $ length txSkelIns == n
 
 colInsNb :: Int -> ResProp
-colInsNb cis (_, _, _, Nothing, _) = testBool $ cis == 0
-colInsNb cis (_, _, _, Just (refs, _), _) = testBool $ cis == length refs
+colInsNb cis (_, _, _, Nothing, _) = testBoolMsg "colInsNb" $ cis == 0
+colInsNb cis (_, _, _, Just (refs, _), _) = testBoolMsg "colInsNb" $ cis == length refs
 
 retOutsNb :: Int -> ResProp
-retOutsNb ros (_, _, _, _, refs) = testBool $ ros == length refs
+retOutsNb ros (_, _, _, _, refs) = testBoolMsg "retOutsNb" $ ros == length refs
 
 testBalancingSucceedsWith :: String -> [ResProp] -> FullMockChain TestBalancingOutcome -> TestTree
 testBalancingSucceedsWith msg props run =
@@ -651,7 +653,7 @@ tests =
                 ( testingBalancingTemplate
                     mempty
                     mempty
-                    ((fst <$>) <$> utxosAt alice)
+                    (getTxOutRefs $ utxosAtSearch alice ensureOnlyValueOutputs)
                     emptySearch
                     emptySearch
                     False

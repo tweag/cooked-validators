@@ -56,6 +56,11 @@ testBool :: (IsProp prop) => Bool -> prop
 testBool True = testSuccess
 testBool False = testFailure
 
+-- | Turns a boolean into a @prop@, displaying an error message when applicable
+testBoolMsg :: (IsProp prop) => String -> Bool -> prop
+testBoolMsg _ True = testSuccess
+testBoolMsg msg False = testFailureMsg msg
+
 -- | Ensures all elements of a list satisfy a given @prop@
 testAll :: (IsProp prop) => (a -> prop) -> [a] -> prop
 testAll f = testConjoin . map f
