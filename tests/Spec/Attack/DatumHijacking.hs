@@ -51,9 +51,6 @@ datumHijackingTrace :: Script.MultiPurposeScript DHContract -> StagedMockChain (
 datumHijackingTrace v = do
   txLock v >>= txRelock v
 
-txSkelFromOuts :: [TxSkelOut] -> TxSkel
-txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSignatories = txSkelSignatoriesFromList [wallet 1]}
-
 -- * TestTree for the datum hijacking attack
 
 thief :: Script.MultiPurposeScript DHContract
@@ -64,19 +61,23 @@ tests =
   testGroup
     "datum hijacking attack"
     [ testGroup "unit tests on a 'TxSkel'" $
-        let x1 = Script.lovelace 10001
-            x2 = Script.lovelace 10000
-            x3 = Script.lovelace 9999
-            skelIn =
-              txSkelFromOuts
-                [ carelessValidator `receives` InlineDatum SecondLock <&&> Value x1,
-                  carelessValidator `receives` InlineDatum SecondLock <&&> Value x3,
-                  carefulValidator `receives` InlineDatum SecondLock <&&> Value x1,
-                  carelessValidator `receives` InlineDatum FirstLock <&&> Value x2,
-                  carelessValidator `receives` InlineDatum SecondLock <&&> Value x2
-                ]
-            skelOut bound select =
-              (run . runNonDet . evalTweak skelIn)
+        let value_10_001 = Script.lovelace 10_001
+            value_10_000 = Script.lovelace 10000
+            value_9_999 = Script.lovelace 9999
+            inSkel =
+              txSkelTemplate
+                { txSkelOuts =
+                    [ carelessValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
+                      carelessValidator `receives` InlineDatum SecondLock <&&> Value value_9_999,
+                      carefulValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
+                      carelessValidator `receives` InlineDatum FirstLock <&&> Value value_10_000,
+                      carelessValidator `receives` InlineDatum SecondLock <&&> Value value_10_000
+                    ],
+                  txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
+                }
+            outSkelOutputs :: Api.Value -> (Integer -> Bool) -> [[TxSkelOut]]
+            outSkelOutputs bound select =
+              (fmap txSkelOuts . run . runNonDet . execTweak inSkel)
                 ( datumHijackingAttack $
                     ( outPredDatumHijackingParams
                         ( \out ->
@@ -91,31 +92,23 @@ tests =
                       }
                 )
             outsExpected a b =
-              [ carelessValidator `receives` InlineDatum SecondLock <&&> Value x1,
-                a `receives` InlineDatum SecondLock <&&> Value x3,
-                carefulValidator `receives` InlineDatum SecondLock <&&> Value x1,
-                carelessValidator `receives` InlineDatum FirstLock <&&> Value x2,
-                b `receives` InlineDatum SecondLock <&&> Value x2
+              [ carelessValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
+                a `receives` InlineDatum SecondLock <&&> Value value_9_999,
+                carefulValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
+                carelessValidator `receives` InlineDatum FirstLock <&&> Value value_10_000,
+                b `receives` InlineDatum SecondLock <&&> Value value_10_000
               ]
          in [ testCase "no modified transactions if no interesting outputs to steal" $
-                [] @=? skelOut mempty (const True),
+                [] @=? outSkelOutputs mempty (const True),
               testCase "one modified transaction for one interesting output" $
-                [ [carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3)],
-                  outsExpected thief carelessValidator
-                ]
-                  @=? skelOut x2 (0 ==),
+                [outsExpected thief carelessValidator]
+                  @=? outSkelOutputs value_10_000 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
-                [ [ carelessValidator `receives` (InlineDatum SecondLock <&&> Value x3),
-                    carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)
-                  ],
-                  outsExpected thief thief
-                ]
-                  @=? skelOut x2 (const True),
+                [outsExpected thief thief]
+                  @=? outSkelOutputs value_10_000 (const True),
               testCase "select second interesting output to get one modified transaction" $
-                [ [carelessValidator `receives` (InlineDatum SecondLock <&&> Value x2)],
-                  outsExpected carelessValidator thief
-                ]
-                  @=? skelOut x2 (1 ==)
+                [outsExpected carelessValidator thief]
+                  @=? outSkelOutputs value_10_000 (1 ==)
             ],
       testCooked "careful validator" $
         mustFailInPhase2Test $
