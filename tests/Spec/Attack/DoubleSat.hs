@@ -5,9 +5,9 @@ module Spec.Attack.DoubleSat (tests) where
 import Control.Arrow
 import Cooked
 import Data.Default
+import Data.Either
 import Data.List (subsequences)
 import Data.Map qualified as Map
-import Data.Maybe
 import Data.Set qualified as Set
 import Data.Tuple (swap)
 import Optics.Core
@@ -44,8 +44,8 @@ customInitDist =
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)
 (aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2) =
   case mcrValue
-    <$> runMockChainFromConf @DirectEffs
-      (mockChainConfTemplate {mccInitialDistribution = customInitDist})
+    <$> runMockChainFromInitDist @DirectEffs
+      customInitDist
       ( do
           [a1, a2, a3, a4] <- utxosAt aValidator
           [b1, b2] <- utxosAt bValidator
@@ -86,48 +86,45 @@ tests =
             -- on the focused input 'aValidator' UTxO.
             skelsOut :: ([V3.TxOutRef] -> [[V3.TxOutRef]]) -> [(ARedeemer, V3.TxOutRef)] -> [TxSkel]
             skelsOut splitMode aInputs =
-              mapMaybe
-                ((\case Right (_, skel') -> Just skel'; _ -> Nothing) . mcrValue)
-                --
-                ( runTweakFrom
-                    customInitDist
-                    ( doubleSatAttack
-                        splitMode
-                        (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
-                        ( \aOref _aRedeemer -> do
-                            bUtxos <- utxosAt bValidator
-                            if
-                              | aOref == fst aUtxo1 ->
-                                  return
-                                    [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                      | (bOref, bOut) <- bUtxos,
-                                        view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                    ]
-                              | aOref == fst aUtxo2 ->
-                                  return
-                                    [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                      | (bOref, _) <- bUtxos,
-                                        bOref == fst bUtxo1
-                                    ]
-                              | aOref == fst aUtxo3 ->
-                                  return $
-                                    concatMap
-                                      ( \(bOref, _) ->
-                                          if
-                                            | bOref == fst bUtxo1 ->
-                                                [(someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)]
-                                            | bOref == fst bUtxo2 ->
-                                                [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1),
-                                                  (someTxSkelRedeemer ARedeemer3, toDelta bOref $ someTxSkelRedeemer BRedeemer2)
-                                                ]
-                                            | otherwise -> []
-                                      )
-                                      bUtxos
-                              | otherwise -> return []
-                        )
-                        (wallet 6)
-                    )
-                    (skelIn aInputs)
+              rights
+                ( fmap mcrValue $
+                    runMockChainFromInitDist @StagedEffs customInitDist $
+                      execTweak (skelIn aInputs) $
+                        doubleSatAttack
+                          splitMode
+                          (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
+                          ( \aOref _aRedeemer -> do
+                              bUtxos <- utxosAt bValidator
+                              if
+                                | aOref == fst aUtxo1 ->
+                                    return
+                                      [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
+                                        | (bOref, bOut) <- bUtxos,
+                                          view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                      ]
+                                | aOref == fst aUtxo2 ->
+                                    return
+                                      [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
+                                        | (bOref, _) <- bUtxos,
+                                          bOref == fst bUtxo1
+                                      ]
+                                | aOref == fst aUtxo3 ->
+                                    return $
+                                      concatMap
+                                        ( \(bOref, _) ->
+                                            if
+                                              | bOref == fst bUtxo1 ->
+                                                  [(someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)]
+                                              | bOref == fst bUtxo2 ->
+                                                  [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1),
+                                                    (someTxSkelRedeemer ARedeemer3, toDelta bOref $ someTxSkelRedeemer BRedeemer2)
+                                                  ]
+                                              | otherwise -> []
+                                        )
+                                        bUtxos
+                                | otherwise -> return []
+                          )
+                          (wallet 6)
                 )
               where
                 toDelta :: V3.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta

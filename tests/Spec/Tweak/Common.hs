@@ -5,6 +5,8 @@ import Data.List (subsequences)
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
+import Polysemy
+import Polysemy.NonDet
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -20,44 +22,45 @@ tests =
     "building blocks for tweaks"
     [ testGroup "overMaybeSelectingTweak" $
         let skel = mkSkel [123, 234, 345]
-         in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test
-                [Right ([], skel)]
-                  @=? mcrValue
-                    <$> runTweak
-                      ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
-                          (const Nothing)
-                          (const True)
-                      )
-                      skel,
+         in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test -- this one is a regression test
+        -- this one is a regression test
+                [skel]
+                  @=? run
+                    ( runNonDet $
+                        execTweak skel $
+                          overMaybeSelectingTweak
+                            (txSkelOutsL % traversed % txSkelOutValueL)
+                            (const Nothing)
+                            (const True)
+                    ),
               testCase "select applied modification by index" $
-                [Right ([Script.lovelace 345], mkSkel [123, 234, 789])]
-                  @=? mcrValue
-                    <$> runTweak
-                      ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
-                          ( \value ->
-                              if value `Api.geq` Script.lovelace 200
-                                then Just $ Script.lovelace 789
-                                else Nothing
-                          )
-                          (== 1)
-                      )
-                      skel,
+                [(mkSkel [123, 234, 789], [Script.lovelace 345])]
+                  @=? run
+                    ( runNonDet $
+                        runTweak skel $
+                          overMaybeSelectingTweak
+                            (txSkelOutsL % traversed % txSkelOutValueL)
+                            ( \value ->
+                                if value `Api.geq` Script.lovelace 200
+                                  then Just $ Script.lovelace 789
+                                  else Nothing
+                            )
+                            (== 1)
+                    ),
               testCase "return unmodified foci in the right order" $
-                [Right ([Script.lovelace 123, Script.lovelace 345], mkSkel [789, 234, 789])]
-                  @=? mcrValue
-                    <$> runTweak
-                      ( overMaybeSelectingTweak
-                          (txSkelOutsL % traversed % txSkelOutValueL)
-                          (const $ Just $ Script.lovelace 789)
-                          (`elem` [0, 2])
-                      )
-                      skel
+                [(mkSkel [789, 234, 789], [Script.lovelace 123, Script.lovelace 345])]
+                  @=? run
+                    ( runNonDet $
+                        runTweak skel $
+                          overMaybeSelectingTweak
+                            (txSkelOutsL % traversed % txSkelOutValueL)
+                            (const $ Just $ Script.lovelace 789)
+                            (`elem` [0, 2])
+                    )
             ],
       testGroup "combineModsTweak" $
         let skelIn = mkSkel [0, 0, 0]
-            skelOut x y z = Right ([0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0], mkSkel [x, y, z])
+            skelOut x y z = (mkSkel [x, y, z], [0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0])
          in [ testCase "all combinations of modifications" $
                 assertSameSets
                   [ -- one changed focus
@@ -90,14 +93,13 @@ tests =
                     skelOut 2 2 1,
                     skelOut 2 2 2
                   ]
-                  ( mcrValue
-                      <$> runTweak
-                        ( combineModsTweak
+                  ( run $
+                      runNonDet $
+                        runTweak skelIn $
+                          combineModsTweak
                             (tail . subsequences)
                             (txSkelOutsL % itraversed % txSkelOutValueL % valueLovelaceL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
-                        )
-                        skelIn
                   ),
               testCase "separate modifications" $
                 assertSameSets
@@ -109,14 +111,13 @@ tests =
                     skelOut 0 0 1,
                     skelOut 0 0 2
                   ]
-                  ( mcrValue
-                      <$> runTweak
-                        ( combineModsTweak
+                  ( run $
+                      runNonDet $
+                        runTweak skelIn $
+                          combineModsTweak
                             (map (: []))
                             (txSkelOutsL % itraversed % txSkelOutValueL % valueLovelaceL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
-                        )
-                        skelIn
                   )
             ]
     ]

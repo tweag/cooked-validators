@@ -214,7 +214,7 @@ testToProp ::
   ( IsProp prop,
     Show a,
     Member MockChainWrite effs,
-    MockChain effs
+    IsMockChain effs
   ) =>
   Test effs a prop ->
   prop
@@ -240,7 +240,7 @@ testCooked ::
   forall effs a.
   ( Show a,
     Member MockChainWrite effs,
-    MockChain effs
+    IsMockChain effs
   ) =>
   String ->
   Test effs a HU.Assertion ->
@@ -252,7 +252,7 @@ testCookedQC ::
   forall effs a.
   ( Show a,
     Member MockChainWrite effs,
-    MockChain effs
+    IsMockChain effs
   ) =>
   String ->
   Test effs a QC.Property ->

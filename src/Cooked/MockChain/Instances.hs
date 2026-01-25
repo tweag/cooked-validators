@@ -98,27 +98,33 @@ data MockChainConf a b where
 mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
 mockChainConfTemplate = MockChainConf def def unRawMockChainReturn
 
--- -- | Running a mockchain conf to get a list of results of the expected type
--- runMockChainConf ::
---   (Member MockChainWrite effs) =>
---   MockChainConf effs a b ->
---   [b]
--- runMockChainConf (MockChainConf initialState initialDist funOnRes currentRun runner) =
---   funOnRes <$> runner initialState (forceOutputs (unInitialDistribution initialDist) >> currentRun)
-
-class MockChain effs where
+class IsMockChain effs where
   runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
 
 runMockChainFromConf ::
-  (MockChain effs, Member MockChainWrite effs) =>
+  ( IsMockChain effs,
+    Member MockChainWrite effs
+  ) =>
   MockChainConf a b ->
   Sem effs a ->
   [b]
 runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
   funOnResult <$> runMockChain initState (forceOutputs (unInitialDistribution initDist) >> currentRun)
 
+runMockChainFromInitDist ::
+  ( IsMockChain effs,
+    Member MockChainWrite effs
+  ) =>
+  InitialDistribution ->
+  Sem effs a ->
+  [MockChainReturn a]
+runMockChainFromInitDist initDist =
+  runMockChainFromConf $ mockChainConfTemplate {mccInitialDistribution = initDist}
+
 runMockChainDef ::
-  (MockChain effs, Member MockChainWrite effs) =>
+  ( IsMockChain effs,
+    Member MockChainWrite effs
+  ) =>
   Sem effs a ->
   [MockChainReturn a]
 runMockChainDef = runMockChainFromConf mockChainConfTemplate
@@ -134,7 +140,7 @@ type DirectEffs =
 -- mockchain, that is without any tweaks nor branching.
 type DirectMockChain a = Sem DirectEffs a
 
-instance MockChain DirectEffs where
+instance IsMockChain DirectEffs where
   runMockChain mcst =
     (: [])
       . run
@@ -174,7 +180,7 @@ type StagedEffs =
 -- mockchain, that is with tweaks and branching.
 type StagedMockChain a = Sem StagedEffs a
 
-instance MockChain StagedEffs where
+instance IsMockChain StagedEffs where
   runMockChain mcst =
     run
       . runNonDet
@@ -238,7 +244,7 @@ type FullEffs =
 
 type FullMockChain a = Sem FullEffs a
 
-instance MockChain FullEffs where
+instance IsMockChain FullEffs where
   runMockChain mcst =
     run
       . runNonDet
