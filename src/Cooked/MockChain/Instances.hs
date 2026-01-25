@@ -55,7 +55,9 @@ data MockChainReturn a where
       -- | The final journal emitted during the run
       mcrJournal :: [MockChainLogEntry],
       -- | The map of aliases defined during the run
-      mcrAliases :: Map Api.BuiltinByteString String
+      mcrAliases :: Map Api.BuiltinByteString String,
+      -- | The notes taken by the user during the run
+      mcrNoteBook :: [String]
     } ->
     MockChainReturn a
   deriving (Functor)
@@ -64,8 +66,10 @@ data MockChainReturn a where
 type RawMockChainReturn a =
   ( Map Api.BuiltinByteString String,
     ( [MockChainLogEntry],
-      ( MockChainState,
-        Either MockChainError a
+      ( [String],
+        ( MockChainState,
+          Either MockChainError a
+        )
       )
     )
   )
@@ -76,12 +80,8 @@ type FunOnMockChainResult a b = RawMockChainReturn a -> b
 
 -- | Building a `MockChainReturn` from a `RawMockChainReturn`
 unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
-unRawMockChainReturn (aliases, (journal, (st, val))) =
-  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases
-
--- | Retrieving the `MockChainState` from a `RawMockChainReturn`
-stateFromMockChainReturn :: FunOnMockChainResult a MockChainState
-stateFromMockChainReturn = fst . snd . snd
+unRawMockChainReturn (aliases, (journal, (notes, (st, val)))) =
+  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases notes
 
 -- | Configuration to run a mockchain
 data MockChainConf a b where
@@ -146,6 +146,7 @@ instance IsMockChain DirectEffs where
       . run
       . runWriter
       . runWriter
+      . runWriter
       . runMockChainLog
       . runState mcst
       . runError
@@ -159,6 +160,7 @@ instance IsMockChain DirectEffs where
            Error MockChainError,
            State MockChainState,
            MockChainLog,
+           Writer [String],
            Writer [MockChainLogEntry],
            Writer (Map Api.BuiltinByteString String)
          ]
@@ -186,6 +188,7 @@ instance IsMockChain StagedEffs where
       . runNonDet
       . runWriter
       . runWriter
+      . runWriter
       . runMockChainLog
       . runState mcst
       . runError
@@ -201,6 +204,7 @@ instance IsMockChain StagedEffs where
            Error MockChainError,
            State MockChainState,
            MockChainLog,
+           Writer [String],
            Writer [MockChainLogEntry],
            Writer (Map Api.BuiltinByteString String)
          ]
@@ -218,6 +222,7 @@ type FullTweakEffs =
      Error MockChainError,
      State MockChainState,
      MockChainLog,
+     Writer [String],
      Writer [MockChainLogEntry],
      Writer (Map Api.BuiltinByteString String),
      NonDet
@@ -237,6 +242,7 @@ type FullEffs =
      Error MockChainError,
      State MockChainState,
      MockChainLog,
+     Writer [String],
      Writer [MockChainLogEntry],
      Writer (Map Api.BuiltinByteString String),
      NonDet
@@ -248,6 +254,7 @@ instance IsMockChain FullEffs where
   runMockChain mcst =
     run
       . runNonDet
+      . runWriter
       . runWriter
       . runWriter
       . runMockChainLog

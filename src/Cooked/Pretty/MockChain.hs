@@ -27,12 +27,20 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
 instance (Show a) => PrettyCooked [MockChainReturn a] where
-  prettyCookedOpt opts = prettyItemize opts "Results:" "-"
+  prettyCookedOpt opts [outcome] = prettyCookedOpt opts outcome
+  prettyCookedOpt opts outcomes =
+    PP.vsep
+      ( zipWith
+          (\n d -> PP.vsep ["", PP.pretty n <> "." <+> d])
+          ([1 ..] :: [Int])
+          (PP.align . prettyCookedOpt opts <$> outcomes)
+      )
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
+  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts) noteBook) =
     PP.vsep $
-      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts]
+      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
+        <> [prettyItemize opts "📔 Notes:" "-" (PP.pretty @_ @() <$> noteBook) | not (null noteBook)]
         <> prettyCookedOptList opts utxoState
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err

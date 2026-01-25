@@ -227,7 +227,7 @@ testToProp Test {..} =
   let results = runMockChainFromConf (mockChainConfTemplate {mccInitialDistribution = testInitDist}) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \ret@(MockChainReturn outcome _ state mcLog names) ->
+          ( \ret@(MockChainReturn outcome _ state mcLog names _) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testCounterexample
                     (renderString (prettyCookedOpt pcOpts) ret)
