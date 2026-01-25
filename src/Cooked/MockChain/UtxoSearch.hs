@@ -224,8 +224,8 @@ ensureOnlyValueOutputs ::
   UtxoSearch effs els ->
   UtxoSearch effs els
 ensureOnlyValueOutputs =
-  ensureAFoldIsn't txSkelOutMReferenceScriptL
-    . ensureAFoldIsn't txSkelOutMStakingCredentialL
+  ensureAFoldIsn't txSkelOutReferenceScriptAT
+    . ensureAFoldIsn't txSkelOutStakingCredentialAT
     . ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
 
 -- | Same as 'onlyValueOutputsAtSearch', but also ensures the searched outputs
