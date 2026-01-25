@@ -1,8 +1,8 @@
 module Spec.Slot (tests) where
 
 import Cooked.MockChain.Error
-import Cooked.MockChain.MockChainState
 import Cooked.MockChain.Read
+import Cooked.MockChain.State
 import Data.Default
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger

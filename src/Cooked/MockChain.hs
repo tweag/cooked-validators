@@ -8,8 +8,8 @@ import Cooked.MockChain.Common as X
 import Cooked.MockChain.Error as X
 import Cooked.MockChain.Instances as X
 import Cooked.MockChain.Misc as X
-import Cooked.MockChain.MockChainState as X
 import Cooked.MockChain.Read as X
+import Cooked.MockChain.State as X
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.UtxoSearch as X
 import Cooked.MockChain.UtxoState as X

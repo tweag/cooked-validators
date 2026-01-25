@@ -40,8 +40,8 @@ library
       Cooked.MockChain.Instances
       Cooked.MockChain.Log
       Cooked.MockChain.Misc
-      Cooked.MockChain.MockChainState
       Cooked.MockChain.Read
+      Cooked.MockChain.State
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState

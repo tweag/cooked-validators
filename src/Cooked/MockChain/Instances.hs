@@ -22,8 +22,8 @@ import Cooked.Ltl
 import Cooked.MockChain.Error
 import Cooked.MockChain.Log
 import Cooked.MockChain.Misc
-import Cooked.MockChain.MockChainState
 import Cooked.MockChain.Read
+import Cooked.MockChain.State
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Write
 import Cooked.Skeleton.Output

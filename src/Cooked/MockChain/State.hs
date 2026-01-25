@@ -1,6 +1,6 @@
 -- | This module exposes the internal state in which our direct simulation is
 -- run, and functions to update and query it.
-module Cooked.MockChain.MockChainState
+module Cooked.MockChain.State
   ( MockChainState (..),
     mcstParamsL,
     mcstLedgerStateL,

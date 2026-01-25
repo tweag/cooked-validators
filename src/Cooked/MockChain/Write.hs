@@ -48,8 +48,8 @@ import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.Log
-import Cooked.MockChain.MockChainState
 import Cooked.MockChain.Read
+import Cooked.MockChain.State
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Coerce

@@ -3,8 +3,8 @@ module Spec.Tweak.ValidityRange (tests) where
 import Control.Monad (void)
 import Cooked.MockChain.Error
 import Cooked.MockChain.Log
-import Cooked.MockChain.MockChainState
 import Cooked.MockChain.Read
+import Cooked.MockChain.State
 import Cooked.MockChain.Testing
 import Cooked.MockChain.Write
 import Cooked.Skeleton

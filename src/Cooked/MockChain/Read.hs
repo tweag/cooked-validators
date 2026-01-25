@@ -52,7 +52,7 @@ import Control.Monad
 import Cooked.MockChain.Common
 import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Credential (toStakeCredential)
-import Cooked.MockChain.MockChainState
+import Cooked.MockChain.State
 import Cooked.Skeleton
 import Data.Coerce (coerce)
 import Data.Map (Map)
