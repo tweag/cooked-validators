@@ -38,6 +38,7 @@ library
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.Instances
+      Cooked.MockChain.Journal
       Cooked.MockChain.Log
       Cooked.MockChain.Misc
       Cooked.MockChain.Read

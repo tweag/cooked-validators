@@ -62,7 +62,7 @@ tests =
               (scriptUserWithdrawing 0)
               Nothing
           )
-          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount",
       testCooked ".. but the script's logic might say No" $
         mustFailTest
           ( testWithdrawingScript
@@ -71,7 +71,7 @@ tests =
               Nothing
           )
           `withFailureProp` isPhase2FailureWithMsg "Wrong quantity: 0 instead of 2000000"
-          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount",
       testCooked "We cannot withdraw more than our rewards (0)" $
         mustFailTest
           ( testWithdrawingScript
@@ -80,7 +80,7 @@ tests =
               (Just 2)
           )
           `withFailureProp` isPhase1FailureWithMsg "WithdrawalsNotInRewardsCERTS"
-          `withJournalProp` didNotHappen "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` didNotHappen "MCLogAutoFilledWithdrawalAmount",
       testCooked "A peer can also make a withdrawal" $
         mustSucceedTest
           ( testWithdrawingScript
@@ -88,5 +88,5 @@ tests =
               aliceUser
               Nothing
           )
-          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount"
+          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount"
     ]

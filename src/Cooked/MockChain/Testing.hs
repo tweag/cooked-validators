@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+
 -- | This modules provides primitives to run tests over mockchain executions and
 -- to provide requirements on the the number and results of these runs.
 module Cooked.MockChain.Testing where
@@ -156,19 +158,19 @@ assertSameSets l r =
 -- * Data structure to test mockchain traces
 
 {--
-  Note on properties over the journal (or list of 'MockChainLogEntry'): our
-  'Test' structure does not directly embed a predicate over the journal. Instead
+  Note on properties over the log (or list of 'MockChainLogEntry'): our
+  'Test' structure does not directly embed a predicate over the log. Instead
   it is embedded in both the failure and success prediates. The reason is
-  simple: the journal is generated and accessible in both cases and thus it is
+  simple: the log is generated and accessible in both cases and thus it is
   theoretically possible to define predicates that combine requirements over the
-  journal and the error in case of failure, and the journal and the returning
-  state and value in the case of success. If the journal predicate was a field
+  log and the error in case of failure, and the log and the returning
+  state and value in the case of success. If the log predicate was a field
   in itself, this link would be broken and it would not be possible to epxress
-  complex requirements that involve both the journal and other components of the
+  complex requirements that involve both the log and other components of the
   returned elements in the mockchain run. Granted, this use cas is extremely
   rare, but it does not mean our API should not reflect this capability.
-  However, we also provide 'JournalProp' as in most cases predicating over
-  the journal itself will be sufficient.
+  However, we also provide 'LogProp' as in most cases predicating over
+  the log itself will be sufficient.
 --}
 
 -- | Type of properties over failures
@@ -182,8 +184,8 @@ type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoSt
 -- contain anything significant that can be pretty printed.
 type SizeProp prop = Integer -> prop
 
--- | Type of properties over the mockchain journal
-type JournalProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
+-- | Type of properties over the mockchain log
+type LogProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
 
 -- | Type of properties over the 'UtxoState'
 type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
@@ -302,11 +304,11 @@ withPrettyOpts test opts = test {testPrettyOpts = opts}
 
 -- | Appends a requirements over the emitted log, which will need to be satisfied
 -- both in case of success or failure of the run.
-withJournalProp :: (IsProp prop) => Test effs a prop -> JournalProp prop -> Test effs a prop
-withJournalProp test journalProp =
+withLogProp :: (IsProp prop) => Test effs a prop -> LogProp prop -> Test effs a prop
+withLogProp test logProp =
   test
-    { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. journalProp opts journal,
-      testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. journalProp opts journal
+    { testFailureProp = \opts log err state -> testFailureProp test opts log err state .&&. logProp opts log,
+      testSuccessProp = \opts log val state -> testSuccessProp test opts log val state .&&. logProp opts log
     }
 
 -- | Appends a requirements over the resulting 'UtxoState', which will need to
@@ -314,8 +316,8 @@ withJournalProp test journalProp =
 withStateProp :: (IsProp prop) => Test effs a prop -> StateProp prop -> Test effs a prop
 withStateProp test stateProp =
   test
-    { testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. stateProp opts state,
-      testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. stateProp opts state
+    { testFailureProp = \opts log err state -> testFailureProp test opts log err state .&&. stateProp opts state,
+      testSuccessProp = \opts log val state -> testSuccessProp test opts log val state .&&. stateProp opts state
     }
 
 -- | Appends a requirement over the resulting value and state of the mockchain
@@ -323,7 +325,7 @@ withStateProp test stateProp =
 withSuccessProp :: (IsProp prop) => Test effs a prop -> SuccessProp a prop -> Test effs a prop
 withSuccessProp test successProp =
   test
-    { testSuccessProp = \opts journal val state -> testSuccessProp test opts journal val state .&&. successProp opts journal val state
+    { testSuccessProp = \opts log val state -> testSuccessProp test opts log val state .&&. successProp opts log val state
     }
 
 -- | Same as 'withSuccessProp' but only considers the returning value of the run
@@ -340,7 +342,7 @@ withSizeProp test reqSize =
 -- | Appends a requirement over the resulting value and state of the mockchain
 -- run which will need to be satisfied if the run is successful
 withFailureProp :: (IsProp prop) => Test effs a prop -> FailureProp prop -> Test effs a prop
-withFailureProp test failureProp = test {testFailureProp = \opts journal err state -> testFailureProp test opts journal err state .&&. failureProp opts journal err state}
+withFailureProp test failureProp = test {testFailureProp = \opts log err state -> testFailureProp test opts log err state .&&. failureProp opts log err state}
 
 -- | Same as 'withFailureProp' but only considers the returning error of the run
 withErrorProp :: (IsProp prop) => Test effs a prop -> (MockChainError -> prop) -> Test effs a prop
@@ -385,21 +387,21 @@ isAtMostOfSize :: (IsProp prop) => Integer -> SizeProp prop
 isAtMostOfSize n1 n2 | n1 >= n2 = testSuccess
 isAtMostOfSize n1 n2 = testFailureMsg $ "Incorrect number of results (expected at most: " <> show n1 <> " but got: " <> show n2 <> ")"
 
--- * Specific properties over the journal
+-- * Specific properties over the log
 
 -- | Ensures a certain event has been emitted. This uses the constructor's name
 -- of the 'MockChainLogEntry' by relying on 'show' being lazy.
-happened :: (IsProp prop) => String -> JournalProp prop
-happened eventName _ journal
-  | allEventNames <- Set.fromList (head . words . show <$> journal) =
+happened :: (IsProp prop) => String -> LogProp prop
+happened eventName _ log
+  | allEventNames <- Set.fromList (head . words . show <$> log) =
       if eventName `Set.member` allEventNames
         then testSuccess
         else testFailureMsg $ "The event " <> show eventName <> " did not occur (but those did: " <> show allEventNames <> ")"
 
 -- | Ensures a certain event has not been emitted. This uses the constructor's
 -- name of the 'MockChainLogEntry' by relying on 'show' being lazy.
-didNotHappen :: (IsProp prop) => String -> JournalProp prop
-didNotHappen eventName _ journal | not (eventName `Set.member` Set.fromList (head . words . show <$> journal)) = testSuccess
+didNotHappen :: (IsProp prop) => String -> LogProp prop
+didNotHappen eventName _ log | not (eventName `Set.member` Set.fromList (head . words . show <$> log)) = testSuccess
 didNotHappen eventName _ _ = testFailureMsg $ "The event " <> show eventName <> " was forbidden but occurred nonetheless"
 
 -- * Specific properties over successes

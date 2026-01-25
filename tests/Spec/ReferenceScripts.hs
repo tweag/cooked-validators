@@ -238,7 +238,7 @@ tests =
               referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False,
           testCooked "succeed if relying on automated finding of reference minting policy" $
             mustSucceedTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 True)
-              `withJournalProp` happened "MCLogAddedReferenceScript",
+              `withLogProp` happened "MCLogAddedReferenceScript",
           testCooked "fail if given the wrong reference minting policy" $
             mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
               `withErrorProp` \case

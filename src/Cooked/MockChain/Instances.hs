@@ -20,6 +20,7 @@ module Cooked.MockChain.Instances where
 import Cooked.InitialDistribution
 import Cooked.Ltl
 import Cooked.MockChain.Error
+import Cooked.MockChain.Journal
 import Cooked.MockChain.Log
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Read
@@ -53,7 +54,7 @@ data MockChainReturn a where
       -- | The 'UtxoState' at the end of the run
       mcrUtxoState :: UtxoState,
       -- | The final journal emitted during the run
-      mcrJournal :: [MockChainLogEntry],
+      mcrLog :: [MockChainLogEntry],
       -- | The map of aliases defined during the run
       mcrAliases :: Map Api.BuiltinByteString String,
       -- | The notes taken by the user during the run
@@ -63,16 +64,7 @@ data MockChainReturn a where
   deriving (Functor)
 
 -- | Raw return type of running a 'MockChainT'
-type RawMockChainReturn a =
-  ( Map Api.BuiltinByteString String,
-    ( [MockChainLogEntry],
-      ( [String],
-        ( MockChainState,
-          Either MockChainError a
-        )
-      )
-    )
-  )
+type RawMockChainReturn a = (MockChainJournal, (MockChainState, Either MockChainError a))
 
 -- | The type of functions transforming an element of type @RawMockChainReturn a@
 -- into an element of type @b@
@@ -80,7 +72,7 @@ type FunOnMockChainResult a b = RawMockChainReturn a -> b
 
 -- | Building a `MockChainReturn` from a `RawMockChainReturn`
 unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
-unRawMockChainReturn (aliases, (journal, (notes, (st, val)))) =
+unRawMockChainReturn (MockChainJournal journal aliases notes, (st, val)) =
   MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases notes
 
 -- | Configuration to run a mockchain
@@ -145,14 +137,12 @@ instance IsMockChain DirectEffs where
     (: [])
       . run
       . runWriter
-      . runWriter
-      . runWriter
-      . runMockChainLog
+      . runMockChainLog fromLogEntry
       . runState mcst
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
-      . runMockChainMisc
+      . runMockChainMisc fromAlias fromNote
       . runMockChainRead
       . runMockChainWrite
       . insertAt @4
@@ -160,9 +150,7 @@ instance IsMockChain DirectEffs where
            Error MockChainError,
            State MockChainState,
            MockChainLog,
-           Writer [String],
-           Writer [MockChainLogEntry],
-           Writer (Map Api.BuiltinByteString String)
+           Writer MockChainJournal
          ]
 
 type StagedTweakEffs = '[MockChainRead, Fail, NonDet]
@@ -187,15 +175,13 @@ instance IsMockChain StagedEffs where
     run
       . runNonDet
       . runWriter
-      . runWriter
-      . runWriter
-      . runMockChainLog
+      . runMockChainLog fromLogEntry
       . runState mcst
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainRead
-      . runMockChainMisc
+      . runMockChainMisc fromAlias fromNote
       . evalState []
       . runModifyLocally
       . runMockChainWrite
@@ -204,9 +190,7 @@ instance IsMockChain StagedEffs where
            Error MockChainError,
            State MockChainState,
            MockChainLog,
-           Writer [String],
-           Writer [MockChainLogEntry],
-           Writer (Map Api.BuiltinByteString String)
+           Writer MockChainJournal
          ]
       . reinterpretMockChainWriteWithTweak
       . runModifyGlobally
@@ -222,9 +206,7 @@ type FullTweakEffs =
      Error MockChainError,
      State MockChainState,
      MockChainLog,
-     Writer [String],
-     Writer [MockChainLogEntry],
-     Writer (Map Api.BuiltinByteString String),
+     Writer MockChainJournal,
      NonDet
    ]
 
@@ -242,9 +224,7 @@ type FullEffs =
      Error MockChainError,
      State MockChainState,
      MockChainLog,
-     Writer [String],
-     Writer [MockChainLogEntry],
-     Writer (Map Api.BuiltinByteString String),
+     Writer MockChainJournal,
      NonDet
    ]
 
@@ -255,15 +235,13 @@ instance IsMockChain FullEffs where
     run
       . runNonDet
       . runWriter
-      . runWriter
-      . runWriter
-      . runMockChainLog
+      . runMockChainLog fromLogEntry
       . runState mcst
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainRead
-      . runMockChainMisc
+      . runMockChainMisc fromAlias fromNote
       . evalState []
       . runModifyLocally
       . runMockChainWrite

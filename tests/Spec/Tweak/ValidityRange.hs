@@ -77,7 +77,7 @@ interpretValidityRange =
     . runNonDet
     . fmap snd
     . runWriter
-    . runMockChainLog
+    . runMockChainLog (: [])
     . evalState def
     . runError
     . runFailInMockChainError

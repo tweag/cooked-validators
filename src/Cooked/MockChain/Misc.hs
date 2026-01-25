@@ -17,8 +17,6 @@ where
 
 import Cooked.Pretty.Class
 import Cooked.Pretty.Hashable
-import Data.Map (Map)
-import Data.Map qualified as Map
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Writer
@@ -33,15 +31,15 @@ makeSem_ ''MockChainMisc
 -- | Interpreting a `MockChainMisc` in terms of a writer of @Map
 -- BuiltinByteString String@
 runMockChainMisc ::
-  forall effs a.
-  (Members '[Writer (Map Api.BuiltinByteString String), Writer [String]] effs) =>
+  forall effs a j.
+  (Member (Writer j) effs) =>
+  (String -> Api.BuiltinByteString -> j) ->
+  (String -> j) ->
   Sem (MockChainMisc : effs) a ->
   Sem effs a
-runMockChainMisc = interpret $ \case
-  (Define name hashable) -> do
-    tell $ Map.singleton (toHash hashable) name
-    return hashable
-  (Note s) -> tell [show s]
+runMockChainMisc injectAlias injectNote = interpret $ \case
+  (Define name hashable) -> tell (injectAlias name $ toHash hashable) >> return hashable
+  (Note s) -> tell $ injectNote $ show s
 
 -- | Stores an alias matching a hashable data for pretty printing purpose
 define :: forall effs a. (Member MockChainMisc effs, ToHash a) => String -> a -> Sem effs a

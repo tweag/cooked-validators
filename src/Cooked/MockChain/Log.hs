@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Cooked.MockChain.Log
-  ( -- * Log entries
+  ( -- * Logging events
     MockChainLogEntry (..),
 
     -- * Logging effect
@@ -57,10 +57,11 @@ makeSem_ ''MockChainLog
 -- | Interpreting a `MockChainLog` in terms of a writer of
 -- @[MockChainLogEntry]@
 runMockChainLog ::
-  (Member (Writer [MockChainLogEntry]) effs) =>
+  (Member (Writer j) effs) =>
+  (MockChainLogEntry -> j) ->
   Sem (MockChainLog : effs) a ->
   Sem effs a
-runMockChainLog = interpret $ \(LogEvent event) -> tell [event]
+runMockChainLog inject = interpret $ \(LogEvent event) -> tell $ inject event
 
 -- | Logs an internal event occurring while processing a transaction skeleton
 logEvent :: (Member MockChainLog effs) => MockChainLogEntry -> Sem effs ()
