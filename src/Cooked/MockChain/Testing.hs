@@ -10,7 +10,7 @@ import Cooked.InitialDistribution
 import Cooked.MockChain.Error
 import Cooked.MockChain.Instances
 import Cooked.MockChain.Log
-import Cooked.MockChain.UtxoState
+import Cooked.MockChain.State
 import Cooked.MockChain.Write
 import Cooked.Pretty
 import Data.Default

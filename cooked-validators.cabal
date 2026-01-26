@@ -46,7 +46,6 @@ library
       Cooked.MockChain.Testing
       Cooked.MockChain.Tweak
       Cooked.MockChain.UtxoSearch
-      Cooked.MockChain.UtxoState
       Cooked.MockChain.Write
       Cooked.Pretty
       Cooked.Pretty.Class

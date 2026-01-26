@@ -14,5 +14,4 @@ import Cooked.MockChain.State as X
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.Tweak as X
 import Cooked.MockChain.UtxoSearch as X
-import Cooked.MockChain.UtxoState as X
 import Cooked.MockChain.Write as X

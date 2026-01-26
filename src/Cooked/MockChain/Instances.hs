@@ -26,7 +26,6 @@ import Cooked.MockChain.Misc
 import Cooked.MockChain.Read
 import Cooked.MockChain.State
 import Cooked.MockChain.Tweak
-import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Write
 import Cooked.Skeleton.Output
 import Data.Default

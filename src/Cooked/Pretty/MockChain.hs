@@ -7,7 +7,7 @@ module Cooked.Pretty.MockChain () where
 import Cooked.MockChain.Error
 import Cooked.MockChain.Instances
 import Cooked.MockChain.Log
-import Cooked.MockChain.UtxoState
+import Cooked.MockChain.State
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
