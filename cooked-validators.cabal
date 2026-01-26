@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.37.0.
+-- This file has been generated from package.yaml by hpack version 0.38.3.
 --
 -- see: https://github.com/sol/hpack
 
@@ -44,6 +44,7 @@ library
       Cooked.MockChain.Read
       Cooked.MockChain.State
       Cooked.MockChain.Testing
+      Cooked.MockChain.Tweak
       Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Write

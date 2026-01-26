@@ -25,10 +25,10 @@ import Cooked.MockChain.Log
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Read
 import Cooked.MockChain.State
+import Cooked.MockChain.Tweak
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Write
 import Cooked.Skeleton.Output
-import Cooked.Tweak.Common
 import Data.Default
 import Data.Map (Map)
 import Ledger.Tx qualified as Ledger
@@ -155,7 +155,7 @@ instance IsMockChain DirectEffs where
 
 type StagedTweakEffs = '[MockChainRead, Fail, NonDet]
 
-type StagedTweak a = Sem (Tweak : NonDet : StagedTweakEffs) a
+type StagedTweak a = TypedTweak StagedTweakEffs a
 
 type StagedEffs =
   '[ ModifyGlobally (UntypedTweak StagedTweakEffs),
@@ -210,7 +210,7 @@ type FullTweakEffs =
      NonDet
    ]
 
-type FullTweak a = Sem (Tweak : NonDet : FullTweakEffs) a
+type FullTweak a = TypedTweak FullTweakEffs a
 
 type FullEffs =
   '[ ModifyGlobally (UntypedTweak FullTweakEffs),
