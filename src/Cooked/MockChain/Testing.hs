@@ -198,8 +198,7 @@ data Test effs a prop = Test
     testTrace :: Sem effs a,
     -- | The initial distribution from which the trace should be run
     testInitDist :: InitialDistribution,
-    -- | The requirement on the number of results, as 'StagedMockChain' is a
-    -- 'Control.Monad.MonadPlus'
+    -- | The requirement on the number of results
     testSizeProp :: SizeProp prop,
     -- | The property that should hold in case of failure over the resulting
     -- error and the logs emitted during the run

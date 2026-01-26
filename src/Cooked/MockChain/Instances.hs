@@ -37,6 +37,7 @@ import Polysemy.NonDet
 import Polysemy.State
 import Polysemy.Writer
 
+-- | The most direct stack of effects to run a mockchain
 type DirectEffs =
   '[ MockChainWrite,
      MockChainRead,
@@ -44,8 +45,7 @@ type DirectEffs =
      Fail
    ]
 
--- | A possible stack of effects to handle a direct interpretation of the
--- mockchain, that is without any tweaks nor branching.
+-- | A mockchain computation builds on top of the `DirectEffs` stack of effects
 type DirectMockChain a = Sem DirectEffs a
 
 instance RunnableMockChain DirectEffs where
@@ -69,10 +69,16 @@ instance RunnableMockChain DirectEffs where
            Writer MockChainJournal
          ]
 
+-- | A stack of effects aimed at being used as modifications for a
+-- `StagedMockChain` computation
 type StagedTweakEffs = '[MockChainRead, Fail, NonDet]
 
+-- | A tweak computation based on the `StagedTweakEffs` stack of effects
 type StagedTweak a = TypedTweak StagedTweakEffs a
 
+-- | A stack of effects which allows everything allowed by `DirectEffs` with the
+-- addition of branching and `Ltl` modification with tweaks living in
+-- `StagedTweakEffs`
 type StagedEffs =
   '[ ModifyGlobally (UntypedTweak StagedTweakEffs),
      MockChainWrite,
@@ -82,8 +88,7 @@ type StagedEffs =
      NonDet
    ]
 
--- | A possible stack of effects to handle staged interpretation of the
--- mockchain, that is with tweaks and branching.
+-- | A mockchain computation builds on top of the `StagedEffs` stack of effects
 type StagedMockChain a = Sem StagedEffs a
 
 instance RunnableMockChain StagedEffs where
@@ -115,6 +120,8 @@ instance RunnableMockChain StagedEffs where
            State [Ltl (UntypedTweak StagedTweakEffs)]
          ]
 
+-- | A stack of effects aimed at being used as modifications for a
+-- `FullMockChain` computation
 type FullTweakEffs =
   '[ MockChainRead,
      Fail,
@@ -126,8 +133,11 @@ type FullTweakEffs =
      NonDet
    ]
 
+-- | A tweak computation based on the `FullTweakEffs` stack of effects
 type FullTweak a = TypedTweak FullTweakEffs a
 
+-- | A stack of effects which allows everything allowed by `StagedEffs` with the
+-- addition of all the lower level effects required to interpret it.
 type FullEffs =
   '[ ModifyGlobally (UntypedTweak FullTweakEffs),
      MockChainWrite,
@@ -144,6 +154,7 @@ type FullEffs =
      NonDet
    ]
 
+-- | A mockchain computation builds on top of the `FullEffs` stack of effects
 type FullMockChain a = Sem FullEffs a
 
 instance RunnableMockChain FullEffs where

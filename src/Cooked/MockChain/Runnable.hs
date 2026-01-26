@@ -1,3 +1,11 @@
+-- | This module exposes the infrastructure to execute mockchain runs. In
+-- particular:
+--
+-- - The return types of the runs (raw and refined)
+--
+-- - The initial configuration with which to execute a run
+--
+-- - The notion of `RunnableMockChain` to actually execution computations
 module Cooked.MockChain.Runnable where
 
 import Cooked.InitialDistribution
@@ -44,10 +52,10 @@ unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
 unRawMockChainReturn (MockChainJournal journal aliases notes, (st, val)) =
   MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases notes
 
--- | Configuration to run a mockchain
+-- | Configuration from which to run a mockchain
 data MockChainConf a b where
   MockChainConf ::
-    { -- | The initial state from which to run the 'MockChainT'
+    { -- | The initial state from which to run the mockchain
       mccInitialState :: MockChainState,
       -- | The initial payments to issue in the run
       mccInitialDistribution :: InitialDistribution,
@@ -56,12 +64,18 @@ data MockChainConf a b where
     } ->
     MockChainConf a b
 
+-- | The default `MockChainConf`, which uses the default initial state and
+-- initial distribution, and returns a refined `MockChainReturn`
 mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
 mockChainConfTemplate = MockChainConf def def unRawMockChainReturn
 
+-- | The class of effects that represent a mockchain run
 class RunnableMockChain effs where
+  -- | Runs a computation from an initial `MockChainState`, while returning a
+  -- list of `RawMockChainReturn`
   runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
 
+-- | Runs a `RunnableMockChain` from an initial `MockChainConf`
 runMockChainFromConf ::
   ( RunnableMockChain effs,
     Member MockChainWrite effs
@@ -72,6 +86,7 @@ runMockChainFromConf ::
 runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
   funOnResult <$> runMockChain initState (forceOutputs (unInitialDistribution initDist) >> currentRun)
 
+-- | Runs a `RunnableMockChain` from an initial distribution
 runMockChainFromInitDist ::
   ( RunnableMockChain effs,
     Member MockChainWrite effs
@@ -82,6 +97,7 @@ runMockChainFromInitDist ::
 runMockChainFromInitDist initDist =
   runMockChainFromConf $ mockChainConfTemplate {mccInitialDistribution = initDist}
 
+-- | Runs a `RunnableMockChain` from a default configuration
 runMockChainDef ::
   ( RunnableMockChain effs,
     Member MockChainWrite effs
