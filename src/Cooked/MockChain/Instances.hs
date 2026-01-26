@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 -- | This module exposes concrete instances to run a mockchain. There are 3 of
 -- them :
 --
@@ -17,108 +19,23 @@
 --   such as balancing.
 module Cooked.MockChain.Instances where
 
-import Cooked.InitialDistribution
 import Cooked.Ltl
 import Cooked.MockChain.Error
 import Cooked.MockChain.Journal
 import Cooked.MockChain.Log
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Read
+import Cooked.MockChain.Runnable
 import Cooked.MockChain.State
 import Cooked.MockChain.Tweak
 import Cooked.MockChain.Write
-import Cooked.Skeleton.Output
-import Data.Default
-import Data.Map (Map)
 import Ledger.Tx qualified as Ledger
-import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
 import Polysemy.NonDet
 import Polysemy.State
 import Polysemy.Writer
-
--- * 'MockChain' return types
-
--- | The returned type when running a 'MockChainT'. This is both a reorganizing
--- and filtering of the natural returned type @((Either MockChainError a,
--- MockChainState), MockChainBook)@, which is much easier to query.
-data MockChainReturn a where
-  MockChainReturn ::
-    { -- | The value returned by the computation, or an error
-      mcrValue :: Either MockChainError a,
-      -- | The outputs at the end of the run
-      mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
-      -- | The 'UtxoState' at the end of the run
-      mcrUtxoState :: UtxoState,
-      -- | The final journal emitted during the run
-      mcrLog :: [MockChainLogEntry],
-      -- | The map of aliases defined during the run
-      mcrAliases :: Map Api.BuiltinByteString String,
-      -- | The notes taken by the user during the run
-      mcrNoteBook :: [String]
-    } ->
-    MockChainReturn a
-  deriving (Functor)
-
--- | Raw return type of running a 'MockChainT'
-type RawMockChainReturn a = (MockChainJournal, (MockChainState, Either MockChainError a))
-
--- | The type of functions transforming an element of type @RawMockChainReturn a@
--- into an element of type @b@
-type FunOnMockChainResult a b = RawMockChainReturn a -> b
-
--- | Building a `MockChainReturn` from a `RawMockChainReturn`
-unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
-unRawMockChainReturn (MockChainJournal journal aliases notes, (st, val)) =
-  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases notes
-
--- | Configuration to run a mockchain
-data MockChainConf a b where
-  MockChainConf ::
-    { -- | The initial state from which to run the 'MockChainT'
-      mccInitialState :: MockChainState,
-      -- | The initial payments to issue in the run
-      mccInitialDistribution :: InitialDistribution,
-      -- | The function to apply on the results of the run
-      mccFunOnResult :: FunOnMockChainResult a b
-    } ->
-    MockChainConf a b
-
-mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
-mockChainConfTemplate = MockChainConf def def unRawMockChainReturn
-
-class IsMockChain effs where
-  runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
-
-runMockChainFromConf ::
-  ( IsMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  MockChainConf a b ->
-  Sem effs a ->
-  [b]
-runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
-  funOnResult <$> runMockChain initState (forceOutputs (unInitialDistribution initDist) >> currentRun)
-
-runMockChainFromInitDist ::
-  ( IsMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  InitialDistribution ->
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainFromInitDist initDist =
-  runMockChainFromConf $ mockChainConfTemplate {mccInitialDistribution = initDist}
-
-runMockChainDef ::
-  ( IsMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainDef = runMockChainFromConf mockChainConfTemplate
 
 type DirectEffs =
   '[ MockChainWrite,
@@ -131,7 +48,7 @@ type DirectEffs =
 -- mockchain, that is without any tweaks nor branching.
 type DirectMockChain a = Sem DirectEffs a
 
-instance IsMockChain DirectEffs where
+instance RunnableMockChain DirectEffs where
   runMockChain mcst =
     (: [])
       . run
@@ -169,7 +86,7 @@ type StagedEffs =
 -- mockchain, that is with tweaks and branching.
 type StagedMockChain a = Sem StagedEffs a
 
-instance IsMockChain StagedEffs where
+instance RunnableMockChain StagedEffs where
   runMockChain mcst =
     run
       . runNonDet
@@ -229,7 +146,7 @@ type FullEffs =
 
 type FullMockChain a = Sem FullEffs a
 
-instance IsMockChain FullEffs where
+instance RunnableMockChain FullEffs where
   runMockChain mcst =
     run
       . runNonDet

@@ -29,10 +29,10 @@ import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Polysemy.Error
 
--- | Transorms a `Cooked.Skeleton.Proposal.ParameterChange` into an actual
--- change over a Cardano parameter update
+-- | Transorms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change
+-- over a Cardano parameter update
 toPParamsUpdate ::
-  ParameterChange ->
+  ParamChange ->
   Conway.PParamsUpdate Emulator.EmulatorEra ->
   Conway.PParamsUpdate Emulator.EmulatorEra
 toPParamsUpdate pChange =

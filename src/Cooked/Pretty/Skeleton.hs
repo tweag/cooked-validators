@@ -95,7 +95,7 @@ instance PrettyCooked Withdrawal where
       prettyCookedOptList opts user
         ++ [maybe "Amount to be autofilled" (("Amount: " <>) . PP.pretty . Api.getLovelace) mAmount]
 
-instance PrettyCooked ParameterChange where
+instance PrettyCooked ParamChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (FeeFixed n) = "Fee fixed:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (MaxBlockBodySize n) = "Max block body size:" <+> prettyCookedOpt opts n

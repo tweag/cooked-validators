@@ -10,6 +10,7 @@ import Cooked.MockChain.Instances as X
 import Cooked.MockChain.Journal as X
 import Cooked.MockChain.Misc as X
 import Cooked.MockChain.Read as X
+import Cooked.MockChain.Runnable as X
 import Cooked.MockChain.State as X
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.Tweak as X

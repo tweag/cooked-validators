@@ -4,10 +4,10 @@
 -- transactions using LTL formulaes with atomic modifications. This idea is to
 -- describe when to apply certain modifications within a trace.
 module Cooked.Ltl
-  ( -- * LTL formulas
+  ( -- * `Ltl` formulas
     Ltl (..),
 
-    -- * LTL combinators
+    -- * `Ltl` combinators
     ltlNot',
     ltlOr',
     ltlAnd',
@@ -31,15 +31,17 @@ module Cooked.Ltl
     ltlNever,
     ltlNever',
 
-    -- * Requirements from a formula
-    Requirement (..),
+    -- * `Ltl` helpers,
+    nowLaterList,
+    finished,
 
-    -- * Modifying a computation on time
+    -- * Laying out modifications on time using `Ltl`
     ModifyGlobally,
     modifyLtl,
     runModifyGlobally,
 
-    -- * Fetching the current requirements
+    -- * Locally applying laid out modifications
+    Requirement (..),
     ModifyLocally,
     getRequirements,
     runModifyLocally,
@@ -52,7 +54,7 @@ import Polysemy
 import Polysemy.NonDet
 import Polysemy.State
 
--- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
+-- | Type of `Ltl` formulas with atomic formulas of type @a@. Think of @a@ as a
 -- type of "modifications", then a value of type @Ltl a@ describes where to
 -- apply `Requirement`s in a trace.
 data Ltl a
@@ -197,7 +199,7 @@ ltlImplies f1 f2 = (f2 `LtlAnd` f1) `LtlOr` LtlNot f1
 ltlImplies' :: a -> a -> Ltl a
 ltlImplies' a1 a2 = LtlAtom a1 `ltlImplies` LtlAtom a2
 
--- | Simplification procedure for LTL formulas. This function knows how
+-- | Simplification procedure for `Ltl` formulas. This function knows how
 -- `LtlTruth` and `LtlFalsity` play with negation, conjunction and disjunction
 -- and recursively applies this knowledge; it is used to keep the formulas
 -- `nowLaterList` generates from growing too wildly. While this function does
@@ -252,7 +254,7 @@ data Requirement a
     EnsureFailure a
   deriving (Show, Eq)
 
--- | For each LTL formula that describes a modification of a computation in a
+-- | For each `Ltl` formula that describes a modification of a computation in a
 -- list, split it into a list of @(doNow, doLater)@ pairs, and then
 -- appropriately combine the results. The result of the splitting is bound to
 -- the following semantics:
@@ -261,7 +263,7 @@ data Requirement a
 -- the current time step (`Apply`), or that should fail at the current time step
 -- (`EnsureFailure`)
 --
--- * @doLater@ is an LTL formula describing the modification that should be
+-- * @doLater@ is an `Ltl` formula describing the modification that should be
 -- applied from the next time step onwards.
 --
 -- The return value is a list because a formula might be satisfied in different
@@ -308,12 +310,17 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 finished (LtlNot f) = not $ finished f
 
--- | An effect to modify a computation with an `Ltl` Formula. The idea is that
+-- | An effect to modify a computation with an `Ltl` formula. The idea is that
 -- the formula pinpoints locations where `Requirement`s should be enforced.
 data ModifyGlobally a :: Effect where
   ModifyLtl :: Ltl a -> m b -> ModifyGlobally a m b
 
-makeSem ''ModifyGlobally
+makeSem_ ''ModifyGlobally
+
+-- | Lays out an `Ltl` formula to be used for modification within the execution
+-- of the wrapped computation. See `ModifyLocally` for how to consume and use
+-- the laid out modifications.
+modifyLtl :: forall a r b. (Member (ModifyGlobally a) r) => Ltl a -> Sem r b -> Sem r b
 
 -- | Running the `ModifyGlobally` effect requires to have access of the current
 -- list of `Ltl` formulas, and to have access to an empty computation.
@@ -348,7 +355,11 @@ runModifyGlobally =
 data ModifyLocally a :: Effect where
   GetRequirements :: ModifyLocally a m [Requirement a]
 
-makeSem ''ModifyLocally
+makeSem_ ''ModifyLocally
+
+-- | Reads and consumes a modification from the context, typically laid out by
+-- `ModifyGlobally` further up the stack of effects.
+getRequirements :: (Member (ModifyLocally a) effs) => Sem effs [Requirement a]
 
 -- | Running the `ModifyLocally` effect requires to have access to the current
 -- list of `Ltl` formulas, and to be able to branch.

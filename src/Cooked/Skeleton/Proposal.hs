@@ -4,7 +4,7 @@
 -- script govAction1, simpleProposal pk govAction2, ... ]@
 module Cooked.Skeleton.Proposal
   ( -- * Data types
-    ParameterChange (..),
+    ParamChange (..),
     GovernanceAction (..),
     TxSkelProposal (..),
 
@@ -40,68 +40,68 @@ import PlutusTx.Prelude qualified as PlutusTx
 -- | These are all the protocol parameters. They are taken from
 -- https://github.com/IntersectMBO/cardano-ledger/blob/c4fbc05999866fea7c0cb1b211fd5288f286b95d/eras/conway/impl/cddl-files/conway.cddl#L381-L412
 -- and will most likely change in future eras.
-data ParameterChange where
+data ParamChange where
   -- | The linear factor for the minimum fee calculation
-  FeePerByte :: Integer -> ParameterChange
+  FeePerByte :: Integer -> ParamChange
   -- | The constant factor for the minimum fee calculation
-  FeeFixed :: Integer -> ParameterChange
+  FeeFixed :: Integer -> ParamChange
   -- | Maximal block body size
-  MaxBlockBodySize :: Integer -> ParameterChange
+  MaxBlockBodySize :: Integer -> ParamChange
   -- | Maximal transaction size
-  MaxTxSize :: Integer -> ParameterChange
+  MaxTxSize :: Integer -> ParamChange
   -- | Maximal block header size
-  MaxBlockHeaderSize :: Integer -> ParameterChange
+  MaxBlockHeaderSize :: Integer -> ParamChange
   -- | The amount of a key registration deposit
-  KeyDeposit :: Integer -> ParameterChange
+  KeyDeposit :: Integer -> ParamChange
   -- | The amount of a pool registration deposit
-  PoolDeposit :: Integer -> ParameterChange
+  PoolDeposit :: Integer -> ParamChange
   -- | Maximum number of epochs in the future a pool retirement is allowed to
   -- be scheduled future for.
-  PoolRetirementMaxEpoch :: Integer -> ParameterChange
+  PoolRetirementMaxEpoch :: Integer -> ParamChange
   -- | Desired number of pools
-  PoolNumber :: Integer -> ParameterChange
+  PoolNumber :: Integer -> ParamChange
   -- | Pool influence
-  PoolInfluence :: Rational -> ParameterChange
+  PoolInfluence :: Rational -> ParamChange
   -- | Monetary expansion
-  MonetaryExpansion :: Rational -> ParameterChange
+  MonetaryExpansion :: Rational -> ParamChange
   -- | Treasury expansion
-  TreasuryCut :: Rational -> ParameterChange
+  TreasuryCut :: Rational -> ParamChange
   -- | Minimum Stake Pool Cost
-  MinPoolCost :: Integer -> ParameterChange
+  MinPoolCost :: Integer -> ParamChange
   -- | Cost in lovelace per byte of UTxO storage
-  CoinsPerUTxOByte :: Integer -> ParameterChange
+  CoinsPerUTxOByte :: Integer -> ParamChange
   -- | Cost models for non-native script languages
   CostModels ::
     { cmPlutusV1Costs :: [Integer],
       cmPlutusV2Costs :: [Integer],
       cmPlutusV3Costs :: [Integer]
     } ->
-    ParameterChange
+    ParamChange
   -- | Prices of execution units
   Prices ::
     { pMemoryCost :: Rational,
       pStepCost :: Rational
     } ->
-    ParameterChange
+    ParamChange
   -- | Max total script execution resources units allowed per tx
   MaxTxExUnits ::
     { mteuMemory :: Integer,
       mteuSteps :: Integer
     } ->
-    ParameterChange
+    ParamChange
   -- | Max total script execution resources units allowed per block
   MaxBlockExUnits ::
     { mbeuMemory :: Integer,
       mbeuSteps :: Integer
     } ->
-    ParameterChange
+    ParamChange
   -- | Max size of a Value in an output
-  MaxValSize :: Integer -> ParameterChange
+  MaxValSize :: Integer -> ParamChange
   -- | Percentage of the txfee which must be provided as collateral when
   -- including non-native scripts.
-  CollateralPercentage :: Integer -> ParameterChange
+  CollateralPercentage :: Integer -> ParamChange
   -- | Maximum number of collateral inputs allowed in a transaction
-  MaxCollateralInputs :: Integer -> ParameterChange
+  MaxCollateralInputs :: Integer -> ParamChange
   -- | Thresholds for pool votes
   PoolVotingThresholds ::
     { pvtMotionNoConfidence :: Rational,
@@ -110,7 +110,7 @@ data ParameterChange where
       pvtHardFork :: Rational,
       pvtSecurityGroup :: Rational
     } ->
-    ParameterChange
+    ParamChange
   -- | Thresholds for DRep votes
   DRepVotingThresholds ::
     { drvtMotionNoConfidence :: Rational,
@@ -124,22 +124,22 @@ data ParameterChange where
       drvtGovernanceGroup :: Rational,
       drvtTreasuryWithdrawal :: Rational
     } ->
-    ParameterChange
+    ParamChange
   -- | Minimum size of the Constitutional Committee
-  CommitteeMinSize :: Integer -> ParameterChange
+  CommitteeMinSize :: Integer -> ParamChange
   -- | The Constitutional Committee Term limit in number of Slots
-  CommitteeMaxTermLength :: Integer -> ParameterChange
+  CommitteeMaxTermLength :: Integer -> ParamChange
   -- | Gov action lifetime in number of Epochs
-  GovActionLifetime :: Integer -> ParameterChange
+  GovActionLifetime :: Integer -> ParamChange
   -- | The amount of the Gov Action deposit
-  GovActionDeposit :: Integer -> ParameterChange
+  GovActionDeposit :: Integer -> ParamChange
   -- | The amount of a DRep registration deposit
-  DRepRegistrationDeposit :: Integer -> ParameterChange
+  DRepRegistrationDeposit :: Integer -> ParamChange
   -- | The number of Epochs that a DRep can perform no activity without losing
   -- their @Active@ status.
-  DRepActivity :: Integer -> ParameterChange
+  DRepActivity :: Integer -> ParamChange
   -- | Reference scripts fee for the minimum fee calculation
-  MinFeeRefScriptCostPerByte :: Rational -> ParameterChange
+  MinFeeRefScriptCostPerByte :: Rational -> ParamChange
   deriving (Show, Eq)
 
 -- | This lists the various possible governance actions. Only two of these
@@ -148,7 +148,7 @@ data ParameterChange where
 data GovernanceAction :: UserKind -> Type where
   -- If several parameter changes are of the same kind, only the last
   -- one will take effect
-  ParameterChange :: [ParameterChange] -> GovernanceAction IsScript
+  ParameterChange :: [ParamChange] -> GovernanceAction IsScript
   TreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> GovernanceAction IsScript
   HardForkInitiation :: Api.ProtocolVersion -> GovernanceAction IsNone
   NoConfidence :: GovernanceAction IsNone

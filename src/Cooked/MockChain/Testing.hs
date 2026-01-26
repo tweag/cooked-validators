@@ -8,8 +8,8 @@ import Control.Exception qualified as E
 import Control.Monad
 import Cooked.InitialDistribution
 import Cooked.MockChain.Error
-import Cooked.MockChain.Instances
 import Cooked.MockChain.Log
+import Cooked.MockChain.Runnable
 import Cooked.MockChain.State
 import Cooked.MockChain.Write
 import Cooked.Pretty
@@ -221,7 +221,7 @@ testToProp ::
   ( IsProp prop,
     Show a,
     Member MockChainWrite effs,
-    IsMockChain effs
+    RunnableMockChain effs
   ) =>
   Test effs a prop ->
   prop
@@ -247,7 +247,7 @@ testCooked ::
   forall effs a.
   ( Show a,
     Member MockChainWrite effs,
-    IsMockChain effs
+    RunnableMockChain effs
   ) =>
   String ->
   Test effs a HU.Assertion ->
@@ -259,7 +259,7 @@ testCookedQC ::
   forall effs a.
   ( Show a,
     Member MockChainWrite effs,
-    IsMockChain effs
+    RunnableMockChain effs
   ) =>
   String ->
   Test effs a QC.Property ->

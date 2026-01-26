@@ -57,6 +57,9 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 
+-- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
+-- alongside an heterogeneous list starting with the output in question,
+-- followed by any element that was extracted during the search.
 type UtxoSearchResult elems = [(Api.TxOutRef, HList (TxSkelOut ': elems))]
 
 -- | A `UtxoSearch` is a computation that returns a list of UTxOs alongside
@@ -228,8 +231,8 @@ ensureOnlyValueOutputs =
     . ensureAFoldIsn't txSkelOutStakingCredentialAT
     . ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
 
--- | Same as 'onlyValueOutputsAtSearch', but also ensures the searched outputs
--- do not contain non-ADA assets.
+-- | Same as 'ensureOnlyValueOutputs', but also ensures the searched outputs do not
+-- contain non-ADA assets.
 ensureVanillaOutputs ::
   UtxoSearch effs els ->
   UtxoSearch effs els

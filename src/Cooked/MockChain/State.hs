@@ -6,10 +6,10 @@
 -- two reasons:
 --
 -- - For printing purposes, where it is much more convient to see the available
---   assets as "who owns what" rather than a set of mixed Utxos.
+--   assets as "who owns what" rather than as a set of mixed Utxos.
 --
 -- - For testings purposes, when querying the final state of a run is
---   ineeded. For instance, properties such as "does Alice indeed owns 3 XXX
+--   needed. For instance, properties such as "does Alice indeed owns 3 XXX
 --   tokens at the end of this run?" become much easier to express.
 module Cooked.MockChain.State
   ( -- * `MockChainState` and associated optics
@@ -177,14 +177,20 @@ data UtxoPayload where
     UtxoPayload
   deriving (Eq, Show)
 
+-- | A lens to set or get the UTxO reference from this `UtxoPayload`
 makeLensesFor [("utxoPayloadTxOutRef", "utxoPayloadTxOutRefL")] ''UtxoPayload
 
+-- | A lens to set or get the value from this `UtxoPayload`
 makeLensesFor [("utxoPayloadValue", "utxoPayloadValueL")] ''UtxoPayload
 
+-- | A lens to set or get the datum from this `UtxoPayload`
 makeLensesFor [("utxoPayloadDatum", "utxoPayloadDatumL")] ''UtxoPayload
 
+-- | A lens to set or get the optional reference script hash from this
+-- `UtxoPayload`
 makeLensesFor [("utxoPayloadReferenceScriptHash", "utxoPayloadMReferenceScriptHashL")] ''UtxoPayload
 
+-- | Focusing on the optional reference script hash of a `UtxoPayload`
 utxoPayloadReferenceScriptHashAT :: AffineTraversal' UtxoPayload Api.ScriptHash
 utxoPayloadReferenceScriptHashAT = utxoPayloadMReferenceScriptHashL % _Just
 
@@ -198,6 +204,7 @@ newtype UtxoPayloadSet = UtxoPayloadSet
   }
   deriving (Show)
 
+-- | Going back and forth between a list of `UtxoPayload` and a `UtxoPayloadSet`
 utxoPayloadSetListI :: Iso' UtxoPayloadSet [UtxoPayload]
 utxoPayloadSetListI = iso utxoPayloadSet UtxoPayloadSet
 
@@ -226,8 +233,10 @@ data UtxoState where
     UtxoState
   deriving (Eq)
 
+-- | A lens to set or get the available UTxOs from a `UtxoState`
 makeLensesFor [("availableUtxos", "availableUtxosL")] ''UtxoState
 
+-- | A lens to set or get the consumed UTxOs from a `UtxoState`
 makeLensesFor [("consumedUtxos", "consumedUtxosL")] ''UtxoState
 
 instance Semigroup UtxoState where

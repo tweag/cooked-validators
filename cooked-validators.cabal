@@ -42,6 +42,7 @@ library
       Cooked.MockChain.Log
       Cooked.MockChain.Misc
       Cooked.MockChain.Read
+      Cooked.MockChain.Runnable
       Cooked.MockChain.State
       Cooked.MockChain.Testing
       Cooked.MockChain.Tweak

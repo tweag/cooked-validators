@@ -4,7 +4,7 @@
 -- operating a mockchain without interacting with the mockchain state itself.
 module Cooked.MockChain.Misc
   ( -- * Misc effect
-    MockChainMisc,
+    MockChainMisc (..),
     runMockChainMisc,
 
     -- * Misc primitives

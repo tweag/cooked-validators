@@ -5,8 +5,8 @@
 module Cooked.Pretty.MockChain () where
 
 import Cooked.MockChain.Error
-import Cooked.MockChain.Instances
 import Cooked.MockChain.Log
+import Cooked.MockChain.Runnable
 import Cooked.MockChain.State
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options

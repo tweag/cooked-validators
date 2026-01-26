@@ -4,7 +4,9 @@ module Cooked.MockChain.Tweak
   ( -- * Modifying mockchain runs using tweaks
     reinterpretMockChainWriteWithTweak,
 
-    -- * Typed and Untyped tweaks geared for `TxSkel` modifications
+    -- * Typed and Untyped tweaks geared for `Cooked.Skeleton.TxSkel`
+
+    --   modifications
     TypedTweak,
     UntypedTweak (..),
 
@@ -27,10 +29,10 @@ import Polysemy
 import Polysemy.Internal
 import Polysemy.NonDet
 
+-- | A stack of effects starting with `Tweak` and `NonDet`
 type TypedTweak tweakEffs a = Sem (Tweak : NonDet : tweakEffs) a
 
--- | Wrapping up tweaks while hiding their return type and unsuring their stack
--- of effects begins with `Tweak` and `NonDet`.
+-- | Wrapping up typed tweaks to existentially quantify on their return type
 data UntypedTweak tweakEffs where
   UntypedTweak :: TypedTweak tweakEffs a -> UntypedTweak tweakEffs
 
