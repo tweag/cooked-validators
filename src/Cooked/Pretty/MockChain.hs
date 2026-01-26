@@ -240,7 +240,7 @@ instance PrettyCookedList UtxoPayloadSet where
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
             (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> dat) <$> splitDatum utxoPayloadDatum,
-            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
+            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScriptHash
           ] of
           [] -> Nothing
           [doc] -> Just $ PP.align doc

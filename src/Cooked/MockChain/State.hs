@@ -1,5 +1,16 @@
 -- | This module exposes the internal state in which our direct simulation is
--- run, as well as a simplified version, more akin to testing and printing.
+-- run (`MockChainState`), as well as a restricted and simplified version
+-- (`UtxoState`). The latter only consists of Utxos with a focus on who owns
+-- those Utxos. You can see this as having some sort of an "account" view of the
+-- ledger state, which typically does not exist in Cardano. This is useful for
+-- two reasons:
+--
+-- - For printing purposes, where it is much more convient to see the available
+--   assets as "who owns what" rather than a set of mixed Utxos.
+--
+-- - For testings purposes, when querying the final state of a run is
+--   ineeded. For instance, properties such as "does Alice indeed owns 3 XXX
+--   tokens at the end of this run?" become much easier to express.
 module Cooked.MockChain.State
   ( -- * `MockChainState` and associated optics
     MockChainState (..),
@@ -7,16 +18,27 @@ module Cooked.MockChain.State
     mcstLedgerStateL,
     mcstOutputsL,
     mcstConstitutionL,
+    mcstMOutputL,
 
-    -- * Adding and removing outputs from a `MockChainState`
+    -- * Helpers to add or remove outputs from a `MockChainState`
     addOutput,
     removeOutput,
 
     -- * `UtxoState`: A simplified, address-focused view on a `MockChainState`
     UtxoPayloadDatum (..),
+    utxoPayloadDatumKindAT,
+    utxoPayloadDatumTypedAT,
     UtxoPayload (..),
+    utxoPayloadTxOutRefL,
+    utxoPayloadValueL,
+    utxoPayloadDatumL,
+    utxoPayloadMReferenceScriptHashL,
+    utxoPayloadReferenceScriptHashAT,
     UtxoPayloadSet (..),
+    utxoPayloadSetListI,
     UtxoState (..),
+    availableUtxosL,
+    consumedUtxosL,
 
     -- * Querying the assets owned by a given address
     holdsInState,
@@ -33,6 +55,7 @@ import Data.Function (on)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Typeable
 import Ledger.Orphans ()
 import Optics.Core
 import Optics.TH
@@ -72,19 +95,58 @@ makeLensesFor [("mcstConstitution", "mcstConstitutionL")] ''MockChainState
 instance Default MockChainState where
   def = MockChainState def (Emulator.initialState def) Map.empty Nothing
 
+-- | Accesses a given available Utxo from a `MockChainState`
+mcstMOutputL :: Api.TxOutRef -> Lens' MockChainState (Maybe TxSkelOut)
+mcstMOutputL oRef = mcstOutputsL % at oRef % iso (fmap fst) (fmap (,True))
+
 -- | Stores an output in a 'MockChainState'
 addOutput :: Api.TxOutRef -> TxSkelOut -> MockChainState -> MockChainState
-addOutput oRef = set (mcstOutputsL % at oRef) . Just . (,True)
+addOutput oRef = set (mcstMOutputL oRef) . Just
 
 -- | Removes an output from the 'MockChainState'
 removeOutput :: Api.TxOutRef -> MockChainState -> MockChainState
 removeOutput oRef = set (mcstOutputsL % at oRef) Nothing
 
 -- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
--- stores the actual datum and whether it is hashed or inline.
+-- stores the actual datum and whether it is hashed (@True@) or inline
+-- (@False@). The only difference is that whether the datum was resolved in the
+-- transaction creating it on the ledger is absent, which makes sense after the
+-- fact.
 data UtxoPayloadDatum where
   NoUtxoPayloadDatum :: UtxoPayloadDatum
   SomeUtxoPayloadDatum :: (DatumConstrs dat) => dat -> Bool -> UtxoPayloadDatum
+
+-- | Focuses on whether on not this `UtxoPayloadDatum` isHashed
+utxoPayloadDatumKindAT :: AffineTraversal' UtxoPayloadDatum Bool
+utxoPayloadDatumKindAT =
+  atraversal
+    ( \case
+        NoUtxoPayloadDatum -> Left NoUtxoPayloadDatum
+        SomeUtxoPayloadDatum _ b -> Right b
+    )
+    ( flip
+        ( \kind -> \case
+            NoUtxoPayloadDatum -> NoUtxoPayloadDatum
+            SomeUtxoPayloadDatum content _ -> SomeUtxoPayloadDatum content kind
+        )
+    )
+
+-- | Extracts, or sets, the typed datum of a 'UtxoPayloadDatum' following the
+-- same rules as `txSkelOutDatumTypedAT`
+utxoPayloadDatumTypedAT :: (DatumConstrs a, DatumConstrs b) => AffineTraversal UtxoPayloadDatum UtxoPayloadDatum a b
+utxoPayloadDatumTypedAT =
+  atraversal
+    ( \case
+        (SomeUtxoPayloadDatum content _) | Just content' <- cast content -> Right content'
+        (SomeUtxoPayloadDatum content _) | Just content' <- Api.fromBuiltinData $ Api.toBuiltinData content -> Right content'
+        dc -> Left dc
+    )
+    ( flip
+        ( \content -> \case
+            NoUtxoPayloadDatum -> NoUtxoPayloadDatum
+            SomeUtxoPayloadDatum _ kind -> SomeUtxoPayloadDatum content kind
+        )
+    )
 
 deriving instance Show UtxoPayloadDatum
 
@@ -109,11 +171,35 @@ data UtxoPayload where
       utxoPayloadValue :: Api.Value,
       -- | The optional datum stored in this UTxO
       utxoPayloadDatum :: UtxoPayloadDatum,
-      -- | The optional reference script stored in this UTxO
-      utxoPayloadReferenceScript :: Maybe Api.ScriptHash
+      -- | The hash of the optional reference script stored in this UTxO
+      utxoPayloadReferenceScriptHash :: Maybe Api.ScriptHash
     } ->
     UtxoPayload
   deriving (Eq, Show)
+
+makeLensesFor [("utxoPayloadTxOutRef", "utxoPayloadTxOutRefL")] ''UtxoPayload
+
+makeLensesFor [("utxoPayloadValue", "utxoPayloadValueL")] ''UtxoPayload
+
+makeLensesFor [("utxoPayloadDatum", "utxoPayloadDatumL")] ''UtxoPayload
+
+makeLensesFor [("utxoPayloadReferenceScriptHash", "utxoPayloadMReferenceScriptHashL")] ''UtxoPayload
+
+utxoPayloadReferenceScriptHashAT :: AffineTraversal' UtxoPayload Api.ScriptHash
+utxoPayloadReferenceScriptHashAT = utxoPayloadMReferenceScriptHashL % _Just
+
+-- | Represents a /set/ of payloads.
+newtype UtxoPayloadSet = UtxoPayloadSet
+  { -- | List of UTxOs contained in this 'UtxoPayloadSet'
+    utxoPayloadSet :: [UtxoPayload]
+    -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
+    -- and because it is possible that we want to distinguish between utxo states
+    -- that have additional utxos, even if these could have been merged together.
+  }
+  deriving (Show)
+
+utxoPayloadSetListI :: Iso' UtxoPayloadSet [UtxoPayload]
+utxoPayloadSetListI = iso utxoPayloadSet UtxoPayloadSet
 
 instance Eq UtxoPayloadSet where
   (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
@@ -128,16 +214,6 @@ instance Semigroup UtxoPayloadSet where
 instance Monoid UtxoPayloadSet where
   mempty = UtxoPayloadSet []
 
--- | Represents a /set/ of payloads.
-newtype UtxoPayloadSet = UtxoPayloadSet
-  { -- | List of UTxOs contained in this 'UtxoPayloadSet'
-    utxoPayloadSet :: [UtxoPayload]
-    -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
-    -- and because it is possible that we want to distinguish between utxo states
-    -- that have additional utxos, even if these could have been merged together.
-  }
-  deriving (Show)
-
 -- | A description of who owns what in a blockchain. Owners are addresses and
 -- they each own a 'UtxoPayloadSet'.
 data UtxoState where
@@ -150,6 +226,10 @@ data UtxoState where
     UtxoState
   deriving (Eq)
 
+makeLensesFor [("availableUtxos", "availableUtxosL")] ''UtxoState
+
+makeLensesFor [("consumedUtxos", "consumedUtxosL")] ''UtxoState
+
 instance Semigroup UtxoState where
   (UtxoState a c) <> (UtxoState a' c') = UtxoState (Map.unionWith (<>) a a') (Map.unionWith (<>) c c')
 
@@ -158,11 +238,11 @@ instance Monoid UtxoState where
 
 -- | Total value accessible to what's pointed by the address.
 holdsInState :: (Script.ToAddress a) => a -> UtxoState -> Api.Value
-holdsInState (Script.toAddress -> address) = maybe mempty utxoPayloadSetTotal . Map.lookup address . availableUtxos
+holdsInState (Script.toAddress -> address) = maybe mempty utxoPayloadSetTotal . view (availableUtxosL % at address)
 
 -- | Computes the total value in a set
 utxoPayloadSetTotal :: UtxoPayloadSet -> Api.Value
-utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
+utxoPayloadSetTotal = foldOf (utxoPayloadSetListI % folded % utxoPayloadValueL)
 
 -- | Builds a 'UtxoState' from a 'MockChainState'
 mcstToUtxoState :: MockChainState -> UtxoState
