@@ -99,14 +99,14 @@ tests =
                                 | aOref == fst aUtxo1 ->
                                     return
                                       [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                        | (bOref, bOut) <- bUtxos,
-                                          view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                      | (bOref, bOut) <- bUtxos,
+                                        view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                       ]
                                 | aOref == fst aUtxo2 ->
                                     return
                                       [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                        | (bOref, _) <- bUtxos,
-                                          bOref == fst bUtxo1
+                                      | (bOref, _) <- bUtxos,
+                                        bOref == fst bUtxo1
                                       ]
                                 | aOref == fst aUtxo3 ->
                                     return $
@@ -138,7 +138,7 @@ tests =
             skelExpected :: [(ARedeemer, V3.TxOutRef)] -> [(BRedeemer, (V3.TxOutRef, TxSkelOut))] -> TxSkel
             skelExpected aInputs bInputs =
               txSkelTemplate
-                { txSkelLabel = Set.singleton $ TxSkelLabel DoubleSatLbl,
+                { txSkelLabels = Set.singleton $ TxSkelLabel DoubleSatLbl,
                   txSkelIns =
                     Map.fromList
                       ( ( \(bRedeemer, (bOref, _)) ->

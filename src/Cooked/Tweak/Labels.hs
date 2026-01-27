@@ -25,7 +25,7 @@ addLabelTweak ::
   ) =>
   lbl ->
   Sem effs ()
-addLabelTweak = overTweak txSkelLabelL . Set.insert . TxSkelLabel
+addLabelTweak = overTweak txSkelLabelsL . Set.insert . TxSkelLabel
 
 -- | Checks if a given label is present in the 'TxSkel'
 hasLabelTweak ::
@@ -34,7 +34,7 @@ hasLabelTweak ::
   ) =>
   lbl ->
   Sem effs Bool
-hasLabelTweak = (viewTweak txSkelLabelL <&>) . Set.member . TxSkelLabel
+hasLabelTweak = (viewTweak txSkelLabelsL <&>) . Set.member . TxSkelLabel
 
 -- | Ensures a given label is present in the 'TxSkel'
 ensureLabelTweak ::
@@ -54,7 +54,7 @@ removeLabelTweak ::
   Sem effs ()
 removeLabelTweak lbl = do
   ensureLabelTweak lbl
-  overTweak txSkelLabelL . Set.delete $ TxSkelLabel lbl
+  overTweak txSkelLabelsL . Set.delete $ TxSkelLabel lbl
 
 -- | Apply a tweak to a given transaction if it has a specific label. Fails if
 -- it does not.

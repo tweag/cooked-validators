@@ -24,7 +24,7 @@ tamperDatumTweakTest :: TestTree
 tamperDatumTweakTest =
   testCase "tamperDatumTweak" $
     [ ( txSkelTemplate
-          { txSkelLabel = Set.singleton $ TxSkelLabel TamperDatumLbl,
+          { txSkelLabels = Set.singleton $ TxSkelLabel TamperDatumLbl,
             txSkelOuts =
               [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
                 alice `receives` Value (Script.lovelace 234),

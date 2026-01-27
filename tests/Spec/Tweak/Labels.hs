@@ -80,7 +80,7 @@ tests =
         $ mustSucceedTest
         $ everywhere
           ( do
-              txSkelLabels <- viewAllTweak $ txSkelLabelL % to Set.toList % traversed % txSkelLabelTypedP @Text
+              txSkelLabels <- viewAllTweak $ txSkelLabelsL % to Set.toList % traversed % txSkelLabelTypedP @Text
               guard $ not $ null txSkelLabels
               labelAmountTweak
           )
