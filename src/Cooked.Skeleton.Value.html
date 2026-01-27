@@ -19,7 +19,7 @@
 </span><span id="line-19"></span><span>
 </span><span id="line-20"></span><span class="hs-comment">-- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'</span><span>
 </span><span id="line-21"></span><span class="hs-comment">-- from a given 'Api.Value'. This removes the entry if the new amount is 0.</span><span>
-</span><span id="line-22"></span><span id="local-6989586621679861310"><span class="annot"><a href="Cooked.Skeleton.Value.html#valueAssetClassAmountL"><span class="hs-identifier hs-type">valueAssetClassAmountL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679861310"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679861310"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679862795"><span class="annot"><a href="Cooked.Skeleton.Value.html#valueAssetClassAmountL"><span class="hs-identifier hs-type">valueAssetClassAmountL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679862795"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679862795"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
 </span><span id="line-23"></span><span id="valueAssetClassAmountL"><span class="annot"><span class="annottext">valueAssetClassAmountL :: forall mp.
 ToMintingPolicyHash mp =&gt;
 mp -&gt; TokenName -&gt; Lens' Value Integer
@@ -27,9 +27,9 @@ mp -&gt; TokenName -&gt; Lens' Value Integer
 forall script.
 ToMintingPolicyHash script =&gt;
 script -&gt; CurrencySymbol
-</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679861431"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679861432"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861432"><span class="hs-identifier hs-var">tk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679862916"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679862917"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679862917"><span class="hs-identifier hs-var">tk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-24"></span><span>  </span><span class="annot"><span class="annottext">(Value -&gt; Integer)
 -&gt; (Value -&gt; Integer -&gt; Value) -&gt; Lens' Value Integer
 forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
@@ -37,26 +37,26 @@ forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
 </span><span id="line-25"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value -&gt; AssetClass -&gt; Integer
 </span><span class="hs-operator hs-var">`Api.assetClassValueOf`</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
 </span><span class="hs-identifier hs-var">Api.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861432"><span class="hs-identifier hs-var">tk</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679861436"><span class="annot"><span class="annottext">v :: Value
-</span><a href="#local-6989586621679861436"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span id="local-6989586621679861437"><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679861437"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679861438"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861438"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679862917"><span class="hs-identifier hs-var">tk</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679862921"><span class="annot"><span class="annottext">v :: Value
+</span><a href="#local-6989586621679862921"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span id="local-6989586621679862922"><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862922"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679862923"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862923"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 -&gt; Maybe (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Maybe v
 </span><span class="hs-identifier hs-var">PMap.lookup</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679861437"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862922"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-27"></span><span>        </span><span class="hs-comment">-- No previous cs entry and nothing to add.</span><span>
 </span><span id="line-28"></span><span>        </span><span class="annot"><span class="annottext">Maybe (Map TokenName Integer)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861438"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679862923"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861436"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><a href="#local-6989586621679862921"><span class="hs-identifier hs-var">v</span></a></span><span>
 </span><span id="line-29"></span><span>        </span><span class="hs-comment">-- No previous cs entry, and something to add.</span><span>
 </span><span id="line-30"></span><span>        </span><span class="annot"><span class="annottext">Maybe (Map TokenName Integer)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
@@ -69,27 +69,27 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Integer -&gt; Map TokenName Integer
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Integer -&gt; Map TokenName Integer
 forall k v. k -&gt; v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.singleton</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861432"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861438"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679861437"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679862917"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862923"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862922"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-31"></span><span>        </span><span class="hs-comment">-- A previous cs and tk entry, which needs to be removed and the whole</span><span>
 </span><span id="line-32"></span><span>        </span><span class="hs-comment">-- cs entry as well because it only containes this tk.</span><span>
 </span><span id="line-33"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TokenName Integer -&gt; [(TokenName, Integer)]
 forall k v. Map k v -&gt; [(k, v)]
-</span><span class="hs-identifier hs-var">PMap.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679861443"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861443"><span class="hs-identifier hs-var">tk'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-identifier hs-var">PMap.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679862928"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679862928"><span class="hs-identifier hs-var">tk'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861438"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679862923"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861432"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; TokenName -&gt; Bool
+</span><a href="#local-6989586621679862917"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; TokenName -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861443"><span class="hs-identifier hs-var">tk'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
+</span><a href="#local-6989586621679862928"><span class="hs-identifier hs-var">tk'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 </span><span class="hs-identifier hs-var">Api.Value</span></span><span> </span><span class="annot"><span class="annottext">(Map CurrencySymbol (Map TokenName Integer) -&gt; Value)
 -&gt; Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -98,13 +98,13 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.delete</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679861437"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862922"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-34"></span><span>        </span><span class="hs-comment">-- A previous cs and tk entry, which needs to be removed, but the whole</span><span>
 </span><span id="line-35"></span><span>        </span><span class="hs-comment">-- cs entry has other tokens and thus is kept.</span><span>
-</span><span id="line-36"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679861445"><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679861445"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861438"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span id="line-36"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679862930"><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679862930"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862923"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
@@ -117,16 +117,16 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Map TokenName Integer -&gt; Map TokenName Integer
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Map TokenName Integer -&gt; Map TokenName Integer
 forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.delete</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861432"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679861445"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679861437"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679862917"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679862930"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862922"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-37"></span><span>        </span><span class="hs-comment">-- A previous cs entry, in which we insert the new tk (regarless of</span><span>
 </span><span id="line-38"></span><span>        </span><span class="hs-comment">-- whether the tk was already present).</span><span>
-</span><span id="line-39"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679861446"><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679861446"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
+</span><span id="line-39"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679862931"><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679862931"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 </span><span class="hs-identifier hs-var">Api.Value</span></span><span> </span><span class="annot"><span class="annottext">(Map CurrencySymbol (Map TokenName Integer) -&gt; Value)
 -&gt; Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -136,14 +136,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861431"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679862916"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
 -&gt; Integer -&gt; Map TokenName Integer -&gt; Map TokenName Integer
 forall k v. Eq k =&gt; k -&gt; v -&gt; Map k v -&gt; Map k v
 </span><span class="hs-identifier hs-var">PMap.insert</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861432"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861438"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
-</span><a href="#local-6989586621679861446"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
-</span><a href="#local-6989586621679861437"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679862917"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862923"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
+</span><a href="#local-6989586621679862931"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862922"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-40"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-41"></span><span>
 </span><span id="line-42"></span><span class="annot"><span class="hs-comment">-- | Isomorphism between 'Api.Lovelace' and integers</span></span><span>
@@ -186,7 +186,7 @@ Optic k is s t a b -&gt; Optic (ReversedOptic k) is b a t s
 </span><span id="line-49"></span><span>
 </span><span id="line-50"></span><span class="hs-comment">-- | A prism to build a value from an asset class and amount, or retrieves the</span><span>
 </span><span id="line-51"></span><span class="hs-comment">-- amount from this asset class if it is not zero</span><span>
-</span><span id="line-52"></span><span id="local-6989586621679861365"><span class="annot"><a href="Cooked.Skeleton.Value.html#valueAssetClassAmountP"><span class="hs-identifier hs-type">valueAssetClassAmountP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679861365"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679861365"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-52"></span><span id="local-6989586621679862850"><span class="annot"><a href="Cooked.Skeleton.Value.html#valueAssetClassAmountP"><span class="hs-identifier hs-type">valueAssetClassAmountP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToMintingPolicyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679862850"><span class="hs-identifier hs-type">mp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679862850"><span class="hs-identifier hs-type">mp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
 </span><span id="line-53"></span><span id="valueAssetClassAmountP"><span class="annot"><span class="annottext">valueAssetClassAmountP :: forall mp.
 ToMintingPolicyHash mp =&gt;
 mp -&gt; TokenName -&gt; Prism' Value Integer
@@ -194,52 +194,52 @@ mp -&gt; TokenName -&gt; Prism' Value Integer
 forall script.
 ToMintingPolicyHash script =&gt;
 script -&gt; CurrencySymbol
-</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679861461"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861461"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679861462"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861462"><span class="hs-identifier hs-var">tk</span></a></span></span><span>
-</span><span id="line-54"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679861463"><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679861463"><span class="hs-identifier hs-var">ac</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><span class="hs-identifier hs-var">Script.toCurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679862946"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679862946"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679862947"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679862947"><span class="hs-identifier hs-var">tk</span></a></span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679862948"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679862948"><span class="hs-identifier hs-var">ac</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
 </span><span class="hs-identifier hs-var">Api.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679861461"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679861462"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679862946"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679862947"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-55"></span><span>      </span><span class="annot"><span class="annottext">(Integer -&gt; Value)
 -&gt; (Value -&gt; Either Value Integer) -&gt; Prism' Value Integer
 forall b t s a. (b -&gt; t) -&gt; (s -&gt; Either t a) -&gt; Prism s t a b
 </span><span class="hs-identifier hs-var">prism</span></span><span>
 </span><span id="line-56"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-57"></span><span>            </span><span id="local-6989586621679861465"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861465"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861465"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span id="line-57"></span><span>            </span><span id="local-6989586621679862950"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862950"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862950"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
-</span><span id="line-58"></span><span>            </span><span id="local-6989586621679861466"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861466"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><span id="line-58"></span><span>            </span><span id="local-6989586621679862951"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862951"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Api.assetClassValue</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679861463"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861466"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679862948"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862951"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-59"></span><span>        </span><span class="hs-special">)</span><span>
-</span><span id="line-60"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679861468"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861468"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861468"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; AssetClass -&gt; Integer
+</span><span id="line-60"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679862953"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679862953"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679862953"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; AssetClass -&gt; Integer
 </span><span class="hs-operator hs-var">`Api.assetClassValueOf`</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679861463"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-61"></span><span>            </span><span id="local-6989586621679861469"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861469"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861469"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679862948"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-61"></span><span>            </span><span id="local-6989586621679862954"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862954"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862954"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Either Value Integer
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861468"><span class="hs-identifier hs-var">val</span></a></span><span>
-</span><span id="line-62"></span><span>            </span><span id="local-6989586621679861470"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861470"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Either Value Integer
+</span><a href="#local-6989586621679862953"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-62"></span><span>            </span><span id="local-6989586621679862955"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679862955"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Either Value Integer
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679861470"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679862955"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-63"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-64"></span><span>
 </span><span id="line-65"></span><span class="annot"><span class="hs-comment">-- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'</span></span><span>
@@ -270,11 +270,11 @@ Optic k is s t a b -&gt; Optic (ReversedOptic k) is b a t s
 </span><span class="hs-identifier hs-var">re</span></span><span> </span><span class="annot"><span class="annottext">Iso' Lovelace Integer
 </span><a href="Cooked.Skeleton.Value.html#lovelaceIntegerI"><span class="hs-identifier hs-var">lovelaceIntegerI</span></a></span><span>
 </span><span id="line-68"></span><span>
-</span><span id="line-69"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679861476"><span id="local-6989586621679861480"><span id="local-6989586621679861483"><span id="local-6989586621679861486"><span id="local-6989586621679861489"><span id="local-6989586621679861492"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-70"></span><span>  </span><span id="local-6989586621679861507"><span class="annot"><span class="annottext">compare :: Value -&gt; Value -&gt; Ordering
-</span><a href="#local-6989586621679861507"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span id="local-6989586621679861509"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861509"><span class="hs-identifier hs-var">v1</span></a></span></span><span> </span><span id="local-6989586621679861510"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861510"><span class="hs-identifier hs-var">v2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(CurrencySymbol, Map TokenName Integer)]
+</span><span id="line-69"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679862961"><span id="local-6989586621679862965"><span id="local-6989586621679862968"><span id="local-6989586621679862971"><span id="local-6989586621679862974"><span id="local-6989586621679862977"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-70"></span><span>  </span><span id="local-6989586621679862992"><span class="annot"><span class="annottext">compare :: Value -&gt; Value -&gt; Ordering
+</span><a href="#local-6989586621679862992"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span id="local-6989586621679862994"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679862994"><span class="hs-identifier hs-var">v1</span></a></span></span><span> </span><span id="local-6989586621679862995"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679862995"><span class="hs-identifier hs-var">v2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(CurrencySymbol, Map TokenName Integer)]
 -&gt; [(CurrencySymbol, Map TokenName Integer)] -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
@@ -287,7 +287,7 @@ forall k v. Map k v -&gt; [(k, v)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Map CurrencySymbol (Map TokenName Integer)
 </span><span class="hs-identifier hs-var">Api.getValue</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861509"><span class="hs-identifier hs-var">v1</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
+</span><a href="#local-6989586621679862994"><span class="hs-identifier hs-var">v1</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
 -&gt; [(CurrencySymbol, Map TokenName Integer)]
 forall k v. Map k v -&gt; [(k, v)]
 </span><span class="hs-identifier hs-var">PMap.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map CurrencySymbol (Map TokenName Integer)
@@ -297,5 +297,5 @@ forall k v. Map k v -&gt; [(k, v)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Map CurrencySymbol (Map TokenName Integer)
 </span><span class="hs-identifier hs-var">Api.getValue</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679861510"><span class="hs-identifier hs-var">v2</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679862995"><span class="hs-identifier hs-var">v2</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-71"></span></pre></body></html>

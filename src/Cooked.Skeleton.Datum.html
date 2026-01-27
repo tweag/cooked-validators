@@ -32,13 +32,13 @@
 </span><span id="line-32"></span><span class="annot"><span class="hs-comment">-- * Type constraints on datums used in cooked-validators</span></span><span>
 </span><span id="line-33"></span><span>
 </span><span id="line-34"></span><span class="annot"><span class="hs-comment">-- | Type constraints that must be satisfied by the datum content</span></span><span>
-</span><span id="line-35"></span><span class="hs-keyword">type</span><span> </span><span id="DatumConstrs"><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-var">DatumConstrs</span></a></span></span><span> </span><span id="local-6989586621679866130"><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-37"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-38"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.ToData</span></span><span> </span><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-39"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.FromData</span></span><span> </span><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-40"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-41"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679866130"><span class="hs-identifier hs-type">datum</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">type</span><span> </span><span id="DatumConstrs"><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-var">DatumConstrs</span></a></span></span><span> </span><span id="local-6989586621679868224"><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.ToData</span></span><span> </span><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Api.FromData</span></span><span> </span><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679868224"><span class="hs-identifier hs-type">datum</span></a></span><span>
 </span><span id="line-42"></span><span>  </span><span class="hs-special">)</span><span>
 </span><span id="line-43"></span><span>
 </span><span id="line-44"></span><span class="annot"><span class="hs-comment">-- * Datum kind within a transaction and output</span></span><span>
@@ -49,7 +49,7 @@
 </span><span id="line-49"></span><span>    </span><span id="NotResolved"><span class="annot"><a href="Cooked.Skeleton.Datum.html#NotResolved"><span class="hs-identifier hs-var">NotResolved</span></a></span></span><span>
 </span><span id="line-50"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Resolve the datum (present from 'Api.txInfoData')</span></span><span>
 </span><span id="line-51"></span><span>    </span><span id="Resolved"><span class="annot"><a href="Cooked.Skeleton.Datum.html#Resolved"><span class="hs-identifier hs-var">Resolved</span></a></span></span><span>
-</span><span id="line-52"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679866135"><span id="local-6989586621679866137"><span id="local-6989586621679866141"><span class="annot"><span class="annottext">Int -&gt; DatumResolved -&gt; ShowS
+</span><span id="line-52"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868229"><span id="local-6989586621679868231"><span id="local-6989586621679868235"><span class="annot"><span class="annottext">Int -&gt; DatumResolved -&gt; ShowS
 [DatumResolved] -&gt; ShowS
 DatumResolved -&gt; String
 (Int -&gt; DatumResolved -&gt; ShowS)
@@ -64,7 +64,7 @@ $cshow :: DatumResolved -&gt; String
 show :: DatumResolved -&gt; String
 $cshowList :: [DatumResolved] -&gt; ShowS
 showList :: [DatumResolved] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679866145"><span id="local-6989586621679866147"><span class="annot"><span class="annottext">DatumResolved -&gt; DatumResolved -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868239"><span id="local-6989586621679868241"><span class="annot"><span class="annottext">DatumResolved -&gt; DatumResolved -&gt; Bool
 (DatumResolved -&gt; DatumResolved -&gt; Bool)
 -&gt; (DatumResolved -&gt; DatumResolved -&gt; Bool) -&gt; Eq DatumResolved
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -72,7 +72,7 @@ $c== :: DatumResolved -&gt; DatumResolved -&gt; Bool
 == :: DatumResolved -&gt; DatumResolved -&gt; Bool
 $c/= :: DatumResolved -&gt; DatumResolved -&gt; Bool
 /= :: DatumResolved -&gt; DatumResolved -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679866154"><span id="local-6989586621679866156"><span id="local-6989586621679866158"><span id="local-6989586621679866162"><span id="local-6989586621679866165"><span id="local-6989586621679866168"><span id="local-6989586621679866171"><span class="annot"><span class="annottext">Eq DatumResolved
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868248"><span id="local-6989586621679868250"><span id="local-6989586621679868252"><span id="local-6989586621679868256"><span id="local-6989586621679868259"><span id="local-6989586621679868262"><span id="local-6989586621679868265"><span class="annot"><span class="annottext">Eq DatumResolved
 Eq DatumResolved =&gt;
 (DatumResolved -&gt; DatumResolved -&gt; Ordering)
 -&gt; (DatumResolved -&gt; DatumResolved -&gt; Bool)
@@ -118,7 +118,7 @@ min :: DatumResolved -&gt; DatumResolved -&gt; DatumResolved
 </span><span id="line-58"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Only include the datum hash in the UTxO. Resolve, or do not resolve,</span><span>
 </span><span id="line-59"></span><span>    </span><span class="hs-comment">-- the full datum in the transaction body.</span><span>
 </span><span id="line-60"></span><span>    </span><span id="Hashed"><span class="annot"><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-var">Hashed</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumResolved"><span class="hs-identifier hs-type">DatumResolved</span></a></span><span>
-</span><span id="line-61"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679866177"><span id="local-6989586621679866181"><span id="local-6989586621679866184"><span class="annot"><span class="annottext">Int -&gt; DatumKind -&gt; ShowS
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868271"><span id="local-6989586621679868275"><span id="local-6989586621679868278"><span class="annot"><span class="annottext">Int -&gt; DatumKind -&gt; ShowS
 [DatumKind] -&gt; ShowS
 DatumKind -&gt; String
 (Int -&gt; DatumKind -&gt; ShowS)
@@ -133,7 +133,7 @@ $cshow :: DatumKind -&gt; String
 show :: DatumKind -&gt; String
 $cshowList :: [DatumKind] -&gt; ShowS
 showList :: [DatumKind] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679866187"><span id="local-6989586621679866190"><span class="annot"><span class="annottext">DatumKind -&gt; DatumKind -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868281"><span id="local-6989586621679868284"><span class="annot"><span class="annottext">DatumKind -&gt; DatumKind -&gt; Bool
 (DatumKind -&gt; DatumKind -&gt; Bool)
 -&gt; (DatumKind -&gt; DatumKind -&gt; Bool) -&gt; Eq DatumKind
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -141,7 +141,7 @@ $c== :: DatumKind -&gt; DatumKind -&gt; Bool
 == :: DatumKind -&gt; DatumKind -&gt; Bool
 $c/= :: DatumKind -&gt; DatumKind -&gt; Bool
 /= :: DatumKind -&gt; DatumKind -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679866196"><span id="local-6989586621679866199"><span id="local-6989586621679866202"><span id="local-6989586621679866206"><span id="local-6989586621679866209"><span id="local-6989586621679866212"><span id="local-6989586621679866215"><span class="annot"><span class="annottext">Eq DatumKind
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868290"><span id="local-6989586621679868293"><span id="local-6989586621679868296"><span id="local-6989586621679868300"><span id="local-6989586621679868303"><span id="local-6989586621679868306"><span id="local-6989586621679868309"><span class="annot"><span class="annottext">Eq DatumKind
 Eq DatumKind =&gt;
 (DatumKind -&gt; DatumKind -&gt; Ordering)
 -&gt; (DatumKind -&gt; DatumKind -&gt; Bool)
@@ -197,11 +197,11 @@ forall b t s a. (b -&gt; t) -&gt; (s -&gt; Either t a) -&gt; Prism s t a b
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Inline"><span class="hs-identifier hs-var">Inline</span></a></span><span>
-</span><span id="line-70"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-type">Hashed</span></a></span><span> </span><span id="local-6989586621679866218"><span class="annot"><span class="annottext">DatumResolved
-</span><a href="#local-6989586621679866218"><span class="hs-identifier hs-var">resolved</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumResolved -&gt; Either DatumKind DatumResolved
+</span><span id="line-70"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-type">Hashed</span></a></span><span> </span><span id="local-6989586621679868312"><span class="annot"><span class="annottext">DatumResolved
+</span><a href="#local-6989586621679868312"><span class="hs-identifier hs-var">resolved</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumResolved -&gt; Either DatumKind DatumResolved
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">DatumResolved
-</span><a href="#local-6989586621679866218"><span class="hs-identifier hs-var">resolved</span></a></span><span>
+</span><a href="#local-6989586621679868312"><span class="hs-identifier hs-var">resolved</span></a></span><span>
 </span><span id="line-71"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-72"></span><span>
 </span><span id="line-73"></span><span class="annot"><span class="hs-comment">-- * 'Cooked.Skeleton.TxSkel' datums</span></span><span>
@@ -212,39 +212,39 @@ forall a b. b -&gt; Either a b
 </span><span id="line-78"></span><span>  </span><span class="annot"><span class="hs-comment">-- | use no datum</span></span><span>
 </span><span id="line-79"></span><span>  </span><span id="NoTxSkelOutDatum"><span class="annot"><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span>
 </span><span id="line-80"></span><span>  </span><span class="annot"><span class="hs-comment">-- | use some datum content and associated placement</span></span><span>
-</span><span id="line-81"></span><span>  </span><span id="local-6989586621679866220"><span id="SomeTxSkelOutDatum"><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679866220"><span class="hs-identifier hs-type">dat</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679866220"><span class="hs-identifier hs-type">dat</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumKind"><span class="hs-identifier hs-type">DatumKind</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679868314"><span id="SomeTxSkelOutDatum"><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868314"><span class="hs-identifier hs-type">dat</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679868314"><span class="hs-identifier hs-type">dat</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumKind"><span class="hs-identifier hs-type">DatumKind</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span><span>
 </span><span id="line-82"></span><span>
-</span><span id="line-83"></span><span id="local-6989586621679866223"><span id="local-6989586621679866225"><span id="local-6989586621679866229"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span></span></span><span>
+</span><span id="line-83"></span><span id="local-6989586621679868317"><span id="local-6989586621679868319"><span id="local-6989586621679868323"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span></span></span><span>
 </span><span id="line-84"></span><span>
-</span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679866233"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868327"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-86"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOutDatum
-</span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679866236"><span class="annot"><span class="annottext">== :: TxSkelOutDatum -&gt; TxSkelOutDatum -&gt; Bool
+</span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868330"><span class="annot"><span class="annottext">== :: TxSkelOutDatum -&gt; TxSkelOutDatum -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span>
 </span><span id="line-87"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
-</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679866241"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866241"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679866242"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866242"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-operator hs-var">==</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679868335"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868335"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868336"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868336"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-operator hs-var">==</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
-</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679866249"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866249"><span class="hs-identifier hs-var">dat'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679866250"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866250"><span class="hs-identifier hs-var">b'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866241"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866242"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinData, DatumKind) -&gt; (BuiltinData, DatumKind) -&gt; Bool
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679868343"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868343"><span class="hs-identifier hs-var">dat'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868344"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868344"><span class="hs-identifier hs-var">b'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868335"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868336"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(BuiltinData, DatumKind) -&gt; (BuiltinData, DatumKind) -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866249"><span class="hs-identifier hs-var">dat'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866250"><span class="hs-identifier hs-var">b'</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679868343"><span class="hs-identifier hs-var">dat'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868344"><span class="hs-identifier hs-var">b'</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-88"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
 </span><span id="line-89"></span><span>
-</span><span id="line-90"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679866255"><span id="local-6989586621679866259"><span id="local-6989586621679866262"><span id="local-6989586621679866265"><span id="local-6989586621679866268"><span id="local-6989586621679866271"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-91"></span><span>  </span><span id="local-6989586621679866273"><span class="annot"><span class="annottext">compare :: TxSkelOutDatum -&gt; TxSkelOutDatum -&gt; Ordering
-</span><a href="#local-6989586621679866273"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
+</span><span id="line-90"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868349"><span id="local-6989586621679868353"><span id="local-6989586621679868356"><span id="local-6989586621679868359"><span id="local-6989586621679868362"><span id="local-6989586621679868365"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679868367"><span class="annot"><span class="annottext">compare :: TxSkelOutDatum -&gt; TxSkelOutDatum -&gt; Ordering
+</span><a href="#local-6989586621679868367"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ordering
 </span><span class="hs-identifier hs-var">EQ</span></span><span>
@@ -259,21 +259,21 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span id="line-94"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">compare</span></span><span>
 </span><span id="line-95"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
-</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679866278"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866278"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679866279"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866279"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span>
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679868372"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868372"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868373"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868373"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span>
 </span><span id="line-96"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
-</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679866288"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866288"><span class="hs-identifier hs-var">dat'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679866289"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866289"><span class="hs-identifier hs-var">b'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679868382"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868382"><span class="hs-identifier hs-var">dat'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868383"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868383"><span class="hs-identifier hs-var">b'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-97"></span><span>      </span><span class="annot"><span class="annottext">(BuiltinData, DatumKind) -&gt; (BuiltinData, DatumKind) -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866278"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866279"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679866288"><span class="hs-identifier hs-var">dat'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866289"><span class="hs-identifier hs-var">b'</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679868372"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868373"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868382"><span class="hs-identifier hs-var">dat'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868383"><span class="hs-identifier hs-var">b'</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-98"></span><span>
 </span><span id="line-99"></span><span class="annot"><span class="hs-comment">-- * Optics working on 'TxSkelOutDatum'</span></span><span>
 </span><span id="line-100"></span><span>
@@ -294,28 +294,28 @@ forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span>
 </span><span id="line-107"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679866292"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866292"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumKind -&gt; Either TxSkelOutDatum DatumKind
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679868386"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868386"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumKind -&gt; Either TxSkelOutDatum DatumKind
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866292"><span class="hs-identifier hs-var">kind</span></a></span><span>
+</span><a href="#local-6989586621679868386"><span class="hs-identifier hs-var">kind</span></a></span><span>
 </span><span id="line-108"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-109"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">(DatumKind -&gt; TxSkelOutDatum -&gt; TxSkelOutDatum)
 -&gt; TxSkelOutDatum -&gt; DatumKind -&gt; TxSkelOutDatum
 forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span>
-</span><span id="line-110"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679866294"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866294"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-110"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679868388"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868388"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
 </span><span id="line-111"></span><span>            </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span>
-</span><span id="line-112"></span><span>            </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679866297"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866297"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><span id="line-112"></span><span>            </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868391"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679868391"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">dat -&gt; DatumKind -&gt; TxSkelOutDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; DatumKind -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866297"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866294"><span class="hs-identifier hs-var">kind</span></a></span><span>
+</span><a href="#local-6989586621679868391"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868388"><span class="hs-identifier hs-var">kind</span></a></span><span>
 </span><span id="line-113"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-114"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-115"></span><span>
@@ -339,7 +339,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span id="line-123"></span><span class="hs-comment">-- type. This second case is specifically useful when the current content is an</span><span>
 </span><span id="line-124"></span><span class="hs-comment">-- 'Api.BuiltinData' itself directly, but it can also be used in the cornercase</span><span>
 </span><span id="line-125"></span><span class="hs-comment">-- when both types have compatible serialized representation.</span><span>
-</span><span id="line-126"></span><span id="local-6989586621679866063"><span id="local-6989586621679866064"><span class="annot"><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-type">txSkelOutDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679866063"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679866064"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679866063"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679866064"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
+</span><span id="line-126"></span><span id="local-6989586621679868157"><span id="local-6989586621679868158"><span class="annot"><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-type">txSkelOutDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868157"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868158"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868157"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868158"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
 </span><span id="line-127"></span><span id="txSkelOutDatumTypedAT"><span class="annot"><span class="annottext">txSkelOutDatumTypedAT :: forall a b.
 (DatumConstrs a, DatumConstrs b) =&gt;
 AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
@@ -351,52 +351,52 @@ forall s t a b.
 (s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
 </span><span class="hs-identifier hs-var">atraversal</span></span><span>
 </span><span id="line-129"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-130"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679866308"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866308"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679866309"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679866309"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Maybe a
+</span><span id="line-130"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868402"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679868402"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679868403"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679868403"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Maybe a
 forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
 </span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866308"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either TxSkelOutDatum a
+</span><a href="#local-6989586621679868402"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either TxSkelOutDatum a
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679866309"><span class="hs-identifier hs-var">content'</span></a></span><span>
-</span><span id="line-131"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679866314"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866314"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679866315"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679866315"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; Maybe a
+</span><a href="#local-6989586621679868403"><span class="hs-identifier hs-var">content'</span></a></span><span>
+</span><span id="line-131"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868408"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679868408"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679868409"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679868409"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; Maybe a
 forall a. FromData a =&gt; BuiltinData -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Api.fromBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; Maybe a) -&gt; BuiltinData -&gt; Maybe a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866314"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either TxSkelOutDatum a
+</span><a href="#local-6989586621679868408"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either TxSkelOutDatum a
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679866315"><span class="hs-identifier hs-var">content'</span></a></span><span>
-</span><span id="line-132"></span><span>        </span><span id="local-6989586621679866317"><span class="annot"><span class="annottext">TxSkelOutDatum
-</span><a href="#local-6989586621679866317"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum -&gt; Either TxSkelOutDatum a
+</span><a href="#local-6989586621679868409"><span class="hs-identifier hs-var">content'</span></a></span><span>
+</span><span id="line-132"></span><span>        </span><span id="local-6989586621679868411"><span class="annot"><span class="annottext">TxSkelOutDatum
+</span><a href="#local-6989586621679868411"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum -&gt; Either TxSkelOutDatum a
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
-</span><a href="#local-6989586621679866317"><span class="hs-identifier hs-var">dc</span></a></span><span>
+</span><a href="#local-6989586621679868411"><span class="hs-identifier hs-var">dc</span></a></span><span>
 </span><span id="line-133"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-134"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">(b -&gt; TxSkelOutDatum -&gt; TxSkelOutDatum)
 -&gt; TxSkelOutDatum -&gt; b -&gt; TxSkelOutDatum
 forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span>
-</span><span id="line-135"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679866318"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679866318"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-135"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679868412"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679868412"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
 </span><span id="line-136"></span><span>            </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span>
 </span><span id="line-137"></span><span>            </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679866321"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866321"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">b -&gt; DatumKind -&gt; TxSkelOutDatum
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679868415"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868415"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">b -&gt; DatumKind -&gt; TxSkelOutDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; DatumKind -&gt; TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-var">SomeTxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679866318"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679866321"><span class="hs-identifier hs-var">kind</span></a></span><span>
+</span><a href="#local-6989586621679868412"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868415"><span class="hs-identifier hs-var">kind</span></a></span><span>
 </span><span id="line-138"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-139"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-140"></span><span>
@@ -450,12 +450,12 @@ forall a. ToOutputDatum a =&gt; a -&gt; OutputDatum
 </span><span class="hs-identifier hs-var">Script.toOutputDatum</span></span><span>
 </span><span id="line-152"></span><span>
 </span><span id="line-153"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToOutputDatum</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-154"></span><span>  </span><span id="local-6989586621679866330"><span class="annot"><span class="annottext">toOutputDatum :: TxSkelOutDatum -&gt; OutputDatum
+</span><span id="line-154"></span><span>  </span><span id="local-6989586621679868424"><span class="annot"><span class="annottext">toOutputDatum :: TxSkelOutDatum -&gt; OutputDatum
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">toOutputDatum</span></span></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">OutputDatum
 </span><span class="hs-identifier hs-var">Api.NoOutputDatum</span></span><span>
-</span><span id="line-155"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">toOutputDatum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679866335"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866335"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><span id="line-155"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">toOutputDatum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868429"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679868429"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Inline"><span class="hs-identifier hs-var">Inline</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Datum -&gt; OutputDatum
 </span><span class="hs-identifier hs-var">Api.OutputDatum</span></span><span> </span><span class="annot"><span class="annottext">(Datum -&gt; OutputDatum) -&gt; Datum -&gt; OutputDatum
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -465,9 +465,9 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866335"><span class="hs-identifier hs-var">datum</span></a></span><span>
-</span><span id="line-156"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">toOutputDatum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679866339"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866339"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679868429"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><span id="line-156"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">toOutputDatum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679868433"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679868433"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; OutputDatum
 </span><span class="hs-identifier hs-var">Api.OutputDatumHash</span></span><span> </span><span class="annot"><span class="annottext">(DatumHash -&gt; OutputDatum) -&gt; DatumHash -&gt; OutputDatum
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -480,5 +480,5 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679866339"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679868433"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-157"></span></pre></body></html>

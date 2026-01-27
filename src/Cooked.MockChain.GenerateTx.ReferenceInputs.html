@@ -15,45 +15,45 @@
 </span><span id="line-15"></span><span class="hs-comment">-- direct reference inputs 'txSkelInsReference' or scattered in the various</span><span>
 </span><span id="line-16"></span><span class="hs-comment">-- redeemers of the transaction, which can be gathered with</span><span>
 </span><span id="line-17"></span><span class="hs-comment">-- 'txSkelInsReferenceInRedeemers'.</span><span>
-</span><span id="line-18"></span><span id="local-6989586621679874628"><span class="annot"><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier hs-type">toInsReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679874628"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679874628"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxInsReference</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679874869"><span class="annot"><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier hs-type">toInsReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679874869"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679874869"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxInsReference</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
 </span><span id="line-19"></span><span id="toInsReference"><span class="annot"><span class="annottext">toInsReference :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxSkel -&gt; m (TxInsReference BuildTx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier hs-var hs-var">toInsReference</span></a></span></span><span> </span><span id="local-6989586621679874733"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679874733"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.ReferenceInputs.html#toInsReference"><span class="hs-identifier hs-var hs-var">toInsReference</span></a></span></span><span> </span><span id="local-6989586621679874974"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679874974"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-20"></span><span>  </span><span class="hs-comment">-- As regular inputs can be used to hold scripts as if in reference inputs, we</span><span>
 </span><span id="line-21"></span><span>  </span><span class="hs-comment">-- need to remove from the reference inputs stored in redeemers the ones that</span><span>
 </span><span id="line-22"></span><span>  </span><span class="hs-comment">-- already appear in the inputs to avoid validation errors.</span><span>
-</span><span id="line-23"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679874734"><span class="annot"><span class="annottext">indirectReferenceInputs :: Set TxOutRef
-</span><a href="#local-6989586621679874734"><span class="hs-identifier hs-var hs-var">indirectReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
+</span><span id="line-23"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679874975"><span class="annot"><span class="annottext">indirectReferenceInputs :: Set TxOutRef
+</span><a href="#local-6989586621679874975"><span class="hs-identifier hs-var hs-var">indirectReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679874733"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-24"></span><span>      </span><span id="local-6989586621679874735"><span class="annot"><span class="annottext">redundantReferenceInputs :: Set TxOutRef
-</span><a href="#local-6989586621679874735"><span class="hs-identifier hs-var hs-var">redundantReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679874734"><span class="hs-identifier hs-var">indirectReferenceInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679874974"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-24"></span><span>      </span><span id="local-6989586621679874976"><span class="annot"><span class="annottext">redundantReferenceInputs :: Set TxOutRef
+</span><a href="#local-6989586621679874976"><span class="hs-identifier hs-var hs-var">redundantReferenceInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="#local-6989586621679874975"><span class="hs-identifier hs-var">indirectReferenceInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Ord a =&gt; Set a -&gt; Set a -&gt; Set a
 </span><span class="hs-operator hs-var">`Set.intersection`</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; Set TxOutRef
 forall k a. Map k a -&gt; Set k
 </span><span class="hs-identifier hs-var">Map.keysSet</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Map TxOutRef TxSkelRedeemer
 </span><a href="Cooked.Skeleton.html#txSkelIns"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679874733"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-25"></span><span>      </span><span id="local-6989586621679874739"><span class="annot"><span class="annottext">refInputs :: [TxOutRef]
-</span><a href="#local-6989586621679874739"><span class="hs-identifier hs-var hs-var">refInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
+</span><a href="#local-6989586621679874974"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>      </span><span id="local-6989586621679874980"><span class="annot"><span class="annottext">refInputs :: [TxOutRef]
+</span><a href="#local-6989586621679874980"><span class="hs-identifier hs-var hs-var">refInputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
 forall a. Set a -&gt; [a]
 </span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReference"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679874733"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679874974"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679874734"><span class="hs-identifier hs-var">indirectReferenceInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679874975"><span class="hs-identifier hs-var">indirectReferenceInputs</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Ord a =&gt; Set a -&gt; Set a -&gt; Set a
 </span><span class="hs-operator hs-var">`Set.difference`</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679874735"><span class="hs-identifier hs-var">redundantReferenceInputs</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679874976"><span class="hs-identifier hs-var">redundantReferenceInputs</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-26"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Bool
 forall a. [a] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679874739"><span class="hs-identifier hs-var">refInputs</span></a></span><span>
+</span><a href="#local-6989586621679874980"><span class="hs-identifier hs-var">refInputs</span></a></span><span>
 </span><span id="line-27"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
 -&gt; m (TxInsReference BuildTx ConwayEra)
 forall a. a -&gt; m a
@@ -62,8 +62,8 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 forall build era. TxInsReference build era
 </span><span class="hs-identifier hs-var">Cardano.TxInsReferenceNone</span></span><span>
 </span><span id="line-28"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-29"></span><span>      </span><span id="local-6989586621679874744"><span class="annot"><span class="annottext">[TxIn]
-</span><a href="#local-6989586621679874744"><span class="hs-identifier hs-var">cardanoRefInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-29"></span><span>      </span><span id="local-6989586621679874985"><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679874985"><span class="hs-identifier hs-var">cardanoRefInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-30"></span><span>        </span><span class="annot"><span class="annottext">String -&gt; Either ToCardanoError [TxIn] -&gt; m [TxIn]
 forall (m :: * -&gt; *) a.
 MonadError MockChainError m =&gt;
@@ -79,9 +79,9 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Ledger.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679874739"><span class="hs-identifier hs-var">refInputs</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-33"></span><span>      </span><span id="local-6989586621679874748"><span class="annot"><span class="annottext">[TxSkelOutDatum]
-</span><a href="#local-6989586621679874748"><span class="hs-identifier hs-var">resolvedDatums</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; m TxSkelOutDatum) -&gt; [TxOutRef] -&gt; m [TxSkelOutDatum]
+</span><a href="#local-6989586621679874980"><span class="hs-identifier hs-var">refInputs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>      </span><span id="local-6989586621679874989"><span class="annot"><span class="annottext">[TxSkelOutDatum]
+</span><a href="#local-6989586621679874989"><span class="hs-identifier hs-var">resolvedDatums</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; m TxSkelOutDatum) -&gt; [TxOutRef] -&gt; m [TxSkelOutDatum]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
@@ -93,7 +93,7 @@ forall (m :: * -&gt; *) g (is :: IxList) c.
 Optic' g is TxSkelOut c -&gt; TxOutRef -&gt; m c
 </span><a href="Cooked.MockChain.BlockChain.html#viewByRef"><span class="hs-identifier hs-var">viewByRef</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679874739"><span class="hs-identifier hs-var">refInputs</span></a></span><span>
+</span><a href="#local-6989586621679874980"><span class="hs-identifier hs-var">refInputs</span></a></span><span>
 </span><span id="line-34"></span><span>      </span><span class="annot"><span class="annottext">TxInsReference BuildTx ConwayEra
 -&gt; m (TxInsReference BuildTx ConwayEra)
 forall a. a -&gt; m a
@@ -113,7 +113,7 @@ BabbageEraOnwards era
 -&gt; [TxIn] -&gt; TxInsReferenceDatums build -&gt; TxInsReference build era
 </span><span class="hs-identifier hs-var">Cardano.TxInsReference</span></span><span> </span><span class="annot"><span class="annottext">BabbageEraOnwards ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.BabbageEraOnwardsConway</span></span><span> </span><span class="annot"><span class="annottext">[TxIn]
-</span><a href="#local-6989586621679874744"><span class="hs-identifier hs-var">cardanoRefInputs</span></a></span><span> </span><span class="annot"><span class="annottext">(TxInsReferenceDatums BuildTx -&gt; TxInsReference BuildTx ConwayEra)
+</span><a href="#local-6989586621679874985"><span class="hs-identifier hs-var">cardanoRefInputs</span></a></span><span> </span><span class="annot"><span class="annottext">(TxInsReferenceDatums BuildTx -&gt; TxInsReference BuildTx ConwayEra)
 -&gt; TxInsReferenceDatums BuildTx -&gt; TxInsReference BuildTx ConwayEra
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
@@ -133,8 +133,8 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679874757"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679874757"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679874757"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-type">Hashed</span></a></span><span> </span><span class="annot"><span class="annottext">DatumResolved
+</span><a href="#local-6989586621679874998"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679874998"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679874998"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#Hashed"><span class="hs-identifier hs-type">Hashed</span></a></span><span> </span><span class="annot"><span class="annottext">DatumResolved
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelOutDatum]
-</span><a href="#local-6989586621679874748"><span class="hs-identifier hs-var">resolvedDatums</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679874989"><span class="hs-identifier hs-var">resolvedDatums</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-39"></span></pre></body></html>
