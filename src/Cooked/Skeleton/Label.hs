@@ -15,7 +15,7 @@ where
 
 import Cooked.Pretty.Class
 import Data.String (IsString (..))
-import Data.Text (pack)
+import Data.Text (Text, pack)
 import Data.Typeable (cast)
 import Optics.Core
 import Type.Reflection
@@ -34,7 +34,7 @@ data TxSkelLabel where
   TxSkelLabel :: (LabelConstrs x) => x -> TxSkelLabel
 
 -- | Helper for defining 'TxSkelLabel' values.
-label :: (LabelConstrs x) => x -> TxSkelLabel
+label :: Text -> TxSkelLabel
 label = TxSkelLabel
 
 instance Eq TxSkelLabel where

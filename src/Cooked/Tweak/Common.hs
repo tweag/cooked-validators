@@ -2,10 +2,12 @@
 -- our "domain specific language" for attacks. They are essentially skeleton
 -- modifications aware of the mockchain state.
 module Cooked.Tweak.Common
-  ( runTweakInChain,
+  ( runTweak,
+    runTweakFrom,
+    runTweakInChain,
     runTweakInChain',
     Tweak,
-    UntypedTweak (UntypedTweak),
+    UntypedTweak (..),
 
     -- * User API
     MonadTweak (..),
@@ -20,14 +22,18 @@ module Cooked.Tweak.Common
     selectP,
     combineModsTweak,
     iviewTweak,
+    ensureFailingTweak,
   )
 where
 
 import Control.Arrow (second)
 import Control.Monad
 import Control.Monad.State
+import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Direct
 import Cooked.Skeleton
+import Data.Default
 import Data.Either.Combinators (rightToMaybe)
 import Data.List (mapAccumL)
 import Data.Maybe
@@ -40,7 +46,7 @@ import Optics.Core
 -- | A 'MonadTweak' is a 'MonadBlockChainWithoutValidation' where you can also
 -- retrieve and store a 'TxSkel'
 class (MonadPlus m, MonadBlockChainWithoutValidation m) => MonadTweak m where
-  -- | Retrieves the stores 'TxSkel'
+  -- | Retrieves the stored 'TxSkel'
   getTxSkel :: m TxSkel
 
   -- | Stores a 'TxSkel'
@@ -53,6 +59,8 @@ type Tweak m = StateT TxSkel (ListT m)
 instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
   getTxSkel = get
   putTxSkel = put
+
+-- * Running tweaks
 
 -- | This is the function that gives a meaning to 'Tweak's: A 'Tweak' is a
 -- computation that, depending on the state of the chain, looks at a transaction
@@ -77,7 +85,7 @@ instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere',
 -- you should never have a reason to use this function.
 runTweakInChain :: (MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
-runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
+runTweakInChain tweak = ListT.alternate . runStateT tweak
 
 -- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
 -- to a transaction skeleton and get all results as a list.
@@ -86,20 +94,22 @@ runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 -- modified, consider using 'Cooked.MockChain.Staged.MonadModalBlockChain' and
 -- idioms like 'Cooked.MockChain.Staged.withTweak',
 -- 'Cooked.MockChain.Staged.somewhere', or 'Cooked.MockChain.Staged.everywhere'.
-runTweakInChain' :: (MonadBlockChainWithoutValidation m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
-runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
+runTweakInChain' :: (MonadPlus m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
+runTweakInChain' tweak = ListT.toList . runStateT tweak
+
+-- | Runs a 'Tweak' from a given 'TxSkel' within a mockchain
+runTweak :: (MonadPlus m) => Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
+runTweak = runTweakFrom def
+
+-- | Runs a 'Tweak' from a given 'TxSkel' and 'InitialDistribution' within a
+-- mockchain
+runTweakFrom :: (MonadPlus m) => InitialDistribution -> Tweak (MockChainT m) a -> TxSkel -> m (MockChainReturn (a, TxSkel))
+runTweakFrom initDist tweak = runMockChainTFromInitDist initDist . runTweakInChain tweak
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You
 -- will probably never use it while you're building 'Tweak's.
 data UntypedTweak m where
   UntypedTweak :: Tweak m a -> UntypedTweak m
-
-instance (Monad m) => Semigroup (UntypedTweak m) where
-  -- The right tweak is applied first
-  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
-
-instance (Monad m) => Monoid (UntypedTweak m) where
-  mempty = UntypedTweak $ return ()
 
 -- * A few fundamental tweaks
 
@@ -110,6 +120,13 @@ failingTweak = mzero
 -- | The 'Tweak' that always applies and leaves the transaction unchanged.
 doNothingTweak :: (MonadTweak m) => m ()
 doNothingTweak = return ()
+
+-- | The 'Tweak' that ensures a given tweak fails
+ensureFailingTweak :: (MonadPlus m) => Tweak m a -> Tweak m ()
+ensureFailingTweak comp = do
+  skel <- get
+  res <- lift $ lift $ runTweakInChain' comp skel
+  guard $ null res
 
 -- * Constructing Tweaks from Optics
 

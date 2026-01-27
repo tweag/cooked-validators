@@ -112,6 +112,10 @@ instance (Monad m, Alternative m) => Alternative (MockChainT m) where
   empty = MockChainT $ ExceptT $ StateT $ const $ WriterT empty
   (<|>) = combineMockChainT (<|>)
 
+instance (MonadPlus m) => MonadPlus (MockChainT m) where
+  mzero = lift mzero
+  mplus = combineMockChainT mplus
+
 -- | Combines two 'MockChainT' together
 combineMockChainT :: (forall a. m a -> m a -> m a) -> MockChainT m x -> MockChainT m x -> MockChainT m x
 combineMockChainT f ma mb = MockChainT $

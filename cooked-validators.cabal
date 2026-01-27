@@ -19,7 +19,6 @@ library
       Cooked.Attack.DoubleSat
       Cooked.InitialDistribution
       Cooked.Ltl
-      Cooked.Ltl.Combinators
       Cooked.MockChain
       Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
@@ -65,6 +64,7 @@ library
       Cooked.Skeleton.User
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
+      Cooked.Staged
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs
@@ -84,6 +84,7 @@ library
   default-extensions:
       ConstraintKinds
       DataKinds
+      DeriveFunctor
       DerivingStrategies
       DerivingVia
       FlexibleContexts
@@ -184,6 +185,7 @@ test-suite spec
       Spec.Slot
       Spec.Tweak
       Spec.Tweak.Common
+      Spec.Tweak.Labels
       Spec.Tweak.OutPermutations
       Spec.Tweak.TamperDatum
       Spec.Tweak.ValidityRange
@@ -196,6 +198,7 @@ test-suite spec
   default-extensions:
       ConstraintKinds
       DataKinds
+      DeriveFunctor
       DerivingStrategies
       DerivingVia
       FlexibleContexts
