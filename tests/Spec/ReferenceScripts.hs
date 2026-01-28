@@ -18,7 +18,7 @@ putRefScriptOnWalletOutput ::
   Script.Versioned Script.Validator ->
   DirectMockChain V3.TxOutRef
 putRefScriptOnWalletOutput recipient referenceScript =
-  head
+  fst . head
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
@@ -30,7 +30,7 @@ putRefScriptOnScriptOutput ::
   Script.Versioned Script.Validator ->
   DirectMockChain V3.TxOutRef
 putRefScriptOnScriptOutput recipient referenceScript =
-  head
+  fst . head
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [recipient `receives` ReferenceScript referenceScript],
@@ -42,7 +42,7 @@ checkReferenceScriptOnOref ::
   V3.TxOutRef ->
   DirectMockChain ()
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
-  oref : _ <-
+  (oref, _) : _ <-
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [requireRefScriptValidator expectedScriptHash `receives` Value (Script.ada 42)],
@@ -62,25 +62,26 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
 useReferenceScript :: Wallet -> Bool -> Script.Versioned Script.Validator -> DirectMockChain Ledger.CardanoTx
 useReferenceScript spendingSubmitter consumeScriptOref theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
-  oref : _ <-
+  (oref, _) : _ <-
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
-  validateTxSkel
-    txSkelTemplate
-      { txSkelIns =
-          Map.fromList $
-            (oref, TxSkelRedeemer () (Just scriptOref) False)
-              : [(scriptOref, emptyTxSkelRedeemer) | consumeScriptOref],
-        txSkelSignatories = txSkelSignatoriesFromList $ spendingSubmitter : [wallet 3 | consumeScriptOref]
-      }
+  fst
+    <$> validateTxSkel
+      txSkelTemplate
+        { txSkelIns =
+            Map.fromList $
+              (oref, TxSkelRedeemer () (Just scriptOref) False)
+                : [(scriptOref, emptyTxSkelRedeemer) | consumeScriptOref],
+          txSkelSignatories = txSkelSignatoriesFromList $ spendingSubmitter : [wallet 3 | consumeScriptOref]
+        }
 
 useReferenceScriptInInputs :: Wallet -> Script.Versioned Script.Validator -> DirectMockChain ()
 useReferenceScriptInInputs spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
-  oref : _ <-
+  (oref, _) : _ <-
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [theScript `receives` Value (Script.ada 42)],
@@ -94,7 +95,7 @@ useReferenceScriptInInputs spendingSubmitter theScript = do
 
 referenceMint :: Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> DirectMockChain ()
 referenceMint mp1 mp2 n autoRefScript = do
-  ((!! n) -> mpOutRef) <-
+  ((!! n) -> (mpOutRef, _)) <-
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts =
@@ -148,7 +149,7 @@ tests =
             mustFailTest
               ( do
                   consumedOref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
-                  oref : _ <-
+                  (oref, _) : _ <-
                     validateTxSkel'
                       txSkelTemplate
                         { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
@@ -168,7 +169,7 @@ tests =
             mustFailTest
               ( do
                   scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
-                  oref : _ <-
+                  (oref, _) : _ <-
                     validateTxSkel'
                       txSkelTemplate
                         { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
@@ -186,7 +187,7 @@ tests =
           testCooked "phase 1 - fail if using a reference script with 'someRedeemer'" $
             mustFailInPhase1Test $ do
               scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
-              oref : _ <-
+              (oref, _) : _ <-
                 validateTxSkel'
                   txSkelTemplate
                     { txSkelOuts = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],

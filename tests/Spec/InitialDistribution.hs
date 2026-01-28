@@ -31,7 +31,7 @@ getValueFromInitialDatum = do
 spendReferenceAlwaysTrueValidator :: DirectMockChain ()
 spendReferenceAlwaysTrueValidator = do
   [(referenceScriptTxOutRef, _)] <- utxosAt alice
-  (scriptTxOutRef : _) <-
+  ((scriptTxOutRef, _) : _) <-
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],

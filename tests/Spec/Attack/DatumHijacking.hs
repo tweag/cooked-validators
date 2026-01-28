@@ -31,7 +31,7 @@ lockTxSkel o v =
 txLock :: Script.MultiPurposeScript DHContract -> StagedMockChain Api.TxOutRef
 txLock v = do
   oref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
-  head <$> validateTxSkel' (lockTxSkel oref v)
+  fst . head <$> validateTxSkel' (lockTxSkel oref v)
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =

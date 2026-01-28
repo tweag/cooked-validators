@@ -23,13 +23,12 @@ instance PrettyCooked HeavyDatum where
 
 paymentWithMinAda :: DirectMockChain Integer
 paymentWithMinAda = do
-  tx <-
-    validateTxSkel
+  view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0)
+    <$> validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
-  view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0) <$> utxosFromCardanoTx tx
 
 paymentWithoutMinAda :: Integer -> DirectMockChain ()
 paymentWithoutMinAda paidLovelaces = do

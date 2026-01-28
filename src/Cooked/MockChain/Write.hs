@@ -33,6 +33,7 @@ import Control.Lens qualified as Lens
 import Control.Monad
 import Cooked.MockChain.AutoFilling
 import Cooked.MockChain.Balancing
+import Cooked.MockChain.Common
 import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Body
 import Cooked.MockChain.GenerateTx.Output
@@ -60,9 +61,9 @@ import Polysemy.State
 data MockChainWrite :: Effect where
   WaitNSlots :: Integer -> MockChainWrite m Ledger.Slot
   SetParams :: Emulator.Params -> MockChainWrite m ()
-  ValidateTxSkel :: TxSkel -> MockChainWrite m Ledger.CardanoTx
+  ValidateTxSkel :: TxSkel -> MockChainWrite m (Ledger.CardanoTx, Utxos)
   SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
-  ForceOutputs :: [TxSkelOut] -> MockChainWrite m [Api.TxOutRef]
+  ForceOutputs :: [TxSkelOut] -> MockChainWrite m Utxos
 
 makeSem_ ''MockChainWrite
 
@@ -150,7 +151,7 @@ runMockChainWrite = interpret $ \case
     -- We update our internal map by adding the new outputs
     modify' (over mcstOutputsL (<> outputsMap))
     -- Finally, we return the created utxos
-    fmap fst <$> utxosFromCardanoTx cardanoTx
+    return $ Map.toList (fst <$> outputsMap)
   ValidateTxSkel skel -> fmap snd $ runTweak skel $ do
     -- We retrieve the current skeleton options
     TxSkelOpts {..} <- viewTweak txSkelOptsL
@@ -188,7 +189,7 @@ runMockChainWrite = interpret $ \case
     -- based on the validation result, and throw an error if this fails. If at
     -- some point we want to allows mockchain runs with validation errors, the
     -- caller will need to catch those errors and do something with them.
-    case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
+    newOutputs <- case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
       (_, Ledger.FailPhase1 _ err) -> throw $ MCEValidationError Ledger.Phase1 err
       (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColUser) <- mCollaterals -> do
@@ -212,10 +213,14 @@ runMockChainWrite = interpret $ \case
         modify' (set mcstLedgerStateL newELedgerState)
         -- We retrieve the utxos created by the transaction
         let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
+        -- We combine them with their corresponding `TxSkelOut`
+        let newOutputs = zip utxos (txSkelOuts finalTxSkel)
         -- We add the news utxos to the state
-        forM_ (zip utxos (txSkelOuts finalTxSkel)) $ modify' . uncurry addOutput
+        forM_ newOutputs $ modify' . uncurry addOutput
         -- And remove the old ones
         forM_ (Map.toList $ txSkelIns finalTxSkel) $ modify' . removeOutput . fst
+        -- We return the newly created outputs
+        return newOutputs
       -- This is a theoretical unreachable case. Since we fail in Phase 2, it
       -- means the transaction involved script, and thus we must have generated
       -- collaterals.
@@ -230,7 +235,7 @@ runMockChainWrite = interpret $ \case
     -- We log the validated transaction
     logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
-    return cardanoTx
+    return (cardanoTx, newOutputs)
 
 -- | Waits a certain number of slots and returns the new slot
 waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs Ledger.Slot
@@ -258,12 +263,12 @@ waitNMSFromSlotUpperBound :: (Members '[MockChainRead, MockChainWrite, Fail] eff
 waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | Generates, balances and validates a transaction from a skeleton, and
--- returns the validated transaction.
-validateTxSkel :: (Member MockChainWrite effs) => TxSkel -> Sem effs Ledger.CardanoTx
+-- returns the validated transaction, alongside the created UTxOs.
+validateTxSkel :: (Member MockChainWrite effs) => TxSkel -> Sem effs (Ledger.CardanoTx, Utxos)
 
 -- | Same as `validateTxSkel`, but only returns the generated UTxOs
-validateTxSkel' :: (Members '[MockChainRead, MockChainWrite] effs) => TxSkel -> Sem effs [Api.TxOutRef]
-validateTxSkel' = (fmap fst <$>) . utxosFromCardanoTx <=< validateTxSkel
+validateTxSkel' :: (Members '[MockChainRead, MockChainWrite] effs) => TxSkel -> Sem effs Utxos
+validateTxSkel' = fmap snd . validateTxSkel
 
 -- | Same as `validateTxSkel`, but discards the returned transaction
 validateTxSkel_ :: (Member MockChainWrite effs) => TxSkel -> Sem effs ()
@@ -275,5 +280,7 @@ setParams :: (Member MockChainWrite effs) => Emulator.Params -> Sem effs ()
 -- | Sets the current script to act as the official constitution script
 setConstitutionScript :: (Member MockChainWrite effs, ToVScript s) => s -> Sem effs ()
 
--- | Forces the generation of utxos corresponding to certain `TxSkelOut`
-forceOutputs :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs [Api.TxOutRef]
+-- | Forces the generation of utxos corresponding to certain
+-- `TxSkelOut`. Returns the created UTxOs, which might differ from the original
+-- list if some min ADA adjustment occured.
+forceOutputs :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs Utxos

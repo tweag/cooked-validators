@@ -23,8 +23,8 @@ listUtxosTestTrace ::
   Script.Versioned Script.Validator ->
   DirectMockChain (Api.TxOutRef, TxSkelOut)
 listUtxosTestTrace useInlineDatum validator =
-  (\oref -> (oref,) <$> txSkelOutByRef oref) . head
-    =<< validateTxSkel'
+  head
+    <$> validateTxSkel'
       txSkelTemplate
         { txSkelOuts = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]

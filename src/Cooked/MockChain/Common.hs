@@ -4,6 +4,7 @@ module Cooked.MockChain.Common
     Fee,
     CollateralIns,
     Collaterals,
+    Utxo,
     Utxos,
   )
 where
@@ -24,5 +25,8 @@ type CollateralIns = Set Api.TxOutRef
 -- | An alias for optional pairs of collateral inputs and return collateral peer
 type Collaterals = Maybe (CollateralIns, Peer)
 
--- | An alias for lists of utxos with their associated output
-type Utxos = [(Api.TxOutRef, TxSkelOut)]
+-- | An alias for an output and its reference
+type Utxo = (Api.TxOutRef, TxSkelOut)
+
+-- | An alias for lists of `Utxo`
+type Utxos = [Utxo]

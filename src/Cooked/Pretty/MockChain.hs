@@ -14,6 +14,7 @@ import Cooked.Pretty.Skeleton
 import Cooked.Skeleton.User
 import Cooked.Wallet (walletPKHashToId)
 import Data.Function (on)
+import Data.List (intersperse)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -27,20 +28,21 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
 instance (Show a) => PrettyCooked [MockChainReturn a] where
+  prettyCookedOpt _ [] = "[]"
   prettyCookedOpt opts [outcome] = prettyCookedOpt opts outcome
   prettyCookedOpt opts outcomes =
-    PP.vsep
-      ( zipWith
-          (\n d -> PP.vsep ["", PP.pretty n <> "." <+> d])
+    PP.vsep $
+      intersperse "" $
+        zipWith
+          (\n d -> PP.pretty n <> "." <+> d)
           ([1 ..] :: [Int])
           (PP.align . prettyCookedOpt opts <$> outcomes)
-      )
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
   prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts) noteBook) =
     PP.vsep $
       [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
-        <> [prettyItemize opts "📔 Notes:" "-" (PP.pretty @_ @() <$> noteBook) | not (null noteBook)]
+        <> [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | not (null noteBook)]
         <> prettyCookedOptList opts utxoState
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err

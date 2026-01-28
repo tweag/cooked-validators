@@ -15,7 +15,7 @@ instance PrettyCooked FooDatum where
 
 trace1 :: DirectMockChain ()
 trace1 = do
-  txOutRefFoo : txOutRefBar : _ <-
+  (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
@@ -34,7 +34,7 @@ trace1 = do
 
 trace2 :: DirectMockChain ()
 trace2 = do
-  refORef : scriptORef : _ <-
+  (refORef, _) : (scriptORef, _) : _ <-
     validateTxSkel'
       ( txSkelTemplate
           { txSkelOuts =

@@ -24,7 +24,7 @@ bob = wallet 2
 
 runScript :: StagedMockChain ()
 runScript = do
-  [oRef@(Api.TxOutRef txId _), oRef', oRef''] <-
+  [(oRef@(Api.TxOutRef txId _), _), (oRef', _), (oRef'', _)] <-
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts =
@@ -39,11 +39,11 @@ runScript = do
       (mintSkel2, mintValue2, tn2) = mkMintSkel alice oRef' script
       (mintSkel3, mintValue3, tn3) = mkMintSkel bob oRef'' script
 
-  (oRefScript : _) <- validateTxSkel' mintSkel1
-  (oRefScript1 : _) <- validateTxSkel' mintSkel2
-  (oRefScript2 : _) <- validateTxSkel' mintSkel3
+  ((oRefScript, _) : _) <- validateTxSkel' mintSkel1
+  ((oRefScript1, _) : _) <- validateTxSkel' mintSkel2
+  ((oRefScript2, _) : _) <- validateTxSkel' mintSkel3
 
-  (oRefScript1' : oRefScript2' : _) <-
+  ((oRefScript1', _) : (oRefScript2', _) : _) <-
     validateTxSkel' $
       txSkelTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [alice],
@@ -60,7 +60,7 @@ runScript = do
           txSkelMints = review txSkelMintsListI [burn script BurnToken tn1 1]
         }
 
-  (oRefScript2'' : _) <-
+  ((oRefScript2'', _) : _) <-
     validateTxSkel' $
       txSkelTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [bob],

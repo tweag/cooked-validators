@@ -14,6 +14,8 @@ import Cooked.MockChain.Journal
 import Cooked.MockChain.Log
 import Cooked.MockChain.State
 import Cooked.MockChain.Write
+import Cooked.Pretty.Class
+import Cooked.Pretty.Options
 import Cooked.Skeleton.Output
 import Data.Default
 import Data.Map (Map)
@@ -38,7 +40,7 @@ data MockChainReturn a where
       -- | The map of aliases defined during the run
       mcrAliases :: Map Api.BuiltinByteString String,
       -- | The notes taken by the user during the run
-      mcrNoteBook :: [String]
+      mcrNoteBook :: [PrettyCookedOpts -> DocCooked]
     } ->
     MockChainReturn a
   deriving (Functor)

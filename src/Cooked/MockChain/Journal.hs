@@ -2,6 +2,8 @@
 module Cooked.MockChain.Journal where
 
 import Cooked.MockChain.Log
+import Cooked.Pretty.Class
+import Cooked.Pretty.Options
 import Data.Map
 import Data.Map qualified as Map
 import PlutusLedgerApi.V3 qualified as Api
@@ -14,8 +16,9 @@ data MockChainJournal where
       mcbLog :: [MockChainLogEntry],
       -- | Aliases stored by the user
       mcbAliases :: Map Api.BuiltinByteString String,
-      -- | Notes taken by the user
-      mcbNotes :: [String]
+      -- | Notes taken by the user, parameterized by some pretty cooked options,
+      -- to get a better display at the end of the run
+      mcbNotes :: [PrettyCookedOpts -> DocCooked]
     } ->
     MockChainJournal
 
@@ -34,5 +37,5 @@ fromAlias :: String -> Api.BuiltinByteString -> MockChainJournal
 fromAlias s hash = MockChainJournal mempty (Map.singleton hash s) mempty
 
 -- | Build a `MockChainJournal` from a single note
-fromNote :: String -> MockChainJournal
-fromNote s = MockChainJournal mempty mempty [show s]
+fromNote :: (PrettyCookedOpts -> DocCooked) -> MockChainJournal
+fromNote s = MockChainJournal mempty mempty [s]
