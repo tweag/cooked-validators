@@ -190,6 +190,7 @@ test-suite spec
       Spec.ReferenceInputs
       Spec.ReferenceScripts
       Spec.Slot
+      Spec.StagedRun
       Spec.Tweak
       Spec.Tweak.Common
       Spec.Tweak.Labels

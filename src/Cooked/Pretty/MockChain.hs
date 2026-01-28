@@ -5,6 +5,7 @@
 module Cooked.Pretty.MockChain () where
 
 import Cooked.MockChain.Error
+import Cooked.MockChain.Journal
 import Cooked.MockChain.Log
 import Cooked.MockChain.Runnable
 import Cooked.MockChain.State
@@ -39,7 +40,7 @@ instance (Show a) => PrettyCooked [MockChainReturn a] where
           (PP.align . prettyCookedOpt opts <$> outcomes)
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts) noteBook) =
+  prettyCookedOpt opts' (MockChainReturn res outputs utxoState (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook _)) =
     PP.vsep $
       [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
         <> [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | not (null noteBook)]

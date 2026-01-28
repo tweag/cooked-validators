@@ -8,6 +8,7 @@ import Control.Exception qualified as E
 import Control.Monad
 import Cooked.InitialDistribution
 import Cooked.MockChain.Error
+import Cooked.MockChain.Journal
 import Cooked.MockChain.Log
 import Cooked.MockChain.Runnable
 import Cooked.MockChain.State
@@ -228,13 +229,16 @@ testToProp Test {..} =
   let results = runMockChainFromConf (mockChainConfTemplate {mccInitialDistribution = testInitDist}) testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \ret@(MockChainReturn outcome _ state mcLog names _) ->
+          ( \ret@(MockChainReturn outcome _ state (MockChainJournal mcLog names _ assertions)) ->
               let pcOpts = addHashNames names testPrettyOpts
-               in testCounterexample
-                    (renderString (prettyCookedOpt pcOpts) ret)
-                    $ case outcome of
-                      Left err -> testFailureProp pcOpts mcLog err state
-                      Right result -> testSuccessProp pcOpts mcLog result state
+               in testConjoin
+                    [ testConjoin $ uncurry testBoolMsg <$> assertions,
+                      testCounterexample
+                        (renderString (prettyCookedOpt pcOpts) ret)
+                        $ case outcome of
+                          Left err -> testFailureProp pcOpts mcLog err state
+                          Right result -> testSuccessProp pcOpts mcLog result state
+                    ]
           )
           results
 

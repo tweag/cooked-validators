@@ -11,11 +11,8 @@ module Cooked.MockChain.Runnable where
 import Cooked.InitialDistribution
 import Cooked.MockChain.Error
 import Cooked.MockChain.Journal
-import Cooked.MockChain.Log
 import Cooked.MockChain.State
 import Cooked.MockChain.Write
-import Cooked.Pretty.Class
-import Cooked.Pretty.Options
 import Cooked.Skeleton.Output
 import Data.Default
 import Data.Map (Map)
@@ -36,11 +33,7 @@ data MockChainReturn a where
       -- | The 'UtxoState' at the end of the run
       mcrUtxoState :: UtxoState,
       -- | The final journal emitted during the run
-      mcrLog :: [MockChainLogEntry],
-      -- | The map of aliases defined during the run
-      mcrAliases :: Map Api.BuiltinByteString String,
-      -- | The notes taken by the user during the run
-      mcrNoteBook :: [PrettyCookedOpts -> DocCooked]
+      mcrJournal :: MockChainJournal
     } ->
     MockChainReturn a
   deriving (Functor)
@@ -51,8 +44,8 @@ type FunOnMockChainResult a b = RawMockChainReturn a -> b
 
 -- | Building a `MockChainReturn` from a `RawMockChainReturn`
 unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
-unRawMockChainReturn (MockChainJournal journal aliases notes, (st, val)) =
-  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal aliases notes
+unRawMockChainReturn (journal, (st, val)) =
+  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal
 
 -- | Configuration from which to run a mockchain
 data MockChainConf a b where

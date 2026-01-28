@@ -18,24 +18,32 @@ data MockChainJournal where
       mcbAliases :: Map Api.BuiltinByteString String,
       -- | Notes taken by the user, parameterized by some pretty cooked options,
       -- to get a better display at the end of the run
-      mcbNotes :: [PrettyCookedOpts -> DocCooked]
+      mcbNotes :: [PrettyCookedOpts -> DocCooked],
+      -- | Assertions gathered during the run, alongside their associated error
+      -- messages to display in case of failure
+      mcbAssertions :: [(String, Bool)]
     } ->
     MockChainJournal
 
 instance Semigroup MockChainJournal where
-  MockChainJournal l a n <> MockChainJournal l' a' n' = MockChainJournal (l <> l') (a <> a') (n <> n')
+  MockChainJournal l a n p <> MockChainJournal l' a' n' p' =
+    MockChainJournal (l <> l') (a <> a') (n <> n') (p <> p')
 
 instance Monoid MockChainJournal where
-  mempty = MockChainJournal mempty mempty mempty
+  mempty = MockChainJournal mempty mempty mempty mempty
 
 -- | Build a `MockChainJournal` from a single log entry
 fromLogEntry :: MockChainLogEntry -> MockChainJournal
-fromLogEntry entry = MockChainJournal [entry] mempty mempty
+fromLogEntry entry = mempty {mcbLog = [entry]}
 
 -- | Build a `MockChainJournal` from a single alias
 fromAlias :: String -> Api.BuiltinByteString -> MockChainJournal
-fromAlias s hash = MockChainJournal mempty (Map.singleton hash s) mempty
+fromAlias s hash = mempty {mcbAliases = Map.singleton hash s}
 
 -- | Build a `MockChainJournal` from a single note
 fromNote :: (PrettyCookedOpts -> DocCooked) -> MockChainJournal
-fromNote s = MockChainJournal mempty mempty [s]
+fromNote s = mempty {mcbNotes = [s]}
+
+-- | Build a `MockChainJournal` from a single assertion and error message
+fromAssert :: String -> Bool -> MockChainJournal
+fromAssert s p = mempty {mcbAssertions = [(s, p)]}

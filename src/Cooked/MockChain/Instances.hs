@@ -58,7 +58,7 @@ instance RunnableMockChain DirectEffs where
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
-      . runMockChainMisc fromAlias fromNote
+      . runMockChainMisc fromAlias fromNote fromAssert
       . runMockChainRead
       . runMockChainWrite
       . insertAt @4
@@ -102,7 +102,7 @@ instance RunnableMockChain StagedEffs where
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainRead
-      . runMockChainMisc fromAlias fromNote
+      . runMockChainMisc fromAlias fromNote fromAssert
       . evalState []
       . runModifyLocally
       . runMockChainWrite
@@ -168,7 +168,7 @@ instance RunnableMockChain FullEffs where
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainRead
-      . runMockChainMisc fromAlias fromNote
+      . runMockChainMisc fromAlias fromNote fromAssert
       . evalState []
       . runModifyLocally
       . runMockChainWrite

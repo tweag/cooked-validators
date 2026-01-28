@@ -88,3 +88,15 @@ hHead (HCons a _) = a
 -- | Tail of an heterogeneous list
 hTail :: HList (a ': l) -> HList l
 hTail (HCons _ l) = l
+
+instance Eq (HList '[]) where
+  _ == _ = True
+
+instance (Eq (HList l), Eq a) => Eq (HList (a ': l)) where
+  HCons h t == HCons h' t' = h == h' && t == t'
+
+instance Show (HList '[]) where
+  show _ = "[]"
+
+instance (Show (HList l), Show a) => Show (HList (a ': l)) where
+  show (HCons h t) = show h <> " : " <> show t

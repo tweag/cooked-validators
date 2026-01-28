@@ -16,6 +16,10 @@ module Cooked.MockChain.Misc
     noteP,
     noteL,
     noteS,
+
+    -- * Asserting properties
+    assert,
+    assert',
   )
 where
 
@@ -31,6 +35,7 @@ import Prettyprinter qualified as PP
 data MockChainMisc :: Effect where
   Define :: (ToHash a) => String -> a -> MockChainMisc m a
   Note :: (PrettyCookedOpts -> DocCooked) -> MockChainMisc m ()
+  Assert :: String -> Bool -> MockChainMisc m ()
 
 makeSem_ ''MockChainMisc
 
@@ -41,11 +46,13 @@ runMockChainMisc ::
   (Member (Writer j) effs) =>
   (String -> Api.BuiltinByteString -> j) ->
   ((PrettyCookedOpts -> DocCooked) -> j) ->
+  (String -> Bool -> j) ->
   Sem (MockChainMisc : effs) a ->
   Sem effs a
-runMockChainMisc injectAlias injectNote = interpret $ \case
+runMockChainMisc injectAlias injectNote injectPred = interpret $ \case
   (Define name hashable) -> tell (injectAlias name $ toHash hashable) >> return hashable
   (Note s) -> tell $ injectNote s
+  (Assert s b) -> tell $ injectPred s b
 
 -- | Stores an alias matching a hashable data for pretty printing purpose
 define :: forall effs a. (Member MockChainMisc effs, ToHash a) => String -> a -> Sem effs a
@@ -69,3 +76,10 @@ noteL title docs = note $ \opts -> prettyItemize opts (prettyCooked title) "-" d
 -- | Takes note of a showable element to trace at the end of the run
 noteS :: forall effs s. (Member MockChainMisc effs, Show s) => s -> Sem effs ()
 noteS doc = note $ const (PP.viaShow doc)
+
+-- | Ensures a specific property holds, sending the provided error message otherwise
+assert :: forall effs. (Member MockChainMisc effs) => String -> Bool -> Sem effs ()
+
+-- | Ensures a specific property holds, with a default error message otherwise
+assert' :: forall effs. (Member MockChainMisc effs) => Bool -> Sem effs ()
+assert' = assert "Assertion error"
