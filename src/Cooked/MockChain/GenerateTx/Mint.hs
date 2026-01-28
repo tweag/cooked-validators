@@ -32,7 +32,7 @@ toMintValue (unTxSkelMints -> mints) = fmap (Cardano.TxMintValue Cardano.MaryEra
       ( policyId,
         ( fromList
             [ (Cardano.UnsafeAssetName name, Cardano.Quantity quantity)
-              | (Api.TokenName (PlutusTx.BuiltinByteString name), quantity) <- assets
+            | (Api.TokenName (PlutusTx.BuiltinByteString name), quantity) <- assets
             ],
           mintWitness
         )
