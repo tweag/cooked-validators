@@ -9,15 +9,22 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.List (partition)
 import Optics.Core
+import Polysemy
 
 -- | Adds new entries to the 'TxSkelMints' of the transaction skeleton under
 -- modification.
-addMintsTweak :: (MonadTweak m) => [Mint] -> m ()
+addMintsTweak ::
+  (Member Tweak effs) =>
+  [Mint] ->
+  Sem effs ()
 addMintsTweak newMints = overTweak (txSkelMintsL % txSkelMintsListI) (++ newMints)
 
 -- | Remove some entries from the 'TxSkelMints' of a transaction, according to
 -- some predicate. The returned list holds the removed entries.
-removeMintTweak :: (MonadTweak m) => (Mint -> Bool) -> m [Mint]
+removeMintTweak ::
+  (Member Tweak effs) =>
+  (Mint -> Bool) ->
+  Sem effs [Mint]
 removeMintTweak removePred = do
   presentMints <- viewTweak $ txSkelMintsL % txSkelMintsListI
   let (removed, kept) = partition removePred presentMints

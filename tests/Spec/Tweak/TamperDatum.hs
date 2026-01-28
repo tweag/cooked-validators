@@ -4,11 +4,12 @@
 module Spec.Tweak.TamperDatum where
 
 import Cooked
-import Data.Either
 import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
+import Polysemy
+import Polysemy.NonDet
 import Prettyprinter (viaShow)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@=?))
@@ -22,31 +23,30 @@ alice = wallet 1
 tamperDatumTweakTest :: TestTree
 tamperDatumTweakTest =
   testCase "tamperDatumTweak" $
-    [ Right
-        ( [(52, 53)],
-          txSkelTemplate
-            { txSkelLabel = Set.singleton $ TxSkelLabel TamperDatumLbl,
-              txSkelOuts =
-                [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
-                  alice `receives` Value (Script.lovelace 234),
-                  alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
-                ]
-            }
-        )
+    [ ( txSkelTemplate
+          { txSkelLabels = Set.singleton $ TxSkelLabel TamperDatumLbl,
+            txSkelOuts =
+              [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
+                alice `receives` Value (Script.lovelace 234),
+                alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
+              ]
+          },
+        [(52, 53)]
+      )
     ]
-      @=? mcrValue
-        <$> runTweak
-          ( tamperDatumTweak @(Integer, Integer)
-              (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
-          )
-          ( txSkelTemplate
+      @=? (run . runNonDet)
+        ( runTweak
+            txSkelTemplate
               { txSkelOuts =
                   [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
                     alice `receives` Value (Script.lovelace 234),
                     alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
-          )
+            ( tamperDatumTweak @(Integer, Integer)
+                (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
+            )
+        )
 
 malformDatumTweakTest :: TestTree
 malformDatumTweakTest =
@@ -70,9 +70,17 @@ malformDatumTweakTest =
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) (84 :: Integer, ()), -- datum1 untouched, datum4 changed
             txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) False -- datum1 untouched, datum4 changed
           ]
-          ( fmap (allBuiltinData . snd) . rights $
-              mcrValue
-                <$> runTweak
+          ( (fmap allBuiltinData . run . runNonDet)
+              ( execTweak
+                  ( txSkelTemplate
+                      { txSkelOuts =
+                          [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
+                            alice `receives` Value (Script.lovelace 234),
+                            alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer),
+                            alice `receives` VisibleHashedDatum (84 :: Integer, 85 :: Integer)
+                          ]
+                      }
+                  )
                   ( malformDatumTweak @(Integer, Integer)
                       ( \(x, y) ->
                           if y == 77
@@ -83,15 +91,7 @@ malformDatumTweakTest =
                               ]
                       )
                   )
-                  ( txSkelTemplate
-                      { txSkelOuts =
-                          [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
-                            alice `receives` Value (Script.lovelace 234),
-                            alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer),
-                            alice `receives` VisibleHashedDatum (84 :: Integer, 85 :: Integer)
-                          ]
-                      }
-                  )
+              )
           )
 
 tests :: TestTree

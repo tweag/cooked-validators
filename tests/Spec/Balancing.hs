@@ -8,7 +8,6 @@ import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
-import ListT
 import Optics.Core
 import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
@@ -41,35 +40,34 @@ initialDistributionBalancing =
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Collaterals, [Api.TxOutRef])
 
-spendsScriptUtxo :: (MonadBlockChain m) => Bool -> m (Map Api.TxOutRef TxSkelRedeemer)
+spendsScriptUtxo :: Bool -> FullMockChain (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
 spendsScriptUtxo True = do
-  (scriptOutRef, _) : _ <- runUtxoSearch $ utxosOwnedBySearch $ Script.trueSpendingMPScript @()
+  (scriptOutRef, _) : _ <- utxosAt $ Script.trueSpendingMPScript @()
   return $ Map.singleton scriptOutRef emptyTxSkelRedeemerNoAutoFill
 
 testingBalancingTemplate ::
-  (MonadBlockChain m) =>
   -- Value to pay to bob
   Api.Value ->
   -- Value to pay back to alice
   Api.Value ->
-  -- Search for utxos to be spent
-  UtxoSearch m a ->
-  -- Search for utxos to be used for balancing
-  UtxoSearch m b ->
-  -- Search for utxos to be used for collaterals
-  UtxoSearch m c ->
+  -- utxos to be spent
+  FullMockChain [Api.TxOutRef] ->
+  -- utxos to be used for balancing
+  FullMockChain [Api.TxOutRef] ->
+  -- utxos to be used for collaterals
+  FullMockChain [Api.TxOutRef] ->
   -- Whether to consum the script utxo
   Bool ->
   -- Option modifications
   (TxSkelOpts -> TxSkelOpts) ->
   -- Wether to adjust the output with min ada
   Bool ->
-  m TestBalancingOutcome
+  FullMockChain TestBalancingOutcome
 testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch collateralSearch consumeScriptUtxo optionsMod adjust = do
-  ((fst <$>) -> toSpendUtxos) <- runUtxoSearch spendSearch
-  ((fst <$>) -> toBalanceUtxos) <- runUtxoSearch balanceSearch
-  ((fst <$>) -> toCollateralUtxos) <- runUtxoSearch collateralSearch
+  toSpendUtxos <- spendSearch
+  toBalanceUtxos <- balanceSearch
+  toCollateralUtxos <- collateralSearch
   additionalSpend <- spendsScriptUtxo consumeScriptUtxo
   let valueConstr = if adjust then Value else FixedValue
       skel =
@@ -97,25 +95,33 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
           }
   (skel', fee, mCols) <- balanceTxSkel skel
   validateTxSkel_ skel
-  nonOnlyValueUtxos <- runUtxoSearch aliceNonOnlyValueUtxos
-  return (skel, skel', fee, mCols, fst <$> nonOnlyValueUtxos)
+  nonOnlyValueUtxos <- aliceNonOnlyValueUtxos
+  return (skel, skel', fee, mCols, nonOnlyValueUtxos)
 
-aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
+aliceNonOnlyValueUtxos :: FullMockChain [Api.TxOutRef]
 aliceNonOnlyValueUtxos =
-  utxosOwnedBySearch alice `filterWithPred` \o ->
-    is txSkelOutReferenceScriptAT o
-      || is (txSkelOutDatumL % txSkelOutDatumKindAT) o
+  getTxOutRefs $
+    utxosAtSearch alice $
+      ensurePure $ \skel ->
+        is txSkelOutReferenceScriptAT skel
+          || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel
 
-aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m TxSkelOut
-aliceNAdaUtxos n = utxosOwnedBySearch alice `filterWithValuePred` ((== Api.Lovelace (n * 1_000_000)) . Api.lovelaceValueOf)
+aliceNAdaUtxos :: Integer -> FullMockChain [Api.TxOutRef]
+aliceNAdaUtxos n =
+  getTxOutRefs $
+    utxosAtSearch alice $
+      ensureAFoldIs (txSkelOutValueL % valueLovelaceL % filtered (== Api.Lovelace (n * 1_000_000)))
 
-aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-aliceRefScriptUtxos = utxosOwnedBySearch alice `filterWithPred` is txSkelOutReferenceScriptAT
+aliceRefScriptUtxos :: FullMockChain [Api.TxOutRef]
+aliceRefScriptUtxos =
+  getTxOutRefs $
+    utxosAtSearch alice $
+      ensureAFoldIs txSkelOutReferenceScriptAT
 
-emptySearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-emptySearch = ListT.fromFoldable []
+emptySearch :: FullMockChain [Api.TxOutRef]
+emptySearch = return []
 
-simplePaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> m TestBalancingOutcome
+simplePaymentToBob :: Integer -> Integer -> Integer -> Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> FullMockChain TestBalancingOutcome
 simplePaymentToBob lv apples oranges bananas =
   testingBalancingTemplate
     (Script.lovelace lv <> apple apples <> orange oranges <> banana bananas)
@@ -124,7 +130,7 @@ simplePaymentToBob lv apples oranges bananas =
     emptySearch
     emptySearch
 
-bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> m TestBalancingOutcome
+bothPaymentsToBobAndAlice :: Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> FullMockChain TestBalancingOutcome
 bothPaymentsToBobAndAlice val =
   testingBalancingTemplate
     (Script.lovelace val)
@@ -133,10 +139,10 @@ bothPaymentsToBobAndAlice val =
     emptySearch
     emptySearch
 
-noBalanceMaxFee :: (MonadBlockChain m) => m ()
+noBalanceMaxFee :: FullMockChain ()
 noBalanceMaxFee = do
   maxFee <- snd <$> getMinAndMaxFee 0
-  ((txOutRef, _) : _) <- runUtxoSearch $ utxosOwnedBySearch alice `filterWithValuePred` (== Script.ada 30)
+  (txOutRef : _) <- aliceNAdaUtxos 30
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
@@ -149,7 +155,7 @@ noBalanceMaxFee = do
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
-balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer)
+balanceReduceFee :: FullMockChain (Integer, Integer, Integer, Integer)
 balanceReduceFee = do
   let skelAutoFee =
         txSkelTemplate
@@ -169,9 +175,9 @@ balanceReduceFee = do
   feeBalancedManual' <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
   return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
 
-reachingMagic :: (MonadBlockChain m) => m ()
+reachingMagic :: FullMockChain ()
 reachingMagic = do
-  bananaOutRefs <- (fst <$>) <$> runUtxoSearch (utxosOwnedBySearch alice `filterWithValuePred` (banana 1 `Api.leq`))
+  bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
   validateTxSkel_ $
     txSkelTemplate
       { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
@@ -185,22 +191,22 @@ reachingMagic = do
 type ResProp = TestBalancingOutcome -> Assertion
 
 hasFee :: Integer -> ResProp
-hasFee fee (_, _, fee', _, _) = testBool $ fee == fee'
+hasFee fee (_, _, fee', _, _) = testBoolMsg "hasFee" $ fee == fee'
 
 additionalOutsNb :: Int -> ResProp
-additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
+additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBoolMsg "AdditionalOutsNb" $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
 
 insNb :: Int -> ResProp
-insNb n (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == n
+insNb n (_, TxSkel {..}, _, _, _) = testBoolMsg "insNb" $ length txSkelIns == n
 
 colInsNb :: Int -> ResProp
-colInsNb cis (_, _, _, Nothing, _) = testBool $ cis == 0
-colInsNb cis (_, _, _, Just (refs, _), _) = testBool $ cis == length refs
+colInsNb cis (_, _, _, Nothing, _) = testBoolMsg "colInsNb" $ cis == 0
+colInsNb cis (_, _, _, Just (refs, _), _) = testBoolMsg "colInsNb" $ cis == length refs
 
 retOutsNb :: Int -> ResProp
-retOutsNb ros (_, _, _, _, refs) = testBool $ ros == length refs
+retOutsNb ros (_, _, _, _, refs) = testBoolMsg "retOutsNb" $ ros == length refs
 
-testBalancingSucceedsWith :: String -> [ResProp] -> StagedMockChain TestBalancingOutcome -> TestTree
+testBalancingSucceedsWith :: String -> [ResProp] -> FullMockChain TestBalancingOutcome -> TestTree
 testBalancingSucceedsWith msg props run =
   testCooked msg $
     mustSucceedTest run
@@ -239,7 +245,7 @@ failsLackOfCollateralWallet :: MockChainError -> Assertion
 failsLackOfCollateralWallet (MCEMissingBalancingUser msg) = "Collateral utxos should be taken from the balancing user, but it does not exist." .==. msg
 failsLackOfCollateralWallet _ = testBool False
 
-testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree
+testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> FullMockChain a -> TestTree
 testBalancingFailsWith msg p smc =
   testCooked msg $
     mustFailTest smc
@@ -451,7 +457,7 @@ tests =
                   ( testingBalancingTemplate
                       (Script.ada 142)
                       mempty
-                      (utxosOwnedBySearch alice)
+                      ((fst <$>) <$> utxosAt alice)
                       emptySearch
                       (aliceNAdaUtxos 1)
                       True
@@ -635,7 +641,7 @@ tests =
                     (apple 2 <> orange 5 <> banana 4)
                     mempty
                     emptySearch
-                    (utxosOwnedBySearch alice)
+                    ((fst <$>) <$> utxosAt alice)
                     emptySearch
                     False
                     (setFixedFee 1_000_000)
@@ -647,7 +653,7 @@ tests =
                 ( testingBalancingTemplate
                     mempty
                     mempty
-                    (onlyValueOutputsAtSearch alice)
+                    (getTxOutRefs $ utxosAtSearch alice ensureOnlyValueOutputs)
                     emptySearch
                     emptySearch
                     False

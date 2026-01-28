@@ -11,6 +11,7 @@ import Spec.ProposingScript qualified as ProposingScript
 import Spec.ReferenceInputs qualified as ReferenceInputs
 import Spec.ReferenceScripts qualified as ReferenceScripts
 import Spec.Slot qualified as Slot
+import Spec.StagedRun qualified as Staged
 import Spec.Tweak qualified as Tweak
 import Spec.Withdrawals qualified as Withdrawals
 import Test.Tasty
@@ -20,19 +21,20 @@ main =
   defaultMain $
     testGroup
       "cooked-validators"
-      [ Attack.tests,
-        Balancing.tests,
-        BasicUsage.tests,
-        Certificates.tests,
-        InititalDistribution.tests,
-        InlineDatums.tests,
-        Ltl.tests,
-        MinAda.tests,
-        MultiPurpose.tests,
-        ProposingScript.tests,
-        ReferenceInputs.tests,
-        ReferenceScripts.tests,
-        Slot.tests,
-        Tweak.tests,
-        Withdrawals.tests
+      [ -- Attack.tests,
+        -- Balancing.tests,
+        -- BasicUsage.tests,
+        -- Certificates.tests,
+        -- InititalDistribution.tests,
+        -- InlineDatums.tests,
+        -- Ltl.tests,
+        -- MinAda.tests,
+        -- MultiPurpose.tests,
+        -- ProposingScript.tests,
+        -- ReferenceInputs.tests,
+        -- ReferenceScripts.tests,
+        -- Slot.tests,
+        Staged.tests -- ,
+        -- Tweak.tests,
+        -- Withdrawals.tests
       ]

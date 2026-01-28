@@ -4,19 +4,25 @@ module Cooked.MockChain.GenerateTx.Withdrawals (toWithdrawals) where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.GenerateTx.Common
+import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Witness
-import Cooked.Skeleton
+import Cooked.MockChain.Read
+import Cooked.Skeleton.User
+import Cooked.Skeleton.Withdrawal
 import Data.Coerce
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
+import Polysemy
+import Polysemy.Error
 
 -- | Takes a 'TxSkelWithdrawals' and transforms it into a 'Cardano.TxWithdrawals'
-toWithdrawals :: (MonadBlockChainBalancing m) => TxSkelWithdrawals -> m (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
+toWithdrawals ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  TxSkelWithdrawals ->
+  Sem effs (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals withdrawals | withdrawals == mempty = return Cardano.TxWithdrawalsNone
 toWithdrawals (view txSkelWithdrawalsListI -> withdrawals) = do
   networkId <- Emulator.pNetworkId <$> getParams
@@ -24,17 +30,13 @@ toWithdrawals (view txSkelWithdrawalsListI -> withdrawals) = do
     let coinAmount = maybe (Cardano.Coin 0) coerce amount
     (sCred, witness) <- case user of
       UserPubKey (Script.toPubKeyHash -> pkh) -> do
-        sCred <-
-          throwOnToCardanoError "toWithdrawals: unable to translate pkh stake credential" $
-            Cardano.StakeCredentialByKey <$> Ledger.toCardanoStakeKeyHash pkh
+        sCred <- fromEither $ Cardano.StakeCredentialByKey <$> Ledger.toCardanoStakeKeyHash pkh
         return (sCred, Cardano.KeyWitness Cardano.KeyWitnessForStakeAddr)
       UserRedeemedScript (toVScript -> vScript) red -> do
         witness <-
           Cardano.ScriptWitness Cardano.ScriptWitnessForStakeAddr
             <$> toScriptWitness vScript red Cardano.NoScriptDatumForStake
-        sCred <-
-          throwOnToCardanoError "toWithdrawals: unable to translate script stake credential" $
-            Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash vScript)
+        sCred <- fromEither $ Cardano.StakeCredentialByScript <$> Ledger.toCardanoScriptHash (Script.toScriptHash vScript)
         return (sCred, witness)
     return (Cardano.makeStakeAddress networkId sCred, coinAmount, Cardano.BuildTxWith witness)
   return $ Cardano.TxWithdrawals Cardano.ShelleyBasedEraConway cardanoWithdrawals

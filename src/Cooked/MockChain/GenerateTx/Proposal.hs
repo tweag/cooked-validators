@@ -9,12 +9,13 @@ import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Control.Monad.Except (throwError)
-import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Anchor
-import Cooked.MockChain.GenerateTx.Common
+import Cooked.MockChain.GenerateTx.Credential
 import Cooked.MockChain.GenerateTx.Witness
-import Cooked.Skeleton
+import Cooked.MockChain.Read
+import Cooked.Skeleton.Proposal
+import Cooked.Skeleton.User
 import Data.Coerce
 import Data.Map qualified as Map
 import Data.Map.Ordered.Strict qualified as OMap
@@ -25,10 +26,15 @@ import Lens.Micro qualified as MicroLens
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
+import Polysemy
+import Polysemy.Error
 
--- | Transorms a `Cooked.Skeleton.Proposal.ParameterChange` into an actual
--- change over a Cardano parameter update
-toPParamsUpdate :: ParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
+-- | Transorms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change
+-- over a Cardano parameter update
+toPParamsUpdate ::
+  ParamChange ->
+  Conway.PParamsUpdate Emulator.EmulatorEra ->
+  Conway.PParamsUpdate Emulator.EmulatorEra
 toPParamsUpdate pChange =
   -- From rational to bounded rational
   let toBR :: (Cardano.BoundedRational r) => Rational -> r
@@ -72,11 +78,15 @@ toPParamsUpdate pChange =
         MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ Cardano.boundRational q
 
 -- | Translates a given skeleton proposal into a governance action
-toGovAction :: (MonadBlockChainBalancing m) => GovernanceAction a -> StrictMaybe Conway.ScriptHash -> m (Conway.GovAction Emulator.EmulatorEra)
+toGovAction ::
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  GovernanceAction a ->
+  StrictMaybe Conway.ScriptHash ->
+  Sem effs (Conway.GovAction Emulator.EmulatorEra)
 toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
-toGovAction UpdateCommittee {} _ = throwError $ MCEUnsupportedFeature "UpdateCommittee"
-toGovAction NewConstitution {} _ = throwError $ MCEUnsupportedFeature "TxGovActionNewConstitution"
-toGovAction HardForkInitiation {} _ = throwError $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
+toGovAction UpdateCommittee {} _ = throw $ MCEUnsupportedFeature "UpdateCommittee"
+toGovAction NewConstitution {} _ = throw $ MCEUnsupportedFeature "TxGovActionNewConstitution"
+toGovAction HardForkInitiation {} _ = throw $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
 toGovAction (ParameterChange changes) sHash =
   return $ Conway.ParameterChange SNothing (foldl (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes) sHash
 toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
@@ -84,9 +94,9 @@ toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::
-  (MonadBlockChainBalancing m) =>
+  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
   [TxSkelProposal] ->
-  m (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
+  Sem effs (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone
 toProposalProcedures props =
   Cardano.TxProposalProcedures . OMap.fromList
@@ -98,7 +108,7 @@ toProposalProcedures props =
           (Cardano.BuildTxWith -> mConstitutionWitness, mConstitutionHash) <- case mConstitution of
             Just (UserRedeemedScript (toVScript -> script) redeemer) -> do
               scriptWitness <- toScriptWitness script redeemer Cardano.NoScriptDatumForStake
-              Cardano.ScriptHash scriptHash <- throwOnToCardanoError "Unable to convert script hash" $ Ledger.toCardanoScriptHash $ Script.toScriptHash script
+              Cardano.ScriptHash scriptHash <- fromEither $ Ledger.toCardanoScriptHash $ Script.toScriptHash script
               return (Just scriptWitness, SJust scriptHash)
             _ -> return (Nothing, SNothing)
           cardanoGovAction <- toGovAction govAction mConstitutionHash

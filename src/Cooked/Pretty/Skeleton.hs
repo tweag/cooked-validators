@@ -9,6 +9,7 @@ import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
+import Cooked.Wallet (Wallet)
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -21,6 +22,9 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
+
+instance PrettyCooked Wallet where
+  prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
 
 instance PrettyCooked TxSkelSignatory where
   prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) Nothing) = prettyHash opts pkh <+> "(no private key attached)"
@@ -95,7 +99,7 @@ instance PrettyCooked Withdrawal where
       prettyCookedOptList opts user
         ++ [maybe "Amount to be autofilled" (("Amount: " <>) . PP.pretty . Api.getLovelace) mAmount]
 
-instance PrettyCooked ParameterChange where
+instance PrettyCooked ParamChange where
   prettyCookedOpt opts (FeePerByte n) = "Fee per byte:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (FeeFixed n) = "Fee fixed:" <+> prettyCookedOpt opts n
   prettyCookedOpt opts (MaxBlockBodySize n) = "Max block body size:" <+> prettyCookedOpt opts n

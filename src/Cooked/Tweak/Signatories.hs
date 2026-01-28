@@ -17,63 +17,98 @@ module Cooked.Tweak.Signatories
   )
 where
 
-import Cooked.Skeleton (TxSkelSignatory, txSkelSignatoriesL)
-import Cooked.Tweak.Common (MonadTweak, setTweak, viewTweak)
+import Cooked.Skeleton
+import Cooked.Tweak.Common
 import Data.List (delete, (\\))
+import Polysemy
 
 -- | Returns the current list of signatories
-getSignatoriesTweak :: (MonadTweak m) => m [TxSkelSignatory]
+getSignatoriesTweak ::
+  (Member Tweak effs) =>
+  Sem effs [TxSkelSignatory]
 getSignatoriesTweak = viewTweak txSkelSignatoriesL
 
 -- | Apply a function to the list of signatories and return the old ones
-modifySignatoriesTweak :: (MonadTweak m) => ([TxSkelSignatory] -> [TxSkelSignatory]) -> m [TxSkelSignatory]
+modifySignatoriesTweak ::
+  (Member Tweak effs) =>
+  ([TxSkelSignatory] -> [TxSkelSignatory]) ->
+  Sem effs [TxSkelSignatory]
 modifySignatoriesTweak f = do
   oldSignatories <- getSignatoriesTweak
   setTweak txSkelSignatoriesL (f oldSignatories)
   return oldSignatories
 
 -- | Change the current signatories and return the old ones
-setSignatoriesTweak :: (MonadTweak m) => [TxSkelSignatory] -> m [TxSkelSignatory]
+setSignatoriesTweak ::
+  (Member Tweak effs) =>
+  [TxSkelSignatory] ->
+  Sem effs [TxSkelSignatory]
 setSignatoriesTweak = modifySignatoriesTweak . const
 
 -- | Check if the signatories satisfy a certain predicate
-signatoriesSatisfyTweak :: (MonadTweak m) => ([TxSkelSignatory] -> Bool) -> m Bool
+signatoriesSatisfyTweak ::
+  (Member Tweak effs) =>
+  ([TxSkelSignatory] -> Bool) ->
+  Sem effs Bool
 signatoriesSatisfyTweak = (<$> getSignatoriesTweak)
 
 -- | Check if a signatory signs a transaction
-isSignatoryTweak :: (MonadTweak m) => TxSkelSignatory -> m Bool
+isSignatoryTweak ::
+  (Member Tweak effs) =>
+  TxSkelSignatory ->
+  Sem effs Bool
 isSignatoryTweak = signatoriesSatisfyTweak . elem
 
 -- | Check if the transaction has at least a signatory
-hasSignatoriesTweak :: (MonadTweak m) => m Bool
+hasSignatoriesTweak ::
+  (Member Tweak effs) =>
+  Sem effs Bool
 hasSignatoriesTweak = signatoriesSatisfyTweak (not . null)
 
 -- | Add a signatory to the transaction, at the head of the list of signatories, and
 -- return the old list of signatories
-addFirstSignatoryTweak :: (MonadTweak m) => TxSkelSignatory -> m [TxSkelSignatory]
+addFirstSignatoryTweak ::
+  (Member Tweak effs) =>
+  TxSkelSignatory ->
+  Sem effs [TxSkelSignatory]
 addFirstSignatoryTweak = modifySignatoriesTweak . (:)
 
 -- | Add signatories at the end of the list of signatories, and return the old list of
 -- signatories
-addSignatoriesTweak :: (MonadTweak m) => [TxSkelSignatory] -> m [TxSkelSignatory]
+addSignatoriesTweak ::
+  (Member Tweak effs) =>
+  [TxSkelSignatory] ->
+  Sem effs [TxSkelSignatory]
 addSignatoriesTweak = modifySignatoriesTweak . (<>)
 
 -- | Add a signatory to the transaction, at the end of the list of signatories, and
 -- return the old list of signatories
-addLastSignatoryTweak :: (MonadTweak m) => TxSkelSignatory -> m [TxSkelSignatory]
+addLastSignatoryTweak ::
+  (Member Tweak effs) =>
+  TxSkelSignatory ->
+  Sem effs [TxSkelSignatory]
 addLastSignatoryTweak = addSignatoriesTweak . (: [])
 
 -- | Remove signatories from the transaction and return the old list of signatories
-removeSignatoriesTweak :: (MonadTweak m) => [TxSkelSignatory] -> m [TxSkelSignatory]
+removeSignatoriesTweak ::
+  (Member Tweak effs) =>
+  [TxSkelSignatory] ->
+  Sem effs [TxSkelSignatory]
 removeSignatoriesTweak = modifySignatoriesTweak . (\\)
 
 -- | Remove a signatory from the transaction and return the old list of signatories
-removeSignatoryTweak :: (MonadTweak m) => TxSkelSignatory -> m [TxSkelSignatory]
+removeSignatoryTweak ::
+  (Member Tweak effs) =>
+  TxSkelSignatory ->
+  Sem effs [TxSkelSignatory]
 removeSignatoryTweak = modifySignatoriesTweak . delete
 
 -- | Changes the first signatory (adds it if there are no signatories) and return the
 -- old list of signatories.
-replaceFirstSignatoryTweak :: (MonadTweak m) => TxSkelSignatory -> m [TxSkelSignatory]
+replaceFirstSignatoryTweak ::
+  (Member Tweak effs) =>
+  TxSkelSignatory ->
+  Sem effs [TxSkelSignatory]
 replaceFirstSignatoryTweak =
   modifySignatoriesTweak
     . ( \newSignatory -> \case

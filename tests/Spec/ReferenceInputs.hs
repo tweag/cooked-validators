@@ -13,9 +13,9 @@ import Test.Tasty qualified as Tasty
 instance PrettyCooked FooDatum where
   prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyHash opts pkh
 
-trace1 :: (MonadBlockChain m) => m ()
+trace1 :: DirectMockChain ()
 trace1 = do
-  txOutRefFoo : txOutRefBar : _ <-
+  (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
@@ -32,9 +32,9 @@ trace1 = do
         txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
       }
 
-trace2 :: (MonadBlockChain m) => m ()
+trace2 :: DirectMockChain ()
 trace2 = do
-  refORef : scriptORef : _ <-
+  (refORef, _) : (scriptORef, _) : _ <-
     validateTxSkel'
       ( txSkelTemplate
           { txSkelOuts =

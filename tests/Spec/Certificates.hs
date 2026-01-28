@@ -12,7 +12,7 @@ alice = wallet 1
 bob :: Wallet
 bob = wallet 1
 
-publishCertificate :: (MonadModalBlockChain m) => TxSkelCertificate -> m ()
+publishCertificate :: TxSkelCertificate -> DirectMockChain ()
 publishCertificate cert =
   validateTxSkel_ $
     txSkelTemplate
@@ -20,7 +20,7 @@ publishCertificate cert =
         txSkelCertificates = [cert]
       }
 
-withdraw :: (MonadBlockChain m) => User IsEither Redemption -> m ()
+withdraw :: User IsEither Redemption -> DirectMockChain ()
 withdraw user =
   validateTxSkel_ $
     txSkelTemplate

@@ -46,8 +46,11 @@ package cardano-crypto-praos
   flags: -external-libsodium-vrf
   
 constraints:
-  cardano-api == 10.18.1.0
-  
+  , cardano-api == 10.18.1.0
+  , plutus-ledger-api == 1.45.0.0
+  , polysemy == 1.9.2.0
+  , polysemy-plugin == 0.4.5.3
+
 source-repository-package
     type: git
     location: https://github.com/intersectMBO/cardano-node-emulator

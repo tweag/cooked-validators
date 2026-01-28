@@ -1,16 +1,23 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Spec.Ltl where
 
-import Control.Monad
-import Control.Monad.Writer
+import Control.Monad (MonadPlus (..), guard, replicateM, void)
 import Cooked.Ltl
 import Cooked.MockChain.Testing
 import Data.Maybe
+import Polysemy
+import Polysemy.NonDet
+import Polysemy.State
+import Polysemy.Writer
 import Test.Tasty
 import Test.Tasty.HUnit
 
-data TestBuiltin a where
-  EmitInteger :: Integer -> TestBuiltin ()
-  GetInteger :: TestBuiltin Integer
+data TestBuiltin :: Effect where
+  EmitInteger :: Integer -> TestBuiltin m ()
+  GetInteger :: TestBuiltin m Integer
+
+makeSem ''TestBuiltin
 
 data TestModification
   = Add Integer
@@ -23,11 +30,14 @@ applyMod _ Fail = Nothing
 applyMod i (Add i') = if i == i' then Nothing else Just $ i + i'
 applyMod i (Mul i') = if i == i' then Nothing else Just $ i * i'
 
-type TestStaged = StagedLtl TestModification TestBuiltin
-
-instance (MonadPlus m, MonadWriter [Integer] m) => ModInterpBuiltin TestModification TestBuiltin m where
-  modifyAndInterpBuiltin GetInteger = Left (return 42)
-  modifyAndInterpBuiltin (EmitInteger i) = Right $ \now ->
+runTestEffect ::
+  (Members '[Writer [Integer], ModifyLocally TestModification, NonDet] effs) =>
+  Sem (TestBuiltin : effs) a ->
+  Sem effs a
+runTestEffect = interpret $ \case
+  GetInteger -> return 42
+  EmitInteger i -> do
+    now <- getRequirements
     maybe mzero (tell . (: [])) $
       foldl
         ( \acc el -> do
@@ -41,14 +51,27 @@ instance (MonadPlus m, MonadWriter [Integer] m) => ModInterpBuiltin TestModifica
         (Just i)
         now
 
-emitInteger :: Integer -> TestStaged ()
-emitInteger = singletonBuiltin . EmitInteger
-
-getInteger :: TestStaged Integer
-getInteger = singletonBuiltin GetInteger
+type TestStaged a =
+  Sem
+    '[ ModifyGlobally TestModification,
+       TestBuiltin,
+       Writer [Integer],
+       ModifyLocally TestModification,
+       State [Ltl TestModification],
+       NonDet
+     ]
+    a
 
 go :: TestStaged a -> [[Integer]]
-go = execWriterT . interpStagedLtl
+go =
+  run
+    . runNonDet
+    . evalState []
+    . runModifyLocally
+    . fmap fst
+    . runWriter
+    . runTestEffect
+    . runModifyGlobally
 
 nonemptyTraces :: [TestStaged ()]
 nonemptyTraces =

@@ -6,17 +6,22 @@ import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Shelley.Core qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx.Output
+import Cooked.MockChain.Log
+import Cooked.MockChain.Read
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
+import Cooked.Tweak.Common
 import Data.List (find)
 import Data.Map qualified as Map
 import Data.Maybe
+import Ledger.Tx qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+import Polysemy
+import Polysemy.Error
 
 -- * Auto filling withdrawal amounts
 
@@ -24,9 +29,11 @@ import PlutusLedgerApi.V3 qualified as Api
 -- out the withdrawn amount based on the associated user rewards. Does not
 -- tamper with an existing specified amount in such withdrawals. Logs an event
 -- when an amount has been successfully auto-filled.
-autoFillWithdrawalAmounts :: (MonadBlockChainWithoutValidation m) => TxSkel -> m TxSkel
-autoFillWithdrawalAmounts txSkel = do
-  let withdrawals = view (txSkelWithdrawalsL % txSkelWithdrawalsListI) txSkel
+autoFillWithdrawalAmounts ::
+  (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
+  Sem effs ()
+autoFillWithdrawalAmounts = do
+  withdrawals <- viewTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI)
   newWithdrawals <- forM withdrawals $ \withdrawal -> do
     currentReward <- getCurrentReward $ view withdrawalUserL withdrawal
     let (changed, newWithdrawal) = case currentReward of
@@ -38,7 +45,7 @@ autoFillWithdrawalAmounts txSkel = do
           (view (withdrawalUserL % to Script.toCredential) newWithdrawal)
           (fromJust (preview withdrawalAmountAT newWithdrawal))
     return newWithdrawal
-  return $ txSkel & txSkelWithdrawalsL % txSkelWithdrawalsListI .~ newWithdrawals
+  setTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI) newWithdrawals
 
 -- * Auto filling constitution script
 
@@ -46,84 +53,100 @@ autoFillWithdrawalAmounts txSkel = do
 -- out the constitution scripts with the current one. Does not tamper with an
 -- existing specified script in such withdrawals. Logs an event when the
 -- constitution script has been successfully auto-filled.
-autoFillConstitution :: (MonadBlockChainWithoutValidation m) => TxSkel -> m TxSkel
-autoFillConstitution txSkel = do
+autoFillConstitution ::
+  (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
+  Sem effs ()
+autoFillConstitution = do
   currentConstitution <- getConstitutionScript
   case currentConstitution of
-    Nothing -> return txSkel
+    Nothing -> return ()
     Just constitutionScript -> do
-      newProposals <- forM (view txSkelProposalsL txSkel) $ \prop -> do
+      proposals <- viewTweak txSkelProposalsL
+      newProposals <- forM proposals $ \prop -> do
         when (isn't txSkelProposalConstitutionAT prop) $
           logEvent $
             MCLogAutoFilledConstitution $
               Script.toScriptHash constitutionScript
         return (fillConstitution constitutionScript prop)
-      return $ txSkel & txSkelProposalsL .~ newProposals
+      setTweak txSkelProposalsL newProposals
 
--- * Auto filling reference scripts
+-- -- * Auto filling reference scripts
 
 -- | Attempts to find in the index a utxo containing a reference script with the
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
-updateRedeemedScript :: (MonadBlockChain m) => [Api.TxOutRef] -> User IsScript Redemption -> m (User IsScript Redemption)
-updateRedeemedScript inputs rs@(UserRedeemedScript (toVScript -> vScript) txSkelRed@(TxSkelRedeemer {txSkelRedeemerAutoFill = True})) = do
-  oRefsInInputs <- runUtxoSearch (referenceScriptOutputsSearch vScript)
-  maybe
-    -- We leave the redeemer unchanged if no reference input was found
-    (return rs)
-    -- If a reference input is found, we assign it and log the event
-    ( \oRef -> do
-        logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
-        return $ over userTxSkelRedeemerAT (fillReferenceInput oRef) rs
-    )
-    $ case oRefsInInputs of
-      [] -> Nothing
-      -- If possible, we use a reference input appearing in regular inputs
-      l | Just (oRefM', _) <- find (\(r, _) -> r `elem` inputs) l -> Just oRefM'
-      -- If none exist, we use the first one we find elsewhere
-      ((oRefM', _) : _) -> Just oRefM'
+updateRedeemedScript ::
+  (Members '[MockChainLog, MockChainRead] effs) =>
+  [Api.TxOutRef] ->
+  User IsScript Redemption ->
+  Sem effs (User IsScript Redemption)
+updateRedeemedScript
+  inputs
+  rs@( UserRedeemedScript
+         (toVScript -> vScript)
+         txSkelRed@(TxSkelRedeemer {txSkelRedeemerAutoFill = True})
+       ) = do
+    oRefsInInputs <- getTxOutRefs $ allUtxosSearch $ ensureProperReferenceScript vScript
+    maybe
+      -- We leave the redeemer unchanged if no reference input was found
+      (return rs)
+      -- If a reference input is found, we assign it and log the event
+      ( \oRef -> do
+          logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
+          return $ over userTxSkelRedeemerAT (fillReferenceInput oRef) rs
+      )
+      $ case oRefsInInputs of
+        [] -> Nothing
+        -- If possible, we use a reference input appearing in regular inputs
+        l | Just oRefM' <- find (`elem` inputs) l -> Just oRefM'
+        -- If none exist, we use the first one we find elsewhere
+        (oRefM' : _) -> Just oRefM'
 updateRedeemedScript _ rs = return rs
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,
 -- and attempts to attach a reference input to each of them, whenever it is
 -- allowed and one has not already been set. Logs an event whenever such an
 -- addition occurs.
-autoFillReferenceScripts :: forall m. (MonadBlockChain m) => TxSkel -> m TxSkel
-autoFillReferenceScripts txSkel = do
-  let inputs = view (txSkelInsL % to Map.keys) txSkel
-  newMints <- forM (view (txSkelMintsL % txSkelMintsListI) txSkel) $ \(Mint rs tks) ->
-    (`Mint` tks) <$> updateRedeemedScript inputs rs
-  newInputs <- forM (view (txSkelInsL % to Map.toList) txSkel) $ \(oRef, red) ->
+autoFillReferenceScripts ::
+  (Members '[Tweak, MockChainRead, MockChainLog] effs) =>
+  Sem effs ()
+autoFillReferenceScripts = do
+  inputsKeys <- viewTweak $ txSkelInsL % to Map.keys
+  -- Updating minting redeemers
+  mints <- viewTweak $ txSkelMintsL % txSkelMintsListI
+  newMints <- forM mints $ \(Mint rs tks) -> (`Mint` tks) <$> updateRedeemedScript inputsKeys rs
+  setTweak (txSkelMintsL % txSkelMintsListI) newMints
+  -- Updating spending redeemers
+  inputsList <- viewTweak $ txSkelInsL % to Map.toList
+  newInputs <- forM inputsList $ \(oRef, red) ->
     (oRef,) <$> do
       validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
       case validatorM of
         Nothing -> return red
-        Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputs (UserRedeemedScript val red)
-  newProposals <- forM (view txSkelProposalsL txSkel) $ \prop ->
+        Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
+  setTweak txSkelInsL $ Map.fromList newInputs
+  -- Updating proposing redeemers
+  proposals <- viewTweak txSkelProposalsL
+  newProposals <- forM proposals $ \prop ->
     case preview (txSkelProposalMConstitutionAT % _Just) prop of
       Nothing -> return prop
-      Just rs -> flip (set (txSkelProposalMConstitutionAT % _Just)) prop <$> updateRedeemedScript inputs rs
-  newWithdrawals <- forM (view (txSkelWithdrawalsL % txSkelWithdrawalsListI) txSkel) $
+      Just rs -> flip (set (txSkelProposalMConstitutionAT % _Just)) prop <$> updateRedeemedScript inputsKeys rs
+  setTweak txSkelProposalsL newProposals
+  -- Updating widrawing redeemers
+  withdrawals <- viewTweak $ txSkelWithdrawalsL % txSkelWithdrawalsListI
+  newWithdrawals <- forM withdrawals $
     \withdrawal@(Withdrawal user lv) -> case preview userEitherScriptP user of
       Nothing -> return withdrawal
-      Just urs -> (`Withdrawal` lv) . review userEitherScriptP <$> updateRedeemedScript inputs urs
-  return $
-    txSkel
-      & txSkelMintsL
-      % txSkelMintsListI
-      .~ newMints
-      & txSkelInsL
-      .~ Map.fromList newInputs
-      & txSkelProposalsL
-      .~ newProposals
-      & txSkelWithdrawalsL
-      % txSkelWithdrawalsListI
-      .~ newWithdrawals
+      Just urs -> (`Withdrawal` lv) . review userEitherScriptP <$> updateRedeemedScript inputsKeys urs
+  setTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI) newWithdrawals
 
 -- * Auto filling min ada amounts
 
 -- | Compute the required minimal ADA for a given output
-getTxSkelOutMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m Integer
+getTxSkelOutMinAda ::
+  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  TxSkelOut ->
+  Sem effs Integer
 getTxSkelOutMinAda txSkelOut = do
   params <- Emulator.pEmulatorPParams <$> getParams
   Cardano.unCoin
@@ -136,7 +159,11 @@ getTxSkelOutMinAda txSkelOut = do
 -- required ada. If the previous quantity of ADA was sufficient, it remains
 -- unchanged. This can require a few iterations to converge, as the added ADA
 -- will increase the size of the UTXO which in turn might need more ADA.
-toTxSkelOutWithMinAda :: (MonadBlockChainBalancing m) => TxSkelOut -> m TxSkelOut
+toTxSkelOutWithMinAda ::
+  forall effs.
+  (Members '[MockChainRead, MockChainLog, Error Ledger.ToCardanoError] effs) =>
+  TxSkelOut ->
+  Sem effs TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
 toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueAutoAdjustL) -> False) = return txSkelOut
 -- The auto adjustment is enabled
@@ -147,7 +174,7 @@ toTxSkelOutWithMinAda txSkelOut = do
   when (originalAda /= updatedAda) $ logEvent $ MCLogAdjustedTxSkelOut txSkelOut updatedAda
   return txSkelOut'
   where
-    go :: (MonadBlockChainBalancing m) => TxSkelOut -> m TxSkelOut
+    go :: TxSkelOut -> Sem effs TxSkelOut
     go skelOut = do
       -- Computing the required minimal amount of ADA in this output
       requiredAda <- getTxSkelOutMinAda skelOut
@@ -160,5 +187,10 @@ toTxSkelOutWithMinAda txSkelOut = do
 -- | This goes through all the `TxSkelOut`s of the given skeleton and updates
 -- their ada value when requested by the user and required by the protocol
 -- parameters. Logs an event whenever such a change occurs.
-autoFillMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
-autoFillMinAda skel = (\x -> skel & txSkelOutsL .~ x) <$> forM (skel ^. txSkelOutsL) toTxSkelOutWithMinAda
+autoFillMinAda ::
+  (Members '[Tweak, MockChainRead, MockChainLog, Error Ledger.ToCardanoError] effs) =>
+  Sem effs ()
+autoFillMinAda = do
+  outputs <- viewTweak txSkelOutsL
+  newOutputs <- forM outputs toTxSkelOutWithMinAda
+  setTweak txSkelOutsL newOutputs

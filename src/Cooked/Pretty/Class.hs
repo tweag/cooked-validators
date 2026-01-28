@@ -15,6 +15,7 @@ module Cooked.Pretty.Class
   )
 where
 
+import Cooked.Families
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.ByteString qualified as ByteString
@@ -51,8 +52,8 @@ instance PrettyCooked DocCooked where
   prettyCookedOpt _ = id
 
 -- | Type class of things that can be pretty printed as a list of
--- documents. Similarly to 'PrettyCooked', at least of the functions from this
--- class needs to be manually implemented to avoid infinite loops.
+-- documents. Similarly to 'PrettyCooked', at least one of the functions from
+-- this class needs to be manually implemented to avoid infinite loops.
 class PrettyCookedList a where
   -- | Pretty prints an element as a list on some 'PrettyCookedOpts'
   prettyCookedOptList :: PrettyCookedOpts -> a -> [DocCooked]
@@ -61,6 +62,9 @@ class PrettyCookedList a where
   -- | Pretty prints an element as a list of optional documents
   prettyCookedOptListMaybe :: PrettyCookedOpts -> a -> [Maybe DocCooked]
   prettyCookedOptListMaybe opts = fmap Just . prettyCookedOptList opts
+
+  prettyCookedListMaybe :: a -> [Maybe DocCooked]
+  prettyCookedListMaybe = prettyCookedOptListMaybe def
 
   -- | Pretty prints an elements as a list
   prettyCookedList :: a -> [DocCooked]
@@ -182,3 +186,12 @@ instance PrettyCooked Rational where
 
 instance PrettyCooked Text where
   prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked String where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCookedList (HList '[]) where
+  prettyCookedOptList _ HEmpty = []
+
+instance (PrettyCooked a, PrettyCookedList (HList l)) => PrettyCookedList (HList (a ': l)) where
+  prettyCookedOptList opts (HCons h t) = prettyCookedOpt opts h : prettyCookedOptList opts t

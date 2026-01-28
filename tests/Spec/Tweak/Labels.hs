@@ -14,7 +14,7 @@ alice = wallet 1
 bob = wallet 2
 carrie = wallet 3
 
-payTo :: (MonadBlockChain m) => Wallet -> Integer -> m ()
+payTo :: Wallet -> Integer -> StagedMockChain ()
 payTo target amount = do
   validateTxSkel_ $
     txSkelTemplate
@@ -22,7 +22,7 @@ payTo target amount = do
         txSkelOuts = [target `receives` Value (Script.ada amount)]
       }
 
-payments :: (MonadBlockChain m) => m ()
+payments :: StagedMockChain ()
 payments = do
   payTo alice 10
   payTo bob 5
@@ -30,12 +30,12 @@ payments = do
   payTo alice 25
   payTo alice 32
 
-labelAmountTweak :: (MonadTweak m) => m ()
+labelAmountTweak :: StagedTweak ()
 labelAmountTweak = do
   [target] <- viewAllTweak (txSkelOutsL % _head % txSkelOutValueL % valueLovelaceL)
   addLabelTweak $ Api.getLovelace target
 
-labelNameTweak :: (MonadTweak m) => m ()
+labelNameTweak :: StagedTweak ()
 labelNameTweak = do
   target <-
     viewAllTweak
@@ -50,7 +50,7 @@ labelNameTweak = do
     [t] | t == bob -> addLabelTweak @Text "Bob"
     _ -> mzero
 
-labelNames :: (MonadModalBlockChain m) => m ()
+labelNames :: StagedMockChain ()
 labelNames = everywhere labelNameTweak payments
 
 tests :: TestTree
@@ -80,7 +80,7 @@ tests =
         $ mustSucceedTest
         $ everywhere
           ( do
-              txSkelLabels <- viewAllTweak $ txSkelLabelL % to Set.toList % traversed % txSkelLabelTypedP @Text
+              txSkelLabels <- viewAllTweak $ txSkelLabelsL % to Set.toList % traversed % txSkelLabelTypedP @Text
               guard $ not $ null txSkelLabels
               labelAmountTweak
           )

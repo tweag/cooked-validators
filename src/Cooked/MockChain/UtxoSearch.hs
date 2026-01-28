@@ -1,149 +1,251 @@
--- | This module provides a convenient framework to look through UTxOs and
--- search relevant ones based on predicates. For instance, it makes it very
--- convenient to gather all UTxOs at a certain address.
+-- | This module provides a convenient framework to look through UTxOs and:
+-- - filter them in a convenient manner
+-- - extract pieces of information from them
 module Cooked.MockChain.UtxoSearch
-  ( UtxoSearch,
-    runUtxoSearch,
+  ( -- * UTxO searches
+    UtxoSearch,
+    beginSearch,
+
+    -- * Processing search result
+    UtxoSearchResult,
+    getOutputs,
+    getOutputsAndExtracts,
+    getExtracts,
+    getTxOutRefs,
+    getTxOutRefsAndOutputs,
+
+    -- * Basic UTxO searches
+    utxosAtSearch,
     allUtxosSearch,
-    utxosOwnedBySearch,
-    utxosFromCardanoTxSearch,
     txSkelOutByRefSearch,
-    filterWith,
-    filterWithPure,
-    filterWithOptic,
-    filterWithPred,
-    filterWithValuePred,
-    filterWithOnlyAda,
-    filterWithNotOnlyAda,
-    onlyValueOutputsAtSearch,
-    vanillaOutputsAtSearch,
-    filterWithAlways,
-    referenceScriptOutputsSearch,
-    filterWithPureRev,
+    txSkelOutByRefSearch',
+
+    -- * Extracting new information from UTxOs
+    extract,
+    extractPure,
+    extractAFold,
+    extractTotal,
+    extractPureTotal,
+    extractGetter,
+
+    -- * Filtering some UTxOs out
+    ensure,
+    ensurePure,
+    ensureAFoldIs,
+    ensureAFoldIsn't,
+
+    -- * Cooked filters
+    ensureOnlyValueOutputs,
+    ensureVanillaOutputs,
+    ensureProperReferenceScript,
   )
 where
 
-import Control.Monad
-import Cooked.MockChain.BlockChain
-import Cooked.Skeleton
+import Control.Monad (filterM, forM)
+import Cooked.Families hiding (Member)
+import Cooked.MockChain.Common
+import Cooked.MockChain.Read
+import Cooked.Skeleton.Datum
+import Cooked.Skeleton.Output
+import Cooked.Skeleton.Value
+import Data.Functor
 import Data.Maybe
-import Ledger.Tx qualified as Ledger
-import ListT (ListT (..))
-import ListT qualified
 import Optics.Core
+import Optics.Core.Extras
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
+import Polysemy
 
--- * The type of UTxO searches
+-- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
+-- alongside an heterogeneous list starting with the output in question,
+-- followed by any element that was extracted during the search.
+type UtxoSearchResult elems = [(Api.TxOutRef, HList (TxSkelOut ': elems))]
 
--- | If a UTxO is a 'Api.TxOutRef' with some additional information, this type
--- captures a "stream" of UTxOs.
-type UtxoSearch m a = ListT m (Api.TxOutRef, a)
+-- | A `UtxoSearch` is a computation that returns a list of UTxOs alongside
+-- their `TxSkelOut` counterpart and a list of other elements retrieved from the
+-- output. The idea is to begin with a simple search and refine the search with
+-- filters while appending new elements to the list.
+type UtxoSearch effs elems = Sem effs (UtxoSearchResult elems)
 
--- | Given a UTxO search, we can run it to obtain a list of UTxOs.
-runUtxoSearch :: (Monad m) => UtxoSearch m a -> m [(Api.TxOutRef, a)]
-runUtxoSearch = ListT.toList
+-- | Wraps up a computation returning a `Utxos` into a `UtxoSearch`
+beginSearch ::
+  Sem effs Utxos ->
+  UtxoSearch effs '[]
+beginSearch = fmap (fmap (fmap (`HCons` HEmpty)))
 
--- * Initial UTxO searches
+-- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult`
+getOutputs ::
+  Sem effs (UtxoSearchResult elems) ->
+  Sem effs [TxSkelOut]
+getOutputs = fmap (fmap (hHead . snd))
 
--- | Search all currently known 'Api.TxOutRef's together with their corresponding
--- 'Api.TxOut'.
-allUtxosSearch :: (MonadBlockChain m) => UtxoSearch m TxSkelOut
-allUtxosSearch = allUtxos >>= ListT.fromFoldable
+-- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult` alongside the
+-- extracted elements
+getOutputsAndExtracts ::
+  Sem effs (UtxoSearchResult elems) ->
+  Sem effs [(TxSkelOut, HList elems)]
+getOutputsAndExtracts =
+  fmap (fmap (\(_, HCons output l) -> (output, l)))
 
--- | Search all 'Api.TxOutRef's at a certain address, together with their
--- 'Api.TxOut'. This will attempt to cast the owner of the 'TxSkelOut' to @addr@
--- so be careful how you use it.
-utxosOwnedBySearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
-utxosOwnedBySearch = utxosAt . Script.toAddress >=> ListT.fromFoldable
+-- | Retrieves the extracted elements from a `UtxoSearchResult`
+getExtracts ::
+  Sem effs (UtxoSearchResult elems) ->
+  Sem effs [HList elems]
+getExtracts = fmap (fmap (hTail . snd))
 
--- | Search all 'Cooked.Skelelton.Output.TxSkelOut's corresponding to given the list of
--- 'Api.TxOutRef's. Any 'Api.TxOutRef' that doesn't correspond to a known output
--- will be filtered out.
-txSkelOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m TxSkelOut
-txSkelOutByRefSearch orefs =
-  ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
-    `filterWith` ((Just <$>) . txSkelOutByRef)
+-- | Retrieves the `Api.TxOutRef`s from a `UtxoSearchResult`
+getTxOutRefs ::
+  Sem effs (UtxoSearchResult elems) ->
+  Sem effs [Api.TxOutRef]
+getTxOutRefs = fmap (fmap fst)
 
--- | Search all 'Api.TxOutRef's of a transaction, together with their
--- 'Api.TxOut'.
-utxosFromCardanoTxSearch :: (MonadBlockChainBalancing m) => Ledger.CardanoTx -> UtxoSearch m TxSkelOut
-utxosFromCardanoTxSearch = utxosFromCardanoTx >=> ListT.fromFoldable
+-- | Retrieves both the `Api.TxOutRef`s and `TxSkelOut`s from a `UtxoSearchResult`
+getTxOutRefsAndOutputs ::
+  Sem effs (UtxoSearchResult elems) ->
+  Sem effs Utxos
+getTxOutRefsAndOutputs = fmap (fmap (\(oRef, HCons output _) -> (oRef, output)))
 
--- * filtering UTxO searches
+-- | Searches for utxos at a given address with a given filter
+utxosAtSearch ::
+  (Member MockChainRead effs, Script.ToCredential pkh) =>
+  pkh ->
+  (UtxoSearch effs '[] -> UtxoSearch effs els) ->
+  UtxoSearch effs els
+utxosAtSearch pkh filters = filters $ beginSearch $ utxosAt pkh
 
--- | Transform a 'UtxoSearch' by applying a possibly partial monadic
--- transformation on each output in the stream
-filterWith :: (Monad m) => UtxoSearch m a -> (a -> m (Maybe b)) -> UtxoSearch m b
-filterWith (ListT as) f =
-  ListT $
-    as >>= \case
-      Nothing -> return Nothing
-      Just ((oref, a), rest) ->
-        let filteredRest@(ListT bs) = filterWith rest f
-         in f a >>= \case
-              Nothing -> bs
-              Just b -> return $ Just ((oref, b), filteredRest)
+-- | Searches for all the known utxos with a given filter
+allUtxosSearch ::
+  (Member MockChainRead effs) =>
+  (UtxoSearch effs '[] -> UtxoSearch effs els) ->
+  UtxoSearch effs els
+allUtxosSearch filters = filters $ beginSearch allUtxos
 
--- | Same as 'filterWith' but with a pure transformation
-filterWithPure :: (Monad m) => UtxoSearch m a -> (a -> Maybe b) -> UtxoSearch m b
-filterWithPure as f = filterWith as (return . f)
+-- | Searches for utxos belonging to a given list with a given filter
+txSkelOutByRefSearch ::
+  (Member MockChainRead effs) =>
+  [Api.TxOutRef] ->
+  (UtxoSearch effs '[] -> UtxoSearch effs els) ->
+  UtxoSearch effs els
+txSkelOutByRefSearch utxos filters =
+  filters $ beginSearch (zip utxos <$> mapM txSkelOutByRef utxos)
 
--- | Some as 'filterWithPure' but with a total transformation
-filterWithAlways :: (Monad m) => UtxoSearch m a -> (a -> b) -> UtxoSearch m b
-filterWithAlways as f = filterWithPure as (Just . f)
+-- | Searches for utxos belonging to a given list with no filter
+txSkelOutByRefSearch' ::
+  (Member MockChainRead effs) =>
+  [Api.TxOutRef] ->
+  UtxoSearch effs '[]
+txSkelOutByRefSearch' = (`txSkelOutByRefSearch` id)
 
--- | Some as 'filterWithPure', but the transformation is taken from an optic
-filterWithOptic :: (Is k An_AffineFold, Monad m) => UtxoSearch m a -> Optic' k is a b -> UtxoSearch m b
-filterWithOptic as optic = filterWithPure as (^? optic)
+-- | Extracts a new element from the currently selected outputs, filtering in
+-- the process out utxos for which this element is not available
+extract ::
+  (TxSkelOut -> Sem effs (Maybe b)) ->
+  UtxoSearch effs els ->
+  UtxoSearch effs (b ': els)
+extract extractFun comp = do
+  resl <- comp
+  resl' <- forM resl $
+    \(oRef, HCons txSkelOut other) -> do
+      res <- extractFun txSkelOut
+      return $ res <&> (\x -> (oRef, HCons txSkelOut (HCons x other)))
+  return $ catMaybes resl'
 
--- | Same as 'filterWithPure' but the outputs are selected using a boolean
--- predicate, and not modified
-filterWithPred :: (Monad m) => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
-filterWithPred as f = filterWithPure as $ \a -> if f a then Just a else Nothing
+-- | Same as `extract`, but with a pure extraction function
+extractPure ::
+  (TxSkelOut -> Maybe b) ->
+  UtxoSearch effs els ->
+  UtxoSearch effs (b ': els)
+extractPure = extract . (return .)
 
--- | Same as 'filterWithPure' but inverses the predicate
-filterWithPureRev :: (Monad m) => UtxoSearch m a -> (a -> Maybe b) -> UtxoSearch m a
-filterWithPureRev as = filterWithPred as . (isNothing .)
+-- | Same as `extractPure`, using an affine fold to extract the element
+extractAFold ::
+  (Is k An_AffineFold) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearch effs els ->
+  UtxoSearch effs (b ': els)
+extractAFold = extractPure . preview
 
--- | A specific version of 'filterWithPred' where outputs must me of type
--- 'TxSkelOut' and the predicate only relies on their value
-filterWithValuePred :: (Monad m) => UtxoSearch m TxSkelOut -> (Api.Value -> Bool) -> UtxoSearch m TxSkelOut
-filterWithValuePred as f = filterWithPred as (f . view txSkelOutValueL)
+-- | Same as `extract`, but with a total extraction function
+extractTotal ::
+  (TxSkelOut -> Sem effs b) ->
+  UtxoSearch effs els ->
+  UtxoSearch effs (b ': els)
+extractTotal = extract . (fmap Just .)
 
--- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
--- when they contain only ADA
-filterWithOnlyAda :: (Monad m) => UtxoSearch m TxSkelOut -> UtxoSearch m TxSkelOut
-filterWithOnlyAda as = filterWithValuePred as Script.isAdaOnlyValue
+-- | Same as `extract`, but with a pure and total extraction function
+extractPureTotal ::
+  (TxSkelOut -> b) ->
+  UtxoSearch effs els ->
+  UtxoSearch effs (b ': els)
+extractPureTotal = extractTotal . (return .)
 
--- | A specific version of 'filterWithValuePred' when 'TxSkelOut's are only kept
--- when they contain non-ADA assets
-filterWithNotOnlyAda :: (Monad m) => UtxoSearch m TxSkelOut -> UtxoSearch m TxSkelOut
-filterWithNotOnlyAda as = filterWithValuePred as (not . Script.isAdaOnlyValue)
+-- | Same as `extractPureTotal`, using a getter to extract the element
+extractGetter ::
+  (Is k A_Getter) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearch effs els ->
+  UtxoSearch effs (b ': els)
+extractGetter = extractPureTotal . view
 
--- * Useful composite UTxO searches with filters already applied
+-- | Ensures the outputs resulting from the search satisfy the given predicate
+ensure ::
+  (TxSkelOut -> Sem effs Bool) ->
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensure filterF comp =
+  comp >>= filterM (filterF . hHead . snd)
 
--- | Search for UTxOs at a specific address, which only carry address and value
--- information (no datum, staking credential, or reference script).
-onlyValueOutputsAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
-onlyValueOutputsAtSearch addr =
-  utxosOwnedBySearch addr
-    `filterWithPureRev` preview (txSkelOutDatumL % txSkelOutDatumKindAT)
-    `filterWithPureRev` view txSkelOutMStakingCredentialL
-    `filterWithPureRev` view txSkelOutMReferenceScriptL
+-- | Same as `ensure`, but with a pure predicate
+ensurePure ::
+  (TxSkelOut -> Bool) ->
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensurePure = ensure . (return .)
 
--- | Same as 'onlyValueOutputsAtSearch', but also ensures the returned outputs
--- do not contain non-ADA assets. These "vanilla" outputs are perfect candidates
--- to be used for balancing transaction and attaching collaterals.
-vanillaOutputsAtSearch :: (MonadBlockChainBalancing m, Script.ToAddress addr) => addr -> UtxoSearch m TxSkelOut
-vanillaOutputsAtSearch = filterWithOnlyAda . onlyValueOutputsAtSearch
+-- | Ensures the outputs resulting from the search contain the focus of the
+-- given affine fold
+ensureAFoldIs ::
+  (Is k An_AffineFold) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensureAFoldIs = ensurePure . is
 
--- | Searches for all outputs containing a given script as reference script
-referenceScriptOutputsSearch ::
-  (MonadBlockChain m, Script.ToScriptHash s) => s -> UtxoSearch m TxSkelOut
-referenceScriptOutputsSearch s =
-  allUtxosSearch
-    `filterWithPred` ((Just (Script.toScriptHash s) ==) . preview txSkelOutReferenceScriptHashAF)
+-- | Ensures the outputs resulting from the search do not contain the focus of
+-- the given affine fold
+ensureAFoldIsn't ::
+  (Is k An_AffineFold) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensureAFoldIsn't = ensurePure . isn't
+
+-- | Ensures the outputs resulting from the search do not have a reference
+-- script, nor a staking credential, nor a datum
+ensureOnlyValueOutputs ::
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensureOnlyValueOutputs =
+  ensureAFoldIsn't txSkelOutReferenceScriptAT
+    . ensureAFoldIsn't txSkelOutStakingCredentialAT
+    . ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
+
+-- | Same as 'ensureOnlyValueOutputs', but also ensures the searched outputs do not
+-- contain non-ADA assets.
+ensureVanillaOutputs ::
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensureVanillaOutputs =
+  ensureAFoldIs (txSkelOutValueL % valueLovelaceP)
+    . ensureOnlyValueOutputs
+
+-- | Ensures the outputs resulting from the search have the given script as a
+-- reference script
+ensureProperReferenceScript ::
+  (Script.ToScriptHash s) =>
+  s ->
+  UtxoSearch effs els ->
+  UtxoSearch effs els
+ensureProperReferenceScript (Script.toScriptHash -> sHash) =
+  ensureAFoldIs (txSkelOutReferenceScriptHashAF % filtered (== sHash))

@@ -1,11 +1,11 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.38.2.
+-- This file has been generated from package.yaml by hpack version 0.38.3.
 --
 -- see: https://github.com/sol/hpack
 
 name:           cooked-validators
-version:        8.0.0
+version:        7.0.0
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
@@ -17,18 +17,19 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
+      Cooked.Families
       Cooked.InitialDistribution
       Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
-      Cooked.MockChain.BlockChain
-      Cooked.MockChain.Direct
+      Cooked.MockChain.Common
+      Cooked.MockChain.Error
       Cooked.MockChain.GenerateTx.Anchor
       Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Certificate
       Cooked.MockChain.GenerateTx.Collateral
-      Cooked.MockChain.GenerateTx.Common
+      Cooked.MockChain.GenerateTx.Credential
       Cooked.MockChain.GenerateTx.Input
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output
@@ -36,11 +37,17 @@ library
       Cooked.MockChain.GenerateTx.ReferenceInputs
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
-      Cooked.MockChain.MockChainState
-      Cooked.MockChain.Staged
+      Cooked.MockChain.Instances
+      Cooked.MockChain.Journal
+      Cooked.MockChain.Log
+      Cooked.MockChain.Misc
+      Cooked.MockChain.Read
+      Cooked.MockChain.Runnable
+      Cooked.MockChain.State
       Cooked.MockChain.Testing
+      Cooked.MockChain.Tweak
       Cooked.MockChain.UtxoSearch
-      Cooked.MockChain.UtxoState
+      Cooked.MockChain.Write
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable
@@ -53,7 +60,6 @@ library
       Cooked.Skeleton.Anchor
       Cooked.Skeleton.Certificate
       Cooked.Skeleton.Datum
-      Cooked.Skeleton.Families
       Cooked.Skeleton.Label
       Cooked.Skeleton.Mint
       Cooked.Skeleton.Option
@@ -64,7 +70,6 @@ library
       Cooked.Skeleton.User
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
-      Cooked.Staged
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs
@@ -109,7 +114,7 @@ library
       TypeFamilies
       TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -143,6 +148,8 @@ library
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
+    , polysemy
+    , polysemy-plugin
     , prettyprinter
     , random
     , random-shuffle
@@ -183,6 +190,7 @@ test-suite spec
       Spec.ReferenceInputs
       Spec.ReferenceScripts
       Spec.Slot
+      Spec.StagedRun
       Spec.Tweak
       Spec.Tweak.Common
       Spec.Tweak.Labels
@@ -223,7 +231,7 @@ test-suite spec
       TypeFamilies
       TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -258,6 +266,8 @@ test-suite spec
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
+    , polysemy
+    , polysemy-plugin
     , prettyprinter
     , random
     , random-shuffle

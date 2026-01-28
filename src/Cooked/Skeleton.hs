@@ -15,7 +15,7 @@
 module Cooked.Skeleton
   ( module X,
     TxSkel (..),
-    txSkelLabelL,
+    txSkelLabelsL,
     txSkelOptsL,
     txSkelMintsL,
     txSkelValidityRangeL,
@@ -68,8 +68,9 @@ data TxSkel where
   TxSkel ::
     { -- | Labels do not influence the transaction generation at all; they are
       -- pretty-printed whenever cooked-validators prints a transaction, and can
-      -- therefore make the output more informative.
-      txSkelLabel :: Set TxSkelLabel,
+      -- therefore make the output more informative. They can also be used to
+      -- select skeletons to be modified during a mockchain run.
+      txSkelLabels :: Set TxSkelLabel,
       -- | Some options that control transaction generation.
       txSkelOpts :: TxSkelOpts,
       -- | Any value minted or burned by the transaction. You'll probably want
@@ -112,7 +113,7 @@ data TxSkel where
   deriving (Show, Eq)
 
 -- | Focusing on the labels of a 'TxSkel'
-makeLensesFor [("txSkelLabel", "txSkelLabelL")] ''TxSkel
+makeLensesFor [("txSkelLabels", "txSkelLabelsL")] ''TxSkel
 
 -- | Focusing on the optics of a 'TxSkel'
 makeLensesFor [("txSkelOpts", "txSkelOptsL")] ''TxSkel
@@ -150,7 +151,7 @@ makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
 txSkelTemplate :: TxSkel
 txSkelTemplate =
   TxSkel
-    { txSkelLabel = mempty,
+    { txSkelLabels = mempty,
       txSkelOpts = def,
       txSkelMints = mempty,
       txSkelValidityRange = Api.always,

@@ -4,15 +4,18 @@
 -- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.Direct
-import Cooked.MockChain.UtxoState
+import Cooked.MockChain.Error
+import Cooked.MockChain.Journal
+import Cooked.MockChain.Log
+import Cooked.MockChain.Runnable
+import Cooked.MockChain.State
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
 import Cooked.Skeleton.User
 import Cooked.Wallet (walletPKHashToId)
 import Data.Function (on)
+import Data.List (intersperse)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -26,12 +29,21 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
 instance (Show a) => PrettyCooked [MockChainReturn a] where
-  prettyCookedOpt opts = prettyItemize opts "Results:" "-"
+  prettyCookedOpt _ [] = "[]"
+  prettyCookedOpt opts [outcome] = prettyCookedOpt opts outcome
+  prettyCookedOpt opts outcomes =
+    PP.vsep $
+      intersperse "" $
+        zipWith
+          (\n d -> PP.pretty n <> "." <+> d)
+          ([1 ..] :: [Int])
+          (PP.align . prettyCookedOpt opts <$> outcomes)
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
+  prettyCookedOpt opts' (MockChainReturn res outputs utxoState (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook _)) =
     PP.vsep $
-      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts]
+      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
+        <> [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | not (null noteBook)]
         <> prettyCookedOptList opts utxoState
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
@@ -64,12 +76,8 @@ instance PrettyCooked MockChainError where
         "Percentage in params was" <+> prettyCookedOpt opts percentage,
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
-  prettyCookedOpt opts (MCEToCardanoError msg cardanoError) =
-    prettyItemize @[DocCooked]
-      opts
-      "Transaction generation error:"
-      "-"
-      [PP.pretty msg, PP.pretty cardanoError]
+  prettyCookedOpt _ (MCEToCardanoError cardanoError) =
+    "Transaction generation error:" <+> PP.pretty cardanoError
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
   prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
     "Unable to fetch the following reference script:"
@@ -84,7 +92,7 @@ instance PrettyCooked MockChainError where
       <+> PP.viaShow current
       <+> "; target slot:"
       <+> PP.viaShow target
-  prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
+  prettyCookedOpt _ (MCEFailure msg) = "Failed with:" <+> PP.pretty msg
 
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where
   prettyCookedOpt opts (Contextualized outputs entries) =
@@ -235,7 +243,7 @@ instance PrettyCookedList UtxoPayloadSet where
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
             (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> dat) <$> splitDatum utxoPayloadDatum,
-            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
+            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScriptHash
           ] of
           [] -> Nothing
           [doc] -> Just $ PP.align doc
