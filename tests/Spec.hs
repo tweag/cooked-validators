@@ -21,20 +21,20 @@ main =
   defaultMain $
     testGroup
       "cooked-validators"
-      [ -- Attack.tests,
-        -- Balancing.tests,
-        -- BasicUsage.tests,
-        -- Certificates.tests,
-        -- InititalDistribution.tests,
-        -- InlineDatums.tests,
-        -- Ltl.tests,
-        -- MinAda.tests,
-        -- MultiPurpose.tests,
-        -- ProposingScript.tests,
-        -- ReferenceInputs.tests,
-        -- ReferenceScripts.tests,
-        -- Slot.tests,
-        Staged.tests -- ,
-        -- Tweak.tests,
-        -- Withdrawals.tests
+      [ Attack.tests,
+        Balancing.tests,
+        BasicUsage.tests,
+        Certificates.tests,
+        InititalDistribution.tests,
+        InlineDatums.tests,
+        Ltl.tests,
+        MinAda.tests,
+        MultiPurpose.tests,
+        ProposingScript.tests,
+        ReferenceInputs.tests,
+        ReferenceScripts.tests,
+        Slot.tests,
+        Staged.tests,
+        Tweak.tests,
+        Withdrawals.tests
       ]

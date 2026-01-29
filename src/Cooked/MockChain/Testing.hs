@@ -6,7 +6,6 @@ module Cooked.MockChain.Testing where
 
 import Control.Exception qualified as E
 import Control.Monad
-import Cooked.InitialDistribution
 import Cooked.MockChain.Error
 import Cooked.MockChain.Journal
 import Cooked.MockChain.Log
