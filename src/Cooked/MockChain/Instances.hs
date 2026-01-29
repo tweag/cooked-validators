@@ -71,7 +71,11 @@ instance RunnableMockChain DirectEffs where
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
-type StagedTweakEffs = '[MockChainRead, Fail, NonDet]
+type StagedTweakEffs =
+  '[ MockChainMisc,
+     MockChainRead,
+     Fail
+   ]
 
 -- | A tweak computation based on the `StagedTweakEffs` stack of effects
 type StagedTweak a = TypedTweak StagedTweakEffs a
@@ -113,7 +117,7 @@ instance RunnableMockChain StagedEffs where
            MockChainLog,
            Writer MockChainJournal
          ]
-      . reinterpretMockChainWriteWithTweak
+      . reinterpretMockChainWriteWithTweak @StagedTweakEffs
       . runModifyGlobally
       . insertAt @2
         @[ ModifyLocally (UntypedTweak StagedTweakEffs),
@@ -123,14 +127,14 @@ instance RunnableMockChain StagedEffs where
 -- | A stack of effects aimed at being used as modifications for a
 -- `FullMockChain` computation
 type FullTweakEffs =
-  '[ MockChainRead,
+  '[ MockChainMisc,
+     MockChainRead,
      Fail,
      Error Ledger.ToCardanoError,
      Error MockChainError,
      State MockChainState,
      MockChainLog,
-     Writer MockChainJournal,
-     NonDet
+     Writer MockChainJournal
    ]
 
 -- | A tweak computation based on the `FullTweakEffs` stack of effects
@@ -172,5 +176,5 @@ instance RunnableMockChain FullEffs where
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . reinterpretMockChainWriteWithTweak
+      . reinterpretMockChainWriteWithTweak @FullTweakEffs
       . runModifyGlobally
