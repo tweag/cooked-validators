@@ -190,8 +190,17 @@ instance PrettyCooked Text where
 instance PrettyCooked String where
   prettyCookedOpt _ = PP.pretty
 
+instance PrettyCooked (HList '[]) where
+  prettyCookedOpt _ HEmpty = "[]"
+
 instance PrettyCookedList (HList '[]) where
   prettyCookedOptList _ HEmpty = []
 
+instance (PrettyCooked a, PrettyCooked (HList l)) => PrettyCooked (HList (a ': l)) where
+  prettyCookedOpt opts (HCons h t) = prettyCookedOpt opts h <+> ":" <+> prettyCookedOpt opts t
+
 instance (PrettyCooked a, PrettyCookedList (HList l)) => PrettyCookedList (HList (a ': l)) where
   prettyCookedOptList opts (HCons h t) = prettyCookedOpt opts h : prettyCookedOptList opts t
+
+instance (PrettyCooked a, PrettyCooked b) => PrettyCooked (a, b) where
+  prettyCookedOpt opts (a, b) = "(" <+> prettyCookedOpt opts a <+> "," <+> prettyCookedOpt opts b <+> ")"

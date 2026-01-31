@@ -10,12 +10,8 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
 import Polysemy
 import Polysemy.NonDet
-import Prettyprinter (viaShow)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@=?))
-
-instance PrettyCooked (Integer, Integer) where
-  prettyCookedOpt _ = viaShow
 
 alice :: Wallet
 alice = wallet 1

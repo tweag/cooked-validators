@@ -40,14 +40,16 @@ instance (Show a) => PrettyCooked [MockChainReturn a] where
           (PP.align . prettyCookedOpt opts <$> outcomes)
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs utxoState (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook _)) =
+  prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook _)) =
     PP.vsep $
-      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
-        <> [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | not (null noteBook)]
-        <> prettyCookedOptList opts utxoState
+      [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | pcOptPrintNotebook opts && not (null noteBook)]
+        <> [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
+        <> ["💰" <+> prettyCookedOpt opts available | pcOptPrintRemainingUTxOs opts]
+        <> ["🗑️" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
                Right a -> "🟢 Returned value:" <+> PP.viaShow a
+           | pcOptPrintReturnedValue opts
            ]
 
 instance PrettyCooked Peer where
@@ -173,10 +175,6 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
       [prettyCookedOpt opts cred, prettyCookedOpt opts (Script.toValue amount)]
   prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledConstitution constitution)) =
     "New auto-filled constitution:" <+> prettyHash opts constitution
-
-instance PrettyCookedList UtxoState where
-  prettyCookedOptList opts (UtxoState available consumed) =
-    "✅" <+> prettyCookedOpt opts available : ["❎" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
 
 -- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
 -- pubkeys, then scripts.

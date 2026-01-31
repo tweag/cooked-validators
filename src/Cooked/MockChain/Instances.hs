@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module exposes concrete instances to run a mockchain. There are 3 of
+-- | This module exposes concrete instances to run a mockchain. There are 4 of
 -- them :
 --
 -- - `DirectMockChain` exposes the minimal set of effects required to run a
@@ -12,6 +12,12 @@
 -- - `StagedMockChain` exposes all the primitives required to run a mockchain,
 --   with the addition of branching and Ltl modifications using tweaks. This
 --   should be the environement to use in 99% of the cases.
+--
+-- - `StagedInjectMockChain` exposes the same primitives as `StagedMockChain`,
+--   with an additional custom effect that can both be used in the main thread
+--   and in the associated tweaks. This allows a mockchain run to depend on
+--   arbitrary additional effects (if multiple effects are needed, this single
+--   effect can be instantiated to a bundle).
 --
 -- - `FullMockChain` exposes all the effects used to process a mockchain run,
 --   including intermediate effects usually hidden. This should only be used
@@ -178,3 +184,66 @@ instance RunnableMockChain FullEffs where
       . runMockChainWrite
       . reinterpretMockChainWriteWithTweak @FullTweakEffs
       . runModifyGlobally
+
+-------------------------------------
+
+class Interpret eff where
+  runInterpret :: Sem (eff : effs) a -> Sem effs a
+
+-- | A stack of effects aimed at being used as modifications for a
+-- `StagedMockChain` computation
+type StagedInjectTweakEff injEff =
+  '[ injEff,
+     MockChainMisc,
+     MockChainRead,
+     Fail
+   ]
+
+-- | A tweak computation based on the `StagedInjectTweakEff` stack of effects
+type StagedInjectTweak injEff a = TypedTweak (StagedInjectTweakEff injEff) a
+
+-- | A stack of effects which allows everything allowed by `DirectEff` with the
+-- addition of branching and `Ltl` modification with tweaks living in
+-- `StagedInjectTweakEff`
+type StagedInjectEff injEff =
+  '[ ModifyGlobally (UntypedTweak (StagedInjectTweakEff injEff)),
+     MockChainWrite,
+     injEff,
+     MockChainMisc,
+     MockChainRead,
+     Fail,
+     NonDet
+   ]
+
+-- | A mockchain computation builds on top of the `StagedInjectEff` stack of effects
+type StagedInjectMockChain injEff a = Sem (StagedInjectEff injEff) a
+
+instance (Interpret injEff) => RunnableMockChain (StagedInjectEff injEff) where
+  runMockChain mcst =
+    run
+      . runNonDet
+      . runWriter
+      . runMockChainLog fromLogEntry
+      . runState mcst
+      . runError
+      . runToCardanoErrorInMockChainError
+      . runFailInMockChainError
+      . runMockChainRead
+      . runMockChainMisc fromAlias fromNote fromAssert
+      . runInterpret
+      . evalState []
+      . runModifyLocally
+      . runMockChainWrite
+      . insertAt @7
+        @[ Error Ledger.ToCardanoError,
+           Error MockChainError,
+           State MockChainState,
+           MockChainLog,
+           Writer MockChainJournal
+         ]
+      . reinterpretMockChainWriteWithTweak @(StagedInjectTweakEff injEff)
+      . runModifyGlobally
+      . insertAt @2
+        @[ ModifyLocally (UntypedTweak (StagedInjectTweakEff injEff)),
+           State [Ltl (UntypedTweak (StagedInjectTweakEff injEff))]
+         ]

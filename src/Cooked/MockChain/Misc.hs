@@ -15,6 +15,7 @@ module Cooked.MockChain.Misc
     note,
     noteP,
     noteL,
+    noteW,
     noteS,
 
     -- * Asserting properties
@@ -61,7 +62,8 @@ define :: forall effs a. (Member MockChainMisc effs, ToHash a) => String -> a ->
 defineM :: (Member MockChainMisc effs, ToHash a) => String -> Sem effs a -> Sem effs a
 defineM name = (define name =<<)
 
--- | Takes note of a showable element to trace at the end of the run
+-- | Takes note of an element represented as its rendering function to trace at
+-- the end of the run
 note :: forall effs. (Member MockChainMisc effs) => (PrettyCookedOpts -> DocCooked) -> Sem effs ()
 
 -- | Takes note of a pretty-printable element to trace at the end of the run
@@ -74,8 +76,12 @@ noteL :: forall effs l. (Member MockChainMisc effs, PrettyCookedList l) => Strin
 noteL title docs = note $ \opts -> prettyItemize opts (prettyCooked title) "-" docs
 
 -- | Takes note of a showable element to trace at the end of the run
-noteS :: forall effs s. (Member MockChainMisc effs, Show s) => s -> Sem effs ()
-noteS doc = note $ const (PP.viaShow doc)
+noteW :: forall effs s. (Member MockChainMisc effs, Show s) => s -> Sem effs ()
+noteW = note . const . PP.viaShow
+
+-- | Takes note of a String to trace at the end of the run
+noteS :: forall effs. (Member MockChainMisc effs) => String -> Sem effs ()
+noteS = noteP
 
 -- | Ensures a specific property holds, sending the provided error message otherwise
 assert :: forall effs. (Member MockChainMisc effs) => String -> Bool -> Sem effs ()

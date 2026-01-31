@@ -206,7 +206,7 @@ data Test effs a prop = Test
     -- | The property that should hold in case of success over the returned
     -- result and the final state of the trace, as well as the logs
     testSuccessProp :: SuccessProp a prop,
-    -- | The printing option that should be use to render test results
+    -- | The printing options that should be use to render the test results
     testPrettyOpts :: PrettyCookedOpts
   }
 

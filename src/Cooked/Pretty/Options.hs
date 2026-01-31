@@ -39,7 +39,13 @@ data PrettyCookedOpts = PrettyCookedOpts
     pcOptHashes :: PrettyCookedHashOpts,
     -- | Whether to display the log
     pcOptPrintLog :: Bool,
-    -- | Whether to display consumed UTxOs in the end state. Default: False
+    -- | Whether to display the notebook
+    pcOptPrintNotebook :: Bool,
+    -- | Whether to display the remaining utxos
+    pcOptPrintRemainingUTxOs :: Bool,
+    -- | Whether to display the return value
+    pcOptPrintReturnedValue :: Bool,
+    -- | Whether to display the consumed utxos
     pcOptPrintConsumedUTxOs :: Bool
   }
   deriving (Eq, Show)
@@ -53,6 +59,9 @@ instance Default PrettyCookedOpts where
         pcOptNumericUnderscores = True,
         pcOptHashes = def,
         pcOptPrintLog = True,
+        pcOptPrintNotebook = True,
+        pcOptPrintRemainingUTxOs = True,
+        pcOptPrintReturnedValue = True,
         pcOptPrintConsumedUTxOs = False
       }
 
@@ -127,5 +136,5 @@ hashNamesFromList = Map.fromList . map (first toHash)
 -- mockchain runs, such as for names that depend on on-chain data, typically a
 -- 'Api.TxOutRef'.
 addHashNames :: Map Api.BuiltinByteString String -> PrettyCookedOpts -> PrettyCookedOpts
-addHashNames names opts'@(PrettyCookedOpts _ _ _ _ hashOpts _ _) =
+addHashNames names opts'@(pcOptHashes -> hashOpts) =
   opts' {pcOptHashes = hashOpts {pcOptHashNames = Map.union names (pcOptHashNames hashOpts)}}
