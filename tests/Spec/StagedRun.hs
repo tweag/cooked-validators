@@ -12,8 +12,8 @@ import Polysemy.Bundle
 import Polysemy.State
 import Test.Tasty (TestTree)
 
-instance Interpret (Bundle '[State Integer]) where
-  runInterpret = evalState 0 . runBundle
+instance InterpretAlone (Bundle '[State Integer]) where
+  runInterpretAlone = evalState 0 . runBundle
 
 stagedRun :: StagedInjectMockChain (Bundle '[State Integer]) Integer
 stagedRun = do

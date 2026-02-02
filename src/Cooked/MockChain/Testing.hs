@@ -290,8 +290,8 @@ testCookedQC name = QC.testProperty name . testToProp
 -- | A test template which expects a success from a trace. This test template is
 -- built from a trace and a dedicated runner, to be used for runs that do not
 -- implement `RunnableMockChain`. One of the intended uses is for running
--- `StagedInjectMockChain` when the additional effect results in a extended
--- return value (such as a resulting state).
+-- `Cooked.MockChain.Instance.StagedInjectMockChain` when the additional effect
+-- results in a extended return value (such as a resulting state).
 mustSucceedTest' ::
   (IsProp prop) =>
   Runner effs a b ->

@@ -52,7 +52,7 @@ type DirectEffs =
      Fail
    ]
 
--- | A mockchain computation builds on top of the `DirectEffs` stack of effects
+-- | A mockchain computation built on top of the `DirectEffs` stack of effects
 type DirectMockChain a = Sem DirectEffs a
 
 instance RunnableMockChain DirectEffs where
@@ -110,7 +110,7 @@ type FullEffs =
      NonDet
    ]
 
--- | A mockchain computation builds on top of the `FullEffs` stack of effects
+-- | A mockchain computation built on top of the `FullEffs` stack of effects
 type FullMockChain a = Sem FullEffs a
 
 instance RunnableMockChain FullEffs where
@@ -131,8 +131,10 @@ instance RunnableMockChain FullEffs where
       . reinterpretMockChainWriteWithTweak @FullTweakEffs
       . runModifyGlobally
 
-class Interpret eff where
-  runInterpret :: Sem (eff : effs) a -> Sem effs a
+-- | The class of effects that can be interpreted on their own on top of an
+-- arbitrary stack of effects
+class InterpretAlone eff where
+  runInterpretAlone :: Sem (eff : effs) a -> Sem effs a
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
@@ -143,12 +145,12 @@ type StagedInjectTweakEffs injEff =
      Fail
    ]
 
--- | A tweak computation based on the `StagedInjectTweakEff` stack of effects
+-- | A tweak computation based on the `StagedInjectTweakEffs` stack of effects
 type StagedInjectTweak injEff a = TypedTweak (StagedInjectTweakEffs injEff) a
 
--- | A stack of effects which allows everything allowed by `DirectEff` with the
+-- | A stack of effects which allows everything allowed by `DirectEffs` with the
 -- addition of branching and `Ltl` modification with tweaks living in
--- `StagedInjectTweakEff`
+-- `StagedInjectTweakEffs`
 type StagedInjectEffs injEff =
   '[ ModifyGlobally (UntypedTweak (StagedInjectTweakEffs injEff)),
      MockChainWrite,
@@ -159,10 +161,11 @@ type StagedInjectEffs injEff =
      NonDet
    ]
 
--- | A mockchain computation builds on top of the `StagedInjectEff` stack of effects
+-- | A mockchain computation built on top of the `StagedInjectEffs` stack of
+-- effects
 type StagedInjectMockChain injEff a = Sem (StagedInjectEffs injEff) a
 
-instance (Interpret injEff) => RunnableMockChain (StagedInjectEffs injEff) where
+instance (InterpretAlone injEff) => RunnableMockChain (StagedInjectEffs injEff) where
   runMockChain mcst =
     run
       . runNonDet
@@ -174,7 +177,7 @@ instance (Interpret injEff) => RunnableMockChain (StagedInjectEffs injEff) where
       . runFailInMockChainError
       . runMockChainRead
       . runMockChainMisc fromAlias fromNote fromAssert
-      . runInterpret
+      . runInterpretAlone
       . evalState []
       . runModifyLocally
       . runMockChainWrite
@@ -204,8 +207,8 @@ type StagedTweak a = TypedTweak StagedTweakEffs a
 -- `StagedTweakEffs`
 type StagedEffs = StagedInjectEffs (Bundle '[])
 
--- | A mockchain computation builds on top of the `StagedEffs` stack of effects
+-- | A mockchain computation built on top of the `StagedEffs` stack of effects
 type StagedMockChain a = Sem StagedEffs a
 
-instance Interpret (Bundle '[]) where
-  runInterpret = runBundle
+instance InterpretAlone (Bundle '[]) where
+  runInterpretAlone = runBundle
