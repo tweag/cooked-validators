@@ -44,11 +44,11 @@ instance (Show a) => PrettyCooked (MockChainReturn a) where
     PP.vsep $
       [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | pcOptPrintNotebook opts && not (null noteBook)]
         <> [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
-        <> ["💰" <+> prettyCookedOpt opts available | pcOptPrintRemainingUTxOs opts]
-        <> ["🗑️" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
+        <> ["💰" <+> prettyCookedOpt opts available | pcOptPrintRemainingUTxOs opts && not (null available)]
+        <> ["🗑️" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts && not (null consumed)]
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
-               Right a -> "🟢 Returned value:" <+> PP.viaShow a
+               Right a -> "🟢 Success with returned value:" <+> PP.viaShow a
            | pcOptPrintReturnedValue opts
            ]
 

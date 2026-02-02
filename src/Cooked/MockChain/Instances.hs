@@ -37,6 +37,7 @@ import Cooked.MockChain.Tweak
 import Cooked.MockChain.Write
 import Ledger.Tx qualified as Ledger
 import Polysemy
+import Polysemy.Bundle
 import Polysemy.Error
 import Polysemy.Fail
 import Polysemy.NonDet
@@ -77,11 +78,7 @@ instance RunnableMockChain DirectEffs where
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
-type StagedTweakEffs =
-  '[ MockChainMisc,
-     MockChainRead,
-     Fail
-   ]
+type StagedTweakEffs = StagedInjectTweakEffs (Bundle '[])
 
 -- | A tweak computation based on the `StagedTweakEffs` stack of effects
 type StagedTweak a = TypedTweak StagedTweakEffs a
@@ -89,46 +86,13 @@ type StagedTweak a = TypedTweak StagedTweakEffs a
 -- | A stack of effects which allows everything allowed by `DirectEffs` with the
 -- addition of branching and `Ltl` modification with tweaks living in
 -- `StagedTweakEffs`
-type StagedEffs =
-  '[ ModifyGlobally (UntypedTweak StagedTweakEffs),
-     MockChainWrite,
-     MockChainMisc,
-     MockChainRead,
-     Fail,
-     NonDet
-   ]
+type StagedEffs = StagedInjectEffs (Bundle '[])
 
 -- | A mockchain computation builds on top of the `StagedEffs` stack of effects
 type StagedMockChain a = Sem StagedEffs a
 
-instance RunnableMockChain StagedEffs where
-  runMockChain mcst =
-    run
-      . runNonDet
-      . runWriter
-      . runMockChainLog fromLogEntry
-      . runState mcst
-      . runError
-      . runToCardanoErrorInMockChainError
-      . runFailInMockChainError
-      . runMockChainRead
-      . runMockChainMisc fromAlias fromNote fromAssert
-      . evalState []
-      . runModifyLocally
-      . runMockChainWrite
-      . insertAt @6
-        @[ Error Ledger.ToCardanoError,
-           Error MockChainError,
-           State MockChainState,
-           MockChainLog,
-           Writer MockChainJournal
-         ]
-      . reinterpretMockChainWriteWithTweak @StagedTweakEffs
-      . runModifyGlobally
-      . insertAt @2
-        @[ ModifyLocally (UntypedTweak StagedTweakEffs),
-           State [Ltl (UntypedTweak StagedTweakEffs)]
-         ]
+instance Interpret (Bundle '[]) where
+  runInterpret = runBundle
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `FullMockChain` computation
@@ -192,7 +156,7 @@ class Interpret eff where
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
-type StagedInjectTweakEff injEff =
+type StagedInjectTweakEffs injEff =
   '[ injEff,
      MockChainMisc,
      MockChainRead,
@@ -200,13 +164,13 @@ type StagedInjectTweakEff injEff =
    ]
 
 -- | A tweak computation based on the `StagedInjectTweakEff` stack of effects
-type StagedInjectTweak injEff a = TypedTweak (StagedInjectTweakEff injEff) a
+type StagedInjectTweak injEff a = TypedTweak (StagedInjectTweakEffs injEff) a
 
 -- | A stack of effects which allows everything allowed by `DirectEff` with the
 -- addition of branching and `Ltl` modification with tweaks living in
 -- `StagedInjectTweakEff`
-type StagedInjectEff injEff =
-  '[ ModifyGlobally (UntypedTweak (StagedInjectTweakEff injEff)),
+type StagedInjectEffs injEff =
+  '[ ModifyGlobally (UntypedTweak (StagedInjectTweakEffs injEff)),
      MockChainWrite,
      injEff,
      MockChainMisc,
@@ -216,9 +180,9 @@ type StagedInjectEff injEff =
    ]
 
 -- | A mockchain computation builds on top of the `StagedInjectEff` stack of effects
-type StagedInjectMockChain injEff a = Sem (StagedInjectEff injEff) a
+type StagedInjectMockChain injEff a = Sem (StagedInjectEffs injEff) a
 
-instance (Interpret injEff) => RunnableMockChain (StagedInjectEff injEff) where
+instance (Interpret injEff) => RunnableMockChain (StagedInjectEffs injEff) where
   runMockChain mcst =
     run
       . runNonDet
@@ -241,9 +205,9 @@ instance (Interpret injEff) => RunnableMockChain (StagedInjectEff injEff) where
            MockChainLog,
            Writer MockChainJournal
          ]
-      . reinterpretMockChainWriteWithTweak @(StagedInjectTweakEff injEff)
+      . reinterpretMockChainWriteWithTweak @(StagedInjectTweakEffs injEff)
       . runModifyGlobally
       . insertAt @2
-        @[ ModifyLocally (UntypedTweak (StagedInjectTweakEff injEff)),
-           State [Ltl (UntypedTweak (StagedInjectTweakEff injEff))]
+        @[ ModifyLocally (UntypedTweak (StagedInjectTweakEffs injEff)),
+           State [Ltl (UntypedTweak (StagedInjectTweakEffs injEff))]
          ]
