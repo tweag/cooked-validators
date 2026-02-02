@@ -16,14 +16,38 @@
 -- - `StagedInjectMockChain` exposes the same primitives as `StagedMockChain`,
 --   with an additional custom effect that can both be used in the main thread
 --   and in the associated tweaks. This allows a mockchain run to depend on
---   arbitrary additional effects (if multiple effects are needed, this single
---   effect can be instantiated to a bundle).
+--   arbitrary additional effects. If multiple effects are needed, this single
+--   effect can be instantiated to a bundle.
 --
 -- - `FullMockChain` exposes all the effects used to process a mockchain run,
 --   including intermediate effects usually hidden. This should only be used
 --   when the users requires to manually execute internal primitives of cooked,
 --   such as balancing.
-module Cooked.MockChain.Instances where
+module Cooked.MockChain.Instances
+  ( -- * Direct, simple mockchain instance
+    DirectEffs,
+    DirectMockChain,
+
+    -- * Staged mockchain instance with all effects
+    FullTweakEffs,
+    FullTweak,
+    FullEffs,
+    FullMockChain,
+
+    -- * Staged mockchain instance with minimal effects
+    StagedTweakEffs,
+    StagedTweak,
+    StagedEffs,
+    StagedMockChain,
+
+    -- * Staged mockchain instance with minimal effects and a custom effect
+    InterpretAlone (..),
+    StagedInjectTweakEffs,
+    StagedInjectTweak,
+    StagedInjectEffs,
+    StagedInjectMockChain,
+  )
+where
 
 import Cooked.Ltl
 import Cooked.MockChain.Error
@@ -131,11 +155,6 @@ instance RunnableMockChain FullEffs where
       . reinterpretMockChainWriteWithTweak @FullTweakEffs
       . runModifyGlobally
 
--- | The class of effects that can be interpreted on their own on top of an
--- arbitrary stack of effects
-class InterpretAlone eff where
-  runInterpretAlone :: Sem (eff : effs) a -> Sem effs a
-
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
 type StagedInjectTweakEffs injEff =
@@ -164,6 +183,11 @@ type StagedInjectEffs injEff =
 -- | A mockchain computation built on top of the `StagedInjectEffs` stack of
 -- effects
 type StagedInjectMockChain injEff a = Sem (StagedInjectEffs injEff) a
+
+-- | The class of effects that can be interpreted on their own on top of an
+-- arbitrary stack of effects
+class InterpretAlone eff where
+  runInterpretAlone :: Sem (eff : effs) a -> Sem effs a
 
 instance (InterpretAlone injEff) => RunnableMockChain (StagedInjectEffs injEff) where
   runMockChain mcst =
