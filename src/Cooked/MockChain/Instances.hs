@@ -77,24 +77,6 @@ instance RunnableMockChain DirectEffs where
          ]
 
 -- | A stack of effects aimed at being used as modifications for a
--- `StagedMockChain` computation
-type StagedTweakEffs = StagedInjectTweakEffs (Bundle '[])
-
--- | A tweak computation based on the `StagedTweakEffs` stack of effects
-type StagedTweak a = TypedTweak StagedTweakEffs a
-
--- | A stack of effects which allows everything allowed by `DirectEffs` with the
--- addition of branching and `Ltl` modification with tweaks living in
--- `StagedTweakEffs`
-type StagedEffs = StagedInjectEffs (Bundle '[])
-
--- | A mockchain computation builds on top of the `StagedEffs` stack of effects
-type StagedMockChain a = Sem StagedEffs a
-
-instance Interpret (Bundle '[]) where
-  runInterpret = runBundle
-
--- | A stack of effects aimed at being used as modifications for a
 -- `FullMockChain` computation
 type FullTweakEffs =
   '[ MockChainMisc,
@@ -148,8 +130,6 @@ instance RunnableMockChain FullEffs where
       . runMockChainWrite
       . reinterpretMockChainWriteWithTweak @FullTweakEffs
       . runModifyGlobally
-
--------------------------------------
 
 class Interpret eff where
   runInterpret :: Sem (eff : effs) a -> Sem effs a
@@ -211,3 +191,21 @@ instance (Interpret injEff) => RunnableMockChain (StagedInjectEffs injEff) where
         @[ ModifyLocally (UntypedTweak (StagedInjectTweakEffs injEff)),
            State [Ltl (UntypedTweak (StagedInjectTweakEffs injEff))]
          ]
+
+-- | A stack of effects aimed at being used as modifications for a
+-- `StagedMockChain` computation
+type StagedTweakEffs = StagedInjectTweakEffs (Bundle '[])
+
+-- | A tweak computation based on the `StagedTweakEffs` stack of effects
+type StagedTweak a = TypedTweak StagedTweakEffs a
+
+-- | A stack of effects which allows everything allowed by `DirectEffs` with the
+-- addition of branching and `Ltl` modification with tweaks living in
+-- `StagedTweakEffs`
+type StagedEffs = StagedInjectEffs (Bundle '[])
+
+-- | A mockchain computation builds on top of the `StagedEffs` stack of effects
+type StagedMockChain a = Sem StagedEffs a
+
+instance Interpret (Bundle '[]) where
+  runInterpret = runBundle
