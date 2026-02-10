@@ -5,24 +5,22 @@
 --
 -- - `DirectMockChain` exposes the minimal set of effects required to run a
 --   mockchain, without the ability to branch or modify runs. Use this only if
---   you specifically want to disallow Ltl modifications (which behaves the same
---   in the absence of modifications). In should also perform somewhat better,
---   also in most cases this will be insignificant.
+--   you specifically want to disallow `Ltl` modifications.
 --
 -- - `StagedMockChain` exposes all the primitives required to run a mockchain,
---   with the addition of branching and Ltl modifications using tweaks. This
+--   with the addition of branching and `Ltl` modifications using tweaks. This
 --   should be the environement to use in 99% of the cases.
 --
--- - `StagedInjectMockChain` exposes the same primitives as `StagedMockChain`,
+-- - `ExtendedStagedMockChain` exposes the same primitives as `StagedMockChain`,
 --   with an additional custom effect that can both be used in the main thread
 --   and in the associated tweaks. This allows a mockchain run to depend on
---   arbitrary additional effects. If multiple effects are needed, this single
---   effect can be instantiated to a bundle.
+--   arbitrary additional effects (if multiple effects are needed, this single
+--   effect can be instantiated to a `Bundle` wrapping up those effects).
 --
 -- - `FullMockChain` exposes all the effects used to process a mockchain run,
---   including intermediate effects usually hidden. This should only be used
---   when the users requires to manually execute internal primitives of cooked,
---   such as balancing.
+--   including intermediate hidden in the other instances. This should only be
+--   used when explicitly executing internal primitives of cooked, such as
+--   balancing, is required.
 module Cooked.MockChain.Instances
   ( -- * Direct, simple mockchain instance
     DirectEffs,
@@ -42,10 +40,10 @@ module Cooked.MockChain.Instances
 
     -- * Staged mockchain instance with minimal effects and a custom effect
     InterpretAlone (..),
-    StagedInjectTweakEffs,
-    StagedInjectTweak,
-    StagedInjectEffs,
-    StagedInjectMockChain,
+    ExtendedStagedTweakEffs,
+    ExtendedStagedTweak,
+    ExtendedStagedEffs,
+    ExtendedStagedMockChain,
   )
 where
 
@@ -157,39 +155,39 @@ instance RunnableMockChain FullEffs where
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
-type StagedInjectTweakEffs injEff =
-  '[ injEff,
+type ExtendedStagedTweakEffs extraEff =
+  '[ extraEff,
      MockChainMisc,
      MockChainRead,
      Fail
    ]
 
--- | A tweak computation based on the `StagedInjectTweakEffs` stack of effects
-type StagedInjectTweak injEff a = TypedTweak (StagedInjectTweakEffs injEff) a
+-- | A tweak computation based on the `ExtendedStagedTweakEffs` stack of effects
+type ExtendedStagedTweak extraEff a = TypedTweak (ExtendedStagedTweakEffs extraEff) a
 
 -- | A stack of effects which allows everything allowed by `DirectEffs` with the
 -- addition of branching and `Ltl` modification with tweaks living in
--- `StagedInjectTweakEffs`
-type StagedInjectEffs injEff =
-  '[ ModifyGlobally (UntypedTweak (StagedInjectTweakEffs injEff)),
+-- `ExtendedStagedTweakEffs`
+type ExtendedStagedEffs extraEff =
+  '[ ModifyGlobally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
      MockChainWrite,
-     injEff,
+     extraEff,
      MockChainMisc,
      MockChainRead,
      Fail,
      NonDet
    ]
 
--- | A mockchain computation built on top of the `StagedInjectEffs` stack of
+-- | A mockchain computation built on top of the `ExtendedStagedEffs` stack of
 -- effects
-type StagedInjectMockChain injEff a = Sem (StagedInjectEffs injEff) a
+type ExtendedStagedMockChain extraEff a = Sem (ExtendedStagedEffs extraEff) a
 
 -- | The class of effects that can be interpreted on their own on top of an
 -- arbitrary stack of effects
 class InterpretAlone eff where
   runInterpretAlone :: Sem (eff : effs) a -> Sem effs a
 
-instance (InterpretAlone injEff) => RunnableMockChain (StagedInjectEffs injEff) where
+instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extraEff) where
   runMockChain mcst =
     run
       . runNonDet
@@ -212,16 +210,16 @@ instance (InterpretAlone injEff) => RunnableMockChain (StagedInjectEffs injEff) 
            MockChainLog,
            Writer MockChainJournal
          ]
-      . reinterpretMockChainWriteWithTweak @(StagedInjectTweakEffs injEff)
+      . reinterpretMockChainWriteWithTweak @(ExtendedStagedTweakEffs extraEff)
       . runModifyGlobally
       . insertAt @2
-        @[ ModifyLocally (UntypedTweak (StagedInjectTweakEffs injEff)),
-           State [Ltl (UntypedTweak (StagedInjectTweakEffs injEff))]
+        @[ ModifyLocally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
+           State [Ltl (UntypedTweak (ExtendedStagedTweakEffs extraEff))]
          ]
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation
-type StagedTweakEffs = StagedInjectTweakEffs (Bundle '[])
+type StagedTweakEffs = ExtendedStagedTweakEffs (Bundle '[])
 
 -- | A tweak computation based on the `StagedTweakEffs` stack of effects
 type StagedTweak a = TypedTweak StagedTweakEffs a
@@ -229,7 +227,7 @@ type StagedTweak a = TypedTweak StagedTweakEffs a
 -- | A stack of effects which allows everything allowed by `DirectEffs` with the
 -- addition of branching and `Ltl` modification with tweaks living in
 -- `StagedTweakEffs`
-type StagedEffs = StagedInjectEffs (Bundle '[])
+type StagedEffs = ExtendedStagedEffs (Bundle '[])
 
 -- | A mockchain computation built on top of the `StagedEffs` stack of effects
 type StagedMockChain a = Sem StagedEffs a

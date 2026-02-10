@@ -15,7 +15,7 @@ import Test.Tasty (TestTree)
 instance InterpretAlone (Bundle '[State Integer]) where
   runInterpretAlone = evalState 0 . runBundle
 
-stagedRun :: StagedInjectMockChain (Bundle '[State Integer]) Integer
+stagedRun :: ExtendedStagedMockChain (Bundle '[State Integer]) Integer
 stagedRun = do
   -- Defining some aliases for wallets
   alice <- define "alice" $ wallet 1
