@@ -38,32 +38,21 @@ import Polysemy
 --  >        ]
 --
 -- Note that payment issued through an initial distribution will be attached
--- enough ADA to sustain themselves.
-data InitialDistribution where
-  InitialDistribution ::
-    {unInitialDistribution :: [TxSkelOut]} ->
-    InitialDistribution
+-- enough ADA to sustain themselves unless a fixed value is explicitly required.
+type InitialDistribution = [TxSkelOut]
 
 -- | 4 UTxOs with 100 Ada each, for each of the first 4 'knownWallets'
-instance Default InitialDistribution where
-  def =
-    distributionFromList
-      . zip (take 4 knownWallets)
-      . repeat
-      . replicate 4
-      $ Script.ada 100
-
-instance Semigroup InitialDistribution where
-  i <> j = InitialDistribution (unInitialDistribution i <> unInitialDistribution j)
-
-instance Monoid InitialDistribution where
-  mempty = InitialDistribution mempty
+initialDistributionTemplate :: InitialDistribution
+initialDistributionTemplate =
+  distributionFromList
+    . zip (take 4 knownWallets)
+    . repeat
+    . replicate 4
+    $ Script.ada 100
 
 -- | Creating a initial distribution with simple values assigned to owners
 distributionFromList :: (IsTxSkelOutAllowedOwner owner) => [(owner, [Api.Value])] -> InitialDistribution
-distributionFromList =
-  InitialDistribution
-    . foldl' (\x (user, values) -> x <> map (receives user . Value) values) []
+distributionFromList = foldl' (\x (user, values) -> x <> map (receives user . Value) values) []
 
 -- | Raw return type of running a mockchain
 type RawMockChainReturn a =
@@ -128,7 +117,7 @@ runMockChainFromConf ::
 runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
   fmap funOnResult $
     runMockChain initState $
-      forceOutputs (unInitialDistribution initDist) >> currentRun
+      forceOutputs initDist >> currentRun
 
 -- | Runs a `RunnableMockChain` from an initial distribution
 runMockChainFromInitDist ::
@@ -140,6 +129,15 @@ runMockChainFromInitDist ::
   [MockChainReturn a]
 runMockChainFromInitDist initDist =
   runMockChainFromConf $ mockChainConfTemplate {mccInitialDistribution = initDist}
+
+-- | Same as `runMockChainFromInitDist` using the `initialDistributionTemplate`
+runMockChainFromInitDistTemplate ::
+  ( RunnableMockChain effs,
+    Member MockChainWrite effs
+  ) =>
+  Sem effs a ->
+  [MockChainReturn a]
+runMockChainFromInitDistTemplate = runMockChainFromInitDist initialDistributionTemplate
 
 -- | Runs a `RunnableMockChain` from a default configuration
 runMockChainDef ::

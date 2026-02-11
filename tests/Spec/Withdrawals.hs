@@ -4,6 +4,7 @@ import Control.Monad
 import Cooked
 import Data.Maybe
 import Optics.Core.Extras
+import Plutus.Script.Utils.Value qualified as Script
 import Plutus.Withdrawals
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -17,6 +18,7 @@ testWithdrawingScript ::
   Maybe Integer ->
   StagedMockChain ()
 testWithdrawingScript userCertifying userRewarding mAmount = do
+  forceOutputs_ [alice `receives` Value (Script.ada 100)]
   when (isJust userCertifying) $
     validateTxSkel_ $
       txSkelTemplate

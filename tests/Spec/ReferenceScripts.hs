@@ -123,29 +123,29 @@ tests =
     [ testGroup "putting reference scripts on chain and retrieving them" $
         let theRefScript = Script.alwaysSucceedValidatorVersioned
             theRefScriptHash = Script.toScriptHash theRefScript
-         in [ testCooked "on a public key output" $
+         in [ testCookedFromInitDistTemplate "on a public key output" $
                 mustSucceedTest
                   (putRefScriptOnWalletOutput (wallet 3) theRefScript >>= previewByRef txSkelOutReferenceScriptHashAF)
                   `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.)),
-              testCooked "on a script output" $
+              testCookedFromInitDistTemplate "on a script output" $
                 mustSucceedTest
                   (putRefScriptOnScriptOutput Script.alwaysSucceedValidatorVersioned theRefScript >>= previewByRef txSkelOutReferenceScriptHashAF)
                   `withResultProp` (testCounterexample "the script hash on the retrieved output is wrong" . (Just theRefScriptHash .==.))
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"
-        [ testCooked "fail if wrong reference script" $
+        [ testCookedFromInitDistTemplate "fail if wrong reference script" $
             mustFailInPhase2WithMsgTest "there is no reference input with the correct script hash" $
               putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
                 >>= checkReferenceScriptOnOref (Script.toScriptHash Script.alwaysSucceedValidatorVersioned),
-          testCooked "succeed if correct reference script" $
+          testCookedFromInitDistTemplate "succeed if correct reference script" $
             mustSucceedTest $
               putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
                 >>= checkReferenceScriptOnOref (Script.toScriptHash Script.alwaysSucceedValidatorVersioned)
         ],
       testGroup
         "using reference scripts"
-        [ testCooked @DirectEffs "fail from transaction generation for missing reference scripts" $
+        [ testCookedFromInitDistTemplate @DirectEffs "fail from transaction generation for missing reference scripts" $
             mustFailTest
               ( do
                   consumedOref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
@@ -165,7 +165,7 @@ tests =
               `withErrorProp` \case
                 MCEUnknownOutRef _ -> testSuccess
                 _ -> testFailure,
-          testCooked "fail from transaction generation for mismatching reference scripts" $
+          testCookedFromInitDistTemplate "fail from transaction generation for mismatching reference scripts" $
             mustFailTest
               ( do
                   scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
@@ -184,7 +184,7 @@ tests =
               `withErrorProp` \case
                 MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
-          testCooked "phase 1 - fail if using a reference script with 'someRedeemer'" $
+          testCookedFromInitDistTemplate "phase 1 - fail if using a reference script with 'someRedeemer'" $
             mustFailInPhase1Test $ do
               scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
               (oref, _) : _ <-
@@ -199,14 +199,14 @@ tests =
                     txSkelInsReference = Set.singleton scriptOref,
                     txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                   },
-          testCooked "fail if reference script's requirement is violated" $
+          testCookedFromInitDistTemplate "fail if reference script's requirement is violated" $
             mustFailInPhase2WithMsgTest "the required signer is missing" $
               useReferenceScript (wallet 1) False $
                 Script.toVersioned $
                   requireSignerValidator $
                     Script.toPubKeyHash $
                       wallet 2,
-          testCooked "succeed if reference script's requirement is met" $
+          testCookedFromInitDistTemplate "succeed if reference script's requirement is met" $
             mustSucceedTest
               ( useReferenceScript (wallet 1) False $
                   Script.toVersioned $
@@ -218,7 +218,7 @@ tests =
                 case Cardano.txInsReference bodyContent of
                   Cardano.TxInsReference _ [_] _ -> testSuccess
                   _ -> testFailure,
-          testCooked "succeed if the reference script is in one of the inputs" $
+          testCookedFromInitDistTemplate "succeed if the reference script is in one of the inputs" $
             mustSucceedTest
               ( useReferenceScript (wallet 1) True $
                   Script.toVersioned $
@@ -234,18 +234,18 @@ tests =
         ],
       testGroup
         "referencing minting policies"
-        [ testCooked "succeed if given a reference minting policy" $
+        [ testCookedFromInitDistTemplate "succeed if given a reference minting policy" $
             mustSucceedTest $
               referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False,
-          testCooked "succeed if relying on automated finding of reference minting policy" $
+          testCookedFromInitDistTemplate "succeed if relying on automated finding of reference minting policy" $
             mustSucceedTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 True)
               `withLogProp` happened "MCLogAddedReferenceScript",
-          testCooked "fail if given the wrong reference minting policy" $
+          testCookedFromInitDistTemplate "fail if given the wrong reference minting policy" $
             mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
               `withErrorProp` \case
                 MCEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
-          testCooked "fail if referencing the wrong utxo" $
+          testCookedFromInitDistTemplate "fail if referencing the wrong utxo" $
             mustFailTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 1 False)
               `withErrorProp` \case
                 MCEWrongReferenceScriptError {} -> testSuccess

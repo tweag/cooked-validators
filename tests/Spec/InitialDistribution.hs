@@ -13,16 +13,15 @@ alice, bob :: Wallet
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum :: InitialDistribution
 initialDistributionWithDatum =
-  InitialDistribution $ [receives alice] <*> ([VisibleHashedDatum, HiddenHashedDatum] <*> [10 :: Integer])
+  [receives alice] <*> ([VisibleHashedDatum, HiddenHashedDatum] <*> [10 :: Integer])
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
 -- 2 UTxOs with 100 ADA
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  InitialDistribution $
-    (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
-      : replicate 2 (bob `receives` Value (Script.ada 100))
+  (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
+    : replicate 2 (bob `receives` Value (Script.ada 100))
 
 getValueFromInitialDatum :: DirectMockChain [Integer]
 getValueFromInitialDatum = do

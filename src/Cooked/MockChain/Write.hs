@@ -23,6 +23,7 @@ module Cooked.MockChain.Write
     setParams,
     setConstitutionScript,
     forceOutputs,
+    forceOutputs_,
   )
 where
 
@@ -284,3 +285,7 @@ setConstitutionScript :: (Member MockChainWrite effs, ToVScript s) => s -> Sem e
 -- `TxSkelOut`. Returns the created UTxOs, which might differ from the original
 -- list if some min ADA adjustment occured.
 forceOutputs :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs Utxos
+
+-- | Same as `forceOutputs`, but discards the returned outputs
+forceOutputs_ :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs ()
+forceOutputs_ = void . forceOutputs

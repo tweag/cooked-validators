@@ -13,7 +13,8 @@ bob :: Wallet
 bob = wallet 1
 
 publishCertificate :: TxSkelCertificate -> DirectMockChain ()
-publishCertificate cert =
+publishCertificate cert = do
+  forceOutputs_ [alice `receives` Value (Script.ada 100)]
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],

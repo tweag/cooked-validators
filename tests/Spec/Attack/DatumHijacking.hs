@@ -111,7 +111,8 @@ tests =
                   @=? outSkelOutputs value_10_000 (1 ==)
             ],
       testCooked "careful validator" $
-        mustFailInPhase2Test $
+        mustFailInPhase2Test $ do
+          forceOutputs_ initialDistributionTemplate
           somewhere
             ( datumHijackingAttack $
                 ( outPredDatumHijackingParams
@@ -126,7 +127,8 @@ tests =
             )
             (datumHijackingTrace carefulValidator),
       testCooked "careless validator" $
-        mustSucceedTest $
+        mustSucceedTest $ do
+          forceOutputs_ initialDistributionTemplate
           somewhere
             ( datumHijackingAttack $
                 ( outPredDatumHijackingParams

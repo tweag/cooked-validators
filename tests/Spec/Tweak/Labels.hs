@@ -24,6 +24,7 @@ payTo target amount = do
 
 payments :: StagedMockChain ()
 payments = do
+  forceOutputs_ [alice `receives` Value (Script.ada 100)]
   payTo alice 10
   payTo bob 5
   payTo bob 8

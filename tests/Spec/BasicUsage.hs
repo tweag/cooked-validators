@@ -60,9 +60,9 @@ tests :: TestTree
 tests =
   testGroup
     "Basic usage"
-    [ testCooked "Payment from alice to bob, with auto-balancing" $ mustSucceedTest $ pkToPk alice bob 10,
-      testCooked "Circular payments of 10 ada between alice bob and carrie" $ mustSucceedTest multiplePksToPks,
-      testCooked "Minting quick tokens" $ mustSucceedTest mintingQuickValue,
-      testCooked "Paying to the always true validator" $ mustSucceedTest payToAlwaysTrueValidator,
-      testCooked "Consuming the always true validator" $ mustSucceedTest consumeAlwaysTrueValidator
+    [ testCookedFromInitDistTemplate "Payment from alice to bob, with auto-balancing" $ mustSucceedTest $ pkToPk alice bob 10,
+      testCookedFromInitDistTemplate "Circular payments of 10 ada between alice bob and carrie" $ mustSucceedTest multiplePksToPks,
+      testCookedFromInitDistTemplate "Minting quick tokens" $ mustSucceedTest mintingQuickValue,
+      testCookedFromInitDistTemplate "Paying to the always true validator" $ mustSucceedTest payToAlwaysTrueValidator,
+      testCookedFromInitDistTemplate "Consuming the always true validator" $ mustSucceedTest consumeAlwaysTrueValidator
     ]

@@ -14,7 +14,9 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 dupTokenTrace :: Script.Versioned Script.MintingPolicy -> Api.TokenName -> Integer -> Wallet -> StagedMockChain ()
-dupTokenTrace pol tName amount recipient = validateTxSkel_ skel
+dupTokenTrace pol tName amount recipient = do
+  forceOutputs_ initialDistributionTemplate
+  validateTxSkel_ skel
   where
     skel =
       let mints = review txSkelMintsListI [mint pol () tName amount]

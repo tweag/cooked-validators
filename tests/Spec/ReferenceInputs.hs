@@ -55,6 +55,6 @@ tests :: Tasty.TestTree
 tests =
   Tasty.testGroup
     "Reference inputs"
-    [ testCooked "We can reference an input that can't be spent" $ mustSucceedTest trace1,
-      testCooked "We can decode the datum hash from a reference input" $ mustSucceedTest trace2
+    [ testCookedFromInitDistTemplate "We can reference an input that can't be spent" $ mustSucceedTest trace1,
+      testCookedFromInitDistTemplate "We can decode the datum hash from a reference input" $ mustSucceedTest trace2
     ]

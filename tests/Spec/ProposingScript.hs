@@ -21,6 +21,7 @@ testProposingScript ::
   GovernanceAction IsScript ->
   DirectMockChain ()
 testProposingScript autoRefScript autoConstitution constitution mScript govAction = do
+  forceOutputs_ initialDistributionTemplate
   setConstitutionScript constitution
   validateTxSkel_ $
     txSkelTemplate

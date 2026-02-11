@@ -4,7 +4,6 @@ module Spec.Attack.DoubleSat (tests) where
 
 import Control.Arrow
 import Cooked
-import Data.Default
 import Data.Either
 import Data.List (subsequences)
 import Data.Map qualified as Map
@@ -34,11 +33,9 @@ instance PrettyCooked BRedeemer where
 -- each own a few UTxOs, with different values
 customInitDist :: InitialDistribution
 customInitDist =
-  def
-    <> InitialDistribution
-      ( ((\n -> aValidator `receives` VisibleHashedDatum ADatum <&&> Value (Script.ada n)) <$> [2, 3, 4, 5])
-          <> ((\n -> bValidator `receives` VisibleHashedDatum BDatum <&&> Value (Script.ada n)) <$> [6, 7])
-      )
+  initialDistributionTemplate
+    <> ((\n -> aValidator `receives` VisibleHashedDatum ADatum <&&> Value (Script.ada n)) <$> [2, 3, 4, 5])
+    <> ((\n -> bValidator `receives` VisibleHashedDatum BDatum <&&> Value (Script.ada n)) <$> [6, 7])
 
 -- | Utxos generated from the initial distribution
 aUtxo1, aUtxo2, aUtxo3, aUtxo4, bUtxo1, bUtxo2 :: (V3.TxOutRef, TxSkelOut)

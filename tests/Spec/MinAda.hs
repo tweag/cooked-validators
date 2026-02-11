@@ -23,6 +23,7 @@ instance PrettyCooked HeavyDatum where
 
 paymentWithMinAda :: DirectMockChain Integer
 paymentWithMinAda = do
+  forceOutputs_ initialDistributionTemplate
   view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0)
     <$> validateTxSkel'
       txSkelTemplate

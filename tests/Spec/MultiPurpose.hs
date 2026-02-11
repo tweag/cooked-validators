@@ -24,6 +24,7 @@ bob = wallet 2
 
 runScript :: StagedMockChain ()
 runScript = do
+  forceOutputs_ initialDistributionTemplate
   [(oRef@(Api.TxOutRef txId _), _), (oRef', _), (oRef'', _)] <-
     validateTxSkel' $
       txSkelTemplate
