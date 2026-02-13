@@ -8,6 +8,7 @@ module Cooked.Attack.DatumHijacking
     DatumHijackingLabel (..),
     redirectOutputTweakAny,
     datumHijackingAttack,
+    typedByDatumHijackingParams,
     ownedByDatumHijackingParams,
     scriptsDatumHijackingParams,
     defaultDatumHijackingParams,
@@ -78,14 +79,27 @@ outPredDatumHijackingParams = defaultDatumHijackingParams . filtered
 
 -- | Datum hijacking parameters targetting all the outputs owned by a certain
 -- type of owner, and redirecting each of them in a separate transaction.
-ownedByDatumHijackingParams ::
+typedByDatumHijackingParams ::
   forall (oldOwner :: Type) owner.
   ( IsTxSkelOutAllowedOwner owner,
     Typeable oldOwner
   ) =>
   owner ->
   DatumHijackingParams
-ownedByDatumHijackingParams = defaultDatumHijackingParams (txSkelOutOwnerL % userTypedAF @oldOwner)
+typedByDatumHijackingParams = defaultDatumHijackingParams (txSkelOutOwnerL % userTypedAF @oldOwner)
+
+-- | Datum hijacking parameters targetting all the outputs owner by a given
+-- user, and redirecting each of them in a separate transaction.
+ownedByDatumHijackingParams ::
+  forall oldOwner owner.
+  ( IsTxSkelOutAllowedOwner owner,
+    Typeable oldOwner,
+    Eq oldOwner
+  ) =>
+  oldOwner ->
+  owner ->
+  DatumHijackingParams
+ownedByDatumHijackingParams user = defaultDatumHijackingParams (txSkelOutOwnerL % userTypedAF @oldOwner % filtered (== user))
 
 -- | Datum hijacking parameters targetting all the outputs owned by a script,
 -- and redirecting each of them in a separate transaction.

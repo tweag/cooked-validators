@@ -246,7 +246,7 @@ instance PrettyCookedList TxSkelOut where
     ]
       ++ catMaybes
         [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),
-          ("Reference script hash:" <+>) . prettyHash opts <$> preview txSkelOutReferenceScriptHashAF output
+          ("Reference script:" <+>) . prettyHash opts <$> preview txSkelOutReferenceScriptHashAF output
         ]
 
 instance PrettyCooked TxSkelOut where

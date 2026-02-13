@@ -51,7 +51,7 @@ type family (∪) (xs :: [a]) (ys :: [a]) :: [a] where
 -- because the type checker is not smart enough to understand that this type
 -- family decreases in @els@, due to the presence of @extras@. @extras@ is used
 -- to keep track of the original list and output a relevant message in the empty
--- case, which could otherwise be omitted altogther at no loss of type safety.
+-- case, which could otherwise be omitted altogether at no loss of type safety.
 type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
   Member x (x ': xs) _ = ()
   Member x (y ': xs) l = Member x xs (y ': l)

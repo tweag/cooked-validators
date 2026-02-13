@@ -103,9 +103,10 @@ mcstMOutputL oRef = mcstOutputsL % at oRef % iso (fmap fst) (fmap (,True))
 addOutput :: Api.TxOutRef -> TxSkelOut -> MockChainState -> MockChainState
 addOutput oRef = set (mcstMOutputL oRef) . Just
 
--- | Removes an output from the 'MockChainState'
+-- | Removes an output from the 'MockChainState'. This does not actually remove
+-- it from the map, but instead marks its availability to @False@
 removeOutput :: Api.TxOutRef -> MockChainState -> MockChainState
-removeOutput oRef = set (mcstOutputsL % at oRef) Nothing
+removeOutput oRef = set (mcstOutputsL % at oRef % _Just % _2) False
 
 -- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
 -- stores the actual datum and whether it is hashed (@True@) or inline

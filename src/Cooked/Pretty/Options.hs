@@ -46,7 +46,9 @@ data PrettyCookedOpts = PrettyCookedOpts
     -- | Whether to display the return value
     pcOptPrintReturnedValue :: Bool,
     -- | Whether to display the consumed utxos
-    pcOptPrintConsumedUTxOs :: Bool
+    pcOptPrintConsumedUTxOs :: Bool,
+    -- | Whether to display assertions
+    pcOptPrintAssertions :: Bool
   }
   deriving (Eq, Show)
 
@@ -62,7 +64,8 @@ instance Default PrettyCookedOpts where
         pcOptPrintNotebook = True,
         pcOptPrintRemainingUTxOs = True,
         pcOptPrintReturnedValue = True,
-        pcOptPrintConsumedUTxOs = False
+        pcOptPrintConsumedUTxOs = False,
+        pcOptPrintAssertions = True
       }
 
 -- | Whether to print transaction outputs references.

@@ -40,12 +40,15 @@ instance (Show a) => PrettyCooked [MockChainReturn a] where
           (PP.align . prettyCookedOpt opts <$> outcomes)
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook _)) =
+  prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook assertions)) =
     PP.vsep $
       [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | pcOptPrintNotebook opts && not (null noteBook)]
         <> [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
-        <> ["💰" <+> prettyCookedOpt opts available | pcOptPrintRemainingUTxOs opts && not (null available)]
+        <> [ prettyItemize opts "❓ Assertions:" "-" ((\(s, b) -> (if b then "✔" else "✘") <+> prettyCookedOpt opts s) <$> assertions)
+           | pcOptPrintAssertions opts && not (null assertions)
+           ]
         <> ["🗑️" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts && not (null consumed)]
+        <> ["💰" <+> prettyCookedOpt opts available | pcOptPrintRemainingUTxOs opts && not (null available)]
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
                Right a -> "🟢 Success with returned value:" <+> PP.viaShow a

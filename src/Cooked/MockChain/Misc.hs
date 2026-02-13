@@ -88,4 +88,4 @@ assert :: forall effs. (Member MockChainMisc effs) => String -> Bool -> Sem effs
 
 -- | Ensures a specific property holds, with a default error message otherwise
 assert' :: forall effs. (Member MockChainMisc effs) => Bool -> Sem effs ()
-assert' = assert "Assertion error"
+assert' = assert "Assertion"
