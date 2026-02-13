@@ -42,13 +42,22 @@ instance (Show a) => PrettyCooked [MockChainReturn a] where
 instance (Show a) => PrettyCooked (MockChainReturn a) where
   prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook assertions)) =
     PP.vsep $
-      [prettyItemize opts "📔 Notes:" "-" (($ opts) <$> noteBook) | pcOptPrintNotebook opts && not (null noteBook)]
-        <> [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts && not (null entries)]
-        <> [ prettyItemize opts "❓ Assertions:" "-" ((\(s, b) -> (if b then "✔" else "✘") <+> prettyCookedOpt opts s) <$> assertions)
+      [ prettyItemize opts "📔 Notes:" "-" $ ($ opts) <$> noteBook
+      | pcOptPrintNotebook opts && not (null noteBook)
+      ]
+        <> [ prettyCookedOpt opts $ Contextualized outputs entries
+           | pcOptPrintLog opts && not (null entries)
+           ]
+        <> [ prettyItemize opts (if all snd assertions then "✅ Assertions:" else "❌ Assertions:") "-" $
+               (\(s, b) -> (if b then "✔" else "✘") <+> prettyCookedOpt opts s) <$> assertions
            | pcOptPrintAssertions opts && not (null assertions)
            ]
-        <> ["🗑️" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts && not (null consumed)]
-        <> ["💰" <+> prettyCookedOpt opts available | pcOptPrintRemainingUTxOs opts && not (null available)]
+        <> [ "🗑️" <+> prettyCookedOpt opts consumed
+           | pcOptPrintConsumedUTxOs opts && not (null consumed)
+           ]
+        <> [ "💰" <+> prettyCookedOpt opts available
+           | pcOptPrintRemainingUTxOs opts && not (null available)
+           ]
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
                Right a -> "🟢 Success with returned value:" <+> PP.viaShow a
@@ -244,7 +253,7 @@ instance PrettyCookedList UtxoPayloadSet where
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
             (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> dat) <$> splitDatum utxoPayloadDatum,
-            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScriptHash
+            ("Reference script:" <+>) . prettyHash opts <$> utxoPayloadReferenceScriptHash
           ] of
           [] -> Nothing
           [doc] -> Just $ PP.align doc

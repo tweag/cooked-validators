@@ -8,11 +8,11 @@ import Data.Default
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.InlineDatums
 import Plutus.Script.Utils.V3.Generators
 import Plutus.Script.Utils.V3.Typed
 import Plutus.Script.Utils.Value
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.Prelude qualified as PlutusTx
 import Polysemy
 import Polysemy.Reader
 import Test.Tasty (TestTree)
@@ -27,9 +27,9 @@ printAndRun ::
 printAndRun =
   printCookedOpt
     ( def
-        { pcOptPrintLog = True,
+        { pcOptPrintLog = False,
           pcOptHashes = def, -- {pcOptHashNames = mempty},
-          pcOptPrintConsumedUTxOs = True,
+          pcOptPrintConsumedUTxOs = False,
           pcOptPrintRemainingUTxOs = True
         }
     )
@@ -43,6 +43,26 @@ Enter a repl and load the required dependencies.
 > cabal repl tests
 > :l tests/Spec/StagedRun
 > import Cooked
+
+Start with the following running function
+
+printAndRun ::
+  ( Show a,
+    RunnableMockChain effs,
+    Polysemy.Member MockChainWrite effs
+  ) =>
+  Sem effs a ->
+  IO ()
+printAndRun =
+  printCookedOpt
+    ( def
+        { pcOptPrintLog = False,
+          pcOptHashes = def {pcOptHashNames = mempty},
+          pcOptPrintConsumedUTxOs = False,
+          pcOptPrintRemainingUTxOs = True
+        }
+    )
+    . runMockChainDef
 
 We define a run which does nothing
 --}
@@ -87,6 +107,7 @@ demoRunForceOutputsAliases = do
     ]
 
 {--
+
 Notice that cooked already made some adjustments to the value of an input (min ADA accounted for).
 We can actually ask cooked to show the adjustement it mades during the run.
 (we change the opt in the runner above)
@@ -107,21 +128,16 @@ Let's now move on to some more complex and interesting initial values.
 demoRunFullForcedOutputs :: StagedMockChain ()
 demoRunFullForcedOutputs = do
   alice <- define "alice" $ wallet 1
-  bob <- define "bob" $ wallet 2
   trueScript <- define "trueScript" $ trueMPScript @()
-  falseScript <- define "falseScript" $ falseMPScript @()
-  permanent <- define "permanent" $ Api.TokenName "permanent"
   quick <- define "quick" $ Api.TokenName "quick"
-  let permanentValue = review (valueAssetClassAmountP falseScript permanent)
-      quickValue = review (valueAssetClassAmountP trueScript quick)
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
   forceOutputs_ $
-    replicate 4 (bob `receives` Value (ada 10))
-      ++ replicate 4 (alice `receives` Value (ada 10))
-      ++ [ alice `receives` Value (permanentValue 3) <&&> InlineDatum (3 :: Integer),
-           alice `receives` Value (permanentValue 5) <&&> HiddenHashedDatum (15 :: Integer),
+    replicate 4 (alice `receives` Value (ada 10))
+      ++ [ alice `receives` Value (quickValue 3) <&&> InlineDatum (3 :: Integer),
+           alice `receives` Value (quickValue 5) <&&> HiddenHashedDatum (5 :: Integer),
            alice `receives` Value (quickValue 4),
-           alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (25 :: Integer),
-           alice `receives` Value (permanentValue 12) <&&> VisibleHashedDatum (10 :: Integer),
+           alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (10 :: Integer),
+           alice `receives` Value (quickValue 12) <&&> VisibleHashedDatum (12 :: Integer),
            alice `receives` InlineDatum (20 :: Integer)
          ]
 
@@ -155,22 +171,17 @@ initialEnvironment =
 demoRunNicknamesEnv :: ExtendedStagedMockChain (Reader Environment) ()
 demoRunNicknamesEnv = do
   alice <- asks alice >>= define "alice"
-  bob <- asks bob >>= define "bob"
   trueScript <- asks trueScript >>= define "trueScript"
-  falseScript <- asks falseScript >>= define "falseScript"
-  permanent <- asks permanent >>= define "permanent"
   quick <- asks quick >>= define "quick"
-  let permanentValue = review (valueAssetClassAmountP falseScript permanent)
-      quickValue = review (valueAssetClassAmountP trueScript quick)
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
   forceOutputs_ $
-    replicate 4 (bob `receives` Value (ada 10))
-      ++ replicate 4 (alice `receives` Value (ada 10))
-      ++ [ alice `receives` Value (permanentValue 3) <&&> InlineDatum (3 :: Integer),
-           alice `receives` Value (permanentValue 5) <&&> HiddenHashedDatum (15 :: Integer),
+    replicate 4 (alice `receives` Value (ada 10))
+      ++ [ alice `receives` Value (quickValue 3) <&&> InlineDatum (3 :: Integer),
+           alice `receives` Value (quickValue 5) <&&> HiddenHashedDatum (15 :: Integer),
            alice `receives` Value (quickValue 4),
            alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (25 :: Integer),
-           alice `receives` Value (permanentValue 12) <&&> VisibleHashedDatum (10 :: Integer),
-           alice `receives` InlineDatum (20 :: Integer)
+           alice `receives` Value (quickValue 12) <&&> VisibleHashedDatum (10 :: Integer),
+           alice `receives` InlineDatum (0 :: Integer)
          ]
 
 instance InterpretAlone (Reader Environment) where
@@ -179,36 +190,32 @@ instance InterpretAlone (Reader Environment) where
 {--
 RUN IT
 
+HIDE THE LOG
+
 Now, let's make some assertions, searches and traces
 --}
 
 demoRunSearches :: ExtendedStagedMockChain (Reader Environment) ()
 demoRunSearches = do
   alice <- asks alice >>= define "alice"
-  bob <- asks bob >>= define "bob"
   trueScript <- asks trueScript >>= define "trueScript"
-  falseScript <- asks falseScript >>= define "falseScript"
-  permanent <- asks permanent >>= define "permanent"
   quick <- asks quick >>= define "quick"
-  let permanentValue = review (valueAssetClassAmountP falseScript permanent)
-      quickValue = review (valueAssetClassAmountP trueScript quick)
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
   outputs <-
     forceOutputs $
-      replicate 4 (bob `receives` Value (ada 10))
-        ++ replicate 4 (alice `receives` Value (ada 10))
-        ++ [ alice `receives` Value (permanentValue 3) <&&> InlineDatum (3 :: Integer),
-             alice `receives` Value (permanentValue 5) <&&> HiddenHashedDatum (15 :: Integer),
+      replicate 4 (alice `receives` Value (ada 10))
+        ++ [ alice `receives` Value (quickValue 3) <&&> InlineDatum (3 :: Integer),
+             alice `receives` Value (quickValue 5) <&&> HiddenHashedDatum (5 :: Integer),
              alice `receives` Value (quickValue 4),
-             alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (25 :: Integer),
-             alice `receives` Value (permanentValue 12) <&&> VisibleHashedDatum (10 :: Integer),
-             alice `receives` InlineDatum (20 :: Integer)
+             alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (10 :: Integer),
+             alice `receives` InlineDatum (0 :: Integer)
            ]
-  noteS "We have given a few assets to Alice, Bob and Carry to begin the run"
+  noteS "We have given a few assets to Alice at the beginning of the run"
   -- Ensuring that "Alice" got 10 utxos out of the "forceOutputs" call
   aliceUtxos <-
     beginSearchP outputs
       & ensureAFoldIs (txSkelOutOwnerL % userTypedAF @Wallet % filtered (== alice))
-  assert "Alice has the right amount of utxos" $ length aliceUtxos == 10
+  assert "Alice has the right amount of utxos" $ length aliceUtxos == 9
   forM_ (zip [(1 :: Integer) ..] aliceUtxos) $ \(i, (_, output)) -> noteL ("Alice UTxO number " <> show i) output
   -- Ensuring that Alice has 2 utxos with quick values with the right amount
   aliceQuickValueExtracts <-
@@ -216,31 +223,56 @@ demoRunSearches = do
       beginSearchP outputs
         & ensureAFoldIs (txSkelOutOwnerL % userTypedAF @Wallet % filtered (== alice))
         . extractAFold (txSkelOutValueL % valueAssetClassAmountP trueScript quick)
-  assert "We properly extracted the quick token from Alice's utxos" $ aliceQuickValueExtracts == ((`HCons` HEmpty) <$> [4, 10])
+  assert "We properly extracted the quick tokens from Alice's utxos" $ aliceQuickValueExtracts == ((`HCons` HEmpty) <$> [3, 5, 4, 10])
   -- Ensuring that Alice has 2 utxos created with hashed datums with permanent
   -- values, and retrieving the typed content of those datums.
   aliceHashedDatums <-
     getExtracts $
       beginSearchP outputs
         & ensureAFoldIs (txSkelOutOwnerL % userTypedAF @Wallet % filtered (== alice))
-        . extractAFold (txSkelOutValueL % valueAssetClassAmountP falseScript permanent)
+        . extractAFold (txSkelOutValueL % valueAssetClassAmountP trueScript quick)
         . extractAFold (txSkelOutDatumL % txSkelOutDatumKindAT % datumKindResolvedP)
         . extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)
   assert "We properly extracted more info from Alice's utxos" $
     aliceHashedDatums
-      == [ HCons 5 (HCons NotResolved (HCons 15 HEmpty)),
-           HCons 12 (HCons Resolved (HCons 10 HEmpty))
+      == [ HCons 5 (HCons NotResolved (HCons 5 HEmpty)),
+           HCons 10 (HCons Resolved (HCons 10 HEmpty))
          ]
 
 {--
 So now that we've seen those features, let's clear out the field and
 start using those UTxOs we've created.
-Make sure the log is visible.
 Speak about signatory and balancing.
 
+Make sure the log is visible.
 Enable show consumed utxos
 
 RUN IT
+
+--}
+
+demoRunFirstTransaction :: ExtendedStagedMockChain (Reader Environment) ()
+demoRunFirstTransaction = do
+  alice <- asks alice >>= define "alice"
+  bob <- asks bob >>= define "bob"
+  trueScript <- asks trueScript >>= define "trueScript"
+  quick <- asks quick >>= define "quick"
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
+  forceOutputs_ $
+    replicate 4 (alice `receives` Value (ada 10))
+      ++ [ alice `receives` Value (quickValue 3) <&&> InlineDatum (3 :: Integer),
+           alice `receives` Value (quickValue 5) <&&> HiddenHashedDatum (5 :: Integer),
+           alice `receives` Value (quickValue 4),
+           alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (10 :: Integer),
+           alice `receives` InlineDatum (0 :: Integer)
+         ]
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelOuts = [bob `receives` Value (quickValue 2)]
+      }
+
+{--
 
 Remove line  alice `receives` Value (quickValue 4)
 
@@ -263,24 +295,21 @@ Maybe a better solution here would be to manually provide the UTxO to spend and 
 
 --}
 
-demoRunFirstTransaction :: ExtendedStagedMockChain (Reader Environment) ()
-demoRunFirstTransaction = do
+demoRunFirstTransaction2 :: ExtendedStagedMockChain (Reader Environment) ()
+demoRunFirstTransaction2 = do
   alice <- asks alice >>= define "alice"
   bob <- asks bob >>= define "bob"
   trueScript <- asks trueScript >>= define "trueScript"
-  falseScript <- asks falseScript >>= define "falseScript"
-  permanent <- asks permanent >>= define "permanent"
   quick <- asks quick >>= define "quick"
-  let permanentValue = review (valueAssetClassAmountP falseScript permanent)
-      quickValue = review (valueAssetClassAmountP trueScript quick)
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
   outputs <-
     forceOutputs $
       replicate 4 (alice `receives` Value (ada 10))
-        ++ [ alice `receives` Value (permanentValue 3) <&&> InlineDatum (3 :: Integer),
-             alice `receives` Value (permanentValue 5) <&&> HiddenHashedDatum (5 :: Integer),
+        ++ [ alice `receives` Value (quickValue 3) <&&> InlineDatum (3 :: Integer),
+             alice `receives` Value (quickValue 5) <&&> HiddenHashedDatum (5 :: Integer),
              -- alice `receives` Value (quickValue 4),
              alice `receives` Value (quickValue 10) <&&> VisibleHashedDatum (10 :: Integer),
-             alice `receives` Value (permanentValue 12) <&&> VisibleHashedDatum (12 :: Integer),
+             alice `receives` Value (quickValue 12) <&&> VisibleHashedDatum (12 :: Integer),
              alice `receives` InlineDatum (0 :: Integer)
            ]
   validateTxSkel_ $
@@ -327,7 +356,160 @@ dhDemoRunFirstTransaction = withTweak demoRunFirstTransaction $ do
 Show that the Skeleton has been labelled in the log
 
 This is already nice, but attempting a DH attack when no script is involved is a bit lame.
+
+Let's start fresh from a new trace, and have some scripts be executed first.
+We can invoke a minting policy for the sake of it.
 --}
+
+demoRunFirstScripts :: StagedMockChain ()
+demoRunFirstScripts = do
+  alice <- define "alice" $ wallet 1
+  trueScript <- define "trueScript" $ trueMPScript @()
+  quick <- define "quick" $ Api.TokenName "quick"
+  inlineScript <- define "inlineScript" requireInlineDatumInOutputValidator
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
+  forceOutputs_ [alice `receives` Value (ada 100)]
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelMints = txSkelMintsFromList [mint trueScript () quick 2],
+        txSkelOuts =
+          [ inlineScript `receives` Value (quickValue 1),
+            trueScript `receives` Value (quickValue 1)
+          ]
+      }
+
+{--
+We can see that the fee for the transaction is .396 ADA. This is not that huge
+but maybe we can do even better. How about we use a reference script?
+--}
+
+demoRunReferenceScript :: StagedMockChain ()
+demoRunReferenceScript = do
+  alice <- define "alice" $ wallet 1
+  trueScript <- define "trueScript" $ trueMPScript @()
+  quick <- define "quick" $ Api.TokenName "quick"
+  inlineScript <- define "inlineScript" requireInlineDatumInOutputValidator
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
+  forceOutputs_
+    [ alice `receives` Value (ada 100),
+      alice `receives` ReferenceScript trueScript
+    ]
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelMints = txSkelMintsFromList [mint trueScript () quick 2],
+        txSkelOuts =
+          [ inlineScript `receives` Value (quickValue 1),
+            trueScript `receives` Value (quickValue 1)
+          ]
+      }
+
+{--
+We can see that cooked automatically attached the reference script input.
+Not too bad, even for a small script like the always true script, we now
+only have to pay .192 ADA
+
+Of course this can be disabled. And manual utxos can be provided.
+
+Now let's try to consume those UTxOs we've created at the script addresses.
+
+--}
+
+demoRunScriptUtxos :: StagedMockChain ()
+demoRunScriptUtxos = do
+  alice <- define "alice" $ wallet 1
+  trueScript <- define "trueScript" $ trueMPScript @()
+  quick <- define "quick" $ Api.TokenName "quick"
+  inlineScript <- define "inlineScript" requireInlineDatumInOutputValidator
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
+  forceOutputs_
+    [ alice `receives` Value (ada 100),
+      alice `receives` ReferenceScript trueScript
+    ]
+  (isORef, isOutput) : (tsORef, tsOutput) : _ <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelSignatories = txSkelSignatoriesFromList [alice],
+          txSkelMints = txSkelMintsFromList [mint trueScript () quick 2],
+          txSkelOuts =
+            [ inlineScript `receives` Value (quickValue 1),
+              trueScript `receives` Value (quickValue 1)
+            ]
+        }
+
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelIns = Map.singleton tsORef emptyTxSkelRedeemer,
+        txSkelOuts = [tsOutput]
+      }
+
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelIns = Map.singleton isORef emptyTxSkelRedeemer,
+        txSkelOuts = [isOutput]
+      }
+
+{--
+It does not work ! We have a phase 2 validation error, because the inline validator
+requires ... an inline datum in its continuing output. Let's fix this.
+--}
+
+demoRunScriptUtxosFixed :: StagedMockChain ()
+demoRunScriptUtxosFixed = do
+  alice <- define "alice" $ wallet 1
+  trueScript <- define "trueScript" $ trueMPScript @()
+  quick <- define "quick" $ Api.TokenName "quick"
+  inlineScript <- define "inlineScript" requireInlineDatumInOutputValidator
+  let quickValue = review (valueAssetClassAmountP trueScript quick)
+  forceOutputs_
+    [ alice `receives` Value (ada 100),
+      alice `receives` ReferenceScript trueScript
+    ]
+  (isORef, isOutput) : (tsORef, tsOutput) : _ <-
+    validateTxSkel' $
+      txSkelTemplate
+        { txSkelSignatories = txSkelSignatoriesFromList [alice],
+          txSkelMints = txSkelMintsFromList [mint trueScript () quick 2],
+          txSkelOuts =
+            [ inlineScript `receives` Value (quickValue 1),
+              trueScript `receives` Value (quickValue 1)
+            ]
+        }
+
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelIns = Map.singleton tsORef emptyTxSkelRedeemer,
+        txSkelOuts = [tsOutput]
+      }
+
+  validateTxSkel_ $
+    txSkelTemplate
+      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+        txSkelIns = Map.singleton isORef emptyTxSkelRedeemer,
+        txSkelOuts = [set txSkelOutDatumL (SomeTxSkelOutDatum () Cooked.Inline) isOutput],
+        txSkelLabels = Set.fromList [label "Spending inlineScript"]
+      }
+
+{--
+From here onwards, deactivate the log and the consumed UTXOs
+
+Let spice things up a little bit.
+
+We notice that spending the inline validator only requires an inline datum, no
+matter the content of the utxo.
+
+Let's label the interesting transaction (WE DO IT) and target it for a nice attack.
+--}
+
+demoRunInlineDatumHijacking :: StagedMockChain ()
+demoRunInlineDatumHijacking =
+  (`whenAble` demoRunScriptUtxosFixed) $ labelled' "Spending inlineScript" $ do
+    void $ datumHijackingAttack (ownedByDatumHijackingParams requireInlineDatumInOutputValidator (wallet 1))
+    overTweak txSkelOutsL ((requireInlineDatumInOutputValidator `receives` InlineDatum ()) :)
 
 tests :: TestTree
 tests = testCooked "Full staged run" $ mustSucceedTest @_ @StagedEffs (return ())

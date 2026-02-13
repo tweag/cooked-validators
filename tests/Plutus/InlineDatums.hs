@@ -2,6 +2,7 @@
 
 module Plutus.InlineDatums where
 
+import Cooked.ShowBS
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusCore.Version
 import PlutusLedgerApi.V3 qualified as Api
@@ -80,8 +81,8 @@ outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOu
             (OnlyHash, Api.OutputDatumHash h) -> not $ Map.member h txInfoData
             (Datum, Api.OutputDatumHash h) -> Map.member h txInfoData
             (Inline, Api.OutputDatum _) -> True
-            _ -> False
-    _ -> False
+            _ -> traceError "Wrong matching between expected and real datum kinds"
+    _ -> traceError "Wrong inputs/outputs"
 
 compiledOutputDatumSpendingPurpose :: CompiledCode (OutputDatumKind -> BuiltinData -> BuiltinUnit)
 compiledOutputDatumSpendingPurpose = $$(compile [||script||])
