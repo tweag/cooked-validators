@@ -8,7 +8,7 @@ import Data.Default
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.InlineDatums
+import Plutus.InlineDatums (requireInlineDatumInOutputValidator)
 import Plutus.Script.Utils.V3.Generators
 import Plutus.Script.Utils.V3.Typed
 import Plutus.Script.Utils.Value
@@ -490,8 +490,8 @@ demoRunScriptUtxosFixed = do
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelIns = Map.singleton isORef emptyTxSkelRedeemer,
-        txSkelOuts = [set txSkelOutDatumL (SomeTxSkelOutDatum () Cooked.Inline) isOutput],
-        txSkelLabels = Set.fromList [label "Spending inlineScript"]
+        txSkelOuts = [set txSkelOutDatumL (SomeTxSkelOutDatum () Inline) isOutput] -- ,
+        -- txSkelLabels = Set.fromList [label "Spending inlineScript"]
       }
 
 {--

@@ -136,6 +136,9 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters and its number of scripts.
+-- In the Dijsktra era, this will be modified with new protocol parameters.
+-- See https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md
+-- for more information
 getMinAndMaxFee :: (Member MockChainRead effs) => Fee -> Sem effs (Fee, Fee)
 getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
@@ -289,7 +292,7 @@ collateralsFromFees fee (Just (collateralIns, returnCollateralUser)) =
 reachValue ::
   Utxos ->
   Api.Value ->
-  Fee ->
+  Integer ->
   [(Utxos, Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
