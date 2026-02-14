@@ -27,7 +27,7 @@ printAndRun ::
 printAndRun =
   printCookedOpt
     ( def
-        { pcOptPrintLog = False,
+        { pcOptPrintLog = True,
           pcOptHashes = def, -- {pcOptHashNames = mempty},
           pcOptPrintConsumedUTxOs = False,
           pcOptPrintRemainingUTxOs = True

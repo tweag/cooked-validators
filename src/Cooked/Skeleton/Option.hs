@@ -193,26 +193,45 @@ data TxSkelOpts = TxSkelOpts
     -- computed automatically from a given, or the balancing, user.
     --
     -- Default is 'CollateralUtxosFromBalancingUser'
-    txSkelOptCollateralUtxos :: CollateralUtxos
+    txSkelOptCollateralUtxos :: CollateralUtxos,
+    -- | Whether to defer validation failures occurring during balancing
+    -- (specifically during the computation of execution units) to the actual
+    -- later validation attempt of the transaction.
+    --
+    -- When set to @False@: the phase 2 validation failures will be caught as
+    -- early as possible, during the first attempt at generating a proper
+    -- Cardano body. This will shortcut the whole balancing process which
+    -- iterates the body generation, and thus increase performances (by 40%). As
+    -- a result, the balanced `TxSkel` will never be computed and thus will be
+    -- absent from the log, which is the only downside.
+    --
+    -- When set to @True@: the phase 2 validation erros will be ignored during
+    -- the balancing process. This will result in a worst performance, but will
+    -- allow the log to display a balanced version of the failing `TxSkel`,
+    -- which might be useful. Only use this when debugging complicated phase 2
+    -- failures which require a precise view of the balanced `TxSkel` sent for
+    -- validation.
+    txSkelOptDeferPhase2FailuresDuringBalancing :: Bool
   }
 
 -- | Comparing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Eq TxSkelOpts where
-  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos)
-    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos') =
+  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures)
+    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos' deferFailures') =
       slotIncrease == slotIncrease'
         && balancingPol == balancingPol'
         && feePol == feePol'
         && balOutputPol == balOutputPol'
         && balUtxos == balUtxos'
         && colUtxos == colUtxos'
+        && deferFailures == deferFailures'
 
 -- | Showing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Show TxSkelOpts where
-  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos) =
-    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos]
+  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures) =
+    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show deferFailures]
 
 -- | A lens to get or set the automatic slot increase option
 makeLensesFor [("txSkelOptAutoSlotIncrease", "txSkelOptAutoSlotIncreaseL")] ''TxSkelOpts
@@ -251,7 +270,8 @@ instance Default TxSkelOpts where
         txSkelOptFeePolicy = def,
         txSkelOptBalancingUtxos = def,
         txSkelOptModParams = id,
-        txSkelOptCollateralUtxos = def
+        txSkelOptCollateralUtxos = def,
+        txSkelOptDeferPhase2FailuresDuringBalancing = False
       }
 
 -- | Appends a transaction modification to the given 'TxSkelOpts'

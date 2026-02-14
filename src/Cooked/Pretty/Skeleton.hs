@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module implements 'PrettyCooked', 'PrettyCookedList' and
@@ -293,13 +292,15 @@ instance PrettyCookedList TxSkelOpts where
         txSkelOptBalancingUtxos
         _
         txSkelOptCollateralUtxos
+        txSkelOptDeferFailures
       ) =
       [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
         prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
         prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
         prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
-        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos
+        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
+        prettyIfNot False (const "Defer Phase 2 failures during balancing") txSkelOptDeferFailures
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
