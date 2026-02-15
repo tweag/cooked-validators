@@ -27,6 +27,7 @@ import Data.Bifunctor
 import Data.Function
 import Data.List (find, partition, sortBy)
 import Data.Map qualified as Map
+import Data.Maybe (fromMaybe)
 import Data.Ratio qualified as Rat
 import Data.Set qualified as Set
 import Ledger.Tx qualified as Ledger
@@ -139,7 +140,10 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 -- In the Dijsktra era, this will be modified with new protocol parameters.
 -- See https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md
 -- for more information
-getMinAndMaxFee :: (Member MockChainRead effs) => Fee -> Sem effs (Fee, Fee)
+getMinAndMaxFee ::
+  (Members '[MockChainRead] effs) =>
+  Integer ->
+  Sem effs (Fee, Fee)
 getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
   -- for a transaction. There are quite a few of them.
@@ -290,30 +294,37 @@ collateralsFromFees fee (Just (collateralIns, returnCollateralUser)) =
 -- optimizations, this function is theoretically in 2^n where n is the number of
 -- candidate UTxOs. Use with caution.
 reachValue ::
+  -- | The Utxos available to reach the value
   Utxos ->
+  -- | The target value to reach
   Api.Value ->
+  -- | The maximum number of Utxos allowed to reach the target
   Integer ->
+  -- | A list of lists of Utxos sufficient to reach the target, with the
+  -- exceeding amount between their total sum and the target.
   [(Utxos, Api.Value)]
--- Target is smaller than the empty value (which means in only contains negative
--- entries), we stop looking as adding more elements would be superfluous.
-reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
--- The target is not reached, but the max number of elements is reached, we
--- would need more elements but are not allowed to look for them.
-reachValue _ _ maxEls | maxEls == 0 = []
--- The target is not reached, and cannot possibly be reached, as the remaining
--- candidates do not sum up to the target.
-reachValue l target _ | not $ target `Api.leq` mconcat (view txSkelOutValueL . snd <$> l) = []
--- There is no more elements to go through and the target has not been
--- reached. Encompassed by the previous case, but needed by GHC.
-reachValue [] _ _ = []
--- Main recursive case, where we either pick or drop the head. We only pick the
--- head if it contributes to reaching the target, i.e. if its intersection with
--- the positive part of the target is not empty.
-reachValue (h@(_, view txSkelOutValueL -> hVal) : t) target maxEls =
-  (++) (reachValue t target maxEls) $
-    if snd (Api.split target) PlutusTx./\ hVal == mempty
-      then []
-      else first (h :) <$> reachValue t (target <> PlutusTx.negate hVal) (maxEls - 1)
+reachValue utxos = go utxos (mconcat $ view txSkelOutValueL . snd <$> utxos)
+  where
+    go :: Utxos -> Api.Value -> Api.Value -> Integer -> [(Utxos, Api.Value)]
+    -- Target is smaller than the empty value (which means in only contains negative
+    -- entries), we stop looking as adding more elements would be superfluous.
+    go _ _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
+    -- The fuel has been fully consumed, and the target is not yet reached.
+    go _ _ _ fuel | fuel <= 0 = []
+    -- The target is not reached, and cannot possibly be reached, as the remaining
+    -- candidates do not sum up to the target.
+    go _ available target _ | not $ target `Api.leq` available = []
+    -- There is no more elements to go through and the target has not been
+    -- reached. Encompassed by the previous case, but needed by GHC.
+    go [] _ _ _ = []
+    -- Main recursive case, where we either pick or drop the head. We only pick the
+    -- head if it contributes to reaching the target, i.e. if its intersection with
+    -- the positive part of the target is not empty.
+    go (h@(_, view txSkelOutValueL -> hVal) : t) ((<> PlutusTx.negate hVal) -> available') target fuel =
+      go t available' target fuel
+        ++ if snd (Api.split target) PlutusTx./\ hVal == mempty
+          then []
+          else first (h :) <$> go t available' (target <> PlutusTx.negate hVal) (fuel - 1)
 
 -- | A helper function to grab an optimal candidate in terms of having a minimal
 -- enough amount of ada to sustain itself meant to be used after calling
@@ -335,8 +346,8 @@ getOptimalCandidate candidates paymentTarget mceError = do
     [] -> throw mceError
     (_, ret) : _ -> return ret
 
--- | This function was originally inspired by
--- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
+-- | Estimates the required fee for a given skeleton with a given initial fee
+-- and collaterals
 estimateTxSkelFee ::
   (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
@@ -404,9 +415,11 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   let noInputs = inValue == mempty && missingLeft' == mempty
       missingLeft'' = if noInputs then Script.lovelace 1 else missingLeft'
       missingRight'' = if noInputs then missingRight' <> Script.lovelace 1 else missingRight'
+  -- We retrieve the maximum number of Utxos that can be used for balancing
+  let maxNbOfBalancingUtxos = fromMaybe (toInteger $ length balancingUtxos) (txSkelOptMaxNbOfBalancingUtxos txSkelOpts)
   -- This gives us what we need to run our `reachValue` algorithm and append to
   -- the resulting values whatever payment was missing in the initial skeleton
-  let candidatesRaw = second (<> missingRight'') <$> reachValue balancingUtxos missingLeft'' (toInteger $ length balancingUtxos)
+  let candidatesRaw = second (<> missingRight'') <$> reachValue balancingUtxos missingLeft'' maxNbOfBalancingUtxos
   -- We prepare a possible balancing error with the difference between the
   -- requested amount and the maximum amount provided by the balancing user
   let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
