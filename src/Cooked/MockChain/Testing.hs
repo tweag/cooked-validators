@@ -276,8 +276,8 @@ testCooked ::
   HU.TestTree
 testCooked name = HU.testCase name . testToProp
 
--- Same as `testCooked` but first assigns the initial distribution template as a
--- starting point to the test
+-- | Same as `testCooked` but first assigns the initial distribution template as
+-- a starting point to the test
 testCookedFromInitDistTemplate ::
   forall effs a b.
   (Show b) =>
@@ -296,8 +296,8 @@ testCookedQC ::
   HU.TestTree
 testCookedQC name = QC.testProperty name . testToProp
 
--- Same as `testCookedQC` but first assigns the initial distribution template as a
--- starting point to the test
+-- | Same as `testCookedQC` but first assigns the initial distribution template
+-- as a starting point to the test
 testCookedQCFromInitDistTemplate ::
   forall effs a b.
   (Show b) =>
