@@ -2,7 +2,6 @@
 
 module Plutus.InlineDatums where
 
-import Cooked.ShowBS
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusCore.Version
 import PlutusLedgerApi.V3 qualified as Api
