@@ -1,6 +1,7 @@
 -- | This module exposes the errors that can be raised during a mockchain run
 module Cooked.MockChain.Error
   ( -- * Mockchain errors
+    BalancingError (..),
     MockChainError (..),
 
     -- * Interpretating effects into `Error MockChainError`
@@ -18,16 +19,31 @@ import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
 
+-- | Errors that can be produced during balancing
+data BalancingError
+  = -- | The balancing user theoretically has enough funds to balancing the
+    -- trasaction, but this balancing results in a surplus payment which they
+    -- cannot afford ADA-wise.
+    NotEnoughFundForExtraMinAda Peer
+  | -- | The balancing does not have enough funds to sustain the fee required to
+    -- balance the transaction.
+    NotEnoughFundForProperFee Peer
+  | -- | The balancing wallet does not have enough funds to balance the
+    -- transaction
+    NotEnoughFund Peer Api.Value
+  | -- | The provided of collateral UTxOs does not have enough funds to cover
+    -- the potential collateral cost
+    NoSuitableCollateral Integer Integer Api.Value
+  | -- | The balancing user has not be provided, but the balancing requires it
+    MissingBalancingUser
+  deriving (Show, Eq)
+
 -- | Errors that can be produced by the blockchain
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
     MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
-  | -- | The balancing user does not have enough funds
-    MCEUnbalanceable Peer Api.Value
-  | -- | The balancing user is required but missing
-    MCEMissingBalancingUser
-  | -- | No suitable collateral could be associated with a skeleton
-    MCENoSuitableCollateral Integer Integer Api.Value
+  | -- | Balancing errors
+    MCEBalancingError BalancingError
   | -- | Translating a skeleton element to its Cardano counterpart failed
     MCEToCardanoError Ledger.ToCardanoError
   | -- | The required reference script is missing from a witness utxo
