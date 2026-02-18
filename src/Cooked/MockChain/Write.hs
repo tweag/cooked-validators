@@ -193,18 +193,16 @@ runMockChainWrite = interpret $ \case
     newOutputs <- case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
       (_, Ledger.FailPhase1 _ err) -> throw $ MCEValidationError Ledger.Phase1 err
-      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColUser) <- mCollaterals -> do
+      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
         -- We update the emulated ledger state
         modify' (set mcstLedgerStateL newELedgerState)
         -- We remove the collateral utxos from our own stored outputs
         forM_ colInputs $ modify' . removeOutput
-        -- We add the returned collateral to our outputs (in practice this map
-        -- either contains no element, or a single one)
-        forM_ (Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) $ \(txIn, txOut) ->
-          modify' $
-            addOutput
-              (Ledger.fromCardanoTxIn txIn)
-              (retColUser `receives` Value (Api.txOutValue . Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut $ txOut))
+        -- We add the returned collateral to our outputs when it exists
+        case (mRetColOutput, Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) of
+          (Nothing, []) -> return ()
+          (Just retColOutput, [(txIn, _)]) -> modify' $ addOutput (Ledger.fromCardanoTxIn txIn) retColOutput
+          _ -> fail "Unreachable case when processing return collaterals, please report a bug at https://github.com/tweag/cooked-validators/issues"
         -- We throw a mockchain error
         throw $ MCEValidationError Ledger.Phase2 err
       -- In case of success, we update the index with all inputs and outputs

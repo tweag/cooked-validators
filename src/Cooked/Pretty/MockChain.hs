@@ -70,7 +70,7 @@ instance PrettyCooked Peer where
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
-  prettyCookedOpt _ (MCEMissingBalancingUser msg) = "Missing balancing user:" <+> PP.pretty msg
+  prettyCookedOpt _ MCEMissingBalancingUser = "Missing balancing user"
   prettyCookedOpt opts (MCEUnbalanceable balUser missingValue) =
     prettyItemize
       opts
@@ -136,9 +136,11 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
           ++ ( ("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee))
                  : maybe
                    ["No collateral required"]
-                   ( \(collaterals, returnUser) ->
+                   ( \(collaterals, mRetColOutput) ->
                        [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
-                         "Return collateral target:" <+> prettyCookedOpt opts returnUser
+                         case mRetColOutput of
+                           Nothing -> "No return collateral output"
+                           Just retColOutput -> prettyItemize opts "Return collateral output:" "-" retColOutput
                        ]
                    )
                    mCollaterals

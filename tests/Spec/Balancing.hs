@@ -37,7 +37,7 @@ initialDistributionBalancing =
     alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
   ]
 
-type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Collaterals, [Api.TxOutRef])
+type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Maybe Collaterals, [Api.TxOutRef])
 
 spendsScriptUtxo :: Bool -> FullMockChain (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
@@ -241,7 +241,7 @@ failsAtCollaterals MCENoSuitableCollateral {} = testBool True
 failsAtCollaterals _ = testBool False
 
 failsLackOfCollateralWallet :: MockChainError -> Assertion
-failsLackOfCollateralWallet (MCEMissingBalancingUser msg) = "Collateral utxos should be taken from the balancing user, but it does not exist." .==. msg
+failsLackOfCollateralWallet MCEMissingBalancingUser = testBool True
 failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> FullMockChain a -> TestTree

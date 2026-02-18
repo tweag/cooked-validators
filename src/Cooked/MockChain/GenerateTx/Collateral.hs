@@ -3,76 +3,54 @@
 module Cooked.MockChain.GenerateTx.Collateral where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Ledger.Conway.Core qualified as Conway
-import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Control.Monad
 import Cooked.MockChain.Common
+import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.Read
 import Cooked.Skeleton.Output
+import Cooked.Skeleton.Value
+import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Lens.Micro.Extras qualified as MicroLens
-import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Value qualified as Script
-import PlutusTx.Numeric qualified as PlutusTx
+import Optics.Core
+import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
 
--- | Computes the collateral triplet from the fees and the collateral inputs in
--- the context. What we call a collateral triplet is composed of:
+-- | Computes the collateral triplet from the potential collaterals. What we
+-- call a collateral triplet is composed of:
+--
 -- * The set of collateral inputs
+--
 -- * The total collateral paid by the transaction in case of phase 2 failure
+--
 -- * An output returning excess collateral value when collaterals are used
+--
 -- These quantity should satisfy the equation (in terms of their values):
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
   (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
-  Fee ->
-  Collaterals ->
+  Maybe Collaterals ->
   Sem
     effs
     ( Cardano.TxInsCollateral Cardano.ConwayEra,
       Cardano.TxTotalCollateral Cardano.ConwayEra,
       Cardano.TxReturnCollateral Cardano.CtxTx Cardano.ConwayEra
     )
-toCollateralTriplet _ Nothing = return (Cardano.TxInsCollateralNone, Cardano.TxTotalCollateralNone, Cardano.TxReturnCollateralNone)
-toCollateralTriplet fee (Just (Set.toList -> collateralInsList, returnCollateralUser)) = do
+toCollateralTriplet Nothing = return (Cardano.TxInsCollateralNone, Cardano.TxTotalCollateralNone, Cardano.TxReturnCollateralNone)
+toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) = do
   -- We build the collateral inputs from this list
   txInsCollateral <-
     case collateralInsList of
       [] -> return Cardano.TxInsCollateralNone
       l -> fromEither $ Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM Ledger.toCardanoTxIn l
-  -- Retrieving the total value in collateral inputs. This fails if one of the
-  -- collateral inputs has not been successfully resolved.
-  collateralInsValue <-
-    foldM (\val -> ((val <>) <$>) . viewByRef txSkelOutValueL) mempty collateralInsList
-  -- We retrieve the collateral percentage compared to fees. By default, we use
-  -- 150% which is the current value in the parameters, although the default
-  -- value should never be used here, as the call is supposed to always succeed.
-  collateralPercentage <- toInteger . MicroLens.view Conway.ppCollateralPercentageL . Emulator.pEmulatorPParams <$> getParams
-  -- The total collateral corresponds to the fees multiplied by the collateral
-  -- percentage. We add 1 because the ledger apparently rounds up this value.
-  let coinTotalCollateral = 1 + (fee * collateralPercentage) `div` 100
-  -- We create the total collateral based on the computed value
-  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Cardano.Coin coinTotalCollateral
-  -- We compute a return collateral value by subtracting the total collateral to
-  -- the value in collateral inputs
-  let returnCollateralValue = collateralInsValue <> PlutusTx.negate (Script.lovelace coinTotalCollateral)
-  -- The return collateral is then computed
+  -- We collect the amount of lovelace in the collateral inputs
+  Api.Lovelace collateralInsLovelace <- foldOf (folded % txSkelOutValueL % valueLovelaceL) . Map.elems <$> lookupUtxos collateralInsList
+  -- We collect the amount of lovelace in the return collateral output
+  let Api.Lovelace returnCollateralLovelace = maybe 0 (view (txSkelOutValueL % valueLovelaceL)) mReturnCollateral
+  -- The total collateral is the difference between the two
+  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway $ Cardano.Coin $ collateralInsLovelace - returnCollateralLovelace
   txReturnCollateral <-
-    -- If the total collateral equal what the inputs provide, we return
-    -- `TxReturnCollateralNone`, otherwise, we compute the new output
-    if returnCollateralValue == mempty
-      then return Cardano.TxReturnCollateralNone
-      else do
-        -- The value is a translation of the remaining value
-        txReturnCollateralValue <- Ledger.toCardanoTxOutValue <$> fromEither (Ledger.toCardanoValue returnCollateralValue)
-        -- The address is the one from the return collateral user, which is
-        -- required to exist here.
-        networkId <- Emulator.pNetworkId <$> getParams
-        address <- fromEither $ Ledger.toCardanoAddressInEra networkId (Script.toAddress returnCollateralUser)
-        -- The return collateral is built up from those elements
-        return $
-          Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $
-            Cardano.TxOut address txReturnCollateralValue Cardano.TxOutDatumNone Cardano.ReferenceScriptNone
+    case mReturnCollateral of
+      Nothing -> return Cardano.TxReturnCollateralNone
+      Just collateralOut -> Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway <$> toCardanoTxOut collateralOut
   return (txInsCollateral, txTotalCollateral, txReturnCollateral)

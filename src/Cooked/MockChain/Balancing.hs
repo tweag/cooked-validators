@@ -9,28 +9,30 @@ module Cooked.MockChain.Balancing
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
-import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.AutoFilling
 import Cooked.MockChain.Common
 import Cooked.MockChain.Error
 import Cooked.MockChain.GenerateTx.Body
+import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.Log
 import Cooked.MockChain.Read
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
-import Data.Bifunctor
+import Data.ByteString qualified as BS
 import Data.Function
-import Data.List (find, partition, sortBy)
+import Data.List (find, partition)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Ratio qualified as Rat
 import Data.Set qualified as Set
 import Ledger.Tx qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro.Extras qualified as Micro
 import Lens.Micro.Extras qualified as MicroLens
 import Optics.Core
 import Optics.Core.Extras
@@ -52,43 +54,51 @@ import Polysemy.Fail
 balanceTxSkel ::
   (Members '[MockChainRead, MockChainLog, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
-  Sem effs (TxSkel, Fee, Collaterals)
+  Sem effs (TxSkel, Fee, Maybe Collaterals)
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing user. Any extra payment will be
-  -- redirected to them, and utxos will be taken from their user if associated
-  -- with the BalancingUtxosFromBalancingUser policy
+  -- redirected to them, and utxos will be taken from their wallet if associated
+  -- with the @BalancingUtxosFromBalancingUser@ policy
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSignatory -> case txSkelSignatories of
-      [] -> throw $ MCEMissingBalancingUser "The list of signatories is empty, but the balancing user is supposed to be the first signatory."
-      bw : _ -> return $ Just $ UserPubKey $ view txSkelSignatoryPubKeyHashL bw
+      [] -> throw MCEMissingBalancingUser
+      bw : _ -> return $ Just $ UserPubKey bw
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
     DoNotBalance -> return Nothing
 
-  -- We retrieve the number of scripts involved in the transaction
+  -- We retrieve the number of scripts involved in the transaction. This is used
+  -- to compute the maximum possible fee, as each of those script with
+  -- contribute, through its execution units, to the cost of the transaction.
   nbOfScripts <- fromIntegral . length <$> txSkelAllScripts skelUnbal
 
   -- The protocol parameters indirectly dictate a minimal and maximal value for a
   -- single transaction fee, which we retrieve.
   (minFee, maxFee) <- getMinAndMaxFee nbOfScripts
 
-  -- We collect collateral inputs candidates. They might be directly provided in
-  -- the skeleton, or should be retrieved from a given user. They are
-  -- associated with a return collateral user, which we retrieve as well. All
-  -- of this is wrapped in a `Maybe` type to represent the case when the
-  -- transaction does not involve script and should not have any kind of
-  -- collaterals attached to it.
+  -- We collect potential collateral inputs candidates, and return collateral
+  -- user. They will be absent when the transaction does not involve script and
+  -- thus does not require collaterals.
   mCollaterals <- do
-    -- The transaction will only require collaterals when involving scripts
     case (nbOfScripts == 0, txSkelOptCollateralUtxos txSkelOpts) of
+      -- No script involved, but manual collateral UTxOs provided
       (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
+      -- No script involved, but manual collateral user provided
       (True, CollateralUtxosFromUser cUser) -> logEvent (MCLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
+      -- No script involved, and no particular collateral option provided
       (True, CollateralUtxosFromBalancingUser) -> return Nothing
+      -- Some scripts involved, and a specific set of UTxOs, alongside a
+      -- collateral user provided. In this case, we just return them.
       (False, CollateralUtxosFromSet utxos rUser) -> return $ Just (utxos, UserPubKey rUser)
+      -- Some scripts involved, and a specific collateral user provided.
+      -- We fetch vanilla UTxOs from this user and return them.
       (False, CollateralUtxosFromUser (Script.toPubKeyHash -> cUser)) ->
         Just . (,UserPubKey cUser) . Set.fromList
           <$> getTxOutRefs (utxosAtSearch cUser ensureOnlyValueOutputs)
+      -- Some scripts involved, and no specific collateral options provided.
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
-        Nothing -> throw $ MCEMissingBalancingUser "Collateral utxos should be taken from the balancing user, but it does not exist."
+        -- If no balancing wallet exists, we throw an error
+        Nothing -> throw MCEMissingBalancingUser
+        -- If a balancing wallet exists, we use it as collateral user
         Just bUser -> Just . (,bUser) . Set.fromList <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
 
   -- At this point, the presence (or absence) of balancing user dictates
@@ -100,7 +110,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       let fee = case txSkelOptFeePolicy txSkelOpts of
             AutoFeeComputation -> maxFee
             ManualFee fee' -> fee'
-       in (skelUnbal,fee,) <$> collateralsFromFees fee mCollaterals
+       in (skelUnbal,fee,) <$> collateralsFromFee fee mCollaterals
     Just bUser -> do
       -- The balancing should be performed. We collect the candidates balancing
       -- utxos based on the associated policy
@@ -125,7 +135,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
         -- If fee are provided manually, we adjust the collaterals and the
         -- skeleton around them directly.
         ManualFee fee -> do
-          adjustedColsAndUser <- collateralsFromFees fee mCollaterals
+          adjustedColsAndUser <- collateralsFromFee fee mCollaterals
           attemptedSkel <- computeBalancedTxSkel bUser balancingUtxos skelUnbal fee
           return (attemptedSkel, fee, adjustedColsAndUser)
 
@@ -156,18 +166,18 @@ getMinAndMaxFee nbOfScripts = do
       (Cardano.unboundRational -> refScriptFeePerByte) = MicroLens.view Conway.ppMinFeeRefScriptCostPerByteL params
   -- We compute the components of the maximum possible fee, starting with the
   -- maximum fee associated with the transaction size
-  let txSizeMaxFees = maxTxSize * txFeePerByte
+  let txSizeMaxFee = maxTxSize * txFeePerByte
   -- maximum fee associated with the number of execution steps for scripts
-  let eStepsMaxFees = (eSteps * Rat.numerator priceESteps) `div` Rat.denominator priceESteps
+  let eStepsMaxFee = (eSteps * Rat.numerator priceESteps) `div` Rat.denominator priceESteps
   -- maximum fee associated with the number of execution memory for scripts
-  let eMemMaxFees = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
+  let eMemMaxFee = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
   -- maximum fee associated with the size of all reference scripts
-  let refScriptsMaxFees = (maxTxSize * Rat.numerator refScriptFeePerByte) `div` Rat.denominator refScriptFeePerByte
+  let refScriptsMaxFee = (maxTxSize * Rat.numerator refScriptFeePerByte) `div` Rat.denominator refScriptFeePerByte
   return
     ( -- Minimal fee is just the fixed portion of the fee
       txFeeFixed,
       -- Maximal fee is the fixed portion plus all the other maximum fees
-      txFeeFixed + txSizeMaxFees + nbOfScripts * (eStepsMaxFees + eMemMaxFees) + refScriptsMaxFees
+      txFeeFixed + txSizeMaxFee + nbOfScripts * (eStepsMaxFee + eMemMaxFee) + refScriptsMaxFee
     )
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
@@ -178,9 +188,9 @@ computeFeeAndBalance ::
   Fee ->
   Fee ->
   Utxos ->
-  Collaterals ->
+  Maybe (CollateralIns, Peer) ->
   TxSkel ->
-  Sem effs (TxSkel, Fee, Collaterals)
+  Sem effs (TxSkel, Fee, Maybe Collaterals)
 computeFeeAndBalance _ minFee maxFee _ _ _
   | minFee > maxFee =
       fail "Unreachable case, please report a bug at https://github.com/tweag/cooked-validators/issues"
@@ -239,25 +249,30 @@ attemptBalancingAndCollaterals ::
   Peer ->
   Utxos ->
   Fee ->
-  Collaterals ->
+  Maybe (CollateralIns, Peer) ->
   TxSkel ->
-  Sem effs (Collaterals, TxSkel)
+  Sem effs (Maybe Collaterals, TxSkel)
 attemptBalancingAndCollaterals balancingUser balancingUtxos fee mCollaterals skel = do
-  adjustedCollateralIns <- collateralsFromFees fee mCollaterals
   attemptedSkel <- computeBalancedTxSkel balancingUser balancingUtxos skel fee
-  return (adjustedCollateralIns, attemptedSkel)
+  collaterals <- collateralsFromFee fee mCollaterals
+  return (collaterals, attemptedSkel)
 
 -- | This selects a subset of suitable collateral inputs from a given set while
 -- accounting for the ratio to respect between fees and total collaterals, the
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
-collateralInsFromFees ::
+collateralsFromFee ::
   (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  -- | The fee from which these collaterals should be computed
   Fee ->
-  CollateralIns ->
-  Peer ->
-  Sem effs CollateralIns
-collateralInsFromFees fee collateralIns returnCollateralUser = do
+  -- | The optional candidate UTxOs to be used as collaterals, alongside the
+  -- peer who should receive the return collateral output
+  Maybe (CollateralIns, Peer) ->
+  -- | Returns the collaterals computed from the above. Raises an error if no
+  -- such collateral can be found.
+  Sem effs (Maybe Collaterals)
+collateralsFromFee _ Nothing = return Nothing
+collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- We retrieve the protocal parameters
   params <- Emulator.pEmulatorPParams <$> getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
@@ -272,79 +287,147 @@ collateralInsFromFees fee collateralIns returnCollateralUser = do
   -- Collateral tx outputs sorted by decreasing ada amount
   collateralTxOuts <- getTxOutRefsAndOutputs $ txSkelOutByRefSearch' $ Set.toList collateralIns
   -- Candidate subsets of utxos to be used as collaterals
-  let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
-  -- Preparing a possible collateral error
-  let noSuitableCollateralError = MCENoSuitableCollateral fee percentage totalCollateral
-  -- Retrieving and returning the best candidate as a utxo set
-  Set.fromList . fst <$> getOptimalCandidate candidatesRaw returnCollateralUser noSuitableCollateralError
+  reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
+  -- A value might, or might not have been reached
+  case reachedValue of
+    -- If no value was reached, the input UTxOs are insufficient to provide
+    -- the necessary collaterals, and thus an error is raised
+    Nothing -> throw $ MCENoSuitableCollateral fee percentage totalCollateral
+    -- If a value was reached, we return it alongside the return collaterals
+    Just (oRefs, returnOutput) -> return $ Just (Set.fromList oRefs, returnOutput)
 
--- | This adjusts collateral inputs when necessary
-collateralsFromFees ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
-  Fee ->
-  Collaterals ->
-  Sem effs Collaterals
-collateralsFromFees _ Nothing = return Nothing
-collateralsFromFees fee (Just (collateralIns, returnCollateralUser)) =
-  Just . (,returnCollateralUser) <$> collateralInsFromFees fee collateralIns returnCollateralUser
-
--- | The main computing function for optimal balancing and collaterals. It
--- computes the subsets of a set of UTxOs that sum up to a certain target. It
--- stops when the target is reached, not adding superfluous UTxOs. Despite
--- optimizations, this function is theoretically in 2^n where n is the number of
--- candidate UTxOs. Use with caution.
 reachValue ::
+  forall effs.
+  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
   -- | The Utxos available to reach the value
   Utxos ->
   -- | The target value to reach
   Api.Value ->
-  -- | The maximum number of Utxos allowed to reach the target
+  -- | The maximum number of Utxos allowed to reach the target. This is used
+  -- when there is a hard limit (for collaterals for instance) or when the
+  -- amount of input UTxOs is huge and thus the search needs to be limited.
   Integer ->
-  -- | A list of lists of Utxos sufficient to reach the target, with the
-  -- exceeding amount between their total sum and the target.
-  [(Utxos, Api.Value)]
-reachValue utxos = go utxos (mconcat $ view txSkelOutValueL . snd <$> utxos)
+  -- | Either the output to which the generated surplus needs to be attached, or
+  -- the users to which this surplus should be sent
+  Either TxSkelOut Peer ->
+  -- | Returns a possible solution. The solution is a list of new inputs, and
+  -- the surplus output, which is either built from scratch or from the provided
+  -- surplus output, if any.
+  Sem effs (Maybe ([Api.TxOutRef], Maybe TxSkelOut))
+reachValue utxos target fuel outputOrUser = do
+  -- We retrieve the current protocol version, which is going to be used to
+  -- compute the size of the inputs and outputs added by this function
+  Cardano.ProtVer majorVersion _ <- Micro.view Conway.ppProtocolVersionL . Emulator.emulatorPParams <$> getParams
+  -- We annotate @outputOrUser@ with the size of the existing output, if any
+  outputOrUser' <- case outputOrUser of
+    Left output -> Left . (output,) <$> outputSize majorVersion output
+    Right user -> return $ Right user
+  -- We annotate each of the provided inputs with their sizes
+  utxos' <- forM utxos $ \(oRef, output) -> (oRef,,view txSkelOutValueL output) <$> inputSize majorVersion oRef
+  -- We call the main computing function, @go@, by feeding it an initial
+  -- available amount, computed from the available inputs. This will avoid any
+  -- unnecessary recomputation of this value.
+  fmap (\(oRefs, mOut, _) -> (oRefs, mOut))
+    <$> go majorVersion utxos' target fuel outputOrUser' (mconcat ((\(_, _, val) -> val) <$> utxos'))
   where
-    go :: Utxos -> Api.Value -> Api.Value -> Integer -> [(Utxos, Api.Value)]
-    -- Target is smaller than the empty value (which means in only contains negative
-    -- entries), we stop looking as adding more elements would be superfluous.
-    go _ _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
-    -- The fuel has been fully consumed, and the target is not yet reached.
-    go _ _ _ fuel | fuel <= 0 = []
-    -- The target is not reached, and cannot possibly be reached, as the remaining
-    -- candidates do not sum up to the target.
-    go _ available target _ | not $ target `Api.leq` available = []
-    -- There is no more elements to go through and the target has not been
-    -- reached. Encompassed by the previous case, but needed by GHC.
-    go [] _ _ _ = []
-    -- Main recursive case, where we either pick or drop the head. We only pick the
-    -- head if it contributes to reaching the target, i.e. if its intersection with
-    -- the positive part of the target is not empty.
-    go (h@(_, view txSkelOutValueL -> hVal) : t) ((<> PlutusTx.negate hVal) -> available') target fuel =
-      go t available' target fuel
-        ++ if snd (Api.split target) PlutusTx./\ hVal == mempty
-          then []
-          else first (h :) <$> go t available' (target <> PlutusTx.negate hVal) (fuel - 1)
+    go ::
+      -- Current protocol major version
+      Cardano.Version ->
+      -- Currently available UTxOs, decreasing in recursive calls
+      [(Api.TxOutRef, Integer, Api.Value)] ->
+      -- Target value
+      Api.Value ->
+      -- Fuel (max number of UTxOs to pick)
+      Integer ->
+      -- Existing output where the surplus needs to be appended, or the peer
+      -- to whom this surplus should be paid
+      Either (TxSkelOut, Integer) Peer ->
+      -- Total value of the available inputs
+      Api.Value ->
+      -- Returns a solution when one exists. This solution contains the inputs
+      -- to add, the possible surplus payment and the total size added by these
+      -- elements to the transaction.
+      Sem effs (Maybe ([Api.TxOutRef], Maybe TxSkelOut, Integer))
+    -- The target is reached. There might be surplus which we have to handle.
+    go majorVersion goUtxos goTarget goFuel goOutputOrUser goAvailable | goTarget `Api.leq` mempty = do
+      let remainder = PlutusTx.negate goTarget
+          newOutput = either (over txSkelOutValueL (<> remainder) . fst) (`receives` Value remainder) goOutputOrUser
+          newOutputValue = view txSkelOutValueL newOutput
+      minAda <- Api.Lovelace <$> getTxSkelOutMinAda newOutput
+      case newOutputValue of
+        -- There is no surplus
+        newVal | newVal == mempty -> return $ Just ([], Nothing, 0)
+        -- There is a surplus and it contains enough ADA
+        newVal | view valueLovelaceL newVal >= minAda -> do
+          -- We compute the cost of the new output
+          newCost <- outputSize majorVersion newOutput
+          -- And compare it with the cost of the existing output
+          return $ Just ([], Just newOutput, either ((newCost -) . snd) (const newCost) goOutputOrUser)
+        -- There is a surplus which does not contain enough ADA
+        (Script.toValue . (minAda -) . view valueLovelaceL -> missingAdaValue) -> do
+          -- We need to run a new search with a target increased by the missing
+          -- amount of ADA. For that purpose, we also need to increase the
+          -- surplus payment with the same amout, to keep everything balanced.
+          -- As a consequence, we also need to add bytes to the transaction.
+          (sizeAdded, goOutputOrUser') <- case goOutputOrUser of
+            -- If the surplus already exist, we add @missingAdaValue@ to it
+            Left (output, existingSize) -> do
+              let enlargedOutput = over txSkelOutValueL (<> missingAdaValue) output
+              newSize <- outputSize majorVersion enlargedOutput
+              return (newSize - existingSize, Left (enlargedOutput, newSize))
+            -- If it does not, we create it and couple it with its size
+            Right user -> do
+              let output = user `receives` Value missingAdaValue
+              size <- outputSize majorVersion output
+              return (size, Left (output, size))
+          -- We keep looking with a greater target, surplus and size
+          over (_Just % _3) (+ sizeAdded)
+            <$> go majorVersion goUtxos (goTarget <> missingAdaValue) goFuel goOutputOrUser' goAvailable
+    -- We have not reached a solution, but we don't have fuel anymore
+    go _ _ _ goFuel _ _ | goFuel <= 0 = return Nothing
+    -- We have not reached a soultion, but no more UTxOs are available
+    go _ [] _ _ _ _ = return Nothing
+    -- We have not reached a solution, but the total available value is
+    -- insufficient to ever find one
+    go _ _ goTarget _ _ goAvailable | not $ goTarget `Api.leq` goAvailable = return Nothing
+    -- We have not yet found a solution, but there are still available UTxOs
+    go majorVersion ((hOref, hSize, hValue) : t) goTarget goFuel goOutputOrUser ((<> PlutusTx.negate hValue) -> goAvailable) = do
+      -- We try to find a solution by dropping the head
+      dropH <- go majorVersion t goTarget goFuel goOutputOrUser goAvailable
+      -- We also try to find a solution by picking the head
+      pickH <-
+        -- We try to see if the head contributes to reaching the value, i.e. if
+        -- it contains assets that help building towards the target.
+        if snd (Api.split goTarget) PlutusTx./\ hValue == mempty
+          -- If not, we don't bother trying to pick the head
+          then return Nothing
+          -- If it does, we actually try to pick the head. This means decreasing
+          -- most of the recursive parameters of @go@ accordingly
+          else do
+            pickH' <- go majorVersion t (goTarget <> PlutusTx.negate hValue) (goFuel - 1) goOutputOrUser goAvailable
+            return $ (\(oRefs, mOut, size) -> (hOref : oRefs, mOut, hSize + size)) <$> pickH'
+      -- We find the optimal solution by comparing both solutions
+      return $ case (dropH, pickH) of
+        -- Only picking the head yielded a solution, we return it
+        (Nothing, _) -> pickH
+        -- Only dropping the head yielded a solution, we return it
+        (_, Nothing) -> dropH
+        -- Both pickding and dropping the head yielded a solution, so we keep
+        -- the one that produces the least increase in the transaction size
+        (Just (_, _, sizeDrop), Just (_, _, sizePick)) -> if sizeDrop <= sizePick then dropH else pickH
 
--- | A helper function to grab an optimal candidate in terms of having a minimal
--- enough amount of ada to sustain itself meant to be used after calling
--- `reachValue`. This throws an error when there are no suitable candidates.
-getOptimalCandidate ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
-  [(Utxos, Api.Value)] ->
-  Peer ->
-  MockChainError ->
-  Sem effs ([Api.TxOutRef], Api.Value)
-getOptimalCandidate candidates paymentTarget mceError = do
-  -- We decorate the candidates with their current ada and min ada requirements
-  candidatesDecorated <- forM candidates $ \(output, val) ->
-    (output,val,Api.lovelaceValueOf val,) <$> getTxSkelOutMinAda (paymentTarget `receives` Value val)
-  -- We filter the candidates that have enough ada to sustain themselves
-  let candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, val, Api.Lovelace lv, minLv) <- candidatesDecorated, minLv <= lv]
-  case sortBy (compare `on` fst) candidatesFiltered of
-    -- If the list of candidates is empty, we throw an error
-    [] -> throw mceError
-    (_, ret) : _ -> return ret
+    -- This computes the size of anything that can be serialized
+    computeSize majorVersion = fromIntegral . BS.length . Cardano.serialize' majorVersion
+
+    -- This computes the size of a `TxSkelOut`
+    outputSize :: Cardano.Version -> TxSkelOut -> Sem effs Integer
+    outputSize majorVersion = fmap (computeSize majorVersion . Cardano.toShelleyTxOutAny Cardano.ShelleyBasedEraConway) . toCardanoTxOut
+
+    -- This computes the size of an `Api.TxOutRef` which is almost always
+    -- gonna be the same, but can theoretically vary if coming from a
+    -- transaction with many outputs.
+    inputSize :: Cardano.Version -> Api.TxOutRef -> Sem effs Integer
+    inputSize majorVersion = fmap (computeSize majorVersion . Cardano.toShelleyTxIn) . fromEither . Ledger.toCardanoTxIn
 
 -- | Estimates the required fee for a given skeleton with a given initial fee
 -- and collaterals
@@ -352,7 +435,7 @@ estimateTxSkelFee ::
   (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
-  Collaterals ->
+  Maybe Collaterals ->
   Sem effs Fee
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
@@ -387,71 +470,60 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   certificatesDepositedValue <- Script.toValue <$> txSkelDepositedValueInCertificates txSkel
   proposalsDepositedValue <- Script.toValue <$> txSkelDepositedValueInProposals txSkel
   -- We compute the values missing in the left and right side of the equation
-  let (missingRight, missingLeft) =
+  let (missingRight', missingLeft') =
         Api.split $
-          outValue
-            <> burnedValue
-            <> feeValue
-            <> proposalsDepositedValue
-            <> certificatesDepositedValue
-            <> PlutusTx.negate (inValue <> mintedValue <> withdrawnValue)
-  -- We compute the minimal ada requirement of the missing payment
-  rightMinAda <- getTxSkelOutMinAda $ balancingUser `receives` Value missingRight
-  -- We compute the current ada of the missing payment. If the missing payment
-  -- is not empty and the minimal ada is not present, some value is missing.
-  let Api.Lovelace rightAda = missingRight ^. valueLovelaceL
-      missingAda = rightMinAda - rightAda
-      missingAdaValue = if missingRight /= mempty && missingAda > 0 then Script.lovelace missingAda else mempty
-  -- The actual missing value on the left might needs to account for any missing
-  -- min ada on the missing payment of the transaction skeleton. This also has
-  -- to be repercuted on the missing value on the right.
-  let missingLeft' = missingLeft <> missingAdaValue
-      missingRight' = missingRight <> missingAdaValue
-  -- At this point, we only need to account for the possible case were the
-  -- inputs are empty and there is nothing missing on the left, as the ledger
-  -- does not allow for transaction to have no inputs. When this is the case, we
-  -- artificially add a requirement of 1 lovelace to force the consumption of a
-  -- dummy input.
+          mconcat
+            [ outValue,
+              burnedValue,
+              feeValue,
+              proposalsDepositedValue,
+              certificatesDepositedValue,
+              PlutusTx.negate inValue,
+              PlutusTx.negate mintedValue,
+              PlutusTx.negate withdrawnValue
+            ]
+  -- We need to account for the possible corner case were the inputs are empty
+  -- and there is nothing missing on the left, as the ledger does not allow for
+  -- transaction to have no inputs. When this is the case, we artificially add a
+  -- requirement of 1 lovelace to force the consumption of a dummy input.
   let noInputs = inValue == mempty && missingLeft' == mempty
-      missingLeft'' = if noInputs then Script.lovelace 1 else missingLeft'
-      missingRight'' = if noInputs then missingRight' <> Script.lovelace 1 else missingRight'
-  -- We retrieve the maximum number of Utxos that can be used for balancing
+      missingLeft = if noInputs then Script.lovelace 1 else missingLeft'
+      missingRight = if noInputs then missingRight' <> Script.lovelace 1 else missingRight'
+  -- We compute the possible existing output that will need to be extended by
+  -- the extra surplus created by the balancing. This output is created from
+  -- both the extra value on the right, and a possible existing output at the
+  -- balancing wallet address when required with @AdjustExistingOutput@.
+  let surplusOutputOrUser = case txSkelOptBalanceOutputPolicy txSkelOpts of
+        AdjustExistingOutput
+          | Just txSkelOut <-
+              find ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOuts ->
+              Left (over txSkelOutValueL (<> missingRight) txSkelOut)
+        _ | missingRight == mempty -> Right balancingUser
+        _ -> Left (balancingUser `receives` Value missingRight)
+  -- We call the main actual balancing algorithm to fetch missing piece, and
+  -- retrieve the possible solution, which might not exist.
   let maxNbOfBalancingUtxos = fromMaybe (toInteger $ length balancingUtxos) (txSkelOptMaxNbOfBalancingUtxos txSkelOpts)
-  -- This gives us what we need to run our `reachValue` algorithm and append to
-  -- the resulting values whatever payment was missing in the initial skeleton
-  let candidatesRaw = second (<> missingRight'') <$> reachValue balancingUtxos missingLeft'' maxNbOfBalancingUtxos
-  -- We prepare a possible balancing error with the difference between the
-  -- requested amount and the maximum amount provided by the balancing user
-  let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
-      difference = snd $ Api.split $ missingLeft' <> PlutusTx.negate totalValue
-      balancingError = MCEUnbalanceable balancingUser difference
-  -- Which one of our candidates should be picked depends on three factors
-  -- - Whether there exists a perfect candidate set with empty surplus value
-  -- - The `BalancingOutputPolicy` in the skeleton options
-  -- - The presence of an existing output at the balancing user address
-  (additionalInsTxOutRefs, newTxSkelOuts) <- case find ((== mempty) . snd) candidatesRaw of
-    -- There exists a perfect candidate, this is the rarest and easiest
+  solution <- reachValue balancingUtxos missingLeft maxNbOfBalancingUtxos surplusOutputOrUser
+  -- Based on the solution, we compute extra inputs and the new output
+  (additionalInsTxOutRefs, newTxSkelOuts) <- case solution of
+    -- There is no solution with the provided parameters
+    Nothing -> do
+      let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
+          difference = snd $ Api.split $ missingLeft <> PlutusTx.negate totalValue
+      throw $ MCEUnbalanceable balancingUser difference
+    -- There exists a perfect solution, this is the rarest and easiest
     -- scenario, as the outputs will not change due to balancing. This means
     -- that there was no missing value on the right and the balancing utxos
     -- exactly account for what was missing on the left.
-    Just (txOutRefs, _) -> return (fst <$> txOutRefs, txSkelOuts)
+    Just (newORefs, Nothing) -> return (newORefs, txSkelOuts)
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
-    Nothing
-      | (before, txSkelOut : after) <- break ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOuts,
-        AdjustExistingOutput <- txSkelOptBalanceOutputPolicy txSkelOpts -> do
-          -- We get the optimal candidate based on an updated value. We update
-          -- the `txSkelOuts` by replacing the value content of the selected
-          -- output. We keep intact the orders of those outputs.
-          let candidatesRaw' = second (<> txSkelOut ^. txSkelOutValueL) <$> candidatesRaw
-          (txOutRefs, val) <- getOptimalCandidate candidatesRaw' balancingUser balancingError
-          return (txOutRefs, before ++ (txSkelOut & txSkelOutValueL .~ val) : after)
+    Just (newORefs, Just newTxSkelOut)
+      | AdjustExistingOutput <- txSkelOptBalanceOutputPolicy txSkelOpts,
+        (before, _ : after) <- break ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOuts ->
+          return (newORefs, before ++ (newTxSkelOut : after))
     -- There is no output at the balancing user address, or the balancing
     -- policy forces us to create a new output, both yielding the same result.
-    _ -> do
-      -- We get the optimal candidate, and update the `txSkelOuts` by appending
-      -- a new output at the end of the list, to keep the order intact.
-      (txOutRefs, val) <- getOptimalCandidate candidatesRaw balancingUser balancingError
-      return (txOutRefs, txSkelOuts ++ [balancingUser `receives` Value val])
+    Just (newORefs, Just newTxSkelOut) -> return (newORefs, txSkelOuts ++ [newTxSkelOut])
   let newTxSkelIns = txSkelIns <> Map.fromList ((,emptyTxSkelRedeemer) <$> additionalInsTxOutRefs)
   return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns

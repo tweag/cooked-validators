@@ -32,7 +32,7 @@ data MockChainLogEntry
     MCLogSubmittedTxSkel TxSkel
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral user.
-    MCLogAdjustedTxSkel TxSkel Fee Collaterals
+    MCLogAdjustedTxSkel TxSkel Fee (Maybe Collaterals)
   | -- | Logging the successful validation of a new transaction, with its id and
     -- number of produced outputs.
     MCLogNewTx Api.TxId Integer

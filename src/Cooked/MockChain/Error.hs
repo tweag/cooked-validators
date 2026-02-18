@@ -25,7 +25,7 @@ data MockChainError
   | -- | The balancing user does not have enough funds
     MCEUnbalanceable Peer Api.Value
   | -- | The balancing user is required but missing
-    MCEMissingBalancingUser String
+    MCEMissingBalancingUser
   | -- | No suitable collateral could be associated with a skeleton
     MCENoSuitableCollateral Integer Integer Api.Value
   | -- | Translating a skeleton element to its Cardano counterpart failed
