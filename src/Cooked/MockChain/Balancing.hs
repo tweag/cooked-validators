@@ -179,63 +179,44 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
   let fee = (minFee + maxFee) `div` 2
   -- The fee interval is non-empty. We attempt to balance around its central
   -- point, and handle possible failures.
-  attemptedBalancing <- catch
-    (Just <$> attemptBalancingAndCollaterals balancingUser balancingUtxos fee mCollaterals skel)
+  catch
+    ( do
+        newSkel <- computeBalancedTxSkel balancingUser balancingUtxos skel fee
+        mCols <- collateralsFromFee fee mCollaterals
+        (newFee, body) <- estimateTxSkelFee newSkel fee mCols
+        if
+          -- The skeleton was balanceable, we cannot try smaller fee, but
+          -- the used fee is sufficient for the generated body
+          | minFee == maxFee && newFee <= fee -> return $ ExtendedTxSkel newSkel newFee mCols body
+          -- The skeleton was balanceable, we cannot try smaller fee, but
+          -- the used fee is insufficient for the generated body
+          | minFee == maxFee -> throw $ MCEBalancingError $ NotEnoughFundForProperFee balancingUser
+          -- Current fee is insufficient, we look on the right (strictly)
+          | newFee > fee -> computeFeeAndBalance balancingUser (fee + 1) maxFee balancingUtxos mCollaterals skel
+          -- Current fee is sufficient, but the set of balancing utxos cannot
+          -- necessarily account for less fee, since it was (magically) exactly enough
+          -- to compensate for the missing value. Reducing the fee would ruin this
+          -- perfect balancing and force an output to be created at the balancing user
+          -- address, thus we cannot assume the actual estimated fee can be accounted
+          -- for with the current set of balancing utxos and cannot speed up search.
+          | txSkelValueInOutputs newSkel == txSkelValueInOutputs skel -> computeFeeAndBalance balancingUser minFee fee balancingUtxos mCollaterals skel
+          -- Current fee is sufficient, and the set of utxo could account for
+          -- less fee by feeding into whatever output already goes back to the
+          -- balancing user. We can speed up search, because the current
+          -- attempted skeleton could necessarily account for the estimated
+          -- fee of the input skeleton.
+          | otherwise -> computeFeeAndBalance balancingUser minFee newFee balancingUtxos mCollaterals skel
+    )
     $ \case
       -- If it fails, and the remaining fee interval is not reduced to the
       -- current fee attempt, we return `Nothing` which signifies that we
       -- need to keep searching. Otherwise, the whole balancing process
       -- fails and we spread the error.
-      MCEBalancingError {} | fee > minFee -> return Nothing
+      MCEBalancingError {}
+        | fee > minFee ->
+            -- The skeleton was not balanceable, we try strictly smaller fee
+            computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
       err -> throw err
-
-  case attemptedBalancing of
-    -- The skeleton was not balanceable, we try strictly smaller fee
-    Nothing -> computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
-    -- The skeleton was balanceable, we cannot try smaller fee, and
-    -- the used fee is sufficient for the generated body. All good!
-    Just extendedTxSkel | minFee == maxFee, eFee extendedTxSkel <= fee -> return extendedTxSkel
-    -- The skeleton was balanceable, we cannot try smaller fee, but
-    -- the used fee is insufficient for the generated body
-    Just _ | minFee == maxFee -> throw $ MCEBalancingError $ NotEnoughFundForProperFee balancingUser
-    -- Current fee is insufficient, we look on the right (strictly)
-    Just extendedTxSkel
-      | eFee extendedTxSkel > fee ->
-          computeFeeAndBalance balancingUser (fee + 1) maxFee balancingUtxos mCollaterals skel
-    -- Current fee is sufficient, but the set of balancing utxos cannot
-    -- necessarily account for less fee, since it was (magically) exactly enough
-    -- to compensate for the missing value. Reducing the fee would ruin this
-    -- perfect balancing and force an output to be created at the balancing user
-    -- address, thus we cannot assume the actual estimated fee can be accounted
-    -- for with the current set of balancing utxos and cannot speed up search.
-    Just extendedSkel
-      | txSkelValueInOutputs (eSkel extendedSkel) == txSkelValueInOutputs skel ->
-          computeFeeAndBalance balancingUser minFee fee balancingUtxos mCollaterals skel
-    -- Current fee is sufficient, and the set of utxo could account for
-    -- less fee by feeding into whatever output already goes back to the
-    -- balancing user. We can speed up search, because the current
-    -- attempted skeleton could necessarily account for the estimated
-    -- fee of the input skeleton.
-    Just extendedSkel ->
-      computeFeeAndBalance balancingUser minFee (eFee extendedSkel) balancingUtxos mCollaterals skel
-
--- | Helper function to group the three real steps of the balancing: balance a
--- skeleton around a given fee, compute the associated collateral inputs, and
--- compute the new fee from those elements. It the process, also returns the
--- generated body for the new skeleton.
-attemptBalancingAndCollaterals ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
-  Peer ->
-  Utxos ->
-  Fee ->
-  Maybe (CollateralIns, Peer) ->
-  TxSkel ->
-  Sem effs ExtendedTxSkel
-attemptBalancingAndCollaterals balancingUser balancingUtxos fee mCollaterals skel = do
-  newSkel <- computeBalancedTxSkel balancingUser balancingUtxos skel fee
-  mCols <- collateralsFromFee fee mCollaterals
-  (body, newFee) <- estimateTxSkelFee newSkel fee mCols
-  return $ ExtendedTxSkel newSkel newFee mCols body
 
 -- | This selects a subset of suitable collateral inputs from a given set while
 -- accounting for the ratio to respect between fees and total collaterals, the
@@ -416,7 +397,7 @@ estimateTxSkelFee ::
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
-  Sem effs (Body, Fee)
+  Sem effs (Fee, Body)
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- Emulator.pEmulatorPParams <$> getParams
@@ -429,7 +410,7 @@ estimateTxSkelFee skel fee mCollaterals = do
   -- We compute the estimated fee
   let Cardano.Coin newFee = Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway params index txBody nbOfSignatories
   -- We return both the new fee and generated body
-  return (txBody, newFee)
+  return (newFee, txBody)
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
