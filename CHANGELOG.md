@@ -8,8 +8,11 @@
   expressiveness of the Tweak/Attack DSL.
 - New `Ltl` combinators resulting from the addition of `LtlNot`, such as
   `nowhere`, `whenAble`, ...
+- Module `Cooked.MockChain.Common` which exposes several type aliases.
 
 ### Removed
+
+- File `Cooked.MockChain.BlockChain` and all of its content.
 
 ### Changed
 
@@ -17,6 +20,21 @@
   the new outputs, and they all return only the modified outputs.
 - The module Ltl.Combinators has been integrated to Ltl. The combinators have
   been enriched and renamed to better match the rest of the Ltl API.
+- cooked-validators has been fully migrated from mtl to polysemy. Type class
+  `MonadBlockChain` and its variants have been replaced by `DirectMockChain`,
+  `StagedMockChain`, `ExtendedStagedMockChain` and `FullMockChain`.
+- Some datum hijacking params have been changed. `ownedByDatumHijackingParams`
+  now takes a specific user as parameter, while its old behavior is now given by
+  `typedByDatumHijackingParams`. Also, `txSkelOutPredDatumHijackingParams` has
+  been renamed `outPredDatumHijackingParams`.
+- The whole file tree has been updated, in particular under
+  `Cooked.MockChain`. Each effect is given its own file, such as
+  `Cooked.MockChain.Read`, `Cooked.MockChain.Error` ...
+- Generation functions which use to live under
+  `Cooked.MockChain.GenerateTx.Witness` now live in their own
+  `Cooked.MockChain.GenerateTx.Credential` file.
+- All the auto adjustment made by cooked are now implemented using tweaks, such
+  as autofilling of min ada, auto assignement of reference script...
 
 ### Fixed
 
