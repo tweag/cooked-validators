@@ -54,10 +54,10 @@ data ExtendedTxSkel = ExtendedTxSkel
     eSkel :: TxSkel,
     -- | The fee associated with this skeleton
     eFee :: Fee,
-    -- | The optional collateras associated with this skeleton
+    -- | The optional collaterals associated with this skeleton
     eMCollaterals :: Maybe Collaterals,
     -- | The Cardano body generated from this skeleton
-    eMBody :: Body
+    eBody :: Body
   }
 
 -- | This is the main entry point of our balancing mechanism. This function
@@ -192,7 +192,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
           -- the used fee is insufficient for the generated body
           | minFee == maxFee -> throw $ MCEBalancingError $ NotEnoughFundForProperFee balancingUser
           -- Current fee is insufficient, we look on the right (strictly)
-          | newFee > fee -> computeFeeAndBalance balancingUser (fee + 1) maxFee balancingUtxos mCollaterals skel
+          | newFee > fee -> computeFeeAndBalance balancingUser newFee maxFee balancingUtxos mCollaterals skel
           -- Current fee is sufficient, but the set of balancing utxos cannot
           -- necessarily account for less fee, since it was (magically) exactly enough
           -- to compensate for the missing value. Reducing the fee would ruin this
@@ -209,13 +209,11 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
     )
     $ \case
       -- If it fails, and the remaining fee interval is not reduced to the
-      -- current fee attempt, we return `Nothing` which signifies that we
-      -- need to keep searching. Otherwise, the whole balancing process
-      -- fails and we spread the error.
-      MCEBalancingError {}
-        | fee > minFee ->
-            -- The skeleton was not balanceable, we try strictly smaller fee
-            computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
+      -- current fee attempt, we can still hope for a solution by trying with
+      -- smaller fee.
+      MCEBalancingError {} | fee > minFee -> computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
+      -- Otherwise, the whole balancing process fails and we spread the error:
+      -- the skeleton was not balanceable.
       err -> throw err
 
 -- | This selects a subset of suitable collateral inputs from a given set while
@@ -462,8 +460,8 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
               Left (over txSkelOutValueL (<> missingRight) txSkelOut)
         _ | missingRight == mempty -> Right balancingUser
         _ -> Left (balancingUser `receives` Value missingRight)
-  -- We call the main actual balancing algorithm to fetch missing piece, and
-  -- retrieve the possible solution, which might not exist.
+  -- We call the main actual balancing algorithm to fetch missing pieces, and
+  -- retrieve the possible solution
   let maxNbOfBalancingUtxos = fromMaybe (toInteger $ length balancingUtxos) (txSkelOptMaxNbOfBalancingUtxos txSkelOpts)
   solution <- reachValue balancingUtxos missingLeft maxNbOfBalancingUtxos surplusOutputOrUser
   -- Based on the solution, we compute extra inputs and the new output

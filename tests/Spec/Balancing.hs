@@ -162,7 +162,7 @@ balanceReduceFee = do
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   ExtendedTxSkel skelBalanced feeBalanced mCols _ <- balanceTxSkel skelAutoFee
-  (_, feeBalanced') <- estimateTxSkelFee skelBalanced feeBalanced mCols
+  (feeBalanced', _) <- estimateTxSkelFee skelBalanced feeBalanced mCols
   let skelManualFee =
         skelAutoFee
           { txSkelOpts =
@@ -171,7 +171,7 @@ balanceReduceFee = do
                 }
           }
   ExtendedTxSkel skelBalancedManual feeBalancedManual mColsManual _ <- balanceTxSkel skelManualFee
-  (_, feeBalancedManual') <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
+  (feeBalancedManual', _) <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
   return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
 
 reachingMagic :: FullMockChain ()
