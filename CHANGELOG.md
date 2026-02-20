@@ -8,11 +8,27 @@
   expressiveness of the Tweak/Attack DSL.
 - New `Ltl` combinators resulting from the addition of `LtlNot`, such as
   `nowhere`, `whenAble`, ...
-- Module `Cooked.MockChain.Common` which exposes several type aliases.
+- `ExtendedStagedMockChain`: It is not possible to extend a mockchain run with
+  arbitrary effects, while the associated tweaks will also have access to the
+  added effects.
+- A new capability in a mockchain run, which allows to take note (basically log)
+  anything. Functions `Note(|p|s|w|l)` support this functionality.
+- A new capability in a mockchain run, which allows to make assertions which
+  will be displayed in the final result, and taken into account during
+  tests. Functions `assert(|')` support his functionality.
+- A new `testBoolMsg` function which outputs an error message when given
+  `False`.
+- Functions `testCookedFromInitDistTemplate` and
+  `testCookedQCFromInitDistTemplate` to build tests from the initial
+  distribution template (the old default initial distribution).
+- The ability to enable/disable everything from the printing of the final result
+  of running a mockchain. The pretty printer has also been improved;
+- The `HList` type for heterogeneous lists.
 
 ### Removed
 
-- File `Cooked.MockChain.BlockChain` and all of its content.
+- Tweaks can no longer issue write action such as waiting a certain amount of
+  time. As a consequence, `waitUntilValidTweak` has been removed.
 
 ### Changed
 
@@ -35,6 +51,27 @@
   `Cooked.MockChain.GenerateTx.Credential` file.
 - All the auto adjustment made by cooked are now implemented using tweaks, such
   as autofilling of min ada, auto assignement of reference script...
+- Initial distributions have been downgraded from a first class citizen to a
+  mere helping structure equivalent to using `forceOutputs`. By default, the
+  mockchain runs now have an empty state, and non-empty initial distribution can
+  be fed to runs in one of the following 3 ways: 1. use `forceOutputs` at the
+  beginning of a run. 2. Use `runMockChainFromConf` or
+  `runMockChainFromInitiDist` while running a trace. 3. use `withInitDist` when
+  running tests. The old default initial distribution still exists as
+  `initialDistributionTemplate` and is simply directly a list of outputs.
+- The UTxO searches have been fully reworked. They now happen in 3
+  steps: 1. bootstrap the search with a set of UTxOs (`beginSearch` and
+  `beginSearchP`) 2. filter (`ensure`, `ensurePure`, `ensureAFoldIs` and
+  `ensureAFoldIsn't`) and/or extract elements from the selected outputs
+  (`extract`, `extractPure`,`extractAFold`, `extractTotal`, `extractPureTotal`
+  and `extractGetter`) in an type-retaining heterogeneous list. 2. retrieve the
+  result of the search (`getOutputs`, `getOutputsAndExtracts`, `getExtracts`,
+  `getTxOutRefs` and `getTxOutRefandOutputs`). Some additional helpers are
+  provided for basic searches (`utxosAtSearch`, `allUtxosSearch`,
+  `txSkelOutByRefSearch` and `txSkelOutByRefSearch'`) and for basic filters
+  (`ensureOnlyValueOutputs`, `ensureVanillaOutputs` and
+  `ensureProperReferenceScript`).
+- `txSkelLabel` has been renamed `txSkelLabels`
 
 ### Fixed
 
