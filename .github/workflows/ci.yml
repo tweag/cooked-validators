@@ -38,7 +38,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
@@ -70,7 +70,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
@@ -102,7 +102,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## No auth token: read only cache.
@@ -223,7 +223,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## No auth token: read only cache.
@@ -324,7 +324,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
