@@ -1,3 +1,5 @@
+# CHEATSHEET
+
 Welcome to `cooked-validators`' **Cheatsheet** 
 
 You will find here code snippets to help you use the library! Among other
@@ -11,6 +13,7 @@ While this is not a complete tutorial, this document should be helpful to new
 users to get accustomed to `cooked-validators` as well as old users looking to
 see how things have evolved and are currently done in `cooked-validators`!
 
+- [CHEATSHEET](#cheatsheet)
 - [Mockchain runs](#mockchain-runs)
   - [Mockchains](#mockchains)
   - [Traces](#traces)
@@ -44,21 +47,24 @@ see how things have evolved and are currently done in `cooked-validators`!
   - [Inputs](#inputs)
   - [Minted value](#minted-value)
   - [Reference inputs](#reference-inputs)
-  - [Balancing](#balancing)
-    - [Pick which user provides UTxOs to balance a transaction](#pick-which-user-provides-utxos-to-balance-a-transaction)
-    - [Do not automatically balance](#do-not-automatically-balance)
   - [Collaterals](#collaterals)
   - [Proposal procedures](#proposal-procedures)
     - [Tamper with the official constitution script](#tamper-with-the-official-constitution-script)
     - [Attach a Proposal Procedure to a transaction](#attach-a-proposal-procedure-to-a-transaction)
   - [Withdrawals](#withdrawals)
   - [Certificates](#certificates)
+  - [Balancing](#balancing)
+    - [Pick which user provides UTxOs to balance a transaction](#pick-which-user-provides-utxos-to-balance-a-transaction)
+    - [Do not automatically balance](#do-not-automatically-balance)
 - [Transaction modifications](#transaction-modifications)
   - [Tweaks: modify transactions](#tweaks-modify-transactions)
     - [Apply a modification](#apply-a-modification)
     - [Add or remove inputs and outputs](#add-or-remove-inputs-and-outputs)
     - [Modify signers](#modify-signers)
     - [Modify skeleton (inputs, outputs, options, etc.) using lenses](#modify-skeleton-inputs-outputs-options-etc-using-lenses)
+  - [Temporal modifications](#temporal-modifications)
+    - [Builtin formulas](#builtin-formulas)
+    - [Custom formulas](#custom-formulas)
 
 # Mockchain runs
 
@@ -589,39 +595,6 @@ txSkelTemplate
     }
 ```
 
-## Balancing
-
-### Pick which user provides UTxOs to balance a transaction
-
-* First signatory (default):
-```haskell
-txSkelTemplate
-  { ...
-    txSkelSignatories = [signatory1, signatory2]
-    ...
-  }
-```
-
-* Another signatory:
-```haskell
-txSkelTemplate
-  { ...
-    txSkelSignatories = [signatory1, signatory2],
-    txOpts = def {txOptBalancingPolicy = BalanceWith (wallet 2)}
-    ...
-  }
-```
-
-### Do not automatically balance
-
-```haskell
-txSkelTemplate
-  { ...
-    txOpts = def {txOptBalancingPolicy = DoNotBalance}
-    ...
-  }
-```
-
 ## Collaterals
 
 * From first signer (default):
@@ -741,7 +714,7 @@ txSkelTemplate
 ```haskell 
     txSkelTemplate
       { txSkelWithdrawals = txSkelWithdrawalsFromList 
-	      [ TxSkelWithdrawal myWithdraingPeer (Just 2_000_000),
+	      [ TxSkelWithdrawal myWithdrawingPeer (Just 2_000_000),
 		    ...
 	      ]
 	    ...
@@ -768,6 +741,39 @@ txSkelTemplate
 		scriptCertificate myScript myRedeemer myCertificateAction2
 	  ],
     ... 
+  }
+```
+
+## Balancing
+
+### Pick which user provides UTxOs to balance a transaction
+
+* First signatory (default):
+```haskell
+txSkelTemplate
+  { ...
+    txSkelSignatories = [signatory1, signatory2]
+    ...
+  }
+```
+
+* Another signatory:
+```haskell
+txSkelTemplate
+  { ...
+    txSkelSignatories = [signatory1, signatory2],
+    txOpts = def {txOptBalancingPolicy = BalanceWith (wallet 2)}
+    ...
+  }
+```
+
+### Do not automatically balance
+
+```haskell
+txSkelTemplate
+  { ...
+    txOpts = def {txOptBalancingPolicy = DoNotBalance}
+    ...
   }
 ```
 
@@ -819,3 +825,9 @@ foo = do
                           (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
                     )
 ```
+
+## Temporal modifications
+
+### Builtin formulas
+
+### Custom formulas
