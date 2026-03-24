@@ -1,25 +1,113 @@
 # Cheatsheet
 
-* This cheastsheet is quick reminder, not a tutorial about `cooked-validators`.
-* Minimum prior knowledge (Cardano, general idea of what `cooked-validators` is about) is expected.
-* It reminds how to use or help discover `cooked-validators` features.
-* This does not go in depth into all features, instead it give an overview of their most basic usage.
-* Code snippets are not usable as is, they give intuition and direction. Adapt them to your use case.
+Welcome to `cooked-validators`' **Cheatsheet** 
 
-## Basics
+You will find here code snippets to help you use the library, which can, and
+should, be adapted to your use cases! Learn how to write transactions, fetch
+information from the blockchain, submit these transactions as part of a trace,
+and run those traces in tests or in a `repl` environement!
 
-### Run a trace
+While this is not a tutorial, this document should be helpful to new users to
+get accustomed to `cooked-validators` as well as old users looking to remember
+how things are done in `cooked-validators` !
 
-* In a test
-    * `testCooked "foo" $ mustSucceedTest foo`
-    * `testCookedQC "foo" $ mustFailTest foo`
-* In the REPL
-    * `printCooked $ interpretAndRun foo` for all traces
-    * `printCooked $ runMockChain foo` for `MonadBlockChain` traces only
+## Traces 
 
-### Custom initial distributions of UTxOs
+### Define a trace
 
-#### Creation
+A `mockchain` is an emulated blockchain. A trace is a sequence of instructions
+in one of our builtin monadic environement representing this `mockchain`:
+- `DirectMockChain`: basic capabilities of the mockchain
+- `StagedMockChain`: basic capabilities of the mockchain, with the addition of
+  branching and temporal modifications. This is the go-to environement !
+- `FullMockChain`: all effects available, including low-level effects such as
+  builtin-errors, to be used for maximum level of granularity
+- `ExtendedStagedMockChain eff`: same as `StagedMockChain` with additional
+  custom effects embedded in `eff`, to work in your own dedicated environement !
+
+* In a fixed mockchain:
+```haskell
+myTrace :: [Direct|Staged|Full]MockChain ()
+myTrace = do
+  ...
+```
+
+* In a mockChain extended with a single effect:
+```haskell
+myTrace :: ExtendedStagedMockChain FirstEff ()
+myTrace = do
+  ...
+  actionInFirstEff
+  ...
+```
+
+* In a mockchain extended with several effects (using `Polysemy`'s bundle capability):
+```haskell
+myTrace :: ExtendedStagedMockChain (Bundle '[FirstEff, SecondEff,..]) ()
+myTrace = do
+  ...
+  sendBundle $ actionInFirstEff
+  ...
+  sendBundle $ actionInSecondEff
+  ...
+```
+
+* In a direct set of capabilities:
+```haskell
+myTrace :: (Members '[MockChainLog, MockChainRead, ...] effs) => Sem effs ()
+myTrace = do
+  ...
+```
+
+### Execute the trace in a `cabal repl`
+
+* With a default mockchain state: 
+  `printCooked $ runMockChainDef myTrace`
+* With a custom mockchain state: 
+  `printCooked $ runMockChain myState myTrace`
+* With a custom initial list of payments (or `InitialDistribution`):
+  `printCooked $ runMockChainFromInitDist myPaymentsList myTrace`
+* With a default configuration (initial state, initial list of payments, and custom function on returned value): 
+  `printCooked $ runMockChainFromConf myConf myTrace`
+
+### Use the trace as part of a test
+
+* Expect a successful outcome from a trace:
+  `mustSucceedTest myTrace`
+* Expect a failure from a trace:
+  `mustFailTest myTrace`
+* Expect a failure within a specific validation phase/with a specific error message:
+  `mustFailInPhase[1|2](withMessage?) (expectedMessage?) myTrace`
+* Manually customize the:
+  * initial distribution: `withInitiDist myPaymentsList`
+  * pretty printing options: `withPrettyOpts myOptions`
+  * expectations on the log: `withLogProp myLogProp`
+  * expectations on the resulting state: `withStateProp myStateProp`
+  * expectations on the successful outcome: `withSuccessProp mySuccessProp`
+  * expectations on the returned value: `withResultProp myResultProp`
+  * expectations on the number of results: `withSizeProp mySizeProp`
+  * expectations on the failure output: `withFailureProp myFailureProp`
+  * expectations on the possible error: `withErrorProp myError prop`
+* Wrap the test in a quickcheck/tasty test case:
+  * `testCooked` "myTastyTest" $ myTastyTest
+  * `testCookedQC` "myQuickCheckTest" $ myQuickCheckTest
+* Example:
+```haskell
+testCooked $ 
+  mustSucceedTest myTrace 
+    `withInitDist` myListOfPayments -- giving a custom initial distribution
+    `withSizeProp` isOfSize 3 -- expecting 3 outputs
+    `withResultProp` (== 42) -- each returned value should be 42
+    `withLogProp` happened "MCLogAddedReferenceScript" -- a reference script was automatically added
+    `withStateProp` possesses alice myAssetClass 10 -- alice possesses 10 custom tokens in the resulting state
+```
+
+## Custom initial distributions of UTxOs
+
+Initial distributions of funds are lists of payment used to populate the
+blockchain without needing a transaction.
+
+### Creation
 
 * With values only
   ```haskell
@@ -33,22 +121,27 @@
 * With arbitrary payments (more details on the payments content in the dedicated section)
   ```haskell
   initDist :: InitialDistribution
-  initDist = InitialDistribution
+  initDist = 
 	[ wallet 3 `receives` Value (ada 6)
     , fooTypedValidator `receives` Value (myToken 6) <&&> InlineDatum fooTypedDatum
 	, wallet 2 `receives` Value (ada 2) <&&> VisibleHashedDatum fooDatum
 	, wallet 1 `receives` Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred
 	]
   ```
-#### Usage
+### Usage
 
-* In a test ``testCooked "foo" $ mustSucceedTest foo `withInitDist` myInitiDist``
-* In the REPL `printCooked $ interpretAndRunWith (runMockChainTFromInitDist initDist) foo`
+* In a test: ``testCooked "foo" $ mustSucceedTest foo `withInitDist` myInitiDist``
+* In a `repl`: `printCooked $ runMockChainFromInitDist myInitDist foo`
+* Within a trace: `forceOutputs myInitDist`
 
-### Give human-readable names to pubkey/script/minting hashes
+## Give human-readable aliases to hashable data (scripts, wallets, ...)
 
-* Outside the mockchain, for static names in the pretty options direclty:
+It is possible to define aliases for everything that is hashable, for pretty
+printing/debugging purposes at the end of a run.
 
+### Aliases for static data
+
+Aliases for static data can be defined outside a mockchain run, in the pretty options direclty:
 ```haskell
 walletNames :: [(Wallet, String)]
 walletNames = [(wallet 1, "Alice"), (wallet 2, "Bob"), (wallet 3, "Carie")]
@@ -69,194 +162,70 @@ pcOpts =
     def
 ```
 
-* Inside the mockchain, for dynamic names (depending on on-chain data, such as `TxOutRef`s):
+### Aliases for dynamic data
 
-```haskell
-myScript <- define "myScript" $ generateScript txOutRef
-```
+Aliases for dynamic data (depending on on-chain elements such as `TxOutRef`s)
+can be defined directly within a mockchain run:
 
+* Result of a pure call:
 ```haskell
-myScript <- defineM "myValidator" $ do
+myTrace = do
   ...
-  return $ generateScript txOutRef
+  myScript <- define "myScript" $ scriptFromTxOutRef txOutRef
+  ...
 ```
 
-### Write a trace or endpoint
-
+* Result of an impure call:
 ```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    transactionOrEndpoint1
-    transactionOrEndpoint2
-    transactionOrEndpoint3
-```
-
-### Get the current time
-
-```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
+myTrace = do
+  ...
+  myScript <- defineM "myValidator" $ do
     ...
-    slot <- currentSlot
-    ...
+    return $ scriptFromTxOutRef txOutRef
+  ...
 ```
 
+## Handling time
 
+Time can be querried/set within a mockchain run, to account for transaction with
+specific validity interval/temporal constraints.
+
+### Querrying time
+
+* The current slot can be querried directly:
 ```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    ...
-    (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentTime
-    ...
+myTrace = do
+  ...
+  slot <- currentSlot
+  ...
 ```
 
-### Wait for at least some amount of time
-
+* An interval of ms can be querried as well, deduced from the slot:
 ```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    ...
-    (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentMSRange
-    targetSlot <- getEnclosingSlot $ lastMsOfCurrentSlot + 3_600_000 -- 1 hour
-    awaitSlot targetSlot
-    ...
+myTrace = do
+  ...
+  (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentMSRange
+  ...
 ```
 
-### Submit a transaction for validation and...
+* No single ms point can be querried, as it does not exist!
 
-* ... get the validated Cardano transaction
-  ```haskell
-  foo :: MonadBlockChain m => m ()
-  foo = do
-          ...
-		  cardanoTx <-
-            validateTxSkel $
-			  txSkelTemplate
-			    { txSkelIns = ...,
-                  ... 
-		        }
-		  ...
-  ```
-* ... get the generated `TxOutRef`s
-  ```haskell
-  foo :: MonadBlockChain m => m ()
-  foo = do
-          ...
-		  txOutRefs <-
-            validateTxSkel' $
-		  	  txSkelTemplate
-			    { txSkelIns = ...,
-                  ...
-                }
-          ...
-  ```
-* ... ignore any returned value
-  ```haskell
-  foo :: MonadBlockChain m => m ()
-  foo = do
-          ...
-          validateTxSkel_ $
-		    txSkelTemplate
-		      { txSkelIns = ...,
-                ...
-              }
-          ...
-  ```
+* The slot containing a given ms point can be querried: `getEnclosingSlot`
 
-### Use wallets
+### Jumping in time
 
-* 10 wallets: `wallet 1` to `wallet 10`
-* `import Plutus.Script.Utils.Address qualified as Script`
-* `Script.toAddress (wallet 3)`
-* `Script.toPubKeyHash (wallet 2)`
-
-### Sign a transaction
-
-* With one or more wallets, including their private key. They will both be part
-  of the required, and actual signers of the transaction.
-
+* Waiting a certain amount of slots
 ```haskell
-txSkelTemplate
-    { ...
-      txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
-      ...
-    }
+myTrace = do
+  ...
+  waitNSlots 3
+  ...
 ```
-
-* With anything that has a pubkey (including wallets) . The will only be part of
-  the required signatories, but the actual signatories are postponed for later.
-  
-```haskell
-instance Script.ToPubKeyHash MyType where
-	... 
-
-myUser1 myUser2 :: MyType
-myUser1 = ...
-myUser2 = ...
-
-txSkelTemplate
-    { ...
-      txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
-      ...
-    }
-```
-
-* With direct signatories:
-```haskell
-txSkelTemplate
-    { ...
-      txSkelSignatories = [TxSkelSignatory myUser (Just privateKey) , TxSkelSignatory myUser2 Nothing , ...]
-      ...
-    }
-```
-
-### Pay (transaction output)
-
-* A simple value to a wallet: ```wallet 3 `receives` Value (ada 3)```
-* A value and an inline datum to a script: ```fooTypedValidator `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelace 160_000))```
-* Hashed datums (visible to the transaction or hidden from it): `... <&&> (VisibleHashedDatum dat)` or `... <&&> (HiddenHashedDatum dat)`
-* A reference script: `(... <&&> ReferenceScript dat)`
-* A staking credential: `(... <&&> StakingCredential dat)`
-
-```haskell
-txSkelTemplate
-    { ...
-      txSkelOuts = [party1 `receives` payment1, party2 `receives` payment2, ...]
-      ...
-    }
-```
-
-### Build redeemers
-
-* No redeemer, auto fill of reference script: `emptyTxSkelRedeemer`
-* No redeemer, forbid auto fill of reference script: `emptyTxSkelRedeemerNoAutoFill`
-* Some redeemer, auto fill of reference script: `someTxSkelRedeemer myRedeemer`
-* Some redeemer, forbid auto fill of reference script: `someTxSkelRedeemerNoAutoFill myRedeemer`
-* Attach a reference input manually (with a reference script): ``txSkelRedeemer `withReferenceInput` txOutRefContainingRefScript``
-* Build the redeemer as a record manually:
-```haskell
-myRedeemer :: TxSkelRedeemer
-myRedeemer =
-  TxSkelRedeemer
-    { txSkelRedeemerContent = red,
-      txSkelRedeemerReferenceInput = Just txOutRefContainingRefScript,
-      txSkelRedeemerAutoFill = False -- ignored if txSkelRedeemerReferenceInput /= Nothing
-    }
-```
-
-### Spend some UTxOs
-
-```haskell
-txSkelTemplate
-    { ...
-      txSkelIns = Map.fromList [
-	      (txOutRef1, someTxSkelRedeemer red), 
-		  (txOutRef2, emptyTxSkelRedeemer `withReferenceInput` txOutRef),
-		  (txOutRef3, someTxSkelRedeemerNoAutoFill red2)
-	    ]
-      ...
-    }
-```
+* Similarly, we can:
+  * jump to a given slot: `awaitSlot`
+  * jump to the slot enclosing a given ms point: `awaitEnclosingSlot`
+  * wait a certain amount of ms from the first ms of the current slot: `waitNMSFromSlotLowerBound`
+  * wait a certain amount of ms from the last ms of the current slot: `waitNMSFromSlotUpperBound`
 
 ### Return `TxOutRef`s from transaction outputs from...
 
@@ -295,6 +264,145 @@ foo txOutRef = do
   -- A datum of a given type might not be present, use 'previewByRef'
   Just typedDatum <- previewByRef (txSkelOutDatumL % txSkelOutDatumTypedAT @MyDatumType) txOutRef
   ...
+```
+
+## Transaction skeletons
+
+Transaction skeletons are abstractions over real transactions, allowing to
+define minimal content proper to each concern. 
+
+### Defining a transaction skeleton
+
+A transaction skeleton is composed of transaction elements and transaction
+options. It is built upon a transaction skeleton template. Each field can then
+be overridden.
+
+```haskell
+myTxSkel = txSkelTemplate 
+  { txSkelIns = ...,
+	txSkelOuts = ...,
+	txSkelOpts = ...,
+	...
+  }
+```
+
+### Submitting transaction skeletons for validation
+
+Transaction skeletons can be submitted for validation and...
+
+* ... get the validated Cardano transaction
+```haskell
+myTrace = do
+  ...
+  cardanoTx <- validateTxSkel myTxSkel
+  ...
+```
+
+* ... get the generated `TxOutRef`s: `validateTxSkel'`
+
+* ... ignore any returned value: `validateTxSkel_`
+
+## Wallets
+
+Wallets are dummy peers that can be used for testing purposes. There are 10
+wallets, from `wallet 1` to `wallet 10`.
+
+```haskell
+import Plutus.Script.Utils.Address qualified as Script
+import PlutusLedgerApi.V3
+
+alice :: Wallet 
+alice = wallet 1
+
+aliceAddress :: Address
+aliceAddress = Script.toAddress alice
+
+alicePKHash :: PubKeyHash 
+alicePKHash = Script.toPubKeyHash alice
+```
+
+Other wallet queries:
+* `walletSK`
+* `walletPK`
+* `walletStakingPK`
+* ...
+
+## Signatories
+
+Transaction can be signed with one of more wallets. They will both be part of
+the required and actual signers of the transaction.
+
+```haskell
+txSkelTemplate
+    { ...
+      txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
+      ...
+    }
+```
+
+Transactions can also be signed by anything that has a pubkey. They will only be part of the required signatories, and a private key will be required later on.
+  
+```haskell
+instance Script.ToPubKeyHash MyType where
+  toPubKeyHash = ... 
+
+myUser1 myUser2 :: MyType
+myUser1 = ...
+myUser2 = ...
+
+txSkelTemplate
+    { ...
+      txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
+      ...
+    }
+```
+
+## Payments
+
+* A simple value to a wallet: ```wallet 3 `receives` Value (ada 3)```
+* A value and an inline datum to a script: ```fooTypedValidator `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelace 160_000))```
+* Hashed datums (visible to the transaction or hidden from it): `... <&&> (VisibleHashedDatum dat)` or `... <&&> (HiddenHashedDatum dat)`
+* A reference script: `(... <&&> ReferenceScript dat)`
+* A staking credential: `(... <&&> StakingCredential dat)`
+
+```haskell
+txSkelTemplate
+    { ...
+      txSkelOuts = [party1 `receives` payment1, party2 `receives` payment2, ...]
+      ...
+    }
+```
+
+## Redeemers
+
+* No redeemer, auto fill of reference script: `emptyTxSkelRedeemer`
+* No redeemer, forbid auto fill of reference script: `emptyTxSkelRedeemerNoAutoFill`
+* Some redeemer, auto fill of reference script: `someTxSkelRedeemer myRedeemer`
+* Some redeemer, forbid auto fill of reference script: `someTxSkelRedeemerNoAutoFill myRedeemer`
+* Attach a reference input manually (with a reference script): ``txSkelRedeemer `withReferenceInput` txOutRefContainingRefScript``
+* Build the redeemer as a record manually:
+```haskell
+myRedeemer :: TxSkelRedeemer
+myRedeemer =
+  TxSkelRedeemer
+    { txSkelRedeemerContent = red,
+      txSkelRedeemerReferenceInput = Just txOutRefContainingRefScript,
+      txSkelRedeemerAutoFill = False -- ignored if txSkelRedeemerReferenceInput /= Nothing
+    }
+```
+
+## Inputs
+
+```haskell
+txSkelTemplate
+  { ...
+    txSkelIns = Map.fromList 
+	  [ (txOutRef1, someTxSkelRedeemer red), 
+        (txOutRef2, emptyTxSkelRedeemer `withReferenceInput` txOutRef),
+	    (txOutRef3, someTxSkelRedeemerNoAutoFill red2)
+	  ]
+    ...
+  }
 ```
 
 ### Mint or burn tokens
