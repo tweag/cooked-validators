@@ -43,6 +43,9 @@ see how things have evolved and are currently done in `cooked-validators`!
     - [Submitting transaction skeletons for validation](#submitting-transaction-skeletons-for-validation)
   - [Signatories](#signatories)
   - [Outputs](#outputs)
+    - [Building payments:](#building-payments)
+    - [Adjusting payments:](#adjusting-payments)
+    - [Attaching payments to transactions](#attaching-payments-to-transactions)
   - [Redeemers](#redeemers)
   - [Inputs](#inputs)
   - [Minted value](#minted-value)
@@ -56,12 +59,10 @@ see how things have evolved and are currently done in `cooked-validators`!
   - [Balancing](#balancing)
     - [Pick which user provides UTxOs to balance a transaction](#pick-which-user-provides-utxos-to-balance-a-transaction)
     - [Do not automatically balance](#do-not-automatically-balance)
-- [Transaction modifications](#transaction-modifications)
-  - [Tweaks: modify transactions](#tweaks-modify-transactions)
-    - [Apply a modification](#apply-a-modification)
-    - [Add or remove inputs and outputs](#add-or-remove-inputs-and-outputs)
-    - [Modify signers](#modify-signers)
-    - [Modify skeleton (inputs, outputs, options, etc.) using lenses](#modify-skeleton-inputs-outputs-options-etc-using-lenses)
+- [Tweaks](#tweaks)
+  - [Defining tweaks](#defining-tweaks)
+  - [Tweaks: modify single transactions](#tweaks-modify-single-transactions)
+  - [Examples](#examples)
   - [Temporal modifications](#temporal-modifications)
     - [Builtin formulas](#builtin-formulas)
     - [Custom formulas](#custom-formulas)
@@ -486,10 +487,10 @@ the required and actual signers of the transaction.
 
 ```haskell
 txSkelTemplate
-    { ...
-      txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
-      ...
-    }
+  { ...
+    txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
+    ...
+  }
 ```
 
 Transactions can also be signed by anything that has a pubkey. They will only be part of the required signatories, and a private key will be required later on.
@@ -503,33 +504,62 @@ myUser1 = ...
 myUser2 = ...
 
 txSkelTemplate
-    { ...
-      txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
-      ...
-    }
+  { ...
+    txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
+    ...
+  }
 ```
 
 ## Outputs
 
-* A simple value to a wallet: ```wallet 3 `receives` Value (ada 3)```
-* A value and an inline datum to a script: ```fooTypedValidator `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelace 160_000))```
-* Hashed datums (visible to the transaction or hidden from it): `... <&&> (VisibleHashedDatum dat)` or `... <&&> (HiddenHashedDatum dat)`
-* A reference script: `(... <&&> ReferenceScript dat)`
-* A staking credential: `(... <&&> StakingCredential dat)`
+### Building payments:
 
+There are several payable elements, attached to a recipient to create a payment:
+* A simple value to a wallet: 
 ```haskell
-txSkelTemplate
-    { ...
-      txSkelOuts = [party1 `receives` payment1, party2 `receives` payment2, ...]
-      ...
-    }
+wallet 3 `receives` Value (ada 3)
+```
+* A value and an inline datum to a script:
+```haskell
+fooScript `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelace 160_000))
+```
+* Hashed datums (visible to the transaction or hidden from it): 
+```haskell
+... <&&> (VisibleHashedDatum dat) -- resolved in the transaction
+... <&&> (HiddenHashedDatum dat) -- unresolved in the transaction
+```
+* A reference script: 
+```haskell
+... <&&> (ReferenceScript dat)
+```
+* A staking credential:
+```haskell
+... <&&> (StakingCredential dat)`
 ```
 
+### Adjusting payments:
+
+Payments can automatically be adjusted in terms of minimal ADA requirements:
 * allow min ADA adjustment, by providing a value: ```party `receives` (Value (myToken 5))```
 * allow min ADA adjustment, by providing no value: ```party `receives` (Datum myDatum)```
 * forbid min ADA adjustment: ```party `receives` (FixedValue $ ada 10) ```
 
+### Attaching payments to transactions
+
+Payments are given in the transaction using the `txSkelOuts` field:
+```haskell
+txSkelTemplate
+  { ...
+    txSkelOuts = [party1 `receives` payment1, party2 `receives` payment2, ...]
+    ...
+  }
+```
+
 ## Redeemers
+
+Redeemers are provided whenever a script is invoked, regardless of its
+purpose. `cooked-validators` will automatically fetch a proper reference inputs
+when applicable.
 
 * No redeemer, auto fill of reference script: `emptyTxSkelRedeemer`
 * No redeemer, forbid auto fill of reference script: `emptyTxSkelRedeemerNoAutoFill`
@@ -589,13 +619,16 @@ txSkelTemplate
 * Additional reference inputs not bound to redeemers:
 ```haskell
 txSkelTemplate
-    { ...
-      txSkelInsReference = Set.fromList [txOutRef1, txOutRef2, ...]
-      ...
-    }
+  { ...
+    txSkelInsReference = Set.fromList [txOutRef1, txOutRef2, ...]
+    ...
+  }
 ```
 
 ## Collaterals
+
+Collaterals are usually selected by `cooked-validators` automatically, but can
+also be provided manually.
 
 * From first signer (default):
 ```
@@ -777,57 +810,145 @@ txSkelTemplate
   }
 ```
 
-# Transaction modifications
+# Tweaks
 
-## Tweaks: modify transactions
+## Defining tweaks
 
-### Apply a modification
+Tweaks are state-aware modifications applied to transactions, which can fail. In
+a tweak, one can:
+* issue any action available in the encompassing mockchain environment
+* modify a `TxSkel` through dedicated primitives
+Tweaks cannot be used in `DirectMockChain`.
 
+Example:
 ```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    bar `withTweak` modification
+myTweak :: TypedTweak effs ()
+myTweak = do
+  myActionInEffs
+  ...
+  setTxSkel ...
+  overTweak ...
+  myOtherActionInEffs
+  ...
 ```
 
-### Add or remove inputs and outputs
+## Tweaks: modify single transactions
 
+* Apply a tweak on a given transaction
 ```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    bar `withTweak` ( do
-                        addOutputTweak $ bazValidator `receives` bazPayment
-                        removeOutputTweak (\(Pays out) -> somePredicate out)
-                        addInputTweak somePkTxOutRef txSkelEmptyRedeemer
-                        removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
-                    )
+myTrace = do
+  ...
+  myModifiedTxSkel <- execTweak myTxSkel myTweak
+  ...
 ```
 
-### Modify signers
-
+* Apply a tweak on the first transaction of a trace
 ```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    bar `withTweak` ( do
-                        addSignatoriesTweak [signatory1, signatory2]
-                        replaceFirstSigner signatory3
-                        removeSigners [signatory2]
-                    )
+myTrace = do
+  ...
+  withTweak myTrace myTweak
+  ...
 ```
 
-### Modify skeleton (inputs, outputs, options, etc.) using lenses
-
+* Apply a tweak on the nth transaction of a trace (0-indexed)
 ```haskell
-foo :: MonadBlockChain m => m ()
+myTrace = do
+  ...
+  there 3 myTrace myTweak
+  ...
+```
+
+## Examples
+
+* Tamper with inputs and outputs 
+```haskell
 foo = do
-    bar `withTweak` ( do
-                        C.overTweak
-                          (txSkelOutsL % ix 1 % txSkelOutValueL) -- Value of first output
-                          (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
-                    )
+  addOutputTweak $ bazValidator `receives` bazPayment
+  removeOutputTweak (\(Pays out) -> somePredicate out)
+  addInputTweak somePkTxOutRef txSkelEmptyRedeemer
+  removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
+```
+
+* Tamper with signatories
+```haskell
+foo = do
+   addSignatoriesTweak [signatory1, signatory2]
+   replaceFirstSigner signatory3
+   removeSigners [signatory2]
+```
+
+* Using optics in tweaks
+```haskell
+foo = C.overTweak
+  (txSkelOutsL % ix 1 % txSkelOutValueL) -- Value of first output
+  (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
 ```
 
 ## Temporal modifications
 
+Tweaks can be deployed "on-time" using various temporal combinators inspired by
+Linear Temporal Logics formulas (LTL) in traces composed of several transactions. 
+
 ### Builtin formulas
 
+* Apply a tweak on all transactions in a trace, where it must never fail:
+```haskell
+myTrace = do
+  ...
+  everywhere myTweak myTrace
+  ...
+```
+
+* Apply a tweak whenever possible, branching for each position where it applies:
+```haskell
+myTrace = do
+  ...
+  somewhere myTweak myTrace
+  ...
+```
+
+* Apply a tweak whenever it applies, skipping transactions when it does not:
+```haskell
+myTrace = do
+  ...
+  whenAble myTweak myTrace
+  ...
+```
+
+* Apply a tweak to all transactions with a given text label:
+```haskell
+myTrace = do
+  ...
+  whenAble (labelled' myLabel myTweak) myTrace
+  ...
+```
+
+* Ensure a tweak cannot be applied in any transaction of a trace:
+```haskell
+myTrace = do
+  ...
+  never myTweak myTrace
+  ...
+```
+
 ### Custom formulas
+
+Custom LTL formulas can be used for more advanced use case. 
+
+* Wrap a tweak into an atomic LTL formula:
+```haskell
+myAtom = LtlAtom $ UntypedTweak myTweak
+```
+
+* Build an LTL formula from atomic modifications: 
+```haskell
+myFormula = myAtom1 `LtlAnd` (myAtom2 `LtlOr` (myAtom3 `ltlImplies` myAtom4))
+```
+
+* Modify a computation with the built formula:
+```haskell
+myTrace = do
+  ...
+  modifyLtl myFormula myTrace
+  ...
+```
