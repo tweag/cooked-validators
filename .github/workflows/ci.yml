@@ -38,7 +38,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
@@ -70,7 +70,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
@@ -102,7 +102,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## No auth token: read only cache.
@@ -162,7 +162,7 @@ jobs:
           '
 
       - name: Upload build and test outputs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cooked-validators-checks
           path: |
@@ -177,7 +177,7 @@ jobs:
 
     steps:
       - name: Access build and test outputs
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: cooked-validators-checks
 
@@ -223,7 +223,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## No auth token: read only cache.
@@ -261,7 +261,7 @@ jobs:
           '
 
       - name: Upload documentation as artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: documentation
           path: ./docs
@@ -279,7 +279,7 @@ jobs:
     needs: [build-and-deploy-documentation]
     steps:
       - name: Access haddock outputs
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: documentation
       - name: Check for warnings in Haddock output
@@ -324,7 +324,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that

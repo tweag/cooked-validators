@@ -53,16 +53,38 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
 
 ## How to integrate `cooked-validators` in a project
 
-1. `cooked-validators` depends on
-[cardano-haskell-packages](https://github.com/input-output-hk/cardano-haskell-packages)
-to get cardano-related packages and on
-[cardano-node-emulator](https://github.com/tweag/cardano-node-emulator-forked)
-directly. If you have no constraint on the version of this package, copy the
-file [`cabal.project`](./cabal.project) to your project and
-[adapt](https://cabal.readthedocs.io/en/stable/cabal-project-description-file.html#specifying-the-local-packages)
-the `packages` stanza.
+There are two ways for this integration:
+
+1. `cooked-validators`, and all its dependencies, are available on
+   [cardano-haskel-packages
+   (CHaP)](https://github.com/IntersectMBO/cardano-haskell-packages). To rely
+   on a release available there, add the following stanza to your
+   `cabal.project`:
    
-2. Add the following stanza to the file `cabal.project`
+   ```cabal.project
+   repository cardano-haskell-packages
+	 url: https://chap.intersectmbo.org/
+	 secure: True
+	 root-keys:
+	   3e0cce471cf09815f930210f7827266fd09045445d65923e6d0238a6cd15126f
+	   443abb7fb497a134c343faf52f0b659bd7999bc06b7f63fa76dc99d631f9bea1
+	   a86a1f6ce86c449c46666bda44268677abf29b5b2d2eb5ec7af903ec2f117a82
+	   bcec67e8e99cabfa7764d75ad9b158d72bfacf70ca1d0ec8bc6b4406d1bf8413
+	   c00aae8461a256275598500ea0e187588c35a5d5d7454fb57eac18d9edb86a56
+	   d4a35cd3121aa00d18544bb0ac01c3e1691d618f462c46129271bccf39f7e8ee
+
+   index-state:
+	 , cardano-haskell-packages 2026-02-13T00:00:02Z
+   ```
+   
+   To find the appropriate index state to fill above, look for
+   `cooked-validators` on [CHaP's packages
+   list](https://chap.intersectmbo.org/all-packages/).
+
+2. Alternatively, if you want to rely on a specific commit or branch not
+   available on CHaP, you can import `cooked-validators` directly from GitHub
+   with the following stanza:
+
    ```cabal.project
    source-repository-package
      type: git
@@ -71,85 +93,134 @@ the `packages` stanza.
      subdir:
        .
    ```
+   
    where `myTag` is either a commit hash in the repo, or a tag, such as v8.0.0
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
+   
+   Note that, should you do that, you would likely still need CHaP for all the
+   other dependencies.
 
-3. Each release of `cooked-validators` is pinned to a specific version of
-   [`cardano-api`](https://github.com/IntersectMBO/cardano-api) which in turn
-   pins the versions of all other Cardano-related dependencies (including
-   Plutus). Make sure your project relies on the same version.
+ Each release of `cooked-validators` is pinned to a specific version of
+ [`cardano-api`](https://github.com/IntersectMBO/cardano-api) which in turn pins
+ the versions of all other Cardano-related dependencies (including Plutus). Make
+ sure your project relies on the same version.
 
 ## Example
    
 This example shows how to create and validate a simple transaction that
-transfers 10 Ada from wallet 1 to wallet 2, without manually handling fees or
-balancing.
+transfers 10 Ada from Alice (wallet 1) to Bob (wallet 2), without manually
+handling fees or balancing.
 
-1. Enter a Cabal read-eval-print-loop (with `cabal repl`)
+1. Create a new Haskell module, for example `Demo.hs`
 
 2. Import your required dependencies
    ``` haskell
-   > import Cooked
-   > import qualified Plutus.Script.Utils.Value as Script
+   import Cooked
+   import Plutus.Script.Utils.Value qualified as Script
    ```
 
-3. Define a transaction which transfers 10 Ada from wallet 1 to wallet 2
+3. Start the definition of a `MockChain` run:
    ``` haskell
-   let myTransaction = txSkelTemplate {txSkelOuts = [wallet 2 `receives` Value (Script.ada 10)], txSkelSignatories = txSkelSignatoriesFromList [wallet 1]}
+   myDemoRun :: StagedMockChain ()
+   myDemoRun = do
    ```
-
-4. Send the transaction for validation, and request the printing of the run
+   
+4. Define aliases for Alice and Bob:
    ``` haskell
-   printCooked . runMockChain . validateTxSkel_ $ myTransaction 
+     alice <- define "Alice" $ wallet 1
+     bob <- define "Bob" $ wallet 2
+   ```
+   
+5. Give some initial funds to Alice:
+   ``` haskell
+     forceOutputs_ $ replicate 3 $ alice `receives` Value (Script.ada 10)
+   ```
+   
+5. Take some notes:
+   ``` haskell
+     noteS "Alice is sending 10 ADA to Bob"
+     noteS "I let cooked-validators do the heavy lifting for me"
    ```
 
-5. Observe the log of the run, including:
-    - The original skeleton, and its balanced counterpart
-	- The associated fee and collaterals
-	- The final mockchain state, with every wallet's assets (notice the 10 ADA
-      payment owned by wallet 2)
-	- The value returned by the run (here `()` as we used `validateTxSkel_`)
-   ```haskell
-   📖 MockChain run log:
-	 ⁍ New raw skeleton submitted to the adjustment pipeline:
-	   - Validity interval: (-∞ , +∞)
-	   - Signatories:
-		 - wallet 1 [balancing]
-	   - Outputs:
-		 - Pays to pubkey wallet 2
-		   - Lovelace: 10_000_000
-	 ⁍ New adjusted skeleton submitted for validation:
-	   - Validity interval: (-∞ , +∞)
-	   - Signatories:
-		 - wallet 1 [balancing]
-	   - Inputs:
-		 - Spends #4480b35!3 from pubkey wallet 1
-		   - Redeemer ()
-		   - Lovelace: 100_000_000
-	   - Outputs:
-		 - Pays to pubkey wallet 2
-		   - Lovelace: 10_000_000
-		 - Pays to pubkey wallet 1
-		   - Lovelace: 89_828_383
-	   - Fee: Lovelace: 171_617
-	   - No collateral required
-	 ⁍ New transaction successfully validated:
-	   - Transaction id: #c095342
-	   - Number of new outputs: 2
-   ✅ UTxO state:
-	 • pubkey wallet 1
-	   - Lovelace: 89_828_383
-	   - (×3) Lovelace: 100_000_000
-	 • pubkey wallet 2
-	   - Lovelace: 10_000_000
-	   - (×4) Lovelace: 100_000_000
-	 • pubkey wallet 3
-	   - (×4) Lovelace: 100_000_000
-	 • pubkey wallet 4
-	   - (×4) Lovelace: 100_000_000
-   🟢 Returned value: () 
+6. Submit the transaction:
+   ``` haskell
+     validateTxSkel_
+       txSkelTemplate
+         { txSkelOuts = [bob `receives` Value (Script.ada 10)],
+           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
+         }
    ```
+
+7. Lookup for the UTxOs now owned by Bob, and assert that he indeed possesses 1:
+   ``` haskell 
+      bobUtxos <- utxosAt bob
+      assert "Bob now has 1 utxo" $ length bobUtxos == 1
+   ```
+
+8. Enter a `cabal repl`, run and print the trace:
+   ``` haskell
+   > printCooked $ runMockChainDef myDemoRun
+   ```
+
+5. Observe the output of printing the run, including:
+   - The notes you've taken:
+	 ```
+	 📔 Notes:
+	   - Alice is going to send 10 ADA to Bob
+	   - I let cooked-validators do the heavy lifting for me
+     ```
+   - The execution log, including: the original submitted skeleton, 
+	 the adjusted skeleton, and the computed fee and collaterals:	 
+	 ```
+	 📖 MockChain run log:
+	   ⁍ New raw skeleton submitted to the adjustment pipeline:
+		 - Validity interval: (-∞ , +∞)
+		 - Signatories:
+		   - Alice [balancing]
+		 - Outputs:
+		   - Pays to pubkey Bob
+			 - Lovelace: 10_000_000
+	   ⁍ New adjusted skeleton submitted for validation:
+		 - Validity interval: (-∞ , +∞)
+		 - Signatories:
+		   - Alice [balancing]
+		 - Inputs:
+		   - Spends #d769532!1 from pubkey Alice
+			 - Redeemer ()
+			 - Lovelace: 10_000_000
+		   - Spends #d769532!2 from pubkey Alice
+			 - Redeemer ()
+			 - Lovelace: 10_000_000
+		 - Outputs:
+		   - Pays to pubkey Bob
+			 - Lovelace: 10_000_000
+		   - Pays to pubkey Alice
+			 - Lovelace: 9_826_799
+		 - Fee: Lovelace: 173_201
+		 - No collateral required
+	   ⁍ New transaction successfully validated:
+		 - Transaction id: #bff7a56
+		 - Number of new outputs: 2
+	 ```
+   - The evaluation of the assertions:
+	 ```
+	 ✅ Assertions:
+	   - ✔ Bob now has 1 utxo
+     ```
+   - The final mockchain state:
+	 ```
+	 💰 UTxO state:
+	   • pubkey Alice
+		 - Lovelace: 9_826_799
+		 - Lovelace: 10_000_000
+	   • pubkey Bob
+		 - Lovelace: 10_000_000
+	 ```
+   - The outcome and return value of the run:
+	 ```
+	 🟢 Success with returned value: ()
+	 ```
 
 ## Documentation
 
