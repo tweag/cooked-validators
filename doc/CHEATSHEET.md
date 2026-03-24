@@ -32,7 +32,7 @@ see how things have evolved and are currently done in `cooked-validators`!
   - [Assertions](#assertions)
 - [Basic mockchain capabilities](#basic-mockchain-capabilities)
   - [Time handling](#time-handling)
-    - [Querrying time](#querrying-time)
+    - [Querying time](#querying-time)
     - [Jumping in time](#jumping-in-time)
   - [Utxos queries](#utxos-queries)
     - [Direct queries](#direct-queries)
@@ -320,12 +320,12 @@ of the mockchain run.
 
 ## Time handling
 
-Time can be querried/set within a mockchain run, to account for transaction with
+Time can be queried/set within a mockchain run, to account for transaction with
 specific validity interval/temporal constraints.
 
-### Querrying time
+### Querying time
 
-* The current slot can be querried directly:
+* The current slot can be queried directly:
 ```haskell
 myTrace = do
   ...
@@ -333,7 +333,7 @@ myTrace = do
   ...
 ```
 
-* An interval of ms can be querried as well, deduced from the slot:
+* An interval of ms can be queried as well, deduced from the slot:
 ```haskell
 myTrace = do
   ...
@@ -341,9 +341,9 @@ myTrace = do
   ...
 ```
 
-* No single ms point can be querried, as it does not exist!
+* No single ms point can be queried, as it does not exist!
 
-* The slot containing a given ms point can be querried: `getEnclosingSlot`
+* The slot containing a given ms point can be queried: `getEnclosingSlot`
 
 ### Jumping in time
 
