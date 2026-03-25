@@ -2,7 +2,8 @@
 -- computation of fees and collaterals because their computation cannot be
 -- separated from the balancing.
 module Cooked.MockChain.Balancing
-  ( ExtendedTxSkel (..),
+  ( Body,
+    ExtendedTxSkel (..),
     balanceTxSkel,
     getMinAndMaxFee,
     estimateTxSkelFee,
@@ -46,6 +47,7 @@ import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
 
+-- | A transaction body
 type Body = Cardano.TxBody Cardano.ConwayEra
 
 -- | A `TxSkel` with extra pieces of information produced during balancing

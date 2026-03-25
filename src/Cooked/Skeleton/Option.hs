@@ -204,15 +204,15 @@ data TxSkelOpts = TxSkelOpts
     -- early as possible, typically during balancing when the execution units
     -- are computed. This will shortcut the whole balancing process which
     -- iterates the body generation, and thus increase performances (by 40%). As
-    -- a result, the balanced `TxSkel` will never be computed and thus will be
-    -- absent from the log, which is the only downside.
+    -- a result, the balanced `Cooked.Skeleton.TxSkel` will never be computed
+    -- and thus will be absent from the log, which is the only downside.
     --
     -- When set to @True@: the phase 2 validation erros will be ignored during
     -- the balancing process. This will result in a worst performance (40%), but
-    -- will allow the log to display a balanced version of the failing `TxSkel`,
-    -- which might be useful. Only use this when debugging complicated phase 2
-    -- failures which require a precise view of the balanced `TxSkel` sent for
-    -- validation.
+    -- will allow the log to display a balanced version of the failing
+    -- `Cooked.Skeleton.TxSkel`, which might be useful. Only use this when
+    -- debugging complicated phase 2 failures which require a precise view of
+    -- the balanced `Cooked.Skeleton.TxSkel` sent for validation.
     --
     -- Default is `False`
     txSkelOptDeferPhase2FailuresDuringBalancing :: Bool,
