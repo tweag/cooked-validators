@@ -9,16 +9,23 @@
 </span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html"><span class="hs-identifier">Cooked.Tweak.Common</span></a></span><span>
 </span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">partition</span></span><span class="hs-special">)</span><span>
 </span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-12"></span><span>
-</span><span id="line-13"></span><span class="hs-comment">-- | Adds new entries to the 'TxSkelMints' of the transaction skeleton under</span><span>
-</span><span id="line-14"></span><span class="hs-comment">-- modification.</span><span>
-</span><span id="line-15"></span><span id="local-6989586621679881042"><span class="annot"><a href="Cooked.Tweak.Mint.html#addMintsTweak"><span class="hs-identifier hs-type">addMintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881042"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881042"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-16"></span><span id="addMintsTweak"><span class="annot"><span class="annottext">addMintsTweak :: forall (m :: * -&gt; *). MonadTweak m =&gt; [Mint] -&gt; m ()
-</span><a href="Cooked.Tweak.Mint.html#addMintsTweak"><span class="hs-identifier hs-var hs-var">addMintsTweak</span></a></span></span><span> </span><span id="local-6989586621679881117"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881117"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; ([Mint] -&gt; [Mint]) -&gt; m ()
-forall (m :: * -&gt; *) k (is :: IxList) a.
-(MonadTweak m, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- | Adds new entries to the 'TxSkelMints' of the transaction skeleton under</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- modification.</span><span>
+</span><span id="line-16"></span><span id="local-6989586621679864432"><span class="annot"><a href="Cooked.Tweak.Mint.html#addMintsTweak"><span class="hs-identifier hs-type">addMintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864432"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-19"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864432"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-20"></span><span id="addMintsTweak"><span class="annot"><span class="annottext">addMintsTweak :: forall (effs :: EffectRow).
+Member Tweak effs =&gt;
+[Mint] -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Mint.html#addMintsTweak"><span class="hs-identifier hs-var hs-var">addMintsTweak</span></a></span></span><span> </span><span id="local-6989586621679864505"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679864505"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint]
+-&gt; ([Mint] -&gt; [Mint]) -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 -&gt; Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
@@ -31,21 +38,26 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Mint] -&gt; [Mint] -&gt; [Mint]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881117"><span class="hs-identifier hs-var">newMints</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-17"></span><span>
-</span><span id="line-18"></span><span class="hs-comment">-- | Remove some entries from the 'TxSkelMints' of a transaction, according to</span><span>
-</span><span id="line-19"></span><span class="hs-comment">-- some predicate. The returned list holds the removed entries.</span><span>
-</span><span id="line-20"></span><span id="local-6989586621679881082"><span class="annot"><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier hs-type">removeMintTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881082"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881082"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span class="hs-special">]</span></span><span>
-</span><span id="line-21"></span><span id="removeMintTweak"><span class="annot"><span class="annottext">removeMintTweak :: forall (m :: * -&gt; *). MonadTweak m =&gt; (Mint -&gt; Bool) -&gt; m [Mint]
-</span><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier hs-var hs-var">removeMintTweak</span></a></span></span><span> </span><span id="local-6989586621679881143"><span class="annot"><span class="annottext">Mint -&gt; Bool
-</span><a href="#local-6989586621679881143"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-22"></span><span>  </span><span id="local-6989586621679881144"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881144"><span class="hs-identifier hs-var">presentMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; m [Mint]
-forall (m :: * -&gt; *) k (is :: IxList) a.
-(MonadTweak m, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; m a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Lens NoIx TxSkel [Mint] -&gt; m [Mint])
--&gt; Optic' A_Lens NoIx TxSkel [Mint] -&gt; m [Mint]
+</span><a href="#local-6989586621679864505"><span class="hs-identifier hs-var">newMints</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | Remove some entries from the 'TxSkelMints' of a transaction, according to</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- some predicate. The returned list holds the removed entries.</span><span>
+</span><span id="line-24"></span><span id="local-6989586621679864473"><span class="annot"><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier hs-type">removeMintTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864473"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864473"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-28"></span><span id="removeMintTweak"><span class="annot"><span class="annottext">removeMintTweak :: forall (effs :: EffectRow).
+Member Tweak effs =&gt;
+(Mint -&gt; Bool) -&gt; Sem effs [Mint]
+</span><a href="Cooked.Tweak.Mint.html#removeMintTweak"><span class="hs-identifier hs-var hs-var">removeMintTweak</span></a></span></span><span> </span><span id="local-6989586621679864528"><span class="annot"><span class="annottext">Mint -&gt; Bool
+</span><a href="#local-6989586621679864528"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679864529"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679864529"><span class="hs-identifier hs-var">presentMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; Sem effs [Mint]
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Lens NoIx TxSkel [Mint] -&gt; Sem effs [Mint])
+-&gt; Optic' A_Lens NoIx TxSkel [Mint] -&gt; Sem effs [Mint]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
@@ -57,17 +69,17 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span>
-</span><span id="line-23"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679881146"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881146"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679881147"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881147"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Mint -&gt; Bool) -&gt; [Mint] -&gt; ([Mint], [Mint])
+</span><span id="line-30"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679864531"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679864531"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679864532"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679864532"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Mint -&gt; Bool) -&gt; [Mint] -&gt; ([Mint], [Mint])
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
 </span><span class="hs-identifier hs-var">partition</span></span><span> </span><span class="annot"><span class="annottext">Mint -&gt; Bool
-</span><a href="#local-6989586621679881143"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881144"><span class="hs-identifier hs-var">presentMints</span></a></span><span>
-</span><span id="line-24"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; [Mint] -&gt; m ()
-forall (m :: * -&gt; *) k (is :: IxList) a.
-(MonadTweak m, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; m ()
+</span><a href="#local-6989586621679864528"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679864529"><span class="hs-identifier hs-var">presentMints</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; [Mint] -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 -&gt; Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
@@ -78,10 +90,10 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
 </span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881147"><span class="hs-identifier hs-var">kept</span></a></span><span>
-</span><span id="line-25"></span><span>  </span><span class="annot"><span class="annottext">[Mint] -&gt; m [Mint]
-forall a. a -&gt; m a
+</span><a href="#local-6989586621679864532"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="annot"><span class="annottext">[Mint] -&gt; Sem effs [Mint]
+forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679881146"><span class="hs-identifier hs-var">removed</span></a></span><span>
-</span><span id="line-26"></span></pre></body></html>
+</span><a href="#local-6989586621679864531"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><span id="line-33"></span></pre></body></html>

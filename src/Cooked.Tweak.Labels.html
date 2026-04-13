@@ -15,20 +15,29 @@
 </span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor</span></span><span>
 </span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
 </span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
-</span><span id="line-18"></span><span>
-</span><span id="line-19"></span><span class="annot"><span class="hs-comment">-- | Adds a label to a 'TxSkel'.</span></span><span>
-</span><span id="line-20"></span><span id="local-6989586621679881149"><span id="local-6989586621679881151"><span class="annot"><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-type">addLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881149"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881151"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881149"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881151"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
-</span><span id="line-21"></span><span id="addLabelTweak"><span class="annot"><span class="annottext">addLabelTweak :: forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m ()
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.NonDet</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="annot"><span class="hs-comment">-- | Adds a label to a 'TxSkel'.</span></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679864535"><span id="local-6989586621679864538"><span class="annot"><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-type">addLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864535"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864538"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><a href="#local-6989586621679864535"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864538"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-28"></span><span id="addLabelTweak"><span class="annot"><span class="annottext">addLabelTweak :: forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Member Tweak effs) =&gt;
+lbl -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var hs-var">addLabelTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
--&gt; (Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; m ()
-forall (m :: * -&gt; *) k (is :: IxList) a.
-(MonadTweak m, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
+-&gt; (Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
-</span><a href="Cooked.Skeleton.html#txSkelLabelL"><span class="hs-identifier hs-var">txSkelLabelL</span></a></span><span> </span><span class="annot"><span class="annottext">((Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; m ())
--&gt; (lbl -&gt; Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; lbl -&gt; m ()
+</span><a href="Cooked.Skeleton.html#txSkelLabelsL"><span class="hs-identifier hs-var">txSkelLabelsL</span></a></span><span> </span><span class="annot"><span class="annottext">((Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; Sem effs ())
+-&gt; (lbl -&gt; Set TxSkelLabel -&gt; Set TxSkelLabel)
+-&gt; lbl
+-&gt; Sem effs ()
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelLabel -&gt; Set TxSkelLabel -&gt; Set TxSkelLabel
 forall a. Ord a =&gt; a -&gt; Set a -&gt; Set a
@@ -41,21 +50,28 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">lbl -&gt; TxSkelLabel
 forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
 </span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span>
-</span><span id="line-22"></span><span>
-</span><span id="line-23"></span><span class="annot"><span class="hs-comment">-- | Checks if a given label is present in the 'TxSkel'</span></span><span>
-</span><span id="line-24"></span><span id="local-6989586621679881173"><span id="local-6989586621679881174"><span class="annot"><a href="Cooked.Tweak.Labels.html#hasLabelTweak"><span class="hs-identifier hs-type">hasLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881173"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881174"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881173"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881174"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span></span><span>
-</span><span id="line-25"></span><span id="hasLabelTweak"><span class="annot"><span class="annottext">hasLabelTweak :: forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m Bool
-</span><a href="Cooked.Tweak.Labels.html#hasLabelTweak"><span class="hs-identifier hs-var hs-var">hasLabelTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel) -&gt; m (Set TxSkelLabel)
-forall (m :: * -&gt; *) k (is :: IxList) a.
-(MonadTweak m, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; m a
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="annot"><span class="hs-comment">-- | Checks if a given label is present in the 'TxSkel'</span></span><span>
+</span><span id="line-31"></span><span id="local-6989586621679864561"><span id="local-6989586621679864562"><span class="annot"><a href="Cooked.Tweak.Labels.html#hasLabelTweak"><span class="hs-identifier hs-type">hasLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864561"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-33"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864562"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><a href="#local-6989586621679864561"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864562"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span></span><span>
+</span><span id="line-37"></span><span id="hasLabelTweak"><span class="annot"><span class="annottext">hasLabelTweak :: forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Member Tweak effs) =&gt;
+lbl -&gt; Sem effs Bool
+</span><a href="Cooked.Tweak.Labels.html#hasLabelTweak"><span class="hs-identifier hs-var hs-var">hasLabelTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
+-&gt; Sem effs (Set TxSkelLabel)
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
-</span><a href="Cooked.Skeleton.html#txSkelLabelL"><span class="hs-identifier hs-var">txSkelLabelL</span></a></span><span> </span><span class="annot"><span class="annottext">m (Set TxSkelLabel) -&gt; (Set TxSkelLabel -&gt; Bool) -&gt; m Bool
+</span><a href="Cooked.Skeleton.html#txSkelLabelsL"><span class="hs-identifier hs-var">txSkelLabelsL</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs (Set TxSkelLabel)
+-&gt; (Set TxSkelLabel -&gt; Bool) -&gt; Sem effs Bool
 forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
-</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Set TxSkelLabel -&gt; Bool) -&gt; m Bool)
--&gt; (lbl -&gt; Set TxSkelLabel -&gt; Bool) -&gt; lbl -&gt; m Bool
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Set TxSkelLabel -&gt; Bool) -&gt; Sem effs Bool)
+-&gt; (lbl -&gt; Set TxSkelLabel -&gt; Bool) -&gt; lbl -&gt; Sem effs Bool
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelLabel -&gt; Set TxSkelLabel -&gt; Bool
 forall a. Ord a =&gt; a -&gt; Set a -&gt; Bool
@@ -65,106 +81,129 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">lbl -&gt; TxSkelLabel
 forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
 </span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span>
-</span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="annot"><span class="hs-comment">-- | Ensures a given label is present in the 'TxSkel'</span></span><span>
-</span><span id="line-28"></span><span id="local-6989586621679881263"><span id="local-6989586621679881264"><span class="annot"><a href="Cooked.Tweak.Labels.html#ensureLabelTweak"><span class="hs-identifier hs-type">ensureLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881263"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881264"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881263"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881264"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
-</span><span id="line-29"></span><span id="ensureLabelTweak"><span class="annot"><span class="annottext">ensureLabelTweak :: forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m ()
-</span><a href="Cooked.Tweak.Labels.html#ensureLabelTweak"><span class="hs-identifier hs-var hs-var">ensureLabelTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">lbl -&gt; m Bool
-forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m Bool
-</span><a href="Cooked.Tweak.Labels.html#hasLabelTweak"><span class="hs-identifier hs-var">hasLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(lbl -&gt; m Bool) -&gt; (Bool -&gt; m ()) -&gt; lbl -&gt; m ()
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="annot"><span class="hs-comment">-- | Ensures a given label is present in the 'TxSkel'</span></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679864575"><span id="local-6989586621679864577"><span class="annot"><a href="Cooked.Tweak.Labels.html#ensureLabelTweak"><span class="hs-identifier hs-type">ensureLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864575"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679864577"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-44"></span><span>  </span><span class="annot"><a href="#local-6989586621679864575"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864577"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-46"></span><span id="ensureLabelTweak"><span class="annot"><span class="annottext">ensureLabelTweak :: forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Members '[Tweak, NonDet] effs) =&gt;
+lbl -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Labels.html#ensureLabelTweak"><span class="hs-identifier hs-var hs-var">ensureLabelTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">lbl -&gt; Sem effs Bool
+forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Member Tweak effs) =&gt;
+lbl -&gt; Sem effs Bool
+</span><a href="Cooked.Tweak.Labels.html#hasLabelTweak"><span class="hs-identifier hs-var">hasLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(lbl -&gt; Sem effs Bool)
+-&gt; (Bool -&gt; Sem effs ()) -&gt; lbl -&gt; Sem effs ()
 forall (m :: * -&gt; *) a b c.
 Monad m =&gt;
 (a -&gt; m b) -&gt; (b -&gt; m c) -&gt; a -&gt; m c
-</span><span class="hs-operator hs-var">&gt;=&gt;</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; m ()
+</span><span class="hs-operator hs-var">&gt;=&gt;</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span>
-</span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="annot"><span class="hs-comment">-- | Removes a label from a 'TxSkel' when possible, fails otherwise</span></span><span>
-</span><span id="line-32"></span><span id="local-6989586621679881276"><span id="local-6989586621679881277"><span class="annot"><a href="Cooked.Tweak.Labels.html#removeLabelTweak"><span class="hs-identifier hs-type">removeLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881276"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881277"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881276"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881277"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
-</span><span id="line-33"></span><span id="removeLabelTweak"><span class="annot"><span class="annottext">removeLabelTweak :: forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m ()
-</span><a href="Cooked.Tweak.Labels.html#removeLabelTweak"><span class="hs-identifier hs-var hs-var">removeLabelTweak</span></a></span></span><span> </span><span id="local-6989586621679881289"><span class="annot"><span class="annottext">lbl
-</span><a href="#local-6989586621679881289"><span class="hs-identifier hs-var">lbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">lbl -&gt; m ()
-forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m ()
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="annot"><span class="hs-comment">-- | Removes a label from a 'TxSkel' when possible, fails otherwise</span></span><span>
+</span><span id="line-49"></span><span id="local-6989586621679864659"><span id="local-6989586621679864660"><span class="annot"><a href="Cooked.Tweak.Labels.html#removeLabelTweak"><span class="hs-identifier hs-type">removeLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864659"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679864660"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><a href="#local-6989586621679864659"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864660"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-55"></span><span id="removeLabelTweak"><span class="annot"><span class="annottext">removeLabelTweak :: forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Members '[Tweak, NonDet] effs) =&gt;
+lbl -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Labels.html#removeLabelTweak"><span class="hs-identifier hs-var hs-var">removeLabelTweak</span></a></span></span><span> </span><span id="local-6989586621679864672"><span class="annot"><span class="annottext">lbl
+</span><a href="#local-6989586621679864672"><span class="hs-identifier hs-var">lbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>  </span><span class="annot"><span class="annottext">lbl -&gt; Sem effs ()
+forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Members '[Tweak, NonDet] effs) =&gt;
+lbl -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Labels.html#ensureLabelTweak"><span class="hs-identifier hs-var">ensureLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">lbl
-</span><a href="#local-6989586621679881289"><span class="hs-identifier hs-var">lbl</span></a></span><span>
-</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
--&gt; (Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; m ()
-forall (m :: * -&gt; *) k (is :: IxList) a.
-(MonadTweak m, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; m ()
+</span><a href="#local-6989586621679864672"><span class="hs-identifier hs-var">lbl</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
+-&gt; (Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
-</span><a href="Cooked.Skeleton.html#txSkelLabelL"><span class="hs-identifier hs-var">txSkelLabelL</span></a></span><span> </span><span class="annot"><span class="annottext">((Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; m ())
+</span><a href="Cooked.Skeleton.html#txSkelLabelsL"><span class="hs-identifier hs-var">txSkelLabelsL</span></a></span><span> </span><span class="annot"><span class="annottext">((Set TxSkelLabel -&gt; Set TxSkelLabel) -&gt; Sem effs ())
 -&gt; (TxSkelLabel -&gt; Set TxSkelLabel -&gt; Set TxSkelLabel)
 -&gt; TxSkelLabel
--&gt; m ()
+-&gt; Sem effs ()
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkelLabel -&gt; Set TxSkelLabel -&gt; Set TxSkelLabel
 forall a. Ord a =&gt; a -&gt; Set a -&gt; Set a
-</span><span class="hs-identifier hs-var">Set.delete</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelLabel -&gt; m ()) -&gt; TxSkelLabel -&gt; m ()
+</span><span class="hs-identifier hs-var">Set.delete</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelLabel -&gt; Sem effs ()) -&gt; TxSkelLabel -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">lbl -&gt; TxSkelLabel
 forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
 </span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span> </span><span class="annot"><span class="annottext">lbl
-</span><a href="#local-6989586621679881289"><span class="hs-identifier hs-var">lbl</span></a></span><span>
-</span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-comment">-- | Apply a tweak to a given transaction if it has a specific label. Fails if</span><span>
-</span><span id="line-38"></span><span class="hs-comment">-- it does not.</span><span>
-</span><span id="line-39"></span><span class="hs-comment">--</span><span>
-</span><span id="line-40"></span><span class="hs-comment">-- &gt;</span><span>
-</span><span id="line-41"></span><span class="hs-comment">-- &gt; someEndpoint = do</span><span>
-</span><span id="line-42"></span><span class="hs-comment">-- &gt;   ...</span><span>
-</span><span id="line-43"></span><span class="hs-comment">-- &gt;   validateTxSkel' txSkelTemplate</span><span>
-</span><span id="line-44"></span><span class="hs-comment">-- &gt;      { txSkelLabels =</span><span>
-</span><span id="line-45"></span><span class="hs-comment">-- &gt;         [ &quot;InitialMinting&quot;</span><span>
-</span><span id="line-46"></span><span class="hs-comment">-- &gt;         , &quot;AuctionWorkflow&quot;</span><span>
-</span><span id="line-47"></span><span class="hs-comment">-- &gt;         , label SomeLabelType]</span><span>
-</span><span id="line-48"></span><span class="hs-comment">-- &gt;      }</span><span>
-</span><span id="line-49"></span><span class="hs-comment">-- &gt;</span><span>
-</span><span id="line-50"></span><span class="hs-comment">-- &gt; someTest = someEndpoint &amp; eveywhere (labelled SomeLabelType someTweak)</span><span>
-</span><span id="line-51"></span><span class="hs-comment">-- &gt; anotherTest = someEndpoint &amp; somewhere (labelled SomeLabelType someTweak)</span><span>
-</span><span id="line-52"></span><span id="local-6989586621679881204"><span id="local-6989586621679881205"><span id="local-6989586621679881206"><span class="annot"><a href="Cooked.Tweak.Labels.html#labelled"><span class="hs-identifier hs-type">labelled</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881204"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881205"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881204"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881205"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881206"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881205"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881206"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
-</span><span id="line-53"></span><span id="labelled"><span class="annot"><span class="annottext">labelled :: forall lbl (m :: * -&gt; *) a.
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m a -&gt; m a
-</span><a href="Cooked.Tweak.Labels.html#labelled"><span class="hs-identifier hs-var hs-var">labelled</span></a></span></span><span> </span><span id="local-6989586621679881298"><span class="annot"><span class="annottext">lbl
-</span><a href="#local-6989586621679881298"><span class="hs-identifier hs-var">lbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">lbl -&gt; m ()
-forall lbl (m :: * -&gt; *).
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m ()
+</span><a href="#local-6989586621679864672"><span class="hs-identifier hs-var">lbl</span></a></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- | Apply a tweak to a given transaction if it has a specific label. Fails if</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- it does not.</span><span>
+</span><span id="line-61"></span><span class="hs-comment">--</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- &gt;</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- &gt; someEndpoint = do</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- &gt;   ...</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- &gt;   validateTxSkel' txSkelTemplate</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- &gt;      { txSkelLabels =</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- &gt;         [ &quot;InitialMinting&quot;</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- &gt;         , &quot;AuctionWorkflow&quot;</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- &gt;         , label SomeLabelType]</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- &gt;      }</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- &gt;</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- &gt; someTest = someEndpoint &amp; eveywhere (labelled SomeLabelType someTweak)</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- &gt; anotherTest = someEndpoint &amp; somewhere (labelled SomeLabelType someTweak)</span><span>
+</span><span id="line-74"></span><span id="local-6989586621679864596"><span id="local-6989586621679864597"><span id="local-6989586621679864598"><span class="annot"><a href="Cooked.Tweak.Labels.html#labelled"><span class="hs-identifier hs-type">labelled</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Label.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864596"><span class="hs-identifier hs-type">lbl</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679864597"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-78"></span><span>  </span><span class="annot"><a href="#local-6989586621679864596"><span class="hs-identifier hs-type">lbl</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864597"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864598"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864597"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864598"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-81"></span><span id="labelled"><span class="annot"><span class="annottext">labelled :: forall lbl (effs :: EffectRow) a.
+(LabelConstrs lbl, Members '[Tweak, NonDet] effs) =&gt;
+lbl -&gt; Sem effs a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Labels.html#labelled"><span class="hs-identifier hs-var hs-var">labelled</span></a></span></span><span> </span><span id="local-6989586621679864680"><span class="annot"><span class="annottext">lbl
+</span><a href="#local-6989586621679864680"><span class="hs-identifier hs-var">lbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">lbl -&gt; Sem effs ()
+forall lbl (effs :: EffectRow).
+(LabelConstrs lbl, Members '[Tweak, NonDet] effs) =&gt;
+lbl -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Labels.html#ensureLabelTweak"><span class="hs-identifier hs-var">ensureLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">lbl
-</span><a href="#local-6989586621679881298"><span class="hs-identifier hs-var">lbl</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m a -&gt; m a
-forall a b. m a -&gt; m b -&gt; m b
+</span><a href="#local-6989586621679864680"><span class="hs-identifier hs-var">lbl</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs () -&gt; Sem effs a -&gt; Sem effs a
+forall a b. Sem effs a -&gt; Sem effs b -&gt; Sem effs b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;</span></span><span class="hs-special">)</span><span>
-</span><span id="line-54"></span><span>
-</span><span id="line-55"></span><span class="hs-comment">-- | `labelled` specialised to Text labels</span><span>
-</span><span id="line-56"></span><span class="hs-comment">--</span><span>
-</span><span id="line-57"></span><span class="hs-comment">-- &gt;</span><span>
-</span><span id="line-58"></span><span class="hs-comment">-- &gt; someEndpoint = do</span><span>
-</span><span id="line-59"></span><span class="hs-comment">-- &gt;   ...</span><span>
-</span><span id="line-60"></span><span class="hs-comment">-- &gt;   validateTxSkel' txSkelTemplate</span><span>
-</span><span id="line-61"></span><span class="hs-comment">-- &gt;      { txSkelLabels =</span><span>
-</span><span id="line-62"></span><span class="hs-comment">-- &gt;         [ &quot;InitialMinting&quot;</span><span>
-</span><span id="line-63"></span><span class="hs-comment">-- &gt;         , &quot;AuctionWorkflow&quot;</span><span>
-</span><span id="line-64"></span><span class="hs-comment">-- &gt;         , &quot;Spending&quot;</span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- &gt;         , label SomeLabelType]</span><span>
-</span><span id="line-66"></span><span class="hs-comment">-- &gt;      }</span><span>
-</span><span id="line-67"></span><span class="hs-comment">-- &gt;</span><span>
-</span><span id="line-68"></span><span class="hs-comment">-- &gt; someTest = someEndpoint &amp; somewhere (labelled' &quot;Spending&quot; doubleSatAttack)</span><span>
-</span><span id="line-69"></span><span id="local-6989586621679881213"><span id="local-6989586621679881215"><span class="annot"><a href="Cooked.Tweak.Labels.html#labelled%27"><span class="hs-identifier hs-type">labelled'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881213"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881215"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679881213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679881215"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-70"></span><span id="labelled%27"><span class="annot"><span class="annottext">labelled' :: forall (m :: * -&gt; *) a. MonadTweak m =&gt; Text -&gt; m a -&gt; m a
-</span><a href="Cooked.Tweak.Labels.html#labelled%27"><span class="hs-identifier hs-var hs-var">labelled'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; m a -&gt; m a
-forall lbl (m :: * -&gt; *) a.
-(LabelConstrs lbl, MonadTweak m) =&gt;
-lbl -&gt; m a -&gt; m a
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | `labelled` specialised to Text labels</span><span>
+</span><span id="line-84"></span><span class="hs-comment">--</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- &gt;</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- &gt; someEndpoint = do</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- &gt;   ...</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- &gt;   validateTxSkel' txSkelTemplate</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- &gt;      { txSkelLabels =</span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- &gt;         [ &quot;InitialMinting&quot;</span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- &gt;         , &quot;AuctionWorkflow&quot;</span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- &gt;         , &quot;Spending&quot;</span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- &gt;         , label SomeLabelType]</span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- &gt;      }</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- &gt;</span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- &gt; someTest = someEndpoint &amp; somewhere (labelled' &quot;Spending&quot; doubleSatAttack)</span><span>
+</span><span id="line-97"></span><span id="local-6989586621679864605"><span id="local-6989586621679864607"><span class="annot"><a href="Cooked.Tweak.Labels.html#labelled%27"><span class="hs-identifier hs-type">labelled'</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679864605"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-99"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-100"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864605"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864607"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679864605"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679864607"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-102"></span><span id="labelled%27"><span class="annot"><span class="annottext">labelled' :: forall (effs :: EffectRow) a.
+Members '[Tweak, NonDet] effs =&gt;
+Text -&gt; Sem effs a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Labels.html#labelled%27"><span class="hs-identifier hs-var hs-var">labelled'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Sem effs a -&gt; Sem effs a
+forall lbl (effs :: EffectRow) a.
+(LabelConstrs lbl, Members '[Tweak, NonDet] effs) =&gt;
+lbl -&gt; Sem effs a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Labels.html#labelled"><span class="hs-identifier hs-var">labelled</span></a></span><span>
-</span><span id="line-71"></span></pre></body></html>
+</span><span id="line-103"></span></pre></body></html>

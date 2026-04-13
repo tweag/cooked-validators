@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="annot"><span class="hs-comment">-- | This module exposes the errors that can be raised during a mockchain run</span></span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Error</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Mockchain errors</span></span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier">MockChainError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Interpretating effects into `Error MockChainError`</span></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Error.html#runToCardanoErrorInMockChainError"><span class="hs-identifier">runToCardanoErrorInMockChainError</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Error.html#runFailInMockChainError"><span class="hs-identifier">runFailInMockChainError</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html"><span class="hs-identifier">Cooked.Skeleton.User</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Index</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Error</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Fail</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="annot"><span class="hs-comment">-- | Errors that can be produced by the blockchain</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainError"><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-var">MockChainError</span></a></span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-comment">-- | Validation errors, either in Phase 1 or Phase 2</span></span><span>
+</span><span id="line-24"></span><span>    </span><span id="MCEValidationError"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEValidationError"><span class="hs-identifier hs-var">MCEValidationError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ValidationPhase</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ValidationError</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | The balancing user does not have enough funds</span></span><span>
+</span><span id="line-26"></span><span>    </span><span id="MCEUnbalanceable"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEUnbalanceable"><span class="hs-identifier hs-var">MCEUnbalanceable</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Peer"><span class="hs-identifier hs-type">Peer</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | The balancing user is required but missing</span></span><span>
+</span><span id="line-28"></span><span>    </span><span id="MCEMissingBalancingUser"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEMissingBalancingUser"><span class="hs-identifier hs-var">MCEMissingBalancingUser</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | No suitable collateral could be associated with a skeleton</span></span><span>
+</span><span id="line-30"></span><span>    </span><span id="MCENoSuitableCollateral"><span class="annot"><a href="Cooked.MockChain.Error.html#MCENoSuitableCollateral"><span class="hs-identifier hs-var">MCENoSuitableCollateral</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Translating a skeleton element to its Cardano counterpart failed</span></span><span>
+</span><span id="line-32"></span><span>    </span><span id="MCEToCardanoError"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEToCardanoError"><span class="hs-identifier hs-var">MCEToCardanoError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | The required reference script is missing from a witness utxo</span></span><span>
+</span><span id="line-34"></span><span>    </span><span id="MCEWrongReferenceScriptError"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEWrongReferenceScriptError"><span class="hs-identifier hs-var">MCEWrongReferenceScriptError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | A UTxO is missing from the mockchain state</span></span><span>
+</span><span id="line-36"></span><span>    </span><span id="MCEUnknownOutRef"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEUnknownOutRef"><span class="hs-identifier hs-var">MCEUnknownOutRef</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | A jump in time would result in a past slot</span></span><span>
+</span><span id="line-38"></span><span>    </span><span id="MCEPastSlot"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEPastSlot"><span class="hs-identifier hs-var">MCEPastSlot</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | An attempt to invoke an unsupported feature has been made</span></span><span>
+</span><span id="line-40"></span><span>    </span><span id="MCEUnsupportedFeature"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEUnsupportedFeature"><span class="hs-identifier hs-var">MCEUnsupportedFeature</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Used to provide 'MonadFail' instances.</span></span><span>
+</span><span id="line-42"></span><span>    </span><span id="MCEFailure"><span class="annot"><a href="Cooked.MockChain.Error.html#MCEFailure"><span class="hs-identifier hs-var">MCEFailure</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679860207"><span id="local-6989586621679860249"><span id="local-6989586621679860253"><span class="annot"><span class="annottext">Int -&gt; MockChainError -&gt; ShowS
+[MockChainError] -&gt; ShowS
+MockChainError -&gt; String
+(Int -&gt; MockChainError -&gt; ShowS)
+-&gt; (MockChainError -&gt; String)
+-&gt; ([MockChainError] -&gt; ShowS)
+-&gt; Show MockChainError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; MockChainError -&gt; ShowS
+showsPrec :: Int -&gt; MockChainError -&gt; ShowS
+$cshow :: MockChainError -&gt; String
+show :: MockChainError -&gt; String
+$cshowList :: [MockChainError] -&gt; ShowS
+showList :: [MockChainError] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679860258"><span id="local-6989586621679860289"><span class="annot"><span class="annottext">MockChainError -&gt; MockChainError -&gt; Bool
+(MockChainError -&gt; MockChainError -&gt; Bool)
+-&gt; (MockChainError -&gt; MockChainError -&gt; Bool) -&gt; Eq MockChainError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: MockChainError -&gt; MockChainError -&gt; Bool
+== :: MockChainError -&gt; MockChainError -&gt; Bool
+$c/= :: MockChainError -&gt; MockChainError -&gt; Bool
+/= :: MockChainError -&gt; MockChainError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><span class="hs-comment">-- | Interpreting `Ledger.ToCardanoError` in terms of `MockChainError`</span></span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Cooked.MockChain.Error.html#runToCardanoErrorInMockChainError"><span class="hs-identifier hs-type">runToCardanoErrorInMockChainError</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679860161"><span class="annot"><a href="#local-6989586621679860161"><span class="hs-identifier hs-type">effs</span></a></span></span><span> </span><span id="local-6989586621679860163"><span class="annot"><a href="#local-6989586621679860163"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679860161"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><a href="#local-6989586621679860161"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679860163"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679860161"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679860163"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-51"></span><span id="runToCardanoErrorInMockChainError"><span class="annot"><span class="annottext">runToCardanoErrorInMockChainError :: forall (effs :: EffectRow) a.
+Member (Error MockChainError) effs =&gt;
+Sem (Error ToCardanoError : effs) a -&gt; Sem effs a
+</span><a href="Cooked.MockChain.Error.html#runToCardanoErrorInMockChainError"><span class="hs-identifier hs-var hs-var">runToCardanoErrorInMockChainError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; MockChainError)
+-&gt; Sem (Error ToCardanoError : effs) a -&gt; Sem effs a
+forall e1 e2 (r :: EffectRow) a.
+Member (Error e2) r =&gt;
+(e1 -&gt; e2) -&gt; Sem (Error e1 : r) a -&gt; Sem r a
+</span><span class="hs-identifier hs-var">mapError</span></span><span> </span><span class="annot"><span class="annottext">ToCardanoError -&gt; MockChainError
+</span><a href="Cooked.MockChain.Error.html#MCEToCardanoError"><span class="hs-identifier hs-var">MCEToCardanoError</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="annot"><span class="hs-comment">-- | Interpreting failures in terms of `MockChainError`</span></span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Cooked.MockChain.Error.html#runFailInMockChainError"><span class="hs-identifier hs-type">runFailInMockChainError</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679860171"><span class="annot"><a href="#local-6989586621679860171"><span class="hs-identifier hs-type">effs</span></a></span></span><span> </span><span id="local-6989586621679860173"><span class="annot"><a href="#local-6989586621679860173"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679860171"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><a href="#local-6989586621679860171"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679860173"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679860171"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679860173"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-59"></span><span id="runFailInMockChainError"><span class="annot"><span class="annottext">runFailInMockChainError :: forall (effs :: EffectRow) a.
+Member (Error MockChainError) effs =&gt;
+Sem (Fail : effs) a -&gt; Sem effs a
+</span><a href="Cooked.MockChain.Error.html#runFailInMockChainError"><span class="hs-identifier hs-var hs-var">runFailInMockChainError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall (rInitial :: EffectRow) x.
+ Fail (Sem rInitial) x -&gt; Sem effs x)
+-&gt; Sem (Fail : effs) a -&gt; Sem effs a
+forall (e :: (* -&gt; *) -&gt; * -&gt; *) (r :: EffectRow) a.
+FirstOrder e &quot;interpret&quot; =&gt;
+(forall (rInitial :: EffectRow) x. e (Sem rInitial) x -&gt; Sem r x)
+-&gt; Sem (e : r) a -&gt; Sem r a
+</span><span class="hs-identifier hs-var">interpret</span></span><span> </span><span class="annot"><span class="annottext">((forall (rInitial :: EffectRow) x.
+  Fail (Sem rInitial) x -&gt; Sem effs x)
+ -&gt; Sem (Fail : effs) a -&gt; Sem effs a)
+-&gt; (forall (rInitial :: EffectRow) x.
+    Fail (Sem rInitial) x -&gt; Sem effs x)
+-&gt; Sem (Fail : effs) a
+-&gt; Sem effs a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span> </span><span id="local-6989586621679860303"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679860303"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem effs x
+forall e (r :: EffectRow) a. Member (Error e) r =&gt; e -&gt; Sem r a
+</span><span class="hs-identifier hs-var">throw</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; Sem effs x) -&gt; MockChainError -&gt; Sem effs x
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; MockChainError
+</span><a href="Cooked.MockChain.Error.html#MCEFailure"><span class="hs-identifier hs-var">MCEFailure</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679860303"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-61"></span></pre></body></html>

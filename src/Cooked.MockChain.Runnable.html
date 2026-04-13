@@ -1,0 +1,328 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module exposes the infrastructure to execute mockchain runs. In</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- particular:</span><span>
+</span><span id="line-3"></span><span class="hs-comment">--</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- - The notion of initial distribution (a list of payments)</span><span>
+</span><span id="line-5"></span><span class="hs-comment">--</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- - The return types of the runs (raw and refined)</span><span>
+</span><span id="line-7"></span><span class="hs-comment">--</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- - The initial configuration with which to execute a run</span><span>
+</span><span id="line-9"></span><span class="hs-comment">--</span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- - The notion of `RunnableMockChain` to actually execute computations</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Runnable</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html"><span class="hs-identifier">Cooked.MockChain.Error</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Journal.html"><span class="hs-identifier">Cooked.MockChain.Journal</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html"><span class="hs-identifier">Cooked.MockChain.State</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html"><span class="hs-identifier">Cooked.MockChain.Write</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html"><span class="hs-identifier">Cooked.Skeleton.Output</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">foldl'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="annot"><span class="hs-comment">-- * Initial distribution of funds</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | Describes the initial distribution of UTxOs per user.</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--</span><span>
+</span><span id="line-30"></span><span class="hs-comment">--  The following specifies a starting state where @wallet 1@ owns two UTxOs,</span><span>
+</span><span id="line-31"></span><span class="hs-comment">--  one with 42 Ada and one with 2 Ada and one &quot;TOK&quot; token; @wallet 2@ owns a</span><span>
+</span><span id="line-32"></span><span class="hs-comment">--  single UTxO with 10 Ada and @wallet 3@ has 10 Ada and a permanent value</span><span>
+</span><span id="line-33"></span><span class="hs-comment">--</span><span>
+</span><span id="line-34"></span><span class="hs-comment">--  &gt; i0 = distributionFromList $</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--  &gt;        [ (wallet 1 , [ ada 42 , ada 2 &lt;&gt; quickValue &quot;TOK&quot; 1 ]</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--  &gt;        , (wallet 2 , [ ada 10 ])</span><span>
+</span><span id="line-37"></span><span class="hs-comment">--  &gt;        , (wallet 3 , [ ada 10 &lt;&gt; permanentValue &quot;XYZ&quot; 10])</span><span>
+</span><span id="line-38"></span><span class="hs-comment">--  &gt;        ]</span><span>
+</span><span id="line-39"></span><span class="hs-comment">--</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- Note that payment issued through an initial distribution will be attached</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- enough ADA to sustain themselves unless a fixed value is explicitly required.</span><span>
+</span><span id="line-42"></span><span class="hs-keyword">type</span><span> </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.MockChain.Runnable.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="annot"><span class="hs-comment">-- | 4 UTxOs with 100 Ada each, for each of the first 4 'knownWallets'</span></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Cooked.MockChain.Runnable.html#initialDistributionTemplate"><span class="hs-identifier hs-type">initialDistributionTemplate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span>
+</span><span id="line-46"></span><span id="initialDistributionTemplate"><span class="annot"><span class="annottext">initialDistributionTemplate :: InitialDistribution
+</span><a href="Cooked.MockChain.Runnable.html#initialDistributionTemplate"><span class="hs-identifier hs-var hs-var">initialDistributionTemplate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-47"></span><span>  </span><span class="annot"><span class="annottext">[(Wallet, [Value])] -&gt; InitialDistribution
+forall owner.
+IsTxSkelOutAllowedOwner owner =&gt;
+[(owner, [Value])] -&gt; InitialDistribution
+</span><a href="Cooked.MockChain.Runnable.html#distributionFromList"><span class="hs-identifier hs-var">distributionFromList</span></a></span><span>
+</span><span id="line-48"></span><span>    </span><span class="annot"><span class="annottext">([(Wallet, [Value])] -&gt; InitialDistribution)
+-&gt; (Value -&gt; [(Wallet, [Value])]) -&gt; Value -&gt; InitialDistribution
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; [[Value]] -&gt; [(Wallet, [Value])]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; [Wallet] -&gt; [Wallet]
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="annot"><span class="annottext">[Wallet]
+</span><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-var">knownWallets</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>    </span><span class="annot"><span class="annottext">([[Value]] -&gt; [(Wallet, [Value])])
+-&gt; (Value -&gt; [[Value]]) -&gt; Value -&gt; [(Wallet, [Value])]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; [[Value]]
+forall a. a -&gt; [a]
+</span><span class="hs-identifier hs-var">repeat</span></span><span>
+</span><span id="line-50"></span><span>    </span><span class="annot"><span class="annottext">([Value] -&gt; [[Value]]) -&gt; (Value -&gt; [Value]) -&gt; Value -&gt; [[Value]]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Value -&gt; [Value]
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><span class="annottext">(Value -&gt; InitialDistribution) -&gt; Value -&gt; InitialDistribution
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
+</span><span class="hs-identifier hs-var">Script.ada</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">100</span></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="annot"><span class="hs-comment">-- | Creating a initial distribution with simple values assigned to owners</span></span><span>
+</span><span id="line-54"></span><span id="local-6989586621679876158"><span class="annot"><a href="Cooked.MockChain.Runnable.html#distributionFromList"><span class="hs-identifier hs-type">distributionFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876158"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679876158"><span class="hs-identifier hs-type">owner</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span><span>
+</span><span id="line-55"></span><span id="distributionFromList"><span class="annot"><span class="annottext">distributionFromList :: forall owner.
+IsTxSkelOutAllowedOwner owner =&gt;
+[(owner, [Value])] -&gt; InitialDistribution
+</span><a href="Cooked.MockChain.Runnable.html#distributionFromList"><span class="hs-identifier hs-var hs-var">distributionFromList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(InitialDistribution -&gt; (owner, [Value]) -&gt; InitialDistribution)
+-&gt; InitialDistribution -&gt; [(owner, [Value])] -&gt; InitialDistribution
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679876271"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679876271"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876272"><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679876272"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679876273"><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679876273"><span class="hs-identifier hs-var">values</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679876271"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxSkelOut) -&gt; [Value] -&gt; InitialDistribution
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">owner -&gt; Payable '[ 'IsValue] -&gt; TxSkelOut
+forall owner (els :: [PayableKind]).
+IsTxSkelOutAllowedOwner owner =&gt;
+owner -&gt; Payable els -&gt; TxSkelOut
+</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-identifier hs-var">receives</span></a></span><span> </span><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679876272"><span class="hs-identifier hs-var">user</span></a></span><span> </span><span class="annot"><span class="annottext">(Payable '[ 'IsValue] -&gt; TxSkelOut)
+-&gt; (Value -&gt; Payable '[ 'IsValue]) -&gt; Value -&gt; TxSkelOut
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Payable '[ 'IsValue]
+forall a1. ToValue a1 =&gt; a1 -&gt; Payable '[ 'IsValue]
+</span><a href="Cooked.Skeleton.Output.html#Value"><span class="hs-identifier hs-var">Value</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679876273"><span class="hs-identifier hs-var">values</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="annot"><span class="hs-comment">-- | Raw return type of running a mockchain</span></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">type</span><span> </span><span id="RawMockChainReturn"><span class="annot"><a href="Cooked.MockChain.Runnable.html#RawMockChainReturn"><span class="hs-identifier hs-var">RawMockChainReturn</span></a></span></span><span> </span><span id="local-6989586621679876276"><span class="annot"><a href="#local-6989586621679876276"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Journal.html#MockChainJournal"><span class="hs-identifier hs-type">MockChainJournal</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876276"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | The returned type when running a mockchain. This is both a reorganizing and</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- filtering of the natural returned type `RawMockChainReturn`.</span><span>
+</span><span id="line-63"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainReturn"><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-var">MockChainReturn</span></a></span></span><span> </span><span id="local-6989586621679876277"><span class="annot"><a href="#local-6989586621679876277"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679876187"><span id="MockChainReturn"><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-var">MockChainReturn</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-65"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | The value returned by the computation, or an error</span></span><span>
+</span><span id="line-66"></span><span>      </span><span id="mcrValue"><span class="annot"><span class="annottext">forall a. MockChainReturn a -&gt; Either MockChainError a
+</span><a href="Cooked.MockChain.Runnable.html#mcrValue"><span class="hs-identifier hs-var hs-var">mcrValue</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876187"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-67"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The outputs at the end of the run</span></span><span>
+</span><span id="line-68"></span><span>      </span><span id="mcrOutputs"><span class="annot"><span class="annottext">forall a. MockChainReturn a -&gt; Map TxOutRef (TxSkelOut, Bool)
+</span><a href="Cooked.MockChain.Runnable.html#mcrOutputs"><span class="hs-identifier hs-var hs-var">mcrOutputs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-69"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The 'UtxoState' at the end of the run</span></span><span>
+</span><span id="line-70"></span><span>      </span><span id="mcrUtxoState"><span class="annot"><span class="annottext">forall a. MockChainReturn a -&gt; UtxoState
+</span><a href="Cooked.MockChain.Runnable.html#mcrUtxoState"><span class="hs-identifier hs-var hs-var">mcrUtxoState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-71"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The final journal emitted during the run</span></span><span>
+</span><span id="line-72"></span><span>      </span><span id="mcrJournal"><span class="annot"><span class="annottext">forall a. MockChainReturn a -&gt; MockChainJournal
+</span><a href="Cooked.MockChain.Runnable.html#mcrJournal"><span class="hs-identifier hs-var hs-var">mcrJournal</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Journal.html#MockChainJournal"><span class="hs-identifier hs-type">MockChainJournal</span></a></span><span>
+</span><span id="line-73"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-74"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-type">MockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876187"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876285"><span id="local-6989586621679876289"><span class="annot"><span class="annottext">(forall a b. (a -&gt; b) -&gt; MockChainReturn a -&gt; MockChainReturn b)
+-&gt; (forall a b. a -&gt; MockChainReturn b -&gt; MockChainReturn a)
+-&gt; Functor MockChainReturn
+forall a b. a -&gt; MockChainReturn b -&gt; MockChainReturn a
+forall a b. (a -&gt; b) -&gt; MockChainReturn a -&gt; MockChainReturn b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+$cfmap :: forall a b. (a -&gt; b) -&gt; MockChainReturn a -&gt; MockChainReturn b
+fmap :: forall a b. (a -&gt; b) -&gt; MockChainReturn a -&gt; MockChainReturn b
+$c&lt;$ :: forall a b. a -&gt; MockChainReturn b -&gt; MockChainReturn a
+&lt;$ :: forall a b. a -&gt; MockChainReturn b -&gt; MockChainReturn a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- | The type of functions transforming an element of type @RawMockChainReturn a@</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- into an element of type @b@</span><span>
+</span><span id="line-79"></span><span class="hs-keyword">type</span><span> </span><span id="FunOnMockChainResult"><span class="annot"><a href="Cooked.MockChain.Runnable.html#FunOnMockChainResult"><span class="hs-identifier hs-var">FunOnMockChainResult</span></a></span></span><span> </span><span id="local-6989586621679876293"><span class="annot"><a href="#local-6989586621679876293"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679876294"><span class="annot"><a href="#local-6989586621679876294"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#RawMockChainReturn"><span class="hs-identifier hs-type">RawMockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876293"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679876294"><span class="hs-identifier hs-type">b</span></a></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><span class="hs-comment">-- | Building a `MockChainReturn` from a `RawMockChainReturn`</span></span><span>
+</span><span id="line-82"></span><span id="local-6989586621679876204"><span class="annot"><a href="Cooked.MockChain.Runnable.html#unRawMockChainReturn"><span class="hs-identifier hs-type">unRawMockChainReturn</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#FunOnMockChainResult"><span class="hs-identifier hs-type">FunOnMockChainResult</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876204"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-type">MockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876204"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-83"></span><span id="unRawMockChainReturn"><span class="annot"><span class="annottext">unRawMockChainReturn :: forall a. FunOnMockChainResult a (MockChainReturn a)
+</span><a href="Cooked.MockChain.Runnable.html#unRawMockChainReturn"><span class="hs-identifier hs-var hs-var">unRawMockChainReturn</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876296"><span class="annot"><span class="annottext">MockChainJournal
+</span><a href="#local-6989586621679876296"><span class="hs-identifier hs-var">journal</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876297"><span class="annot"><span class="annottext">MockChainState
+</span><a href="#local-6989586621679876297"><span class="hs-identifier hs-var">st</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679876298"><span class="annot"><span class="annottext">Either MockChainError a
+</span><a href="#local-6989586621679876298"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-84"></span><span>  </span><span class="annot"><span class="annottext">Either MockChainError a
+-&gt; Map TxOutRef (TxSkelOut, Bool)
+-&gt; UtxoState
+-&gt; MockChainJournal
+-&gt; MockChainReturn a
+forall a.
+Either MockChainError a
+-&gt; Map TxOutRef (TxSkelOut, Bool)
+-&gt; UtxoState
+-&gt; MockChainJournal
+-&gt; MockChainReturn a
+</span><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-var">MockChainReturn</span></a></span><span> </span><span class="annot"><span class="annottext">Either MockChainError a
+</span><a href="#local-6989586621679876298"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MockChainState -&gt; Map TxOutRef (TxSkelOut, Bool)
+</span><a href="Cooked.MockChain.State.html#mcstOutputs"><span class="hs-identifier hs-var">mcstOutputs</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainState
+</span><a href="#local-6989586621679876297"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MockChainState -&gt; UtxoState
+</span><a href="Cooked.MockChain.State.html#mcstToUtxoState"><span class="hs-identifier hs-var">mcstToUtxoState</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainState
+</span><a href="#local-6989586621679876297"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MockChainJournal
+</span><a href="#local-6989586621679876296"><span class="hs-identifier hs-var">journal</span></a></span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="annot"><span class="hs-comment">-- | Configuration from which to run a mockchain</span></span><span>
+</span><span id="line-87"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainConf"><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-var">MockChainConf</span></a></span></span><span> </span><span id="local-6989586621679876301"><span class="annot"><a href="#local-6989586621679876301"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679876302"><span class="annot"><a href="#local-6989586621679876302"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-88"></span><span>  </span><span id="local-6989586621679876208"><span id="local-6989586621679876209"><span id="MockChainConf"><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-var">MockChainConf</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | The initial state from which to run the mockchain</span></span><span>
+</span><span id="line-90"></span><span>      </span><span id="mccInitialState"><span class="annot"><span class="annottext">forall a b. MockChainConf a b -&gt; MockChainState
+</span><a href="Cooked.MockChain.Runnable.html#mccInitialState"><span class="hs-identifier hs-var hs-var">mccInitialState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-91"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The initial payments to issue in the run</span></span><span>
+</span><span id="line-92"></span><span>      </span><span id="mccInitialDistribution"><span class="annot"><span class="annottext">forall a b. MockChainConf a b -&gt; InitialDistribution
+</span><a href="Cooked.MockChain.Runnable.html#mccInitialDistribution"><span class="hs-identifier hs-var hs-var">mccInitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-93"></span><span>      </span><span class="annot"><span class="hs-comment">-- | The function to apply on the results of the run</span></span><span>
+</span><span id="line-94"></span><span>      </span><span id="mccFunOnResult"><span class="annot"><span class="annottext">forall a b. MockChainConf a b -&gt; FunOnMockChainResult a b
+</span><a href="Cooked.MockChain.Runnable.html#mccFunOnResult"><span class="hs-identifier hs-var hs-var">mccFunOnResult</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#FunOnMockChainResult"><span class="hs-identifier hs-type">FunOnMockChainResult</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876208"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876209"><span class="hs-identifier hs-type">b</span></a></span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-96"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-type">MockChainConf</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876208"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876209"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | The default `MockChainConf`, which uses the default initial state and</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- initial distribution, and returns a refined `MockChainReturn`</span><span>
+</span><span id="line-100"></span><span id="local-6989586621679876217"><span class="annot"><a href="Cooked.MockChain.Runnable.html#mockChainConfTemplate"><span class="hs-identifier hs-type">mockChainConfTemplate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-type">MockChainConf</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876217"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-type">MockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876217"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-101"></span><span id="mockChainConfTemplate"><span class="annot"><span class="annottext">mockChainConfTemplate :: forall a. MockChainConf a (MockChainReturn a)
+</span><a href="Cooked.MockChain.Runnable.html#mockChainConfTemplate"><span class="hs-identifier hs-var hs-var">mockChainConfTemplate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainState
+-&gt; InitialDistribution
+-&gt; FunOnMockChainResult a (MockChainReturn a)
+-&gt; MockChainConf a (MockChainReturn a)
+forall a b.
+MockChainState
+-&gt; InitialDistribution
+-&gt; FunOnMockChainResult a b
+-&gt; MockChainConf a b
+</span><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-var">MockChainConf</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainState
+forall a. Default a =&gt; a
+</span><span class="hs-identifier hs-var">def</span></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
+forall a. Default a =&gt; a
+</span><span class="hs-identifier hs-var">def</span></span><span> </span><span class="annot"><span class="annottext">FunOnMockChainResult a (MockChainReturn a)
+forall a. FunOnMockChainResult a (MockChainReturn a)
+</span><a href="Cooked.MockChain.Runnable.html#unRawMockChainReturn"><span class="hs-identifier hs-var">unRawMockChainReturn</span></a></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="annot"><span class="hs-comment">-- | The class of effects that represent a mockchain run</span></span><span>
+</span><span id="line-104"></span><span class="hs-keyword">class</span><span> </span><span id="RunnableMockChain"><span class="annot"><a href="Cooked.MockChain.Runnable.html#RunnableMockChain"><span class="hs-identifier hs-var">RunnableMockChain</span></a></span></span><span> </span><span id="local-6989586621679876235"><span class="annot"><a href="#local-6989586621679876235"><span class="hs-identifier hs-type">effs</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-comment">-- | Runs a computation from an initial `MockChainState`, while returning a</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-comment">-- list of `RawMockChainReturn`</span><span>
+</span><span id="line-107"></span><span>  </span><span id="runMockChain"><span class="annot"><a href="Cooked.MockChain.Runnable.html#runMockChain"><span class="hs-identifier hs-type">runMockChain</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679876236"><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876235"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876236"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#RawMockChainReturn"><span class="hs-identifier hs-type">RawMockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876236"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="annot"><span class="hs-comment">-- | Runs a `RunnableMockChain` from an initial `MockChainConf`</span></span><span>
+</span><span id="line-110"></span><span id="local-6989586621679876223"><span id="local-6989586621679876227"><span id="local-6989586621679876228"><span class="annot"><a href="Cooked.MockChain.Runnable.html#runMockChainFromConf"><span class="hs-identifier hs-type">runMockChainFromConf</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#RunnableMockChain"><span class="hs-identifier hs-type">RunnableMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876223"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-112"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876223"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-113"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-114"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-type">MockChainConf</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876227"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876228"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-115"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876223"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876227"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876228"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span></span></span></span><span>
+</span><span id="line-117"></span><span id="runMockChainFromConf"><span class="annot"><span class="annottext">runMockChainFromConf :: forall (effs :: EffectRow) a b.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+MockChainConf a b -&gt; Sem effs a -&gt; [b]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainFromConf"><span class="hs-identifier hs-var hs-var">runMockChainFromConf</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainConf"><span class="hs-identifier hs-type">MockChainConf</span></a></span><span> </span><span id="local-6989586621679876323"><span class="annot"><span class="annottext">MockChainState
+</span><a href="#local-6989586621679876323"><span class="hs-identifier hs-var">initState</span></a></span></span><span> </span><span id="local-6989586621679876324"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679876324"><span class="hs-identifier hs-var">initDist</span></a></span></span><span> </span><span id="local-6989586621679876325"><span class="annot"><span class="annottext">FunOnMockChainResult a b
+</span><a href="#local-6989586621679876325"><span class="hs-identifier hs-var">funOnResult</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876326"><span class="annot"><span class="annottext">Sem effs a
+</span><a href="#local-6989586621679876326"><span class="hs-identifier hs-var">currentRun</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-118"></span><span>  </span><span class="annot"><span class="annottext">FunOnMockChainResult a b -&gt; [RawMockChainReturn a] -&gt; [b]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">FunOnMockChainResult a b
+</span><a href="#local-6989586621679876325"><span class="hs-identifier hs-var">funOnResult</span></a></span><span> </span><span class="annot"><span class="annottext">([RawMockChainReturn a] -&gt; [b]) -&gt; [RawMockChainReturn a] -&gt; [b]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-119"></span><span>    </span><span class="annot"><span class="annottext">MockChainState -&gt; Sem effs a -&gt; [RawMockChainReturn a]
+forall (effs :: EffectRow) a.
+RunnableMockChain effs =&gt;
+MockChainState -&gt; Sem effs a -&gt; [RawMockChainReturn a]
+forall a. MockChainState -&gt; Sem effs a -&gt; [RawMockChainReturn a]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChain"><span class="hs-identifier hs-var">runMockChain</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainState
+</span><a href="#local-6989586621679876323"><span class="hs-identifier hs-var">initState</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs a -&gt; [RawMockChainReturn a])
+-&gt; Sem effs a -&gt; [RawMockChainReturn a]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-120"></span><span>      </span><span class="annot"><span class="annottext">InitialDistribution -&gt; Sem effs Utxos
+forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+InitialDistribution -&gt; Sem effs Utxos
+</span><a href="Cooked.MockChain.Write.html#forceOutputs"><span class="hs-identifier hs-var">forceOutputs</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679876324"><span class="hs-identifier hs-var">initDist</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs Utxos -&gt; Sem effs a -&gt; Sem effs a
+forall a b. Sem effs a -&gt; Sem effs b -&gt; Sem effs b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Sem effs a
+</span><a href="#local-6989586621679876326"><span class="hs-identifier hs-var">currentRun</span></a></span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span class="annot"><span class="hs-comment">-- | Runs a `RunnableMockChain` from an initial distribution</span></span><span>
+</span><span id="line-123"></span><span id="local-6989586621679876242"><span id="local-6989586621679876243"><span class="annot"><a href="Cooked.MockChain.Runnable.html#runMockChainFromInitDist"><span class="hs-identifier hs-type">runMockChainFromInitDist</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#RunnableMockChain"><span class="hs-identifier hs-type">RunnableMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876242"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-125"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876242"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-128"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876242"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876243"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-type">MockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876243"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-130"></span><span id="runMockChainFromInitDist"><span class="annot"><span class="annottext">runMockChainFromInitDist :: forall (effs :: EffectRow) a.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+InitialDistribution -&gt; Sem effs a -&gt; [MockChainReturn a]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainFromInitDist"><span class="hs-identifier hs-var hs-var">runMockChainFromInitDist</span></a></span></span><span> </span><span id="local-6989586621679876333"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679876333"><span class="hs-identifier hs-var">initDist</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-131"></span><span>  </span><span class="annot"><span class="annottext">MockChainConf a (MockChainReturn a)
+-&gt; Sem effs a -&gt; [MockChainReturn a]
+forall (effs :: EffectRow) a b.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+MockChainConf a b -&gt; Sem effs a -&gt; [b]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainFromConf"><span class="hs-identifier hs-var">runMockChainFromConf</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainConf a (MockChainReturn a)
+ -&gt; Sem effs a -&gt; [MockChainReturn a])
+-&gt; MockChainConf a (MockChainReturn a)
+-&gt; Sem effs a
+-&gt; [MockChainReturn a]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainConf a (MockChainReturn a)
+forall a. MockChainConf a (MockChainReturn a)
+</span><a href="Cooked.MockChain.Runnable.html#mockChainConfTemplate"><span class="hs-identifier hs-var">mockChainConfTemplate</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#mccInitialDistribution"><span class="hs-identifier hs-var">mccInitialDistribution</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679876333"><span class="hs-identifier hs-type">initDist</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="annot"><span class="hs-comment">-- | Same as `runMockChainFromInitDist` using the `initialDistributionTemplate`</span></span><span>
+</span><span id="line-134"></span><span id="local-6989586621679876246"><span id="local-6989586621679876247"><span class="annot"><a href="Cooked.MockChain.Runnable.html#runMockChainFromInitDistTemplate"><span class="hs-identifier hs-type">runMockChainFromInitDistTemplate</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#RunnableMockChain"><span class="hs-identifier hs-type">RunnableMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876246"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-136"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876246"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-138"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876246"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876247"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-type">MockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876247"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-140"></span><span id="runMockChainFromInitDistTemplate"><span class="annot"><span class="annottext">runMockChainFromInitDistTemplate :: forall (effs :: EffectRow) a.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+Sem effs a -&gt; [MockChainReturn a]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainFromInitDistTemplate"><span class="hs-identifier hs-var hs-var">runMockChainFromInitDistTemplate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; Sem effs a -&gt; [MockChainReturn a]
+forall (effs :: EffectRow) a.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+InitialDistribution -&gt; Sem effs a -&gt; [MockChainReturn a]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainFromInitDist"><span class="hs-identifier hs-var">runMockChainFromInitDist</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="Cooked.MockChain.Runnable.html#initialDistributionTemplate"><span class="hs-identifier hs-var">initialDistributionTemplate</span></a></span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="annot"><span class="hs-comment">-- | Runs a `RunnableMockChain` from a default configuration</span></span><span>
+</span><span id="line-143"></span><span id="local-6989586621679876339"><span id="local-6989586621679876340"><span class="annot"><a href="Cooked.MockChain.Runnable.html#runMockChainDef"><span class="hs-identifier hs-type">runMockChainDef</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-144"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.Runnable.html#RunnableMockChain"><span class="hs-identifier hs-type">RunnableMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876339"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-145"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876339"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-146"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-147"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876339"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876340"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-148"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Runnable.html#MockChainReturn"><span class="hs-identifier hs-type">MockChainReturn</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876340"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-149"></span><span id="runMockChainDef"><span class="annot"><span class="annottext">runMockChainDef :: forall (effs :: EffectRow) a.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+Sem effs a -&gt; [MockChainReturn a]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainDef"><span class="hs-identifier hs-var hs-var">runMockChainDef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainConf a (MockChainReturn a)
+-&gt; Sem effs a -&gt; [MockChainReturn a]
+forall (effs :: EffectRow) a b.
+(RunnableMockChain effs, Member MockChainWrite effs) =&gt;
+MockChainConf a b -&gt; Sem effs a -&gt; [b]
+</span><a href="Cooked.MockChain.Runnable.html#runMockChainFromConf"><span class="hs-identifier hs-var">runMockChainFromConf</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainConf a (MockChainReturn a)
+forall a. MockChainConf a (MockChainReturn a)
+</span><a href="Cooked.MockChain.Runnable.html#mockChainConfTemplate"><span class="hs-identifier hs-var">mockChainConfTemplate</span></a></span><span>
+</span><span id="line-150"></span></pre></body></html>

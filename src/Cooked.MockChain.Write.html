@@ -1,0 +1,1427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | This module exposes primitives to update the current state of the</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- blockchain, including by sending transactions for validation.</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Write</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * The `MockChainWrite` effect</span></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier">MockChainWrite</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#runMockChainWrite"><span class="hs-identifier">runMockChainWrite</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Modifications of the current time</span></span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#waitNSlots"><span class="hs-identifier">waitNSlots</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#awaitSlot"><span class="hs-identifier">awaitSlot</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#awaitEnclosingSlot"><span class="hs-identifier">awaitEnclosingSlot</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#waitNMSFromSlotLowerBound"><span class="hs-identifier">waitNMSFromSlotLowerBound</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#waitNMSFromSlotUpperBound"><span class="hs-identifier">waitNMSFromSlotUpperBound</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Sending `Cooked.Skeleton.TxSkel`s for validation</span></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#validateTxSkel"><span class="hs-identifier">validateTxSkel</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#validateTxSkel%27"><span class="hs-identifier">validateTxSkel'</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#validateTxSkel_"><span class="hs-identifier">validateTxSkel_</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Other operations</span></span><span>
+</span><span id="line-23"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#setParams"><span class="hs-identifier">setParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#setConstitutionScript"><span class="hs-identifier">setConstitutionScript</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#forceOutputs"><span class="hs-identifier">forceOutputs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-26"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Write.html#forceOutputs_"><span class="hs-identifier">forceOutputs_</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Ledger</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Node.Emulator.Internal.Node</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Emulator</span></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Lens</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Lens</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html"><span class="hs-identifier">Cooked.MockChain.AutoFilling</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Balancing.html"><span class="hs-identifier">Cooked.MockChain.Balancing</span></a></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html"><span class="hs-identifier">Cooked.MockChain.Common</span></a></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html"><span class="hs-identifier">Cooked.MockChain.Error</span></a></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Body.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Body</span></a></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Output.html"><span class="hs-identifier">Cooked.MockChain.GenerateTx.Output</span></a></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html"><span class="hs-identifier">Cooked.MockChain.Log</span></a></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html"><span class="hs-identifier">Cooked.MockChain.Read</span></a></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html"><span class="hs-identifier">Cooked.MockChain.State</span></a></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html"><span class="hs-identifier">Cooked.Tweak.Common</span></a></span><span>
+</span><span id="line-46"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Index</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Orphans</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-56"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Error</span></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Fail</span></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.State</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | An effect that offers all the primitives that are performing modifications</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- on the blockchain state.</span><span>
+</span><span id="line-62"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainWrite"><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-var">MockChainWrite</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Effect</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-63"></span><span>  </span><span id="local-6989586621679872240"><span id="WaitNSlots"><span class="annot"><a href="Cooked.MockChain.Write.html#WaitNSlots"><span class="hs-identifier hs-var">WaitNSlots</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872240"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span></span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679872242"><span id="SetParams"><span class="annot"><a href="Cooked.MockChain.Write.html#SetParams"><span class="hs-identifier hs-var">SetParams</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872242"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621679872243"><span id="ValidateTxSkel"><span class="annot"><a href="Cooked.MockChain.Write.html#ValidateTxSkel"><span class="hs-identifier hs-var">ValidateTxSkel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872243"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Utxos"><span class="hs-identifier hs-type">Utxos</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679872239"><span id="local-6989586621679872523"><span id="SetConstitutionScript"><span class="annot"><a href="Cooked.MockChain.Write.html#SetConstitutionScript"><span class="hs-identifier hs-var">SetConstitutionScript</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#ToVScript"><span class="hs-identifier hs-type">ToVScript</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872523"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679872523"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872239"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679872241"><span id="ForceOutputs"><span class="annot"><a href="Cooked.MockChain.Write.html#ForceOutputs"><span class="hs-identifier hs-var">ForceOutputs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872241"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Utxos"><span class="hs-identifier hs-type">Utxos</span></a></span></span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span id="waitNSlots"><span id="validateTxSkel"><span id="setParams"><span id="setConstitutionScript"><span id="forceOutputs"><span class="hs-identifier">makeSem_</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainWrite</span></span></span></span></span></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="annot"><span class="hs-comment">-- | Interpretes the `MockChainWrite` effect</span></span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Cooked.MockChain.Write.html#runMockChainWrite"><span class="hs-identifier hs-type">runMockChainWrite</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679872256"><span class="annot"><a href="#local-6989586621679872256"><span class="hs-identifier hs-type">effs</span></a></span></span><span> </span><span id="local-6989586621679872258"><span class="annot"><a href="#local-6989586621679872258"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span>
+</span><span id="line-75"></span><span>      </span><span class="hs-special">'</span><span class="hs-special">[</span><span> </span><span class="annot"><span class="hs-identifier hs-type">State</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>         </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">,</span><span>
+</span><span id="line-77"></span><span>         </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>         </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-79"></span><span>         </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-80"></span><span>         </span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span>
+</span><span id="line-81"></span><span>       </span><span class="hs-special">]</span><span>
+</span><span id="line-82"></span><span>      </span><span class="annot"><a href="#local-6989586621679872256"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-84"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><a href="#local-6989586621679872256"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679872258"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-85"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872256"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872258"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-86"></span><span id="runMockChainWrite"><span class="annot"><span class="annottext">runMockChainWrite :: forall (effs :: EffectRow) a.
+Members
+  '[State MockChainState, Error ToCardanoError, Error MockChainError,
+    MockChainLog, MockChainRead, Fail]
+  effs =&gt;
+Sem (MockChainWrite : effs) a -&gt; Sem effs a
+</span><a href="Cooked.MockChain.Write.html#runMockChainWrite"><span class="hs-identifier hs-var hs-var">runMockChainWrite</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall (rInitial :: EffectRow) x.
+ MockChainWrite (Sem rInitial) x -&gt; Sem effs x)
+-&gt; Sem (MockChainWrite : effs) a -&gt; Sem effs a
+forall (e :: Effect) (r :: EffectRow) a.
+FirstOrder e &quot;interpret&quot; =&gt;
+(forall (rInitial :: EffectRow) x. e (Sem rInitial) x -&gt; Sem r x)
+-&gt; Sem (e : r) a -&gt; Sem r a
+</span><span class="hs-identifier hs-var">interpret</span></span><span> </span><span class="annot"><span class="annottext">((forall (rInitial :: EffectRow) x.
+  MockChainWrite (Sem rInitial) x -&gt; Sem effs x)
+ -&gt; Sem (MockChainWrite : effs) a -&gt; Sem effs a)
+-&gt; (forall (rInitial :: EffectRow) x.
+    MockChainWrite (Sem rInitial) x -&gt; Sem effs x)
+-&gt; Sem (MockChainWrite : effs) a
+-&gt; Sem effs a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-87"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Write.html#SetParams"><span class="hs-identifier hs-type">SetParams</span></a></span><span> </span><span id="local-6989586621679872574"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872574"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-88"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem effs ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MockChainState MockChainState Params Params
+-&gt; Params -&gt; MockChainState -&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MockChainState MockChainState Params Params
+</span><a href="Cooked.MockChain.State.html#mcstParamsL"><span class="hs-identifier hs-var">mcstParamsL</span></a></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872574"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-89"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem effs ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">((EmulatedLedgerState -&gt; EmulatedLedgerState)
+ -&gt; MockChainState -&gt; MockChainState)
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Params -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState
+</span><span class="hs-identifier hs-var">Emulator.updateStateParams</span></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872574"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-90"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Write.html#WaitNSlots"><span class="hs-identifier hs-type">WaitNSlots</span></a></span><span> </span><span id="local-6989586621679872614"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872614"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-91"></span><span>    </span><span id="local-6989586621679872615"><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679872615"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MockChainState -&gt; x) -&gt; Sem effs x
+forall s a (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; a) -&gt; Sem r a
+</span><span class="hs-identifier hs-var">gets</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EmulatedLedgerState -&gt; x
+forall a. Num a =&gt; EmulatedLedgerState -&gt; a
+</span><span class="hs-identifier hs-var">Emulator.getSlot</span></span><span> </span><span class="annot"><span class="annottext">(EmulatedLedgerState -&gt; x)
+-&gt; (MockChainState -&gt; EmulatedLedgerState) -&gt; MockChainState -&gt; x
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">MockChainState -&gt; EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerState"><span class="hs-identifier hs-var">mcstLedgerState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-keyword">if</span><span>
+</span><span id="line-93"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872614"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">x -&gt; Sem effs x
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679872615"><span class="hs-identifier hs-var">cs</span></a></span><span>
+</span><span id="line-94"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872614"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-95"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679872621"><span class="annot"><span class="annottext">newSlot :: x
+</span><a href="#local-6989586621679872621"><span class="hs-identifier hs-var hs-var">newSlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679872615"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">x -&gt; x -&gt; x
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; x
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872614"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-96"></span><span>          </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">((EmulatedLedgerState -&gt; EmulatedLedgerState)
+ -&gt; MockChainState -&gt; MockChainState)
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ASetter EmulatedLedgerState EmulatedLedgerState SlotNo SlotNo
+-&gt; SlotNo -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">Lens.set</span></span><span> </span><span class="annot"><span class="annottext">ASetter EmulatedLedgerState EmulatedLedgerState SlotNo SlotNo
+Lens' EmulatedLedgerState SlotNo
+</span><span class="hs-identifier hs-var">Emulator.elsSlotL</span></span><span> </span><span class="annot"><span class="annottext">(SlotNo -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; SlotNo -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">x -&gt; SlotNo
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679872621"><span class="hs-identifier hs-var">newSlot</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>          </span><span class="annot"><span class="annottext">x -&gt; Sem effs x
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679872621"><span class="hs-identifier hs-var">newSlot</span></a></span><span>
+</span><span id="line-98"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem effs x
+forall e (r :: EffectRow) a. Member (Error e) r =&gt; e -&gt; Sem r a
+</span><span class="hs-identifier hs-var">throw</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; Sem effs x) -&gt; MockChainError -&gt; Sem effs x
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Slot -&gt; MockChainError
+</span><a href="Cooked.MockChain.Error.html#MCEPastSlot"><span class="hs-identifier hs-var">MCEPastSlot</span></a></span><span> </span><span class="annot"><span class="annottext">x
+Slot
+</span><a href="#local-6989586621679872615"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x
+Slot
+</span><a href="#local-6989586621679872615"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Slot -&gt; Slot
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Slot
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872614"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Write.html#SetConstitutionScript"><span class="hs-identifier hs-type">SetConstitutionScript</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">s -&gt; VScript
+forall script. ToVScript script =&gt; script -&gt; VScript
+</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872642"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679872642"><span class="hs-identifier hs-var">cScript</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' MockChainState (Maybe VScript)
+</span><a href="Cooked.MockChain.State.html#mcstConstitutionL"><span class="hs-identifier hs-var">mcstConstitutionL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Maybe VScript)
+-&gt; VScript -&gt; MockChainState -&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a (Maybe b) -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">?~</span></span><span> </span><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679872642"><span class="hs-identifier hs-var">cScript</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem effs ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-102"></span><span>      </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">((EmulatedLedgerState -&gt; EmulatedLedgerState)
+ -&gt; MockChainState -&gt; MockChainState)
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-103"></span><span>        </span><span class="annot"><span class="annottext">ASetter
+  EmulatedLedgerState
+  EmulatedLedgerState
+  (StrictMaybe ScriptHash)
+  (StrictMaybe ScriptHash)
+-&gt; StrictMaybe ScriptHash
+-&gt; EmulatedLedgerState
+-&gt; EmulatedLedgerState
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">Lens.set</span></span><span> </span><span class="annot"><span class="annottext">ASetter
+  EmulatedLedgerState
+  EmulatedLedgerState
+  (StrictMaybe ScriptHash)
+  (StrictMaybe ScriptHash)
+Lens' EmulatedLedgerState (StrictMaybe ScriptHash)
+</span><span class="hs-identifier hs-var">Emulator.elsConstitutionScriptL</span></span><span> </span><span class="annot"><span class="annottext">(StrictMaybe ScriptHash
+ -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; StrictMaybe ScriptHash
+-&gt; EmulatedLedgerState
+-&gt; EmulatedLedgerState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-104"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; StrictMaybe ScriptHash
+forall a. a -&gt; StrictMaybe a
+</span><span class="hs-identifier hs-var">Cardano.SJust</span></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; StrictMaybe ScriptHash)
+-&gt; (VScript -&gt; ScriptHash) -&gt; VScript -&gt; StrictMaybe ScriptHash
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; ScriptHash
+</span><span class="hs-identifier hs-var">Cardano.toShelleyScriptHash</span></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; ScriptHash)
+-&gt; (VScript -&gt; ScriptHash) -&gt; VScript -&gt; ScriptHash
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
+forall a. ToCardanoScriptHash a =&gt; a -&gt; ScriptHash
+</span><span class="hs-identifier hs-var">Script.toCardanoScriptHash</span></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>            </span><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679872642"><span class="hs-identifier hs-var">cScript</span></a></span><span>
+</span><span id="line-106"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Write.html#ForceOutputs"><span class="hs-identifier hs-type">ForceOutputs</span></a></span><span> </span><span id="local-6989586621679872689"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679872689"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-107"></span><span>    </span><span class="hs-comment">-- We retrieve the protocol parameters</span><span>
+</span><span id="line-108"></span><span>    </span><span id="local-6989586621679872690"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872690"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs Params
+forall (effs :: EffectRow).
+Member MockChainRead effs =&gt;
+Sem effs Params
+</span><a href="Cooked.MockChain.Read.html#getParams"><span class="hs-identifier hs-var">getParams</span></a></span><span>
+</span><span id="line-109"></span><span>    </span><span class="hs-comment">-- The emulator takes for granted transactions with a single pseudo input,</span><span>
+</span><span id="line-110"></span><span>    </span><span class="hs-comment">-- which we build to force transaction validation</span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679872692"><span class="annot"><span class="annottext">input :: (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra))
+</span><a href="#local-6989586621679872692"><span class="hs-identifier hs-var hs-var">input</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-112"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">NetworkId -&gt; Hash GenesisUTxOKey -&gt; TxIn
+</span><span class="hs-identifier hs-var">Cardano.genesisUTxOPseudoTxIn</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params -&gt; NetworkId
+</span><span class="hs-identifier hs-var">Emulator.pNetworkId</span></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872690"><span class="hs-identifier hs-var">params</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Hash GenesisUTxOKey -&gt; TxIn) -&gt; Hash GenesisUTxOKey -&gt; TxIn
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-113"></span><span>              </span><span class="annot"><span class="annottext">KeyHash 'Payment -&gt; Hash GenesisUTxOKey
+</span><span class="hs-identifier hs-var">Cardano.GenesisUTxOKeyHash</span></span><span> </span><span class="annot"><span class="annottext">(KeyHash 'Payment -&gt; Hash GenesisUTxOKey)
+-&gt; KeyHash 'Payment -&gt; Hash GenesisUTxOKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-114"></span><span>                </span><span class="annot"><span class="annottext">Hash ADDRHASH (VerKeyDSIGN DSIGN) -&gt; KeyHash 'Payment
+forall (r :: KeyRole).
+Hash ADDRHASH (VerKeyDSIGN DSIGN) -&gt; KeyHash r
+</span><span class="hs-identifier hs-var">Cardano.KeyHash</span></span><span> </span><span class="annot"><span class="annottext">Hash ADDRHASH (VerKeyDSIGN DSIGN)
+</span><span class="hs-string">&quot;23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-115"></span><span>            </span><span class="annot"><span class="annottext">Witness WitCtxTxIn ConwayEra
+-&gt; BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra)
+forall a. a -&gt; BuildTxWith BuildTx a
+</span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">(Witness WitCtxTxIn ConwayEra
+ -&gt; BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra))
+-&gt; Witness WitCtxTxIn ConwayEra
+-&gt; BuildTxWith BuildTx (Witness WitCtxTxIn ConwayEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxTxIn -&gt; Witness WitCtxTxIn ConwayEra
+forall witctx era. KeyWitnessInCtx witctx -&gt; Witness witctx era
+</span><span class="hs-identifier hs-var">Cardano.KeyWitness</span></span><span> </span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxTxIn
+</span><span class="hs-identifier hs-var">Cardano.KeyWitnessForSpending</span></span><span>
+</span><span id="line-116"></span><span>          </span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-comment">-- We adjust the outputs for the minimal required ADA if needed</span><span>
+</span><span id="line-118"></span><span>    </span><span id="local-6989586621679872700"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679872700"><span class="hs-identifier hs-var">outputsMinAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Sem effs TxSkelOut)
+-&gt; [TxSkelOut] -&gt; Sem effs [TxSkelOut]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
+forall (effs :: EffectRow).
+Members
+  '[MockChainRead, MockChainLog, Error ToCardanoError] effs =&gt;
+TxSkelOut -&gt; Sem effs TxSkelOut
+</span><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679872689"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><span id="line-119"></span><span>    </span><span class="hs-comment">-- We transform these outputs to Cardano outputs</span><span>
+</span><span id="line-120"></span><span>    </span><span id="local-6989586621679872703"><span class="annot"><span class="annottext">[TxOut CtxTx ConwayEra]
+</span><a href="#local-6989586621679872703"><span class="hs-identifier hs-var">outputs'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Sem effs (TxOut CtxTx ConwayEra))
+-&gt; [TxSkelOut] -&gt; Sem effs [TxOut CtxTx ConwayEra]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs (TxOut CtxTx ConwayEra)
+forall (effs :: EffectRow).
+Members '[MockChainRead, Error ToCardanoError] effs =&gt;
+TxSkelOut -&gt; Sem effs (TxOut CtxTx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Output.html#toCardanoTxOut"><span class="hs-identifier hs-var">toCardanoTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679872700"><span class="hs-identifier hs-var">outputsMinAda</span></a></span><span>
+</span><span id="line-121"></span><span>    </span><span class="hs-comment">-- We create our transaction body, which only consists of the dummy input</span><span>
+</span><span id="line-122"></span><span>    </span><span class="hs-comment">-- and the outputs to force, and make a transaction out of it.</span><span>
+</span><span id="line-123"></span><span>    </span><span id="local-6989586621679872705"><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872705"><span class="hs-identifier hs-var">cardanoTx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-124"></span><span>      </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; CardanoTx
+</span><span class="hs-identifier hs-var">Ledger.CardanoEmulatorEraTx</span></span><span> </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; CardanoTx)
+-&gt; (TxBody ConwayEra -&gt; Tx ConwayEra)
+-&gt; TxBody ConwayEra
+-&gt; CardanoTx
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelSignatory] -&gt; TxBody ConwayEra -&gt; Tx ConwayEra
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#txSignatoriesAndBodyToCardanoTx"><span class="hs-identifier hs-var">txSignatoriesAndBodyToCardanoTx</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-125"></span><span>        </span><span class="annot"><span class="annottext">(TxBody ConwayEra -&gt; CardanoTx)
+-&gt; Sem effs (TxBody ConwayEra) -&gt; Sem effs CardanoTx
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Either ToCardanoError (TxBody ConwayEra)
+-&gt; Sem effs (TxBody ConwayEra)
+forall e (r :: EffectRow) a.
+Member (Error e) r =&gt;
+Either e a -&gt; Sem r a
+</span><span class="hs-identifier hs-var">fromEither</span></span><span>
+</span><span id="line-126"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Params
+-&gt; CardanoBuildTx -&gt; Either ToCardanoError (TxBody ConwayEra)
+</span><span class="hs-identifier hs-var">Emulator.createTransactionBody</span></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872690"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">(CardanoBuildTx -&gt; Either ToCardanoError (TxBody ConwayEra))
+-&gt; CardanoBuildTx -&gt; Either ToCardanoError (TxBody ConwayEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-127"></span><span>              </span><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra -&gt; CardanoBuildTx
+</span><span class="hs-identifier hs-var">Ledger.CardanoBuildTx</span></span><span>
+</span><span id="line-128"></span><span>                </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">TxBodyContent BuildTx ConwayEra
+</span><span class="hs-identifier hs-var">Ledger.emptyTxBodyContent</span></span><span>
+</span><span id="line-129"></span><span>                    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-identifier hs-var">Cardano.txOuts</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679872703"><span class="hs-identifier hs-type">outputs'</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-130"></span><span>                      </span><span class="annot"><span class="hs-identifier hs-var">Cardano.txIns</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679872692"><span class="hs-identifier hs-type">input</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-131"></span><span>                    </span><span class="hs-special">}</span><span>
+</span><span id="line-132"></span><span>                </span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>          </span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>    </span><span class="hs-comment">-- We need to adjust our internal state to account for the forced</span><span>
+</span><span id="line-135"></span><span>    </span><span class="hs-comment">-- transaction. We beging by computing the new map of outputs.</span><span>
+</span><span id="line-136"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679872715"><span class="annot"><span class="annottext">outputsMap :: Map TxOutRef (TxSkelOut, Bool)
+</span><a href="#local-6989586621679872715"><span class="hs-identifier hs-var hs-var">outputsMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-137"></span><span>          </span><span class="annot"><span class="annottext">[(TxOutRef, (TxSkelOut, Bool))] -&gt; Map TxOutRef (TxSkelOut, Bool)
+forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, (TxSkelOut, Bool))] -&gt; Map TxOutRef (TxSkelOut, Bool))
+-&gt; [(TxOutRef, (TxSkelOut, Bool))]
+-&gt; Map TxOutRef (TxSkelOut, Bool)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-138"></span><span>            </span><span class="annot"><span class="annottext">(TxOutRef -&gt; TxSkelOut -&gt; (TxOutRef, (TxSkelOut, Bool)))
+-&gt; [TxOutRef] -&gt; [TxSkelOut] -&gt; [(TxOutRef, (TxSkelOut, Bool))]
+forall a b c. (a -&gt; b -&gt; c) -&gt; [a] -&gt; [b] -&gt; [c]
+</span><span class="hs-identifier hs-var">zipWith</span></span><span>
+</span><span id="line-139"></span><span>              </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872718"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679872718"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679872719"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679872719"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679872718"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679872719"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxIn -&gt; TxOutRef
+</span><span class="hs-identifier hs-var">Ledger.fromCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">(TxIn -&gt; TxOutRef)
+-&gt; ((TxOut, TxIn) -&gt; TxIn) -&gt; (TxOut, TxIn) -&gt; TxOutRef
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxOut, TxIn) -&gt; TxIn
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((TxOut, TxIn) -&gt; TxOutRef) -&gt; [(TxOut, TxIn)] -&gt; [TxOutRef]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; [(TxOut, TxIn)]
+</span><span class="hs-identifier hs-var">Ledger.getCardanoTxOutRefs</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872705"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>              </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679872700"><span class="hs-identifier hs-var">outputsMinAda</span></a></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-comment">-- We update the index, which effectively receives the new utxos</span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span>
+</span><span id="line-144"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">((EmulatedLedgerState -&gt; EmulatedLedgerState)
+ -&gt; MockChainState -&gt; MockChainState)
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-145"></span><span>          </span><span class="annot"><span class="annottext">ASetter
+  EmulatedLedgerState
+  EmulatedLedgerState
+  (UTxO EmulatorEra)
+  (UTxO EmulatorEra)
+-&gt; (UTxO EmulatorEra -&gt; UTxO EmulatorEra)
+-&gt; EmulatedLedgerState
+-&gt; EmulatedLedgerState
+forall s t a b. ASetter s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">Lens.over</span></span><span>
+</span><span id="line-146"></span><span>            </span><span class="annot"><span class="annottext">ASetter
+  EmulatedLedgerState
+  EmulatedLedgerState
+  (UTxO EmulatorEra)
+  (UTxO EmulatorEra)
+Lens' EmulatedLedgerState (UTxO EmulatorEra)
+</span><span class="hs-identifier hs-var">Emulator.elsUtxoL</span></span><span>
+</span><span id="line-147"></span><span>            </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">UtxoIndex -&gt; UTxO EmulatorEra
+</span><span class="hs-identifier hs-var">Ledger.fromPlutusIndex</span></span><span>
+</span><span id="line-148"></span><span>                </span><span class="annot"><span class="annottext">(UtxoIndex -&gt; UTxO EmulatorEra)
+-&gt; (UTxO EmulatorEra -&gt; UtxoIndex)
+-&gt; UTxO EmulatorEra
+-&gt; UTxO EmulatorEra
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; UtxoIndex -&gt; UtxoIndex
+</span><span class="hs-identifier hs-var">Ledger.insert</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872705"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span>
+</span><span id="line-149"></span><span>                </span><span class="annot"><span class="annottext">(UtxoIndex -&gt; UtxoIndex)
+-&gt; (UTxO EmulatorEra -&gt; UtxoIndex) -&gt; UTxO EmulatorEra -&gt; UtxoIndex
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">UTxO EmulatorEra -&gt; UtxoIndex
+</span><span class="hs-identifier hs-var">Ledger.toPlutusIndex</span></span><span>
+</span><span id="line-150"></span><span>            </span><span class="hs-special">)</span><span>
+</span><span id="line-151"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-152"></span><span>    </span><span class="hs-comment">-- We update our internal map by adding the new outputs</span><span>
+</span><span id="line-153"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem effs ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  (Map TxOutRef (TxSkelOut, Bool))
+  (Map TxOutRef (TxSkelOut, Bool))
+-&gt; (Map TxOutRef (TxSkelOut, Bool)
+    -&gt; Map TxOutRef (TxSkelOut, Bool))
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  (Map TxOutRef (TxSkelOut, Bool))
+  (Map TxOutRef (TxSkelOut, Bool))
+</span><a href="Cooked.MockChain.State.html#mcstOutputsL"><span class="hs-identifier hs-var">mcstOutputsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TxOutRef (TxSkelOut, Bool)
+-&gt; Map TxOutRef (TxSkelOut, Bool) -&gt; Map TxOutRef (TxSkelOut, Bool)
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef (TxSkelOut, Bool)
+</span><a href="#local-6989586621679872715"><span class="hs-identifier hs-var">outputsMap</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-154"></span><span>    </span><span class="hs-comment">-- Finally, we return the created utxos</span><span>
+</span><span id="line-155"></span><span>    </span><span class="annot"><span class="annottext">x -&gt; Sem effs x
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(x -&gt; Sem effs x) -&gt; x -&gt; Sem effs x
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelOut -&gt; Utxos
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkelOut, Bool) -&gt; TxSkelOut
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((TxSkelOut, Bool) -&gt; TxSkelOut)
+-&gt; Map TxOutRef (TxSkelOut, Bool) -&gt; Map TxOutRef TxSkelOut
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef (TxSkelOut, Bool)
+</span><a href="#local-6989586621679872715"><span class="hs-identifier hs-var">outputsMap</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-156"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Write.html#ValidateTxSkel"><span class="hs-identifier hs-type">ValidateTxSkel</span></a></span><span> </span><span id="local-6989586621679872844"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872844"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">((TxSkel, x) -&gt; x) -&gt; Sem effs (TxSkel, x) -&gt; Sem effs x
+forall a b. (a -&gt; b) -&gt; Sem effs a -&gt; Sem effs b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(TxSkel, x) -&gt; x
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs (TxSkel, x) -&gt; Sem effs x)
+-&gt; Sem effs (TxSkel, x) -&gt; Sem effs x
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem (Tweak : effs) x -&gt; Sem effs (TxSkel, x)
+forall (effs :: EffectRow) a.
+TxSkel -&gt; Sem (Tweak : effs) a -&gt; Sem effs (TxSkel, a)
+</span><a href="Cooked.Tweak.Common.html#runTweak"><span class="hs-identifier hs-var">runTweak</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872844"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem (Tweak : effs) x -&gt; Sem effs (TxSkel, x))
+-&gt; Sem (Tweak : effs) x -&gt; Sem effs (TxSkel, x)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-comment">-- We retrieve the current skeleton options</span><span>
+</span><span id="line-158"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Option.html#TxSkelOpts"><span class="hs-identifier hs-type">TxSkelOpts</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679872847"><span id="local-6989586621679872848"><span id="local-6989586621679872849"><span id="local-6989586621679872850"><span id="local-6989586621679872851"><span id="local-6989586621679872852"><span id="local-6989586621679872853"><span id="local-6989586621679872854"><span class="annot"><span class="annottext">Bool
+CollateralUtxos
+BalancingPolicy
+BalancingUtxos
+BalanceOutputPolicy
+FeePolicy
+Tx ConwayEra -&gt; Tx ConwayEra
+Params -&gt; Params
+txSkelOptAutoSlotIncrease :: Bool
+txSkelOptModTx :: Tx ConwayEra -&gt; Tx ConwayEra
+txSkelOptBalancingPolicy :: BalancingPolicy
+txSkelOptFeePolicy :: FeePolicy
+txSkelOptBalanceOutputPolicy :: BalanceOutputPolicy
+txSkelOptBalancingUtxos :: BalancingUtxos
+txSkelOptModParams :: Params -&gt; Params
+txSkelOptCollateralUtxos :: CollateralUtxos
+txSkelOptAutoSlotIncrease :: TxSkelOpts -&gt; Bool
+txSkelOptModTx :: TxSkelOpts -&gt; Tx ConwayEra -&gt; Tx ConwayEra
+txSkelOptBalancingPolicy :: TxSkelOpts -&gt; BalancingPolicy
+txSkelOptFeePolicy :: TxSkelOpts -&gt; FeePolicy
+txSkelOptBalanceOutputPolicy :: TxSkelOpts -&gt; BalanceOutputPolicy
+txSkelOptBalancingUtxos :: TxSkelOpts -&gt; BalancingUtxos
+txSkelOptModParams :: TxSkelOpts -&gt; Params -&gt; Params
+txSkelOptCollateralUtxos :: TxSkelOpts -&gt; CollateralUtxos
+</span><a href="#local-6989586621679872847"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelOpts
+-&gt; Sem (Tweak : effs) TxSkelOpts
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxSkelOpts
+</span><a href="Cooked.Skeleton.html#txSkelOptsL"><span class="hs-identifier hs-var">txSkelOptsL</span></a></span><span>
+</span><span id="line-159"></span><span>    </span><span class="hs-comment">-- We log the submission of the new skeleton</span><span>
+</span><span id="line-160"></span><span>    </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx TxSkel TxSkel -&gt; Sem (Tweak : effs) TxSkel
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx TxSkel TxSkel
+forall a. Iso' a a
+</span><span class="hs-identifier hs-var">simple</span></span><span> </span><span class="annot"><span class="annottext">Sem (Tweak : effs) TxSkel
+-&gt; (TxSkel -&gt; Sem (Tweak : effs) ()) -&gt; Sem (Tweak : effs) ()
+forall a b.
+Sem (Tweak : effs) a
+-&gt; (a -&gt; Sem (Tweak : effs) b) -&gt; Sem (Tweak : effs) b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Member MockChainLog effs =&gt;
+MockChainLogEntry -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Log.html#logEvent"><span class="hs-identifier hs-var">logEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainLogEntry -&gt; Sem (Tweak : effs) ())
+-&gt; (TxSkel -&gt; MockChainLogEntry) -&gt; TxSkel -&gt; Sem (Tweak : effs) ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; MockChainLogEntry
+</span><a href="Cooked.MockChain.Log.html#MCLogSubmittedTxSkel"><span class="hs-identifier hs-var">MCLogSubmittedTxSkel</span></a></span><span>
+</span><span id="line-161"></span><span>    </span><span class="hs-comment">-- We retrieve the current parameters</span><span>
+</span><span id="line-162"></span><span>    </span><span id="local-6989586621679872868"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872868"><span class="hs-identifier hs-var">oldParams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem (Tweak : effs) Params
+forall (effs :: EffectRow).
+Member MockChainRead effs =&gt;
+Sem effs Params
+</span><a href="Cooked.MockChain.Read.html#getParams"><span class="hs-identifier hs-var">getParams</span></a></span><span>
+</span><span id="line-163"></span><span>    </span><span class="hs-comment">-- We compute the optionally modified parameters</span><span>
+</span><span id="line-164"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679872869"><span class="annot"><span class="annottext">newParams :: Params
+</span><a href="#local-6989586621679872869"><span class="hs-identifier hs-var hs-var">newParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params -&gt; Params
+</span><a href="#local-6989586621679872853"><span class="hs-identifier hs-var">txSkelOptModParams</span></a></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872868"><span class="hs-identifier hs-var">oldParams</span></a></span><span>
+</span><span id="line-165"></span><span>    </span><span class="hs-comment">-- We change the parameters for the duration of the validation process</span><span>
+</span><span id="line-166"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MockChainState MockChainState Params Params
+-&gt; Params -&gt; MockChainState -&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MockChainState MockChainState Params Params
+</span><a href="Cooked.MockChain.State.html#mcstParamsL"><span class="hs-identifier hs-var">mcstParamsL</span></a></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872869"><span class="hs-identifier hs-var">newParams</span></a></span><span>
+</span><span id="line-167"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">((EmulatedLedgerState -&gt; EmulatedLedgerState)
+ -&gt; MockChainState -&gt; MockChainState)
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Params -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState
+</span><span class="hs-identifier hs-var">Emulator.updateStateParams</span></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872869"><span class="hs-identifier hs-var">newParams</span></a></span><span>
+</span><span id="line-168"></span><span>    </span><span class="hs-comment">-- We ensure that the outputs have the required minimal amount of ada, when</span><span>
+</span><span id="line-169"></span><span>    </span><span class="hs-comment">-- requested in the skeleton options</span><span>
+</span><span id="line-170"></span><span>    </span><span class="annot"><span class="annottext">Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Members
+  '[Tweak, MockChainRead, MockChainLog, Error ToCardanoError] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.AutoFilling.html#autoFillMinAda"><span class="hs-identifier hs-var">autoFillMinAda</span></a></span><span>
+</span><span id="line-171"></span><span>    </span><span class="hs-comment">-- We retrieve the official constitution script and attach it to each</span><span>
+</span><span id="line-172"></span><span>    </span><span class="hs-comment">-- proposal that requires it, if it's not empty</span><span>
+</span><span id="line-173"></span><span>    </span><span class="annot"><span class="annottext">Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.AutoFilling.html#autoFillConstitution"><span class="hs-identifier hs-var">autoFillConstitution</span></a></span><span>
+</span><span id="line-174"></span><span>    </span><span class="hs-comment">-- We add reference scripts in the various redeemers of the skeleton, when</span><span>
+</span><span id="line-175"></span><span>    </span><span class="hs-comment">-- they can be found in the index and are allowed to be auto filled</span><span>
+</span><span id="line-176"></span><span>    </span><span class="annot"><span class="annottext">Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Members '[Tweak, MockChainRead, MockChainLog] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.AutoFilling.html#autoFillReferenceScripts"><span class="hs-identifier hs-var">autoFillReferenceScripts</span></a></span><span>
+</span><span id="line-177"></span><span>    </span><span class="hs-comment">-- We attach the reward amount to withdrawals when applicable</span><span>
+</span><span id="line-178"></span><span>    </span><span class="annot"><span class="annottext">Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.AutoFilling.html#autoFillWithdrawalAmounts"><span class="hs-identifier hs-var">autoFillWithdrawalAmounts</span></a></span><span>
+</span><span id="line-179"></span><span>    </span><span class="hs-comment">-- We balance the skeleton when requested in the skeleton option, and get</span><span>
+</span><span id="line-180"></span><span>    </span><span class="hs-comment">-- the associated fee, collateral inputs and return collateral user</span><span>
+</span><span id="line-181"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679872874"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872874"><span class="hs-identifier hs-var">finalTxSkel</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679872875"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872875"><span class="hs-identifier hs-var">fee</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679872876"><span class="annot"><span class="annottext">Collaterals
+</span><a href="#local-6989586621679872876"><span class="hs-identifier hs-var">mCollaterals</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx TxSkel TxSkel -&gt; Sem (Tweak : effs) TxSkel
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx TxSkel TxSkel
+forall a. Iso' a a
+</span><span class="hs-identifier hs-var">simple</span></span><span> </span><span class="annot"><span class="annottext">Sem (Tweak : effs) TxSkel
+-&gt; (TxSkel -&gt; Sem (Tweak : effs) (TxSkel, Integer, Collaterals))
+-&gt; Sem (Tweak : effs) (TxSkel, Integer, Collaterals)
+forall a b.
+Sem (Tweak : effs) a
+-&gt; (a -&gt; Sem (Tweak : effs) b) -&gt; Sem (Tweak : effs) b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem (Tweak : effs) (TxSkel, Integer, Collaterals)
+forall (effs :: EffectRow).
+Members
+  '[MockChainRead, MockChainLog, Error MockChainError,
+    Error ToCardanoError, Fail]
+  effs =&gt;
+TxSkel -&gt; Sem effs (TxSkel, Integer, Collaterals)
+</span><a href="Cooked.MockChain.Balancing.html#balanceTxSkel"><span class="hs-identifier hs-var">balanceTxSkel</span></a></span><span>
+</span><span id="line-182"></span><span>    </span><span class="hs-comment">-- We log the adjusted skeleton</span><span>
+</span><span id="line-183"></span><span>    </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Member MockChainLog effs =&gt;
+MockChainLogEntry -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Log.html#logEvent"><span class="hs-identifier hs-var">logEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainLogEntry -&gt; Sem (Tweak : effs) ())
+-&gt; MockChainLogEntry -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Integer -&gt; Collaterals -&gt; MockChainLogEntry
+</span><a href="Cooked.MockChain.Log.html#MCLogAdjustedTxSkel"><span class="hs-identifier hs-var">MCLogAdjustedTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872874"><span class="hs-identifier hs-var">finalTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872875"><span class="hs-identifier hs-var">fee</span></a></span><span> </span><span class="annot"><span class="annottext">Collaterals
+</span><a href="#local-6989586621679872876"><span class="hs-identifier hs-var">mCollaterals</span></a></span><span>
+</span><span id="line-184"></span><span>    </span><span class="hs-comment">-- We generate the transaction asscoiated with the skeleton, and apply on it</span><span>
+</span><span id="line-185"></span><span>    </span><span class="hs-comment">-- the modifications from the skeleton options</span><span>
+</span><span id="line-186"></span><span>    </span><span id="local-6989586621679872879"><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; CardanoTx
+</span><span class="hs-identifier hs-var">Ledger.CardanoEmulatorEraTx</span></span><span> </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; CardanoTx)
+-&gt; (Tx ConwayEra -&gt; Tx ConwayEra) -&gt; Tx ConwayEra -&gt; CardanoTx
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Tx ConwayEra -&gt; Tx ConwayEra
+</span><a href="#local-6989586621679872848"><span class="hs-identifier hs-var">txSkelOptModTx</span></a></span><span> </span><span class="annot"><span class="annottext">(Tx ConwayEra -&gt; CardanoTx)
+-&gt; Sem (Tweak : effs) (Tx ConwayEra)
+-&gt; Sem (Tweak : effs) CardanoTx
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
+-&gt; Integer -&gt; Collaterals -&gt; Sem (Tweak : effs) (Tx ConwayEra)
+forall (effs :: EffectRow).
+Members
+  '[MockChainRead, Error MockChainError, Error ToCardanoError, Fail]
+  effs =&gt;
+TxSkel -&gt; Integer -&gt; Collaterals -&gt; Sem effs (Tx ConwayEra)
+</span><a href="Cooked.MockChain.GenerateTx.Body.html#txSkelToCardanoTx"><span class="hs-identifier hs-var">txSkelToCardanoTx</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872874"><span class="hs-identifier hs-var">finalTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872875"><span class="hs-identifier hs-var">fee</span></a></span><span> </span><span class="annot"><span class="annottext">Collaterals
+</span><a href="#local-6989586621679872876"><span class="hs-identifier hs-var">mCollaterals</span></a></span><span>
+</span><span id="line-187"></span><span>    </span><span class="hs-comment">-- To run transaction validation we need a minimal ledger state</span><span>
+</span><span id="line-188"></span><span>    </span><span id="local-6989586621679872881"><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><a href="#local-6989586621679872881"><span class="hs-identifier hs-var">eLedgerState</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MockChainState -&gt; EmulatedLedgerState)
+-&gt; Sem (Tweak : effs) EmulatedLedgerState
+forall s a (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; a) -&gt; Sem r a
+</span><span class="hs-identifier hs-var">gets</span></span><span> </span><span class="annot"><span class="annottext">MockChainState -&gt; EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerState"><span class="hs-identifier hs-var">mcstLedgerState</span></a></span><span>
+</span><span id="line-189"></span><span>    </span><span class="hs-comment">-- We finally run the emulated validation. We update our internal state</span><span>
+</span><span id="line-190"></span><span>    </span><span class="hs-comment">-- based on the validation result, and throw an error if this fails. If at</span><span>
+</span><span id="line-191"></span><span>    </span><span class="hs-comment">-- some point we want to allows mockchain runs with validation errors, the</span><span>
+</span><span id="line-192"></span><span>    </span><span class="hs-comment">-- caller will need to catch those errors and do something with them.</span><span>
+</span><span id="line-193"></span><span>    </span><span id="local-6989586621679872882"><span class="annot"><span class="annottext">Utxos
+</span><a href="#local-6989586621679872882"><span class="hs-identifier hs-var">newOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Params
+-&gt; EmulatedLedgerState
+-&gt; CardanoTx
+-&gt; (EmulatedLedgerState, ValidationResult)
+</span><span class="hs-identifier hs-var">Emulator.validateCardanoTx</span></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872869"><span class="hs-identifier hs-var">newParams</span></a></span><span> </span><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><a href="#local-6989586621679872881"><span class="hs-identifier hs-var">eLedgerState</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-194"></span><span>      </span><span class="hs-comment">-- In case of a phase 1 error, we give back the same index</span><span>
+</span><span id="line-195"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.FailPhase1</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679872885"><span class="annot"><span class="annottext">ValidationError
+</span><a href="#local-6989586621679872885"><span class="hs-identifier hs-var">err</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem (Tweak : effs) Utxos
+forall e (r :: EffectRow) a. Member (Error e) r =&gt; e -&gt; Sem r a
+</span><span class="hs-identifier hs-var">throw</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; Sem (Tweak : effs) Utxos)
+-&gt; MockChainError -&gt; Sem (Tweak : effs) Utxos
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ValidationPhase -&gt; ValidationError -&gt; MockChainError
+</span><a href="Cooked.MockChain.Error.html#MCEValidationError"><span class="hs-identifier hs-var">MCEValidationError</span></a></span><span> </span><span class="annot"><span class="annottext">ValidationPhase
+</span><span class="hs-identifier hs-var">Ledger.Phase1</span></span><span> </span><span class="annot"><span class="annottext">ValidationError
+</span><a href="#local-6989586621679872885"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-196"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679872888"><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><a href="#local-6989586621679872888"><span class="hs-identifier hs-var">newELedgerState</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.FailPhase2</span></span><span> </span><span class="annot"><span class="annottext">OnChainTx
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679872890"><span class="annot"><span class="annottext">ValidationError
+</span><a href="#local-6989586621679872890"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679872891"><span class="annot"><span class="annottext">CollateralIns
+</span><a href="#local-6989586621679872891"><span class="hs-identifier hs-var">colInputs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679872892"><span class="annot"><span class="annottext">Peer
+</span><a href="#local-6989586621679872892"><span class="hs-identifier hs-var">retColUser</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Collaterals
+</span><a href="#local-6989586621679872876"><span class="hs-identifier hs-var">mCollaterals</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-197"></span><span>        </span><span class="hs-comment">-- We update the emulated ledger state</span><span>
+</span><span id="line-198"></span><span>        </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; EmulatedLedgerState -&gt; MockChainState -&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><a href="#local-6989586621679872888"><span class="hs-identifier hs-var">newELedgerState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-199"></span><span>        </span><span class="hs-comment">-- We remove the collateral utxos from our own stored outputs</span><span>
+</span><span id="line-200"></span><span>        </span><span class="annot"><span class="annottext">CollateralIns
+-&gt; (TxOutRef -&gt; Sem (Tweak : effs) ()) -&gt; Sem (Tweak : effs) ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="annot"><span class="annottext">CollateralIns
+</span><a href="#local-6989586621679872891"><span class="hs-identifier hs-var">colInputs</span></a></span><span> </span><span class="annot"><span class="annottext">((TxOutRef -&gt; Sem (Tweak : effs) ()) -&gt; Sem (Tweak : effs) ())
+-&gt; (TxOutRef -&gt; Sem (Tweak : effs) ()) -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; (TxOutRef -&gt; MockChainState -&gt; MockChainState)
+-&gt; TxOutRef
+-&gt; Sem (Tweak : effs) ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; MockChainState -&gt; MockChainState
+</span><a href="Cooked.MockChain.State.html#removeOutput"><span class="hs-identifier hs-var">removeOutput</span></a></span><span>
+</span><span id="line-201"></span><span>        </span><span class="hs-comment">-- We add the returned collateral to our outputs (in practice this map</span><span>
+</span><span id="line-202"></span><span>        </span><span class="hs-comment">-- either contains no element, or a single one)</span><span>
+</span><span id="line-203"></span><span>        </span><span class="annot"><span class="annottext">[(TxIn, TxOut)]
+-&gt; ((TxIn, TxOut) -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TxIn TxOut -&gt; [(TxIn, TxOut)]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map TxIn TxOut -&gt; [(TxIn, TxOut)])
+-&gt; Map TxIn TxOut -&gt; [(TxIn, TxOut)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; Map TxIn TxOut
+</span><span class="hs-identifier hs-var">Ledger.getCardanoTxProducedReturnCollateral</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((TxIn, TxOut) -&gt; Sem (Tweak : effs) ()) -&gt; Sem (Tweak : effs) ())
+-&gt; ((TxIn, TxOut) -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679872896"><span class="annot"><span class="annottext">TxIn
+</span><a href="#local-6989586621679872896"><span class="hs-identifier hs-var">txIn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679872897"><span class="annot"><span class="annottext">TxOut
+</span><a href="#local-6989586621679872897"><span class="hs-identifier hs-var">txOut</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-204"></span><span>          </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-205"></span><span>            </span><span class="annot"><span class="annottext">TxOutRef -&gt; TxSkelOut -&gt; MockChainState -&gt; MockChainState
+</span><a href="Cooked.MockChain.State.html#addOutput"><span class="hs-identifier hs-var">addOutput</span></a></span><span>
+</span><span id="line-206"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxIn -&gt; TxOutRef
+</span><span class="hs-identifier hs-var">Ledger.fromCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">TxIn
+</span><a href="#local-6989586621679872896"><span class="hs-identifier hs-var">txIn</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-207"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Peer
+</span><a href="#local-6989586621679872892"><span class="hs-identifier hs-var">retColUser</span></a></span><span> </span><span class="annot"><span class="annottext">Peer -&gt; Payable '[ 'IsValue] -&gt; TxSkelOut
+forall owner (els :: [PayableKind]).
+IsTxSkelOutAllowedOwner owner =&gt;
+owner -&gt; Payable els -&gt; TxSkelOut
+</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-operator hs-var">`receives`</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Payable '[ 'IsValue]
+forall a1. ToValue a1 =&gt; a1 -&gt; Payable '[ 'IsValue]
+</span><a href="Cooked.Skeleton.Output.html#Value"><span class="hs-identifier hs-var">Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOut -&gt; Value
+</span><span class="hs-identifier hs-var">Api.txOutValue</span></span><span> </span><span class="annot"><span class="annottext">(TxOut -&gt; Value) -&gt; (TxOut -&gt; TxOut) -&gt; TxOut -&gt; Value
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxOut CtxTx ConwayEra -&gt; TxOut
+forall era. TxOut CtxTx era -&gt; TxOut
+</span><span class="hs-identifier hs-var">Ledger.fromCardanoTxOutToPV2TxInfoTxOut</span></span><span> </span><span class="annot"><span class="annottext">(TxOut CtxTx ConwayEra -&gt; TxOut)
+-&gt; (TxOut -&gt; TxOut CtxTx ConwayEra) -&gt; TxOut -&gt; TxOut
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; TxOut CtxTx ConwayEra
+</span><span class="hs-identifier hs-var">Ledger.getTxOut</span></span><span> </span><span class="annot"><span class="annottext">(TxOut -&gt; Value) -&gt; TxOut -&gt; Value
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxOut
+</span><a href="#local-6989586621679872897"><span class="hs-identifier hs-var">txOut</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-208"></span><span>        </span><span class="hs-comment">-- We throw a mockchain error</span><span>
+</span><span id="line-209"></span><span>        </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem (Tweak : effs) Utxos
+forall e (r :: EffectRow) a. Member (Error e) r =&gt; e -&gt; Sem r a
+</span><span class="hs-identifier hs-var">throw</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; Sem (Tweak : effs) Utxos)
+-&gt; MockChainError -&gt; Sem (Tweak : effs) Utxos
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ValidationPhase -&gt; ValidationError -&gt; MockChainError
+</span><a href="Cooked.MockChain.Error.html#MCEValidationError"><span class="hs-identifier hs-var">MCEValidationError</span></a></span><span> </span><span class="annot"><span class="annottext">ValidationPhase
+</span><span class="hs-identifier hs-var">Ledger.Phase2</span></span><span> </span><span class="annot"><span class="annottext">ValidationError
+</span><a href="#local-6989586621679872890"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-210"></span><span>      </span><span class="hs-comment">-- In case of success, we update the index with all inputs and outputs</span><span>
+</span><span id="line-211"></span><span>      </span><span class="hs-comment">-- contained in the transaction</span><span>
+</span><span id="line-212"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679872905"><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><a href="#local-6989586621679872905"><span class="hs-identifier hs-var">newELedgerState</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Success</span></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-213"></span><span>        </span><span class="hs-comment">-- We update the index with the utxos consumed and produced by the tx</span><span>
+</span><span id="line-214"></span><span>        </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; EmulatedLedgerState -&gt; MockChainState -&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><a href="#local-6989586621679872905"><span class="hs-identifier hs-var">newELedgerState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-215"></span><span>        </span><span class="hs-comment">-- We retrieve the utxos created by the transaction</span><span>
+</span><span id="line-216"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679872907"><span class="annot"><span class="annottext">utxos :: [TxOutRef]
+</span><a href="#local-6989586621679872907"><span class="hs-identifier hs-var hs-var">utxos</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxIn -&gt; TxOutRef
+</span><span class="hs-identifier hs-var">Ledger.fromCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">(TxIn -&gt; TxOutRef)
+-&gt; ((TxOut, TxIn) -&gt; TxIn) -&gt; (TxOut, TxIn) -&gt; TxOutRef
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxOut, TxIn) -&gt; TxIn
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((TxOut, TxIn) -&gt; TxOutRef) -&gt; [(TxOut, TxIn)] -&gt; [TxOutRef]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; [(TxOut, TxIn)]
+</span><span class="hs-identifier hs-var">Ledger.getCardanoTxOutRefs</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span>
+</span><span id="line-217"></span><span>        </span><span class="hs-comment">-- We combine them with their corresponding `TxSkelOut`</span><span>
+</span><span id="line-218"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679872908"><span class="annot"><span class="annottext">newOutputs :: Utxos
+</span><a href="#local-6989586621679872908"><span class="hs-identifier hs-var hs-var">newOutputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; [TxSkelOut] -&gt; Utxos
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679872907"><span class="hs-identifier hs-var">utxos</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelOut]
+</span><a href="Cooked.Skeleton.html#txSkelOuts"><span class="hs-identifier hs-var">txSkelOuts</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872874"><span class="hs-identifier hs-var">finalTxSkel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-219"></span><span>        </span><span class="hs-comment">-- We add the news utxos to the state</span><span>
+</span><span id="line-220"></span><span>        </span><span class="annot"><span class="annottext">Utxos
+-&gt; ((TxOutRef, TxSkelOut) -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="annot"><span class="annottext">Utxos
+</span><a href="#local-6989586621679872908"><span class="hs-identifier hs-var">newOutputs</span></a></span><span> </span><span class="annot"><span class="annottext">(((TxOutRef, TxSkelOut) -&gt; Sem (Tweak : effs) ())
+ -&gt; Sem (Tweak : effs) ())
+-&gt; ((TxOutRef, TxSkelOut) -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; ((TxOutRef, TxSkelOut) -&gt; MockChainState -&gt; MockChainState)
+-&gt; (TxOutRef, TxSkelOut)
+-&gt; Sem (Tweak : effs) ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; TxSkelOut -&gt; MockChainState -&gt; MockChainState)
+-&gt; (TxOutRef, TxSkelOut) -&gt; MockChainState -&gt; MockChainState
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; TxSkelOut -&gt; MockChainState -&gt; MockChainState
+</span><a href="Cooked.MockChain.State.html#addOutput"><span class="hs-identifier hs-var">addOutput</span></a></span><span>
+</span><span id="line-221"></span><span>        </span><span class="hs-comment">-- And remove the old ones</span><span>
+</span><span id="line-222"></span><span>        </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+-&gt; ((TxOutRef, TxSkelRedeemer) -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)])
+-&gt; Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Map TxOutRef TxSkelRedeemer
+</span><a href="Cooked.Skeleton.html#txSkelIns"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679872874"><span class="hs-identifier hs-var">finalTxSkel</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((TxOutRef, TxSkelRedeemer) -&gt; Sem (Tweak : effs) ())
+ -&gt; Sem (Tweak : effs) ())
+-&gt; ((TxOutRef, TxSkelRedeemer) -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; ((TxOutRef, TxSkelRedeemer) -&gt; MockChainState -&gt; MockChainState)
+-&gt; (TxOutRef, TxSkelRedeemer)
+-&gt; Sem (Tweak : effs) ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; MockChainState -&gt; MockChainState
+</span><a href="Cooked.MockChain.State.html#removeOutput"><span class="hs-identifier hs-var">removeOutput</span></a></span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; MockChainState -&gt; MockChainState)
+-&gt; ((TxOutRef, TxSkelRedeemer) -&gt; TxOutRef)
+-&gt; (TxOutRef, TxSkelRedeemer)
+-&gt; MockChainState
+-&gt; MockChainState
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxSkelRedeemer) -&gt; TxOutRef
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-223"></span><span>        </span><span class="hs-comment">-- We return the newly created outputs</span><span>
+</span><span id="line-224"></span><span>        </span><span class="annot"><span class="annottext">Utxos -&gt; Sem (Tweak : effs) Utxos
+forall a. a -&gt; Sem (Tweak : effs) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Utxos
+</span><a href="#local-6989586621679872908"><span class="hs-identifier hs-var">newOutputs</span></a></span><span>
+</span><span id="line-225"></span><span>      </span><span class="hs-comment">-- This is a theoretical unreachable case. Since we fail in Phase 2, it</span><span>
+</span><span id="line-226"></span><span>      </span><span class="hs-comment">-- means the transaction involved script, and thus we must have generated</span><span>
+</span><span id="line-227"></span><span>      </span><span class="hs-comment">-- collaterals.</span><span>
+</span><span id="line-228"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EmulatedLedgerState
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.FailPhase2</span></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-229"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Collaterals
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Collaterals
+</span><a href="#local-6989586621679872876"><span class="hs-identifier hs-var">mCollaterals</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-230"></span><span>            </span><span class="annot"><span class="annottext">String -&gt; Sem (Tweak : effs) Utxos
+forall a. String -&gt; Sem (Tweak : effs) a
+forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues&quot;</span></span><span>
+</span><span id="line-231"></span><span>    </span><span class="hs-comment">-- We apply a change of slot when requested in the options</span><span>
+</span><span id="line-232"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; Sem (Tweak : effs) () -&gt; Sem (Tweak : effs) ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679872847"><span class="hs-identifier hs-var">txSkelOptAutoSlotIncrease</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem (Tweak : effs) () -&gt; Sem (Tweak : effs) ())
+-&gt; Sem (Tweak : effs) () -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">EmulatedLedgerState -&gt; EmulatedLedgerState
+</span><span class="hs-identifier hs-var">Emulator.nextSlot</span></span><span class="hs-special">)</span><span>
+</span><span id="line-233"></span><span>    </span><span class="hs-comment">-- We return the parameters to their original state</span><span>
+</span><span id="line-234"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MockChainState MockChainState Params Params
+-&gt; Params -&gt; MockChainState -&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MockChainState MockChainState Params Params
+</span><a href="Cooked.MockChain.State.html#mcstParamsL"><span class="hs-identifier hs-var">mcstParamsL</span></a></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872868"><span class="hs-identifier hs-var">oldParams</span></a></span><span>
+</span><span id="line-235"></span><span>    </span><span class="annot"><span class="annottext">(MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall s (r :: EffectRow).
+Member (State s) r =&gt;
+(s -&gt; s) -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">modify</span></span><span> </span><span class="annot"><span class="annottext">((MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ())
+-&gt; (MockChainState -&gt; MockChainState) -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  MockChainState
+  MockChainState
+  EmulatedLedgerState
+  EmulatedLedgerState
+</span><a href="Cooked.MockChain.State.html#mcstLedgerStateL"><span class="hs-identifier hs-var">mcstLedgerStateL</span></a></span><span> </span><span class="annot"><span class="annottext">((EmulatedLedgerState -&gt; EmulatedLedgerState)
+ -&gt; MockChainState -&gt; MockChainState)
+-&gt; (EmulatedLedgerState -&gt; EmulatedLedgerState)
+-&gt; MockChainState
+-&gt; MockChainState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Params -&gt; EmulatedLedgerState -&gt; EmulatedLedgerState
+</span><span class="hs-identifier hs-var">Emulator.updateStateParams</span></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679872868"><span class="hs-identifier hs-var">oldParams</span></a></span><span>
+</span><span id="line-236"></span><span>    </span><span class="hs-comment">-- We log the validated transaction</span><span>
+</span><span id="line-237"></span><span>    </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem (Tweak : effs) ()
+forall (effs :: EffectRow).
+Member MockChainLog effs =&gt;
+MockChainLogEntry -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Log.html#logEvent"><span class="hs-identifier hs-var">logEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainLogEntry -&gt; Sem (Tweak : effs) ())
+-&gt; MockChainLogEntry -&gt; Sem (Tweak : effs) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxId -&gt; Integer -&gt; MockChainLogEntry
+</span><a href="Cooked.MockChain.Log.html#MCLogNewTx"><span class="hs-identifier hs-var">MCLogNewTx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxId -&gt; TxId
+</span><span class="hs-identifier hs-var">Ledger.fromCardanoTxId</span></span><span> </span><span class="annot"><span class="annottext">(TxId -&gt; TxId) -&gt; TxId -&gt; TxId
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; TxId
+</span><span class="hs-identifier hs-var">Ledger.getCardanoTxId</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Integer) -&gt; Int -&gt; Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(TxOut, TxIn)] -&gt; Int
+forall a. [a] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">([(TxOut, TxIn)] -&gt; Int) -&gt; [(TxOut, TxIn)] -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; [(TxOut, TxIn)]
+</span><span class="hs-identifier hs-var">Ledger.getCardanoTxOutRefs</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-238"></span><span>    </span><span class="hs-comment">-- We return the validated transaction</span><span>
+</span><span id="line-239"></span><span>    </span><span class="annot"><span class="annottext">x -&gt; Sem (Tweak : effs) x
+forall a. a -&gt; Sem (Tweak : effs) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679872879"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Utxos
+</span><a href="#local-6989586621679872882"><span class="hs-identifier hs-var">newOutputs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-240"></span><span>
+</span><span id="line-241"></span><span class="annot"><span class="hs-comment">-- | Waits a certain number of slots and returns the new slot</span></span><span>
+</span><span id="line-242"></span><span id="local-6989586621679872212"><span class="annot"><a href="Cooked.MockChain.Write.html#waitNSlots"><span class="hs-identifier hs-type">waitNSlots</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872212"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872212"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span></span><span>
+</span><span id="line-243"></span><span>
+</span><span id="line-244"></span><span class="annot"><span class="hs-comment">-- | Wait for a certain slot, or throws an error if the slot is already past</span></span><span>
+</span><span id="line-245"></span><span id="local-6989586621679872487"><span class="annot"><a href="Cooked.MockChain.Write.html#awaitSlot"><span class="hs-identifier hs-type">awaitSlot</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872487"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872487"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span></span><span>
+</span><span id="line-246"></span><span id="awaitSlot"><span class="annot"><span class="annottext">awaitSlot :: forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite] effs =&gt;
+Slot -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#awaitSlot"><span class="hs-identifier hs-var hs-var">awaitSlot</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span id="local-6989586621679872928"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872928"><span class="hs-identifier hs-var">targetSlot</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-247"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span id="local-6989586621679872929"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872929"><span class="hs-identifier hs-var">now</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs Slot
+forall (effs :: EffectRow).
+Member MockChainRead effs =&gt;
+Sem effs Slot
+</span><a href="Cooked.MockChain.Read.html#currentSlot"><span class="hs-identifier hs-var">currentSlot</span></a></span><span>
+</span><span id="line-248"></span><span>  </span><span class="annot"><span class="annottext">Integer -&gt; Sem effs Slot
+forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+Integer -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#waitNSlots"><span class="hs-identifier hs-var">waitNSlots</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872928"><span class="hs-identifier hs-var">targetSlot</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872929"><span class="hs-identifier hs-var">now</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-249"></span><span>
+</span><span id="line-250"></span><span class="hs-comment">-- | Waits until the current slot becomes greater or equal to the slot</span><span>
+</span><span id="line-251"></span><span class="hs-comment">--  containing the given POSIX time.  Note that that it might not wait for</span><span>
+</span><span id="line-252"></span><span class="hs-comment">--  anything if the current slot is large enough.</span><span>
+</span><span id="line-253"></span><span id="local-6989586621679872490"><span class="annot"><a href="Cooked.MockChain.Write.html#awaitEnclosingSlot"><span class="hs-identifier hs-type">awaitEnclosingSlot</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872490"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.POSIXTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872490"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span></span><span>
+</span><span id="line-254"></span><span id="awaitEnclosingSlot"><span class="annot"><span class="annottext">awaitEnclosingSlot :: forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite] effs =&gt;
+POSIXTime -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#awaitEnclosingSlot"><span class="hs-identifier hs-var hs-var">awaitEnclosingSlot</span></a></span></span><span> </span><span id="local-6989586621679872937"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679872937"><span class="hs-identifier hs-var">time</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Sem effs Slot
+forall (effs :: EffectRow).
+Member MockChainRead effs =&gt;
+POSIXTime -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Read.html#getEnclosingSlot"><span class="hs-identifier hs-var">getEnclosingSlot</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679872937"><span class="hs-identifier hs-var">time</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs Slot -&gt; (Slot -&gt; Sem effs Slot) -&gt; Sem effs Slot
+forall a b. Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Sem effs Slot
+forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite] effs =&gt;
+Slot -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#awaitSlot"><span class="hs-identifier hs-var">awaitSlot</span></a></span><span>
+</span><span id="line-255"></span><span>
+</span><span id="line-256"></span><span class="hs-comment">-- | Wait a given number of ms from the lower bound of the current slot and</span><span>
+</span><span id="line-257"></span><span class="hs-comment">-- returns the current slot after waiting.</span><span>
+</span><span id="line-258"></span><span id="local-6989586621679872494"><span class="annot"><a href="Cooked.MockChain.Write.html#waitNMSFromSlotLowerBound"><span class="hs-identifier hs-type">waitNMSFromSlotLowerBound</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872494"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872494"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span></span><span>
+</span><span id="line-259"></span><span id="waitNMSFromSlotLowerBound"><span class="annot"><span class="annottext">waitNMSFromSlotLowerBound :: forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite, Fail] effs =&gt;
+Integer -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#waitNMSFromSlotLowerBound"><span class="hs-identifier hs-var hs-var">waitNMSFromSlotLowerBound</span></a></span></span><span> </span><span id="local-6989586621679872956"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872956"><span class="hs-identifier hs-var">duration</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs (POSIXTime, POSIXTime)
+forall (effs :: EffectRow).
+Members '[MockChainRead, Fail] effs =&gt;
+Sem effs (POSIXTime, POSIXTime)
+</span><a href="Cooked.MockChain.Read.html#currentMSRange"><span class="hs-identifier hs-var">currentMSRange</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs (POSIXTime, POSIXTime)
+-&gt; ((POSIXTime, POSIXTime) -&gt; Sem effs Slot) -&gt; Sem effs Slot
+forall a b. Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Sem effs Slot
+forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite] effs =&gt;
+POSIXTime -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#awaitEnclosingSlot"><span class="hs-identifier hs-var">awaitEnclosingSlot</span></a></span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; Sem effs Slot)
+-&gt; ((POSIXTime, POSIXTime) -&gt; POSIXTime)
+-&gt; (POSIXTime, POSIXTime)
+-&gt; Sem effs Slot
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTime -&gt; POSIXTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; POSIXTime
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872956"><span class="hs-identifier hs-var">duration</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; POSIXTime)
+-&gt; ((POSIXTime, POSIXTime) -&gt; POSIXTime)
+-&gt; (POSIXTime, POSIXTime)
+-&gt; POSIXTime
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(POSIXTime, POSIXTime) -&gt; POSIXTime
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-260"></span><span>
+</span><span id="line-261"></span><span class="hs-comment">-- | Wait a given number of ms from the upper bound of the current slot and</span><span>
+</span><span id="line-262"></span><span class="hs-comment">-- returns the current slot after waiting.</span><span>
+</span><span id="line-263"></span><span id="local-6989586621679872958"><span class="annot"><a href="Cooked.MockChain.Write.html#waitNMSFromSlotUpperBound"><span class="hs-identifier hs-type">waitNMSFromSlotUpperBound</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872958"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872958"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span></span><span>
+</span><span id="line-264"></span><span id="waitNMSFromSlotUpperBound"><span class="annot"><span class="annottext">waitNMSFromSlotUpperBound :: forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite, Fail] effs =&gt;
+Integer -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#waitNMSFromSlotUpperBound"><span class="hs-identifier hs-var hs-var">waitNMSFromSlotUpperBound</span></a></span></span><span> </span><span id="local-6989586621679872975"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872975"><span class="hs-identifier hs-var">duration</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs (POSIXTime, POSIXTime)
+forall (effs :: EffectRow).
+Members '[MockChainRead, Fail] effs =&gt;
+Sem effs (POSIXTime, POSIXTime)
+</span><a href="Cooked.MockChain.Read.html#currentMSRange"><span class="hs-identifier hs-var">currentMSRange</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs (POSIXTime, POSIXTime)
+-&gt; ((POSIXTime, POSIXTime) -&gt; Sem effs Slot) -&gt; Sem effs Slot
+forall a b. Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Sem effs Slot
+forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite] effs =&gt;
+POSIXTime -&gt; Sem effs Slot
+</span><a href="Cooked.MockChain.Write.html#awaitEnclosingSlot"><span class="hs-identifier hs-var">awaitEnclosingSlot</span></a></span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; Sem effs Slot)
+-&gt; ((POSIXTime, POSIXTime) -&gt; POSIXTime)
+-&gt; (POSIXTime, POSIXTime)
+-&gt; Sem effs Slot
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTime -&gt; POSIXTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; POSIXTime
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872975"><span class="hs-identifier hs-var">duration</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; POSIXTime)
+-&gt; ((POSIXTime, POSIXTime) -&gt; POSIXTime)
+-&gt; (POSIXTime, POSIXTime)
+-&gt; POSIXTime
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(POSIXTime, POSIXTime) -&gt; POSIXTime
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span>
+</span><span id="line-265"></span><span>
+</span><span id="line-266"></span><span class="hs-comment">-- | Generates, balances and validates a transaction from a skeleton, and</span><span>
+</span><span id="line-267"></span><span class="hs-comment">-- returns the validated transaction, alongside the created UTxOs.</span><span>
+</span><span id="line-268"></span><span id="local-6989586621679872221"><span class="annot"><a href="Cooked.MockChain.Write.html#validateTxSkel"><span class="hs-identifier hs-type">validateTxSkel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872221"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872221"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Utxos"><span class="hs-identifier hs-type">Utxos</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-269"></span><span>
+</span><span id="line-270"></span><span class="annot"><span class="hs-comment">-- | Same as `validateTxSkel`, but only returns the generated UTxOs</span></span><span>
+</span><span id="line-271"></span><span id="local-6989586621679872498"><span class="annot"><a href="Cooked.MockChain.Write.html#validateTxSkel%27"><span class="hs-identifier hs-type">validateTxSkel'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872498"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872498"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Utxos"><span class="hs-identifier hs-type">Utxos</span></a></span></span><span>
+</span><span id="line-272"></span><span id="validateTxSkel%27"><span class="annot"><span class="annottext">validateTxSkel' :: forall (effs :: EffectRow).
+Members '[MockChainRead, MockChainWrite] effs =&gt;
+TxSkel -&gt; Sem effs Utxos
+</span><a href="Cooked.MockChain.Write.html#validateTxSkel%27"><span class="hs-identifier hs-var hs-var">validateTxSkel'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((CardanoTx, Utxos) -&gt; Utxos)
+-&gt; Sem effs (CardanoTx, Utxos) -&gt; Sem effs Utxos
+forall a b. (a -&gt; b) -&gt; Sem effs a -&gt; Sem effs b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(CardanoTx, Utxos) -&gt; Utxos
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs (CardanoTx, Utxos) -&gt; Sem effs Utxos)
+-&gt; (TxSkel -&gt; Sem effs (CardanoTx, Utxos))
+-&gt; TxSkel
+-&gt; Sem effs Utxos
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs (CardanoTx, Utxos)
+forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+TxSkel -&gt; Sem effs (CardanoTx, Utxos)
+</span><a href="Cooked.MockChain.Write.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span>
+</span><span id="line-273"></span><span>
+</span><span id="line-274"></span><span class="annot"><span class="hs-comment">-- | Same as `validateTxSkel`, but discards the returned transaction</span></span><span>
+</span><span id="line-275"></span><span id="local-6989586621679872500"><span class="annot"><a href="Cooked.MockChain.Write.html#validateTxSkel_"><span class="hs-identifier hs-type">validateTxSkel_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872500"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872500"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-276"></span><span id="validateTxSkel_"><span class="annot"><span class="annottext">validateTxSkel_ :: forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+TxSkel -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Write.html#validateTxSkel_"><span class="hs-identifier hs-var hs-var">validateTxSkel_</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs (CardanoTx, Utxos) -&gt; Sem effs ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs (CardanoTx, Utxos) -&gt; Sem effs ())
+-&gt; (TxSkel -&gt; Sem effs (CardanoTx, Utxos)) -&gt; TxSkel -&gt; Sem effs ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs (CardanoTx, Utxos)
+forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+TxSkel -&gt; Sem effs (CardanoTx, Utxos)
+</span><a href="Cooked.MockChain.Write.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span>
+</span><span id="line-277"></span><span>
+</span><span id="line-278"></span><span class="annot"><span class="hs-comment">-- | Updates the current parameters</span></span><span>
+</span><span id="line-279"></span><span id="local-6989586621679872219"><span class="annot"><a href="Cooked.MockChain.Write.html#setParams"><span class="hs-identifier hs-type">setParams</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872219"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872219"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-280"></span><span>
+</span><span id="line-281"></span><span class="annot"><span class="hs-comment">-- | Sets the current script to act as the official constitution script</span></span><span>
+</span><span id="line-282"></span><span id="local-6989586621679872224"><span id="local-6989586621679872225"><span class="annot"><a href="Cooked.MockChain.Write.html#setConstitutionScript"><span class="hs-identifier hs-type">setConstitutionScript</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872224"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#ToVScript"><span class="hs-identifier hs-type">ToVScript</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872225"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679872225"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872224"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-283"></span><span>
+</span><span id="line-284"></span><span class="hs-comment">-- | Forces the generation of utxos corresponding to certain</span><span>
+</span><span id="line-285"></span><span class="hs-comment">-- `TxSkelOut`. Returns the created UTxOs, which might differ from the original</span><span>
+</span><span id="line-286"></span><span class="hs-comment">-- list if some min ADA adjustment occured.</span><span>
+</span><span id="line-287"></span><span id="local-6989586621679872216"><span class="annot"><a href="Cooked.MockChain.Write.html#forceOutputs"><span class="hs-identifier hs-type">forceOutputs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872216"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872216"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Utxos"><span class="hs-identifier hs-type">Utxos</span></a></span></span><span>
+</span><span id="line-288"></span><span>
+</span><span id="line-289"></span><span class="annot"><span class="hs-comment">-- | Same as `forceOutputs`, but discards the returned outputs</span></span><span>
+</span><span id="line-290"></span><span id="local-6989586621679872504"><span class="annot"><a href="Cooked.MockChain.Write.html#forceOutputs_"><span class="hs-identifier hs-type">forceOutputs_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Write.html#MockChainWrite"><span class="hs-identifier hs-type">MockChainWrite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679872504"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872504"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-291"></span><span id="forceOutputs_"><span class="annot"><span class="annottext">forceOutputs_ :: forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+[TxSkelOut] -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Write.html#forceOutputs_"><span class="hs-identifier hs-var hs-var">forceOutputs_</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs Utxos -&gt; Sem effs ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs Utxos -&gt; Sem effs ())
+-&gt; ([TxSkelOut] -&gt; Sem effs Utxos) -&gt; [TxSkelOut] -&gt; Sem effs ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Sem effs Utxos
+forall (effs :: EffectRow).
+Member MockChainWrite effs =&gt;
+[TxSkelOut] -&gt; Sem effs Utxos
+</span><a href="Cooked.MockChain.Write.html#forceOutputs"><span class="hs-identifier hs-var">forceOutputs</span></a></span><span>
+</span><span id="line-292"></span></pre></body></html>

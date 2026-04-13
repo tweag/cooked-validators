@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | This module exposes primitives required to log internal pieces of</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- information during a mockchain run. This includes, in particular, all the</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- adjustment automatically done by \cooked-validators\ during the transaction</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- processing phase. This effect is typically not available to users, and should</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- solely be used to track internal events. To trace additional elements from a</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- user's perspective, use `Cooked.MockChain.Misc.note` instead.</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Log</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Logging events</span></span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLogEntry"><span class="hs-identifier">MockChainLogEntry</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Logging effect</span></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier">MockChainLog</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Log.html#runMockChainLog"><span class="hs-identifier">runMockChainLog</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Logging primitive</span></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Log.html#logEvent"><span class="hs-identifier">logEvent</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html"><span class="hs-identifier">Cooked.MockChain.Common</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Writer</span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><span class="hs-comment">-- | Events logged when processing transaction skeletons</span></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainLogEntry"><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLogEntry"><span class="hs-identifier hs-var">MockChainLogEntry</span></a></span></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-comment">-- | Logging a Skeleton as it is submitted by the user.</span></span><span>
+</span><span id="line-32"></span><span>    </span><span id="MCLogSubmittedTxSkel"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogSubmittedTxSkel"><span class="hs-identifier hs-var">MCLogSubmittedTxSkel</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Logging a Skeleton as it has been adjusted by the balancing mechanism,</span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-comment">-- alongside fee, and possible collateral utxos and return collateral user.</span><span>
+</span><span id="line-35"></span><span>    </span><span id="MCLogAdjustedTxSkel"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogAdjustedTxSkel"><span class="hs-identifier hs-var">MCLogAdjustedTxSkel</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Fee"><span class="hs-identifier hs-type">Fee</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#Collaterals"><span class="hs-identifier hs-type">Collaterals</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Logging the successful validation of a new transaction, with its id and</span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-comment">-- number of produced outputs.</span><span>
+</span><span id="line-38"></span><span>    </span><span id="MCLogNewTx"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogNewTx"><span class="hs-identifier hs-var">MCLogNewTx</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxId</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Logging the fact that utxos provided by the user for balancing have to be</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-comment">-- discarded for a specific reason.</span><span>
+</span><span id="line-41"></span><span>    </span><span id="MCLogDiscardedUtxos"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogDiscardedUtxos"><span class="hs-identifier hs-var">MCLogDiscardedUtxos</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Logging the fact that utxos provided as collaterals will not be used</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-comment">-- because the transaction does not involve scripts. There are 2 cases,</span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-comment">-- depending on whether the user has provided an explicit user or a set of</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-comment">-- utxos to be used as collaterals.</span><span>
+</span><span id="line-46"></span><span>    </span><span id="MCLogUnusedCollaterals"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogUnusedCollaterals"><span class="hs-identifier hs-var">MCLogUnusedCollaterals</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Peer"><span class="hs-identifier hs-type">Peer</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Common.html#CollateralIns"><span class="hs-identifier hs-type">CollateralIns</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Logging the automatic addition of a reference script</span></span><span>
+</span><span id="line-48"></span><span>    </span><span id="MCLogAddedReferenceScript"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogAddedReferenceScript"><span class="hs-identifier hs-var">MCLogAddedReferenceScript</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ScriptHash</span></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Logging the automatic addition of a withdrawal amount</span></span><span>
+</span><span id="line-50"></span><span>    </span><span id="MCLogAutoFilledWithdrawalAmount"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogAutoFilledWithdrawalAmount"><span class="hs-identifier hs-var">MCLogAutoFilledWithdrawalAmount</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Logging the automatic addition of the constitution script</span></span><span>
+</span><span id="line-52"></span><span>    </span><span id="MCLogAutoFilledConstitution"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogAutoFilledConstitution"><span class="hs-identifier hs-var">MCLogAutoFilledConstitution</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-comment">-- | Logging the automatic adjustment of a min ada amount</span></span><span>
+</span><span id="line-54"></span><span>    </span><span id="MCLogAdjustedTxSkelOut"><span class="annot"><a href="Cooked.MockChain.Log.html#MCLogAdjustedTxSkelOut"><span class="hs-identifier hs-var">MCLogAdjustedTxSkelOut</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679867545"><span id="local-6989586621679867590"><span id="local-6989586621679867594"><span class="annot"><span class="annottext">Int -&gt; MockChainLogEntry -&gt; ShowS
+[MockChainLogEntry] -&gt; ShowS
+MockChainLogEntry -&gt; String
+(Int -&gt; MockChainLogEntry -&gt; ShowS)
+-&gt; (MockChainLogEntry -&gt; String)
+-&gt; ([MockChainLogEntry] -&gt; ShowS)
+-&gt; Show MockChainLogEntry
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; MockChainLogEntry -&gt; ShowS
+showsPrec :: Int -&gt; MockChainLogEntry -&gt; ShowS
+$cshow :: MockChainLogEntry -&gt; String
+show :: MockChainLogEntry -&gt; String
+$cshowList :: [MockChainLogEntry] -&gt; ShowS
+showList :: [MockChainLogEntry] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="annot"><span class="hs-comment">-- | An effect to allow logging of mockchain events</span></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainLog"><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-var">MockChainLog</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Effect</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679867504"><span id="LogEvent"><span class="annot"><a href="Cooked.MockChain.Log.html#LogEvent"><span class="hs-identifier hs-var">LogEvent</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLogEntry"><span class="hs-identifier hs-type">MockChainLogEntry</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679867504"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span id="logEvent"><span class="hs-identifier">makeSem_</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainLog</span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- | Interpreting a `MockChainLog` in terms of a writer of</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- @[MockChainLogEntry]@</span><span>
+</span><span id="line-65"></span><span id="local-6989586621679867509"><span id="local-6989586621679867511"><span id="local-6989586621679867512"><span class="annot"><a href="Cooked.MockChain.Log.html#runMockChainLog"><span class="hs-identifier hs-type">runMockChainLog</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Writer</span></span><span> </span><span class="annot"><a href="#local-6989586621679867509"><span class="hs-identifier hs-type">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679867511"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLogEntry"><span class="hs-identifier hs-type">MockChainLogEntry</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679867509"><span class="hs-identifier hs-type">j</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><a href="#local-6989586621679867511"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679867512"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679867511"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679867512"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-70"></span><span id="runMockChainLog"><span class="annot"><span class="annottext">runMockChainLog :: forall j (effs :: EffectRow) a.
+Member (Writer j) effs =&gt;
+(MockChainLogEntry -&gt; j)
+-&gt; Sem (MockChainLog : effs) a -&gt; Sem effs a
+</span><a href="Cooked.MockChain.Log.html#runMockChainLog"><span class="hs-identifier hs-var hs-var">runMockChainLog</span></a></span></span><span> </span><span id="local-6989586621679867611"><span class="annot"><span class="annottext">MockChainLogEntry -&gt; j
+</span><a href="#local-6989586621679867611"><span class="hs-identifier hs-var">inject</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall (rInitial :: EffectRow) x.
+ MockChainLog (Sem rInitial) x -&gt; Sem effs x)
+-&gt; Sem (MockChainLog : effs) a -&gt; Sem effs a
+forall (e :: Effect) (r :: EffectRow) a.
+FirstOrder e &quot;interpret&quot; =&gt;
+(forall (rInitial :: EffectRow) x. e (Sem rInitial) x -&gt; Sem r x)
+-&gt; Sem (e : r) a -&gt; Sem r a
+</span><span class="hs-identifier hs-var">interpret</span></span><span> </span><span class="annot"><span class="annottext">((forall (rInitial :: EffectRow) x.
+  MockChainLog (Sem rInitial) x -&gt; Sem effs x)
+ -&gt; Sem (MockChainLog : effs) a -&gt; Sem effs a)
+-&gt; (forall (rInitial :: EffectRow) x.
+    MockChainLog (Sem rInitial) x -&gt; Sem effs x)
+-&gt; Sem (MockChainLog : effs) a
+-&gt; Sem effs a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Log.html#LogEvent"><span class="hs-identifier hs-type">LogEvent</span></a></span><span> </span><span id="local-6989586621679867615"><span class="annot"><span class="annottext">MockChainLogEntry
+</span><a href="#local-6989586621679867615"><span class="hs-identifier hs-var">event</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">j -&gt; Sem effs ()
+forall o (r :: EffectRow). Member (Writer o) r =&gt; o -&gt; Sem r ()
+</span><span class="hs-identifier hs-var">tell</span></span><span> </span><span class="annot"><span class="annottext">(j -&gt; Sem effs ()) -&gt; j -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; j
+</span><a href="#local-6989586621679867611"><span class="hs-identifier hs-var">inject</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainLogEntry
+</span><a href="#local-6989586621679867615"><span class="hs-identifier hs-var">event</span></a></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="annot"><span class="hs-comment">-- | Logs an internal event occurring while processing a transaction skeleton</span></span><span>
+</span><span id="line-73"></span><span id="local-6989586621679867499"><span class="annot"><a href="Cooked.MockChain.Log.html#logEvent"><span class="hs-identifier hs-type">logEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679867499"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLogEntry"><span class="hs-identifier hs-type">MockChainLogEntry</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679867499"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-74"></span></pre></body></html>
