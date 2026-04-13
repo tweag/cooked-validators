@@ -33,6 +33,9 @@ instance ToHash Wallet where
 instance ToHash (Script.Versioned Script.MintingPolicy) where
   toHash = toHash . Script.toCurrencySymbol
 
+instance ToHash (Script.Versioned Script.Validator) where
+  toHash = toHash . Script.toValidatorHash
+
 instance ToHash (Script.Versioned Script.Script) where
   toHash = toHash . Script.toScriptHash
 

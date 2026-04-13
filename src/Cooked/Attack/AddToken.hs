@@ -9,14 +9,18 @@ module Cooked.Attack.AddToken
 where
 
 import Control.Monad
-import Cooked.Pretty
+import Cooked.Pretty.Class
 import Cooked.Skeleton
-import Cooked.Tweak
+import Cooked.Tweak.Common
+import Cooked.Tweak.Labels
+import Cooked.Tweak.Outputs
 import Data.Map qualified as Map
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
+import Polysemy
+import Polysemy.NonDet
 import Prettyprinter qualified as PP
 
 -- | This attack adds extra tokens of any kind for minting policies already
@@ -25,13 +29,15 @@ import Prettyprinter qualified as PP
 --
 -- This attack adds an 'AddTokenLbl' label.
 addTokenAttack ::
-  (MonadTweak m, IsTxSkelOutAllowedOwner o) =>
+  ( Members '[Tweak, NonDet] effs,
+    IsTxSkelOutAllowedOwner o
+  ) =>
   -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted.
   (VScript -> [(Api.TokenName, Integer)]) ->
   -- | The attacker, who receives the extra tokens.
   o ->
-  m Api.Value
+  Sem effs Api.Value
 addTokenAttack extraTokens attacker = do
   currencies <- viewTweak (txSkelMintsL % txSkelMintsAssetClassesG % to (fmap fst))
   oldMintsValue <- viewTweak (txSkelMintsL % to Script.toValue)
@@ -48,7 +54,9 @@ addTokenAttack extraTokens attacker = do
 --
 -- This attack adds an 'DupTokenLbl' label
 dupTokenAttack ::
-  (MonadTweak m, IsTxSkelOutAllowedOwner o) =>
+  ( Members '[Tweak, NonDet] effs,
+    IsTxSkelOutAllowedOwner o
+  ) =>
   -- | A function describing how the amount of tokens specified by a 'Mint'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy
@@ -60,7 +68,7 @@ dupTokenAttack ::
   -- the modified transaction but were not minted by the original transaction
   -- are paid to this target.
   o ->
-  m Api.Value
+  Sem effs Api.Value
 dupTokenAttack change attacker = do
   mints <- viewTweak txSkelMintsL
   res <-

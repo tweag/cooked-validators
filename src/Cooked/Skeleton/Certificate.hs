@@ -17,7 +17,7 @@ module Cooked.Skeleton.Certificate
   )
 where
 
-import Cooked.Skeleton.Families
+import Cooked.Families
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
 import Data.Kind (Type)

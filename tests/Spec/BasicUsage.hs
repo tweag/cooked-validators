@@ -12,7 +12,7 @@ alice = wallet 1
 bob = wallet 2
 carrie = wallet 3
 
-pkToPk :: (MonadBlockChain m) => Wallet -> Wallet -> Integer -> m ()
+pkToPk :: Wallet -> Wallet -> Integer -> StagedMockChain ()
 pkToPk sender recipient amount =
   validateTxSkel_ $
     txSkelTemplate
@@ -20,14 +20,14 @@ pkToPk sender recipient amount =
         txSkelSignatories = txSkelSignatoriesFromList [sender]
       }
 
-multiplePksToPks :: (MonadBlockChain m) => m ()
+multiplePksToPks :: StagedMockChain ()
 multiplePksToPks =
   do
     pkToPk alice bob 10
     pkToPk bob carrie 10
     pkToPk carrie alice 10
 
-mintingQuickValue :: (MonadBlockChain m) => m ()
+mintingQuickValue :: StagedMockChain ()
 mintingQuickValue =
   validateTxSkel_
     txSkelTemplate
@@ -36,9 +36,9 @@ mintingQuickValue =
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
-payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
+payToAlwaysTrueValidator :: StagedMockChain Api.TxOutRef
 payToAlwaysTrueValidator =
-  head
+  fst . head
     <$> ( validateTxSkel' $
             txSkelTemplate
               { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
@@ -46,7 +46,7 @@ payToAlwaysTrueValidator =
               }
         )
 
-consumeAlwaysTrueValidator :: (MonadBlockChain m) => m ()
+consumeAlwaysTrueValidator :: StagedMockChain ()
 consumeAlwaysTrueValidator = do
   outref <- payToAlwaysTrueValidator
   validateTxSkel_ $
@@ -60,9 +60,9 @@ tests :: TestTree
 tests =
   testGroup
     "Basic usage"
-    [ testCooked "Payment from alice to bob, with auto-balancing" $ mustSucceedTest $ pkToPk alice bob 10,
-      testCooked "Circular payments of 10 ada between alice bob and carrie" $ mustSucceedTest multiplePksToPks,
-      testCooked "Minting quick tokens" $ mustSucceedTest mintingQuickValue,
-      testCooked "Paying to the always true validator" $ mustSucceedTest payToAlwaysTrueValidator,
-      testCooked "Consuming the always true validator" $ mustSucceedTest consumeAlwaysTrueValidator
+    [ testCookedFromInitDistTemplate "Payment from alice to bob, with auto-balancing" $ mustSucceedTest $ pkToPk alice bob 10,
+      testCookedFromInitDistTemplate "Circular payments of 10 ada between alice bob and carrie" $ mustSucceedTest multiplePksToPks,
+      testCookedFromInitDistTemplate "Minting quick tokens" $ mustSucceedTest mintingQuickValue,
+      testCookedFromInitDistTemplate "Paying to the always true validator" $ mustSucceedTest payToAlwaysTrueValidator,
+      testCookedFromInitDistTemplate "Consuming the always true validator" $ mustSucceedTest consumeAlwaysTrueValidator
     ]

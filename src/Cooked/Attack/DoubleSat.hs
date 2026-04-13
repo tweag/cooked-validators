@@ -9,10 +9,15 @@ module Cooked.Attack.DoubleSat
   )
 where
 
-import Cooked.MockChain.BlockChain
-import Cooked.Pretty
+import Control.Monad
+import Cooked.MockChain.Read
+import Cooked.Pretty.Class
 import Cooked.Skeleton
-import Cooked.Tweak
+import Cooked.Tweak.Common
+import Cooked.Tweak.Inputs
+import Cooked.Tweak.Labels
+import Cooked.Tweak.Mint
+import Cooked.Tweak.Outputs
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Optics.Core
@@ -20,6 +25,8 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
+import Polysemy
+import Polysemy.NonDet
 
 {- Note: What is a double satisfaction attack?
 
@@ -66,7 +73,12 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 -- value contained in new inputs to the transaction is then paid to the
 -- attacker.
 doubleSatAttack ::
-  (MonadTweak m, Eq is, Is k A_Traversal, IsTxSkelOutAllowedOwner owner) =>
+  forall effs is k owner a.
+  ( Members '[Tweak, NonDet, MockChainRead] effs,
+    Eq is,
+    Is k A_Traversal,
+    IsTxSkelOutAllowedOwner owner
+  ) =>
   -- | how to combine modifications from caused by different foci. See the
   -- comment at 'combineModsTweak', which uses the same logic.
   ([is] -> [[is]]) ->
@@ -96,13 +108,13 @@ doubleSatAttack ::
   -- 'Cooked.MockChain.UtxoState.UtxoState' argument.
   --
   -- ###################################
-  (is -> a -> m [(a, DoubleSatDelta)]) ->
+  (is -> a -> Sem effs [(a, DoubleSatDelta)]) ->
   -- | The attacker, who receives any surplus.
   --
   -- In the example, the extra value in the added input will be paid to the
   -- attacker.
   owner ->
-  m ()
+  Sem effs ()
 doubleSatAttack groupings optic change target = do
   deltas <- combineModsTweak groupings optic change
   let delta = joinDoubleSatDeltas deltas
@@ -110,18 +122,18 @@ doubleSatAttack groupings optic change target = do
   addedValue <- deltaBalance delta
   if addedValue `Api.gt` mempty
     then addOutputTweak $ target `receives` Value addedValue
-    else failingTweak
+    else mzero
   addLabelTweak DoubleSatLbl
   where
     -- for each triple of additional inputs, outputs, and mints,
     -- calculate its balance
-    deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Api.Value
+    deltaBalance :: DoubleSatDelta -> Sem effs Api.Value
     deltaBalance (inputs, outputs, mints) = do
       inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate (foldOf (traversed % txSkelOutValueL) outputs) <> Script.toValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
-    addDoubleSatDeltaTweak :: (MonadTweak m) => DoubleSatDelta -> m ()
+    addDoubleSatDeltaTweak :: DoubleSatDelta -> Sem effs ()
     addDoubleSatDeltaTweak (ins, outs, mints) =
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs

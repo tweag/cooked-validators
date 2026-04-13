@@ -17,18 +17,18 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
-      Cooked.InitialDistribution
+      Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.AutoFilling
       Cooked.MockChain.Balancing
-      Cooked.MockChain.BlockChain
-      Cooked.MockChain.Direct
+      Cooked.MockChain.Common
+      Cooked.MockChain.Error
       Cooked.MockChain.GenerateTx.Anchor
       Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Certificate
       Cooked.MockChain.GenerateTx.Collateral
-      Cooked.MockChain.GenerateTx.Common
+      Cooked.MockChain.GenerateTx.Credential
       Cooked.MockChain.GenerateTx.Input
       Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output
@@ -36,11 +36,17 @@ library
       Cooked.MockChain.GenerateTx.ReferenceInputs
       Cooked.MockChain.GenerateTx.Withdrawals
       Cooked.MockChain.GenerateTx.Witness
-      Cooked.MockChain.MockChainState
-      Cooked.MockChain.Staged
+      Cooked.MockChain.Instances
+      Cooked.MockChain.Journal
+      Cooked.MockChain.Log
+      Cooked.MockChain.Misc
+      Cooked.MockChain.Read
+      Cooked.MockChain.Runnable
+      Cooked.MockChain.State
       Cooked.MockChain.Testing
+      Cooked.MockChain.Tweak
       Cooked.MockChain.UtxoSearch
-      Cooked.MockChain.UtxoState
+      Cooked.MockChain.Write
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable
@@ -53,7 +59,6 @@ library
       Cooked.Skeleton.Anchor
       Cooked.Skeleton.Certificate
       Cooked.Skeleton.Datum
-      Cooked.Skeleton.Families
       Cooked.Skeleton.Label
       Cooked.Skeleton.Mint
       Cooked.Skeleton.Option
@@ -64,7 +69,6 @@ library
       Cooked.Skeleton.User
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
-      Cooked.Staged
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Inputs
@@ -109,15 +113,13 @@ library
       TypeFamilies
       TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
   build-depends:
       QuickCheck
     , base >=4.9 && <5
     , bytestring
     , cardano-api
     , cardano-crypto
-    , cardano-data
-    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley
@@ -127,31 +129,25 @@ library
     , data-default
     , either
     , exceptions
-    , flat
     , http-conduit
     , lens
-    , list-t
     , microlens
-    , monad-control
-    , mtl
     , optics-core
     , optics-th
     , ordered-containers
-    , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-script-utils
     , plutus-tx
-    , plutus-tx-plugin
+    , polysemy
+    , polysemy-plugin
     , prettyprinter
     , random
     , random-shuffle
-    , strict-sop-core
     , tasty
     , tasty-hunit
     , tasty-quickcheck
     , text
-    , transformers
   default-language: Haskell2010
 
 test-suite spec
@@ -223,48 +219,25 @@ test-suite spec
       TypeFamilies
       TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
   build-depends:
-      QuickCheck
-    , base >=4.9 && <5
-    , bytestring
+      base >=4.9 && <5
     , cardano-api
-    , cardano-crypto
-    , cardano-data
-    , cardano-ledger-alonzo
-    , cardano-ledger-conway
-    , cardano-ledger-core
-    , cardano-ledger-shelley
-    , cardano-node-emulator
-    , cardano-strict-containers
     , containers
     , cooked-validators
     , data-default
-    , either
-    , exceptions
-    , flat
-    , http-conduit
-    , lens
-    , list-t
-    , microlens
-    , monad-control
-    , mtl
     , optics-core
-    , optics-th
-    , ordered-containers
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
+    , polysemy
+    , polysemy-plugin
     , prettyprinter
-    , random
-    , random-shuffle
-    , strict-sop-core
     , tasty
     , tasty-hunit
     , tasty-quickcheck
     , text
-    , transformers
   default-language: Haskell2010

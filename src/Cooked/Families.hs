@@ -3,7 +3,7 @@
 -- | This module exposes some type families used to either directly constraint
 -- values within our skeletons, or constrant inputs of smart constructors for
 -- components of these skeletons.
-module Cooked.Skeleton.Families
+module Cooked.Families
   ( -- * Type-level constraints
     type (∈),
     type (∉),
@@ -18,6 +18,11 @@ module Cooked.Skeleton.Families
     type RevAux,
     type Member,
     type NonMember,
+
+    -- * Heterogeneous lists
+    HList (..),
+    hHead,
+    hTail,
   )
 where
 
@@ -46,7 +51,7 @@ type family (∪) (xs :: [a]) (ys :: [a]) :: [a] where
 -- because the type checker is not smart enough to understand that this type
 -- family decreases in @els@, due to the presence of @extras@. @extras@ is used
 -- to keep track of the original list and output a relevant message in the empty
--- case, which could otherwise be omitted altogther at no loss of type safety.
+-- case, which could otherwise be omitted altogether at no loss of type safety.
 type family Member (el :: a) (els :: [a]) (extras :: [a]) :: Constraint where
   Member x (x ': xs) _ = ()
   Member x (y ': xs) l = Member x xs (y ': l)
@@ -70,3 +75,28 @@ type (∉) el els = NonMember el els '[]
 type family (⩀) (els :: [a]) (els' :: [a]) :: Constraint where
   '[] ⩀ _ = ()
   (x ': xs) ⩀ ys = (x ∉ ys, xs ⩀ ys)
+
+-- | Heterogeneous lists
+data HList :: [Type] -> Type where
+  HEmpty :: HList '[]
+  HCons :: a -> HList l -> HList (a ': l)
+
+-- | Head of an heterogeneous list
+hHead :: HList (a ': l) -> a
+hHead (HCons a _) = a
+
+-- | Tail of an heterogeneous list
+hTail :: HList (a ': l) -> HList l
+hTail (HCons _ l) = l
+
+instance Eq (HList '[]) where
+  _ == _ = True
+
+instance (Eq (HList l), Eq a) => Eq (HList (a ': l)) where
+  HCons h t == HCons h' t' = h == h' && t == t'
+
+instance Show (HList '[]) where
+  show _ = "[]"
+
+instance (Show (HList l), Show a) => Show (HList (a ': l)) where
+  show (HCons h t) = show h <> " : " <> show t

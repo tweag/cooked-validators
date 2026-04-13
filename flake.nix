@@ -1,13 +1,17 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
-  inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/6dc87b326cef973e51ed3d2ffbdbe6240917a7be";
+    nixpkgs-haskell.url = "github:NixOS/nixpkgs/haskell-updates";
+    flake-utils.url = "github:numtide/flake-utils";
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
+  };
 
   outputs =
     {
       self,
       nixpkgs,
+      nixpkgs-haskell,
       flake-utils,
       pre-commit-hooks,
     }:
@@ -15,7 +19,7 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        hpkgs = pkgs.haskell.packages.ghc96;
+        hpkgs = nixpkgs-haskell.legacyPackages.${system}.haskell.packages.ghc96;
 
         ## We change the way 'blst' is built so that it takes into
         ## account the current architecture of the processor. This

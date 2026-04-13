@@ -4,15 +4,18 @@
 -- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
-import Cooked.MockChain.BlockChain
-import Cooked.MockChain.Direct
-import Cooked.MockChain.UtxoState
+import Cooked.MockChain.Error
+import Cooked.MockChain.Journal
+import Cooked.MockChain.Log
+import Cooked.MockChain.Runnable
+import Cooked.MockChain.State
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
 import Cooked.Skeleton.User
 import Cooked.Wallet (walletPKHashToId)
 import Data.Function (on)
+import Data.List (intersperse)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -26,16 +29,39 @@ import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
 instance (Show a) => PrettyCooked [MockChainReturn a] where
-  prettyCookedOpt opts = prettyItemize opts "Results:" "-"
+  prettyCookedOpt _ [] = "[]"
+  prettyCookedOpt opts [outcome] = prettyCookedOpt opts outcome
+  prettyCookedOpt opts outcomes =
+    PP.vsep $
+      intersperse "" $
+        zipWith
+          (\n d -> PP.pretty n <> "." <+> d)
+          ([1 ..] :: [Int])
+          (PP.align . prettyCookedOpt opts <$> outcomes)
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs utxoState entries ((`addHashNames` opts') -> opts)) =
+  prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook assertions)) =
     PP.vsep $
-      [prettyCookedOpt opts (Contextualized outputs entries) | pcOptPrintLog opts]
-        <> prettyCookedOptList opts utxoState
+      [ prettyItemize opts "📔 Notes:" "-" $ ($ opts) <$> noteBook
+      | pcOptPrintNotebook opts && not (null noteBook)
+      ]
+        <> [ prettyCookedOpt opts $ Contextualized outputs entries
+           | pcOptPrintLog opts && not (null entries)
+           ]
+        <> [ prettyItemize opts (if all snd assertions then "✅ Assertions:" else "❌ Assertions:") "-" $
+               (\(s, b) -> (if b then "✔" else "✘") <+> prettyCookedOpt opts s) <$> assertions
+           | pcOptPrintAssertions opts && not (null assertions)
+           ]
+        <> [ "🗑️" <+> prettyCookedOpt opts consumed
+           | pcOptPrintConsumedUTxOs opts && not (null consumed)
+           ]
+        <> [ "💰" <+> prettyCookedOpt opts available
+           | pcOptPrintRemainingUTxOs opts && not (null available)
+           ]
         <> [ case res of
                Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
-               Right a -> "🟢 Returned value:" <+> PP.viaShow a
+               Right a -> "🟢 Success with returned value:" <+> PP.viaShow a
+           | pcOptPrintReturnedValue opts
            ]
 
 instance PrettyCooked Peer where
@@ -64,12 +90,8 @@ instance PrettyCooked MockChainError where
         "Percentage in params was" <+> prettyCookedOpt opts percentage,
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
-  prettyCookedOpt opts (MCEToCardanoError msg cardanoError) =
-    prettyItemize @[DocCooked]
-      opts
-      "Transaction generation error:"
-      "-"
-      [PP.pretty msg, PP.pretty cardanoError]
+  prettyCookedOpt _ (MCEToCardanoError cardanoError) =
+    "Transaction generation error:" <+> PP.pretty cardanoError
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
   prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
     "Unable to fetch the following reference script:"
@@ -84,7 +106,7 @@ instance PrettyCooked MockChainError where
       <+> PP.viaShow current
       <+> "; target slot:"
       <+> PP.viaShow target
-  prettyCookedOpt _ (FailWith msg) = "Failed with:" <+> PP.pretty msg
+  prettyCookedOpt _ (MCEFailure msg) = "Failed with:" <+> PP.pretty msg
 
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where
   prettyCookedOpt opts (Contextualized outputs entries) =
@@ -166,10 +188,6 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
   prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledConstitution constitution)) =
     "New auto-filled constitution:" <+> prettyHash opts constitution
 
-instance PrettyCookedList UtxoState where
-  prettyCookedOptList opts (UtxoState available consumed) =
-    "✅" <+> prettyCookedOpt opts available : ["❎" <+> prettyCookedOpt opts consumed | pcOptPrintConsumedUTxOs opts]
-
 -- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
 -- pubkeys, then scripts.
 instance PrettyCooked (Map Api.Address UtxoPayloadSet) where
@@ -235,7 +253,7 @@ instance PrettyCookedList UtxoPayloadSet where
               else Nothing,
             Just (prettyCookedOpt opts utxoPayloadValue),
             (\(dat, hashed) -> "Datum (" <> (if hashed then "hashed" else "inline") <> "):" <+> dat) <$> splitDatum utxoPayloadDatum,
-            ("Reference script hash:" <+>) . prettyHash opts <$> utxoPayloadReferenceScript
+            ("Reference script:" <+>) . prettyHash opts <$> utxoPayloadReferenceScriptHash
           ] of
           [] -> Nothing
           [doc] -> Just $ PP.align doc

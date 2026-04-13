@@ -2,7 +2,6 @@ module Spec.InitialDistribution where
 
 import Cooked
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes)
 import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import Test.Tasty
@@ -14,26 +13,24 @@ alice, bob :: Wallet
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum :: InitialDistribution
 initialDistributionWithDatum =
-  InitialDistribution $ [receives alice] <*> ([VisibleHashedDatum, HiddenHashedDatum] <*> [10 :: Integer])
+  [receives alice] <*> ([VisibleHashedDatum, HiddenHashedDatum] <*> [10 :: Integer])
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
 -- 2 UTxOs with 100 ADA
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  InitialDistribution $
-    (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
-      : replicate 2 (bob `receives` Value (Script.ada 100))
+  (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
+    : replicate 2 (bob `receives` Value (Script.ada 100))
 
-getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
+getValueFromInitialDatum :: DirectMockChain [Integer]
 getValueFromInitialDatum = do
-  aliceUtxos <- runUtxoSearch $ utxosOwnedBySearch alice
-  catMaybes <$> mapM (previewByRef (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer) . fst) aliceUtxos
+  fmap hHead <$> getExtracts (utxosAtSearch alice (extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)))
 
-spendReferenceAlwaysTrueValidator :: (MonadBlockChain m) => m ()
+spendReferenceAlwaysTrueValidator :: DirectMockChain ()
 spendReferenceAlwaysTrueValidator = do
-  [(referenceScriptTxOutRef, _)] <- runUtxoSearch $ utxosOwnedBySearch alice
-  (scriptTxOutRef : _) <-
+  [(referenceScriptTxOutRef, _)] <- utxosAt alice
+  ((scriptTxOutRef, _) : _) <-
     validateTxSkel' $
       txSkelTemplate
         { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],

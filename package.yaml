@@ -3,52 +3,43 @@ verbatim:
 
 name: cooked-validators
 version: 8.0.0
-
-dependencies:
-  - QuickCheck
-  - base >= 4.9 && < 5
-  - bytestring
-  - cardano-api
-  - cardano-crypto
-  - cardano-data
-  - cardano-ledger-alonzo
-  - cardano-ledger-core
-  - cardano-ledger-shelley
-  - cardano-ledger-conway
-  - cardano-node-emulator
-  - cardano-strict-containers
-  - containers
-  - data-default
-  - either
-  - exceptions
-  - flat
-  - http-conduit
-  - lens
-  - list-t
-  - microlens
-  - monad-control
-  - mtl
-  - optics-core
-  - optics-th
-  - ordered-containers
-  - plutus-core
-  - plutus-ledger
-  - plutus-ledger-api
-  - plutus-script-utils
-  - plutus-tx
-  - plutus-tx-plugin
-  - prettyprinter
-  - random
-  - random-shuffle
-  - strict-sop-core
-  - tasty
-  - tasty-hunit
-  - tasty-quickcheck
-  - text
-  - transformers
     
 library:
   source-dirs: src
+  dependencies:
+    - QuickCheck
+    - base >= 4.9 && < 5
+    - bytestring
+    - cardano-api
+    - cardano-crypto
+    - cardano-ledger-core
+    - cardano-ledger-shelley
+    - cardano-ledger-conway
+    - cardano-node-emulator
+    - cardano-strict-containers
+    - containers
+    - data-default
+    - either
+    - exceptions
+    - http-conduit
+    - lens
+    - microlens
+    - optics-core
+    - optics-th
+    - ordered-containers
+    - plutus-ledger
+    - plutus-ledger-api
+    - plutus-script-utils
+    - plutus-tx
+    - polysemy
+    - polysemy-plugin
+    - prettyprinter
+    - random
+    - random-shuffle
+    - tasty
+    - tasty-hunit
+    - tasty-quickcheck
+    - text
   ghc-options: &ghc-options
     -Wall
     -Wcompat
@@ -62,6 +53,7 @@ library:
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
     -fplugin-opt PlutusTx.Plugin:conservative-optimisation
+    -fplugin=Polysemy.Plugin
   default-extensions: &default-extensions
     - ConstraintKinds
     - DataKinds
@@ -96,7 +88,25 @@ tests:
     main: Spec.hs
     source-dirs:
       - tests/
-    ghc-options: *ghc-options  
     dependencies:
+      - base >= 4.9 && < 5
+      - cardano-api
+      - containers
       - cooked-validators
+      - data-default
+      - optics-core
+      - plutus-core
+      - plutus-ledger
+      - plutus-ledger-api
+      - plutus-script-utils
+      - plutus-tx
+      - plutus-tx-plugin
+      - polysemy
+      - polysemy-plugin
+      - prettyprinter
+      - tasty
+      - tasty-hunit
+      - tasty-quickcheck
+      - text
+    ghc-options: *ghc-options        
     default-extensions: *default-extensions

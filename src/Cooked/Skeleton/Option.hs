@@ -76,7 +76,7 @@ data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
     -- and no reference script) belonging to the balancing user.
     BalancingUtxosFromBalancingUser
-  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
+  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out.
     BalancingUtxosFromSet (Set Api.TxOutRef)
   deriving (Eq, Ord, Show)
 
@@ -155,13 +155,10 @@ data TxSkelOpts = TxSkelOpts
     -- Default is @[]@.
     txSkelOptModTx :: Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra,
     -- | Whether to balance the transaction or not, and which user should
-    -- provide/reclaim the missing and surplus value. Balancing ensures that
-    --
-    -- > input + mints == output + fees + burns
+    -- provide/reclaim the missing and surplus value.
     --
     -- If you decide to set @txSkelOptBalance = DoNotBalance@ you will have trouble
-    -- satisfying that equation by hand unless you use @ManualFee@. You will
-    -- likely see a error about value preservation.
+    -- satisfying the balancing equation by hand unless you use @ManualFee@.
     --
     -- Default is 'BalanceWithFirstSignatory'
     txSkelOptBalancingPolicy :: BalancingPolicy,

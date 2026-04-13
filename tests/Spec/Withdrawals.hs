@@ -4,6 +4,7 @@ import Control.Monad
 import Cooked
 import Data.Maybe
 import Optics.Core.Extras
+import Plutus.Script.Utils.Value qualified as Script
 import Plutus.Withdrawals
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -12,12 +13,12 @@ alice :: Wallet
 alice = wallet 1
 
 testWithdrawingScript ::
-  (MonadModalBlockChain m) =>
   Maybe (User IsEither Redemption) ->
   User IsEither Redemption ->
   Maybe Integer ->
-  m ()
+  StagedMockChain ()
 testWithdrawingScript userCertifying userRewarding mAmount = do
+  forceOutputs_ [alice `receives` Value (Script.ada 100)]
   when (isJust userCertifying) $
     validateTxSkel_ $
       txSkelTemplate
@@ -63,7 +64,7 @@ tests =
               (scriptUserWithdrawing 0)
               Nothing
           )
-          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount",
       testCooked ".. but the script's logic might say No" $
         mustFailTest
           ( testWithdrawingScript
@@ -72,7 +73,7 @@ tests =
               Nothing
           )
           `withFailureProp` isPhase2FailureWithMsg "Wrong quantity: 0 instead of 2000000"
-          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount",
       testCooked "We cannot withdraw more than our rewards (0)" $
         mustFailTest
           ( testWithdrawingScript
@@ -81,7 +82,7 @@ tests =
               (Just 2)
           )
           `withFailureProp` isPhase1FailureWithMsg "WithdrawalsNotInRewardsCERTS"
-          `withJournalProp` didNotHappen "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` didNotHappen "MCLogAutoFilledWithdrawalAmount",
       testCooked "A peer can also make a withdrawal" $
         mustSucceedTest
           ( testWithdrawingScript
@@ -89,5 +90,5 @@ tests =
               aliceUser
               Nothing
           )
-          `withJournalProp` happened "MCLogAutoFilledWithdrawalAmount"
+          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount"
     ]

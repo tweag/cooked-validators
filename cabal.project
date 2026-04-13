@@ -46,5 +46,4 @@ package cardano-crypto-praos
   flags: -external-libsodium-vrf
   
 constraints:
-  , cardano-api == 10.18.1.0
-  , cardano-node-emulator == 1.4.1.0
+  , cardano-node-emulator == 1.4.1.0  

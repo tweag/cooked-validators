@@ -12,15 +12,16 @@ alice = wallet 1
 bob :: Wallet
 bob = wallet 1
 
-publishCertificate :: (MonadModalBlockChain m) => TxSkelCertificate -> m ()
-publishCertificate cert =
+publishCertificate :: TxSkelCertificate -> DirectMockChain ()
+publishCertificate cert = do
+  forceOutputs_ [alice `receives` Value (Script.ada 100)]
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelCertificates = [cert]
       }
 
-withdraw :: (MonadBlockChain m) => User IsEither Redemption -> m ()
+withdraw :: User IsEither Redemption -> DirectMockChain ()
 withdraw user =
   validateTxSkel_ $
     txSkelTemplate
