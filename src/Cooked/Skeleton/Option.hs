@@ -20,6 +20,8 @@ module Cooked.Skeleton.Option
     txSkelOptBalancingUtxosL,
     txSkelOptModParamsL,
     txSkelOptCollateralUtxosL,
+    txSkelOptDeferPhase2FailuresDuringBalancingL,
+    txSkelOptMaxNbOfBalancingUtxosL,
 
     -- * Utilities
     txSkelOptAddModTx,
@@ -193,26 +195,62 @@ data TxSkelOpts = TxSkelOpts
     -- computed automatically from a given, or the balancing, user.
     --
     -- Default is 'CollateralUtxosFromBalancingUser'
-    txSkelOptCollateralUtxos :: CollateralUtxos
+    txSkelOptCollateralUtxos :: CollateralUtxos,
+    -- | Whether to defer validation failures occurring during balancing
+    -- (specifically during the computation of execution units) to the actual
+    -- later submission of the transaction.
+    --
+    -- When set to @False@: the phase 2 validation failures will be caught as
+    -- early as possible, typically during balancing when the execution units
+    -- are computed. This will shortcut the whole balancing process which
+    -- iterates the body generation, and thus increase performances (by 40%). As
+    -- a result, the balanced `Cooked.Skeleton.TxSkel` will never be computed
+    -- and thus will be absent from the log, which is the only downside.
+    --
+    -- When set to @True@: the phase 2 validation erros will be ignored during
+    -- the balancing process. This will result in a worst performance (40%), but
+    -- will allow the log to display a balanced version of the failing
+    -- `Cooked.Skeleton.TxSkel`, which might be useful. Only use this when
+    -- debugging complicated phase 2 failures which require a precise view of
+    -- the balanced `Cooked.Skeleton.TxSkel` sent for validation.
+    --
+    -- Default is `False`
+    txSkelOptDeferPhase2FailuresDuringBalancing :: Bool,
+    -- | The optional maximum number of Utxos that can be used during
+    -- balancing. The algorithm which selects Utxos when permorming balancing is
+    -- greedy. In the default use case where the are only a few wallets and
+    -- Utxos (the most common case for testing purpose), this is fine. However,
+    -- if the amount of candidate Utxos is big (let's say, bigger than 15), this
+    -- is problematic. Use this option to limit the number of Utxos that can be
+    -- used during the balancing process.
+    --
+    -- Alternatively, this can also be used to pilot balancing in some way. For
+    -- instance, setting this option to @Just 1@ will result in a single Utxo
+    -- added in the inputs of the transaction, if such a Utxo exist.
+    --
+    -- Default is @Nothing@
+    txSkelOptMaxNbOfBalancingUtxos :: Maybe Integer
   }
 
 -- | Comparing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Eq TxSkelOpts where
-  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos)
-    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos') =
+  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures maxNbBalUtxos)
+    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos' deferFailures' maxNbBalUtxos') =
       slotIncrease == slotIncrease'
         && balancingPol == balancingPol'
         && feePol == feePol'
         && balOutputPol == balOutputPol'
         && balUtxos == balUtxos'
         && colUtxos == colUtxos'
+        && deferFailures == deferFailures'
+        && maxNbBalUtxos == maxNbBalUtxos'
 
 -- | Showing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Show TxSkelOpts where
-  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos) =
-    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos]
+  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures maxNbBalUtxos) =
+    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show deferFailures, show maxNbBalUtxos]
 
 -- | A lens to get or set the automatic slot increase option
 makeLensesFor [("txSkelOptAutoSlotIncrease", "txSkelOptAutoSlotIncreaseL")] ''TxSkelOpts
@@ -238,8 +276,11 @@ makeLensesFor [("txSkelOptModParams", "txSkelOptModParamsL")] ''TxSkelOpts
 -- | A lens to get or set the collateral utxos option
 makeLensesFor [("txSkelOptCollateralUtxos", "txSkelOptCollateralUtxosL")] ''TxSkelOpts
 
--- | A lens to get or set the anchor resolution option
-makeLensesFor [("txSkelOptAnchorResolution", "txSkelOptAnchorResolutionL")] ''TxSkelOpts
+-- | A lens to get or set the deferring of the failures option
+makeLensesFor [("txSkelOptDeferPhase2FailuresDuringBalancing", "txSkelOptDeferPhase2FailuresDuringBalancingL")] ''TxSkelOpts
+
+-- | A lens to get or set the max nb of balancing Utxos option
+makeLensesFor [("txSkelOptMaxNbOfBalancingUtxos", "txSkelOptMaxNbOfBalancingUtxosL")] ''TxSkelOpts
 
 instance Default TxSkelOpts where
   def =
@@ -251,7 +292,9 @@ instance Default TxSkelOpts where
         txSkelOptFeePolicy = def,
         txSkelOptBalancingUtxos = def,
         txSkelOptModParams = id,
-        txSkelOptCollateralUtxos = def
+        txSkelOptCollateralUtxos = def,
+        txSkelOptDeferPhase2FailuresDuringBalancing = False,
+        txSkelOptMaxNbOfBalancingUtxos = Nothing
       }
 
 -- | Appends a transaction modification to the given 'TxSkelOpts'

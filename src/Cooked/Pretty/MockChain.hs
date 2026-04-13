@@ -67,21 +67,15 @@ instance (Show a) => PrettyCooked (MockChainReturn a) where
 instance PrettyCooked Peer where
   prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
 
-instance PrettyCooked MockChainError where
-  prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
-    PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
-  prettyCookedOpt _ (MCEMissingBalancingUser msg) = "Missing balancing user:" <+> PP.pretty msg
-  prettyCookedOpt opts (MCEUnbalanceable balUser missingValue) =
-    prettyItemize
-      opts
-      "Unbalanceable:"
-      "-"
-      [ prettyCookedOpt opts balUser <+> "does not have enough funds",
-        if missingValue == mempty
-          then "Not enough funds to sustain the minimal ada of the return utxo"
-          else "Unable to find" <+> prettyCookedOpt opts missingValue
-      ]
-  prettyCookedOpt opts (MCENoSuitableCollateral fee percentage colVal) =
+instance PrettyCooked BalancingError where
+  prettyCookedOpt opts (NotEnoughFundForExtraMinAda peer) =
+    prettyCookedOpt opts peer <+> "does not have enough funds to account for the min ADA of the surplus payment"
+  prettyCookedOpt opts (NotEnoughFundForProperFee peer) =
+    prettyCookedOpt opts peer <+> "does not have enough funds to account for the minimum required fee"
+  prettyCookedOpt opts (NotEnoughFund peer missingValue) =
+    prettyCookedOpt opts peer <+> "does not have enough funds to account for this missing value:" <+> prettyCookedOpt opts missingValue
+  prettyCookedOpt _ MissingBalancingUser = "Missing balancing user"
+  prettyCookedOpt opts (NoSuitableCollateral fee percentage colVal) =
     prettyItemize
       opts
       "No suitable collateral"
@@ -90,6 +84,11 @@ instance PrettyCooked MockChainError where
         "Percentage in params was" <+> prettyCookedOpt opts percentage,
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
+
+instance PrettyCooked MockChainError where
+  prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
+    PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
+  prettyCookedOpt opts (MCEBalancingError err) = prettyCookedOpt opts err
   prettyCookedOpt _ (MCEToCardanoError cardanoError) =
     "Transaction generation error:" <+> PP.pretty cardanoError
   prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
@@ -136,9 +135,11 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
           ++ ( ("Fee:" <+> prettyCookedOpt opts (Script.lovelace fee))
                  : maybe
                    ["No collateral required"]
-                   ( \(collaterals, returnUser) ->
+                   ( \(collaterals, mRetColOutput) ->
                        [ prettyItemize opts "Collateral inputs:" "-" (Contextualized outputs . CollateralInput <$> Set.toList collaterals),
-                         "Return collateral target:" <+> prettyCookedOpt opts returnUser
+                         case mRetColOutput of
+                           Nothing -> "No return collateral output"
+                           Just retColOutput -> prettyItemize opts "Return collateral output:" "-" retColOutput
                        ]
                    )
                    mCollaterals

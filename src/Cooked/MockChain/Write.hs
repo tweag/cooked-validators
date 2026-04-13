@@ -178,12 +178,13 @@ runMockChainWrite = interpret $ \case
     autoFillWithdrawalAmounts
     -- We balance the skeleton when requested in the skeleton option, and get
     -- the associated fee, collateral inputs and return collateral user
-    (finalTxSkel, fee, mCollaterals) <- viewTweak simple >>= balanceTxSkel
+    ExtendedTxSkel finalTxSkel fee mCollaterals body <- viewTweak simple >>= balanceTxSkel
     -- We log the adjusted skeleton
     logEvent $ MCLogAdjustedTxSkel finalTxSkel fee mCollaterals
     -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
-    cardanoTx <- Ledger.CardanoEmulatorEraTx . txSkelOptModTx <$> txSkelToCardanoTx finalTxSkel fee mCollaterals
+    signatories <- viewTweak txSkelSignatoriesL
+    let cardanoTx = Ledger.CardanoEmulatorEraTx $ txSkelOptModTx $ txSignatoriesAndBodyToCardanoTx signatories body
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
     -- We finally run the emulated validation. We update our internal state
@@ -193,18 +194,16 @@ runMockChainWrite = interpret $ \case
     newOutputs <- case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
       (_, Ledger.FailPhase1 _ err) -> throw $ MCEValidationError Ledger.Phase1 err
-      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, retColUser) <- mCollaterals -> do
+      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
         -- We update the emulated ledger state
         modify' (set mcstLedgerStateL newELedgerState)
         -- We remove the collateral utxos from our own stored outputs
         forM_ colInputs $ modify' . removeOutput
-        -- We add the returned collateral to our outputs (in practice this map
-        -- either contains no element, or a single one)
-        forM_ (Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) $ \(txIn, txOut) ->
-          modify' $
-            addOutput
-              (Ledger.fromCardanoTxIn txIn)
-              (retColUser `receives` Value (Api.txOutValue . Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut $ txOut))
+        -- We add the returned collateral to our outputs when it exists
+        case (mRetColOutput, Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) of
+          (Nothing, []) -> return ()
+          (Just retColOutput, [(txIn, _)]) -> modify' $ addOutput (Ledger.fromCardanoTxIn txIn) retColOutput
+          _ -> fail "Unreachable case when processing return collaterals, please report a bug at https://github.com/tweag/cooked-validators/issues"
         -- We throw a mockchain error
         throw $ MCEValidationError Ledger.Phase2 err
       -- In case of success, we update the index with all inputs and outputs

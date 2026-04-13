@@ -37,7 +37,7 @@ initialDistributionBalancing =
     alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
   ]
 
-type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Collaterals, [Api.TxOutRef])
+type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Maybe Collaterals, [Api.TxOutRef])
 
 spendsScriptUtxo :: Bool -> FullMockChain (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
@@ -92,7 +92,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
                   },
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
-  (skel', fee, mCols) <- balanceTxSkel skel
+  ExtendedTxSkel skel' fee mCols _ <- balanceTxSkel skel
   validateTxSkel_ skel
   nonOnlyValueUtxos <- aliceNonOnlyValueUtxos
   return (skel, skel', fee, mCols, nonOnlyValueUtxos)
@@ -161,8 +161,8 @@ balanceReduceFee = do
           { txSkelOuts = [bob `receives` Value (Script.ada 50)],
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
-  (skelBalanced, feeBalanced, mCols) <- balanceTxSkel skelAutoFee
-  feeBalanced' <- estimateTxSkelFee skelBalanced feeBalanced mCols
+  ExtendedTxSkel skelBalanced feeBalanced mCols _ <- balanceTxSkel skelAutoFee
+  (feeBalanced', _) <- estimateTxSkelFee skelBalanced feeBalanced mCols
   let skelManualFee =
         skelAutoFee
           { txSkelOpts =
@@ -170,8 +170,8 @@ balanceReduceFee = do
                 { txSkelOptFeePolicy = ManualFee (feeBalanced - 1)
                 }
           }
-  (skelBalancedManual, feeBalancedManual, mColsManual) <- balanceTxSkel skelManualFee
-  feeBalancedManual' <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
+  ExtendedTxSkel skelBalancedManual feeBalancedManual mColsManual _ <- balanceTxSkel skelManualFee
+  (feeBalancedManual', _) <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
   return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
 
 reachingMagic :: FullMockChain ()
@@ -213,11 +213,12 @@ testBalancingSucceedsWith msg props run =
       `withResultProp` \res -> testConjoin (($ res) <$> props)
 
 failsAtBalancingWith :: Api.Value -> Wallet -> MockChainError -> Assertion
-failsAtBalancingWith val' wal' (MCEUnbalanceable wal val) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
+failsAtBalancingWith val' wal' (MCEBalancingError (NotEnoughFund wal val)) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
 failsAtBalancingWith _ _ _ = testBool False
 
 failsAtBalancing :: MockChainError -> Assertion
-failsAtBalancing MCEUnbalanceable {} = testBool True
+failsAtBalancing (MCEBalancingError (NotEnoughFund {})) = testBool True
+failsAtBalancing (MCEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool True
 failsAtBalancing _ = testBool False
 
 failsWithTooLittleFee :: MockChainError -> Assertion
@@ -233,15 +234,15 @@ failsWithEmptyTxIns (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValid
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> MockChainError -> Assertion
-failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
+failsAtCollateralsWith fee' (MCEBalancingError (NoSuitableCollateral fee percentage val)) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
 failsAtCollaterals :: MockChainError -> Assertion
-failsAtCollaterals MCENoSuitableCollateral {} = testBool True
+failsAtCollaterals (MCEBalancingError (NoSuitableCollateral {})) = testBool True
 failsAtCollaterals _ = testBool False
 
 failsLackOfCollateralWallet :: MockChainError -> Assertion
-failsLackOfCollateralWallet (MCEMissingBalancingUser msg) = "Collateral utxos should be taken from the balancing user, but it does not exist." .==. msg
+failsLackOfCollateralWallet (MCEBalancingError MissingBalancingUser) = testBool True
 failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> FullMockChain a -> TestTree

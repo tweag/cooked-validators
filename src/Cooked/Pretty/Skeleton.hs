@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module implements 'PrettyCooked', 'PrettyCookedList' and
@@ -13,7 +12,7 @@ import Cooked.Wallet (Wallet)
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromJust)
 import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
@@ -293,13 +292,17 @@ instance PrettyCookedList TxSkelOpts where
         txSkelOptBalancingUtxos
         _
         txSkelOptCollateralUtxos
+        txSkelOptDeferFailures
+        txSkelOptMaxNbOfBalancingUtxos
       ) =
       [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
         prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
         prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
         prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
-        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos
+        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
+        prettyIfNot False (const "Defer Phase 2 failures during balancing") txSkelOptDeferFailures,
+        prettyIfNot Nothing (("Limit the number of balancing Utxos to " <>) . PP.pretty . fromJust) txSkelOptMaxNbOfBalancingUtxos
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked

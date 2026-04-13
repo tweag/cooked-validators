@@ -41,12 +41,12 @@ txSkelToTxBodyContent ::
   (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
-  Collaterals ->
+  Maybe Collaterals ->
   Sem effs (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
   txIns <- mapM toTxInAndWitness $ Map.toList txSkelIns
   txInsReference <- toInsReference skel
-  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet fee mCollaterals
+  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet mCollaterals
   txOuts <- mapM toCardanoTxOut txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <- fromEither $ Ledger.toCardanoValidityRange txSkelValidityRange
   txMintValue <- toMintValue txSkelMints
@@ -85,7 +85,7 @@ txBodyContentToTxBody txBodyContent = do
 txSkelToIndex ::
   (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
   TxSkel ->
-  Collaterals ->
+  Maybe Collaterals ->
   Sem effs (Cardano.UTxO Cardano.ConwayEra)
 txSkelToIndex txSkel mCollaterals = do
   -- We build the index of UTxOs which are known to this skeleton. This includes
@@ -106,7 +106,7 @@ txSkelToTxBody ::
   (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
-  Collaterals ->
+  Maybe Collaterals ->
   Sem effs (Cardano.TxBody Cardano.ConwayEra)
 txSkelToTxBody txSkel fee mCollaterals = do
   -- We create a first body content and body, without execution units
@@ -119,9 +119,14 @@ txSkelToTxBody txSkel fee mCollaterals = do
   params <- getParams
   -- We retrieve the execution units associated with the transaction
   case Emulator.getTxExUnitsWithLogs params (Ledger.fromPlutusIndex index) tx' of
-    -- Computing the execution units can result in all kinds of validation
-    -- errors except for the ones related to the execution units themselves.
-    Left err -> throw $ uncurry MCEValidationError err
+    -- Computing the execution units can result in all kinds of phase 2
+    -- validation failures, except for the ones related to the execution units
+    -- themselves. Unless required in the options, we throw the validation
+    -- failure right away when applicable.
+    Left err | not $ txSkelOptDeferPhase2FailuresDuringBalancing $ txSkelOpts txSkel -> throw $ uncurry MCEValidationError err
+    -- The other option is to ignore those and return the unchanged body with
+    -- the existing execution units, postponing the handling of the failures.
+    Left _ -> return txBody'
     -- When no error arises, we get an execution unit for each script usage. We
     -- first have to transform this Ledger map to a cardano API map.
     Right (Map.mapKeysMonotonic (Cardano.toScriptIndex Cardano.AlonzoEraOnwardsConway) . fmap (Cardano.fromAlonzoExUnits . snd) -> exUnits) ->
@@ -131,7 +136,7 @@ txSkelToTxBody txSkel fee mCollaterals = do
         Left _ -> fail "Error while assigning execution units"
         -- We now have a body content with proper execution units and can create
         -- the final body from it
-        Right txBody -> txBodyContentToTxBody txBody
+        Right txBodyContent -> txBodyContentToTxBody txBodyContent
 
 -- | Generates a Cardano transaction and signs it
 txSignatoriesAndBodyToCardanoTx ::
@@ -145,7 +150,7 @@ txSkelToCardanoTx ::
   (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
-  Collaterals ->
+  Maybe Collaterals ->
   Sem effs (Cardano.Tx Cardano.ConwayEra)
 txSkelToCardanoTx txSkel fee =
   fmap (txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel))
