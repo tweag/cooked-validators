@@ -94,7 +94,7 @@ There are two ways for this integration:
        .
    ```
    
-   where `myTag` is either a commit hash in the repo, or a tag, such as v8.0.0
+   where `myTag` is either a commit hash in the repo, or a tag, such as v9.0.0
    (see [available
    releases](https://github.com/tweag/cooked-validators/releases)).
    
