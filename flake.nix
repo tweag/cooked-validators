@@ -100,7 +100,7 @@
               buildInputs = buildInputs ++ [
                 pkgs.hpack
                 pkgs.hlint
-                hpkgs.ormolu
+                pkgs.ormolu
                 hpkgs.haskell-language-server
               ];
 
