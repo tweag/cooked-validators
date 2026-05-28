@@ -52,17 +52,17 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | An output to be put into a 'Cooked.Skeleton.TxSkel'
 data TxSkelOut where
   TxSkelOut ::
-    { -- The owner of this payment
+    { -- | The owner of this payment
       txSkelOutOwner :: User IsEither Allocation,
-      -- What staking credential should be attached to this payment
+      -- | What staking credential should be attached to this payment
       txSkelOutStakingCredential :: Maybe Api.StakingCredential,
-      -- What datum should be placed in this payment
+      -- | What datum should be placed in this payment
       txSkelOutDatum :: TxSkelOutDatum,
-      -- What value should be paid
+      -- | What value should be paid
       txSkelOutValue :: Api.Value,
-      -- Whether the paid value can be auto-adjusted for min ADA
+      -- | Whether the paid value can be auto-adjusted for min ADA
       txSkelOutValueAutoAdjust :: Bool,
-      -- What reference script should be attached to this payment
+      -- | What reference script should be attached to this payment
       txSkelOutReferenceScript :: Maybe VScript
     } ->
     TxSkelOut

@@ -66,7 +66,7 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | The state used to run the simulation in 'Cooked.MockChain.Direct'
 data MockChainState where
   MockChainState ::
-    { -- | The parametors of the emulated blockchain
+    { -- | The parameters of the emulated blockchain
       mcstParams :: Emulator.Params,
       -- | The ledger state of the emulated blockchain
       mcstLedgerState :: Emulator.EmulatedLedgerState,
