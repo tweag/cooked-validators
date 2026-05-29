@@ -1,7 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/6dc87b326cef973e51ed3d2ffbdbe6240917a7be";
-    nixpkgs-haskell.url = "github:NixOS/nixpkgs/haskell-updates";
+    nixpkgs.url = "github:NixOS/nixpkgs/b86751bc4085f48661017fa226dee99fab6c651b";
     flake-utils.url = "github:numtide/flake-utils";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
@@ -11,7 +10,6 @@
     {
       self,
       nixpkgs,
-      nixpkgs-haskell,
       flake-utils,
       pre-commit-hooks,
     }:
@@ -19,7 +17,7 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        hpkgs = nixpkgs-haskell.legacyPackages.${system}.haskell.packages.ghc96;
+        hpkgs = pkgs.haskell.packages.ghc96;
 
         ## We change the way 'blst' is built so that it takes into
         ## account the current architecture of the processor. This
@@ -102,7 +100,7 @@
               buildInputs = buildInputs ++ [
                 pkgs.hpack
                 pkgs.hlint
-                hpkgs.ormolu
+                pkgs.ormolu
                 hpkgs.haskell-language-server
               ];
 

@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+
+### Removed
+
+### Changed
+
+### Fixed
+
+## [[9.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v9.0.0) - 2026-05-28
+
+### Added
+
 - New `LtlNot` primtive, to negate `Ltl` expressions. This allows to ensure a
   specific tweak will result in `mzero` and marks a new milestone in the
   expressiveness of the Tweak/Attack DSL.
@@ -12,7 +23,7 @@
   arbitrary effects, while the associated tweaks will also have access to the
   added effects.
 - A new capability in a mockchain run, which allows to take note (basically log)
-  anything. Functions `Note(|p|s|w|l)` support this functionality.
+  anything. Functions `note(|p|s|w|l)` support this functionality.
 - A new capability in a mockchain run, which allows to make assertions which
   will be displayed in the final result, and taken into account during
   tests. Functions `assert(|')` support his functionality.
@@ -22,8 +33,17 @@
   `testCookedQCFromInitDistTemplate` to build tests from the initial
   distribution template (the old default initial distribution).
 - The ability to enable/disable everything from the printing of the final result
-  of running a mockchain. The pretty printer has also been improved;
-- The `HList` type for heterogeneous lists.
+  of running a mockchain. The pretty printer per se has also been improved.
+- New `HList` type for heterogeneous lists, used to return type-retaining
+  results for Utxo searches.
+- New `TxSkel` option `txSkelOptDeferFailures` to defer validation failures
+  occurring during the balancing process. This has the upside of visualizing the
+  last modified transaction sent for validation in the log, with the downside of
+  a (huge) loss in performance. To be used for debugging purpose only.
+- New `TxSkel` option `txSkelOptMaxNbOfBalancingUtxos` to limit the total
+  maximum number of UTxOs that can be picked as extra inputs during
+  balancing. This will only matter if the number of UTxOs owned by the balancing
+  wallet is huge, to limit exponential growth, which rarely happens.
 
 ### Removed
 
@@ -74,6 +94,14 @@
 - `txSkelLabel` has been renamed `txSkelLabels`
 
 ### Fixed
+
+- The condition for which a balancing solution is considered optimal: The main
+  balancing function `reachValue` which picks the inputs to add and creates an
+  additionnal output when needed has been updated. It used to pick the optimal
+  result based on how small the additional UTxO was, and it now properly
+  minimizes the total overhead in terms of size (and thus cost) that balancing
+  adds to the transaction. This process is more involved but also more accurate.
+- An optimization bug in the optimal fee computation.
 
 ## [[8.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v8.0.0) - 2026-01-19
 
