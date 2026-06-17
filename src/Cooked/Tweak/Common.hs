@@ -2,6 +2,15 @@
 
 -- | This module defines 'Tweak's which are the building blocks of our DSL for
 -- attacks. They are skeleton modifications aware of the mockchain state.
+--
+-- Tweaks follow a set of naming and behavioral conventions described in
+-- @doc/TWEAKS.md@. In short: every tweak is suffixed with @Tweak@ and built as
+-- @\<verb\>\<Subject\>@ using a fixed verb vocabulary
+-- (@get@\/@set@\/@modify@\/@add@\/@remove@\/@ensure@\/@has@\/@is@); the subject
+-- is singular when acting on a single element and plural when acting on a list
+-- or via a predicate; and a tweak that multiplies the number of resulting
+-- skeletons (true non-deterministic branching) is marked @...Any@, as opposed
+-- to merely failing, which is not.
 module Cooked.Tweak.Common
   ( -- * Tweak effect
     Tweak (..),

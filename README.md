@@ -242,6 +242,10 @@ handling fees or balancing.
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
 
+- The [TWEAKS](doc/TWEAKS.md) file describes the conventions our tweaks (the
+  building blocks of the attack DSL) follow, regarding naming and branching
+  behavior.
+
 ## Blog posts
 
 Several blog posts have been written about `cooked-validators`. As the library

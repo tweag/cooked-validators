@@ -10,6 +10,18 @@
 - New `withReferenceInput` helper to attach a reference input to a
   `TxSkelRedeemer`, replacing the more verbose
   `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
+- New module `Cooked.Tweak.Redeemers` homogenizing redeemer tweaks across all
+  five redeemer positions (spending, minting, proposing, withdrawing,
+  certifying):
+  - `modifyRedeemersOfTypeAtTweak`, the position-agnostic building block;
+  - per-position `modify{Spend,Mint,Proposal,Withdrawal,Certificate}RedeemersOfTypeTweak`;
+  - `modifyRedeemersOfTypeTweak`, ranging over all positions at once;
+  - `tamperRedeemerTweak` and `malformRedeemerTweak`, the redeemer counterparts
+    of the existing `tamperDatumTweak` and `malformDatumTweak`.
+- New `addMintTweak` to add a single mint entry (singular counterpart of
+  `addMintsTweak`).
+- New `doc/TWEAKS.md` describing the naming and branching conventions tweaks
+  follow.
 
 ### Removed
 
@@ -35,6 +47,14 @@
 - Building a `ParameterChange` governance action containing a `CostModels`
   parameter update now fails with an explicit `MCEUnsupportedFeature` error
   instead of silently ignoring the requested change.
+- Tweaks were homogenized for naming consistency (see `doc/TWEAKS.md`). The
+  following predicate-based removal tweaks were renamed to plural form:
+  - `removeInputTweak` → `removeInputsTweak`
+  - `removeOutputTweak` → `removeOutputsTweak`
+  - `removeMintTweak` → `removeMintsTweak`
+- `modifySpendRedeemersOfTypeTweak` moved from `Cooked.Tweak.Inputs` to the new
+  `Cooked.Tweak.Redeemers` module (re-exported from `Cooked.Tweak`, so imports
+  of `Cooked` are unaffected).
 
 ### Fixed
 
