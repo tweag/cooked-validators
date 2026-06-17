@@ -76,6 +76,7 @@ library
       Cooked.Tweak.Mint
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.Outputs
+      Cooked.Tweak.Redeemers
       Cooked.Tweak.Signatories
       Cooked.Tweak.ValidityRange
       Cooked.Wallet
@@ -183,6 +184,7 @@ test-suite spec
       Spec.Tweak.Common
       Spec.Tweak.Labels
       Spec.Tweak.OutPermutations
+      Spec.Tweak.Redeemers
       Spec.Tweak.TamperDatum
       Spec.Tweak.ValidityRange
       Spec.Withdrawals

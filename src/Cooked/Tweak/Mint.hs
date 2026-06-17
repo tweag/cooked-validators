@@ -1,7 +1,8 @@
 -- | 'Tweak's working on the minting part of a 'TxSkel'
 module Cooked.Tweak.Mint
-  ( addMintsTweak,
-    removeMintTweak,
+  ( addMintTweak,
+    addMintsTweak,
+    removeMintsTweak,
   )
 where
 
@@ -10,6 +11,14 @@ import Cooked.Tweak.Common
 import Data.List (partition)
 import Optics.Core
 import Polysemy
+
+-- | Adds a single entry to the 'TxSkelMints' of the transaction skeleton under
+-- modification.
+addMintTweak ::
+  (Member Tweak effs) =>
+  Mint ->
+  Sem effs ()
+addMintTweak = addMintsTweak . (: [])
 
 -- | Adds new entries to the 'TxSkelMints' of the transaction skeleton under
 -- modification.
@@ -21,11 +30,11 @@ addMintsTweak newMints = overTweak (txSkelMintsL % txSkelMintsListI) (++ newMint
 
 -- | Remove some entries from the 'TxSkelMints' of a transaction, according to
 -- some predicate. The returned list holds the removed entries.
-removeMintTweak ::
+removeMintsTweak ::
   (Member Tweak effs) =>
   (Mint -> Bool) ->
   Sem effs [Mint]
-removeMintTweak removePred = do
+removeMintsTweak removePred = do
   presentMints <- viewTweak $ txSkelMintsL % txSkelMintsListI
   let (removed, kept) = partition removePred presentMints
   setTweak (txSkelMintsL % txSkelMintsListI) kept

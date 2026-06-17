@@ -864,9 +864,9 @@ myTrace = do
 ```haskell
 foo = do
   addOutputTweak $ bazValidator `receives` bazPayment
-  removeOutputTweak (\(Pays out) -> somePredicate out)
+  removeOutputsTweak (\(Pays out) -> somePredicate out)
   addInputTweak somePkTxOutRef txSkelEmptyRedeemer
-  removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
+  removeInputsTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
 ```
 
 * Tamper with signatories

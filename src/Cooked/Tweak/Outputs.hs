@@ -2,7 +2,7 @@
 module Cooked.Tweak.Outputs
   ( ensureOutputTweak,
     addOutputTweak,
-    removeOutputTweak,
+    removeOutputsTweak,
     tamperDatumTweak,
     TamperDatumLbl (..),
     malformDatumTweak,
@@ -46,11 +46,11 @@ addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
 
 -- | Removes transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
-removeOutputTweak ::
+removeOutputsTweak ::
   (Member Tweak effs) =>
   (TxSkelOut -> Bool) ->
   Sem effs [TxSkelOut]
-removeOutputTweak removePred = do
+removeOutputsTweak removePred = do
   presentOutputs <- viewTweak txSkelOutsL
   let (removed, kept) = partition removePred presentOutputs
   setTweak txSkelOutsL kept

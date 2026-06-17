@@ -3,8 +3,7 @@
 module Cooked.Tweak.Inputs
   ( ensureInputTweak,
     addInputTweak,
-    removeInputTweak,
-    modifySpendRedeemersOfTypeTweak,
+    removeInputsTweak,
   )
 where
 
@@ -12,7 +11,6 @@ import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Map qualified as Map
-import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.NonDet
@@ -47,28 +45,12 @@ addInputTweak oref howConsumed = do
 
 -- | Remove transaction inputs according to a given predicate. The returned list
 -- contains all removed inputs.
-removeInputTweak ::
+removeInputsTweak ::
   (Member Tweak effs) =>
   (Api.TxOutRef -> TxSkelRedeemer -> Bool) ->
   Sem effs [(Api.TxOutRef, TxSkelRedeemer)]
-removeInputTweak removePred = do
+removeInputsTweak removePred = do
   presentInputs <- viewTweak txSkelInsL
   let (removed, kept) = Map.partitionWithKey removePred presentInputs
   setTweak txSkelInsL kept
   return $ Map.toList removed
-
--- | Applies an optional modification to all spend redeemers of type a. Returns
--- the list of modified spending redemeers, as they were before being modified.
-modifySpendRedeemersOfTypeTweak ::
-  forall a b effs.
-  ( RedeemerConstrs a,
-    RedeemerConstrs b,
-    Member Tweak effs
-  ) =>
-  (a -> Maybe b) ->
-  Sem effs [TxSkelRedeemer]
-modifySpendRedeemersOfTypeTweak f =
-  overMaybeTweak (txSkelInsL % iso Map.toList Map.fromList % traversed % _2) $ \red -> do
-    typedRedeemer <- red ^? txSkelRedeemerTypedAT
-    typedRedeemerModified <- f typedRedeemer
-    return $ red & txSkelRedeemerTypedAT @a .~ typedRedeemerModified
