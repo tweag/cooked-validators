@@ -58,6 +58,25 @@ optics kind.
   vice-versa. Isos can be reversed using `re` in addition to being used with
   `view`, `review`, `over`, and `set`.
 
+## Documentation convention
+
+Every exported optic carries a Haddock comment whose leading verb is determined
+by the optic kind, so that the comment reinforces the capability already encoded
+in the name suffix. The focused part is always described as being "of a
+`'Structure'`", using a Haddock link to the containing structure:
+
+- Getters (`G`): `-- | Retrieves the \<part\> of a '\<Structure\>'`
+- Affine folds (`AF`): `-- | Retrieves the optional \<part\> of a '\<Structure\>'`
+- Lenses (`L`): `-- | Focuses on the \<part\> of a '\<Structure\>'`
+- Affine traversals (`AT`) and lenses onto a `Maybe`: `-- | Focuses on the
+  optional \<part\> of a '\<Structure\>'`
+- Prisms (`P`): `-- | Builds or retrieves the \<part\> of a '\<Structure\>'`
+- Isos (`I`): `-- | An isomorphism between '\<Structure\>' and \<part\>`
+
+For example, `txSkelOutCredentialG` reads "Retrieves the credential of a
+`'TxSkelOut'`", while `txSkelOutStakingCredentialAT` reads "Focuses on the
+optional staking credential of a `'TxSkelOut'`".
+
 ## Combining optics
 
 Optics can be combined arbitrarily, as long as the parts they focus

@@ -4,11 +4,25 @@
 
 ### Added
 
+- New `withReferenceInput` helper to attach a reference input to a
+  `TxSkelRedeemer`, replacing the more verbose
+  `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
+
 ### Removed
 
 ### Changed
 
+- Building a `ParameterChange` governance action containing a `CostModels`
+  parameter update now fails with an explicit `MCEUnsupportedFeature` error
+  instead of silently ignoring the requested change.
+
 ### Fixed
+
+- Pretty-printing a `TxSkel` with `pcOptPrintDefaultTxSkelOpts` enabled no longer
+  crashes when `txSkelOptMaxNbOfBalancingUtxos` is left at its default (`Nothing`).
+- Transaction-generation failures while assigning execution units and while
+  computing a pool-retirement epoch now include the underlying error detail in
+  their message.
 
 ## [[9.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v9.0.0) - 2026-05-28
 

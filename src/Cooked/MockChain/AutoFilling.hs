@@ -14,7 +14,6 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.List (find)
 import Data.Map qualified as Map
-import Data.Maybe
 import Ledger.Tx qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
@@ -36,22 +35,22 @@ autoFillWithdrawalAmounts = do
   withdrawals <- viewTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI)
   newWithdrawals <- forM withdrawals $ \withdrawal -> do
     currentReward <- getCurrentReward $ view withdrawalUserL withdrawal
-    let (changed, newWithdrawal) = case currentReward of
-          Nothing -> (False, withdrawal)
-          Just reward -> (isn't withdrawalAmountAT withdrawal, fillAmount reward withdrawal)
-    when changed $
-      logEvent $
-        MCLogAutoFilledWithdrawalAmount
-          (view (withdrawalUserL % to Script.toCredential) newWithdrawal)
-          (fromJust (preview withdrawalAmountAT newWithdrawal))
-    return newWithdrawal
+    case currentReward of
+      Just reward | isn't withdrawalAmountAT withdrawal -> do
+        let newWithdrawal = fillAmount reward withdrawal
+        logEvent $
+          MCLogAutoFilledWithdrawalAmount
+            (view (withdrawalUserL % to Script.toCredential) newWithdrawal)
+            reward
+        return newWithdrawal
+      _ -> return withdrawal
   setTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI) newWithdrawals
 
 -- * Auto filling constitution script
 
 -- | Goes through all the proposals of the input skeleton and attempts to fill
 -- out the constitution scripts with the current one. Does not tamper with an
--- existing specified script in such withdrawals. Logs an event when the
+-- existing specified script in such proposals. Logs an event when the
 -- constitution script has been successfully auto-filled.
 autoFillConstitution ::
   (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
@@ -70,7 +69,7 @@ autoFillConstitution = do
         return (fillConstitution constitutionScript prop)
       setTweak txSkelProposalsL newProposals
 
--- -- * Auto filling reference scripts
+-- * Auto filling reference scripts
 
 -- | Attempts to find in the index a utxo containing a reference script with the
 -- given script hash, and attaches it to a redeemer when it does not yet have a

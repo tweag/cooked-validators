@@ -80,7 +80,7 @@ data TxSkel where
       -- this list must contain at least one element, which is always expected
       -- to be case in practice anyway. By default, the first signatory will pay
       -- for fees and balancing. You can change that with
-      -- 'Cooked.Skeleton.Option.txOptBalancingPolicy'.
+      -- 'Cooked.Skeleton.Option.txSkelOptBalancingPolicy'.
       txSkelSignatories :: [TxSkelSignatory],
       txSkelValidityRange :: Ledger.SlotRange,
       -- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer
@@ -112,40 +112,38 @@ data TxSkel where
     TxSkel
   deriving (Show, Eq)
 
--- | Focusing on the labels of a 'TxSkel'
+-- | Focuses on the labels of a 'TxSkel'
 makeLensesFor [("txSkelLabels", "txSkelLabelsL")] ''TxSkel
 
--- | Focusing on the optics of a 'TxSkel'
+-- | Focuses on the options of a 'TxSkel'
 makeLensesFor [("txSkelOpts", "txSkelOptsL")] ''TxSkel
 
--- | Focusing on the minted value of a 'TxSkel'
+-- | Focuses on the minted value of a 'TxSkel'
 makeLensesFor [("txSkelMints", "txSkelMintsL")] ''TxSkel
 
--- | Focusing on the validity range of a 'TxSkel'
+-- | Focuses on the validity range of a 'TxSkel'
 makeLensesFor [("txSkelValidityRange", "txSkelValidityRangeL")] ''TxSkel
 
--- | Focusing on the signatories of a 'TxSkel'
+-- | Focuses on the signatories of a 'TxSkel'
 makeLensesFor [("txSkelSignatories", "txSkelSignatoriesL")] ''TxSkel
 
--- | Focusing on the inputs of a 'TxSkel'
+-- | Focuses on the inputs of a 'TxSkel'
 makeLensesFor [("txSkelIns", "txSkelInsL")] ''TxSkel
 
--- | Focusing on the reference inputs of a 'TxSkel'
+-- | Focuses on the reference inputs of a 'TxSkel'
 makeLensesFor [("txSkelInsReference", "txSkelInsReferenceL")] ''TxSkel
 
--- | Focusing on the outputs of a 'TxSkel'
+-- | Focuses on the outputs of a 'TxSkel'
 makeLensesFor [("txSkelOuts", "txSkelOutsL")] ''TxSkel
 
--- | Focusing on the proposals of a 'TxSkel'
+-- | Focuses on the proposals of a 'TxSkel'
 makeLensesFor [("txSkelProposals", "txSkelProposalsL")] ''TxSkel
 
--- | Focusing on the withdrawals of a 'TxSkel'
+-- | Focuses on the withdrawals of a 'TxSkel'
 makeLensesFor [("txSkelWithdrawals", "txSkelWithdrawalsL")] ''TxSkel
 
--- | Focusing on the certificates of a 'TxSkel'
+-- | Focuses on the certificates of a 'TxSkel'
 makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
-
--- | A lens to set or
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel

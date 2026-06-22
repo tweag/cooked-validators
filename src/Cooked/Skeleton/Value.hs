@@ -17,7 +17,7 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
 
--- | A lens to get or set the amount of tokens of a certain 'Api.AssetClass'
+-- | Focuses on the amount of tokens of a certain 'Api.AssetClass'
 -- from a given 'Api.Value'. This removes the entry if the new amount is 0.
 valueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' Api.Value Integer
 valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
@@ -39,11 +39,11 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
         Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
     )
 
--- | Isomorphism between 'Api.Lovelace' and integers
+-- | An isomorphism between an 'Api.Lovelace' and an 'Integer'
 lovelaceIntegerI :: Iso' Api.Lovelace Integer
 lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
 
--- | Focus the Lovelace part in a value.
+-- | Focuses on the 'Api.Lovelace' of an 'Api.Value'
 valueLovelaceL :: Lens' Api.Value Api.Lovelace
 valueLovelaceL = valueAssetClassAmountL Api.adaSymbol Api.adaToken % re lovelaceIntegerI
 
@@ -62,7 +62,7 @@ valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
             i -> Right i
         )
 
--- | An instance of 'valueAssetClassAmountP' for 'Api.Lovelace'
+-- | Builds or retrieves the 'Api.Lovelace' of an 'Api.Value'
 valueLovelaceP :: Prism' Api.Value Api.Lovelace
 valueLovelaceP = valueAssetClassAmountP Api.adaSymbol Api.adaToken % re lovelaceIntegerI
 

@@ -1,6 +1,6 @@
 -- | This module exposes the outputs constructs used in a
 -- 'Cooked.Skeleton.TxSkel' and their associated utilities. To build payments in
--- a skeleton, the usual way is to invoke @txSkelIns = [pk `receives` Value v,
+-- a skeleton, the usual way is to invoke @txSkelOuts = [pk `receives` Value v,
 -- script `receives` (InlineDatum dat <&&> ReferenceScript script)]@
 module Cooked.Skeleton.Output
   ( -- * Type constraints
@@ -70,53 +70,52 @@ data TxSkelOut where
 
 -- * Optics focusing on the reference script of a 'TxSkelOut'
 
--- | Focuses on the @Maybe VScript@ corresponding to the possible reference
--- script contained in this 'TxSkelOut'
+-- | Focuses on the optional reference script of a 'TxSkelOut'
 makeLensesFor [("txSkelOutReferenceScript", "txSkelOutMReferenceScriptL")] ''TxSkelOut
 
--- | Focuses on the reference script of this 'TxSkelOut'
+-- | Focuses on the reference script of a 'TxSkelOut'
 txSkelOutReferenceScriptAT :: AffineTraversal' TxSkelOut VScript
 txSkelOutReferenceScriptAT = txSkelOutMReferenceScriptL % _Just
 
--- | Returns the possible reference script has of this 'TxSkelOut'
+-- | Retrieves the optional reference script hash of a 'TxSkelOut'
 txSkelOutReferenceScriptHashAF :: AffineFold TxSkelOut Api.ScriptHash
 txSkelOutReferenceScriptHashAF = txSkelOutReferenceScriptAT % to Script.toScriptHash
 
 -- * Optics focusing on the staking credential of a 'TxSkelOut'
 
--- | Focuses on the @Maybe StakingCredential@ of this 'TxSkelOut'
+-- | Focuses on the optional staking credential of a 'TxSkelOut'
 makeLensesFor [("txSkelOutStakingCredential", "txSkelOutMStakingCredentialL")] ''TxSkelOut
 
--- | Focuses on the staking credential of this 'TxSkelOut'
+-- | Focuses on the staking credential of a 'TxSkelOut'
 txSkelOutStakingCredentialAT :: AffineTraversal' TxSkelOut Api.StakingCredential
 txSkelOutStakingCredentialAT = txSkelOutMStakingCredentialL % _Just
 
 -- | Optics focusing on the datum of a 'TxSkelOut'
 
--- | Focuses on the 'TxSkelOutDatum' of this 'TxSkelOut'
+-- | Focuses on the 'TxSkelOutDatum' of a 'TxSkelOut'
 makeLensesFor [("txSkelOutDatum", "txSkelOutDatumL")] ''TxSkelOut
 
--- * Optics focusing on the value of this 'TxSkelOut'
+-- * Optics focusing on the value of a 'TxSkelOut'
 
--- | Focuses on the 'Api.Value' of this 'TxSkelOut'
+-- | Focuses on the 'Api.Value' of a 'TxSkelOut'
 makeLensesFor [("txSkelOutValue", "txSkelOutValueL")] ''TxSkelOut
 
 -- | Focuses on whether the 'Api.Value' contained in this 'TxSkelOut' can be
 -- adjusted to min ADA during transaction generation
 makeLensesFor [("txSkelOutValueAutoAdjust", "txSkelOutValueAutoAdjustL")] ''TxSkelOut
 
--- * Optics focusing on the owner of this 'TxSkelOut'
+-- * Optics focusing on the owner of a 'TxSkelOut'
 
--- | Focuses on the user of this 'TxSkelOut'
+-- | Focuses on the user of a 'TxSkelOut'
 makeLensesFor [("txSkelOutOwner", "txSkelOutOwnerL")] ''TxSkelOut
 
 -- * Additional optics around a 'TxSkelOut'
 
--- | Returns the credential of this 'TxSkelOut'
+-- | Retrieves the credential of a 'TxSkelOut'
 txSkelOutCredentialG :: Getter TxSkelOut Api.Credential
 txSkelOutCredentialG = to $ \(TxSkelOut {txSkelOutOwner}) -> Script.toCredential txSkelOutOwner
 
--- | Returns the address of this 'TxSkelOut'
+-- | Retrieves the address of a 'TxSkelOut'
 txSkelOutAddressG :: Getter TxSkelOut Api.Address
 txSkelOutAddressG = to $ \txSkelOut ->
   Api.Address

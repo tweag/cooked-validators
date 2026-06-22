@@ -129,7 +129,7 @@ doubleSatAttack groupings optic change target = do
     -- calculate its balance
     deltaBalance :: DoubleSatDelta -> Sem effs Api.Value
     deltaBalance (inputs, outputs, mints) = do
-      inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
+      inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`Map.member` inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate (foldOf (traversed % txSkelOutValueL) outputs) <> Script.toValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction

@@ -25,15 +25,15 @@ type TxSkelAnchor =
       Maybe ByteString -- The optional anchor resolved page
     )
 
--- | Focusing on the URL of a 'TxSkelAnchor'
+-- | Focuses on the optional URL of a 'TxSkelAnchor'
 txSkelAnchorURLAT :: AffineTraversal' TxSkelAnchor String
 txSkelAnchorURLAT = _Just % _1
 
--- | Focusing on the optional resolved page of a 'TxSkelAnchor'
+-- | Focuses on the optional resolved page of a 'TxSkelAnchor'
 txSkelAnchorMResolvedPageAT :: AffineTraversal' TxSkelAnchor (Maybe ByteString)
 txSkelAnchorMResolvedPageAT = _Just % _2
 
--- | Focusing on the existing resolved page of a 'TxSkelAnchor'
+-- | Focuses on the optional resolved page of a 'TxSkelAnchor'
 txSkelAnchorResolvedPageAT :: AffineTraversal' TxSkelAnchor ByteString
 txSkelAnchorResolvedPageAT = txSkelAnchorMResolvedPageAT % _Just
 

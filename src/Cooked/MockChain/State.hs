@@ -80,16 +80,16 @@ data MockChainState where
     MockChainState
   deriving (Show)
 
--- | A lens to set or get the parameters of the 'MockChainState'
+-- | Focuses on the parameters of a 'MockChainState'
 makeLensesFor [("mcstParams", "mcstParamsL")] ''MockChainState
 
--- | A lens to set or get the ledger state of the 'MockChainState'
+-- | Focuses on the ledger state of a 'MockChainState'
 makeLensesFor [("mcstLedgerState", "mcstLedgerStateL")] ''MockChainState
 
--- | A lens to set or get the outputs of the 'MockChainState'
+-- | Focuses on the outputs of a 'MockChainState'
 makeLensesFor [("mcstOutputs", "mcstOutputsL")] ''MockChainState
 
--- | A lens to set or get the constitution script of the 'MockChainState'
+-- | Focuses on the constitution script of a 'MockChainState'
 makeLensesFor [("mcstConstitution", "mcstConstitutionL")] ''MockChainState
 
 instance Default MockChainState where
@@ -117,7 +117,7 @@ data UtxoPayloadDatum where
   NoUtxoPayloadDatum :: UtxoPayloadDatum
   SomeUtxoPayloadDatum :: (DatumConstrs dat) => dat -> Bool -> UtxoPayloadDatum
 
--- | Focuses on whether on not this `UtxoPayloadDatum` isHashed
+-- | Focuses on the optional hashed flag of a 'UtxoPayloadDatum'
 utxoPayloadDatumKindAT :: AffineTraversal' UtxoPayloadDatum Bool
 utxoPayloadDatumKindAT =
   atraversal
@@ -178,20 +178,19 @@ data UtxoPayload where
     UtxoPayload
   deriving (Eq, Show)
 
--- | A lens to set or get the UTxO reference from this `UtxoPayload`
+-- | Focuses on the UTxO reference of a 'UtxoPayload'
 makeLensesFor [("utxoPayloadTxOutRef", "utxoPayloadTxOutRefL")] ''UtxoPayload
 
--- | A lens to set or get the value from this `UtxoPayload`
+-- | Focuses on the value of a 'UtxoPayload'
 makeLensesFor [("utxoPayloadValue", "utxoPayloadValueL")] ''UtxoPayload
 
--- | A lens to set or get the datum from this `UtxoPayload`
+-- | Focuses on the datum of a 'UtxoPayload'
 makeLensesFor [("utxoPayloadDatum", "utxoPayloadDatumL")] ''UtxoPayload
 
--- | A lens to set or get the optional reference script hash from this
--- `UtxoPayload`
+-- | Focuses on the optional reference script hash of a 'UtxoPayload'
 makeLensesFor [("utxoPayloadReferenceScriptHash", "utxoPayloadMReferenceScriptHashL")] ''UtxoPayload
 
--- | Focusing on the optional reference script hash of a `UtxoPayload`
+-- | Focuses on the optional reference script hash of a 'UtxoPayload'
 utxoPayloadReferenceScriptHashAT :: AffineTraversal' UtxoPayload Api.ScriptHash
 utxoPayloadReferenceScriptHashAT = utxoPayloadMReferenceScriptHashL % _Just
 
@@ -205,7 +204,7 @@ newtype UtxoPayloadSet = UtxoPayloadSet
   }
   deriving (Show)
 
--- | Going back and forth between a list of `UtxoPayload` and a `UtxoPayloadSet`
+-- | An isomorphism between a 'UtxoPayloadSet' and a list of 'UtxoPayload'
 utxoPayloadSetListI :: Iso' UtxoPayloadSet [UtxoPayload]
 utxoPayloadSetListI = iso utxoPayloadSet UtxoPayloadSet
 
@@ -234,10 +233,10 @@ data UtxoState where
     UtxoState
   deriving (Eq)
 
--- | A lens to set or get the available UTxOs from a `UtxoState`
+-- | Focuses on the available UTxOs of a 'UtxoState'
 makeLensesFor [("availableUtxos", "availableUtxosL")] ''UtxoState
 
--- | A lens to set or get the consumed UTxOs from a `UtxoState`
+-- | Focuses on the consumed UTxOs of a 'UtxoState'
 makeLensesFor [("consumedUtxos", "consumedUtxosL")] ''UtxoState
 
 instance Semigroup UtxoState where
@@ -257,7 +256,7 @@ utxoPayloadSetTotal = foldOf (utxoPayloadSetListI % folded % utxoPayloadValueL)
 -- | Builds a 'UtxoState' from a 'MockChainState'
 mcstToUtxoState :: MockChainState -> UtxoState
 mcstToUtxoState =
-  foldl extractPayload mempty . Map.toList . mcstOutputs
+  List.foldl' extractPayload mempty . Map.toList . mcstOutputs
   where
     extractPayload :: UtxoState -> (Api.TxOutRef, (TxSkelOut, Bool)) -> UtxoState
     extractPayload utxoState (txOutRef, (txSkelOut, bool)) =

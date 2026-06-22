@@ -126,7 +126,7 @@ instance Script.ToAddress (User kind mode) where
 
 -- * Optics on various possible families of users
 
--- | Retrieves the hash of the script or pubkey represented by this user
+-- | Retrieves the script or pubkey hash of a 'User'
 userHashG :: forall kind mode. Getter (User kind mode) Api.BuiltinByteString
 userHashG =
   to
@@ -136,7 +136,7 @@ userHashG =
         UserRedeemedScript (Script.toScriptHash . toVScript -> Api.ScriptHash hs) _ -> hs
     )
 
--- | Retrieves a possible typed user from a 'User'
+-- | Retrieves the optional typed user of a 'User'
 userTypedAF :: forall user kind mode. (Typeable user) => AffineFold (User kind mode) user
 userTypedAF =
   afolding
@@ -147,7 +147,7 @@ userTypedAF =
         _ -> Nothing
     )
 
--- | Focuses on a possible typed script in this 'User'
+-- | Focuses on the optional typed script of a 'User'
 userTypedScriptAT :: forall userScript mode. (ToVScript userScript, Typeable userScript) => AffineTraversal' (User IsScript mode) userScript
 userTypedScriptAT =
   atraversal
@@ -161,7 +161,7 @@ userTypedScriptAT =
         UserRedeemedScript _ red -> (`UserRedeemedScript` red)
     )
 
--- | Focuses on a possible typed pubkey in this 'User'
+-- | Focuses on the optional typed pubkey of a 'User'
 userTypedPubKeyAT :: forall userPK mode. (Script.ToPubKeyHash userPK, Typeable userPK) => AffineTraversal' (User IsPubKey mode) userPK
 userTypedPubKeyAT =
   atraversal
@@ -171,7 +171,7 @@ userTypedPubKeyAT =
     )
     (\(UserPubKey _) -> UserPubKey)
 
--- | Builds a @User IsEither@ from a @User IsScript@
+-- | Builds or retrieves a @User IsScript@ from a @User IsEither@
 userEitherScriptP :: Prism' (User IsEither mode) (User IsScript mode)
 userEitherScriptP =
   prism
@@ -185,7 +185,7 @@ userEitherScriptP =
         user -> Left user
     )
 
--- | Builds a @User IsEither@ from a @User IsPubKey@
+-- | Builds or retrieves a @User IsPubKey@ from a @User IsEither@
 userEitherPubKeyP :: Prism' (User IsEither mode) (User IsPubKey mode)
 userEitherPubKeyP =
   prism
@@ -195,11 +195,11 @@ userEitherPubKeyP =
         user -> Left user
     )
 
--- | Extracts the 'Api.Credential' from a 'User'
+-- | Retrieves the 'Api.Credential' of a 'User'
 userCredentialG :: Getter (User kind mode) Api.Credential
 userCredentialG = to Script.toCredential
 
--- | Focusing on the possible 'TxSkelRedeemer' of this 'User'
+-- | Focuses on the optional 'TxSkelRedeemer' of a 'User'
 userTxSkelRedeemerAT :: AffineTraversal' (User kind mode) TxSkelRedeemer
 userTxSkelRedeemerAT =
   atraversal
@@ -212,7 +212,7 @@ userTxSkelRedeemerAT =
         user -> const user
     )
 
--- | Focusing on the possible 'VScript' of this 'User'
+-- | Focuses on the optional 'VScript' of a 'User'
 userVScriptAT :: AffineTraversal' (User kind mode) VScript
 userVScriptAT =
   atraversal
@@ -227,11 +227,11 @@ userVScriptAT =
         user -> const user
     )
 
--- | Focusing on the possible 'Api.ScriptHash' of this 'User'
+-- | Retrieves the optional 'Api.ScriptHash' of a 'User'
 userScriptHashAF :: AffineFold (User kind mode) Api.ScriptHash
 userScriptHashAF = userVScriptAT % to Script.toScriptHash
 
--- | Focusing on the possible 'Api.PubKeyHash' of this 'User'
+-- | Focuses on the optional 'Api.PubKeyHash' of a 'User'
 userPubKeyHashAT :: AffineTraversal' (User kind mode) Api.PubKeyHash
 userPubKeyHashAT =
   atraversal
@@ -244,14 +244,14 @@ userPubKeyHashAT =
         user -> const user
     )
 
--- | An isomorphism between users required to be pubkeys and 'Api.PubKeyHash'
+-- | An isomorphism between a @User IsPubKey@ and an 'Api.PubKeyHash'
 userPubKeyHashI :: Iso' (User IsPubKey mode) Api.PubKeyHash
 userPubKeyHashI =
   iso
     (\(UserPubKey (Script.toPubKeyHash -> pkh)) -> pkh)
     UserPubKey
 
--- | Focusing on the 'VScript' from a script
+-- | Focuses on the 'VScript' of a script
 userVScriptL :: Lens' (User IsScript mode) VScript
 userVScriptL =
   lens
@@ -264,11 +264,11 @@ userVScriptL =
         UserRedeemedScript _ red -> (`UserRedeemedScript` red)
     )
 
--- | Focusing on the 'Api.ScriptHash' from a script
+-- | Retrieves the 'Api.ScriptHash' of a script
 userScriptHashG :: Getter (User IsScript mode) Api.ScriptHash
 userScriptHashG = userVScriptL % to Script.toScriptHash
 
--- | Focus on the 'TxSkelRedeemer' from a script being redeemed
+-- | Focuses on the 'TxSkelRedeemer' of a script being redeemed
 userTxSkelRedeemerL :: Lens' (User IsScript Redemption) TxSkelRedeemer
 userTxSkelRedeemerL =
   lens
