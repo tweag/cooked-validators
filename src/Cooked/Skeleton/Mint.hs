@@ -28,6 +28,7 @@ where
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
 import Data.Bifunctor
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -142,7 +143,7 @@ txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
     (fmap (first (view userTxSkelRedeemerL)) . view (to unTxSkelMints % at mph))
     ( \mints -> \case
         Nothing -> TxSkelMints . Map.delete mph . unTxSkelMints $ mints
-        Just (red, Map.toList -> tokens) -> foldl (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
+        Just (red, Map.toList -> tokens) -> foldl' (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
     )
 
 instance Script.ToValue TxSkelMints where
@@ -166,9 +167,9 @@ txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
     (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . unTxSkelMints)
-    ( foldl
+    ( foldl'
         ( \mints (Mint (UserRedeemedScript mp red) tks) ->
-            foldl
+            foldl'
               (\mints' (tk, n) -> mints' & txSkelMintsAssetClassAmountL mp tk %~ (\(_, n') -> (Just red, n + n')))
               mints
               tks

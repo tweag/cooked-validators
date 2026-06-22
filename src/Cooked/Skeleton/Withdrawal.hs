@@ -28,6 +28,7 @@ where
 
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -74,7 +75,7 @@ txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
 txSkelWithdrawalsListI =
   iso
     (Map.elems . unTxSkelWithdrawals)
-    ( foldl
+    ( foldl'
         ( \(TxSkelWithdrawals withdrawals) withdrawal@(Withdrawal (view userCredentialG -> cred) amount) ->
             TxSkelWithdrawals $
               over
@@ -104,7 +105,7 @@ fillAmount newAmount = over withdrawalMAmountL (maybe (Just newAmount) Just)
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where
-  toValue = foldl (\val -> (val <>) . maybe mempty Script.toValue . view withdrawalMAmountL) mempty . unTxSkelWithdrawals
+  toValue = foldl' (\val -> (val <>) . maybe mempty Script.toValue . view withdrawalMAmountL) mempty . unTxSkelWithdrawals
 
 instance Semigroup TxSkelWithdrawals where
   txSkelW <> txSkelW' =

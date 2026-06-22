@@ -256,7 +256,7 @@ utxoPayloadSetTotal = foldOf (utxoPayloadSetListI % folded % utxoPayloadValueL)
 -- | Builds a 'UtxoState' from a 'MockChainState'
 mcstToUtxoState :: MockChainState -> UtxoState
 mcstToUtxoState =
-  foldl extractPayload mempty . Map.toList . mcstOutputs
+  List.foldl' extractPayload mempty . Map.toList . mcstOutputs
   where
     extractPayload :: UtxoState -> (Api.TxOutRef, (TxSkelOut, Bool)) -> UtxoState
     extractPayload utxoState (txOutRef, (txSkelOut, bool)) =
