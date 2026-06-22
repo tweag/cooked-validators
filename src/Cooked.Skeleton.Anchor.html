@@ -25,7 +25,7 @@
 </span><span id="line-25"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-comment">-- The optional anchor resolved page</span><span>
 </span><span id="line-26"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-27"></span><span>
-</span><span id="line-28"></span><span class="annot"><span class="hs-comment">-- | Focusing on the URL of a 'TxSkelAnchor'</span></span><span>
+</span><span id="line-28"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional URL of a 'TxSkelAnchor'</span></span><span>
 </span><span id="line-29"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorURLAT"><span class="hs-identifier hs-type">txSkelAnchorURLAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
 </span><span id="line-30"></span><span id="txSkelAnchorURLAT"><span class="annot"><span class="annottext">txSkelAnchorURLAT :: AffineTraversal' TxSkelAnchor String
 </span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorURLAT"><span class="hs-identifier hs-var hs-var">txSkelAnchorURLAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Prism
@@ -61,7 +61,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall s t a b. Field1 s t a b =&gt; Lens s t a b
 </span><span class="hs-identifier hs-var">_1</span></span><span>
 </span><span id="line-31"></span><span>
-</span><span id="line-32"></span><span class="annot"><span class="hs-comment">-- | Focusing on the optional resolved page of a 'TxSkelAnchor'</span></span><span>
+</span><span id="line-32"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional resolved page of a 'TxSkelAnchor'</span></span><span>
 </span><span id="line-33"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorMResolvedPageAT"><span class="hs-identifier hs-type">txSkelAnchorMResolvedPageAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span>
 </span><span id="line-34"></span><span id="txSkelAnchorMResolvedPageAT"><span class="annot"><span class="annottext">txSkelAnchorMResolvedPageAT :: AffineTraversal' TxSkelAnchor (Maybe ByteString)
 </span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorMResolvedPageAT"><span class="hs-identifier hs-var hs-var">txSkelAnchorMResolvedPageAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Prism
@@ -97,7 +97,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall s t a b. Field2 s t a b =&gt; Lens s t a b
 </span><span class="hs-identifier hs-var">_2</span></span><span>
 </span><span id="line-35"></span><span>
-</span><span id="line-36"></span><span class="annot"><span class="hs-comment">-- | Focusing on the existing resolved page of a 'TxSkelAnchor'</span></span><span>
+</span><span id="line-36"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional resolved page of a 'TxSkelAnchor'</span></span><span>
 </span><span id="line-37"></span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorResolvedPageAT"><span class="hs-identifier hs-type">txSkelAnchorResolvedPageAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Anchor.html#TxSkelAnchor"><span class="hs-identifier hs-type">TxSkelAnchor</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
 </span><span id="line-38"></span><span id="txSkelAnchorResolvedPageAT"><span class="annot"><span class="annottext">txSkelAnchorResolvedPageAT :: AffineTraversal' TxSkelAnchor ByteString
 </span><a href="Cooked.Skeleton.Anchor.html#txSkelAnchorResolvedPageAT"><span class="hs-identifier hs-var hs-var">txSkelAnchorResolvedPageAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AffineTraversal' TxSkelAnchor (Maybe ByteString)

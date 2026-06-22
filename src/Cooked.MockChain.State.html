@@ -82,7 +82,7 @@
 </span><a href="Cooked.MockChain.State.html#mcstConstitution"><span class="hs-identifier hs-var hs-var">mcstConstitution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#VScript"><span class="hs-identifier hs-type">VScript</span></a></span><span>
 </span><span id="line-79"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-80"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
-</span><span id="line-81"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679871494"><span id="local-6989586621679871508"><span id="local-6989586621679871512"><span class="annot"><span class="annottext">Int -&gt; MockChainState -&gt; ShowS
+</span><span id="line-81"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679870160"><span id="local-6989586621679870174"><span id="local-6989586621679870178"><span class="annot"><span class="annottext">Int -&gt; MockChainState -&gt; ShowS
 [MockChainState] -&gt; ShowS
 MockChainState -&gt; String
 (Int -&gt; MockChainState -&gt; ShowS)
@@ -99,21 +99,21 @@ $cshowList :: [MockChainState] -&gt; ShowS
 showList :: [MockChainState] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-82"></span><span>
-</span><span id="line-83"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the parameters of the 'MockChainState'</span></span><span>
+</span><span id="line-83"></span><span class="annot"><span class="hs-comment">-- | Focuses on the parameters of a 'MockChainState'</span></span><span>
 </span><span id="line-84"></span><span id="mcstParamsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstParams&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstParamsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-85"></span><span>
-</span><span id="line-86"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the ledger state of the 'MockChainState'</span></span><span>
+</span><span id="line-86"></span><span class="annot"><span class="hs-comment">-- | Focuses on the ledger state of a 'MockChainState'</span></span><span>
 </span><span id="line-87"></span><span id="mcstLedgerStateL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstLedgerState&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstLedgerStateL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the outputs of the 'MockChainState'</span></span><span>
+</span><span id="line-89"></span><span class="annot"><span class="hs-comment">-- | Focuses on the outputs of a 'MockChainState'</span></span><span>
 </span><span id="line-90"></span><span id="mcstOutputsL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstOutputs&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstOutputsL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-91"></span><span>
-</span><span id="line-92"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the constitution script of the 'MockChainState'</span></span><span>
+</span><span id="line-92"></span><span class="annot"><span class="hs-comment">-- | Focuses on the constitution script of a 'MockChainState'</span></span><span>
 </span><span id="line-93"></span><span id="mcstConstitutionL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;mcstConstitution&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;mcstConstitutionL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">MockChainState</span></span><span>
 </span><span id="line-94"></span><span>
 </span><span id="line-95"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-96"></span><span>  </span><span id="local-6989586621679871566"><span class="annot"><span class="annottext">def :: MockChainState
-</span><a href="#local-6989586621679871566"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params
+</span><span id="line-96"></span><span>  </span><span id="local-6989586621679870232"><span class="annot"><span class="annottext">def :: MockChainState
+</span><a href="#local-6989586621679870232"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Params
 -&gt; EmulatedLedgerState
 -&gt; Map TxOutRef (TxSkelOut, Bool)
 -&gt; Maybe VScript
@@ -132,8 +132,8 @@ forall a. Maybe a
 </span><span id="line-98"></span><span class="annot"><span class="hs-comment">-- | Accesses a given available Utxo from a `MockChainState`</span></span><span>
 </span><span id="line-99"></span><span class="annot"><a href="Cooked.MockChain.State.html#mcstMOutputL"><span class="hs-identifier hs-type">mcstMOutputL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-100"></span><span id="mcstMOutputL"><span class="annot"><span class="annottext">mcstMOutputL :: TxOutRef -&gt; Lens' MockChainState (Maybe TxSkelOut)
-</span><a href="Cooked.MockChain.State.html#mcstMOutputL"><span class="hs-identifier hs-var hs-var">mcstMOutputL</span></a></span></span><span> </span><span id="local-6989586621679871570"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871570"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
+</span><a href="Cooked.MockChain.State.html#mcstMOutputL"><span class="hs-identifier hs-var hs-var">mcstMOutputL</span></a></span></span><span> </span><span id="local-6989586621679870236"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870236"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
 </span><a href="Cooked.MockChain.State.html#mcstOutputsL"><span class="hs-identifier hs-var">mcstOutputsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Map TxOutRef (TxSkelOut, Bool))
 -&gt; Optic
      A_Lens
@@ -160,7 +160,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index (Map TxOutRef (TxSkelOut, Bool))
 TxOutRef
-</span><a href="#local-6989586621679871570"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+</span><a href="#local-6989586621679870236"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
   A_Lens
   '[]
   MockChainState
@@ -205,15 +205,15 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span id="line-102"></span><span class="annot"><span class="hs-comment">-- | Stores an output in a 'MockChainState'</span></span><span>
 </span><span id="line-103"></span><span class="annot"><a href="Cooked.MockChain.State.html#addOutput"><span class="hs-identifier hs-type">addOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
 </span><span id="line-104"></span><span id="addOutput"><span class="annot"><span class="annottext">addOutput :: TxOutRef -&gt; TxSkelOut -&gt; MockChainState -&gt; MockChainState
-</span><a href="Cooked.MockChain.State.html#addOutput"><span class="hs-identifier hs-var hs-var">addOutput</span></a></span></span><span> </span><span id="local-6989586621679871575"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871575"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Maybe TxSkelOut)
+</span><a href="Cooked.MockChain.State.html#addOutput"><span class="hs-identifier hs-var hs-var">addOutput</span></a></span></span><span> </span><span id="local-6989586621679870241"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870241"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' MockChainState (Maybe TxSkelOut)
 -&gt; Maybe TxSkelOut -&gt; MockChainState -&gt; MockChainState
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; Lens' MockChainState (Maybe TxSkelOut)
 </span><a href="Cooked.MockChain.State.html#mcstMOutputL"><span class="hs-identifier hs-var">mcstMOutputL</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871575"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut -&gt; MockChainState -&gt; MockChainState)
+</span><a href="#local-6989586621679870241"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe TxSkelOut -&gt; MockChainState -&gt; MockChainState)
 -&gt; (TxSkelOut -&gt; Maybe TxSkelOut)
 -&gt; TxSkelOut
 -&gt; MockChainState
@@ -227,8 +227,8 @@ forall a. a -&gt; Maybe a
 </span><span id="line-107"></span><span class="hs-comment">-- it from the map, but instead marks its availability to @False@</span><span>
 </span><span id="line-108"></span><span class="annot"><a href="Cooked.MockChain.State.html#removeOutput"><span class="hs-identifier hs-type">removeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span>
 </span><span id="line-109"></span><span id="removeOutput"><span class="annot"><span class="annottext">removeOutput :: TxOutRef -&gt; MockChainState -&gt; MockChainState
-</span><a href="Cooked.MockChain.State.html#removeOutput"><span class="hs-identifier hs-var hs-var">removeOutput</span></a></span></span><span> </span><span id="local-6989586621679871578"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871578"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic
+</span><a href="Cooked.MockChain.State.html#removeOutput"><span class="hs-identifier hs-var hs-var">removeOutput</span></a></span></span><span> </span><span id="local-6989586621679870244"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870244"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic
   An_AffineTraversal '[] MockChainState MockChainState Bool Bool
 -&gt; Bool -&gt; MockChainState -&gt; MockChainState
 forall k (is :: IxList) s t a b.
@@ -261,7 +261,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index (Map TxOutRef (TxSkelOut, Bool))
 TxOutRef
-</span><a href="#local-6989586621679871578"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+</span><a href="#local-6989586621679870244"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
   A_Lens
   '[]
   MockChainState
@@ -320,9 +320,9 @@ forall s t a b. Field2 s t a b =&gt; Lens s t a b
 </span><span id="line-115"></span><span class="hs-comment">-- fact.</span><span>
 </span><span id="line-116"></span><span class="hs-keyword">data</span><span> </span><span id="UtxoPayloadDatum"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-var">UtxoPayloadDatum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-117"></span><span>  </span><span id="NoUtxoPayloadDatum"><span class="annot"><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span><span>
-</span><span id="line-118"></span><span>  </span><span id="local-6989586621679871582"><span id="SomeUtxoPayloadDatum"><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-var">SomeUtxoPayloadDatum</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871582"><span class="hs-identifier hs-type">dat</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679871582"><span class="hs-identifier hs-type">dat</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span><span>
+</span><span id="line-118"></span><span>  </span><span id="local-6989586621679870248"><span id="SomeUtxoPayloadDatum"><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-var">SomeUtxoPayloadDatum</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679870248"><span class="hs-identifier hs-type">dat</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679870248"><span class="hs-identifier hs-type">dat</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span><span>
 </span><span id="line-119"></span><span>
-</span><span id="line-120"></span><span class="annot"><span class="hs-comment">-- | Focuses on whether on not this `UtxoPayloadDatum` isHashed</span></span><span>
+</span><span id="line-120"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional hashed flag of a 'UtxoPayloadDatum'</span></span><span>
 </span><span id="line-121"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadDatumKindAT"><span class="hs-identifier hs-type">utxoPayloadDatumKindAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
 </span><span id="line-122"></span><span id="utxoPayloadDatumKindAT"><span class="annot"><span class="annottext">utxoPayloadDatumKindAT :: AffineTraversal' UtxoPayloadDatum Bool
 </span><a href="Cooked.MockChain.State.html#utxoPayloadDatumKindAT"><span class="hs-identifier hs-var hs-var">utxoPayloadDatumKindAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
@@ -339,34 +339,34 @@ forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span>
 </span><span id="line-126"></span><span>        </span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679871586"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871586"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Either UtxoPayloadDatum Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679870252"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870252"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Either UtxoPayloadDatum Bool
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871586"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><a href="#local-6989586621679870252"><span class="hs-identifier hs-var">b</span></a></span><span>
 </span><span id="line-127"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-128"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; UtxoPayloadDatum -&gt; UtxoPayloadDatum)
 -&gt; UtxoPayloadDatum -&gt; Bool -&gt; UtxoPayloadDatum
 forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span>
-</span><span id="line-129"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679871588"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871588"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-129"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679870254"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870254"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
 </span><span id="line-130"></span><span>            </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span>
-</span><span id="line-131"></span><span>            </span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span id="local-6989586621679871591"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871591"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span id="line-131"></span><span>            </span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span id="local-6989586621679870257"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679870257"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Bool -&gt; UtxoPayloadDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; Bool -&gt; UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-var">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871591"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871588"><span class="hs-identifier hs-var">kind</span></a></span><span>
+</span><a href="#local-6989586621679870257"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870254"><span class="hs-identifier hs-var">kind</span></a></span><span>
 </span><span id="line-132"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-133"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-134"></span><span>
 </span><span id="line-135"></span><span class="hs-comment">-- | Extracts, or sets, the typed datum of a 'UtxoPayloadDatum' following the</span><span>
 </span><span id="line-136"></span><span class="hs-comment">-- same rules as `txSkelOutDatumTypedAT`</span><span>
-</span><span id="line-137"></span><span id="local-6989586621679871284"><span id="local-6989586621679871285"><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadDatumTypedAT"><span class="hs-identifier hs-type">utxoPayloadDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871284"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871285"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871284"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871285"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
+</span><span id="line-137"></span><span id="local-6989586621679869950"><span id="local-6989586621679869951"><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadDatumTypedAT"><span class="hs-identifier hs-type">utxoPayloadDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679869950"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679869951"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679869950"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679869951"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
 </span><span id="line-138"></span><span id="utxoPayloadDatumTypedAT"><span class="annot"><span class="annottext">utxoPayloadDatumTypedAT :: forall a b.
 (DatumConstrs a, DatumConstrs b) =&gt;
 AffineTraversal UtxoPayloadDatum UtxoPayloadDatum a b
@@ -378,60 +378,60 @@ forall s t a b.
 (s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
 </span><span class="hs-identifier hs-var">atraversal</span></span><span>
 </span><span id="line-140"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-141"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span id="local-6989586621679871601"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871601"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679871602"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679871602"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Maybe a
+</span><span id="line-141"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span id="local-6989586621679870267"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679870267"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679870268"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679870268"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Maybe a
 forall a b. (Typeable a, Typeable b) =&gt; a -&gt; Maybe b
 </span><span class="hs-identifier hs-var">cast</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871601"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either UtxoPayloadDatum a
+</span><a href="#local-6989586621679870267"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either UtxoPayloadDatum a
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679871602"><span class="hs-identifier hs-var">content'</span></a></span><span>
-</span><span id="line-142"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span id="local-6989586621679871608"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871608"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679871609"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679871609"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; Maybe a
+</span><a href="#local-6989586621679870268"><span class="hs-identifier hs-var">content'</span></a></span><span>
+</span><span id="line-142"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span id="local-6989586621679870274"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679870274"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679870275"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679870275"><span class="hs-identifier hs-var">content'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; Maybe a
 forall a. FromData a =&gt; BuiltinData -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Api.fromBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; Maybe a) -&gt; BuiltinData -&gt; Maybe a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871608"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either UtxoPayloadDatum a
+</span><a href="#local-6989586621679870274"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either UtxoPayloadDatum a
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679871609"><span class="hs-identifier hs-var">content'</span></a></span><span>
-</span><span id="line-143"></span><span>        </span><span id="local-6989586621679871612"><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871612"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum -&gt; Either UtxoPayloadDatum a
+</span><a href="#local-6989586621679870275"><span class="hs-identifier hs-var">content'</span></a></span><span>
+</span><span id="line-143"></span><span>        </span><span id="local-6989586621679870278"><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><a href="#local-6989586621679870278"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum -&gt; Either UtxoPayloadDatum a
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871612"><span class="hs-identifier hs-var">dc</span></a></span><span>
+</span><a href="#local-6989586621679870278"><span class="hs-identifier hs-var">dc</span></a></span><span>
 </span><span id="line-144"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-145"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">(b -&gt; UtxoPayloadDatum -&gt; UtxoPayloadDatum)
 -&gt; UtxoPayloadDatum -&gt; b -&gt; UtxoPayloadDatum
 forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span>
-</span><span id="line-146"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679871613"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679871613"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-146"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679870279"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679870279"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
 </span><span id="line-147"></span><span>            </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span>
 </span><span id="line-148"></span><span>            </span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679871616"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871616"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">b -&gt; Bool -&gt; UtxoPayloadDatum
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679870282"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870282"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">b -&gt; Bool -&gt; UtxoPayloadDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; Bool -&gt; UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-var">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679871613"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871616"><span class="hs-identifier hs-var">kind</span></a></span><span>
+</span><a href="#local-6989586621679870279"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870282"><span class="hs-identifier hs-var">kind</span></a></span><span>
 </span><span id="line-149"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-150"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-151"></span><span>
-</span><span id="line-152"></span><span id="local-6989586621679871618"><span id="local-6989586621679871620"><span id="local-6989586621679871624"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span></span></span><span>
+</span><span id="line-152"></span><span id="local-6989586621679870284"><span id="local-6989586621679870286"><span id="local-6989586621679870290"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span></span></span><span>
 </span><span id="line-153"></span><span>
-</span><span id="line-154"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871631"><span id="local-6989586621679871635"><span id="local-6989586621679871638"><span id="local-6989586621679871641"><span id="local-6989586621679871644"><span id="local-6989586621679871647"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-155"></span><span>  </span><span id="local-6989586621679871650"><span class="annot"><span class="annottext">compare :: UtxoPayloadDatum -&gt; UtxoPayloadDatum -&gt; Ordering
-</span><a href="#local-6989586621679871650"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><span id="line-154"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870297"><span id="local-6989586621679870301"><span id="local-6989586621679870304"><span id="local-6989586621679870307"><span id="local-6989586621679870310"><span id="local-6989586621679870313"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-155"></span><span>  </span><span id="local-6989586621679870316"><span class="annot"><span class="annottext">compare :: UtxoPayloadDatum -&gt; UtxoPayloadDatum -&gt; Ordering
+</span><a href="#local-6989586621679870316"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ordering
 </span><span class="hs-identifier hs-var">EQ</span></span><span>
@@ -446,31 +446,31 @@ forall dat. DatumConstrs dat =&gt; dat -&gt; Bool -&gt; UtxoPayloadDatum
 </span><span id="line-158"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">compare</span></span><span>
 </span><span id="line-159"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
-</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679871655"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679871655"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679871656"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871656"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span>
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679870321"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679870321"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679870322"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870322"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span>
 </span><span id="line-160"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-type">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">dat -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
-</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679871666"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679871666"><span class="hs-identifier hs-var">dat'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679871667"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871667"><span class="hs-identifier hs-var">b'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Api.toBuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679870332"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679870332"><span class="hs-identifier hs-var">dat'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679870333"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870333"><span class="hs-identifier hs-var">b'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-161"></span><span>      </span><span class="annot"><span class="annottext">(BuiltinData, Bool) -&gt; (BuiltinData, Bool) -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679871655"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871656"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679871666"><span class="hs-identifier hs-var">dat'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871667"><span class="hs-identifier hs-var">b'</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679870321"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870322"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679870332"><span class="hs-identifier hs-var">dat'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870333"><span class="hs-identifier hs-var">b'</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-162"></span><span>
-</span><span id="line-163"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871670"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-164"></span><span>  </span><span id="local-6989586621679871676"><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871676"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679871677"><span class="annot"><span class="annottext">== :: UtxoPayloadDatum -&gt; UtxoPayloadDatum -&gt; Bool
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span id="local-6989586621679871678"><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871678"><span class="hs-identifier hs-var">dat'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum -&gt; UtxoPayloadDatum -&gt; Ordering
+</span><span id="line-163"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870336"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadDatum"><span class="hs-identifier hs-type">UtxoPayloadDatum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-164"></span><span>  </span><span id="local-6989586621679870342"><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><a href="#local-6989586621679870342"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679870343"><span class="annot"><span class="annottext">== :: UtxoPayloadDatum -&gt; UtxoPayloadDatum -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span id="local-6989586621679870344"><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><a href="#local-6989586621679870344"><span class="hs-identifier hs-var">dat'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum -&gt; UtxoPayloadDatum -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871676"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871678"><span class="hs-identifier hs-var">dat'</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Bool
+</span><a href="#local-6989586621679870342"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><a href="#local-6989586621679870344"><span class="hs-identifier hs-var">dat'</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Ordering
 </span><span class="hs-identifier hs-var">EQ</span></span><span>
@@ -492,7 +492,7 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><a href="Cooked.MockChain.State.html#utxoPayloadReferenceScriptHash"><span class="hs-identifier hs-var hs-var">utxoPayloadReferenceScriptHash</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span>
 </span><span id="line-177"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-178"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span>
-</span><span id="line-179"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679871685"><span id="local-6989586621679871695"><span class="annot"><span class="annottext">UtxoPayload -&gt; UtxoPayload -&gt; Bool
+</span><span id="line-179"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679870351"><span id="local-6989586621679870361"><span class="annot"><span class="annottext">UtxoPayload -&gt; UtxoPayload -&gt; Bool
 (UtxoPayload -&gt; UtxoPayload -&gt; Bool)
 -&gt; (UtxoPayload -&gt; UtxoPayload -&gt; Bool) -&gt; Eq UtxoPayload
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -500,7 +500,7 @@ $c== :: UtxoPayload -&gt; UtxoPayload -&gt; Bool
 == :: UtxoPayload -&gt; UtxoPayload -&gt; Bool
 $c/= :: UtxoPayload -&gt; UtxoPayload -&gt; Bool
 /= :: UtxoPayload -&gt; UtxoPayload -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679871700"><span id="local-6989586621679871709"><span id="local-6989586621679871713"><span class="annot"><span class="annottext">Int -&gt; UtxoPayload -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679870366"><span id="local-6989586621679870375"><span id="local-6989586621679870379"><span class="annot"><span class="annottext">Int -&gt; UtxoPayload -&gt; ShowS
 [UtxoPayload] -&gt; ShowS
 UtxoPayload -&gt; String
 (Int -&gt; UtxoPayload -&gt; ShowS)
@@ -517,22 +517,21 @@ $cshowList :: [UtxoPayload] -&gt; ShowS
 showList :: [UtxoPayload] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-180"></span><span>
-</span><span id="line-181"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the UTxO reference from this `UtxoPayload`</span></span><span>
+</span><span id="line-181"></span><span class="annot"><span class="hs-comment">-- | Focuses on the UTxO reference of a 'UtxoPayload'</span></span><span>
 </span><span id="line-182"></span><span id="utxoPayloadTxOutRefL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;utxoPayloadTxOutRef&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;utxoPayloadTxOutRefL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoPayload</span></span><span>
 </span><span id="line-183"></span><span>
-</span><span id="line-184"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the value from this `UtxoPayload`</span></span><span>
+</span><span id="line-184"></span><span class="annot"><span class="hs-comment">-- | Focuses on the value of a 'UtxoPayload'</span></span><span>
 </span><span id="line-185"></span><span id="utxoPayloadValueL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;utxoPayloadValue&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;utxoPayloadValueL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoPayload</span></span><span>
 </span><span id="line-186"></span><span>
-</span><span id="line-187"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the datum from this `UtxoPayload`</span></span><span>
+</span><span id="line-187"></span><span class="annot"><span class="hs-comment">-- | Focuses on the datum of a 'UtxoPayload'</span></span><span>
 </span><span id="line-188"></span><span id="utxoPayloadDatumL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;utxoPayloadDatum&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;utxoPayloadDatumL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoPayload</span></span><span>
 </span><span id="line-189"></span><span>
-</span><span id="line-190"></span><span class="hs-comment">-- | A lens to set or get the optional reference script hash from this</span><span>
-</span><span id="line-191"></span><span class="hs-comment">-- `UtxoPayload`</span><span>
-</span><span id="line-192"></span><span id="utxoPayloadMReferenceScriptHashL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;utxoPayloadReferenceScriptHash&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;utxoPayloadMReferenceScriptHashL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoPayload</span></span><span>
-</span><span id="line-193"></span><span>
-</span><span id="line-194"></span><span class="annot"><span class="hs-comment">-- | Focusing on the optional reference script hash of a `UtxoPayload`</span></span><span>
-</span><span id="line-195"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadReferenceScriptHashAT"><span class="hs-identifier hs-type">utxoPayloadReferenceScriptHashAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span>
-</span><span id="line-196"></span><span id="utxoPayloadReferenceScriptHashAT"><span class="annot"><span class="annottext">utxoPayloadReferenceScriptHashAT :: AffineTraversal' UtxoPayload ScriptHash
+</span><span id="line-190"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional reference script hash of a 'UtxoPayload'</span></span><span>
+</span><span id="line-191"></span><span id="utxoPayloadMReferenceScriptHashL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;utxoPayloadReferenceScriptHash&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;utxoPayloadMReferenceScriptHashL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoPayload</span></span><span>
+</span><span id="line-192"></span><span>
+</span><span id="line-193"></span><span class="annot"><span class="hs-comment">-- | Focuses on the optional reference script hash of a 'UtxoPayload'</span></span><span>
+</span><span id="line-194"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadReferenceScriptHashAT"><span class="hs-identifier hs-type">utxoPayloadReferenceScriptHashAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span>
+</span><span id="line-195"></span><span id="utxoPayloadReferenceScriptHashAT"><span class="annot"><span class="annottext">utxoPayloadReferenceScriptHashAT :: AffineTraversal' UtxoPayload ScriptHash
 </span><a href="Cooked.MockChain.State.html#utxoPayloadReferenceScriptHashAT"><span class="hs-identifier hs-var hs-var">utxoPayloadReferenceScriptHashAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' UtxoPayload (Maybe ScriptHash)
 </span><a href="Cooked.MockChain.State.html#utxoPayloadMReferenceScriptHashL"><span class="hs-identifier hs-var">utxoPayloadMReferenceScriptHashL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' UtxoPayload (Maybe ScriptHash)
 -&gt; Optic
@@ -556,17 +555,17 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   ScriptHash
 forall a b. Prism (Maybe a) (Maybe b) a b
 </span><span class="hs-identifier hs-var">_Just</span></span><span>
-</span><span id="line-197"></span><span>
-</span><span id="line-198"></span><span class="annot"><span class="hs-comment">-- | Represents a /set/ of payloads.</span></span><span>
-</span><span id="line-199"></span><span class="hs-keyword">newtype</span><span> </span><span id="UtxoPayloadSet"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UtxoPayloadSet"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span></span><span>
-</span><span id="line-200"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | List of UTxOs contained in this 'UtxoPayloadSet'</span></span><span>
-</span><span id="line-201"></span><span>    </span><span id="utxoPayloadSet"><span class="annot"><span class="annottext">UtxoPayloadSet -&gt; [UtxoPayload]
+</span><span id="line-196"></span><span>
+</span><span id="line-197"></span><span class="annot"><span class="hs-comment">-- | Represents a /set/ of payloads.</span></span><span>
+</span><span id="line-198"></span><span class="hs-keyword">newtype</span><span> </span><span id="UtxoPayloadSet"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UtxoPayloadSet"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span></span><span>
+</span><span id="line-199"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | List of UTxOs contained in this 'UtxoPayloadSet'</span></span><span>
+</span><span id="line-200"></span><span>    </span><span id="utxoPayloadSet"><span class="annot"><span class="annottext">UtxoPayloadSet -&gt; [UtxoPayload]
 </span><a href="Cooked.MockChain.State.html#utxoPayloadSet"><span class="hs-identifier hs-var hs-var">utxoPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-202"></span><span>    </span><span class="hs-comment">-- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'</span><span>
-</span><span id="line-203"></span><span>    </span><span class="hs-comment">-- and because it is possible that we want to distinguish between utxo states</span><span>
-</span><span id="line-204"></span><span>    </span><span class="hs-comment">-- that have additional utxos, even if these could have been merged together.</span><span>
-</span><span id="line-205"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-206"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679871755"><span id="local-6989586621679871761"><span id="local-6989586621679871765"><span class="annot"><span class="annottext">Int -&gt; UtxoPayloadSet -&gt; ShowS
+</span><span id="line-201"></span><span>    </span><span class="hs-comment">-- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'</span><span>
+</span><span id="line-202"></span><span>    </span><span class="hs-comment">-- and because it is possible that we want to distinguish between utxo states</span><span>
+</span><span id="line-203"></span><span>    </span><span class="hs-comment">-- that have additional utxos, even if these could have been merged together.</span><span>
+</span><span id="line-204"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-205"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679870421"><span id="local-6989586621679870427"><span id="local-6989586621679870431"><span class="annot"><span class="annottext">Int -&gt; UtxoPayloadSet -&gt; ShowS
 [UtxoPayloadSet] -&gt; ShowS
 UtxoPayloadSet -&gt; String
 (Int -&gt; UtxoPayloadSet -&gt; ShowS)
@@ -582,10 +581,10 @@ show :: UtxoPayloadSet -&gt; String
 $cshowList :: [UtxoPayloadSet] -&gt; ShowS
 showList :: [UtxoPayloadSet] -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-207"></span><span>
-</span><span id="line-208"></span><span class="annot"><span class="hs-comment">-- | Going back and forth between a list of `UtxoPayload` and a `UtxoPayloadSet`</span></span><span>
-</span><span id="line-209"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadSetListI"><span class="hs-identifier hs-type">utxoPayloadSetListI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Iso'</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-210"></span><span id="utxoPayloadSetListI"><span class="annot"><span class="annottext">utxoPayloadSetListI :: Iso' UtxoPayloadSet [UtxoPayload]
+</span><span id="line-206"></span><span>
+</span><span id="line-207"></span><span class="annot"><span class="hs-comment">-- | An isomorphism between a 'UtxoPayloadSet' and a list of 'UtxoPayload'</span></span><span>
+</span><span id="line-208"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadSetListI"><span class="hs-identifier hs-type">utxoPayloadSetListI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Iso'</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-209"></span><span id="utxoPayloadSetListI"><span class="annot"><span class="annottext">utxoPayloadSetListI :: Iso' UtxoPayloadSet [UtxoPayload]
 </span><a href="Cooked.MockChain.State.html#utxoPayloadSetListI"><span class="hs-identifier hs-var hs-var">utxoPayloadSetListI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UtxoPayloadSet -&gt; [UtxoPayload])
 -&gt; ([UtxoPayload] -&gt; UtxoPayloadSet)
 -&gt; Iso' UtxoPayloadSet [UtxoPayload]
@@ -593,32 +592,32 @@ forall s a b t. (s -&gt; a) -&gt; (b -&gt; t) -&gt; Iso s t a b
 </span><span class="hs-identifier hs-var">iso</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadSet -&gt; [UtxoPayload]
 </span><a href="Cooked.MockChain.State.html#utxoPayloadSet"><span class="hs-identifier hs-var">utxoPayloadSet</span></a></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
 </span><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span><span>
-</span><span id="line-211"></span><span>
-</span><span id="line-212"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871769"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-213"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679871794"><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871794"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679871795"><span class="annot"><span class="annottext">== :: UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; Bool
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679871796"><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871796"><span class="hs-identifier hs-var">ys</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871797"><span class="hs-identifier hs-var">xs'</span></a></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; [UtxoPayload] -&gt; Bool
+</span><span id="line-210"></span><span>
+</span><span id="line-211"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870435"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-212"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679870460"><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870460"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679870461"><span class="annot"><span class="annottext">== :: UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679870462"><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870462"><span class="hs-identifier hs-var">ys</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870463"><span class="hs-identifier hs-var">xs'</span></a></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; [UtxoPayload] -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871798"><span class="hs-identifier hs-var">ys'</span></a></span><span>
-</span><span id="line-214"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-215"></span><span>      </span><span id="local-6989586621679871799"><span class="annot"><span class="annottext">k :: UtxoPayload
+</span><a href="#local-6989586621679870464"><span class="hs-identifier hs-var">ys'</span></a></span><span>
+</span><span id="line-213"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-214"></span><span>      </span><span id="local-6989586621679870465"><span class="annot"><span class="annottext">k :: UtxoPayload
 -&gt; (TxOutRef, [(CurrencySymbol, TokenName, Integer)],
     UtxoPayloadDatum, Maybe ScriptHash)
-</span><a href="#local-6989586621679871799"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span> </span><span id="local-6989586621679871800"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871800"><span class="hs-identifier hs-var">ref</span></a></span></span><span> </span><span id="local-6989586621679871801"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679871801"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679871802"><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871802"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679871803"><span class="annot"><span class="annottext">Maybe ScriptHash
-</span><a href="#local-6989586621679871803"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871800"><span class="hs-identifier hs-var">ref</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
+</span><a href="#local-6989586621679870465"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-type">UtxoPayload</span></a></span><span> </span><span id="local-6989586621679870466"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870466"><span class="hs-identifier hs-var">ref</span></a></span></span><span> </span><span id="local-6989586621679870467"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679870467"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679870468"><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><a href="#local-6989586621679870468"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679870469"><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><a href="#local-6989586621679870469"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870466"><span class="hs-identifier hs-var">ref</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
 </span><span class="hs-identifier hs-var">Api.flattenValue</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679871801"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
-</span><a href="#local-6989586621679871802"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
-</span><a href="#local-6989586621679871803"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-216"></span><span>      </span><span id="local-6989586621679871797"><span class="annot"><span class="annottext">xs' :: [UtxoPayload]
-</span><a href="#local-6989586621679871797"><span class="hs-identifier hs-var hs-var">xs'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UtxoPayload -&gt; UtxoPayload -&gt; Ordering)
+</span><a href="#local-6989586621679870467"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
+</span><a href="#local-6989586621679870468"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><a href="#local-6989586621679870469"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-215"></span><span>      </span><span id="local-6989586621679870463"><span class="annot"><span class="annottext">xs' :: [UtxoPayload]
+</span><a href="#local-6989586621679870463"><span class="hs-identifier hs-var hs-var">xs'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UtxoPayload -&gt; UtxoPayload -&gt; Ordering)
 -&gt; [UtxoPayload] -&gt; [UtxoPayload]
 forall a. (a -&gt; a -&gt; Ordering) -&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">List.sortBy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxOutRef, [(CurrencySymbol, TokenName, Integer)],
@@ -642,10 +641,10 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayload
 -&gt; (TxOutRef, [(CurrencySymbol, TokenName, Integer)],
     UtxoPayloadDatum, Maybe ScriptHash)
-</span><a href="#local-6989586621679871799"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871794"><span class="hs-identifier hs-var">xs</span></a></span><span>
-</span><span id="line-217"></span><span>      </span><span id="local-6989586621679871798"><span class="annot"><span class="annottext">ys' :: [UtxoPayload]
-</span><a href="#local-6989586621679871798"><span class="hs-identifier hs-var hs-var">ys'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UtxoPayload -&gt; UtxoPayload -&gt; Ordering)
+</span><a href="#local-6989586621679870465"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870460"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-216"></span><span>      </span><span id="local-6989586621679870464"><span class="annot"><span class="annottext">ys' :: [UtxoPayload]
+</span><a href="#local-6989586621679870464"><span class="hs-identifier hs-var hs-var">ys'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UtxoPayload -&gt; UtxoPayload -&gt; Ordering)
 -&gt; [UtxoPayload] -&gt; [UtxoPayload]
 forall a. (a -&gt; a -&gt; Ordering) -&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">List.sortBy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxOutRef, [(CurrencySymbol, TokenName, Integer)],
@@ -669,41 +668,41 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayload
 -&gt; (TxOutRef, [(CurrencySymbol, TokenName, Integer)],
     UtxoPayloadDatum, Maybe ScriptHash)
-</span><a href="#local-6989586621679871799"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871796"><span class="hs-identifier hs-var">ys</span></a></span><span>
-</span><span id="line-218"></span><span>
-</span><span id="line-219"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871808"><span id="local-6989586621679871811"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-220"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679871816"><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871816"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679871817"><span class="annot"><span class="annottext">&lt;&gt; :: UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679871818"><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871818"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
+</span><a href="#local-6989586621679870465"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870462"><span class="hs-identifier hs-var">ys</span></a></span><span>
+</span><span id="line-217"></span><span>
+</span><span id="line-218"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870474"><span id="local-6989586621679870477"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-219"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679870482"><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870482"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679870483"><span class="annot"><span class="annottext">&lt;&gt; :: UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span id="local-6989586621679870484"><span class="annot"><span class="annottext">[UtxoPayload]
+</span><a href="#local-6989586621679870484"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
 </span><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span><span> </span><span class="annot"><span class="annottext">([UtxoPayload] -&gt; UtxoPayloadSet)
 -&gt; [UtxoPayload] -&gt; UtxoPayloadSet
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871816"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; [UtxoPayload] -&gt; [UtxoPayload]
+</span><a href="#local-6989586621679870482"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; [UtxoPayload] -&gt; [UtxoPayload]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[UtxoPayload]
-</span><a href="#local-6989586621679871818"><span class="hs-identifier hs-var">b</span></a></span><span>
-</span><span id="line-221"></span><span>
-</span><span id="line-222"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871823"><span id="local-6989586621679871827"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-223"></span><span>  </span><span id="local-6989586621679871830"><span class="annot"><span class="annottext">mempty :: UtxoPayloadSet
+</span><a href="#local-6989586621679870484"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-220"></span><span>
+</span><span id="line-221"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870489"><span id="local-6989586621679870493"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-222"></span><span>  </span><span id="local-6989586621679870496"><span class="annot"><span class="annottext">mempty :: UtxoPayloadSet
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
 </span><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-224"></span><span>
-</span><span id="line-225"></span><span class="hs-comment">-- | A description of who owns what in a blockchain. Owners are addresses and</span><span>
-</span><span id="line-226"></span><span class="hs-comment">-- they each own a 'UtxoPayloadSet'.</span><span>
-</span><span id="line-227"></span><span class="hs-keyword">data</span><span> </span><span id="UtxoState"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-var">UtxoState</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-228"></span><span>  </span><span id="UtxoState"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-var">UtxoState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-229"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | Utxos available to be consumed</span></span><span>
-</span><span id="line-230"></span><span>      </span><span id="availableUtxos"><span class="annot"><span class="annottext">UtxoState -&gt; Map Address UtxoPayloadSet
+</span><span id="line-223"></span><span>
+</span><span id="line-224"></span><span class="hs-comment">-- | A description of who owns what in a blockchain. Owners are addresses and</span><span>
+</span><span id="line-225"></span><span class="hs-comment">-- they each own a 'UtxoPayloadSet'.</span><span>
+</span><span id="line-226"></span><span class="hs-keyword">data</span><span> </span><span id="UtxoState"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-var">UtxoState</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-227"></span><span>  </span><span id="UtxoState"><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-var">UtxoState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-228"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | Utxos available to be consumed</span></span><span>
+</span><span id="line-229"></span><span>      </span><span id="availableUtxos"><span class="annot"><span class="annottext">UtxoState -&gt; Map Address UtxoPayloadSet
 </span><a href="Cooked.MockChain.State.html#availableUtxos"><span class="hs-identifier hs-var hs-var">availableUtxos</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-231"></span><span>      </span><span class="annot"><span class="hs-comment">-- | Utxos already consumed</span></span><span>
-</span><span id="line-232"></span><span>      </span><span id="consumedUtxos"><span class="annot"><span class="annottext">UtxoState -&gt; Map Address UtxoPayloadSet
+</span><span id="line-230"></span><span>      </span><span class="annot"><span class="hs-comment">-- | Utxos already consumed</span></span><span>
+</span><span id="line-231"></span><span>      </span><span id="consumedUtxos"><span class="annot"><span class="annottext">UtxoState -&gt; Map Address UtxoPayloadSet
 </span><a href="Cooked.MockChain.State.html#consumedUtxos"><span class="hs-identifier hs-var hs-var">consumedUtxos</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span>
-</span><span id="line-233"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-234"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
-</span><span id="line-235"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679871834"><span id="local-6989586621679871841"><span class="annot"><span class="annottext">UtxoState -&gt; UtxoState -&gt; Bool
+</span><span id="line-232"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-233"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
+</span><span id="line-234"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679870500"><span id="local-6989586621679870507"><span class="annot"><span class="annottext">UtxoState -&gt; UtxoState -&gt; Bool
 (UtxoState -&gt; UtxoState -&gt; Bool)
 -&gt; (UtxoState -&gt; UtxoState -&gt; Bool) -&gt; Eq UtxoState
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -712,20 +711,20 @@ $c== :: UtxoState -&gt; UtxoState -&gt; Bool
 $c/= :: UtxoState -&gt; UtxoState -&gt; Bool
 /= :: UtxoState -&gt; UtxoState -&gt; Bool
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-236"></span><span>
-</span><span id="line-237"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the available UTxOs from a `UtxoState`</span></span><span>
-</span><span id="line-238"></span><span id="availableUtxosL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;availableUtxos&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;availableUtxosL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoState</span></span><span>
-</span><span id="line-239"></span><span>
-</span><span id="line-240"></span><span class="annot"><span class="hs-comment">-- | A lens to set or get the consumed UTxOs from a `UtxoState`</span></span><span>
-</span><span id="line-241"></span><span id="consumedUtxosL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;consumedUtxos&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;consumedUtxosL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoState</span></span><span>
-</span><span id="line-242"></span><span>
-</span><span id="line-243"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871861"><span id="local-6989586621679871865"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-244"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span id="local-6989586621679871873"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871873"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679871874"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871874"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679871875"><span class="annot"><span class="annottext">&lt;&gt; :: UtxoState -&gt; UtxoState -&gt; UtxoState
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span id="local-6989586621679871876"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871876"><span class="hs-identifier hs-var">a'</span></a></span></span><span> </span><span id="local-6989586621679871877"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871877"><span class="hs-identifier hs-var">c'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><span id="line-235"></span><span>
+</span><span id="line-236"></span><span class="annot"><span class="hs-comment">-- | Focuses on the available UTxOs of a 'UtxoState'</span></span><span>
+</span><span id="line-237"></span><span id="availableUtxosL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;availableUtxos&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;availableUtxosL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoState</span></span><span>
+</span><span id="line-238"></span><span>
+</span><span id="line-239"></span><span class="annot"><span class="hs-comment">-- | Focuses on the consumed UTxOs of a 'UtxoState'</span></span><span>
+</span><span id="line-240"></span><span id="consumedUtxosL"><span class="hs-identifier">makeLensesFor</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;consumedUtxos&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;consumedUtxosL&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UtxoState</span></span><span>
+</span><span id="line-241"></span><span>
+</span><span id="line-242"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870527"><span id="local-6989586621679870531"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-243"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span id="local-6989586621679870539"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><a href="#local-6989586621679870539"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679870540"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><a href="#local-6989586621679870540"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679870541"><span class="annot"><span class="annottext">&lt;&gt; :: UtxoState -&gt; UtxoState -&gt; UtxoState
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span id="local-6989586621679870542"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><a href="#local-6989586621679870542"><span class="hs-identifier hs-var">a'</span></a></span></span><span> </span><span id="local-6989586621679870543"><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><a href="#local-6989586621679870543"><span class="hs-identifier hs-var">c'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
 -&gt; Map Address UtxoPayloadSet -&gt; UtxoState
 </span><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-var">UtxoState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet)
 -&gt; Map Address UtxoPayloadSet
@@ -735,8 +734,8 @@ forall k a. Ord k =&gt; (a -&gt; a -&gt; a) -&gt; Map k a -&gt; Map k a -&gt; Ma
 </span><span class="hs-identifier hs-var">Map.unionWith</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871873"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871876"><span class="hs-identifier hs-var">a'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet)
+</span><a href="#local-6989586621679870539"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><a href="#local-6989586621679870542"><span class="hs-identifier hs-var">a'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet)
 -&gt; Map Address UtxoPayloadSet
 -&gt; Map Address UtxoPayloadSet
 -&gt; Map Address UtxoPayloadSet
@@ -744,11 +743,11 @@ forall k a. Ord k =&gt; (a -&gt; a -&gt; a) -&gt; Map k a -&gt; Map k a -&gt; Ma
 </span><span class="hs-identifier hs-var">Map.unionWith</span></span><span> </span><span class="annot"><span class="annottext">UtxoPayloadSet -&gt; UtxoPayloadSet -&gt; UtxoPayloadSet
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871874"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
-</span><a href="#local-6989586621679871877"><span class="hs-identifier hs-var">c'</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-245"></span><span>
-</span><span id="line-246"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679871883"><span id="local-6989586621679871886"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-247"></span><span>  </span><span id="local-6989586621679871888"><span class="annot"><span class="annottext">mempty :: UtxoState
+</span><a href="#local-6989586621679870540"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
+</span><a href="#local-6989586621679870543"><span class="hs-identifier hs-var">c'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-244"></span><span>
+</span><span id="line-245"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679870549"><span id="local-6989586621679870552"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-246"></span><span>  </span><span id="local-6989586621679870554"><span class="annot"><span class="annottext">mempty :: UtxoState
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
 -&gt; Map Address UtxoPayloadSet -&gt; UtxoState
 </span><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-var">UtxoState</span></a></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
@@ -756,14 +755,14 @@ forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span> </span><span class="annot"><span class="annottext">Map Address UtxoPayloadSet
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span>
-</span><span id="line-248"></span><span>
-</span><span id="line-249"></span><span class="annot"><span class="hs-comment">-- | Total value accessible to what's pointed by the address.</span></span><span>
-</span><span id="line-250"></span><span id="local-6989586621679871348"><span class="annot"><a href="Cooked.MockChain.State.html#holdsInState"><span class="hs-identifier hs-type">holdsInState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToAddress</span></span><span> </span><span class="annot"><a href="#local-6989586621679871348"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679871348"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
-</span><span id="line-251"></span><span id="holdsInState"><span class="annot"><span class="annottext">holdsInState :: forall a. ToAddress a =&gt; a -&gt; UtxoState -&gt; Value
+</span><span id="line-247"></span><span>
+</span><span id="line-248"></span><span class="annot"><span class="hs-comment">-- | Total value accessible to what's pointed by the address.</span></span><span>
+</span><span id="line-249"></span><span id="local-6989586621679870014"><span class="annot"><a href="Cooked.MockChain.State.html#holdsInState"><span class="hs-identifier hs-type">holdsInState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToAddress</span></span><span> </span><span class="annot"><a href="#local-6989586621679870014"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679870014"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-250"></span><span id="holdsInState"><span class="annot"><span class="annottext">holdsInState :: forall a. ToAddress a =&gt; a -&gt; UtxoState -&gt; Value
 </span><a href="Cooked.MockChain.State.html#holdsInState"><span class="hs-identifier hs-var hs-var">holdsInState</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Address
 forall a. ToAddress a =&gt; a -&gt; Address
-</span><span class="hs-identifier hs-var">Script.toAddress</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679871899"><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">address</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; (UtxoPayloadSet -&gt; Value) -&gt; Maybe UtxoPayloadSet -&gt; Value
+</span><span class="hs-identifier hs-var">Script.toAddress</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679870565"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679870565"><span class="hs-identifier hs-var">address</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; (UtxoPayloadSet -&gt; Value) -&gt; Maybe UtxoPayloadSet -&gt; Value
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
@@ -797,11 +796,11 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index (Map Address UtxoPayloadSet)
 Address
-</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">address</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-252"></span><span>
-</span><span id="line-253"></span><span class="annot"><span class="hs-comment">-- | Computes the total value in a set</span></span><span>
-</span><span id="line-254"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadSetTotal"><span class="hs-identifier hs-type">utxoPayloadSetTotal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
-</span><span id="line-255"></span><span id="utxoPayloadSetTotal"><span class="annot"><span class="annottext">utxoPayloadSetTotal :: UtxoPayloadSet -&gt; Value
+</span><a href="#local-6989586621679870565"><span class="hs-identifier hs-var">address</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-251"></span><span>
+</span><span id="line-252"></span><span class="annot"><span class="hs-comment">-- | Computes the total value in a set</span></span><span>
+</span><span id="line-253"></span><span class="annot"><a href="Cooked.MockChain.State.html#utxoPayloadSetTotal"><span class="hs-identifier hs-type">utxoPayloadSetTotal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-type">UtxoPayloadSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-254"></span><span id="utxoPayloadSetTotal"><span class="annot"><span class="annottext">utxoPayloadSetTotal :: UtxoPayloadSet -&gt; Value
 </span><a href="Cooked.MockChain.State.html#utxoPayloadSetTotal"><span class="hs-identifier hs-var hs-var">utxoPayloadSetTotal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Fold '[] UtxoPayloadSet Value -&gt; UtxoPayloadSet -&gt; Value
 forall k a (is :: IxList) s.
 (Is k A_Fold, Monoid a) =&gt;
@@ -829,19 +828,19 @@ forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' UtxoPayload Value
 </span><a href="Cooked.MockChain.State.html#utxoPayloadValueL"><span class="hs-identifier hs-var">utxoPayloadValueL</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-256"></span><span>
-</span><span id="line-257"></span><span class="annot"><span class="hs-comment">-- | Builds a 'UtxoState' from a 'MockChainState'</span></span><span>
-</span><span id="line-258"></span><span class="annot"><a href="Cooked.MockChain.State.html#mcstToUtxoState"><span class="hs-identifier hs-type">mcstToUtxoState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
-</span><span id="line-259"></span><span id="mcstToUtxoState"><span class="annot"><span class="annottext">mcstToUtxoState :: MockChainState -&gt; UtxoState
+</span><span id="line-255"></span><span>
+</span><span id="line-256"></span><span class="annot"><span class="hs-comment">-- | Builds a 'UtxoState' from a 'MockChainState'</span></span><span>
+</span><span id="line-257"></span><span class="annot"><a href="Cooked.MockChain.State.html#mcstToUtxoState"><span class="hs-identifier hs-type">mcstToUtxoState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#MockChainState"><span class="hs-identifier hs-type">MockChainState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
+</span><span id="line-258"></span><span id="mcstToUtxoState"><span class="annot"><span class="annottext">mcstToUtxoState :: MockChainState -&gt; UtxoState
 </span><a href="Cooked.MockChain.State.html#mcstToUtxoState"><span class="hs-identifier hs-var hs-var">mcstToUtxoState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-260"></span><span>  </span><span class="annot"><span class="annottext">(UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState)
+</span><span id="line-259"></span><span>  </span><span class="annot"><span class="annottext">(UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState)
 -&gt; UtxoState -&gt; [(TxOutRef, (TxSkelOut, Bool))] -&gt; UtxoState
 forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
-</span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="annot"><span class="annottext">UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
-</span><a href="#local-6989586621679871906"><span class="hs-identifier hs-var">extractPayload</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><span class="hs-identifier hs-var">List.foldl'</span></span><span> </span><span class="annot"><span class="annottext">UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
+</span><a href="#local-6989586621679870572"><span class="hs-identifier hs-var">extractPayload</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, (TxSkelOut, Bool))] -&gt; UtxoState)
 -&gt; (MockChainState -&gt; [(TxOutRef, (TxSkelOut, Bool))])
@@ -857,73 +856,73 @@ forall k a. Map k a -&gt; [(k, a)]
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">MockChainState -&gt; Map TxOutRef (TxSkelOut, Bool)
 </span><a href="Cooked.MockChain.State.html#mcstOutputs"><span class="hs-identifier hs-var">mcstOutputs</span></a></span><span>
-</span><span id="line-261"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-262"></span><span>    </span><span class="annot"><a href="#local-6989586621679871906"><span class="hs-identifier hs-type">extractPayload</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
-</span><span id="line-263"></span><span>    </span><span id="local-6989586621679871906"><span class="annot"><span class="annottext">extractPayload :: UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
-</span><a href="#local-6989586621679871906"><span class="hs-identifier hs-var hs-var">extractPayload</span></a></span></span><span> </span><span id="local-6989586621679871908"><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679871908"><span class="hs-identifier hs-var">utxoState</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679871909"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679871910"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679871910"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679871911"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871911"><span class="hs-identifier hs-var">bool</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-264"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679871912"><span class="annot"><span class="annottext">newAddress :: Address
-</span><a href="#local-6989586621679871912"><span class="hs-identifier hs-var hs-var">newAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter '[] TxSkelOut Address -&gt; TxSkelOut -&gt; Address
+</span><span id="line-260"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-261"></span><span>    </span><span class="annot"><a href="#local-6989586621679870572"><span class="hs-identifier hs-type">extractPayload</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.State.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span>
+</span><span id="line-262"></span><span>    </span><span id="local-6989586621679870572"><span class="annot"><span class="annottext">extractPayload :: UtxoState -&gt; (TxOutRef, (TxSkelOut, Bool)) -&gt; UtxoState
+</span><a href="#local-6989586621679870572"><span class="hs-identifier hs-var hs-var">extractPayload</span></a></span></span><span> </span><span id="local-6989586621679870574"><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679870574"><span class="hs-identifier hs-var">utxoState</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679870575"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870575"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679870576"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679870576"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679870577"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870577"><span class="hs-identifier hs-var">bool</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-263"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679870578"><span class="annot"><span class="annottext">newAddress :: Address
+</span><a href="#local-6989586621679870578"><span class="hs-identifier hs-var hs-var">newAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter '[] TxSkelOut Address -&gt; TxSkelOut -&gt; Address
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter '[] TxSkelOut Address
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutAddressG"><span class="hs-identifier hs-var">txSkelOutAddressG</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679871910"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-265"></span><span>          </span><span id="local-6989586621679871914"><span class="annot"><span class="annottext">newPayloadSet :: UtxoPayloadSet
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var hs-var">newPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-266"></span><span>            </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
+</span><a href="#local-6989586621679870576"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-264"></span><span>          </span><span id="local-6989586621679870580"><span class="annot"><span class="annottext">newPayloadSet :: UtxoPayloadSet
+</span><a href="#local-6989586621679870580"><span class="hs-identifier hs-var hs-var">newPayloadSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-265"></span><span>            </span><span class="annot"><span class="annottext">[UtxoPayload] -&gt; UtxoPayloadSet
 </span><a href="Cooked.MockChain.State.html#UtxoPayloadSet"><span class="hs-identifier hs-var">UtxoPayloadSet</span></a></span><span>
-</span><span id="line-267"></span><span>              </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><span id="line-266"></span><span>              </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TxOutRef
 -&gt; Value -&gt; UtxoPayloadDatum -&gt; Maybe ScriptHash -&gt; UtxoPayload
 </span><a href="Cooked.MockChain.State.html#UtxoPayload"><span class="hs-identifier hs-var">UtxoPayload</span></a></span><span>
-</span><span id="line-268"></span><span>                  </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
-</span><span id="line-269"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Value -&gt; TxSkelOut -&gt; Value
+</span><span id="line-267"></span><span>                  </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679870575"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
+</span><span id="line-268"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Value -&gt; TxSkelOut -&gt; Value
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679871910"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-270"></span><span>                  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679871910"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679870576"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-269"></span><span>                  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679870576"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
 -&gt; Optic' A_Lens '[] TxSkelOut TxSkelOutDatum -&gt; TxSkelOutDatum
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutDatumL"><span class="hs-identifier hs-var">txSkelOutDatumL</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-271"></span><span>                      </span><span class="annot"><span class="annottext">TxSkelOutDatum
+</span><span id="line-270"></span><span>                      </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="Cooked.Skeleton.Datum.html#NoTxSkelOutDatum"><span class="hs-identifier hs-var">NoTxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#NoUtxoPayloadDatum"><span class="hs-identifier hs-var">NoUtxoPayloadDatum</span></a></span><span>
-</span><span id="line-272"></span><span>                      </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679871924"><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871924"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span id="local-6989586621679871925"><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679871925"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Bool -&gt; UtxoPayloadDatum
+</span><span id="line-271"></span><span>                      </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#SomeTxSkelOutDatum"><span class="hs-identifier hs-type">SomeTxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679870590"><span class="annot"><span class="annottext">dat
+</span><a href="#local-6989586621679870590"><span class="hs-identifier hs-var">content</span></a></span></span><span> </span><span id="local-6989586621679870591"><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679870591"><span class="hs-identifier hs-var">kind</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">dat -&gt; Bool -&gt; UtxoPayloadDatum
 forall dat. DatumConstrs dat =&gt; dat -&gt; Bool -&gt; UtxoPayloadDatum
 </span><a href="Cooked.MockChain.State.html#SomeUtxoPayloadDatum"><span class="hs-identifier hs-var">SomeUtxoPayloadDatum</span></a></span><span> </span><span class="annot"><span class="annottext">dat
-</span><a href="#local-6989586621679871924"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumKind
-</span><a href="#local-6989586621679871925"><span class="hs-identifier hs-var">kind</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind -&gt; DatumKind -&gt; Bool
+</span><a href="#local-6989586621679870590"><span class="hs-identifier hs-var">content</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumKind
+</span><a href="#local-6989586621679870591"><span class="hs-identifier hs-var">kind</span></a></span><span> </span><span class="annot"><span class="annottext">DatumKind -&gt; DatumKind -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">DatumKind
 </span><a href="Cooked.Skeleton.Datum.html#Inline"><span class="hs-identifier hs-var">Inline</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-273"></span><span>                  </span><span class="hs-special">)</span><span>
-</span><span id="line-274"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' An_AffineFold '[] TxSkelOut ScriptHash
+</span><span id="line-272"></span><span>                  </span><span class="hs-special">)</span><span>
+</span><span id="line-273"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' An_AffineFold '[] TxSkelOut ScriptHash
 -&gt; TxSkelOut -&gt; Maybe ScriptHash
 forall k (is :: IxList) s a.
 Is k An_AffineFold =&gt;
 Optic' k is s a -&gt; s -&gt; Maybe a
 </span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineFold '[] TxSkelOut ScriptHash
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutReferenceScriptHashAF"><span class="hs-identifier hs-var">txSkelOutReferenceScriptHashAF</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679871910"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-275"></span><span>              </span><span class="hs-special">]</span><span>
-</span><span id="line-276"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679871911"><span class="hs-identifier hs-var">bool</span></a></span><span>
-</span><span id="line-277"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679871908"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.State.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679871912"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871914"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871908"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
-</span><span id="line-278"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679871908"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.State.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679871912"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871914"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871908"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
-</span><span id="line-279"></span></pre></body></html>
+</span><a href="#local-6989586621679870576"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-274"></span><span>              </span><span class="hs-special">]</span><span>
+</span><span id="line-275"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679870577"><span class="hs-identifier hs-var">bool</span></a></span><span>
+</span><span id="line-276"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679870574"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.State.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679870578"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679870580"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#availableUtxos"><span class="hs-identifier hs-var">availableUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679870574"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
+</span><span id="line-277"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679870574"><span class="hs-identifier hs-var">utxoState</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><a href="Cooked.MockChain.State.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map.insertWith</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">(&lt;&gt;)</span></span><span> </span><span class="annot"><a href="#local-6989586621679870578"><span class="hs-identifier hs-type">newAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679870580"><span class="hs-identifier hs-type">newPayloadSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.State.html#consumedUtxos"><span class="hs-identifier hs-var">consumedUtxos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679870574"><span class="hs-identifier hs-type">utxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
+</span><span id="line-278"></span></pre></body></html>
