@@ -12,7 +12,7 @@ import Cooked.Wallet (Wallet)
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
@@ -302,7 +302,7 @@ instance PrettyCookedList TxSkelOpts where
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
         prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
         prettyIfNot False (const "Defer Phase 2 failures during balancing") txSkelOptDeferFailures,
-        prettyIfNot Nothing (("Limit the number of balancing Utxos to " <>) . PP.pretty . fromJust) txSkelOptMaxNbOfBalancingUtxos
+        (("Limit the number of balancing Utxos to " <>) . PP.pretty <$> txSkelOptMaxNbOfBalancingUtxos)
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked

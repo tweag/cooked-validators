@@ -28,6 +28,7 @@ where
 
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -67,14 +68,14 @@ makeLensesFor [("withdrawalUser", "withdrawalUserL")] ''Withdrawal
 withdrawalAmountAT :: AffineTraversal' Withdrawal Api.Lovelace
 withdrawalAmountAT = withdrawalMAmountL % _Just
 
--- | Transforms a @[Withdrawal]@ to a 'TxSkelWithdrawals and vice
--- versa. Accumulates amount of withdrawals with similar owners, and keep the
+-- | An isomorphism between a 'TxSkelWithdrawals' and a list of 'Withdrawal'.
+-- Accumulates amount of withdrawals with similar owners, and keeps the
 -- latest found redeemer in the case of scripts, discarding the previous ones.
 txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
 txSkelWithdrawalsListI =
   iso
     (Map.elems . unTxSkelWithdrawals)
-    ( foldl
+    ( foldl'
         ( \(TxSkelWithdrawals withdrawals) withdrawal@(Withdrawal (view userCredentialG -> cred) amount) ->
             TxSkelWithdrawals $
               over
@@ -104,7 +105,7 @@ fillAmount newAmount = over withdrawalMAmountL (maybe (Just newAmount) Just)
 
 -- | Retrieves the total value withdrawn is this 'TxSkelWithdrawals'
 instance Script.ToValue TxSkelWithdrawals where
-  toValue = foldl (\val -> (val <>) . maybe mempty Script.toValue . view withdrawalMAmountL) mempty . unTxSkelWithdrawals
+  toValue = foldl' (\val -> (val <>) . maybe mempty Script.toValue . view withdrawalMAmountL) mempty . unTxSkelWithdrawals
 
 instance Semigroup TxSkelWithdrawals where
   txSkelW <> txSkelW' =

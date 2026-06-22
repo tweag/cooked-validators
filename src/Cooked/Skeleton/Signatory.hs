@@ -29,19 +29,19 @@ data TxSkelSignatory where
     { -- | Identifying the signatory with their pubkey hash
       txSkelSignatoryPubKeyHash :: pkh,
       -- | The private key with which this signatory should sign. If set to
-      -- @Nothing@ the signature won't be added (but will be needed later on).oiu clairement
+      -- @Nothing@ the signature won't be added (but will be needed later on).
       txSkelSignatoryPrivateKey :: Maybe Crypto.XPrv
     } ->
     TxSkelSignatory
 
--- | A lens focusing on the option private key for this signatory
+-- | Focuses on the optional private key of a 'TxSkelSignatory'
 makeLensesFor [("txSkelSignatoryPrivateKey", "txSkelSignatoryMPrivateKeyL")] ''TxSkelSignatory
 
--- | An affine traversal focusing on the existing private key for this signatory
+-- | Focuses on the optional private key of a 'TxSkelSignatory'
 txSkelSignatoryPrivateKeyAT :: AffineTraversal' TxSkelSignatory Crypto.XPrv
 txSkelSignatoryPrivateKeyAT = txSkelSignatoryMPrivateKeyL % _Just
 
--- | A lens focusing on the public key hash of this signatory
+-- | Focuses on the public key hash of a 'TxSkelSignatory'
 txSkelSignatoryPubKeyHashL :: Lens' TxSkelSignatory Api.PubKeyHash
 txSkelSignatoryPubKeyHashL =
   lens

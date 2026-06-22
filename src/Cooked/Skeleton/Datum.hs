@@ -60,7 +60,7 @@ data DatumKind
     Hashed DatumResolved
   deriving (Show, Eq, Ord)
 
--- | Builds a 'DatumKind' from a 'DatumResolved' or optionally retrieves it
+-- | Builds or retrieves the 'DatumResolved' of a 'DatumKind'
 datumKindResolvedP :: Prism' DatumKind DatumResolved
 datumKindResolvedP =
   prism
@@ -98,7 +98,7 @@ instance Ord TxSkelOutDatum where
 
 -- * Optics working on 'TxSkelOutDatum'
 
--- | Extracts or changes the 'DatumKind' of a 'TxSkelOutDatum'
+-- | Focuses on the optional 'DatumKind' of a 'TxSkelOutDatum'
 txSkelOutDatumKindAT :: AffineTraversal' TxSkelOutDatum DatumKind
 txSkelOutDatumKindAT =
   atraversal
@@ -113,7 +113,7 @@ txSkelOutDatumKindAT =
         )
     )
 
--- | Extracts or changes the 'DatumResolved' of a 'TxSkelOutDatum'
+-- | Focuses on the optional 'DatumResolved' of a 'TxSkelOutDatum'
 txSkelOutDatumResolvedAT :: AffineTraversal' TxSkelOutDatum DatumResolved
 txSkelOutDatumResolvedAT = txSkelOutDatumKindAT % datumKindResolvedP
 
@@ -138,15 +138,15 @@ txSkelOutDatumTypedAT =
         )
     )
 
--- | Converts a 'TxSkelOutDatum' into a possible 'Api.Datum'
+-- | Retrieves the optional 'Api.Datum' of a 'TxSkelOutDatum'
 txSkelOutDatumDatumAF :: AffineFold TxSkelOutDatum Api.Datum
 txSkelOutDatumDatumAF = txSkelOutDatumTypedAT % to Api.Datum
 
--- | Converts a 'TxSkelOutDatum' into a possible 'Api.DatumHash'
+-- | Retrieves the optional 'Api.DatumHash' of a 'TxSkelOutDatum'
 txSkelOutDatumDatumHashAF :: AffineFold TxSkelOutDatum Api.DatumHash
 txSkelOutDatumDatumHashAF = txSkelOutDatumDatumAF % to Script.datumHash
 
--- | Converts a 'TxSkelOutDatum' into an 'Api.OutputDatum'
+-- | Retrieves the 'Api.OutputDatum' of a 'TxSkelOutDatum'
 txSkelOutDatumOutputDatumG :: Getter TxSkelOutDatum Api.OutputDatum
 txSkelOutDatumOutputDatumG = to Script.toOutputDatum
 

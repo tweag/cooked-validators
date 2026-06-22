@@ -188,7 +188,7 @@ instance Eq TxSkelProposal where
 
 -- * Optics on 'TxSkelProposal'
 
--- | Focuses on the return credential from a 'TxSkelProposal'
+-- | Focuses on the return credential of a 'TxSkelProposal'
 txSkelProposalReturnCredentialL :: Lens' TxSkelProposal Api.Credential
 txSkelProposalReturnCredentialL =
   lens
@@ -202,18 +202,18 @@ txSkelProposalMConstitutionAT =
     (\prop@(TxSkelProposal {txSkelProposalConstitution}) -> maybe (Left prop) Right $ cast txSkelProposalConstitution)
     (\prop@(TxSkelProposal @kind' cred action _ anchor) constit' -> maybe prop (\Refl -> TxSkelProposal cred action constit' anchor) $ eqT @kind @kind')
 
--- | Focuses on the constitution of a 'TxSkelProposal'
+-- | Focuses on the optional constitution of a 'TxSkelProposal'
 txSkelProposalConstitutionAT :: AffineTraversal' TxSkelProposal (User IsScript Redemption)
 txSkelProposalConstitutionAT = txSkelProposalMConstitutionAT % _Just
 
--- | Focuses on the governance action of a 'TxSkelProposal'
+-- | Focuses on the optional governance action of a 'TxSkelProposal'
 txSkelProposalGovernanceActionAT :: forall req. (Typeable req) => AffineTraversal' TxSkelProposal (GovernanceAction req)
 txSkelProposalGovernanceActionAT =
   atraversal
     (\prop@(TxSkelProposal {txSkelProposalGovernanceAction}) -> maybe (Left prop) Right $ cast txSkelProposalGovernanceAction)
     (\prop@(TxSkelProposal @req' cred _ constit anchor) newAction -> maybe prop (\Refl -> TxSkelProposal cred newAction constit anchor) $ eqT @req @req')
 
--- | A lens to get or set the anchor of a 'TxSkelProposal'
+-- | Focuses on the anchor of a 'TxSkelProposal'
 makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelProposal
 
 -- * Smart constructors and updators

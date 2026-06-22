@@ -22,6 +22,7 @@ module Cooked.Skeleton.Redeemer
 
     -- * Utilities
     fillReferenceInput,
+    withReferenceInput,
   )
 where
 
@@ -76,17 +77,17 @@ instance Ord TxSkelRedeemer where
 
 -- * Navigating within a 'TxSkelRedeemer'
 
--- | Focuses on the possible reference input from a redeemer
+-- | Focuses on the optional reference input of a 'TxSkelRedeemer'
 makeLensesFor [("txSkelRedeemerReferenceInput", "txSkelRedeemerMReferenceInputL")] ''TxSkelRedeemer
 
--- | Focuses on the reference input form a redeemer
+-- | Focuses on the optional reference input of a 'TxSkelRedeemer'
 txSkelRedeemerReferenceInputAT :: AffineTraversal' TxSkelRedeemer Api.TxOutRef
 txSkelRedeemerReferenceInputAT = txSkelRedeemerMReferenceInputL % _Just
 
--- | Sets or gets the autofill property from a redeemer
+-- | Focuses on the autofill property of a 'TxSkelRedeemer'
 makeLensesFor [("txSkelRedeemerAutoFill", "txSkelRedeemerAutoFillL")] ''TxSkelRedeemer
 
--- | Extracts, or sets, the typed redeemer of a 'TxSkelRedeemer'. This is
+-- | Focuses on the optional typed redeemer of a 'TxSkelRedeemer'. This is
 -- attempted in two ways: first, we try to simply cast the content, and then, if
 -- it fails, we serialise the content and then attempt to deserialise it to the
 -- right type. This second case is specifically useful when the current content
@@ -102,7 +103,7 @@ txSkelRedeemerTypedAT =
     )
     (\red content -> red {txSkelRedeemerContent = content})
 
--- | Extracts, or sets, the redeemer content as an `Api.BuiltinData`
+-- | Focuses on the 'Api.BuiltinData' content of a 'TxSkelRedeemer'
 txSkelRedeemerBuiltinDataL :: Lens' TxSkelRedeemer Api.BuiltinData
 txSkelRedeemerBuiltinDataL =
   lens
@@ -136,3 +137,10 @@ emptyTxSkelRedeemerNoAutoFill = someTxSkelRedeemerNoAutoFill ()
 -- transaction generation.
 fillReferenceInput :: Api.TxOutRef -> TxSkelRedeemer -> TxSkelRedeemer
 fillReferenceInput refInput = over txSkelRedeemerMReferenceInputL (maybe (Just refInput) Just)
+
+-- | Attaches a reference input to this 'TxSkelRedeemer', overriding any
+-- reference input that was already present. This is the user-facing way of
+-- providing the reference input from which the script will be fetched, as
+-- opposed to 'fillReferenceInput' which only acts when none is set yet.
+withReferenceInput :: TxSkelRedeemer -> Api.TxOutRef -> TxSkelRedeemer
+withReferenceInput red refInput = set txSkelRedeemerMReferenceInputL (Just refInput) red

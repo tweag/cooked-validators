@@ -28,6 +28,7 @@ where
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
 import Data.Bifunctor
+import Data.List (foldl')
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -70,13 +71,13 @@ burn mp red tn n = mint mp red tn (-n)
 
 -- * Optics to manipulate elements of 'Mint'
 
--- | A lens to set or get the redeemer of a 'Mint'
+-- | Focuses on the redeemer of a 'Mint'
 makeLensesFor [("mintRedeemedScript", "mintRedeemedScriptL")] ''Mint
 
--- | A lens to set or get the token list of a 'Mint'
+-- | Focuses on the token list of a 'Mint'
 makeLensesFor [("mintTokens", "mintTokensL")] ''Mint
 
--- | Returns the currency symbol associated with a `Mint`
+-- | Retrieves the currency symbol of a 'Mint'
 mintCurrencySymbolG :: Getter Mint Api.CurrencySymbol
 mintCurrencySymbolG =
   mintRedeemedScriptL
@@ -142,7 +143,7 @@ txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
     (fmap (first (view userTxSkelRedeemerL)) . view (to unTxSkelMints % at mph))
     ( \mints -> \case
         Nothing -> TxSkelMints . Map.delete mph . unTxSkelMints $ mints
-        Just (red, Map.toList -> tokens) -> foldl (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
+        Just (red, Map.toList -> tokens) -> foldl' (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
     )
 
 instance Script.ToValue TxSkelMints where
@@ -157,18 +158,18 @@ instance Script.ToValue TxSkelMints where
       . Map.toList
       . unTxSkelMints
 
--- | The list of assets classes contained in this 'TxSkelMints'
+-- | Retrieves the asset classes of a 'TxSkelMints'
 txSkelMintsAssetClassesG :: Getter TxSkelMints [(VScript, Api.TokenName)]
 txSkelMintsAssetClassesG = txSkelMintsListI % to (\l -> [(toVScript mp, tk) | Mint (UserRedeemedScript mp _) tks <- l, (tk, _) <- tks])
 
--- | Seeing a 'TxSkelMints' as a list of 'Mint'
+-- | An isomorphism between a 'TxSkelMints' and a list of 'Mint'
 txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
     (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . unTxSkelMints)
-    ( foldl
+    ( foldl'
         ( \mints (Mint (UserRedeemedScript mp red) tks) ->
-            foldl
+            foldl'
               (\mints' (tk, n) -> mints' & txSkelMintsAssetClassAmountL mp tk %~ (\(_, n') -> (Just red, n + n')))
               mints
               tks

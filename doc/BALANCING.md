@@ -62,7 +62,7 @@ specifies which wallet to use as the balancing wallet.
 
 ``` haskell
 data BalancingPolicy
-  = BalanceWithFirstSigner -- default
+  = BalanceWithFirstSignatory -- default
   | BalanceWith Wallet
   | DoNotBalance
 ```
@@ -75,7 +75,7 @@ necessitates it, the balancing wallet also supplies UTXOs to cover any missing
 inputs in the transaction.
 
 Here are the options available:
-* `BalanceWithFirstSigner`: Enables auto-balancing and uses the first wallet in
+* `BalanceWithFirstSignatory`: Enables auto-balancing and uses the first wallet in
   the list of signers as the balancing wallet. If the list of signers is empty,
   an error is thrown:
   
@@ -102,7 +102,7 @@ skeleton.
 
 ``` haskell
 data BalancingUtxos
-  = BalancingUtxosFromBalancingWallet -- default
+  = BalancingUtxosFromBalancingUser -- default
   | BalancingUtxosFromSet (Set Api.TxOutRef)
 ```
 
@@ -113,7 +113,7 @@ set of UTXOs considered for balancing is not necessarily the same as the final
 set used; rather, the final set is a subset of the initially considered UTXOs.
 
 Here is the semantics of the constructors:
-* `BalancingUtxosFromBalancingWallet`: The UTXOs considered for balancing will be those
+* `BalancingUtxosFromBalancingUser`: The UTXOs considered for balancing will be those
   owned by the balancing wallet and containing only a value. UTXOs with a
   reference script, a datum, or a staking credential will not be considered for
   balancing.
@@ -211,8 +211,8 @@ Which utxos to pick from as collateral inputs.
 
 ``` haskell
 data CollateralUtxos
-  = CollateralUtxosFromBalancingWallet -- default
-  | CollateralUtxosFromWallet Wallet
+  = CollateralUtxosFromBalancingUser -- default
+  | CollateralUtxosFromUser Wallet
   | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
 ```
 
@@ -232,11 +232,11 @@ number of allowable collateral UTXOs (typically 3).
 
 Here are the options available:
 
-* `CollateralUtxosFromBalancingWallet`: Use UTXOs containing only value from the
+* `CollateralUtxosFromBalancingUser`: Use UTXOs containing only value from the
   balancing wallet. The return collateral will be directed back to the balancing
-  wallet. This option is synonymous with `CollateralUtxosFromWallet
+  wallet. This option is synonymous with `CollateralUtxosFromUser
   balancingWallet`.
-* `CollateralUtxosFromWallet Wallet`: Use UTXOs containing only value from the
+* `CollateralUtxosFromUser Wallet`: Use UTXOs containing only value from the
   specified wallet. Transactions using these UTXOs will require the signing of
   the wallet owner for validation. The return collateral will also be sent to
   this same wallet.
