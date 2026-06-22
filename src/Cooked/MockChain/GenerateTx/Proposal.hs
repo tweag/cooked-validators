@@ -32,15 +32,20 @@ import Polysemy.Error
 -- | Transorms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change
 -- over a Cardano parameter update
 toPParamsUpdate ::
+  forall effs.
+  (Member (Error MockChainError) effs) =>
   ParamChange ->
   Conway.PParamsUpdate Emulator.EmulatorEra ->
-  Conway.PParamsUpdate Emulator.EmulatorEra
-toPParamsUpdate pChange =
+  Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
+toPParamsUpdate pChange ppu =
   -- From rational to bounded rational
   let toBR :: (Cardano.BoundedRational r) => Rational -> r
       toBR = fromMaybe minBound . Cardano.boundRational
-      -- Helper to set one of the param update with a lens
-      setL l = MicroLens.set l . SJust
+      -- Helper to set one of the param update with a lens. The explicit
+      -- signature is needed so that it stays polymorphic in @a@ under
+      -- @MonoLocalBinds@ despite closing over @effs@ and @ppu@.
+      setL :: forall a. MicroLens.ASetter' (Conway.PParamsUpdate Emulator.EmulatorEra) (StrictMaybe a) -> a -> Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
+      setL l v = return $ MicroLens.set l (SJust v) ppu
    in case pChange of
         FeePerByte n -> setL Conway.ppuMinFeeAL $ fromIntegral n
         FeeFixed n -> setL Conway.ppuMinFeeBL $ fromIntegral n
@@ -56,7 +61,7 @@ toPParamsUpdate pChange =
         TreasuryCut q -> setL Conway.ppuTauL $ toBR q
         MinPoolCost n -> setL Conway.ppuMinPoolCostL $ fromIntegral n
         CoinsPerUTxOByte n -> setL Conway.ppuCoinsPerUTxOByteL $ Conway.CoinPerByte $ fromIntegral n
-        CostModels _pv1 _pv2 _pv3 -> id -- TODO unsupported for now
+        CostModels _pv1 _pv2 _pv3 -> throw $ MCEUnsupportedFeature "CostModels"
         Prices q r -> setL Conway.ppuPricesL $ Cardano.Prices (toBR q) (toBR r)
         MaxTxExUnits n m -> setL Conway.ppuMaxTxExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
         MaxBlockExUnits n m -> setL Conway.ppuMaxBlockExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
@@ -87,8 +92,9 @@ toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
 toGovAction UpdateCommittee {} _ = throw $ MCEUnsupportedFeature "UpdateCommittee"
 toGovAction NewConstitution {} _ = throw $ MCEUnsupportedFeature "TxGovActionNewConstitution"
 toGovAction HardForkInitiation {} _ = throw $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
-toGovAction (ParameterChange changes) sHash =
-  return $ Conway.ParameterChange SNothing (foldl (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes) sHash
+toGovAction (ParameterChange changes) sHash = do
+  ppu <- foldM (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes
+  return $ Conway.ParameterChange SNothing ppu sHash
 toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
   (`Conway.TreasuryWithdrawals` sHash) . Map.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Cardano.Coin lv) <$> toRewardAccount cred) withdrawals
 

@@ -81,7 +81,7 @@ toCertificate txSkelCert =
                 case Cardano.slotToEpoch (fromIntegral slot) eeh of
                   -- TODO: we could have a dedicated error for this case if the
                   -- can occur at several places in the codebase
-                  Left _ -> fail "Too far away in the future"
+                  Left err -> fail $ "Too far away in the future: " <> show err
                   Right (epoch, _, _) -> return epoch
             )
       TxSkelCertificate (Script.toCredential -> coldCred) (CommitteeRegisterHot hotCred) ->

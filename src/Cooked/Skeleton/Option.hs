@@ -252,34 +252,34 @@ instance Show TxSkelOpts where
   show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures maxNbBalUtxos) =
     show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show deferFailures, show maxNbBalUtxos]
 
--- | A lens to get or set the automatic slot increase option
+-- | Focuses on the automatic slot increase option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptAutoSlotIncrease", "txSkelOptAutoSlotIncreaseL")] ''TxSkelOpts
 
--- | A lens to get or set the Cardano transaction modifications option
+-- | Focuses on the Cardano transaction modifications option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptModTx", "txSkelOptModTxL")] ''TxSkelOpts
 
--- | A lens to get or set the balancing policy option
+-- | Focuses on the balancing policy option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptBalancingPolicy", "txSkelOptBalancingPolicyL")] ''TxSkelOpts
 
--- | A lens to get or set the fee policy option
+-- | Focuses on the fee policy option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptFeePolicy", "txSkelOptFeePolicyL")] ''TxSkelOpts
 
--- | A lens to get or set the handling of balancing outputs option
+-- | Focuses on the handling of balancing outputs option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptBalanceOutputPolicy", "txSkelOptBalanceOutputPolicyL")] ''TxSkelOpts
 
--- | A lens to get or set the balancing utxos option
+-- | Focuses on the balancing utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptBalancingUtxos", "txSkelOptBalancingUtxosL")] ''TxSkelOpts
 
--- | A lens to get or set the changes to protocol parameters option
+-- | Focuses on the changes to protocol parameters option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptModParams", "txSkelOptModParamsL")] ''TxSkelOpts
 
--- | A lens to get or set the collateral utxos option
+-- | Focuses on the collateral utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptCollateralUtxos", "txSkelOptCollateralUtxosL")] ''TxSkelOpts
 
--- | A lens to get or set the deferring of the failures option
+-- | Focuses on the deferring of the failures option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptDeferPhase2FailuresDuringBalancing", "txSkelOptDeferPhase2FailuresDuringBalancingL")] ''TxSkelOpts
 
--- | A lens to get or set the max nb of balancing Utxos option
+-- | Focuses on the max nb of balancing Utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptMaxNbOfBalancingUtxos", "txSkelOptMaxNbOfBalancingUtxosL")] ''TxSkelOpts
 
 instance Default TxSkelOpts where

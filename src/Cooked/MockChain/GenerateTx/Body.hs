@@ -133,7 +133,7 @@ txSkelToTxBody txSkel fee mCollaterals = do
       -- We can then assign the right execution units to the body content
       case Cardano.substituteExecutionUnits exUnits txBodyContent' of
         -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
-        Left _ -> fail "Error while assigning execution units"
+        Left err -> fail $ "Error while assigning execution units: " <> show err
         -- We now have a body content with proper execution units and can create
         -- the final body from it
         Right txBodyContent -> txBodyContentToTxBody txBodyContent

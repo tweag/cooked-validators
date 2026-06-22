@@ -67,8 +67,8 @@ makeLensesFor [("withdrawalUser", "withdrawalUserL")] ''Withdrawal
 withdrawalAmountAT :: AffineTraversal' Withdrawal Api.Lovelace
 withdrawalAmountAT = withdrawalMAmountL % _Just
 
--- | Transforms a @[Withdrawal]@ to a 'TxSkelWithdrawals and vice
--- versa. Accumulates amount of withdrawals with similar owners, and keep the
+-- | An isomorphism between a 'TxSkelWithdrawals' and a list of 'Withdrawal'.
+-- Accumulates amount of withdrawals with similar owners, and keeps the
 -- latest found redeemer in the case of scripts, discarding the previous ones.
 txSkelWithdrawalsListI :: Iso' TxSkelWithdrawals [Withdrawal]
 txSkelWithdrawalsListI =

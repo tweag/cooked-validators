@@ -146,10 +146,12 @@ printCooked $ runMockChainFromConf myConf myTrace
   `mustSucceedTest myTrace`
 * Expect a failure from a trace:
   `mustFailTest myTrace`
-* Expect a failure within a specific validation phase/with a specific error message:
-  `mustFailInPhase[1|2](withMessage?) (expectedMessage?) myTrace`
+* Expect a failure within a specific validation phase:
+  `mustFailInPhase1Test myTrace` or `mustFailInPhase2Test myTrace`
+* Expect a failure within a specific validation phase with a specific error message:
+  `mustFailInPhase1WithMsgTest expectedMessage myTrace` or `mustFailInPhase2WithMsgTest expectedMessage myTrace`
 * Manually customize the:
-  * initial distribution: `withInitiDist myPaymentsList`
+  * initial distribution: `withInitDist myPaymentsList`
   * pretty printing options: `withPrettyOpts myOptions`
   * expectations on the log: `withLogProp myLogProp`
   * expectations on the resulting state: `withStateProp myStateProp`
@@ -565,7 +567,7 @@ when applicable.
 * No redeemer, forbid auto fill of reference script: `emptyTxSkelRedeemerNoAutoFill`
 * Some redeemer, auto fill of reference script: `someTxSkelRedeemer myRedeemer`
 * Some redeemer, forbid auto fill of reference script: `someTxSkelRedeemerNoAutoFill myRedeemer`
-* Attach a reference input manually (with a reference script): ``txSkelRedeemer `withReferenceInput` txOutRefContainingRefScript``
+* Attach a reference input manually (with a reference script): ``withReferenceInput txSkelRedeemer txOutRefContainingRefScript``
 * Build the redeemer as a record manually:
 ```haskell
 myRedeemer :: TxSkelRedeemer
@@ -584,7 +586,7 @@ txSkelTemplate
   { ...
     txSkelIns = Map.fromList 
 	  [ (txOutRef1, someTxSkelRedeemer red), 
-        (txOutRef2, emptyTxSkelRedeemer `withReferenceInput` txOutRef),
+        (txOutRef2, withReferenceInput emptyTxSkelRedeemer txOutRef),
 	    (txOutRef3, someTxSkelRedeemerNoAutoFill red2)
 	  ]
     ...
@@ -615,7 +617,7 @@ txSkelTemplate
 ## Reference inputs
 
 * Within redeemers automatically `myTxSkelRedeemer`
-* Within redeemers manually ``myTxSkelRedeemer `withReferenceInput` myRefInput``
+* Within redeemers manually ``withReferenceInput myTxSkelRedeemer myRefInput``
 * Additional reference inputs not bound to redeemers:
 ```haskell
 txSkelTemplate
@@ -643,8 +645,8 @@ txSkelTemplate
 ```
 txSkelTemplate
   { ...
-    txSkelSignatories = [TxSkelSignatory user1 ... , TxSkelSignatory user2 ... ],
-	txSkelCollateralUtxos = CollateralUtxosFromUser user2
+    txSkelSignatories = [TxSkelSignatory user1 ... , TxSkelSignatory user2 ...],
+	txSkelOpts = def {txSkelOptCollateralUtxos = CollateralUtxosFromUser user2}
     ...
   }
 ```
@@ -653,7 +655,7 @@ txSkelTemplate
 ```
 txSkelTemplate
   { ...
-	txSkelCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2])
+	txSkelOpts = def {txSkelOptCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2]) user2}
     ...
   }
 ```
@@ -689,16 +691,19 @@ txSkelTemplate
   { ...
     txSkelProposals =
       [ TxSkelProposal
-          { txSkelProposalAddress = walletAddress (wallet 1),
-            txSkelProposalAction =
-              TxGovActionTreasuryWithdrawals $
+          { -- The credential that should be used for the return account
+            txSkelProposalReturnCredential = wallet 1,
+            txSkelProposalGovernanceAction =
+              TreasuryWithdrawals $
                 Map.fromList
                   [ (toCredential $ wallet 1, Api.Lovelace 100),
                     (toCredential $ wallet 2, Api.Lovelace 10_000)
                   ],
-            txSkelProposalWitness = Just (myConstitutionScript, myTxSkelRedeemer),
-            txSkelProposalAnchor = Nothing,
-			txSkelProposalAutoConstitution = False
+            -- The constitution witness, only relevant for witnessed
+            -- governance actions; use 'Nothing' for unwitnessed ones
+            txSkelProposalConstitution = Just (UserRedeemedScript myConstitutionScript myTxSkelRedeemer),
+            -- An optional anchor (use 'simpleURLAnchor' to build one)
+            txSkelProposalAnchor = Nothing
           }
       ]
     ...
@@ -711,21 +716,22 @@ txSkelTemplate
 txSkelTemplate
   { ...
     txSkelProposals =
-      [ simpleTxSkelProposal
+      [ simpleProposal
           (wallet 1)
-          (TxGovActionParameterChange [FeePerByte 100, FeeFixed 1_000])
-          `withWitness` (myScript, myTxSkelRedeemer)
-          `withAnchor` "https://www.tweag.io/"
+          (ParameterChange [FeePerByte 100, FeeFixed 1_000])
+          & fillConstitution myConstitutionScript
+          & set txSkelProposalAnchorL (simpleURLAnchor "https://www.tweag.io/")
       ]
     ...
   } 
 ```
 
-* Enable auto filling of the current offical constitution script.
+* Auto filling of the current official constitution script.
 
-```haskell 
-   txSkelProposalAutoConstitution = True
-```
+Leave a witnessed proposal's constitution unset (i.e. `Nothing`). During
+transaction generation the current official constitution script (the one set
+with `setConstitutionScript`) is automatically filled in with an empty
+redeemer, logging an `MCLogAutoFilledConstitution` event.
 
 ## Withdrawals
 
@@ -747,7 +753,7 @@ txSkelTemplate
 ```haskell 
     txSkelTemplate
       { txSkelWithdrawals = txSkelWithdrawalsFromList 
-	      [ TxSkelWithdrawal myWithdrawingPeer (Just 2_000_000),
+	      [ Withdrawal (UserPubKey myWithdrawingPeer) (Just $ Api.Lovelace 2_000_000),
 		    ...
 	      ]
 	    ...
@@ -795,7 +801,7 @@ txSkelTemplate
 txSkelTemplate
   { ...
     txSkelSignatories = [signatory1, signatory2],
-    txOpts = def {txOptBalancingPolicy = BalanceWith (wallet 2)}
+    txSkelOpts = def {txSkelOptBalancingPolicy = BalanceWith (wallet 2)}
     ...
   }
 ```
@@ -805,7 +811,7 @@ txSkelTemplate
 ```haskell
 txSkelTemplate
   { ...
-    txOpts = def {txOptBalancingPolicy = DoNotBalance}
+    txSkelOpts = def {txSkelOptBalancingPolicy = DoNotBalance}
     ...
   }
 ```
@@ -865,7 +871,7 @@ myTrace = do
 foo = do
   addOutputTweak $ bazValidator `receives` bazPayment
   removeOutputTweak (\(Pays out) -> somePredicate out)
-  addInputTweak somePkTxOutRef txSkelEmptyRedeemer
+  addInputTweak somePkTxOutRef emptyTxSkelRedeemer
   removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
 ```
 
