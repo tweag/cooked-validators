@@ -69,6 +69,6 @@ modifySpendRedeemersOfTypeTweak ::
   Sem effs [TxSkelRedeemer]
 modifySpendRedeemersOfTypeTweak f =
   overMaybeTweak (txSkelInsL % iso Map.toList Map.fromList % traversed % _2) $ \red -> do
-    typedRedeemer <- red ^? txSkelRedeemerTypedAT
+    typedRedeemer <- preview txSkelRedeemerTypedAT red
     typedRedeemerModified <- f typedRedeemer
-    return $ red & txSkelRedeemerTypedAT @a .~ typedRedeemerModified
+    return $ set (txSkelRedeemerTypedAT @a) typedRedeemerModified red

@@ -26,7 +26,6 @@ import Cooked.MockChain.Read
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Data.ByteString qualified as BS
-import Data.Function
 import Data.List (find, partition)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
@@ -492,7 +491,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
     -- policy forces us to create a new output, both yielding the same result.
     Just (newORefs, Just newTxSkelOut) -> return (newORefs, txSkelOuts ++ [newTxSkelOut])
   let newTxSkelIns = txSkelIns <> Map.fromList ((,emptyTxSkelRedeemer) <$> additionalInsTxOutRefs)
-  return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns
+  return $ set txSkelInsL newTxSkelIns . set txSkelOutsL newTxSkelOuts $ txSkel
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters and its number of scripts.

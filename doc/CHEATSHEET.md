@@ -411,7 +411,7 @@ Utxo searches are lists of UTxOs that can be manipulated conveniently.
 
 1. Utxo searches are created using:
   * `beginSearch` from a monadic call returning a list of UTxOs such as `allUtxos`
-  * `beginSearchP` from a pure call returning a list of UTxOs
+  * `beginSearchPure` from a pure call returning a list of UTxOs
 
 2. Some existing UTxO searches are provided builtin such as `utxosAtSearch`,
    `allUtxosSearch` or `txSkelOutByRefSearch`.

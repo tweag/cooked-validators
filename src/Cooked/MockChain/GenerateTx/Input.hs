@@ -22,13 +22,13 @@ toTxInAndWitness ::
       Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra)
     )
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  TxSkelOut owner _ datum _ _ _ <- txSkelOutByRef txOutRef
-  witness <- case owner of
+  TxSkelOut {txSkelOutOwner, txSkelOutDatum} <- txSkelOutByRef txOutRef
+  witness <- case txSkelOutOwner of
     UserPubKey _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
     UserScript script ->
       fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
         toScriptWitness script txSkelRedeemer $
-          case datum of
+          case txSkelOutDatum of
             NoTxSkelOutDatum -> Cardano.ScriptDatumForTxIn Nothing
             SomeTxSkelOutDatum _ Inline -> Cardano.InlineScriptDatum
             SomeTxSkelOutDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ Ledger.toCardanoScriptData $ Api.toBuiltinData dat

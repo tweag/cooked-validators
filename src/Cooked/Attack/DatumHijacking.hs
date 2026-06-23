@@ -141,7 +141,7 @@ redirectOutputTweakAll outputPred indexPred = do
     go (out : l) n =
       case outputPred out of
         Nothing -> second (out :) $ go l n
-        Just newOwner | indexPred n -> bimap (out :) ((out & txSkelOutOwnerL .~ toPKHOrVScript newOwner) :) $ go l (n + 1)
+        Just newOwner | indexPred n -> bimap (out :) (set txSkelOutOwnerL (toPKHOrVScript newOwner) out :) $ go l (n + 1)
         _ -> second (out :) $ go l (n + 1)
 
 -- | Redirects, each in their own transaction, all the outputs targetted by an
@@ -169,7 +169,7 @@ redirectOutputTweakAny outputPred indexPred = do
                 newOwner <- outputPred out
                 return $
                   mplus
-                    (return ([out], l' ++ (out & txSkelOutOwnerL .~ toPKHOrVScript newOwner) : l))
+                    (return ([out], l' ++ set txSkelOutOwnerL (toPKHOrVScript newOwner) out : l))
                     (go (l' ++ [out]) (n + 1) l)
             )
     go l' n (out : l) = go (l' ++ [out]) n l

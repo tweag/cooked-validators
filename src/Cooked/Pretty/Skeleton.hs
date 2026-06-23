@@ -244,7 +244,7 @@ instance PrettyCookedList TxSkelOut where
       prettyCookedOpt opts (view txSkelOutValueL output)
     ]
       ++ catMaybes
-        [ prettyCookedOptMaybe opts (output ^. txSkelOutDatumL),
+        [ prettyCookedOptMaybe opts (view txSkelOutDatumL output),
           ("Reference script:" <+>) . prettyHash opts <$> preview txSkelOutReferenceScriptHashAF output
         ]
 
