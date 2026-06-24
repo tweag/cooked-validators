@@ -44,11 +44,11 @@ import Cooked.MockChain.State
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Map.Strict qualified as Map
-import Ledger.Index qualified as Ledger
+import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
-import Ledger.Slot qualified as Ledger
-import Ledger.Tx qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
+import Ledger.Tx qualified as P.Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -60,9 +60,9 @@ import Polysemy.State
 -- | An effect that offers all the primitives that are performing modifications
 -- on the blockchain state.
 data MockChainWrite :: Effect where
-  WaitNSlots :: Integer -> MockChainWrite m Ledger.Slot
+  WaitNSlots :: Integer -> MockChainWrite m P.Ledger.Slot
   SetParams :: Emulator.Params -> MockChainWrite m ()
-  ValidateTxSkel :: TxSkel -> MockChainWrite m (Ledger.CardanoTx, Utxos)
+  ValidateTxSkel :: TxSkel -> MockChainWrite m (P.Ledger.CardanoTx, Utxos)
   SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
   ForceOutputs :: [TxSkelOut] -> MockChainWrite m Utxos
 
@@ -73,7 +73,7 @@ runMockChainWrite ::
   forall effs a.
   ( Members
       '[ State MockChainState,
-         Error Ledger.ToCardanoError,
+         Error P.Ledger.ToCardanoError,
          Error MockChainError,
          MockChainLog,
          MockChainRead,
@@ -121,11 +121,11 @@ runMockChainWrite = interpret $ \case
     -- We create our transaction body, which only consists of the dummy input
     -- and the outputs to force, and make a transaction out of it.
     cardanoTx <-
-      Ledger.CardanoEmulatorEraTx . txSignatoriesAndBodyToCardanoTx []
+      P.Ledger.CardanoEmulatorEraTx . txSignatoriesAndBodyToCardanoTx []
         <$> fromEither
           ( Emulator.createTransactionBody params $
-              Ledger.CardanoBuildTx
-                ( Ledger.emptyTxBodyContent
+              P.Ledger.CardanoBuildTx
+                ( P.Ledger.emptyTxBodyContent
                     { Cardano.txOuts = outputs',
                       Cardano.txIns = [input]
                     }
@@ -137,16 +137,16 @@ runMockChainWrite = interpret $ \case
           Map.fromList $
             zipWith
               (\x y -> (x, (y, True)))
-              (Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx)
+              (P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx)
               outputsMinAda
     -- We update the index, which effectively receives the new utxos
     modify'
       ( over mcstLedgerStateL $
           Lens.over
             Emulator.elsUtxoL
-            ( Ledger.fromPlutusIndex
-                . Ledger.insert cardanoTx
-                . Ledger.toPlutusIndex
+            ( P.Ledger.fromPlutusIndex
+                . P.Ledger.insert cardanoTx
+                . P.Ledger.toPlutusIndex
             )
       )
     -- We update our internal map by adding the new outputs
@@ -184,7 +184,7 @@ runMockChainWrite = interpret $ \case
     -- We generate the transaction asscoiated with the skeleton, and apply on it
     -- the modifications from the skeleton options
     signatories <- viewTweak txSkelSignatoriesL
-    let cardanoTx = Ledger.CardanoEmulatorEraTx $ txSkelOptModTx $ txSignatoriesAndBodyToCardanoTx signatories body
+    let cardanoTx = P.Ledger.CardanoEmulatorEraTx $ txSkelOptModTx $ txSignatoriesAndBodyToCardanoTx signatories body
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
     -- We finally run the emulated validation. We update our internal state
@@ -193,26 +193,26 @@ runMockChainWrite = interpret $ \case
     -- caller will need to catch those errors and do something with them.
     newOutputs <- case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
-      (_, Ledger.FailPhase1 _ err) -> throw $ MCEValidationError Ledger.Phase1 err
-      (newELedgerState, Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
+      (_, P.Ledger.FailPhase1 _ err) -> throw $ MCEValidationError P.Ledger.Phase1 err
+      (newELedgerState, P.Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
         -- We update the emulated ledger state
         modify' (set mcstLedgerStateL newELedgerState)
         -- We remove the collateral utxos from our own stored outputs
         forM_ colInputs $ modify' . removeOutput
         -- We add the returned collateral to our outputs when it exists
-        case (mRetColOutput, Map.toList $ Ledger.getCardanoTxProducedReturnCollateral cardanoTx) of
+        case (mRetColOutput, Map.toList $ P.Ledger.getCardanoTxProducedReturnCollateral cardanoTx) of
           (Nothing, []) -> return ()
-          (Just retColOutput, [(txIn, _)]) -> modify' $ addOutput (Ledger.fromCardanoTxIn txIn) retColOutput
+          (Just retColOutput, [(txIn, _)]) -> modify' $ addOutput (P.Ledger.fromCardanoTxIn txIn) retColOutput
           _ -> fail "Unreachable case when processing return collaterals, please report a bug at https://github.com/tweag/cooked-validators/issues"
         -- We throw a mockchain error
-        throw $ MCEValidationError Ledger.Phase2 err
+        throw $ MCEValidationError P.Ledger.Phase2 err
       -- In case of success, we update the index with all inputs and outputs
       -- contained in the transaction
-      (newELedgerState, Ledger.Success {}) -> do
+      (newELedgerState, P.Ledger.Success {}) -> do
         -- We update the index with the utxos consumed and produced by the tx
         modify' (set mcstLedgerStateL newELedgerState)
         -- We retrieve the utxos created by the transaction
-        let utxos = Ledger.fromCardanoTxIn . snd <$> Ledger.getCardanoTxOutRefs cardanoTx
+        let utxos = P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx
         -- We combine them with their corresponding `TxSkelOut`
         let newOutputs = zip utxos (txSkelOuts finalTxSkel)
         -- We add the news utxos to the state
@@ -224,7 +224,7 @@ runMockChainWrite = interpret $ \case
       -- This is a theoretical unreachable case. Since we fail in Phase 2, it
       -- means the transaction involved script, and thus we must have generated
       -- collaterals.
-      (_, Ledger.FailPhase2 {})
+      (_, P.Ledger.FailPhase2 {})
         | Nothing <- mCollaterals ->
             fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We apply a change of slot when requested in the options
@@ -233,38 +233,38 @@ runMockChainWrite = interpret $ \case
     modify $ set mcstParamsL oldParams
     modify $ over mcstLedgerStateL $ Emulator.updateStateParams oldParams
     -- We log the validated transaction
-    logEvent $ MCLogNewTx (Ledger.fromCardanoTxId $ Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ Ledger.getCardanoTxOutRefs cardanoTx)
+    logEvent $ MCLogNewTx (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ P.Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return (cardanoTx, newOutputs)
 
 -- | Waits a certain number of slots and returns the new slot
-waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs Ledger.Slot
+waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs P.Ledger.Slot
 
 -- | Wait for a certain slot, or throws an error if the slot is already past
-awaitSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Ledger.Slot -> Sem effs Ledger.Slot
-awaitSlot (Ledger.Slot targetSlot) = do
-  Ledger.Slot now <- currentSlot
+awaitSlot :: (Members '[MockChainRead, MockChainWrite] effs) => P.Ledger.Slot -> Sem effs P.Ledger.Slot
+awaitSlot (P.Ledger.Slot targetSlot) = do
+  P.Ledger.Slot now <- currentSlot
   waitNSlots (targetSlot - now)
 
 -- | Waits until the current slot becomes greater or equal to the slot
 --  containing the given POSIX time.  Note that that it might not wait for
 --  anything if the current slot is large enough.
-awaitEnclosingSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Api.POSIXTime -> Sem effs Ledger.Slot
+awaitEnclosingSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Api.POSIXTime -> Sem effs P.Ledger.Slot
 awaitEnclosingSlot time = getEnclosingSlot time >>= awaitSlot
 
 -- | Wait a given number of ms from the lower bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotLowerBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs Ledger.Slot
+waitNMSFromSlotLowerBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
 waitNMSFromSlotLowerBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | Wait a given number of ms from the upper bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotUpperBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs Ledger.Slot
+waitNMSFromSlotUpperBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
 waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | Generates, balances and validates a transaction from a skeleton, and
 -- returns the validated transaction, alongside the created UTxOs.
-validateTxSkel :: (Member MockChainWrite effs) => TxSkel -> Sem effs (Ledger.CardanoTx, Utxos)
+validateTxSkel :: (Member MockChainWrite effs) => TxSkel -> Sem effs (P.Ledger.CardanoTx, Utxos)
 
 -- | Same as `validateTxSkel`, but only returns the generated UTxOs
 validateTxSkel' :: (Members '[MockChainRead, MockChainWrite] effs) => TxSkel -> Sem effs Utxos

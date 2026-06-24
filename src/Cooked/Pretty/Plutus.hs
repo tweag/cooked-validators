@@ -4,9 +4,9 @@
 module Cooked.Pretty.Plutus where
 
 import Cooked.Pretty.Class
-import Ledger.Index qualified as Ledger
-import Ledger.Scripts qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Index qualified as P.Ledger
+import Ledger.Scripts qualified as P.Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
@@ -65,16 +65,16 @@ instance PrettyCooked Api.POSIXTime where
 
 -- * Pretty instances for evalution error coming from plutus-ledger
 
-instance PrettyCooked Ledger.ValidationPhase where
-  prettyCookedOpt _ Ledger.Phase1 = "Phase 1"
-  prettyCookedOpt _ Ledger.Phase2 = "Phase 2"
+instance PrettyCooked P.Ledger.ValidationPhase where
+  prettyCookedOpt _ P.Ledger.Phase1 = "Phase 1"
+  prettyCookedOpt _ P.Ledger.Phase2 = "Phase 2"
 
-instance PrettyCooked Ledger.ValidationError where
-  prettyCookedOpt opts (Ledger.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (Ledger.fromCardanoTxIn txIn)
-  prettyCookedOpt opts (Ledger.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
-  prettyCookedOpt _ (Ledger.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
-  prettyCookedOpt _ Ledger.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
+instance PrettyCooked P.Ledger.ValidationError where
+  prettyCookedOpt opts (P.Ledger.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (P.Ledger.fromCardanoTxIn txIn)
+  prettyCookedOpt opts (P.Ledger.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
+  prettyCookedOpt _ (P.Ledger.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
+  prettyCookedOpt _ P.Ledger.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
 
-instance PrettyCooked Ledger.ScriptError where
-  prettyCookedOpt _ (Ledger.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
-  prettyCookedOpt _ (Ledger.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2
+instance PrettyCooked P.Ledger.ScriptError where
+  prettyCookedOpt _ (P.Ledger.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
+  prettyCookedOpt _ (P.Ledger.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2

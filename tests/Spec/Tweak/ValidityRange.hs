@@ -13,8 +13,8 @@ import Cooked.Tweak.ValidityRange
 import Data.Default (def)
 import Data.Either (rights)
 import Data.Function (on)
-import Ledger.Slot qualified as Ledger
-import Ledger.Tx qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
+import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V1.Interval qualified as Api
 import Polysemy
 import Polysemy.Error
@@ -25,14 +25,14 @@ import Polysemy.Writer
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertBool, testCase)
 
-toSlotRange :: Integer -> Integer -> Api.Interval Ledger.Slot
-toSlotRange = Api.interval `on` Ledger.Slot
+toSlotRange :: Integer -> Integer -> Api.Interval P.Ledger.Slot
+toSlotRange = Api.interval `on` P.Ledger.Slot
 
-toSlotRangeTranslate :: Ledger.Slot -> Integer -> Integer -> Api.Interval Ledger.Slot
+toSlotRangeTranslate :: P.Ledger.Slot -> Integer -> Integer -> Api.Interval P.Ledger.Slot
 toSlotRangeTranslate translation a b =
   toSlotRange
-    (Ledger.getSlot translation + a)
-    (Ledger.getSlot translation + b)
+    (P.Ledger.getSlot translation + a)
+    (P.Ledger.getSlot translation + b)
 
 checkIsValidDuring :: (Member Tweak effs) => Sem effs Assertion
 checkIsValidDuring = do
@@ -48,14 +48,14 @@ checkIsValidDuring = do
 checkAddToValidityRange :: (Members '[Tweak, MockChainRead, MockChainWrite, NonDet] effs) => Sem effs Assertion
 checkAddToValidityRange = do
   timeOrigin <- currentSlot
-  void $ centerAroundValidityRangeTweak (timeOrigin + Ledger.Slot 100) 80
+  void $ centerAroundValidityRangeTweak (timeOrigin + P.Ledger.Slot 100) 80
   b <- isValidDuringTweak $ toSlotRangeTranslate timeOrigin 25 35
-  b1 <- isValidAtTweak (timeOrigin + Ledger.Slot 130)
+  b1 <- isValidAtTweak (timeOrigin + P.Ledger.Slot 130)
   void $ intersectValidityRangeTweak $ toSlotRangeTranslate timeOrigin 110 220
-  b2 <- isValidAtTweak (timeOrigin + Ledger.Slot 130)
-  void $ awaitSlot $ timeOrigin + Ledger.Slot 130
+  b2 <- isValidAtTweak (timeOrigin + P.Ledger.Slot 130)
+  void $ awaitSlot $ timeOrigin + P.Ledger.Slot 130
   b3 <- isValidNowTweak
-  void $ awaitSlot $ Ledger.Slot 200
+  void $ awaitSlot $ P.Ledger.Slot 200
   b4 <- isValidNowTweak
   void makeValidityRangeNowTweak
   b5 <- isValidNowTweak
@@ -86,7 +86,7 @@ interpretValidityRange =
     . runMockChainWrite
     . evalTweak txSkelTemplate
     . insertAt @3
-      @'[ Error Ledger.ToCardanoError,
+      @'[ Error P.Ledger.ToCardanoError,
           Fail,
           Error MockChainError,
           State MockChainState,

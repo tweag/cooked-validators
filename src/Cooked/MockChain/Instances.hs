@@ -57,7 +57,7 @@ import Cooked.MockChain.Runnable
 import Cooked.MockChain.State
 import Cooked.MockChain.Tweak
 import Cooked.MockChain.Write
-import Ledger.Tx qualified as Ledger
+import Ledger.Tx qualified as P.Ledger
 import Polysemy
 import Polysemy.Bundle
 import Polysemy.Error
@@ -91,7 +91,7 @@ instance RunnableMockChain DirectEffs where
       . runMockChainRead
       . runMockChainWrite
       . insertAt @4
-        @[ Error Ledger.ToCardanoError,
+        @[ Error P.Ledger.ToCardanoError,
            Error MockChainError,
            State MockChainState,
            MockChainLog,
@@ -104,7 +104,7 @@ type FullTweakEffs =
   '[ MockChainMisc,
      MockChainRead,
      Fail,
-     Error Ledger.ToCardanoError,
+     Error P.Ledger.ToCardanoError,
      Error MockChainError,
      State MockChainState,
      MockChainLog,
@@ -124,7 +124,7 @@ type FullEffs =
      MockChainMisc,
      MockChainRead,
      Fail,
-     Error Ledger.ToCardanoError,
+     Error P.Ledger.ToCardanoError,
      Error MockChainError,
      State MockChainState,
      MockChainLog,
@@ -204,7 +204,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runModifyLocally
       . runMockChainWrite
       . insertAt @7
-        @[ Error Ledger.ToCardanoError,
+        @[ Error P.Ledger.ToCardanoError,
            Error MockChainError,
            State MockChainState,
            MockChainLog,

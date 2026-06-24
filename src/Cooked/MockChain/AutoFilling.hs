@@ -14,7 +14,7 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.List (find)
 import Data.Map qualified as Map
-import Ledger.Tx qualified as Ledger
+import Ledger.Tx qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -133,7 +133,7 @@ autoFillReferenceScripts = do
 
 -- | Compute the required minimal ADA for a given output
 getTxSkelOutMinAda ::
-  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs Integer
 getTxSkelOutMinAda txSkelOut = do
@@ -150,7 +150,7 @@ getTxSkelOutMinAda txSkelOut = do
 -- will increase the size of the UTXO which in turn might need more ADA.
 toTxSkelOutWithMinAda ::
   forall effs.
-  (Members '[MockChainRead, MockChainLog, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
@@ -177,6 +177,6 @@ toTxSkelOutWithMinAda txSkelOut = do
 -- their ada value when requested by the user and required by the protocol
 -- parameters. Logs an event whenever such a change occurs.
 autoFillMinAda ::
-  (Members '[Tweak, MockChainRead, MockChainLog, Error Ledger.ToCardanoError] effs) =>
+  (Members '[Tweak, MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
   Sem effs ()
 autoFillMinAda = traverseTweak (txSkelOutsL % traversed) toTxSkelOutWithMinAda
