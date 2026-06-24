@@ -15,6 +15,12 @@
 
 ### Changed
 
+- `doc/BALANCING.md` has been updated to match the current implementation:
+  Polysemy effect signatures, the `ExtendedTxSkel` result of `balanceTxSkel`, the
+  effectful `reachValue`/`computeFeeAndBalance` signatures and their actual
+  contracts, the generalized `UserConstraints pkh` option constructors, the
+  `txSkelOptMaxNbOfBalancingUtxos` and `txSkelOptDeferPhase2FailuresDuringBalancing`
+  options, and the withdrawal term in the preservation equation.
 - `beginSearchP` has been renamed to `beginSearchPure` to avoid its suffix being
   mistaken for the `P` (prism) optic-kind suffix.
 - Building a `ParameterChange` governance action containing a `CostModels`

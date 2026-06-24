@@ -13,9 +13,12 @@ is currently implemented, and which options affect this mechanism.
 ### Balancing requirements
 
 In Cardano, transactions must be balanced before they can be submitted for
-validation. This means the equation `input value + minted value = output value +
-burned value + deposited value + fee` must be satisfied to proceed to phase 2 of
-the validation process. Additionally, when a transaction involves scripts, and
+validation. This means the equation `input value + minted value + withdrawn
+value = output value + burned value + deposited value + fee` must be satisfied to
+proceed to phase 2 of the validation process. The `withdrawn value` accounts for
+rewards withdrawn from staking credentials, and the `deposited value` accounts
+for deposits required by certificates and governance proposals. Additionally,
+when a transaction involves scripts, and
 thus its validation can fail in phase 2, collaterals must be provided to account
 for such possible failures. These collaterals are related to the fee through the
 protocol parameter `collateralPercentage` by the inequation `totalCollateral >=
@@ -39,15 +42,47 @@ estimated on-chain.
 Our balancing function is signed as follows:
 
 ``` haskell
-balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Collaterals, Wallet)
+balanceTxSkel ::
+  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  TxSkel ->
+  Sem effs ExtendedTxSkel
 ```
 
-This function takes a skeleton within a `MonadBlockChainBalancing` environement,
-and returns:
-- A balanced skeleton
-- The associated fee accounted for by the skeleton
-- The set of collateral inputs to cover the chosen fee
-- The return collateral wallet to return excess collateral
+The library is built on [Polysemy] effects rather than a concrete monad, so the
+balancing capabilities are expressed as the effect constraints
+`Members '[MockChainRead, MockChainLog, Error MockChainError, Error
+P.Ledger.ToCardanoError, Fail] effs` and the result lives in `Sem effs`.
+
+This function takes a skeleton and returns an `ExtendedTxSkel`, a record bundling
+the balanced skeleton with the extra pieces of information produced during
+balancing:
+
+``` haskell
+data ExtendedTxSkel = ExtendedTxSkel
+  { eSkel :: TxSkel,                  -- the (possibly) balanced skeleton
+    eFee :: Fee,                      -- the fee accounted for by the skeleton
+    eMCollaterals :: Maybe Collaterals, -- the collateral inputs and return collateral output
+    eBody :: Body                     -- the generated Cardano transaction body
+  }
+```
+
+where the relevant type aliases are:
+
+``` haskell
+type Fee = Integer
+type CollateralIns = Set Api.TxOutRef
+type Collaterals = (CollateralIns, Maybe TxSkelOut)
+type Body = Cardano.TxBody Cardano.ConwayEra
+```
+
+A few things to note:
+- `eMCollaterals` is `Nothing` when the transaction involves no script and thus
+  requires no collaterals.
+- The return collateral is no longer a `Wallet`: the excess collateral is
+  returned through a `TxSkelOut` carried in `Collaterals` (its `Maybe TxSkelOut`
+  component).
+- The generated Cardano transaction body `eBody` is returned as well, since it is
+  produced as a by-product of fee estimation during balancing.
 
 ## Balancing options
 
@@ -61,11 +96,15 @@ This policy determines whether a skeleton should be automatically balanced and
 specifies which wallet to use as the balancing wallet.
 
 ``` haskell
-data BalancingPolicy
-  = BalanceWithFirstSignatory -- default
-  | BalanceWith Wallet
-  | DoNotBalance
+data BalancingPolicy where
+  BalanceWithFirstSignatory :: BalancingPolicy                          -- default
+  BalanceWith               :: (UserConstraints pkh) => pkh -> BalancingPolicy
+  DoNotBalance              :: BalancingPolicy
 ```
+
+The user supplied to `BalanceWith` is not restricted to a concrete `Wallet`: any
+type satisfying `UserConstraints pkh` (i.e. that can be turned into a public key
+hash) is accepted.
 
 The balancing wallet is a critical component needed during the balancing
 process. Its address serves multiple purposes: it is utilized when surplus value
@@ -80,14 +119,15 @@ Here are the options available:
   an error is thrown:
   
   ``` haskell
-  FailWith "Can't select balancing wallet from the signers lists because it is empty."
+  MCEBalancingError MissingBalancingUser
   ```
   
-  Note that an empty list of signers would lead to a validation error anyway due
-  to collateral requirements.
-* `BalanceWith Wallet`: Enables auto-balancing and uses the specified wallet as
+  which is rendered as `Missing balancing user`. Note that an empty list of
+  signers would lead to a validation error anyway due to collateral
+  requirements.
+* `BalanceWith user`: Enables auto-balancing and uses the specified user as
   the balancing wallet. If the balancing process requires additional UTXOs from
-  this wallet (which is highly likely), the wallet must be a signer of the
+  this user (which is highly likely), the user must be a signer of the
   transaction for successful validation.
   
 * `DoNotBalance`: Disables auto-balancing. The transaction skeleton, including
@@ -210,11 +250,14 @@ of the transaction and the desired balance between cost and performance.
 Which utxos to pick from as collateral inputs.
 
 ``` haskell
-data CollateralUtxos
-  = CollateralUtxosFromBalancingUser -- default
-  | CollateralUtxosFromUser Wallet
-  | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
+data CollateralUtxos where
+  CollateralUtxosFromBalancingUser :: CollateralUtxos                                       -- default
+  CollateralUtxosFromUser          :: (UserConstraints pkh) => pkh -> CollateralUtxos
+  CollateralUtxosFromSet           :: (UserConstraints pkh) => Set Api.TxOutRef -> pkh -> CollateralUtxos
 ```
+
+As with `BalancingPolicy`, the user arguments are not restricted to a concrete
+`Wallet` but accept any type satisfying `UserConstraints pkh`.
 
 When a transaction involves executing scripts, UTXOs must be provided as
 collaterals to cover potential phase 2 validation failures. These UTXOs need to
@@ -236,12 +279,12 @@ Here are the options available:
   balancing wallet. The return collateral will be directed back to the balancing
   wallet. This option is synonymous with `CollateralUtxosFromUser
   balancingWallet`.
-* `CollateralUtxosFromUser Wallet`: Use UTXOs containing only value from the
-  specified wallet. Transactions using these UTXOs will require the signing of
-  the wallet owner for validation. The return collateral will also be sent to
-  this same wallet.
-* `CollateralUtxosFromSet (Set Api.TxOutRef) Wallet`: Use UTXOs from the
-  provided set and direct return collaterals to the designated wallet. Note that
+* `CollateralUtxosFromUser user`: Use UTXOs containing only value from the
+  specified user. Transactions using these UTXOs will require the signing of
+  the user owner for validation. The return collateral will also be sent to
+  this same user.
+* `CollateralUtxosFromSet (Set Api.TxOutRef) user`: Use UTXOs from the
+  provided set and direct return collaterals to the designated user. Note that
   if any of these UTXOs belong to a script and are selected by the balancing
   mechanism, validation will fail because only UTXOs controlled by public keys
   are permissible as collaterals according to ledger rules. Exercise caution
@@ -259,12 +302,58 @@ However, future enhancements should allow validation failures to be treated as
 acceptable, thereby increasing the usefulness of the collateral mechanism and
 potentially introducing new skeleton options related to it.
 
+### Maximum number of balancing utxos
+
+How many candidate utxos the balancing algorithm is allowed to add to the inputs
+of the transaction.
+
+``` haskell
+txSkelOptMaxNbOfBalancingUtxos :: Maybe Integer -- default: Nothing
+```
+
+The utxo selection performed during balancing is greedy and runs in exponential
+time in the number of candidate utxos (see
+[Reaching a given value with a set of utxos](#reaching-a-given-value-with-a-set-of-utxos)).
+In the common testing setup, with only a few wallets and utxos, this is a
+non-issue. However, when the number of candidate utxos is large (say, more than
+15), the search can become prohibitively slow. This option caps the number of
+utxos that may be added during balancing:
+
+* `Nothing`: no limit; all candidate utxos are considered.
+* `Just n`: at most `n` candidate utxos may be added. This can also be used to
+  pilot balancing — for instance, `Just 1` forces a single additional input to
+  be added, if such a utxo exists.
+
+### Deferring phase 2 failures during balancing
+
+Whether to defer phase 2 validation failures occurring during balancing to the
+later submission of the transaction.
+
+``` haskell
+txSkelOptDeferPhase2FailuresDuringBalancing :: Bool -- default: False
+```
+
+Balancing iterates the generation of the transaction body, which includes
+computing script execution units and can therefore surface phase 2 validation
+failures.
+
+* `False`: such failures are caught as early as possible, typically during
+  balancing when the execution units are computed. This shortcuts the balancing
+  loop and is significantly faster (around 40%). The downside is that the
+  balanced `TxSkel` is never produced and thus does not appear in the log.
+* `True`: phase 2 failures are ignored during balancing and deferred to actual
+  submission. This is slower (around 40%) but allows the log to display a
+  balanced version of the failing `TxSkel`, which is useful when debugging
+  complex phase 2 failures.
+
 ## Balancing algorithm
 
 The balancing algorithm operates by taking a transaction skeleton as input
-within a `MonadBlockChain` environment and returning this skeleton with
-associated fees, collaterals, and a return collateral wallet. These four
-elements are governed by the [balancing options](#balancing-options). The
+within a `Sem effs` computation (carrying the [Polysemy] effects listed in
+`balanceTxSkel`) and returning an `ExtendedTxSkel`, which bundles this skeleton
+with its associated fee, optional collaterals (collateral inputs and return
+collateral output) and generated Cardano body. These elements are governed by
+the [balancing options](#balancing-options). The
 algorithm comprises several components. While not all components will be
 described in detail here (the code is thoroughly commented), we will focus on
 the most important and challenging aspects.
@@ -289,16 +378,29 @@ The function `reachValue` performs this subset computation. Here is its
 signature:
 
 ``` haskell
-reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [[(Api.TxOutRef, Api.TxOut)], Api.Value)]
+reachValue ::
+  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  Utxos ->                -- candidate utxos, type Utxos = [(Api.TxOutRef, TxSkelOut)]
+  Api.Value ->            -- the target value to reach
+  Integer ->             -- the maximum number of utxos allowed in a subset
+  Either TxSkelOut Peer ->  -- where to attach the surplus
+  Sem effs (Maybe ([Api.TxOutRef], Maybe TxSkelOut))
 ```
 
-This function takes a list of UTXOs coupled with their associated outputs, a
-target value to be reached, and an integer representing the maximum number of
-elements candidate subsets should contain. The function is recursive and
-operates in 2^n time complexity, where n is the number of input UTXOs, as all
-"find all subsets" algorithms do. The idea is to go through the input list and
-decide to either pick or drop the first element. The function is optimized in
-four ways compared to a regular "find all subsets" algorithm:
+This function takes a list of utxos coupled with their associated outputs (the
+`Utxos` alias, where each output is a `TxSkelOut`, not a raw `Api.TxOut`), a
+target value to be reached, an integer representing the maximum number of
+elements candidate subsets should contain, and a description of where the surplus
+should go: either an existing `TxSkelOut` to extend, or a `Peer` to whom a fresh
+surplus output should be paid. Note that the function is effectful (it runs in
+`Sem effs`), since computing the size of the inputs and outputs it considers
+requires access to the protocol parameters.
+
+The function is recursive and operates in 2^n time complexity, where n is the
+number of input utxos, as all "find all subsets" algorithms do. The idea is to go
+through the input list and decide to either pick or drop the first element. The
+function is optimized in four ways compared to a regular "find all subsets"
+algorithm:
 - At each step, we check whether taking the whole remaining list would be
   sufficient to reach the value. If not, we stop the computation.
 - We limit our search to the number of elements specified in the function
@@ -309,16 +411,19 @@ four ways compared to a regular "find all subsets" algorithm:
   and the (positive part of the) target value is empty, we skip it.
 - Once the target is reached, we directly stop the search and do not attempt to
   add more elements to the subset.
-  
-The function returns a list of lists of candidates with their associated surplus
-value beyond the target.
 
-The function returns a list of candidate sets along with their associated
-surplus values beyond the target. We then sort these candidate sets based on the
-minimal ADA required to return the surplus value to the balancing wallet. The
-first element in this sorted list represents the optimal candidate set of UTXOs
-for balancing the transaction or providing collaterals, meeting all our criteria
-for efficiency and sufficiency.
+Rather than returning every candidate subset and letting the caller choose, the
+function selects the optimal subset internally and returns at most one solution,
+wrapped in `Maybe`. The solution is a pair of the chosen input references and an
+optional surplus `TxSkelOut` (either freshly built for the `Peer`, or the
+provided output extended with the surplus). When several subsets reach the
+target, the one that adds the least to the transaction size is kept (comparing
+the byte size contributed by the picked inputs and the surplus output, rather
+than the minimal ADA of the surplus). If the surplus does not contain enough ADA
+to satisfy its minimal-ADA requirement, the search is restarted with a target
+increased by the missing ADA, so that the returned solution always yields a
+valid surplus output. `Nothing` is returned when no subset can reach the target
+within the allowed number of utxos.
 
 ### Computing optimal fee
 
@@ -340,18 +445,33 @@ Here are the requirements for our fee computation mechanism:
 * Collateral must be computable around the chosen fee.
 
 Fortunately, fees are bounded within a specific interval that can be deduced
-from protocol parameters. Our implementation relies on a dichotomic search
-within this interval. The function that performs this computation is
-`computeFeeAndBalance`, with the following signature:
+from protocol parameters. The bounds of this interval are computed by
+`getMinAndMaxFee`, where the minimum fee is the fixed portion of the fee and the
+maximum fee additionally accounts for the maximum transaction size, the maximum
+execution units of the involved scripts, and the cost of reference scripts. Our
+implementation then relies on a dichotomic search within this interval. The
+function that performs this computation is `computeFeeAndBalance`, with the
+following signature:
 
 ``` haskell
-(MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Collaterals -> [(Api.TxOutRef, Api.TxOut)] -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
+computeFeeAndBalance ::
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  Peer ->                          -- the balancing user
+  Fee ->                           -- lower bound of the search interval
+  Fee ->                           -- upper bound of the search interval
+  Utxos ->                         -- candidate balancing utxos
+  Maybe (CollateralIns, Peer) ->   -- candidate collateral inputs and return collateral user
+  TxSkel ->                        -- the skeleton to adjust
+  Sem effs ExtendedTxSkel
 ```
 
-This function takes as input the balancing wallet, the two boundaries of the
-search interval, the candidate balancing UTXOs, the return collateral wallet,
-and the skeleton to adjust. It returns the adjusted skeleton with the computed
-fee and the associated set of collateral inputs.
+This function takes as input the balancing user, the two boundaries of the
+search interval, the candidate balancing utxos, the optional candidate
+collateral inputs together with the user to whom return collateral should be
+sent, and the skeleton to adjust. It returns an `ExtendedTxSkel` bundling the
+adjusted skeleton with its computed fee, optional collaterals and generated body.
+The fee estimation itself is delegated to `estimateTxSkelFee`, which generates a
+transaction body and asks the Cardano API for its minimal fee.
 
 The complexity of this function arises from the fact that coupling a balancing
 and a fee computation attempt can fail in three different ways:
@@ -392,3 +512,5 @@ the estimated fee resulting from this balancing, we adjust our search interval:
   
 The recursion continues until an error is propagated or the interval is reduced
 to a single point.
+
+[Polysemy]: https://hackage.haskell.org/package/polysemy
