@@ -22,7 +22,7 @@ import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
 import Data.Kind (Type)
 import Data.Typeable (Typeable, cast)
-import Ledger.Slot qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -38,7 +38,7 @@ data CertificateAction :: UserKind -> Type where
   DRepUpdate :: CertificateAction IsEither
   DRepUnRegister :: CertificateAction IsEither
   PoolRegister :: Api.PubKeyHash -> CertificateAction IsPubKey
-  PoolRetire :: Ledger.Slot -> CertificateAction IsPubKey
+  PoolRetire :: P.Ledger.Slot -> CertificateAction IsPubKey
   CommitteeRegisterHot :: Api.Credential -> CertificateAction IsEither
   CommitteeResign :: CertificateAction IsEither
 

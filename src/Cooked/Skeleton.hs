@@ -56,7 +56,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Ledger.Slot qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Value qualified as Script
@@ -82,7 +82,7 @@ data TxSkel where
       -- for fees and balancing. You can change that with
       -- 'Cooked.Skeleton.Option.txSkelOptBalancingPolicy'.
       txSkelSignatories :: [TxSkelSignatory],
-      txSkelValidityRange :: Ledger.SlotRange,
+      txSkelValidityRange :: P.Ledger.SlotRange,
       -- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that
       --

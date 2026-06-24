@@ -31,10 +31,9 @@ import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Ratio qualified as Rat
 import Data.Set qualified as Set
-import Ledger.Tx qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
-import Lens.Micro.Extras qualified as Micro
-import Lens.Micro.Extras qualified as MicroLens
+import Ledger.Tx qualified as P.Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
+import Lens.Micro.Extras qualified as Microlens
 import Optics.Core
 import Optics.Core.Extras
 import Plutus.Script.Utils.Address qualified as Script
@@ -68,7 +67,7 @@ data ExtendedTxSkel = ExtendedTxSkel
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
 balanceTxSkel ::
-  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Sem effs ExtendedTxSkel
 balanceTxSkel skelUnbal@TxSkel {..} = do
@@ -165,7 +164,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
 computeFeeAndBalance ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   Peer ->
   Fee ->
   Fee ->
@@ -222,7 +221,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
 collateralsFromFee ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   -- | The fee from which these collaterals should be computed
   Fee ->
   -- | The optional candidate UTxOs to be used as collaterals, alongside the
@@ -237,9 +236,9 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   params <- Emulator.pEmulatorPParams <$> getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
-  let nbMax = toInteger $ MicroLens.view Conway.ppMaxCollateralInputsL params
+  let nbMax = toInteger $ Microlens.view Conway.ppMaxCollateralInputsL params
   -- We retrieve the percentage to respect between fees and total collaterals
-  let percentage = toInteger $ MicroLens.view Conway.ppCollateralPercentageL params
+  let percentage = toInteger $ Microlens.view Conway.ppCollateralPercentageL params
   -- We compute the total collateral to be associated to the transaction as a
   -- value. This will be the target value to be reached by collateral inputs. We
   -- add one because of ledger requirement which seem to round up this value.
@@ -258,7 +257,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
 
 reachValue ::
   forall effs.
-  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
   -- | The Utxos available to reach the value
   Utxos ->
   -- | The target value to reach
@@ -277,7 +276,7 @@ reachValue ::
 reachValue utxos target fuel outputOrUser = do
   -- We retrieve the current protocol version, which is going to be used to
   -- compute the size of the inputs and outputs added by this function
-  Cardano.ProtVer majorVersion _ <- Micro.view Conway.ppProtocolVersionL . Emulator.emulatorPParams <$> getParams
+  Cardano.ProtVer majorVersion _ <- Microlens.view Conway.ppProtocolVersionL . Emulator.emulatorPParams <$> getParams
   -- We annotate @outputOrUser@ with the size of the existing output, if any
   outputOrUser' <- case outputOrUser of
     Left output -> Left . (output,) <$> outputSize majorVersion output
@@ -387,12 +386,12 @@ reachValue utxos target fuel outputOrUser = do
     -- gonna be the same, but can theoretically vary if coming from a
     -- transaction with many outputs.
     inputSize :: Cardano.Version -> Api.TxOutRef -> Sem effs Integer
-    inputSize majorVersion = fmap (computeSize majorVersion . Cardano.toShelleyTxIn) . fromEither . Ledger.toCardanoTxIn
+    inputSize majorVersion = fmap (computeSize majorVersion . Cardano.toShelleyTxIn) . fromEither . P.Ledger.toCardanoTxIn
 
 -- | Estimates the required fee for a given skeleton with a given initial fee
 -- and collaterals
 estimateTxSkelFee ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
@@ -415,7 +414,7 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
 computeBalancedTxSkel ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   Peer ->
   Utxos ->
   TxSkel ->
@@ -506,12 +505,12 @@ getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
   -- for a transaction. There are quite a few of them.
   params <- Emulator.pEmulatorPParams <$> getParams
-  let maxTxSize = toInteger $ MicroLens.view Conway.ppMaxTxSizeL params
-      Cardano.Coin txFeePerByte = MicroLens.view Conway.ppMinFeeAL params
-      Cardano.Coin txFeeFixed = MicroLens.view Conway.ppMinFeeBL params
-      Cardano.Prices (Cardano.unboundRational -> priceESteps) (Cardano.unboundRational -> priceEMem) = MicroLens.view Conway.ppPricesL params
-      Cardano.ExUnits (toInteger -> eSteps) (toInteger -> eMem) = MicroLens.view Conway.ppMaxTxExUnitsL params
-      (Cardano.unboundRational -> refScriptFeePerByte) = MicroLens.view Conway.ppMinFeeRefScriptCostPerByteL params
+  let maxTxSize = toInteger $ Microlens.view Conway.ppMaxTxSizeL params
+      Cardano.Coin txFeePerByte = Microlens.view Conway.ppMinFeeAL params
+      Cardano.Coin txFeeFixed = Microlens.view Conway.ppMinFeeBL params
+      Cardano.Prices (Cardano.unboundRational -> priceESteps) (Cardano.unboundRational -> priceEMem) = Microlens.view Conway.ppPricesL params
+      Cardano.ExUnits (toInteger -> eSteps) (toInteger -> eMem) = Microlens.view Conway.ppMaxTxExUnitsL params
+      (Cardano.unboundRational -> refScriptFeePerByte) = Microlens.view Conway.ppMinFeeRefScriptCostPerByteL params
   -- We compute the components of the maximum possible fee, starting with the
   -- maximum fee associated with the transaction size
   let txSizeMaxFee = maxTxSize * txFeePerByte

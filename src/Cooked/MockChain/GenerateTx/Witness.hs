@@ -9,8 +9,8 @@ import Cardano.Api qualified as Cardano
 import Cooked.MockChain.Error
 import Cooked.MockChain.Read
 import Cooked.Skeleton
-import Ledger.Address qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Address qualified as P.Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -20,7 +20,7 @@ import Polysemy.Error
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script
 toPlutusScriptOrReferenceInput ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   VScript ->
   Maybe Api.TxOutRef ->
   Sem effs (Cardano.PlutusScriptOrReferenceInput lang)
@@ -31,17 +31,17 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
   case mScriptHash of
     Just scriptHash'
       | scriptHash == scriptHash' -> do
-          s <- fromEither $ Ledger.toCardanoTxIn scriptOutRef
+          s <- fromEither $ P.Ledger.toCardanoTxIn scriptOutRef
           return $ Cardano.PReferenceScript s
     _ -> throw $ MCEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
 
 -- | Translates a script with its associated redeemer and datum to a script
--- witness. Note on the usage of 'Ledger.zeroExecutionUnits': at this stage of
+-- witness. Note on the usage of 'P.Ledger.zeroExecutionUnits': at this stage of
 -- the transaction create, we cannot know the execution units used by the
 -- script. They will be filled out later on once the full body has been
 -- generated. So, for now, we temporarily leave them to 0.
 toScriptWitness ::
-  ( Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs,
+  ( Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs,
     ToVScript a
   ) =>
   a ->
@@ -49,16 +49,16 @@ toScriptWitness ::
   Cardano.ScriptDatum b ->
   Sem effs (Cardano.ScriptWitness b Cardano.ConwayEra)
 toScriptWitness (toVScript -> script@(Script.Versioned _ version)) (TxSkelRedeemer {..}) datum = do
-  let scriptData = Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
+  let scriptData = P.Ledger.toCardanoScriptData $ Api.toBuiltinData txSkelRedeemerContent
   case version of
     Script.PlutusV1 ->
-      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData Ledger.zeroExecutionUnits)
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum scriptData P.Ledger.zeroExecutionUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
     Script.PlutusV2 ->
-      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData Ledger.zeroExecutionUnits)
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum scriptData P.Ledger.zeroExecutionUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
     Script.PlutusV3 ->
-      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData Ledger.zeroExecutionUnits)
+      (\x -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum scriptData P.Ledger.zeroExecutionUnits)
         <$> toPlutusScriptOrReferenceInput script txSkelRedeemerReferenceInput
 
 -- | Generates a key witnesses for a given signatory and body, when the
@@ -70,7 +70,7 @@ toKeyWitness ::
 toKeyWitness txBody =
   fmap
     ( Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody
-        . Ledger.toWitness
-        . Ledger.PaymentPrivateKey
+        . P.Ledger.toWitness
+        . P.Ledger.PaymentPrivateKey
     )
     . preview txSkelSignatoryPrivateKeyAT

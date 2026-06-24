@@ -10,7 +10,7 @@ import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
@@ -28,7 +28,7 @@ import Polysemy.Error
 -- These quantity should satisfy the equation (in terms of their values):
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
-  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
   Maybe Collaterals ->
   Sem
     effs
@@ -42,7 +42,7 @@ toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) 
   txInsCollateral <-
     case collateralInsList of
       [] -> return Cardano.TxInsCollateralNone
-      l -> fromEither $ Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM Ledger.toCardanoTxIn l
+      l -> fromEither $ Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM P.Ledger.toCardanoTxIn l
   -- We collect the amount of lovelace in the collateral inputs
   Api.Lovelace collateralInsLovelace <- foldOf (folded % txSkelOutValueL % valueLovelaceL) . Map.elems <$> lookupUtxos collateralInsList
   -- We collect the amount of lovelace in the return collateral output
