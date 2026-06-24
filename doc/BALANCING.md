@@ -513,4 +513,65 @@ the estimated fee resulting from this balancing, we adjust our search interval:
 The recursion continues until an error is propagated or the interval is reduced
 to a single point.
 
+### Fee bounds
+
+The dichotomic search above operates within an interval whose bounds are computed
+by `getMinAndMaxFee` from the protocol parameters and the number of scripts
+involved in the transaction:
+
+- The **minimum fee** is simply the fixed portion of the fee (`ppMinFeeB`).
+- The **maximum fee** is that fixed portion plus the maxima of every other fee
+  component: the fee for a maximally-sized transaction (`maxTxSize *
+  ppMinFeeA`), the fee for the maximum execution steps and memory of each script
+  (`ppMaxTxExUnits` weighted by `ppPrices`, multiplied by the number of
+  scripts), and the cost of reference scripts (`maxTxSize *
+  ppMinFeeRefScriptCostPerByte`).
+
+This guarantees the actual required fee always lies within `[minFee, maxFee]`.
+Note that the reference-script fee component is expected to change in the
+Dijkstra era; see the
+[ref-scripts fee-change ADR](https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md).
+
+The concrete fee for a candidate skeleton is estimated by `estimateTxSkelFee`,
+which generates the transaction body and calls the Cardano API's
+`calculateMinTxFee`. Because that estimate accounts for signature size, it
+depends on the **number of signatories** declared on the skeleton: a skeleton
+with more signers will be estimated to require a larger fee.
+
+### Computing collaterals
+
+When the transaction involves at least one script, `collateralsFromFee` selects
+collateral inputs for a given fee. The total collateral to reach is derived from
+the fee and the `collateralPercentage` protocol parameter:
+
+```
+totalCollateral = fee * collateralPercentage / 100 + 1
+```
+
+The trailing `+ 1` compensates for a ledger-side rounding-up of this value. The
+selection reuses `reachValue`, with the maximum number of collateral inputs
+(`ppMaxCollateralInputs`, defaulting to 10 but usually around 3) as the fuel, and
+the return-collateral user as the surplus destination. If no subset of the
+candidate utxos can reach `totalCollateral`, balancing fails with
+`NoSuitableCollateral`.
+
+### Additional balancing behaviours
+
+A few more behaviours are worth being aware of:
+
+- **Candidate filtering.** Before balancing, candidate utxos already known to the
+  skeleton (its inputs and reference inputs) are filtered out, and — for a
+  user-supplied set — utxos belonging to scripts are filtered out as well. In
+  both cases, a warning is logged (`MCLogDiscardedUtxos`) reporting how many
+  utxos were discarded and why.
+- **Empty-inputs corner case.** The ledger forbids transactions with no inputs.
+  When a skeleton would balance with no inputs at all (no inputs and nothing
+  missing on the left of the equation), the algorithm artificially adds a
+  requirement of one lovelace, forcing a single dummy input to be consumed from
+  the balancing user.
+- **Multi-asset balancing.** Everything above operates on full `Api.Value`
+  bundles, not just ada. `reachValue` reasons about native tokens too, and its
+  asset-intersection pruning only considers utxos that contribute to the
+  still-missing assets of the target.
+
 [Polysemy]: https://hackage.haskell.org/package/polysemy

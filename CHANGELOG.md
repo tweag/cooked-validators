@@ -20,7 +20,10 @@
   effectful `reachValue`/`computeFeeAndBalance` signatures and their actual
   contracts, the generalized `UserConstraints pkh` option constructors, the
   `txSkelOptMaxNbOfBalancingUtxos` and `txSkelOptDeferPhase2FailuresDuringBalancing`
-  options, and the withdrawal term in the preservation equation.
+  options, the withdrawal term in the preservation equation, and the previously
+  undocumented fee bounds (`getMinAndMaxFee`), collateral computation
+  (`collateralsFromFee`), candidate filtering, empty-inputs corner case and
+  multi-asset balancing behaviours.
 - `beginSearchP` has been renamed to `beginSearchPure` to avoid its suffix being
   mistaken for the `P` (prism) optic-kind suffix.
 - Building a `ParameterChange` governance action containing a `CostModels`
