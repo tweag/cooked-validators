@@ -33,7 +33,7 @@ Running Haddock on library for cooked-validators-9.0.0...
  100% ( 22 / 22) in 'Cooked.Skeleton.Output'
  100% (  7 /  7) in 'Cooked.MockChain.Common'
  100% ( 35 / 35) in 'Cooked.Skeleton'
- 100% ( 20 / 20) in 'Cooked.Tweak.Common'
+ 100% ( 21 / 21) in 'Cooked.Tweak.Common'
  100% ( 13 / 13) in 'Cooked.Tweak.Signatories'
  100% (  6 /  6) in 'Cooked.Tweak.OutPermutations'
  100% (  3 /  3) in 'Cooked.Tweak.Mint'

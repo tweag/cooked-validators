@@ -28,85 +28,90 @@
 </span><span id="line-28"></span><span class="hs-comment">-- out the withdrawn amount based on the associated user rewards. Does not</span><span>
 </span><span id="line-29"></span><span class="hs-comment">-- tamper with an existing specified amount in such withdrawals. Logs an event</span><span>
 </span><span id="line-30"></span><span class="hs-comment">-- when an amount has been successfully auto-filled.</span><span>
-</span><span id="line-31"></span><span id="local-6989586621679874980"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillWithdrawalAmounts"><span class="hs-identifier hs-type">autoFillWithdrawalAmounts</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-32"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874980"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-33"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874980"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-31"></span><span id="local-6989586621679874298"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillWithdrawalAmounts"><span class="hs-identifier hs-type">autoFillWithdrawalAmounts</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874298"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-33"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874298"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-34"></span><span id="autoFillWithdrawalAmounts"><span class="annot"><span class="annottext">autoFillWithdrawalAmounts :: forall (effs :: EffectRow).
 Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
 Sem effs ()
 </span><a href="Cooked.MockChain.AutoFilling.html#autoFillWithdrawalAmounts"><span class="hs-identifier hs-var hs-var">autoFillWithdrawalAmounts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-35"></span><span>  </span><span id="local-6989586621679875263"><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875263"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Withdrawal] -&gt; Sem effs [Withdrawal]
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel Withdrawal
+-&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Common.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
 -&gt; Optic
      An_Iso
-     NoIx
+     '[]
      TxSkelWithdrawals
      TxSkelWithdrawals
      [Withdrawal]
      [Withdrawal]
--&gt; Optic' A_Lens NoIx TxSkel [Withdrawal]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Withdrawal] [Withdrawal]
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   An_Iso
-  NoIx
+  '[]
   TxSkelWithdrawals
   TxSkelWithdrawals
   [Withdrawal]
   [Withdrawal]
-</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-36"></span><span>  </span><span id="local-6989586621679875268"><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875268"><span class="hs-identifier hs-var">newWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Withdrawal]
--&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs [Withdrawal]
-forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
-(Traversable t, Monad m) =&gt;
-t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875263"><span class="hs-identifier hs-var">withdrawals</span></a></span><span> </span><span class="annot"><span class="annottext">((Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs [Withdrawal])
--&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Withdrawal] [Withdrawal]
+-&gt; Optic
+     A_Traversal '[] [Withdrawal] [Withdrawal] Withdrawal Withdrawal
+-&gt; Optic' A_Traversal '[] TxSkel Withdrawal
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal '[] [Withdrawal] [Withdrawal] Withdrawal Withdrawal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs ())
+-&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679875270"><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875270"><span class="hs-identifier hs-var">withdrawal</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-37"></span><span>    </span><span id="local-6989586621679875271"><span class="annot"><span class="annottext">Maybe Lovelace
-</span><a href="#local-6989586621679875271"><span class="hs-identifier hs-var">currentReward</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679874576"><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679874576"><span class="hs-identifier hs-var">withdrawal</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>    </span><span id="local-6989586621679874577"><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679874577"><span class="hs-identifier hs-var">currentReward</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace)
 forall (effs :: EffectRow) c.
 (Member MockChainRead effs, ToCredential c) =&gt;
 c -&gt; Sem effs (Maybe Lovelace)
 </span><a href="Cooked.MockChain.Read.html#getCurrentReward"><span class="hs-identifier hs-var">getCurrentReward</span></a></span><span> </span><span class="annot"><span class="annottext">(User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace))
 -&gt; User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx Withdrawal (User 'IsEither 'Redemption)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
 -&gt; Withdrawal -&gt; User 'IsEither 'Redemption
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
-</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx Withdrawal (User 'IsEither 'Redemption)
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
 </span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier hs-var">withdrawalUserL</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875270"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
-</span><span id="line-38"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
-</span><a href="#local-6989586621679875271"><span class="hs-identifier hs-var">currentReward</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-39"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679875275"><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679875275"><span class="hs-identifier hs-var">reward</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx Withdrawal Lovelace
+</span><a href="#local-6989586621679874576"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679874577"><span class="hs-identifier hs-var">currentReward</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-38"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679874581"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679874581"><span class="hs-identifier hs-var">reward</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal '[] Withdrawal Lovelace
 -&gt; Withdrawal -&gt; Bool
 forall k (is :: IxList) s a.
 Is k An_AffineFold =&gt;
 Optic' k is s a -&gt; s -&gt; Bool
-</span><span class="hs-identifier hs-var">isn't</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx Withdrawal Lovelace
+</span><span class="hs-identifier hs-var">isn't</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal '[] Withdrawal Lovelace
 </span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalAmountAT"><span class="hs-identifier hs-var">withdrawalAmountAT</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875270"><span class="hs-identifier hs-var">withdrawal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-40"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679875278"><span class="annot"><span class="annottext">newWithdrawal :: Withdrawal
-</span><a href="#local-6989586621679875278"><span class="hs-identifier hs-var hs-var">newWithdrawal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Withdrawal -&gt; Withdrawal
+</span><a href="#local-6989586621679874576"><span class="hs-identifier hs-var">withdrawal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-39"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679874584"><span class="annot"><span class="annottext">newWithdrawal :: Withdrawal
+</span><a href="#local-6989586621679874584"><span class="hs-identifier hs-var hs-var">newWithdrawal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Withdrawal -&gt; Withdrawal
 </span><a href="Cooked.Skeleton.Withdrawal.html#fillAmount"><span class="hs-identifier hs-var">fillAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679875275"><span class="hs-identifier hs-var">reward</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875270"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
-</span><span id="line-41"></span><span>        </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
+</span><a href="#local-6989586621679874581"><span class="hs-identifier hs-var">reward</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679874576"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
+</span><span id="line-40"></span><span>        </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
 forall (effs :: EffectRow).
 Member MockChainLog effs =&gt;
 MockChainLogEntry -&gt; Sem effs ()
@@ -114,23 +119,23 @@ MockChainLogEntry -&gt; Sem effs ()
 -&gt; MockChainLogEntry -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-42"></span><span>          </span><span class="annot"><span class="annottext">Credential -&gt; Lovelace -&gt; MockChainLogEntry
+</span><span id="line-41"></span><span>          </span><span class="annot"><span class="annottext">Credential -&gt; Lovelace -&gt; MockChainLogEntry
 </span><a href="Cooked.MockChain.Log.html#MCLogAutoFilledWithdrawalAmount"><span class="hs-identifier hs-var">MCLogAutoFilledWithdrawalAmount</span></a></span><span>
-</span><span id="line-43"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Getter NoIx Withdrawal Credential
+</span><span id="line-42"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Getter '[] Withdrawal Credential
 -&gt; Withdrawal -&gt; Credential
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
-</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx Withdrawal (User 'IsEither 'Redemption)
-</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier hs-var">withdrawalUserL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx Withdrawal (User 'IsEither 'Redemption)
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier hs-var">withdrawalUserL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
 -&gt; Optic
      A_Getter
-     NoIx
+     '[]
      (User 'IsEither 'Redemption)
      (User 'IsEither 'Redemption)
      Credential
      Credential
--&gt; Optic' A_Getter NoIx Withdrawal Credential
+-&gt; Optic' A_Getter '[] Withdrawal Credential
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
@@ -138,7 +143,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(User 'IsEither 'Redemption -&gt; Credential)
 -&gt; Optic
      A_Getter
-     NoIx
+     '[]
      (User 'IsEither 'Redemption)
      (User 'IsEither 'Redemption)
      Credential
@@ -147,115 +152,98 @@ forall s a. (s -&gt; a) -&gt; Getter s a
 </span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
 </span><span class="hs-identifier hs-var">Script.toCredential</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875278"><span class="hs-identifier hs-var">newWithdrawal</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-44"></span><span>            </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679875275"><span class="hs-identifier hs-var">reward</span></a></span><span>
-</span><span id="line-45"></span><span>        </span><span class="annot"><span class="annottext">Withdrawal -&gt; Sem effs Withdrawal
+</span><a href="#local-6989586621679874584"><span class="hs-identifier hs-var">newWithdrawal</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>            </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679874581"><span class="hs-identifier hs-var">reward</span></a></span><span>
+</span><span id="line-44"></span><span>        </span><span class="annot"><span class="annottext">Withdrawal -&gt; Sem effs Withdrawal
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875278"><span class="hs-identifier hs-var">newWithdrawal</span></a></span><span>
-</span><span id="line-46"></span><span>      </span><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679874584"><span class="hs-identifier hs-var">newWithdrawal</span></a></span><span>
+</span><span id="line-45"></span><span>      </span><span class="annot"><span class="annottext">Maybe Lovelace
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Withdrawal -&gt; Sem effs Withdrawal
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875270"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
-</span><span id="line-47"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Withdrawal]
--&gt; [Withdrawal] -&gt; Sem effs ()
+</span><a href="#local-6989586621679874576"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="annot"><span class="hs-comment">-- * Auto filling constitution script</span></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | Goes through all the proposals of the input skeleton and attempts to fill</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- out the constitution scripts with the current one. Does not tamper with an</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- existing specified script in such proposals. Logs an event when the</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- constitution script has been successfully auto-filled.</span><span>
+</span><span id="line-53"></span><span id="local-6989586621679874590"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillConstitution"><span class="hs-identifier hs-type">autoFillConstitution</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874590"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874590"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-56"></span><span id="autoFillConstitution"><span class="annot"><span class="annottext">autoFillConstitution :: forall (effs :: EffectRow).
+Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.AutoFilling.html#autoFillConstitution"><span class="hs-identifier hs-var hs-var">autoFillConstitution</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679874624"><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679874624"><span class="hs-identifier hs-var">currentConstitution</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (Maybe VScript)
+forall (effs :: EffectRow).
+Member MockChainRead effs =&gt;
+Sem effs (Maybe VScript)
+</span><a href="Cooked.MockChain.Read.html#getConstitutionScript"><span class="hs-identifier hs-var">getConstitutionScript</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679874624"><span class="hs-identifier hs-var">currentConstitution</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-59"></span><span>    </span><span class="annot"><span class="annottext">Maybe VScript
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; Sem effs ()
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679874626"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679874626"><span class="hs-identifier hs-var">constitutionScript</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-61"></span><span>      </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel TxSkelProposal
+-&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal) -&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
-</span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Common.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
 -&gt; Optic
-     An_Iso
-     NoIx
-     TxSkelWithdrawals
-     TxSkelWithdrawals
-     [Withdrawal]
-     [Withdrawal]
--&gt; Optic' A_Lens NoIx TxSkel [Withdrawal]
+     A_Traversal
+     '[]
+     [TxSkelProposal]
+     [TxSkelProposal]
+     TxSkelProposal
+     TxSkelProposal
+-&gt; Optic' A_Traversal '[] TxSkel TxSkelProposal
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
-  An_Iso
-  NoIx
-  TxSkelWithdrawals
-  TxSkelWithdrawals
-  [Withdrawal]
-  [Withdrawal]
-</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875268"><span class="hs-identifier hs-var">newWithdrawals</span></a></span><span>
-</span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- * Auto filling constitution script</span></span><span>
-</span><span id="line-50"></span><span>
-</span><span id="line-51"></span><span class="hs-comment">-- | Goes through all the proposals of the input skeleton and attempts to fill</span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- out the constitution scripts with the current one. Does not tamper with an</span><span>
-</span><span id="line-53"></span><span class="hs-comment">-- existing specified script in such proposals. Logs an event when the</span><span>
-</span><span id="line-54"></span><span class="hs-comment">-- constitution script has been successfully auto-filled.</span><span>
-</span><span id="line-55"></span><span id="local-6989586621679875285"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillConstitution"><span class="hs-identifier hs-type">autoFillConstitution</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-56"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679875285"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-57"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875285"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-58"></span><span id="autoFillConstitution"><span class="annot"><span class="annottext">autoFillConstitution :: forall (effs :: EffectRow).
-Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
-Sem effs ()
-</span><a href="Cooked.MockChain.AutoFilling.html#autoFillConstitution"><span class="hs-identifier hs-var hs-var">autoFillConstitution</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-59"></span><span>  </span><span id="local-6989586621679875320"><span class="annot"><span class="annottext">Maybe VScript
-</span><a href="#local-6989586621679875320"><span class="hs-identifier hs-var">currentConstitution</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (Maybe VScript)
-forall (effs :: EffectRow).
-Member MockChainRead effs =&gt;
-Sem effs (Maybe VScript)
-</span><a href="Cooked.MockChain.Read.html#getConstitutionScript"><span class="hs-identifier hs-var">getConstitutionScript</span></a></span><span>
-</span><span id="line-60"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe VScript
-</span><a href="#local-6989586621679875320"><span class="hs-identifier hs-var">currentConstitution</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-61"></span><span>    </span><span class="annot"><span class="annottext">Maybe VScript
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; Sem effs ()
-forall a. a -&gt; Sem effs a
-forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-62"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679875322"><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875322"><span class="hs-identifier hs-var">constitutionScript</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-63"></span><span>      </span><span id="local-6989586621679875323"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875323"><span class="hs-identifier hs-var">proposals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
--&gt; Sem effs [TxSkelProposal]
-forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
-</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span>
-</span><span id="line-64"></span><span>      </span><span id="local-6989586621679875325"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875325"><span class="hs-identifier hs-var">newProposals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
--&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal)
--&gt; Sem effs [TxSkelProposal]
-forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
-(Traversable t, Monad m) =&gt;
-t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875323"><span class="hs-identifier hs-var">proposals</span></a></span><span> </span><span class="annot"><span class="annottext">((TxSkelProposal -&gt; Sem effs TxSkelProposal)
- -&gt; Sem effs [TxSkelProposal])
--&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal)
--&gt; Sem effs [TxSkelProposal]
+  A_Traversal
+  '[]
+  [TxSkelProposal]
+  [TxSkelProposal]
+  TxSkelProposal
+  TxSkelProposal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((TxSkelProposal -&gt; Sem effs TxSkelProposal) -&gt; Sem effs ())
+-&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal) -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679875326"><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875326"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-65"></span><span>        </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs () -&gt; Sem effs ()
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679874628"><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679874628"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-62"></span><span>        </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs () -&gt; Sem effs ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic'
-  An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
+  An_AffineTraversal '[] TxSkelProposal (User 'IsScript 'Redemption)
 -&gt; TxSkelProposal -&gt; Bool
 forall k (is :: IxList) s a.
 Is k An_AffineFold =&gt;
 Optic' k is s a -&gt; s -&gt; Bool
 </span><span class="hs-identifier hs-var">isn't</span></span><span> </span><span class="annot"><span class="annottext">Optic'
-  An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
+  An_AffineTraversal '[] TxSkelProposal (User 'IsScript 'Redemption)
 </span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalConstitutionAT"><span class="hs-identifier hs-var">txSkelProposalConstitutionAT</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875326"><span class="hs-identifier hs-var">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Sem effs () -&gt; Sem effs ()) -&gt; Sem effs () -&gt; Sem effs ()
+</span><a href="#local-6989586621679874628"><span class="hs-identifier hs-var">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Sem effs () -&gt; Sem effs ()) -&gt; Sem effs () -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-66"></span><span>          </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
+</span><span id="line-63"></span><span>          </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
 forall (effs :: EffectRow).
 Member MockChainLog effs =&gt;
 MockChainLogEntry -&gt; Sem effs ()
@@ -263,16 +251,16 @@ MockChainLogEntry -&gt; Sem effs ()
 -&gt; MockChainLogEntry -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-67"></span><span>            </span><span class="annot"><span class="annottext">ScriptHash -&gt; MockChainLogEntry
+</span><span id="line-64"></span><span>            </span><span class="annot"><span class="annottext">ScriptHash -&gt; MockChainLogEntry
 </span><a href="Cooked.MockChain.Log.html#MCLogAutoFilledConstitution"><span class="hs-identifier hs-var">MCLogAutoFilledConstitution</span></a></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; MockChainLogEntry)
 -&gt; ScriptHash -&gt; MockChainLogEntry
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-68"></span><span>              </span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
+</span><span id="line-65"></span><span>              </span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875322"><span class="hs-identifier hs-var">constitutionScript</span></a></span><span>
-</span><span id="line-69"></span><span>        </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Sem effs TxSkelProposal
+</span><a href="#local-6989586621679874626"><span class="hs-identifier hs-var">constitutionScript</span></a></span><span>
+</span><span id="line-66"></span><span>        </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Sem effs TxSkelProposal
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; TxSkelProposal -&gt; TxSkelProposal
@@ -280,91 +268,82 @@ forall script.
 (ToVScript script, Typeable script) =&gt;
 script -&gt; TxSkelProposal -&gt; TxSkelProposal
 </span><a href="Cooked.Skeleton.Proposal.html#fillConstitution"><span class="hs-identifier hs-var">fillConstitution</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875322"><span class="hs-identifier hs-var">constitutionScript</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875326"><span class="hs-identifier hs-var">prop</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
--&gt; [TxSkelProposal] -&gt; Sem effs ()
-forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
-</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875325"><span class="hs-identifier hs-var">newProposals</span></a></span><span>
-</span><span id="line-71"></span><span>
-</span><span id="line-72"></span><span class="annot"><span class="hs-comment">-- * Auto filling reference scripts</span></span><span>
-</span><span id="line-73"></span><span>
-</span><span id="line-74"></span><span class="hs-comment">-- | Attempts to find in the index a utxo containing a reference script with the</span><span>
-</span><span id="line-75"></span><span class="hs-comment">-- given script hash, and attaches it to a redeemer when it does not yet have a</span><span>
-</span><span id="line-76"></span><span class="hs-comment">-- reference input and when it is allowed, in which case an event is logged.</span><span>
-</span><span id="line-77"></span><span id="local-6989586621679875084"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-type">updateRedeemedScript</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679875084"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-79"></span><span>  </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-80"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsScript"><span class="hs-identifier hs-type">IsScript</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-81"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875084"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsScript"><span class="hs-identifier hs-type">IsScript</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span class="hs-special">)</span></span><span>
-</span><span id="line-82"></span><span id="updateRedeemedScript"><span class="annot"><span class="annottext">updateRedeemedScript :: forall (effs :: EffectRow).
+</span><a href="#local-6989586621679874626"><span class="hs-identifier hs-var">constitutionScript</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679874628"><span class="hs-identifier hs-var">prop</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="annot"><span class="hs-comment">-- * Auto filling reference scripts</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | Attempts to find in the index a utxo containing a reference script with the</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- given script hash, and attaches it to a redeemer when it does not yet have a</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- reference input and when it is allowed, in which case an event is logged.</span><span>
+</span><span id="line-73"></span><span id="local-6989586621679874400"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-type">updateRedeemedScript</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874400"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsScript"><span class="hs-identifier hs-type">IsScript</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874400"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#User"><span class="hs-identifier hs-type">User</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#IsScript"><span class="hs-identifier hs-type">IsScript</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#Redemption"><span class="hs-identifier hs-type">Redemption</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-78"></span><span id="updateRedeemedScript"><span class="annot"><span class="annottext">updateRedeemedScript :: forall (effs :: EffectRow).
 Members '[MockChainLog, MockChainRead] effs =&gt;
 [TxOutRef]
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 </span><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var hs-var">updateRedeemedScript</span></a></span></span><span>
-</span><span id="line-83"></span><span>  </span><span id="local-6989586621679875339"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875339"><span class="hs-identifier hs-var">inputs</span></a></span></span><span>
-</span><span id="line-84"></span><span>  </span><span id="local-6989586621679875340"><span class="annot"><span class="annottext">rs :: User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875340"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span>
-</span><span id="line-85"></span><span>         </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; VScript
+</span><span id="line-79"></span><span>  </span><span id="local-6989586621679874641"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679874641"><span class="hs-identifier hs-var">inputs</span></a></span></span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679874642"><span class="annot"><span class="annottext">rs :: User 'IsScript 'Redemption
+</span><a href="#local-6989586621679874642"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span>
+</span><span id="line-81"></span><span>         </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; VScript
 forall script. ToVScript script =&gt; script -&gt; VScript
-</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679875348"><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875348"><span class="hs-identifier hs-var">vScript</span></a></span></span><span class="hs-special">)</span><span>
-</span><span id="line-86"></span><span>         </span><span id="local-6989586621679875349"><span class="annot"><span class="annottext">txSkelRed :: TxSkelRedeemer
-</span><a href="#local-6989586621679875349"><span class="hs-identifier hs-var">txSkelRed</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">txSkelRedeemerAutoFill :: TxSkelRedeemer -&gt; Bool
+</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679874650"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679874650"><span class="hs-identifier hs-var">vScript</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>         </span><span id="local-6989586621679874651"><span class="annot"><span class="annottext">txSkelRed :: TxSkelRedeemer
+</span><a href="#local-6989586621679874651"><span class="hs-identifier hs-var">txSkelRed</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">txSkelRedeemerAutoFill :: TxSkelRedeemer -&gt; Bool
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerAutoFill"><span class="hs-identifier hs-var">txSkelRedeemerAutoFill</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
-</span><span id="line-87"></span><span>       </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-88"></span><span>    </span><span id="local-6989586621679875369"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875369"><span class="hs-identifier hs-var">oRefsInInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (UtxoSearchResult NoIx) -&gt; Sem effs [TxOutRef]
+</span><span id="line-83"></span><span>       </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-84"></span><span>    </span><span id="local-6989586621679874671"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679874671"><span class="hs-identifier hs-var">oRefsInInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (UtxoSearchResult '[]) -&gt; Sem effs [TxOutRef]
 forall (effs :: EffectRow) (elems :: IxList).
 Sem effs (UtxoSearchResult elems) -&gt; Sem effs [TxOutRef]
-</span><a href="Cooked.MockChain.UtxoSearch.html#getTxOutRefs"><span class="hs-identifier hs-var">getTxOutRefs</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs (UtxoSearchResult NoIx) -&gt; Sem effs [TxOutRef])
--&gt; Sem effs (UtxoSearchResult NoIx) -&gt; Sem effs [TxOutRef]
+</span><a href="Cooked.MockChain.UtxoSearch.html#getTxOutRefs"><span class="hs-identifier hs-var">getTxOutRefs</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs (UtxoSearchResult '[]) -&gt; Sem effs [TxOutRef])
+-&gt; Sem effs (UtxoSearchResult '[]) -&gt; Sem effs [TxOutRef]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs (UtxoSearchResult NoIx)
- -&gt; Sem effs (UtxoSearchResult NoIx))
--&gt; Sem effs (UtxoSearchResult NoIx)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs (UtxoSearchResult '[])
+ -&gt; Sem effs (UtxoSearchResult '[]))
+-&gt; Sem effs (UtxoSearchResult '[])
 forall (effs :: EffectRow) (els :: IxList).
 Member MockChainRead effs =&gt;
-(UtxoSearch effs NoIx -&gt; UtxoSearch effs els)
--&gt; UtxoSearch effs els
-</span><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-var">allUtxosSearch</span></a></span><span> </span><span class="annot"><span class="annottext">((Sem effs (UtxoSearchResult NoIx)
-  -&gt; Sem effs (UtxoSearchResult NoIx))
- -&gt; Sem effs (UtxoSearchResult NoIx))
--&gt; (Sem effs (UtxoSearchResult NoIx)
-    -&gt; Sem effs (UtxoSearchResult NoIx))
--&gt; Sem effs (UtxoSearchResult NoIx)
+(UtxoSearch effs '[] -&gt; UtxoSearch effs els) -&gt; UtxoSearch effs els
+</span><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-var">allUtxosSearch</span></a></span><span> </span><span class="annot"><span class="annottext">((Sem effs (UtxoSearchResult '[])
+  -&gt; Sem effs (UtxoSearchResult '[]))
+ -&gt; Sem effs (UtxoSearchResult '[]))
+-&gt; (Sem effs (UtxoSearchResult '[])
+    -&gt; Sem effs (UtxoSearchResult '[]))
+-&gt; Sem effs (UtxoSearchResult '[])
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VScript
--&gt; Sem effs (UtxoSearchResult NoIx)
--&gt; Sem effs (UtxoSearchResult NoIx)
+-&gt; Sem effs (UtxoSearchResult '[])
+-&gt; Sem effs (UtxoSearchResult '[])
 forall s (effs :: EffectRow) (els :: IxList).
 ToScriptHash s =&gt;
 s -&gt; UtxoSearch effs els -&gt; UtxoSearch effs els
 </span><a href="Cooked.MockChain.UtxoSearch.html#ensureProperReferenceScript"><span class="hs-identifier hs-var">ensureProperReferenceScript</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875348"><span class="hs-identifier hs-var">vScript</span></a></span><span>
-</span><span id="line-89"></span><span>    </span><span class="annot"><span class="annottext">Sem effs (User 'IsScript 'Redemption)
+</span><a href="#local-6989586621679874650"><span class="hs-identifier hs-var">vScript</span></a></span><span>
+</span><span id="line-85"></span><span>    </span><span class="annot"><span class="annottext">Sem effs (User 'IsScript 'Redemption)
 -&gt; (TxOutRef -&gt; Sem effs (User 'IsScript 'Redemption))
 -&gt; Maybe TxOutRef
 -&gt; Sem effs (User 'IsScript 'Redemption)
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span>
-</span><span id="line-90"></span><span>      </span><span class="hs-comment">-- We leave the redeemer unchanged if no reference input was found</span><span>
-</span><span id="line-91"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; Sem effs (User 'IsScript 'Redemption)
+</span><span id="line-86"></span><span>      </span><span class="hs-comment">-- We leave the redeemer unchanged if no reference input was found</span><span>
+</span><span id="line-87"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; Sem effs (User 'IsScript 'Redemption)
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875340"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-92"></span><span>      </span><span class="hs-comment">-- If a reference input is found, we assign it and log the event</span><span>
-</span><span id="line-93"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679875374"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875374"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-94"></span><span>          </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
+</span><a href="#local-6989586621679874642"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>      </span><span class="hs-comment">-- If a reference input is found, we assign it and log the event</span><span>
+</span><span id="line-89"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679874676"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679874676"><span class="hs-identifier hs-var">oRef</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-90"></span><span>          </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
 forall (effs :: EffectRow).
 Member MockChainLog effs =&gt;
 MockChainLogEntry -&gt; Sem effs ()
@@ -373,12 +352,12 @@ MockChainLogEntry -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; TxOutRef -&gt; ScriptHash -&gt; MockChainLogEntry
 </span><a href="Cooked.MockChain.Log.html#MCLogAddedReferenceScript"><span class="hs-identifier hs-var">MCLogAddedReferenceScript</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679875349"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875374"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
+</span><a href="#local-6989586621679874651"><span class="hs-identifier hs-var">txSkelRed</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679874676"><span class="hs-identifier hs-var">oRef</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875348"><span class="hs-identifier hs-var">vScript</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-95"></span><span>          </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; Sem effs (User 'IsScript 'Redemption)
+</span><a href="#local-6989586621679874650"><span class="hs-identifier hs-var">vScript</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>          </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; Sem effs (User 'IsScript 'Redemption)
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(User 'IsScript 'Redemption
@@ -388,7 +367,7 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic
   An_AffineTraversal
-  NoIx
+  '[]
   (User 'IsScript 'Redemption)
   (User 'IsScript 'Redemption)
   TxSkelRedeemer
@@ -401,7 +380,7 @@ Is k A_Setter =&gt;
 Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 </span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic
   An_AffineTraversal
-  NoIx
+  '[]
   (User 'IsScript 'Redemption)
   (User 'IsScript 'Redemption)
   TxSkelRedeemer
@@ -410,75 +389,75 @@ forall (kind :: UserKind) (mode :: UserMode).
 AffineTraversal' (User kind mode) TxSkelRedeemer
 </span><a href="Cooked.Skeleton.User.html#userTxSkelRedeemerAT"><span class="hs-identifier hs-var">userTxSkelRedeemerAT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; TxSkelRedeemer -&gt; TxSkelRedeemer
 </span><a href="Cooked.Skeleton.Redeemer.html#fillReferenceInput"><span class="hs-identifier hs-var">fillReferenceInput</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875374"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875340"><span class="hs-identifier hs-var">rs</span></a></span><span>
-</span><span id="line-96"></span><span>      </span><span class="hs-special">)</span><span>
-</span><span id="line-97"></span><span>      </span><span class="annot"><span class="annottext">(Maybe TxOutRef -&gt; Sem effs (User 'IsScript 'Redemption))
+</span><a href="#local-6989586621679874676"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
+</span><a href="#local-6989586621679874642"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-92"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>      </span><span class="annot"><span class="annottext">(Maybe TxOutRef -&gt; Sem effs (User 'IsScript 'Redemption))
 -&gt; Maybe TxOutRef -&gt; Sem effs (User 'IsScript 'Redemption)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875369"><span class="hs-identifier hs-var">oRefsInInputs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-98"></span><span>        </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
+</span><a href="#local-6989586621679874671"><span class="hs-identifier hs-var">oRefsInInputs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-94"></span><span>        </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe TxOutRef
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-99"></span><span>        </span><span class="hs-comment">-- If possible, we use a reference input appearing in regular inputs</span><span>
-</span><span id="line-100"></span><span>        </span><span id="local-6989586621679875379"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875379"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679875380"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875380"><span class="hs-identifier hs-var">oRefM'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; Bool) -&gt; [TxOutRef] -&gt; Maybe TxOutRef
+</span><span id="line-95"></span><span>        </span><span class="hs-comment">-- If possible, we use a reference input appearing in regular inputs</span><span>
+</span><span id="line-96"></span><span>        </span><span id="local-6989586621679874681"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679874681"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679874682"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679874682"><span class="hs-identifier hs-var">oRefM'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; Bool) -&gt; [TxOutRef] -&gt; Maybe TxOutRef
 forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">find</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; [TxOutRef] -&gt; Bool
 forall a. Eq a =&gt; a -&gt; [a] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875339"><span class="hs-identifier hs-var">inputs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875379"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Maybe TxOutRef
+</span><a href="#local-6989586621679874641"><span class="hs-identifier hs-var">inputs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679874681"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Maybe TxOutRef
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875380"><span class="hs-identifier hs-var">oRefM'</span></a></span><span>
-</span><span id="line-101"></span><span>        </span><span class="hs-comment">-- If none exist, we use the first one we find elsewhere</span><span>
-</span><span id="line-102"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679875382"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875382"><span class="hs-identifier hs-var">oRefM'</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679874682"><span class="hs-identifier hs-var">oRefM'</span></a></span><span>
+</span><span id="line-97"></span><span>        </span><span class="hs-comment">-- If none exist, we use the first one we find elsewhere</span><span>
+</span><span id="line-98"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679874684"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679874684"><span class="hs-identifier hs-var">oRefM'</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Maybe TxOutRef
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875382"><span class="hs-identifier hs-var">oRefM'</span></a></span><span>
-</span><span id="line-103"></span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var">updateRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679875383"><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875383"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; Sem effs (User 'IsScript 'Redemption)
+</span><a href="#local-6989586621679874684"><span class="hs-identifier hs-var">oRefM'</span></a></span><span>
+</span><span id="line-99"></span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var">updateRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679874685"><span class="annot"><span class="annottext">User 'IsScript 'Redemption
+</span><a href="#local-6989586621679874685"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; Sem effs (User 'IsScript 'Redemption)
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875383"><span class="hs-identifier hs-var">rs</span></a></span><span>
-</span><span id="line-104"></span><span>
-</span><span id="line-105"></span><span class="hs-comment">-- | Goes through the various parts of the skeleton where a redeemer can appear,</span><span>
-</span><span id="line-106"></span><span class="hs-comment">-- and attempts to attach a reference input to each of them, whenever it is</span><span>
-</span><span id="line-107"></span><span class="hs-comment">-- allowed and one has not already been set. Logs an event whenever such an</span><span>
-</span><span id="line-108"></span><span class="hs-comment">-- addition occurs.</span><span>
-</span><span id="line-109"></span><span id="local-6989586621679875117"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillReferenceScripts"><span class="hs-identifier hs-type">autoFillReferenceScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-110"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679875117"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-111"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875117"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-112"></span><span id="autoFillReferenceScripts"><span class="annot"><span class="annottext">autoFillReferenceScripts :: forall (effs :: EffectRow).
+</span><a href="#local-6989586621679874685"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- | Goes through the various parts of the skeleton where a redeemer can appear,</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- and attempts to attach a reference input to each of them, whenever it is</span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- allowed and one has not already been set. Logs an event whenever such an</span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- addition occurs.</span><span>
+</span><span id="line-105"></span><span id="local-6989586621679874434"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillReferenceScripts"><span class="hs-identifier hs-type">autoFillReferenceScripts</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874434"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-107"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874434"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-108"></span><span id="autoFillReferenceScripts"><span class="annot"><span class="annottext">autoFillReferenceScripts :: forall (effs :: EffectRow).
 Members '[Tweak, MockChainRead, MockChainLog] effs =&gt;
 Sem effs ()
 </span><a href="Cooked.MockChain.AutoFilling.html#autoFillReferenceScripts"><span class="hs-identifier hs-var hs-var">autoFillReferenceScripts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-113"></span><span>  </span><span id="local-6989586621679875503"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875503"><span class="hs-identifier hs-var">inputsKeys</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx TxSkel [TxOutRef] -&gt; Sem effs [TxOutRef]
+</span><span id="line-109"></span><span>  </span><span id="local-6989586621679874797"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679874797"><span class="hs-identifier hs-var">inputsKeys</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter '[] TxSkel [TxOutRef] -&gt; Sem effs [TxOutRef]
 forall (effs :: EffectRow) k (is :: IxList) a.
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Getter NoIx TxSkel [TxOutRef] -&gt; Sem effs [TxOutRef])
--&gt; Optic' A_Getter NoIx TxSkel [TxOutRef] -&gt; Sem effs [TxOutRef]
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Getter '[] TxSkel [TxOutRef] -&gt; Sem effs [TxOutRef])
+-&gt; Optic' A_Getter '[] TxSkel [TxOutRef] -&gt; Sem effs [TxOutRef]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel (Map TxOutRef TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.html#txSkelInsL"><span class="hs-identifier hs-var">txSkelInsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; Optic
      A_Getter
-     NoIx
+     '[]
      (Map TxOutRef TxSkelRedeemer)
      (Map TxOutRef TxSkelRedeemer)
      [TxOutRef]
      [TxOutRef]
--&gt; Optic' A_Getter NoIx TxSkel [TxOutRef]
+-&gt; Optic' A_Getter '[] TxSkel [TxOutRef]
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
@@ -486,7 +465,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef TxSkelRedeemer -&gt; [TxOutRef])
 -&gt; Optic
      A_Getter
-     NoIx
+     '[]
      (Map TxOutRef TxSkelRedeemer)
      (Map TxOutRef TxSkelRedeemer)
      [TxOutRef]
@@ -495,42 +474,57 @@ forall s a. (s -&gt; a) -&gt; Getter s a
 </span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [TxOutRef]
 forall k a. Map k a -&gt; [k]
 </span><span class="hs-identifier hs-var">Map.keys</span></span><span>
-</span><span id="line-114"></span><span>  </span><span class="hs-comment">-- Updating minting redeemers</span><span>
-</span><span id="line-115"></span><span>  </span><span id="local-6989586621679875506"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679875506"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; Sem effs [Mint]
+</span><span id="line-110"></span><span>  </span><span class="hs-comment">-- Updating minting redeemers</span><span>
+</span><span id="line-111"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+-&gt; (User 'IsScript 'Redemption
+    -&gt; Sem effs (User 'IsScript 'Redemption))
+-&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Lens NoIx TxSkel [Mint] -&gt; Sem effs [Mint])
--&gt; Optic' A_Lens NoIx TxSkel [Mint] -&gt; Sem effs [Mint]
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Common.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span>
+</span><span id="line-112"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
--&gt; Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
--&gt; Optic' A_Lens NoIx TxSkel [Mint]
+-&gt; Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
-</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span>
-</span><span id="line-116"></span><span>  </span><span id="local-6989586621679875509"><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679875509"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Mint] -&gt; (Mint -&gt; Sem effs Mint) -&gt; Sem effs [Mint]
-forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
-(Traversable t, Monad m) =&gt;
-t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679875506"><span class="hs-identifier hs-var">mints</span></a></span><span> </span><span class="annot"><span class="annottext">((Mint -&gt; Sem effs Mint) -&gt; Sem effs [Mint])
--&gt; (Mint -&gt; Sem effs Mint) -&gt; Sem effs [Mint]
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span id="local-6989586621679875511"><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875511"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span id="local-6989586621679875512"><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679875512"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; [(TokenName, Integer)] -&gt; Mint
-</span><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-operator hs-var">`Mint`</span></a></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
-</span><a href="#local-6989586621679875512"><span class="hs-identifier hs-var">tks</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(User 'IsScript 'Redemption -&gt; Mint)
--&gt; Sem effs (User 'IsScript 'Redemption) -&gt; Sem effs Mint
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+-&gt; Optic A_Traversal '[] [Mint] [Mint] Mint Mint
+-&gt; Optic A_Traversal '[] TxSkel TxSkel Mint Mint
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] [Mint] [Mint] Mint Mint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] TxSkel TxSkel Mint Mint
+-&gt; Optic
+     A_Lens
+     '[]
+     Mint
+     Mint
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+-&gt; Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  Mint
+  Mint
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+</span><a href="Cooked.Skeleton.Mint.html#mintRedeemedScriptL"><span class="hs-identifier hs-var">mintRedeemedScriptL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-113"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxOutRef]
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 forall (effs :: EffectRow).
@@ -539,45 +533,29 @@ Members '[MockChainLog, MockChainRead] effs =&gt;
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 </span><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var">updateRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875503"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875511"><span class="hs-identifier hs-var">rs</span></a></span><span>
-</span><span id="line-117"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Mint] -&gt; [Mint] -&gt; Sem effs ()
-forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
-</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
--&gt; Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
--&gt; Optic' A_Lens NoIx TxSkel [Mint]
-forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
-       b.
-(JoinKinds k l m, AppendIndices is js ks) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso NoIx TxSkelMints TxSkelMints [Mint] [Mint]
-</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Mint]
-</span><a href="#local-6989586621679875509"><span class="hs-identifier hs-var">newMints</span></a></span><span>
-</span><span id="line-118"></span><span>  </span><span class="hs-comment">-- Updating spending redeemers</span><span>
-</span><span id="line-119"></span><span>  </span><span id="local-6989586621679875514"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679875514"><span class="hs-identifier hs-var">inputsList</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter NoIx TxSkel [(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679874797"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-comment">-- Updating spending redeemers</span><span>
+</span><span id="line-115"></span><span>  </span><span id="local-6989586621679874804"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679874804"><span class="hs-identifier hs-var">inputsList</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Getter '[] TxSkel [(TxOutRef, TxSkelRedeemer)]
 -&gt; Sem effs [(TxOutRef, TxSkelRedeemer)]
 forall (effs :: EffectRow) k (is :: IxList) a.
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Getter NoIx TxSkel [(TxOutRef, TxSkelRedeemer)]
+</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Getter '[] TxSkel [(TxOutRef, TxSkelRedeemer)]
  -&gt; Sem effs [(TxOutRef, TxSkelRedeemer)])
--&gt; Optic' A_Getter NoIx TxSkel [(TxOutRef, TxSkelRedeemer)]
+-&gt; Optic' A_Getter '[] TxSkel [(TxOutRef, TxSkelRedeemer)]
 -&gt; Sem effs [(TxOutRef, TxSkelRedeemer)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel (Map TxOutRef TxSkelRedeemer)
 </span><a href="Cooked.Skeleton.html#txSkelInsL"><span class="hs-identifier hs-var">txSkelInsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; Optic
      A_Getter
-     NoIx
+     '[]
      (Map TxOutRef TxSkelRedeemer)
      (Map TxOutRef TxSkelRedeemer)
      [(TxOutRef, TxSkelRedeemer)]
      [(TxOutRef, TxSkelRedeemer)]
--&gt; Optic' A_Getter NoIx TxSkel [(TxOutRef, TxSkelRedeemer)]
+-&gt; Optic' A_Getter '[] TxSkel [(TxOutRef, TxSkelRedeemer)]
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
@@ -585,7 +563,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)])
 -&gt; Optic
      A_Getter
-     NoIx
+     '[]
      (Map TxOutRef TxSkelRedeemer)
      (Map TxOutRef TxSkelRedeemer)
      [(TxOutRef, TxSkelRedeemer)]
@@ -594,8 +572,8 @@ forall s a. (s -&gt; a) -&gt; Getter s a
 </span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; [(TxOutRef, TxSkelRedeemer)]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span>
-</span><span id="line-120"></span><span>  </span><span id="local-6989586621679875516"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679875516"><span class="hs-identifier hs-var">newInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><span id="line-116"></span><span>  </span><span id="local-6989586621679874806"><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679874806"><span class="hs-identifier hs-var">newInputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
 -&gt; ((TxOutRef, TxSkelRedeemer)
     -&gt; Sem effs (TxOutRef, TxSkelRedeemer))
 -&gt; Sem effs [(TxOutRef, TxSkelRedeemer)]
@@ -603,23 +581,23 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679875514"><span class="hs-identifier hs-var">inputsList</span></a></span><span> </span><span class="annot"><span class="annottext">(((TxOutRef, TxSkelRedeemer)
+</span><a href="#local-6989586621679874804"><span class="hs-identifier hs-var">inputsList</span></a></span><span> </span><span class="annot"><span class="annottext">(((TxOutRef, TxSkelRedeemer)
   -&gt; Sem effs (TxOutRef, TxSkelRedeemer))
  -&gt; Sem effs [(TxOutRef, TxSkelRedeemer)])
 -&gt; ((TxOutRef, TxSkelRedeemer)
     -&gt; Sem effs (TxOutRef, TxSkelRedeemer))
 -&gt; Sem effs [(TxOutRef, TxSkelRedeemer)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679875517"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875517"><span class="hs-identifier hs-var">oRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679875518"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679875518"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-121"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875517"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679874808"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679874808"><span class="hs-identifier hs-var">oRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679874809"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679874809"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679874808"><span class="hs-identifier hs-var">oRef</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TxSkelRedeemer -&gt; (TxOutRef, TxSkelRedeemer))
 -&gt; Sem effs TxSkelRedeemer -&gt; Sem effs (TxOutRef, TxSkelRedeemer)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-122"></span><span>      </span><span id="local-6989586621679875519"><span class="annot"><span class="annottext">Maybe VScript
-</span><a href="#local-6989586621679875519"><span class="hs-identifier hs-var">validatorM</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx TxSkelOut VScript
+</span><span id="line-118"></span><span>      </span><span id="local-6989586621679874811"><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679874811"><span class="hs-identifier hs-var">validatorM</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal '[] TxSkelOut VScript
 -&gt; TxOutRef -&gt; Sem effs (Maybe VScript)
 forall (effs :: EffectRow) af (is :: IxList) c.
 (Member MockChainRead effs, Is af An_AffineFold) =&gt;
@@ -628,19 +606,19 @@ Optic' af is TxSkelOut c -&gt; TxOutRef -&gt; Sem effs (Maybe c)
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutOwnerL"><span class="hs-identifier hs-var">txSkelOutOwnerL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut (User 'IsEither 'Allocation)
 -&gt; Optic
      An_AffineTraversal
-     NoIx
+     '[]
      (User 'IsEither 'Allocation)
      (User 'IsEither 'Allocation)
      VScript
      VScript
--&gt; Optic' An_AffineTraversal NoIx TxSkelOut VScript
+-&gt; Optic' An_AffineTraversal '[] TxSkelOut VScript
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   An_AffineTraversal
-  NoIx
+  '[]
   (User 'IsEither 'Allocation)
   (User 'IsEither 'Allocation)
   VScript
@@ -648,22 +626,22 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 forall (kind :: UserKind) (mode :: UserMode).
 AffineTraversal' (User kind mode) VScript
 </span><a href="Cooked.Skeleton.User.html#userVScriptAT"><span class="hs-identifier hs-var">userVScriptAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679875517"><span class="hs-identifier hs-var">oRef</span></a></span><span>
-</span><span id="line-123"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe VScript
-</span><a href="#local-6989586621679875519"><span class="hs-identifier hs-var">validatorM</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-124"></span><span>        </span><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679874808"><span class="hs-identifier hs-var">oRef</span></a></span><span>
+</span><span id="line-119"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679874811"><span class="hs-identifier hs-var">validatorM</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-120"></span><span>        </span><span class="annot"><span class="annottext">Maybe VScript
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer -&gt; Sem effs TxSkelRedeemer
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679875518"><span class="hs-identifier hs-var">red</span></a></span><span>
-</span><span id="line-125"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679875523"><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875523"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx (User 'IsScript 'Redemption) TxSkelRedeemer
+</span><a href="#local-6989586621679874809"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><span id="line-121"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679874815"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679874815"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] (User 'IsScript 'Redemption) TxSkelRedeemer
 -&gt; User 'IsScript 'Redemption -&gt; TxSkelRedeemer
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
-</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx (User 'IsScript 'Redemption) TxSkelRedeemer
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] (User 'IsScript 'Redemption) TxSkelRedeemer
 </span><a href="Cooked.Skeleton.User.html#userTxSkelRedeemerL"><span class="hs-identifier hs-var">userTxSkelRedeemerL</span></a></span><span> </span><span class="annot"><span class="annottext">(User 'IsScript 'Redemption -&gt; TxSkelRedeemer)
 -&gt; Sem effs (User 'IsScript 'Redemption) -&gt; Sem effs TxSkelRedeemer
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -676,15 +654,15 @@ Members '[MockChainLog, MockChainRead] effs =&gt;
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 </span><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var">updateRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875503"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; TxSkelRedeemer -&gt; User 'IsScript 'Redemption
+</span><a href="#local-6989586621679874797"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; TxSkelRedeemer -&gt; User 'IsScript 'Redemption
 forall script (a :: UserKind).
 (a &#8712; '[ 'IsScript, 'IsEither], ToVScript script,
  Typeable script) =&gt;
 script -&gt; TxSkelRedeemer -&gt; User a 'Redemption
 </span><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-var">UserRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679875523"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679875518"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-126"></span><span>  </span><span class="annot"><span class="annottext">Lens' TxSkel (Map TxOutRef TxSkelRedeemer)
+</span><a href="#local-6989586621679874815"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679874809"><span class="hs-identifier hs-var">red</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>  </span><span class="annot"><span class="annottext">Lens' TxSkel (Map TxOutRef TxSkelRedeemer)
 -&gt; Map TxOutRef TxSkelRedeemer -&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
 (Member Tweak effs, Is k A_Setter) =&gt;
@@ -696,116 +674,98 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)] -&gt; Map TxOutRef TxSkelRedeemer
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxSkelRedeemer)]
-</span><a href="#local-6989586621679875516"><span class="hs-identifier hs-var">newInputs</span></a></span><span>
-</span><span id="line-127"></span><span>  </span><span class="hs-comment">-- Updating proposing redeemers</span><span>
-</span><span id="line-128"></span><span>  </span><span id="local-6989586621679875526"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875526"><span class="hs-identifier hs-var">proposals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
--&gt; Sem effs [TxSkelProposal]
+</span><a href="#local-6989586621679874806"><span class="hs-identifier hs-var">newInputs</span></a></span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-comment">-- Updating proposing redeemers</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+-&gt; (User 'IsScript 'Redemption
+    -&gt; Sem effs (User 'IsScript 'Redemption))
+-&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
-</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span>
-</span><span id="line-129"></span><span>  </span><span id="local-6989586621679875527"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875527"><span class="hs-identifier hs-var">newProposals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
--&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal)
--&gt; Sem effs [TxSkelProposal]
-forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
-(Traversable t, Monad m) =&gt;
-t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875526"><span class="hs-identifier hs-var">proposals</span></a></span><span> </span><span class="annot"><span class="annottext">((TxSkelProposal -&gt; Sem effs TxSkelProposal)
- -&gt; Sem effs [TxSkelProposal])
--&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal)
--&gt; Sem effs [TxSkelProposal]
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679875528"><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875528"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-130"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Optic'
-  An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
--&gt; TxSkelProposal -&gt; Maybe (User 'IsScript 'Redemption)
-forall k (is :: IxList) s a.
-Is k An_AffineFold =&gt;
-Optic' k is s a -&gt; s -&gt; Maybe a
-</span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AffineTraversal'
-  TxSkelProposal (Maybe (User 'IsScript 'Redemption))
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Common.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span>
+</span><span id="line-125"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+-&gt; Optic
+     A_Traversal
+     '[]
+     [TxSkelProposal]
+     [TxSkelProposal]
+     TxSkelProposal
+     TxSkelProposal
+-&gt; Optic' A_Traversal '[] TxSkel TxSkelProposal
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  [TxSkelProposal]
+  [TxSkelProposal]
+  TxSkelProposal
+  TxSkelProposal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel TxSkelProposal
+-&gt; Optic
+     An_AffineTraversal
+     '[]
+     TxSkelProposal
+     TxSkelProposal
+     (Maybe (User 'IsScript 'Redemption))
+     (Maybe (User 'IsScript 'Redemption))
+-&gt; Optic
+     A_Traversal
+     '[]
+     TxSkel
+     TxSkel
+     (Maybe (User 'IsScript 'Redemption))
+     (Maybe (User 'IsScript 'Redemption))
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  An_AffineTraversal
+  '[]
+  TxSkelProposal
+  TxSkelProposal
+  (Maybe (User 'IsScript 'Redemption))
+  (Maybe (User 'IsScript 'Redemption))
 forall (kind :: UserKind).
 Typeable kind =&gt;
 AffineTraversal' TxSkelProposal (Maybe (User kind 'Redemption))
-</span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalMConstitutionAT"><span class="hs-identifier hs-var">txSkelProposalMConstitutionAT</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal'
-  TxSkelProposal (Maybe (User 'IsScript 'Redemption))
+</span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalMConstitutionAT"><span class="hs-identifier hs-var">txSkelProposalMConstitutionAT</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  TxSkel
+  TxSkel
+  (Maybe (User 'IsScript 'Redemption))
+  (Maybe (User 'IsScript 'Redemption))
 -&gt; Optic
      A_Prism
-     NoIx
+     '[]
      (Maybe (User 'IsScript 'Redemption))
      (Maybe (User 'IsScript 'Redemption))
      (User 'IsScript 'Redemption)
      (User 'IsScript 'Redemption)
--&gt; Optic'
-     An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
+-&gt; Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   A_Prism
-  NoIx
+  '[]
   (Maybe (User 'IsScript 'Redemption))
   (Maybe (User 'IsScript 'Redemption))
   (User 'IsScript 'Redemption)
   (User 'IsScript 'Redemption)
 forall a b. Prism (Maybe a) (Maybe b) a b
-</span><span class="hs-identifier hs-var">_Just</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875528"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-131"></span><span>      </span><span class="annot"><span class="annottext">Maybe (User 'IsScript 'Redemption)
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Sem effs TxSkelProposal
-forall a. a -&gt; Sem effs a
-forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875528"><span class="hs-identifier hs-var">prop</span></a></span><span>
-</span><span id="line-132"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679875532"><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875532"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(User 'IsScript 'Redemption -&gt; TxSkelProposal -&gt; TxSkelProposal)
--&gt; TxSkelProposal -&gt; User 'IsScript 'Redemption -&gt; TxSkelProposal
-forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
-</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic'
-  An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
--&gt; User 'IsScript 'Redemption -&gt; TxSkelProposal -&gt; TxSkelProposal
-forall k (is :: IxList) s t a b.
-Is k A_Setter =&gt;
-Optic k is s t a b -&gt; b -&gt; s -&gt; t
-</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AffineTraversal'
-  TxSkelProposal (Maybe (User 'IsScript 'Redemption))
-forall (kind :: UserKind).
-Typeable kind =&gt;
-AffineTraversal' TxSkelProposal (Maybe (User kind 'Redemption))
-</span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalMConstitutionAT"><span class="hs-identifier hs-var">txSkelProposalMConstitutionAT</span></a></span><span> </span><span class="annot"><span class="annottext">AffineTraversal'
-  TxSkelProposal (Maybe (User 'IsScript 'Redemption))
--&gt; Optic
-     A_Prism
-     NoIx
-     (Maybe (User 'IsScript 'Redemption))
-     (Maybe (User 'IsScript 'Redemption))
-     (User 'IsScript 'Redemption)
-     (User 'IsScript 'Redemption)
--&gt; Optic'
-     An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
-forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
-       b.
-(JoinKinds k l m, AppendIndices is js ks) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
-  A_Prism
-  NoIx
-  (Maybe (User 'IsScript 'Redemption))
-  (Maybe (User 'IsScript 'Redemption))
-  (User 'IsScript 'Redemption)
-  (User 'IsScript 'Redemption)
-forall a b. Prism (Maybe a) (Maybe b) a b
-</span><span class="hs-identifier hs-var">_Just</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
-</span><a href="#local-6989586621679875528"><span class="hs-identifier hs-var">prop</span></a></span><span> </span><span class="annot"><span class="annottext">(User 'IsScript 'Redemption -&gt; TxSkelProposal)
--&gt; Sem effs (User 'IsScript 'Redemption) -&gt; Sem effs TxSkelProposal
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><span class="hs-identifier hs-var">_Just</span></span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxOutRef]
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 forall (effs :: EffectRow).
@@ -814,113 +774,94 @@ Members '[MockChainLog, MockChainRead] effs =&gt;
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 </span><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var">updateRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875503"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875532"><span class="hs-identifier hs-var">rs</span></a></span><span>
-</span><span id="line-133"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
--&gt; [TxSkelProposal] -&gt; Sem effs ()
+</span><a href="#local-6989586621679874797"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-comment">-- Updating widrawing redeemers</span><span>
+</span><span id="line-128"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+-&gt; (User 'IsScript 'Redemption
+    -&gt; Sem effs (User 'IsScript 'Redemption))
+-&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelProposal]
-</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679875527"><span class="hs-identifier hs-var">newProposals</span></a></span><span>
-</span><span id="line-134"></span><span>  </span><span class="hs-comment">-- Updating widrawing redeemers</span><span>
-</span><span id="line-135"></span><span>  </span><span id="local-6989586621679875535"><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875535"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Withdrawal] -&gt; Sem effs [Withdrawal]
-forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Lens NoIx TxSkel [Withdrawal] -&gt; Sem effs [Withdrawal])
--&gt; Optic' A_Lens NoIx TxSkel [Withdrawal] -&gt; Sem effs [Withdrawal]
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Common.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span>
+</span><span id="line-129"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
 </span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
 -&gt; Optic
      An_Iso
-     NoIx
+     '[]
      TxSkelWithdrawals
      TxSkelWithdrawals
      [Withdrawal]
      [Withdrawal]
--&gt; Optic' A_Lens NoIx TxSkel [Withdrawal]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Withdrawal] [Withdrawal]
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   An_Iso
-  NoIx
+  '[]
   TxSkelWithdrawals
   TxSkelWithdrawals
   [Withdrawal]
   [Withdrawal]
-</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span>
-</span><span id="line-136"></span><span>  </span><span id="local-6989586621679875536"><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875536"><span class="hs-identifier hs-var">newWithdrawals</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Withdrawal]
--&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs [Withdrawal]
-forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
-(Traversable t, Monad m) =&gt;
-t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875535"><span class="hs-identifier hs-var">withdrawals</span></a></span><span> </span><span class="annot"><span class="annottext">((Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs [Withdrawal])
--&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs [Withdrawal]
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-137"></span><span>    </span><span class="hs-glyph">\</span><span id="local-6989586621679875537"><span class="annot"><span class="annottext">withdrawal :: Withdrawal
-</span><a href="#local-6989586621679875537"><span class="hs-identifier hs-var">withdrawal</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-identifier hs-type">Withdrawal</span></a></span><span> </span><span id="local-6989586621679875539"><span class="annot"><span class="annottext">User 'IsEither 'Redemption
-</span><a href="#local-6989586621679875539"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span id="local-6989586621679875540"><span class="annot"><span class="annottext">Maybe Lovelace
-</span><a href="#local-6989586621679875540"><span class="hs-identifier hs-var">lv</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Optic'
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Withdrawal] [Withdrawal]
+-&gt; Optic
+     A_Traversal '[] [Withdrawal] [Withdrawal] Withdrawal Withdrawal
+-&gt; Optic' A_Traversal '[] TxSkel Withdrawal
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal '[] [Withdrawal] [Withdrawal] Withdrawal Withdrawal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel Withdrawal
+-&gt; Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+-&gt; Optic
+     A_Traversal
+     '[]
+     TxSkel
+     TxSkel
+     (User 'IsEither 'Redemption)
+     (User 'IsEither 'Redemption)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier hs-var">withdrawalUserL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  TxSkel
+  TxSkel
+  (User 'IsEither 'Redemption)
+  (User 'IsEither 'Redemption)
+-&gt; Optic
+     A_Prism
+     '[]
+     (User 'IsEither 'Redemption)
+     (User 'IsEither 'Redemption)
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+-&gt; Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   A_Prism
-  NoIx
+  '[]
+  (User 'IsEither 'Redemption)
   (User 'IsEither 'Redemption)
   (User 'IsScript 'Redemption)
--&gt; User 'IsEither 'Redemption -&gt; Maybe (User 'IsScript 'Redemption)
-forall k (is :: IxList) s a.
-Is k An_AffineFold =&gt;
-Optic' k is s a -&gt; s -&gt; Maybe a
-</span><span class="hs-identifier hs-var">preview</span></span><span> </span><span class="annot"><span class="annottext">Optic'
-  A_Prism
-  NoIx
-  (User 'IsEither 'Redemption)
-  (User 'IsScript 'Redemption)
-forall (mode :: UserMode).
-Prism' (User 'IsEither mode) (User 'IsScript mode)
-</span><a href="Cooked.Skeleton.User.html#userEitherScriptP"><span class="hs-identifier hs-var">userEitherScriptP</span></a></span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption
-</span><a href="#local-6989586621679875539"><span class="hs-identifier hs-var">user</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-138"></span><span>      </span><span class="annot"><span class="annottext">Maybe (User 'IsScript 'Redemption)
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Withdrawal -&gt; Sem effs Withdrawal
-forall a. a -&gt; Sem effs a
-forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Withdrawal
-</span><a href="#local-6989586621679875537"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
-</span><span id="line-139"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679875542"><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875542"><span class="hs-identifier hs-var">urs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Maybe Lovelace -&gt; Withdrawal
-</span><a href="Cooked.Skeleton.Withdrawal.html#Withdrawal"><span class="hs-operator hs-var">`Withdrawal`</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
-</span><a href="#local-6989586621679875540"><span class="hs-identifier hs-var">lv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(User 'IsEither 'Redemption -&gt; Withdrawal)
--&gt; (User 'IsScript 'Redemption -&gt; User 'IsEither 'Redemption)
--&gt; User 'IsScript 'Redemption
--&gt; Withdrawal
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic'
-  A_Prism
-  NoIx
-  (User 'IsEither 'Redemption)
-  (User 'IsScript 'Redemption)
--&gt; User 'IsScript 'Redemption -&gt; User 'IsEither 'Redemption
-forall k (is :: IxList) t b.
-Is k A_Review =&gt;
-Optic' k is t b -&gt; b -&gt; t
-</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Optic'
-  A_Prism
-  NoIx
-  (User 'IsEither 'Redemption)
   (User 'IsScript 'Redemption)
 forall (mode :: UserMode).
 Prism' (User 'IsEither mode) (User 'IsScript mode)
-</span><a href="Cooked.Skeleton.User.html#userEitherScriptP"><span class="hs-identifier hs-var">userEitherScriptP</span></a></span><span> </span><span class="annot"><span class="annottext">(User 'IsScript 'Redemption -&gt; Withdrawal)
--&gt; Sem effs (User 'IsScript 'Redemption) -&gt; Sem effs Withdrawal
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="Cooked.Skeleton.User.html#userEitherScriptP"><span class="hs-identifier hs-var">userEitherScriptP</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-130"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxOutRef]
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 forall (effs :: EffectRow).
@@ -929,51 +870,22 @@ Members '[MockChainLog, MockChainRead] effs =&gt;
 -&gt; User 'IsScript 'Redemption
 -&gt; Sem effs (User 'IsScript 'Redemption)
 </span><a href="Cooked.MockChain.AutoFilling.html#updateRedeemedScript"><span class="hs-identifier hs-var">updateRedeemedScript</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679875503"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
-</span><a href="#local-6989586621679875542"><span class="hs-identifier hs-var">urs</span></a></span><span>
-</span><span id="line-140"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [Withdrawal]
--&gt; [Withdrawal] -&gt; Sem effs ()
-forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
-</span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
--&gt; Optic
-     An_Iso
-     NoIx
-     TxSkelWithdrawals
-     TxSkelWithdrawals
-     [Withdrawal]
-     [Withdrawal]
--&gt; Optic' A_Lens NoIx TxSkel [Withdrawal]
-forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
-       b.
-(JoinKinds k l m, AppendIndices is js ks) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
-  An_Iso
-  NoIx
-  TxSkelWithdrawals
-  TxSkelWithdrawals
-  [Withdrawal]
-  [Withdrawal]
-</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Withdrawal]
-</span><a href="#local-6989586621679875536"><span class="hs-identifier hs-var">newWithdrawals</span></a></span><span>
-</span><span id="line-141"></span><span>
-</span><span id="line-142"></span><span class="annot"><span class="hs-comment">-- * Auto filling min ada amounts</span></span><span>
-</span><span id="line-143"></span><span>
-</span><span id="line-144"></span><span class="annot"><span class="hs-comment">-- | Compute the required minimal ADA for a given output</span></span><span>
-</span><span id="line-145"></span><span id="local-6989586621679875175"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#getTxSkelOutMinAda"><span class="hs-identifier hs-type">getTxSkelOutMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-146"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679875175"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-147"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-148"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875175"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
-</span><span id="line-149"></span><span id="getTxSkelOutMinAda"><span class="annot"><span class="annottext">getTxSkelOutMinAda :: forall (effs :: EffectRow).
+</span><a href="#local-6989586621679874797"><span class="hs-identifier hs-var">inputsKeys</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="annot"><span class="hs-comment">-- * Auto filling min ada amounts</span></span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="annot"><span class="hs-comment">-- | Compute the required minimal ADA for a given output</span></span><span>
+</span><span id="line-135"></span><span id="local-6989586621679874484"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#getTxSkelOutMinAda"><span class="hs-identifier hs-type">getTxSkelOutMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-136"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874484"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-137"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-138"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874484"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-139"></span><span id="getTxSkelOutMinAda"><span class="annot"><span class="annottext">getTxSkelOutMinAda :: forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 TxSkelOut -&gt; Sem effs Integer
-</span><a href="Cooked.MockChain.AutoFilling.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var hs-var">getTxSkelOutMinAda</span></a></span></span><span> </span><span id="local-6989586621679875560"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875560"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-150"></span><span>  </span><span id="local-6989586621679875561"><span class="annot"><span class="annottext">PParams
-</span><a href="#local-6989586621679875561"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; PParams
+</span><a href="Cooked.MockChain.AutoFilling.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var hs-var">getTxSkelOutMinAda</span></a></span></span><span> </span><span id="local-6989586621679874837"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874837"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-140"></span><span>  </span><span id="local-6989586621679874838"><span class="annot"><span class="annottext">PParams
+</span><a href="#local-6989586621679874838"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; PParams
 </span><span class="hs-identifier hs-var">Emulator.pEmulatorPParams</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; PParams) -&gt; Sem effs Params -&gt; Sem effs PParams
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Sem effs Params
@@ -981,9 +893,9 @@ forall (effs :: EffectRow).
 Member MockChainRead effs =&gt;
 Sem effs Params
 </span><a href="Cooked.MockChain.Read.html#getParams"><span class="hs-identifier hs-var">getParams</span></a></span><span>
-</span><span id="line-151"></span><span>  </span><span class="annot"><span class="annottext">Coin -&gt; Integer
+</span><span id="line-141"></span><span>  </span><span class="annot"><span class="annottext">Coin -&gt; Integer
 </span><span class="hs-identifier hs-var">Cardano.unCoin</span></span><span>
-</span><span id="line-152"></span><span>    </span><span class="annot"><span class="annottext">(Coin -&gt; Integer)
+</span><span id="line-142"></span><span>    </span><span class="annot"><span class="annottext">(Coin -&gt; Integer)
 -&gt; (TxOut CtxTx ConwayEra -&gt; Coin)
 -&gt; TxOut CtxTx ConwayEra
 -&gt; Integer
@@ -991,8 +903,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PParams -&gt; TxOut EmulatorEra -&gt; Coin
 forall era. EraTxOut era =&gt; PParams era -&gt; TxOut era -&gt; Coin
 </span><span class="hs-identifier hs-var">Shelley.getMinCoinTxOut</span></span><span> </span><span class="annot"><span class="annottext">PParams
-</span><a href="#local-6989586621679875561"><span class="hs-identifier hs-var">params</span></a></span><span>
-</span><span id="line-153"></span><span>    </span><span class="annot"><span class="annottext">(BabbageTxOut EmulatorEra -&gt; Coin)
+</span><a href="#local-6989586621679874838"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><span class="annottext">(BabbageTxOut EmulatorEra -&gt; Coin)
 -&gt; (TxOut CtxTx ConwayEra -&gt; BabbageTxOut EmulatorEra)
 -&gt; TxOut CtxTx ConwayEra
 -&gt; Coin
@@ -1004,7 +916,7 @@ forall era ledgerera.
 ShelleyBasedEra era -&gt; TxOut CtxUTxO era -&gt; TxOut ledgerera
 </span><span class="hs-identifier hs-var">Cardano.toShelleyTxOut</span></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra ConwayEra
 </span><span class="hs-identifier hs-var">Cardano.ShelleyBasedEraConway</span></span><span>
-</span><span id="line-154"></span><span>    </span><span class="annot"><span class="annottext">(TxOut CtxUTxO ConwayEra -&gt; BabbageTxOut EmulatorEra)
+</span><span id="line-144"></span><span>    </span><span class="annot"><span class="annottext">(TxOut CtxUTxO ConwayEra -&gt; BabbageTxOut EmulatorEra)
 -&gt; (TxOut CtxTx ConwayEra -&gt; TxOut CtxUTxO ConwayEra)
 -&gt; TxOut CtxTx ConwayEra
 -&gt; BabbageTxOut EmulatorEra
@@ -1012,7 +924,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxOut CtxTx ConwayEra -&gt; TxOut CtxUTxO ConwayEra
 forall era. TxOut CtxTx era -&gt; TxOut CtxUTxO era
 </span><span class="hs-identifier hs-var">Cardano.toCtxUTxOTxOut</span></span><span>
-</span><span id="line-155"></span><span>    </span><span class="annot"><span class="annottext">(TxOut CtxTx ConwayEra -&gt; Integer)
+</span><span id="line-145"></span><span>    </span><span class="annot"><span class="annottext">(TxOut CtxTx ConwayEra -&gt; Integer)
 -&gt; Sem effs (TxOut CtxTx ConwayEra) -&gt; Sem effs Integer
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs (TxOut CtxTx ConwayEra)
@@ -1020,80 +932,80 @@ forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 TxSkelOut -&gt; Sem effs (TxOut CtxTx ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Output.html#toCardanoTxOut"><span class="hs-identifier hs-var">toCardanoTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875560"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-156"></span><span>
-</span><span id="line-157"></span><span class="hs-comment">-- | This transforms an output into another output which contains the minimal</span><span>
-</span><span id="line-158"></span><span class="hs-comment">-- required ada. If the previous quantity of ADA was sufficient, it remains</span><span>
-</span><span id="line-159"></span><span class="hs-comment">-- unchanged. This can require a few iterations to converge, as the added ADA</span><span>
-</span><span id="line-160"></span><span class="hs-comment">-- will increase the size of the UTXO which in turn might need more ADA.</span><span>
-</span><span id="line-161"></span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-type">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-162"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679875198"><span class="annot"><a href="#local-6989586621679875198"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-163"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679875198"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-164"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-165"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875198"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
-</span><span id="line-166"></span><span class="hs-comment">-- The auto adjustment is disabled so nothing is done here</span><span>
-</span><span id="line-167"></span><span id="toTxSkelOutWithMinAda"><span class="annot"><span class="annottext">toTxSkelOutWithMinAda :: forall (effs :: EffectRow).
+</span><a href="#local-6989586621679874837"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- | This transforms an output into another output which contains the minimal</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- required ada. If the previous quantity of ADA was sufficient, it remains</span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- unchanged. This can require a few iterations to converge, as the added ADA</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- will increase the size of the UTXO which in turn might need more ADA.</span><span>
+</span><span id="line-151"></span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-type">toTxSkelOutWithMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-152"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679874510"><span class="annot"><a href="#local-6989586621679874510"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-153"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874510"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-154"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-155"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874510"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
+</span><span id="line-156"></span><span class="hs-comment">-- The auto adjustment is disabled so nothing is done here</span><span>
+</span><span id="line-157"></span><span id="toTxSkelOutWithMinAda"><span class="annot"><span class="annottext">toTxSkelOutWithMinAda :: forall (effs :: EffectRow).
 Members
   '[MockChainRead, MockChainLog, Error ToCardanoError] effs =&gt;
 TxSkelOut -&gt; Sem effs TxSkelOut
-</span><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelOutWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679875613"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
-</span><a href="#local-6989586621679875613"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Bool -&gt; Bool
-forall k s (is :: IxList) a.
+</span><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var hs-var">toTxSkelOutWithMinAda</span></a></span></span><span> </span><span id="local-6989586621679874891"><span class="annot"><span class="annottext">txSkelOut :: TxSkelOut
+</span><a href="#local-6989586621679874891"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Bool -&gt; TxSkelOut -&gt; Bool
+forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
-s -&gt; Optic' k is s a -&gt; a
-</span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Bool
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutValueAutoAdjustL"><span class="hs-identifier hs-var">txSkelOutValueAutoAdjustL</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Bool
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutValueAutoAdjustL"><span class="hs-identifier hs-var">txSkelOutValueAutoAdjustL</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875613"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-168"></span><span class="hs-comment">-- The auto adjustment is enabled</span><span>
-</span><span id="line-169"></span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span id="local-6989586621679875616"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875616"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-170"></span><span>  </span><span id="local-6989586621679875617"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875617"><span class="hs-identifier hs-var">txSkelOut'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
-</span><a href="#local-6989586621679875618"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875616"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-171"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679875619"><span class="annot"><span class="annottext">originalAda :: Lovelace
-</span><a href="#local-6989586621679875619"><span class="hs-identifier hs-var hs-var">originalAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Lovelace -&gt; TxSkelOut -&gt; Lovelace
+</span><a href="#local-6989586621679874891"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-158"></span><span class="hs-comment">-- The auto adjustment is enabled</span><span>
+</span><span id="line-159"></span><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span> </span><span id="local-6989586621679874893"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874893"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-160"></span><span>  </span><span id="local-6989586621679874894"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874894"><span class="hs-identifier hs-var">txSkelOut'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
+</span><a href="#local-6989586621679874895"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874893"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-161"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679874896"><span class="annot"><span class="annottext">originalAda :: Lovelace
+</span><a href="#local-6989586621679874896"><span class="hs-identifier hs-var hs-var">originalAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Lovelace -&gt; TxSkelOut -&gt; Lovelace
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
--&gt; Optic A_Lens NoIx Value Value Lovelace Lovelace
--&gt; Optic' A_Lens NoIx TxSkelOut Lovelace
+-&gt; Optic A_Lens '[] Value Value Lovelace Lovelace
+-&gt; Optic' A_Lens '[] TxSkelOut Lovelace
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx Value Value Lovelace Lovelace
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] Value Value Lovelace Lovelace
 </span><a href="Cooked.Skeleton.Value.html#valueLovelaceL"><span class="hs-identifier hs-var">valueLovelaceL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875616"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-172"></span><span>      </span><span id="local-6989586621679875622"><span class="annot"><span class="annottext">updatedAda :: Lovelace
-</span><a href="#local-6989586621679875622"><span class="hs-identifier hs-var hs-var">updatedAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Lovelace -&gt; TxSkelOut -&gt; Lovelace
+</span><a href="#local-6989586621679874893"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-162"></span><span>      </span><span id="local-6989586621679874899"><span class="annot"><span class="annottext">updatedAda :: Lovelace
+</span><a href="#local-6989586621679874899"><span class="hs-identifier hs-var hs-var">updatedAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Lovelace -&gt; TxSkelOut -&gt; Lovelace
 forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
 Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
--&gt; Optic A_Lens NoIx Value Value Lovelace Lovelace
--&gt; Optic' A_Lens NoIx TxSkelOut Lovelace
+-&gt; Optic A_Lens '[] Value Value Lovelace Lovelace
+-&gt; Optic' A_Lens '[] TxSkelOut Lovelace
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx Value Value Lovelace Lovelace
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] Value Value Lovelace Lovelace
 </span><a href="Cooked.Skeleton.Value.html#valueLovelaceL"><span class="hs-identifier hs-var">valueLovelaceL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875617"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
-</span><span id="line-173"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs () -&gt; Sem effs ()
+</span><a href="#local-6989586621679874894"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><span id="line-163"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs () -&gt; Sem effs ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679875619"><span class="hs-identifier hs-var">originalAda</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Bool
+</span><a href="#local-6989586621679874896"><span class="hs-identifier hs-var">originalAda</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679875622"><span class="hs-identifier hs-var">updatedAda</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Sem effs () -&gt; Sem effs ()) -&gt; Sem effs () -&gt; Sem effs ()
+</span><a href="#local-6989586621679874899"><span class="hs-identifier hs-var">updatedAda</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Sem effs () -&gt; Sem effs ()) -&gt; Sem effs () -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
 forall (effs :: EffectRow).
@@ -1104,113 +1016,107 @@ MockChainLogEntry -&gt; Sem effs ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Lovelace -&gt; MockChainLogEntry
 </span><a href="Cooked.MockChain.Log.html#MCLogAdjustedTxSkelOut"><span class="hs-identifier hs-var">MCLogAdjustedTxSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875616"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679875622"><span class="hs-identifier hs-var">updatedAda</span></a></span><span>
-</span><span id="line-174"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
+</span><a href="#local-6989586621679874893"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679874899"><span class="hs-identifier hs-var">updatedAda</span></a></span><span>
+</span><span id="line-164"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875617"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
-</span><span id="line-175"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-176"></span><span>    </span><span class="annot"><a href="#local-6989586621679875618"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875198"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
-</span><span id="line-177"></span><span>    </span><span id="local-6989586621679875618"><span class="annot"><span class="annottext">go :: TxSkelOut -&gt; Sem effs TxSkelOut
-</span><a href="#local-6989586621679875618"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679875625"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875625"><span class="hs-identifier hs-var">skelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-178"></span><span>      </span><span class="hs-comment">-- Computing the required minimal amount of ADA in this output</span><span>
-</span><span id="line-179"></span><span>      </span><span id="local-6989586621679875626"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679875626"><span class="hs-identifier hs-var">requiredAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs Integer
+</span><a href="#local-6989586621679874894"><span class="hs-identifier hs-var">txSkelOut'</span></a></span><span>
+</span><span id="line-165"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-166"></span><span>    </span><span class="annot"><a href="#local-6989586621679874895"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874510"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span>
+</span><span id="line-167"></span><span>    </span><span id="local-6989586621679874895"><span class="annot"><span class="annottext">go :: TxSkelOut -&gt; Sem effs TxSkelOut
+</span><a href="#local-6989586621679874895"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679874902"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874902"><span class="hs-identifier hs-var">skelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-168"></span><span>      </span><span class="hs-comment">-- Computing the required minimal amount of ADA in this output</span><span>
+</span><span id="line-169"></span><span>      </span><span id="local-6989586621679874903"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679874903"><span class="hs-identifier hs-var">requiredAda</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs Integer
 forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 TxSkelOut -&gt; Sem effs Integer
 </span><a href="Cooked.MockChain.AutoFilling.html#getTxSkelOutMinAda"><span class="hs-identifier hs-var">getTxSkelOutMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875625"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
-</span><span id="line-180"></span><span>      </span><span class="hs-comment">-- If this amount is sufficient, we return Nothing, otherwise, we adjust the</span><span>
-</span><span id="line-181"></span><span>      </span><span class="hs-comment">-- output and possibly iterate</span><span>
-</span><span id="line-182"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Integer
-</span><span class="hs-identifier hs-var">Api.getLovelace</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875625"><span class="hs-identifier hs-var">skelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Optic' A_Lens NoIx TxSkelOut Lovelace -&gt; Lovelace
-forall k s (is :: IxList) a.
+</span><a href="#local-6989586621679874902"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
+</span><span id="line-170"></span><span>      </span><span class="hs-comment">-- If this amount is sufficient, we return Nothing, otherwise, we adjust the</span><span>
+</span><span id="line-171"></span><span>      </span><span class="hs-comment">-- output and possibly iterate</span><span>
+</span><span id="line-172"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Integer
+</span><span class="hs-identifier hs-var">Api.getLovelace</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Lovelace -&gt; TxSkelOut -&gt; Lovelace
+forall k (is :: IxList) s a.
 Is k A_Getter =&gt;
-s -&gt; Optic' k is s a -&gt; a
-</span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
 </span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
--&gt; Optic A_Lens NoIx Value Value Lovelace Lovelace
--&gt; Optic' A_Lens NoIx TxSkelOut Lovelace
+-&gt; Optic A_Lens '[] Value Value Lovelace Lovelace
+-&gt; Optic' A_Lens '[] TxSkelOut Lovelace
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx Value Value Lovelace Lovelace
-</span><a href="Cooked.Skeleton.Value.html#valueLovelaceL"><span class="hs-identifier hs-var">valueLovelaceL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] Value Value Lovelace Lovelace
+</span><a href="Cooked.Skeleton.Value.html#valueLovelaceL"><span class="hs-identifier hs-var">valueLovelaceL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874902"><span class="hs-identifier hs-var">skelOut</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679875626"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
-</span><span id="line-183"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
+</span><a href="#local-6989586621679874903"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
+</span><span id="line-173"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875625"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
-</span><span id="line-184"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
-</span><a href="#local-6989586621679875618"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Sem effs TxSkelOut)
+</span><a href="#local-6989586621679874902"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
+</span><span id="line-174"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
+</span><a href="#local-6989586621679874895"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Sem effs TxSkelOut)
 -&gt; TxSkelOut -&gt; Sem effs TxSkelOut
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679875625"><span class="hs-identifier hs-var">skelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; (TxSkelOut -&gt; TxSkelOut) -&gt; TxSkelOut
-forall a b. a -&gt; (a -&gt; b) -&gt; b
-</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
-</span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
--&gt; Optic A_Lens NoIx Value Value Lovelace Lovelace
--&gt; Optic' A_Lens NoIx TxSkelOut Lovelace
-forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
-       b.
-(JoinKinds k l m, AppendIndices is js ks) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx Value Value Lovelace Lovelace
-</span><a href="Cooked.Skeleton.Value.html#valueLovelaceL"><span class="hs-identifier hs-var">valueLovelaceL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkelOut Lovelace
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkelOut Lovelace
 -&gt; Lovelace -&gt; TxSkelOut -&gt; TxSkelOut
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
-</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Lovelace
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
+</span><a href="Cooked.Skeleton.Output.html#txSkelOutValueL"><span class="hs-identifier hs-var">txSkelOutValueL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkelOut Value
+-&gt; Optic A_Lens '[] Value Value Lovelace Lovelace
+-&gt; Optic' A_Lens '[] TxSkelOut Lovelace
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] Value Value Lovelace Lovelace
+</span><a href="Cooked.Skeleton.Value.html#valueLovelaceL"><span class="hs-identifier hs-var">valueLovelaceL</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Lovelace
 </span><span class="hs-identifier hs-var">Api.Lovelace</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679875626"><span class="hs-identifier hs-var">requiredAda</span></a></span><span>
-</span><span id="line-185"></span><span>
-</span><span id="line-186"></span><span class="hs-comment">-- | This goes through all the `TxSkelOut`s of the given skeleton and updates</span><span>
-</span><span id="line-187"></span><span class="hs-comment">-- their ada value when requested by the user and required by the protocol</span><span>
-</span><span id="line-188"></span><span class="hs-comment">-- parameters. Logs an event whenever such a change occurs.</span><span>
-</span><span id="line-189"></span><span id="local-6989586621679875210"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillMinAda"><span class="hs-identifier hs-type">autoFillMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-190"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679875210"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-191"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875210"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-192"></span><span id="autoFillMinAda"><span class="annot"><span class="annottext">autoFillMinAda :: forall (effs :: EffectRow).
+</span><a href="#local-6989586621679874903"><span class="hs-identifier hs-var">requiredAda</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679874902"><span class="hs-identifier hs-var">skelOut</span></a></span><span>
+</span><span id="line-175"></span><span>
+</span><span id="line-176"></span><span class="hs-comment">-- | This goes through all the `TxSkelOut`s of the given skeleton and updates</span><span>
+</span><span id="line-177"></span><span class="hs-comment">-- their ada value when requested by the user and required by the protocol</span><span>
+</span><span id="line-178"></span><span class="hs-comment">-- parameters. Logs an event whenever such a change occurs.</span><span>
+</span><span id="line-179"></span><span id="local-6989586621679874522"><span class="annot"><a href="Cooked.MockChain.AutoFilling.html#autoFillMinAda"><span class="hs-identifier hs-type">autoFillMinAda</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-180"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679874522"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-181"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679874522"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-182"></span><span id="autoFillMinAda"><span class="annot"><span class="annottext">autoFillMinAda :: forall (effs :: EffectRow).
 Members
   '[Tweak, MockChainRead, MockChainLog, Error ToCardanoError] effs =&gt;
 Sem effs ()
-</span><a href="Cooked.MockChain.AutoFilling.html#autoFillMinAda"><span class="hs-identifier hs-var hs-var">autoFillMinAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-193"></span><span>  </span><span id="local-6989586621679875646"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679875646"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
+</span><a href="Cooked.MockChain.AutoFilling.html#autoFillMinAda"><span class="hs-identifier hs-var hs-var">autoFillMinAda</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel TxSkelOut
+-&gt; (TxSkelOut -&gt; Sem effs TxSkelOut) -&gt; Sem effs ()
 forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Getter) =&gt;
-Optic' k is TxSkel a -&gt; Sem effs a
-</span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
-</span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span>
-</span><span id="line-194"></span><span>  </span><span id="local-6989586621679875648"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679875648"><span class="hs-identifier hs-var">newOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
--&gt; (TxSkelOut -&gt; Sem effs TxSkelOut) -&gt; Sem effs [TxSkelOut]
-forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
-(Traversable t, Monad m) =&gt;
-t a -&gt; (a -&gt; m b) -&gt; m (t b)
-</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679875646"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Common.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
+</span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
+-&gt; Optic
+     A_Traversal '[] [TxSkelOut] [TxSkelOut] TxSkelOut TxSkelOut
+-&gt; Optic' A_Traversal '[] TxSkel TxSkelOut
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] [TxSkelOut] [TxSkelOut] TxSkelOut TxSkelOut
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Sem effs TxSkelOut
 forall (effs :: EffectRow).
 Members
   '[MockChainRead, MockChainLog, Error ToCardanoError] effs =&gt;
 TxSkelOut -&gt; Sem effs TxSkelOut
 </span><a href="Cooked.MockChain.AutoFilling.html#toTxSkelOutWithMinAda"><span class="hs-identifier hs-var">toTxSkelOutWithMinAda</span></a></span><span>
-</span><span id="line-195"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; [TxSkelOut] -&gt; Sem effs ()
-forall (effs :: EffectRow) k (is :: IxList) a.
-(Member Tweak effs, Is k A_Setter) =&gt;
-Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
-</span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679875648"><span class="hs-identifier hs-var">newOutputs</span></a></span><span>
-</span><span id="line-196"></span></pre></body></html>
+</span><span id="line-183"></span></pre></body></html>
