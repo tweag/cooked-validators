@@ -4,8 +4,8 @@
 </span><span id="line-4"></span><span>
 </span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
 </span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Conway.TxCert</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Conway</span></span><span>
-</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.DRep</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.PoolParams</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.DRep</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">C.Ledger</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.PoolParams</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">C.Ledger</span></span><span>
 </span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Shelley.TxCert</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Shelley</span></span><span>
 </span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Node.Emulator.Internal.Node</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Emulator</span></span><span>
 </span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html"><span class="hs-identifier">Cooked.MockChain.Error</span></a></span><span>
@@ -16,7 +16,7 @@
 </span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.User.html"><span class="hs-identifier">Cooked.Skeleton.User</span></a></span><span>
 </span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span>
 </span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe.Strict</span></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">P.Ledger</span></span><span>
 </span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
 </span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
 </span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
@@ -24,10 +24,10 @@
 </span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Error</span></span><span>
 </span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.Fail</span></span><span>
 </span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span id="local-6989586621679872323"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-type">toDRep</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872323"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-27"></span><span id="local-6989586621679872318"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-type">toDRep</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872318"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-29"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Api.DRep</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-30"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872323"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.DRep</span></span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872318"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Ledger.DRep</span></span></span><span>
 </span><span id="line-31"></span><span id="toDRep"><span class="annot"><span class="annottext">toDRep :: forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 DRep -&gt; Sem effs DRep
@@ -36,16 +36,16 @@ DRep -&gt; Sem effs DRep
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">DRep
-</span><span class="hs-identifier hs-var">Ledger.DRepAlwaysAbstain</span></span><span>
+</span><span class="hs-identifier hs-var">C.Ledger.DRepAlwaysAbstain</span></span><span>
 </span><span id="line-32"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-var">toDRep</span></a></span><span> </span><span class="annot"><span class="annottext">DRep
 </span><span class="hs-identifier hs-var">Api.DRepAlwaysNoConfidence</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DRep -&gt; Sem effs DRep
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">DRep
-</span><span class="hs-identifier hs-var">Ledger.DRepAlwaysNoConfidence</span></span><span>
-</span><span id="line-33"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-var">toDRep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DRep</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DRepCredential</span></span><span> </span><span id="local-6989586621679872506"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872506"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Credential 'DRepRole -&gt; DRep
-</span><span class="hs-identifier hs-var">Ledger.DRepCredential</span></span><span> </span><span class="annot"><span class="annottext">(Credential 'DRepRole -&gt; DRep)
+</span><span class="hs-identifier hs-var">C.Ledger.DRepAlwaysNoConfidence</span></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-var">toDRep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DRep</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DRepCredential</span></span><span> </span><span id="local-6989586621679872501"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872501"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Credential 'DRepRole -&gt; DRep
+</span><span class="hs-identifier hs-var">C.Ledger.DRepCredential</span></span><span> </span><span class="annot"><span class="annottext">(Credential 'DRepRole -&gt; DRep)
 -&gt; Sem effs (Credential 'DRepRole) -&gt; Sem effs DRep
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Credential -&gt; Sem effs (Credential 'DRepRole)
@@ -53,17 +53,17 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'DRepRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toDRepCredential"><span class="hs-identifier hs-var">toDRepCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872506"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872501"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-34"></span><span>
-</span><span id="line-35"></span><span id="local-6989586621679872344"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-type">toDelegatee</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872344"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-35"></span><span id="local-6989586621679872339"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-type">toDelegatee</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872339"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-37"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Api.Delegatee</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-38"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872344"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Conway.Delegatee</span></span></span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872339"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Conway.Delegatee</span></span></span><span>
 </span><span id="line-39"></span><span id="toDelegatee"><span class="annot"><span class="annottext">toDelegatee :: forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 Delegatee -&gt; Sem effs Delegatee
-</span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var hs-var">toDelegatee</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DelegStake</span></span><span> </span><span id="local-6989586621679872524"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872524"><span class="hs-identifier hs-var">pkh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KeyHash 'StakePool -&gt; Delegatee
+</span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var hs-var">toDelegatee</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DelegStake</span></span><span> </span><span id="local-6989586621679872519"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679872519"><span class="hs-identifier hs-var">pkh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KeyHash 'StakePool -&gt; Delegatee
 </span><span class="hs-identifier hs-var">Conway.DelegStake</span></span><span> </span><span class="annot"><span class="annottext">(KeyHash 'StakePool -&gt; Delegatee)
 -&gt; Sem effs (KeyHash 'StakePool) -&gt; Sem effs Delegatee
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -72,9 +72,9 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 PubKeyHash -&gt; Sem effs (KeyHash 'StakePool)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakePoolKeyHash"><span class="hs-identifier hs-var">toStakePoolKeyHash</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872524"><span class="hs-identifier hs-var">pkh</span></a></span><span>
-</span><span id="line-40"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var">toDelegatee</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DelegVote</span></span><span> </span><span id="local-6989586621679872528"><span class="annot"><span class="annottext">DRep
-</span><a href="#local-6989586621679872528"><span class="hs-identifier hs-var">dRep</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DRep -&gt; Delegatee
+</span><a href="#local-6989586621679872519"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var">toDelegatee</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DelegVote</span></span><span> </span><span id="local-6989586621679872523"><span class="annot"><span class="annottext">DRep
+</span><a href="#local-6989586621679872523"><span class="hs-identifier hs-var">dRep</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DRep -&gt; Delegatee
 </span><span class="hs-identifier hs-var">Conway.DelegVote</span></span><span> </span><span class="annot"><span class="annottext">(DRep -&gt; Delegatee) -&gt; Sem effs DRep -&gt; Sem effs Delegatee
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">DRep -&gt; Sem effs DRep
@@ -82,10 +82,10 @@ forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 DRep -&gt; Sem effs DRep
 </span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-var">toDRep</span></a></span><span> </span><span class="annot"><span class="annottext">DRep
-</span><a href="#local-6989586621679872528"><span class="hs-identifier hs-var">dRep</span></a></span><span>
-</span><span id="line-41"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var">toDelegatee</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DelegStakeVote</span></span><span> </span><span id="local-6989586621679872531"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872531"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679872532"><span class="annot"><span class="annottext">DRep
-</span><a href="#local-6989586621679872532"><span class="hs-identifier hs-var">dRep</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(KeyHash 'StakePool -&gt; DRep -&gt; Delegatee)
+</span><a href="#local-6989586621679872523"><span class="hs-identifier hs-var">dRep</span></a></span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var">toDelegatee</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.DelegStakeVote</span></span><span> </span><span id="local-6989586621679872526"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679872526"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679872527"><span class="annot"><span class="annottext">DRep
+</span><a href="#local-6989586621679872527"><span class="hs-identifier hs-var">dRep</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(KeyHash 'StakePool -&gt; DRep -&gt; Delegatee)
 -&gt; Sem effs (KeyHash 'StakePool)
 -&gt; Sem effs DRep
 -&gt; Sem effs Delegatee
@@ -100,27 +100,27 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 PubKeyHash -&gt; Sem effs (KeyHash 'StakePool)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakePoolKeyHash"><span class="hs-identifier hs-var">toStakePoolKeyHash</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872531"><span class="hs-identifier hs-var">pkh</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DRep -&gt; Sem effs DRep
+</span><a href="#local-6989586621679872526"><span class="hs-identifier hs-var">pkh</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DRep -&gt; Sem effs DRep
 forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 DRep -&gt; Sem effs DRep
 </span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDRep"><span class="hs-identifier hs-var">toDRep</span></a></span><span> </span><span class="annot"><span class="annottext">DRep
-</span><a href="#local-6989586621679872532"><span class="hs-identifier hs-var">dRep</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872527"><span class="hs-identifier hs-var">dRep</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-42"></span><span>
-</span><span id="line-43"></span><span id="local-6989586621679872358"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificate"><span class="hs-identifier hs-type">toCertificate</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872358"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-43"></span><span id="local-6989586621679872353"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificate"><span class="hs-identifier hs-type">toCertificate</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872353"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-45"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-46"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872358"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.Certificate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-46"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872353"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.Certificate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
 </span><span id="line-47"></span><span id="toCertificate"><span class="annot"><span class="annottext">toCertificate :: forall (effs :: EffectRow).
 Members
   '[MockChainRead, Error MockChainError, Error ToCardanoError]
   effs =&gt;
 TxSkelCertificate -&gt; Sem effs (Certificate ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificate"><span class="hs-identifier hs-var hs-var">toCertificate</span></a></span></span><span> </span><span id="local-6989586621679872551"><span class="annot"><span class="annottext">TxSkelCertificate
-</span><a href="#local-6989586621679872551"><span class="hs-identifier hs-var">txSkelCert</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificate"><span class="hs-identifier hs-var hs-var">toCertificate</span></a></span></span><span> </span><span id="local-6989586621679872546"><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679872546"><span class="hs-identifier hs-var">txSkelCert</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-48"></span><span>  </span><span class="hs-keyword">do</span><span>
-</span><span id="line-49"></span><span>    </span><span id="local-6989586621679872552"><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositStake</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><span id="line-49"></span><span>    </span><span id="local-6989586621679872547"><span class="annot"><span class="annottext">Coin
+</span><a href="#local-6989586621679872547"><span class="hs-identifier hs-var">depositStake</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 </span><span class="hs-identifier hs-var">Cardano.Coin</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Coin) -&gt; (Lovelace -&gt; Integer) -&gt; Lovelace -&gt; Coin
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Integer
@@ -131,8 +131,8 @@ forall (effs :: EffectRow).
 Member MockChainRead effs =&gt;
 Sem effs Lovelace
 </span><a href="Cooked.MockChain.Read.html#stakeAddressDeposit"><span class="hs-identifier hs-var">stakeAddressDeposit</span></a></span><span>
-</span><span id="line-50"></span><span>    </span><span id="local-6989586621679872557"><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872557"><span class="hs-identifier hs-var">depositDRep</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679872552"><span class="annot"><span class="annottext">Coin
+</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositDRep</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 </span><span class="hs-identifier hs-var">Cardano.Coin</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Coin) -&gt; (Lovelace -&gt; Integer) -&gt; Lovelace -&gt; Coin
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Integer
@@ -156,11 +156,11 @@ ConwayEraOnwards era
 -&gt; Sem effs (Certificate ConwayEra)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
-</span><a href="#local-6989586621679872551"><span class="hs-identifier hs-var">txSkelCert</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679872546"><span class="hs-identifier hs-var">txSkelCert</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-52"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872566"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872566"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872561"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872561"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
 </span><a href="Cooked.Skeleton.Certificate.html#StakingRegister"><span class="hs-identifier hs-var">StakingRegister</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-53"></span><span>        </span><span class="annot"><span class="annottext">ConwayDelegCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayDelegCert -&gt; ConwayTxCert era
@@ -173,7 +173,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`Conway.ConwayRegCert`</span></span><span> </span><span class="annot"><span class="annottext">Coin -&gt; StrictMaybe Coin
 forall a. a -&gt; StrictMaybe a
 </span><span class="hs-identifier hs-var">SJust</span></span><span> </span><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositStake</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(StakeCredential -&gt; ConwayTxCert ConwayEra)
+</span><a href="#local-6989586621679872547"><span class="hs-identifier hs-var">depositStake</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(StakeCredential -&gt; ConwayTxCert ConwayEra)
 -&gt; Sem effs StakeCredential -&gt; Sem effs (ConwayTxCert ConwayEra)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Credential -&gt; Sem effs StakeCredential
@@ -181,11 +181,11 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs StakeCredential
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakeCredential"><span class="hs-identifier hs-var">toStakeCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872566"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872561"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-54"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872577"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872577"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872572"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872572"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
 </span><a href="Cooked.Skeleton.Certificate.html#StakingUnRegister"><span class="hs-identifier hs-var">StakingUnRegister</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-55"></span><span>        </span><span class="annot"><span class="annottext">ConwayDelegCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayDelegCert -&gt; ConwayTxCert era
@@ -198,7 +198,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`Conway.ConwayUnRegCert`</span></span><span> </span><span class="annot"><span class="annottext">Coin -&gt; StrictMaybe Coin
 forall a. a -&gt; StrictMaybe a
 </span><span class="hs-identifier hs-var">SJust</span></span><span> </span><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositStake</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(StakeCredential -&gt; ConwayTxCert ConwayEra)
+</span><a href="#local-6989586621679872547"><span class="hs-identifier hs-var">depositStake</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(StakeCredential -&gt; ConwayTxCert ConwayEra)
 -&gt; Sem effs StakeCredential -&gt; Sem effs (ConwayTxCert ConwayEra)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Credential -&gt; Sem effs StakeCredential
@@ -206,12 +206,12 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs StakeCredential
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakeCredential"><span class="hs-identifier hs-var">toStakeCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872577"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872572"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-56"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872585"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872585"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingDelegate"><span class="hs-identifier hs-type">StakingDelegate</span></a></span><span> </span><span id="local-6989586621679872593"><span class="annot"><span class="annottext">Delegatee
-</span><a href="#local-6989586621679872593"><span class="hs-identifier hs-var">delegatee</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872580"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872580"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingDelegate"><span class="hs-identifier hs-type">StakingDelegate</span></a></span><span> </span><span id="local-6989586621679872588"><span class="annot"><span class="annottext">Delegatee
+</span><a href="#local-6989586621679872588"><span class="hs-identifier hs-var">delegatee</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-57"></span><span>        </span><span class="annot"><span class="annottext">ConwayDelegCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayDelegCert -&gt; ConwayTxCert era
 </span><span class="hs-identifier hs-var">Conway.ConwayTxCertDeleg</span></span><span> </span><span class="annot"><span class="annottext">(ConwayDelegCert -&gt; ConwayTxCert ConwayEra)
@@ -232,17 +232,17 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs StakeCredential
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakeCredential"><span class="hs-identifier hs-var">toStakeCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872585"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Delegatee -&gt; Sem effs Delegatee
+</span><a href="#local-6989586621679872580"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Delegatee -&gt; Sem effs Delegatee
 forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 Delegatee -&gt; Sem effs Delegatee
 </span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var">toDelegatee</span></a></span><span> </span><span class="annot"><span class="annottext">Delegatee
-</span><a href="#local-6989586621679872593"><span class="hs-identifier hs-var">delegatee</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872588"><span class="hs-identifier hs-var">delegatee</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-58"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872597"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872597"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingRegisterDelegate"><span class="hs-identifier hs-type">StakingRegisterDelegate</span></a></span><span> </span><span id="local-6989586621679872605"><span class="annot"><span class="annottext">Delegatee
-</span><a href="#local-6989586621679872605"><span class="hs-identifier hs-var">delegatee</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872592"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872592"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#StakingRegisterDelegate"><span class="hs-identifier hs-type">StakingRegisterDelegate</span></a></span><span> </span><span id="local-6989586621679872600"><span class="annot"><span class="annottext">Delegatee
+</span><a href="#local-6989586621679872600"><span class="hs-identifier hs-var">delegatee</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-59"></span><span>        </span><span class="annot"><span class="annottext">ConwayDelegCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayDelegCert -&gt; ConwayTxCert era
 </span><span class="hs-identifier hs-var">Conway.ConwayTxCertDeleg</span></span><span> </span><span class="annot"><span class="annottext">(ConwayDelegCert -&gt; ConwayTxCert ConwayEra)
@@ -251,7 +251,7 @@ forall era. ConwayDelegCert -&gt; ConwayTxCert era
 -&gt; ConwayTxCert ConwayEra
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositStake</span></a></span><span> </span><span class="annot"><span class="annottext">Coin -&gt; (Coin -&gt; ConwayDelegCert) -&gt; ConwayDelegCert
+</span><a href="#local-6989586621679872547"><span class="hs-identifier hs-var">depositStake</span></a></span><span> </span><span class="annot"><span class="annottext">Coin -&gt; (Coin -&gt; ConwayDelegCert) -&gt; ConwayDelegCert
 forall a b. a -&gt; (a -&gt; b) -&gt; b
 </span><span class="hs-operator hs-var">&amp;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Coin -&gt; ConwayDelegCert) -&gt; ConwayTxCert ConwayEra)
 -&gt; Sem effs (Coin -&gt; ConwayDelegCert)
@@ -272,16 +272,16 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs StakeCredential
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakeCredential"><span class="hs-identifier hs-var">toStakeCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872597"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Delegatee -&gt; Sem effs Delegatee
+</span><a href="#local-6989586621679872592"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Delegatee -&gt; Sem effs Delegatee
 forall (effs :: EffectRow).
 Members '[MockChainRead, Error ToCardanoError] effs =&gt;
 Delegatee -&gt; Sem effs Delegatee
 </span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toDelegatee"><span class="hs-identifier hs-var">toDelegatee</span></a></span><span> </span><span class="annot"><span class="annottext">Delegatee
-</span><a href="#local-6989586621679872605"><span class="hs-identifier hs-var">delegatee</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872600"><span class="hs-identifier hs-var">delegatee</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-60"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872610"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872610"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872605"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872605"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
 </span><a href="Cooked.Skeleton.Certificate.html#DRepRegister"><span class="hs-identifier hs-var">DRepRegister</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-61"></span><span>        </span><span class="annot"><span class="annottext">ConwayGovCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayGovCert -&gt; ConwayTxCert era
@@ -290,11 +290,11 @@ forall era. ConwayGovCert -&gt; ConwayTxCert era
 -&gt; Credential 'DRepRole
 -&gt; ConwayTxCert ConwayEra
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872616"><span class="annot"><span class="annottext">Credential 'DRepRole
-</span><a href="#local-6989586621679872616"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Credential 'DRepRole -&gt; Coin -&gt; StrictMaybe Anchor -&gt; ConwayGovCert
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872611"><span class="annot"><span class="annottext">Credential 'DRepRole
+</span><a href="#local-6989586621679872611"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Credential 'DRepRole -&gt; Coin -&gt; StrictMaybe Anchor -&gt; ConwayGovCert
 </span><span class="hs-identifier hs-var">Conway.ConwayRegDRep</span></span><span> </span><span class="annot"><span class="annottext">Credential 'DRepRole
-</span><a href="#local-6989586621679872616"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872557"><span class="hs-identifier hs-var">depositDRep</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMaybe Anchor
+</span><a href="#local-6989586621679872611"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Coin
+</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositDRep</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMaybe Anchor
 forall a. StrictMaybe a
 </span><span class="hs-identifier hs-var">SNothing</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Credential 'DRepRole -&gt; ConwayTxCert ConwayEra)
 -&gt; Sem effs (Credential 'DRepRole)
@@ -305,11 +305,11 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'DRepRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toDRepCredential"><span class="hs-identifier hs-var">toDRepCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872610"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872605"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-62"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872621"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872621"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872616"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872616"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
 </span><a href="Cooked.Skeleton.Certificate.html#DRepUpdate"><span class="hs-identifier hs-var">DRepUpdate</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-63"></span><span>        </span><span class="annot"><span class="annottext">ConwayGovCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayGovCert -&gt; ConwayTxCert era
@@ -330,11 +330,11 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'DRepRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toDRepCredential"><span class="hs-identifier hs-var">toDRepCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872621"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872616"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-64"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872629"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872629"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872624"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872624"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
 </span><a href="Cooked.Skeleton.Certificate.html#DRepUnRegister"><span class="hs-identifier hs-var">DRepUnRegister</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-65"></span><span>        </span><span class="annot"><span class="annottext">ConwayGovCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayGovCert -&gt; ConwayTxCert era
@@ -345,7 +345,7 @@ forall era. ConwayGovCert -&gt; ConwayTxCert era
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential 'DRepRole -&gt; Coin -&gt; ConwayGovCert
 </span><span class="hs-operator hs-var">`Conway.ConwayUnRegDRep`</span></span><span> </span><span class="annot"><span class="annottext">Coin
-</span><a href="#local-6989586621679872557"><span class="hs-identifier hs-var">depositDRep</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Credential 'DRepRole -&gt; ConwayTxCert ConwayEra)
+</span><a href="#local-6989586621679872552"><span class="hs-identifier hs-var">depositDRep</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Credential 'DRepRole -&gt; ConwayTxCert ConwayEra)
 -&gt; Sem effs (Credential 'DRepRole)
 -&gt; Sem effs (ConwayTxCert ConwayEra)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -354,14 +354,14 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'DRepRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toDRepCredential"><span class="hs-identifier hs-var">toDRepCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872629"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872624"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-66"></span><span>      </span><span class="hs-comment">-- TODO: For now, when registering a new pool we use the default parameters</span><span>
 </span><span id="line-67"></span><span>      </span><span class="hs-comment">-- excepct for the pool id and pool vrf. We could change it later on.</span><span>
 </span><span id="line-68"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserPubKey"><span class="hs-identifier hs-type">UserPubKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">pkh -&gt; PubKeyHash
 forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872642"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872642"><span class="hs-identifier hs-var">poolHash</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#PoolRegister"><span class="hs-identifier hs-type">PoolRegister</span></a></span><span> </span><span id="local-6989586621679872651"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872651"><span class="hs-identifier hs-var">poolVrf</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872637"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679872637"><span class="hs-identifier hs-var">poolHash</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#PoolRegister"><span class="hs-identifier hs-type">PoolRegister</span></a></span><span> </span><span id="local-6989586621679872646"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679872646"><span class="hs-identifier hs-var">poolVrf</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-69"></span><span>        </span><span class="annot"><span class="annottext">PoolCert -&gt; ConwayTxCert ConwayEra
 forall era. PoolCert -&gt; ConwayTxCert era
 </span><span class="hs-identifier hs-var">Conway.ConwayTxCertPool</span></span><span> </span><span class="annot"><span class="annottext">(PoolCert -&gt; ConwayTxCert ConwayEra)
@@ -382,28 +382,28 @@ forall (f :: * -&gt; *) a b c.
 Applicative f =&gt;
 (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c
 </span><span class="hs-identifier hs-var">liftA2</span></span><span>
-</span><span id="line-71"></span><span>            </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872654"><span class="annot"><span class="annottext">KeyHash 'StakePool
-</span><a href="#local-6989586621679872654"><span class="hs-identifier hs-var">pId</span></a></span></span><span> </span><span id="local-6989586621679872655"><span class="annot"><span class="annottext">VRFVerKeyHash 'StakePoolVRF
-</span><a href="#local-6989586621679872655"><span class="hs-identifier hs-var">pVrf</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PoolParams
+</span><span id="line-71"></span><span>            </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872649"><span class="annot"><span class="annottext">KeyHash 'StakePool
+</span><a href="#local-6989586621679872649"><span class="hs-identifier hs-var">pId</span></a></span></span><span> </span><span id="local-6989586621679872650"><span class="annot"><span class="annottext">VRFVerKeyHash 'StakePoolVRF
+</span><a href="#local-6989586621679872650"><span class="hs-identifier hs-var">pVrf</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PoolParams
 forall a. Default a =&gt; a
-</span><span class="hs-identifier hs-var">def</span></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="hs-identifier hs-var">Ledger.ppId</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679872654"><span class="hs-identifier hs-type">pId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-var">Ledger.ppVrf</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679872655"><span class="hs-identifier hs-type">pVrf</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span class="hs-identifier hs-var">def</span></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="hs-identifier hs-var">C.Ledger.ppId</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679872649"><span class="hs-identifier hs-type">pId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-var">C.Ledger.ppVrf</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679872650"><span class="hs-identifier hs-type">pVrf</span></a></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
 </span><span id="line-72"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Sem effs (KeyHash 'StakePool)
 forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 PubKeyHash -&gt; Sem effs (KeyHash 'StakePool)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakePoolKeyHash"><span class="hs-identifier hs-var">toStakePoolKeyHash</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872642"><span class="hs-identifier hs-var">poolHash</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872637"><span class="hs-identifier hs-var">poolHash</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-73"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Sem effs (VRFVerKeyHash 'StakePoolVRF)
 forall (effs :: EffectRow) (a :: KeyRoleVRF).
 Member (Error ToCardanoError) effs =&gt;
 PubKeyHash -&gt; Sem effs (VRFVerKeyHash a)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toVRFVerKeyHash"><span class="hs-identifier hs-var">toVRFVerKeyHash</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872651"><span class="hs-identifier hs-var">poolVrf</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872646"><span class="hs-identifier hs-var">poolVrf</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-74"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserPubKey"><span class="hs-identifier hs-type">UserPubKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">pkh -&gt; PubKeyHash
 forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872665"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872665"><span class="hs-identifier hs-var">poolHash</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#PoolRetire"><span class="hs-identifier hs-type">PoolRetire</span></a></span><span> </span><span id="local-6989586621679872687"><span class="annot"><span class="annottext">Slot
-</span><a href="#local-6989586621679872687"><span class="hs-identifier hs-var">slot</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872660"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679872660"><span class="hs-identifier hs-var">poolHash</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#PoolRetire"><span class="hs-identifier hs-type">PoolRetire</span></a></span><span> </span><span id="local-6989586621679872682"><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679872682"><span class="hs-identifier hs-var">slot</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-75"></span><span>        </span><span class="annot"><span class="annottext">PoolCert -&gt; ConwayTxCert ConwayEra
 forall era. PoolCert -&gt; ConwayTxCert era
 </span><span class="hs-identifier hs-var">Conway.ConwayTxCertPool</span></span><span>
@@ -427,10 +427,10 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 PubKeyHash -&gt; Sem effs (KeyHash 'StakePool)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toStakePoolKeyHash"><span class="hs-identifier hs-var">toStakePoolKeyHash</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679872665"><span class="hs-identifier hs-var">poolHash</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872660"><span class="hs-identifier hs-var">poolHash</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-79"></span><span>            </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-80"></span><span>                </span><span id="local-6989586621679872689"><span class="annot"><span class="annottext">EraHistory
-</span><a href="#local-6989586621679872689"><span class="hs-identifier hs-var">eeh</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; EraHistory
+</span><span id="line-80"></span><span>                </span><span id="local-6989586621679872684"><span class="annot"><span class="annottext">EraHistory
+</span><a href="#local-6989586621679872684"><span class="hs-identifier hs-var">eeh</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; EraHistory
 </span><span class="hs-identifier hs-var">Emulator.emulatorEraHistory</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; EraHistory) -&gt; Sem effs Params -&gt; Sem effs EraHistory
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Sem effs Params
@@ -445,12 +445,12 @@ Sem effs Params
 </span><span class="hs-identifier hs-var">Cardano.slotToEpoch</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Slot -&gt; SlotNo
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Slot
-</span><a href="#local-6989586621679872687"><span class="hs-identifier hs-var">slot</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">EraHistory
-</span><a href="#local-6989586621679872689"><span class="hs-identifier hs-var">eeh</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679872682"><span class="hs-identifier hs-var">slot</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">EraHistory
+</span><a href="#local-6989586621679872684"><span class="hs-identifier hs-var">eeh</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-82"></span><span>                  </span><span class="hs-comment">-- TODO: we could have a dedicated error for this case if the</span><span>
 </span><span id="line-83"></span><span>                  </span><span class="hs-comment">-- can occur at several places in the codebase</span><span>
-</span><span id="line-84"></span><span>                  </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679872693"><span class="annot"><span class="annottext">PastHorizonException
-</span><a href="#local-6989586621679872693"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem effs EpochNo
+</span><span id="line-84"></span><span>                  </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679872688"><span class="annot"><span class="annottext">PastHorizonException
+</span><a href="#local-6989586621679872688"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem effs EpochNo
 forall e (r :: EffectRow) a. Member (Error e) r =&gt; e -&gt; Sem r a
 </span><span class="hs-identifier hs-var">throw</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; Sem effs EpochNo)
 -&gt; MockChainError -&gt; Sem effs EpochNo
@@ -464,21 +464,21 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">PastHorizonException -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">PastHorizonException
-</span><a href="#local-6989586621679872693"><span class="hs-identifier hs-var">err</span></a></span><span>
-</span><span id="line-85"></span><span>                  </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679872697"><span class="annot"><span class="annottext">EpochNo
-</span><a href="#local-6989586621679872697"><span class="hs-identifier hs-var">epoch</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SlotsInEpoch
+</span><a href="#local-6989586621679872688"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-85"></span><span>                  </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679872692"><span class="annot"><span class="annottext">EpochNo
+</span><a href="#local-6989586621679872692"><span class="hs-identifier hs-var">epoch</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SlotsInEpoch
 </span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SlotsToEpochEnd
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">EpochNo -&gt; Sem effs EpochNo
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">EpochNo
-</span><a href="#local-6989586621679872697"><span class="hs-identifier hs-var">epoch</span></a></span><span>
+</span><a href="#local-6989586621679872692"><span class="hs-identifier hs-var">epoch</span></a></span><span>
 </span><span id="line-86"></span><span>            </span><span class="hs-special">)</span><span>
 </span><span id="line-87"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872700"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872700"><span class="hs-identifier hs-var">coldCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CommitteeRegisterHot"><span class="hs-identifier hs-type">CommitteeRegisterHot</span></a></span><span> </span><span id="local-6989586621679872707"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872707"><span class="hs-identifier hs-var">hotCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872695"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872695"><span class="hs-identifier hs-var">coldCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#CommitteeRegisterHot"><span class="hs-identifier hs-type">CommitteeRegisterHot</span></a></span><span> </span><span id="local-6989586621679872702"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872702"><span class="hs-identifier hs-var">hotCred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-88"></span><span>        </span><span class="annot"><span class="annottext">ConwayGovCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayGovCert -&gt; ConwayTxCert era
 </span><span class="hs-identifier hs-var">Conway.ConwayTxCertGov</span></span><span> </span><span class="annot"><span class="annottext">(ConwayGovCert -&gt; ConwayTxCert ConwayEra)
@@ -501,16 +501,16 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'ColdCommitteeRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toColdCredential"><span class="hs-identifier hs-var">toColdCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872700"><span class="hs-identifier hs-var">coldCred</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; Sem effs (Credential 'HotCommitteeRole)
+</span><a href="#local-6989586621679872695"><span class="hs-identifier hs-var">coldCred</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; Sem effs (Credential 'HotCommitteeRole)
 forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'HotCommitteeRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toHotCredential"><span class="hs-identifier hs-var">toHotCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872707"><span class="hs-identifier hs-var">hotCred</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872702"><span class="hs-identifier hs-var">hotCred</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-89"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">User kind 'Redemption -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872713"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872713"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872708"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872708"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CertificateAction kind
 </span><a href="Cooked.Skeleton.Certificate.html#CommitteeResign"><span class="hs-identifier hs-var">CommitteeResign</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-90"></span><span>        </span><span class="annot"><span class="annottext">ConwayGovCert -&gt; ConwayTxCert ConwayEra
 forall era. ConwayGovCert -&gt; ConwayTxCert era
@@ -532,12 +532,12 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs (Credential 'ColdCommitteeRole)
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toColdCredential"><span class="hs-identifier hs-var">toColdCredential</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872713"><span class="hs-identifier hs-var">cred</span></a></span><span>
+</span><a href="#local-6989586621679872708"><span class="hs-identifier hs-var">cred</span></a></span><span>
 </span><span id="line-91"></span><span>
-</span><span id="line-92"></span><span id="local-6989586621679872446"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificateWitness"><span class="hs-identifier hs-type">toCertificateWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-93"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872446"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-92"></span><span id="local-6989586621679872441"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificateWitness"><span class="hs-identifier hs-type">toCertificateWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872441"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-94"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-95"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872446"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptWitness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.WitCtxStake</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872441"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptWitness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.WitCtxStake</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
 </span><span id="line-96"></span><span id="toCertificateWitness"><span class="annot"><span class="annottext">toCertificateWitness :: forall (effs :: EffectRow).
 Members
   '[MockChainRead, Error MockChainError, Error ToCardanoError]
@@ -560,9 +560,9 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
 </span><span id="line-99"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-100"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span> </span><span id="local-6989586621679872736"><span class="annot"><span class="annottext">script
-</span><a href="#local-6989586621679872736"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679872737"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679872737"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptWitness WitCtxStake ConwayEra
+</span><span id="line-100"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span> </span><span id="local-6989586621679872731"><span class="annot"><span class="annottext">script
+</span><a href="#local-6989586621679872731"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679872732"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679872732"><span class="hs-identifier hs-var">red</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptWitness WitCtxStake ConwayEra
 -&gt; Maybe (ScriptWitness WitCtxStake ConwayEra)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(ScriptWitness WitCtxStake ConwayEra
@@ -583,8 +583,8 @@ a
 -&gt; ScriptDatum b
 -&gt; Sem effs (ScriptWitness b ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">script
-</span><a href="#local-6989586621679872736"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679872737"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
+</span><a href="#local-6989586621679872731"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679872732"><span class="hs-identifier hs-var">red</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
 </span><span class="hs-identifier hs-var">Cardano.NoScriptDatumForStake</span></span><span>
 </span><span id="line-101"></span><span>        </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (ScriptWitness WitCtxStake ConwayEra)
@@ -616,10 +616,10 @@ AffineTraversal' TxSkelCertificate (User user 'Redemption)
 </span><a href="Cooked.Skeleton.Certificate.html#txSkelCertificateOwnerAT"><span class="hs-identifier hs-var">txSkelCertificateOwnerAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.User.html#IsEither"><span class="hs-identifier hs-type">IsEither</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-104"></span><span>
 </span><span id="line-105"></span><span class="annot"><span class="hs-comment">-- | Builds a 'Cardano.TxCertificates' from a list of 'TxSkelCertificate'</span></span><span>
-</span><span id="line-106"></span><span id="local-6989586621679872473"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificates"><span class="hs-identifier hs-type">toCertificates</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-107"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872473"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-106"></span><span id="local-6989586621679872468"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificates"><span class="hs-identifier hs-type">toCertificates</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-107"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Fail</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679872468"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-108"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-109"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872473"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxCertificates</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-109"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679872468"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxCertificates</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
 </span><span id="line-110"></span><span id="toCertificates"><span class="annot"><span class="annottext">toCertificates :: forall (effs :: EffectRow).
 Members
   '[MockChainRead, Error MockChainError, Error ToCardanoError, Fail]
@@ -674,8 +674,8 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
 forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
-</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872767"><span class="annot"><span class="annottext">TxSkelCertificate
-</span><a href="#local-6989586621679872767"><span class="hs-identifier hs-var">txSkelCert</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Certificate ConwayEra
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679872762"><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679872762"><span class="hs-identifier hs-var">txSkelCert</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Certificate ConwayEra
  -&gt; Maybe (ScriptWitness WitCtxStake ConwayEra)
  -&gt; (Certificate ConwayEra,
      Maybe (ScriptWitness WitCtxStake ConwayEra)))
@@ -697,7 +697,7 @@ Members
   effs =&gt;
 TxSkelCertificate -&gt; Sem effs (Certificate ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificate"><span class="hs-identifier hs-var">toCertificate</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
-</span><a href="#local-6989586621679872767"><span class="hs-identifier hs-var">txSkelCert</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelCertificate
+</span><a href="#local-6989586621679872762"><span class="hs-identifier hs-var">txSkelCert</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelCertificate
 -&gt; Sem effs (Maybe (ScriptWitness WitCtxStake ConwayEra))
 forall (effs :: EffectRow).
 Members
@@ -706,5 +706,5 @@ Members
 TxSkelCertificate
 -&gt; Sem effs (Maybe (ScriptWitness WitCtxStake ConwayEra))
 </span><a href="Cooked.MockChain.GenerateTx.Certificate.html#toCertificateWitness"><span class="hs-identifier hs-var">toCertificateWitness</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelCertificate
-</span><a href="#local-6989586621679872767"><span class="hs-identifier hs-var">txSkelCert</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872762"><span class="hs-identifier hs-var">txSkelCert</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-113"></span></pre></body></html>

@@ -3,7 +3,7 @@
 </span><span id="line-3"></span><span>
 </span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
 </span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Api.Ledger</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
-</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.BaseTypes</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Cardano</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.BaseTypes</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">C.Ledger</span></span><span>
 </span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Conway.Core</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Conway</span></span><span>
 </span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Conway.Governance</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Conway</span></span><span>
 </span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Conway.PParams</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Conway</span></span><span>
@@ -21,8 +21,8 @@
 </span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Ordered.Strict</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">OMap</span></span><span>
 </span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
 </span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe.Strict</span></span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MicroLens</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx.CardanoAPI</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">P.Ledger</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Microlens</span></span><span>
 </span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
 </span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
 </span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V1.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
@@ -32,23 +32,23 @@
 </span><span id="line-32"></span><span class="hs-comment">-- | Transorms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change</span><span>
 </span><span id="line-33"></span><span class="hs-comment">-- over a Cardano parameter update</span><span>
 </span><span id="line-34"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toPParamsUpdate"><span class="hs-identifier hs-type">toPParamsUpdate</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-35"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679871580"><span class="annot"><a href="#local-6989586621679871580"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679871580"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679871575"><span class="annot"><a href="#local-6989586621679871575"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679871575"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-37"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#ParamChange"><span class="hs-identifier hs-type">ParamChange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-38"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-39"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871580"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871575"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span><span>
 </span><span id="line-40"></span><span id="toPParamsUpdate"><span class="annot"><span class="annottext">toPParamsUpdate :: forall (effs :: EffectRow).
 Member (Error MockChainError) effs =&gt;
 ParamChange
 -&gt; PParamsUpdate EmulatorEra
 -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="Cooked.MockChain.GenerateTx.Proposal.html#toPParamsUpdate"><span class="hs-identifier hs-var hs-var">toPParamsUpdate</span></a></span></span><span> </span><span id="local-6989586621679871902"><span class="annot"><span class="annottext">ParamChange
-</span><a href="#local-6989586621679871902"><span class="hs-identifier hs-var">pChange</span></a></span></span><span> </span><span id="local-6989586621679871903"><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
-</span><a href="#local-6989586621679871903"><span class="hs-identifier hs-var">ppu</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.Proposal.html#toPParamsUpdate"><span class="hs-identifier hs-var hs-var">toPParamsUpdate</span></a></span></span><span> </span><span id="local-6989586621679871897"><span class="annot"><span class="annottext">ParamChange
+</span><a href="#local-6989586621679871897"><span class="hs-identifier hs-var">pChange</span></a></span></span><span> </span><span id="local-6989586621679871898"><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
+</span><a href="#local-6989586621679871898"><span class="hs-identifier hs-var">ppu</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-41"></span><span>  </span><span class="hs-comment">-- From rational to bounded rational</span><span>
-</span><span id="line-42"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679871596"><span class="annot"><a href="#local-6989586621679871904"><span class="hs-identifier hs-type">toBR</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.BoundedRational</span></span><span> </span><span class="annot"><a href="#local-6989586621679871596"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679871596"><span class="hs-identifier hs-type">r</span></a></span></span><span>
-</span><span id="line-43"></span><span>      </span><span id="local-6989586621679871904"><span class="annot"><span class="annottext">toBR :: forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var hs-var">toBR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">r -&gt; Maybe r -&gt; r
+</span><span id="line-42"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679871591"><span class="annot"><a href="#local-6989586621679871899"><span class="hs-identifier hs-type">toBR</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Ledger.BoundedRational</span></span><span> </span><span class="annot"><a href="#local-6989586621679871591"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679871591"><span class="hs-identifier hs-type">r</span></a></span></span><span>
+</span><span id="line-43"></span><span>      </span><span id="local-6989586621679871899"><span class="annot"><span class="annottext">toBR :: forall r. BoundedRational r =&gt; Rational -&gt; r
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var hs-var">toBR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">r -&gt; Maybe r -&gt; r
 forall a. a -&gt; Maybe a -&gt; a
 </span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">r
 forall a. Bounded a =&gt; a
@@ -56,17 +56,17 @@ forall a. Bounded a =&gt; a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Maybe r
 forall r. BoundedRational r =&gt; Rational -&gt; Maybe r
-</span><span class="hs-identifier hs-var">Cardano.boundRational</span></span><span>
+</span><span class="hs-identifier hs-var">C.Ledger.boundRational</span></span><span>
 </span><span id="line-44"></span><span>      </span><span class="hs-comment">-- Helper to set one of the param update with a lens. The explicit</span><span>
 </span><span id="line-45"></span><span>      </span><span class="hs-comment">-- signature is needed so that it stays polymorphic in @a@ under</span><span>
 </span><span id="line-46"></span><span>      </span><span class="hs-comment">-- @MonoLocalBinds@ despite closing over @effs@ and @ppu@.</span><span>
-</span><span id="line-47"></span><span>      </span><span class="annot"><a href="#local-6989586621679871914"><span class="hs-identifier hs-type">setL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679871604"><span class="annot"><a href="#local-6989586621679871604"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MicroLens.ASetter'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">StrictMaybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679871604"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679871604"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871580"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-48"></span><span>      </span><span id="local-6989586621679871914"><span class="annot"><span class="annottext">setL :: forall a.
+</span><span id="line-47"></span><span>      </span><span class="annot"><a href="#local-6989586621679871909"><span class="hs-identifier hs-type">setL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679871599"><span class="annot"><a href="#local-6989586621679871599"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Microlens.ASetter'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">StrictMaybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679871599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679871599"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871575"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>      </span><span id="local-6989586621679871909"><span class="annot"><span class="annottext">setL :: forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var hs-var">setL</span></a></span></span><span> </span><span id="local-6989586621679871917"><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
-</span><a href="#local-6989586621679871917"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679871918"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679871918"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra -&gt; Sem effs (PParamsUpdate EmulatorEra)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var hs-var">setL</span></a></span></span><span> </span><span id="local-6989586621679871912"><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
+</span><a href="#local-6989586621679871912"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679871913"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679871913"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(PParamsUpdate EmulatorEra -&gt; Sem effs (PParamsUpdate EmulatorEra))
@@ -78,21 +78,21 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; PParamsUpdate EmulatorEra
 -&gt; PParamsUpdate EmulatorEra
 forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
-</span><span class="hs-identifier hs-var">MicroLens.set</span></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
-</span><a href="#local-6989586621679871917"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; StrictMaybe a
+</span><span class="hs-identifier hs-var">Microlens.set</span></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
+</span><a href="#local-6989586621679871912"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; StrictMaybe a
 forall a. a -&gt; StrictMaybe a
 </span><span class="hs-identifier hs-var">SJust</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679871918"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
-</span><a href="#local-6989586621679871903"><span class="hs-identifier hs-var">ppu</span></a></span><span>
+</span><a href="#local-6989586621679871913"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
+</span><a href="#local-6989586621679871898"><span class="hs-identifier hs-var">ppu</span></a></span><span>
 </span><span id="line-49"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ParamChange
-</span><a href="#local-6989586621679871902"><span class="hs-identifier hs-var">pChange</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-50"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#FeePerByte"><span class="hs-identifier hs-type">FeePerByte</span></a></span><span> </span><span id="local-6989586621679871922"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871922"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871897"><span class="hs-identifier hs-var">pChange</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-50"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#FeePerByte"><span class="hs-identifier hs-type">FeePerByte</span></a></span><span> </span><span id="local-6989586621679871917"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871917"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -103,14 +103,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871922"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-51"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#FeeFixed"><span class="hs-identifier hs-type">FeeFixed</span></a></span><span> </span><span id="local-6989586621679871925"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871925"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871917"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#FeeFixed"><span class="hs-identifier hs-type">FeeFixed</span></a></span><span> </span><span id="local-6989586621679871920"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871920"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -121,14 +121,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871925"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-52"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxBlockBodySize"><span class="hs-identifier hs-type">MaxBlockBodySize</span></a></span><span> </span><span id="local-6989586621679871928"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871928"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
+</span><a href="#local-6989586621679871920"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-52"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxBlockBodySize"><span class="hs-identifier hs-type">MaxBlockBodySize</span></a></span><span> </span><span id="local-6989586621679871923"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871923"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
 -&gt; Word32 -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Word32)
@@ -139,14 +139,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871928"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-53"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxTxSize"><span class="hs-identifier hs-type">MaxTxSize</span></a></span><span> </span><span id="local-6989586621679871931"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871931"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
+</span><a href="#local-6989586621679871923"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-53"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxTxSize"><span class="hs-identifier hs-type">MaxTxSize</span></a></span><span> </span><span id="local-6989586621679871926"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871926"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
 -&gt; Word32 -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word32)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Word32)
@@ -157,14 +157,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871931"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-54"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxBlockHeaderSize"><span class="hs-identifier hs-type">MaxBlockHeaderSize</span></a></span><span> </span><span id="local-6989586621679871934"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871934"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
+</span><a href="#local-6989586621679871926"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-54"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxBlockHeaderSize"><span class="hs-identifier hs-type">MaxBlockHeaderSize</span></a></span><span> </span><span id="local-6989586621679871929"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871929"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
 -&gt; Word16 -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Word16)
@@ -175,14 +175,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word16
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871934"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-55"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#KeyDeposit"><span class="hs-identifier hs-type">KeyDeposit</span></a></span><span> </span><span id="local-6989586621679871937"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871937"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871929"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-55"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#KeyDeposit"><span class="hs-identifier hs-type">KeyDeposit</span></a></span><span> </span><span id="local-6989586621679871932"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871932"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -193,14 +193,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871937"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-56"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolDeposit"><span class="hs-identifier hs-type">PoolDeposit</span></a></span><span> </span><span id="local-6989586621679871940"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871940"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871932"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-56"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolDeposit"><span class="hs-identifier hs-type">PoolDeposit</span></a></span><span> </span><span id="local-6989586621679871935"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871935"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -211,14 +211,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871940"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-57"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolRetirementMaxEpoch"><span class="hs-identifier hs-type">PoolRetirementMaxEpoch</span></a></span><span> </span><span id="local-6989586621679871943"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871943"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679871935"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-57"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolRetirementMaxEpoch"><span class="hs-identifier hs-type">PoolRetirementMaxEpoch</span></a></span><span> </span><span id="local-6989586621679871938"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871938"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe EpochInterval)
@@ -227,19 +227,19 @@ Lens' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; EpochInterval
-</span><span class="hs-identifier hs-var">Cardano.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
+</span><span class="hs-identifier hs-var">C.Ledger.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871943"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-58"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolNumber"><span class="hs-identifier hs-type">PoolNumber</span></a></span><span> </span><span id="local-6989586621679871947"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871947"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
+</span><a href="#local-6989586621679871938"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolNumber"><span class="hs-identifier hs-type">PoolNumber</span></a></span><span> </span><span id="local-6989586621679871942"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871942"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
 -&gt; Word16 -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Word16)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Word16)
@@ -250,15 +250,15 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word16
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871947"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-59"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolInfluence"><span class="hs-identifier hs-type">PoolInfluence</span></a></span><span> </span><span id="local-6989586621679871950"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871950"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter'
+</span><a href="#local-6989586621679871942"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-59"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolInfluence"><span class="hs-identifier hs-type">PoolInfluence</span></a></span><span> </span><span id="local-6989586621679871945"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871945"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe NonNegativeInterval)
 -&gt; NonNegativeInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe NonNegativeInterval)
 forall era.
 EraPParams era =&gt;
@@ -277,15 +277,15 @@ forall a. Bounded a =&gt; a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Maybe NonNegativeInterval
 forall r. BoundedRational r =&gt; Rational -&gt; Maybe r
-</span><span class="hs-identifier hs-var">Cardano.boundRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871950"><span class="hs-identifier hs-var">q</span></a></span><span>
-</span><span id="line-60"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MonetaryExpansion"><span class="hs-identifier hs-type">MonetaryExpansion</span></a></span><span> </span><span id="local-6989586621679871953"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871953"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
+</span><span class="hs-identifier hs-var">C.Ledger.boundRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871945"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-60"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MonetaryExpansion"><span class="hs-identifier hs-type">MonetaryExpansion</span></a></span><span> </span><span id="local-6989586621679871948"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871948"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
 -&gt; UnitInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe UnitInterval)
@@ -302,15 +302,15 @@ forall a. Bounded a =&gt; a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Maybe UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; Maybe r
-</span><span class="hs-identifier hs-var">Cardano.boundRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871953"><span class="hs-identifier hs-var">q</span></a></span><span>
-</span><span id="line-61"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#TreasuryCut"><span class="hs-identifier hs-type">TreasuryCut</span></a></span><span> </span><span id="local-6989586621679871956"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871956"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
+</span><span class="hs-identifier hs-var">C.Ledger.boundRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871948"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-61"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#TreasuryCut"><span class="hs-identifier hs-type">TreasuryCut</span></a></span><span> </span><span id="local-6989586621679871951"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871951"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
 -&gt; UnitInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe UnitInterval)
@@ -320,15 +320,15 @@ Lens' (PParamsUpdate EmulatorEra) (StrictMaybe UnitInterval)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871956"><span class="hs-identifier hs-var">q</span></a></span><span>
-</span><span id="line-62"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MinPoolCost"><span class="hs-identifier hs-type">MinPoolCost</span></a></span><span> </span><span id="local-6989586621679871959"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871959"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871951"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-62"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MinPoolCost"><span class="hs-identifier hs-type">MinPoolCost</span></a></span><span> </span><span id="local-6989586621679871954"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871954"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 EraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -339,14 +339,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871959"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-63"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CoinsPerUTxOByte"><span class="hs-identifier hs-type">CoinsPerUTxOByte</span></a></span><span> </span><span id="local-6989586621679871962"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871962"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe CoinPerByte)
+</span><a href="#local-6989586621679871954"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-63"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CoinsPerUTxOByte"><span class="hs-identifier hs-type">CoinsPerUTxOByte</span></a></span><span> </span><span id="local-6989586621679871957"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871957"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe CoinPerByte)
 -&gt; CoinPerByte -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe CoinPerByte)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe CoinPerByte)
 forall era.
 BabbageEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe CoinPerByte)
@@ -360,11 +360,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871962"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-64"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CostModels"><span class="hs-identifier hs-type">CostModels</span></a></span><span> </span><span id="local-6989586621679871966"><span class="annot"><span class="annottext">[Integer]
-</span><a href="#local-6989586621679871966"><span class="hs-identifier hs-var">_pv1</span></a></span></span><span> </span><span id="local-6989586621679871967"><span class="annot"><span class="annottext">[Integer]
-</span><a href="#local-6989586621679871967"><span class="hs-identifier hs-var">_pv2</span></a></span></span><span> </span><span id="local-6989586621679871968"><span class="annot"><span class="annottext">[Integer]
-</span><a href="#local-6989586621679871968"><span class="hs-identifier hs-var">_pv3</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem effs (PParamsUpdate EmulatorEra)
+</span><a href="#local-6989586621679871957"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-64"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CostModels"><span class="hs-identifier hs-type">CostModels</span></a></span><span> </span><span id="local-6989586621679871961"><span class="annot"><span class="annottext">[Integer]
+</span><a href="#local-6989586621679871961"><span class="hs-identifier hs-var">_pv1</span></a></span></span><span> </span><span id="local-6989586621679871962"><span class="annot"><span class="annottext">[Integer]
+</span><a href="#local-6989586621679871962"><span class="hs-identifier hs-var">_pv2</span></a></span></span><span> </span><span id="local-6989586621679871963"><span class="annot"><span class="annottext">[Integer]
+</span><a href="#local-6989586621679871963"><span class="hs-identifier hs-var">_pv3</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MockChainError -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall e (r :: EffectRow) a. Member (Error e) r =&gt; e -&gt; Sem r a
 </span><span class="hs-identifier hs-var">throw</span></span><span> </span><span class="annot"><span class="annottext">(MockChainError -&gt; Sem effs (PParamsUpdate EmulatorEra))
 -&gt; MockChainError -&gt; Sem effs (PParamsUpdate EmulatorEra)
@@ -372,14 +372,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; MockChainError
 </span><a href="Cooked.MockChain.Error.html#MCEUnsupportedFeature"><span class="hs-identifier hs-var">MCEUnsupportedFeature</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;CostModels&quot;</span></span><span>
-</span><span id="line-65"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#Prices"><span class="hs-identifier hs-type">Prices</span></a></span><span> </span><span id="local-6989586621679871972"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871972"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span id="local-6989586621679871973"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871973"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Prices)
+</span><span id="line-65"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#Prices"><span class="hs-identifier hs-type">Prices</span></a></span><span> </span><span id="local-6989586621679871967"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871967"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span id="local-6989586621679871968"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871968"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Prices)
 -&gt; Prices -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Prices)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Prices)
 forall era.
 AlonzoEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Prices)
@@ -390,19 +390,19 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NonNegativeInterval -&gt; NonNegativeInterval -&gt; Prices
 </span><span class="hs-identifier hs-var">Cardano.Prices</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; NonNegativeInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871972"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; NonNegativeInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871967"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; NonNegativeInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871973"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-66"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxTxExUnits"><span class="hs-identifier hs-type">MaxTxExUnits</span></a></span><span> </span><span id="local-6989586621679871977"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871977"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679871978"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871978"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871968"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxTxExUnits"><span class="hs-identifier hs-type">MaxTxExUnits</span></a></span><span> </span><span id="local-6989586621679871972"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871972"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679871973"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871973"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
 -&gt; ExUnits -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
 forall era.
 AlonzoEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe ExUnits)
@@ -414,18 +414,18 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">Cardano.ExUnits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871977"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Natural
+</span><a href="#local-6989586621679871972"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871978"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-67"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxBlockExUnits"><span class="hs-identifier hs-type">MaxBlockExUnits</span></a></span><span> </span><span id="local-6989586621679871982"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871982"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679871983"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871983"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
+</span><a href="#local-6989586621679871973"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxBlockExUnits"><span class="hs-identifier hs-type">MaxBlockExUnits</span></a></span><span> </span><span id="local-6989586621679871977"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871977"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679871978"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871978"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
 -&gt; ExUnits -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe ExUnits)
 forall era.
 AlonzoEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe ExUnits)
@@ -437,17 +437,17 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">Cardano.ExUnits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871982"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Natural
+</span><a href="#local-6989586621679871977"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871983"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-68"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxValSize"><span class="hs-identifier hs-type">MaxValSize</span></a></span><span> </span><span id="local-6989586621679871986"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871986"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871978"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxValSize"><span class="hs-identifier hs-type">MaxValSize</span></a></span><span> </span><span id="local-6989586621679871981"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871981"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 -&gt; Natural -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 forall era.
 AlonzoEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Natural)
@@ -458,14 +458,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871986"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-69"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CollateralPercentage"><span class="hs-identifier hs-type">CollateralPercentage</span></a></span><span> </span><span id="local-6989586621679871989"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871989"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871981"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-69"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CollateralPercentage"><span class="hs-identifier hs-type">CollateralPercentage</span></a></span><span> </span><span id="local-6989586621679871984"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871984"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 -&gt; Natural -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 forall era.
 AlonzoEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Natural)
@@ -476,14 +476,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871989"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-70"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxCollateralInputs"><span class="hs-identifier hs-type">MaxCollateralInputs</span></a></span><span> </span><span id="local-6989586621679871992"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871992"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871984"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-70"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MaxCollateralInputs"><span class="hs-identifier hs-type">MaxCollateralInputs</span></a></span><span> </span><span id="local-6989586621679871987"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679871987"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 -&gt; Natural -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 forall era.
 AlonzoEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Natural)
@@ -494,20 +494,20 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679871992"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-71"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolVotingThresholds"><span class="hs-identifier hs-type">PoolVotingThresholds</span></a></span><span> </span><span id="local-6989586621679871995"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871995"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679871996"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871996"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679871997"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871997"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679871998"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871998"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679871999"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871999"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a href="#local-6989586621679871987"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-71"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#PoolVotingThresholds"><span class="hs-identifier hs-type">PoolVotingThresholds</span></a></span><span> </span><span id="local-6989586621679871990"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871990"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679871991"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871991"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679871992"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871992"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679871993"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871993"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679871994"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871994"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-72"></span><span>          </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe PoolVotingThresholds)
 -&gt; PoolVotingThresholds -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe PoolVotingThresholds)
 forall era.
 ConwayEraPParams era =&gt;
@@ -526,38 +526,38 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; PoolVotingThresholds
 </span><span class="hs-identifier hs-var">Conway.PoolVotingThresholds</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871995"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871990"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871996"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871991"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871997"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871992"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871998"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871993"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679871999"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-74"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#DRepVotingThresholds"><span class="hs-identifier hs-type">DRepVotingThresholds</span></a></span><span> </span><span id="local-6989586621679872003"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872003"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679872004"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872004"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679872005"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872005"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679872006"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872006"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679872007"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872007"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span id="local-6989586621679872008"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872008"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679872009"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872009"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679872010"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872010"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679872011"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872011"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679872012"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872012"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871994"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-74"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#DRepVotingThresholds"><span class="hs-identifier hs-type">DRepVotingThresholds</span></a></span><span> </span><span id="local-6989586621679871998"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871998"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679871999"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871999"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679872000"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872000"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679872001"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872001"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679872002"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872002"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span id="local-6989586621679872003"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872003"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679872004"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872004"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679872005"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872005"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679872006"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872006"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679872007"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872007"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-75"></span><span>          </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe DRepVotingThresholds)
 -&gt; DRepVotingThresholds -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe DRepVotingThresholds)
 forall era.
 ConwayEraPParams era =&gt;
@@ -581,42 +581,42 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; DRepVotingThresholds
 </span><span class="hs-identifier hs-var">Conway.DRepVotingThresholds</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872003"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871998"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872004"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679871999"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872005"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872000"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872006"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872001"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872007"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872002"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872008"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872003"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872009"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872004"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872010"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872005"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872011"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872006"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; UnitInterval
 forall r. BoundedRational r =&gt; Rational -&gt; r
-</span><a href="#local-6989586621679871904"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872012"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-77"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CommitteeMinSize"><span class="hs-identifier hs-type">CommitteeMinSize</span></a></span><span> </span><span id="local-6989586621679872016"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872016"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871899"><span class="hs-identifier hs-var">toBR</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872007"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CommitteeMinSize"><span class="hs-identifier hs-type">CommitteeMinSize</span></a></span><span> </span><span id="local-6989586621679872011"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872011"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 -&gt; Natural -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Natural)
 forall era.
 ConwayEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Natural)
@@ -627,14 +627,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Natural
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872016"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-78"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CommitteeMaxTermLength"><span class="hs-identifier hs-type">CommitteeMaxTermLength</span></a></span><span> </span><span id="local-6989586621679872019"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872019"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679872011"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-78"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#CommitteeMaxTermLength"><span class="hs-identifier hs-type">CommitteeMaxTermLength</span></a></span><span> </span><span id="local-6989586621679872014"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872014"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 forall era.
 ConwayEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe EpochInterval)
@@ -643,19 +643,19 @@ Lens' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; EpochInterval
-</span><span class="hs-identifier hs-var">Cardano.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
+</span><span class="hs-identifier hs-var">C.Ledger.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872019"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-79"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#GovActionLifetime"><span class="hs-identifier hs-type">GovActionLifetime</span></a></span><span> </span><span id="local-6989586621679872022"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872022"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679872014"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-79"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#GovActionLifetime"><span class="hs-identifier hs-type">GovActionLifetime</span></a></span><span> </span><span id="local-6989586621679872017"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872017"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 forall era.
 ConwayEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe EpochInterval)
@@ -664,19 +664,19 @@ Lens' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; EpochInterval
-</span><span class="hs-identifier hs-var">Cardano.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
+</span><span class="hs-identifier hs-var">C.Ledger.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872022"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-80"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#GovActionDeposit"><span class="hs-identifier hs-type">GovActionDeposit</span></a></span><span> </span><span id="local-6989586621679872025"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872025"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679872017"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-80"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#GovActionDeposit"><span class="hs-identifier hs-type">GovActionDeposit</span></a></span><span> </span><span id="local-6989586621679872020"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872020"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 ConwayEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -687,14 +687,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872025"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-81"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#DRepRegistrationDeposit"><span class="hs-identifier hs-type">DRepRegistrationDeposit</span></a></span><span> </span><span id="local-6989586621679872028"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872028"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679872020"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-81"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#DRepRegistrationDeposit"><span class="hs-identifier hs-type">DRepRegistrationDeposit</span></a></span><span> </span><span id="local-6989586621679872023"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872023"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 -&gt; Coin -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe Coin)
 forall era.
 ConwayEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe Coin)
@@ -705,14 +705,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Coin
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872028"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-82"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#DRepActivity"><span class="hs-identifier hs-type">DRepActivity</span></a></span><span> </span><span id="local-6989586621679872031"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872031"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679872023"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-82"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#DRepActivity"><span class="hs-identifier hs-type">DRepActivity</span></a></span><span> </span><span id="local-6989586621679872026"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872026"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 forall era.
 ConwayEraPParams era =&gt;
 Lens' (PParamsUpdate era) (StrictMaybe EpochInterval)
@@ -721,20 +721,20 @@ Lens' (PParamsUpdate EmulatorEra) (StrictMaybe EpochInterval)
 -&gt; EpochInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; EpochInterval
-</span><span class="hs-identifier hs-var">Cardano.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
+</span><span class="hs-identifier hs-var">C.Ledger.EpochInterval</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; EpochInterval) -&gt; Word32 -&gt; EpochInterval
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872031"><span class="hs-identifier hs-var">n</span></a></span><span>
-</span><span id="line-83"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MinFeeRefScriptCostPerByte"><span class="hs-identifier hs-type">MinFeeRefScriptCostPerByte</span></a></span><span> </span><span id="local-6989586621679872034"><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872034"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter'
+</span><a href="#local-6989586621679872026"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-83"></span><span>        </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#MinFeeRefScriptCostPerByte"><span class="hs-identifier hs-type">MinFeeRefScriptCostPerByte</span></a></span><span> </span><span id="local-6989586621679872029"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872029"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe NonNegativeInterval)
 -&gt; NonNegativeInterval -&gt; Sem effs (PParamsUpdate EmulatorEra)
 forall a.
 ASetter' (PParamsUpdate EmulatorEra) (StrictMaybe a)
 -&gt; a -&gt; Sem effs (PParamsUpdate EmulatorEra)
-</span><a href="#local-6989586621679871914"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
+</span><a href="#local-6989586621679871909"><span class="hs-identifier hs-var">setL</span></a></span><span> </span><span class="annot"><span class="annottext">ASetter'
   (PParamsUpdate EmulatorEra) (StrictMaybe NonNegativeInterval)
 forall era.
 ConwayEraPParams era =&gt;
@@ -753,15 +753,15 @@ forall a. Bounded a =&gt; a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Maybe NonNegativeInterval
 forall r. BoundedRational r =&gt; Rational -&gt; Maybe r
-</span><span class="hs-identifier hs-var">Cardano.boundRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
-</span><a href="#local-6989586621679872034"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span class="hs-identifier hs-var">C.Ledger.boundRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679872029"><span class="hs-identifier hs-var">q</span></a></span><span>
 </span><span id="line-84"></span><span>
 </span><span id="line-85"></span><span class="annot"><span class="hs-comment">-- | Translates a given skeleton proposal into a governance action</span></span><span>
-</span><span id="line-86"></span><span id="local-6989586621679871651"><span id="local-6989586621679871653"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toGovAction"><span class="hs-identifier hs-type">toGovAction</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-87"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679871651"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-88"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#GovernanceAction"><span class="hs-identifier hs-type">GovernanceAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871653"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-86"></span><span id="local-6989586621679871646"><span id="local-6989586621679871648"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toGovAction"><span class="hs-identifier hs-type">toGovAction</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679871646"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#GovernanceAction"><span class="hs-identifier hs-type">GovernanceAction</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679871648"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-89"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">StrictMaybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Conway.ScriptHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-90"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871651"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.GovAction</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-90"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871646"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Conway.GovAction</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Emulator.EmulatorEra</span></span><span class="hs-special">)</span></span></span><span>
 </span><span id="line-91"></span><span id="toGovAction"><span class="annot"><span class="annottext">toGovAction :: forall (effs :: EffectRow) (a :: UserKind).
 Members
   '[MockChainRead, Error MockChainError, Error ToCardanoError]
@@ -810,11 +810,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; MockChainError
 </span><a href="Cooked.MockChain.Error.html#MCEUnsupportedFeature"><span class="hs-identifier hs-var">MCEUnsupportedFeature</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;TxGovActionHardForkInitiation&quot;</span></span><span>
-</span><span id="line-95"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toGovAction"><span class="hs-identifier hs-var">toGovAction</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#ParameterChange"><span class="hs-identifier hs-type">ParameterChange</span></a></span><span> </span><span id="local-6989586621679872066"><span class="annot"><span class="annottext">[ParamChange]
-</span><a href="#local-6989586621679872066"><span class="hs-identifier hs-var">changes</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872067"><span class="annot"><span class="annottext">StrictMaybe ScriptHash
-</span><a href="#local-6989586621679872067"><span class="hs-identifier hs-var">sHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-96"></span><span>  </span><span id="local-6989586621679872068"><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
-</span><a href="#local-6989586621679872068"><span class="hs-identifier hs-var">ppu</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(PParamsUpdate EmulatorEra
+</span><span id="line-95"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toGovAction"><span class="hs-identifier hs-var">toGovAction</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#ParameterChange"><span class="hs-identifier hs-type">ParameterChange</span></a></span><span> </span><span id="local-6989586621679872061"><span class="annot"><span class="annottext">[ParamChange]
+</span><a href="#local-6989586621679872061"><span class="hs-identifier hs-var">changes</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872062"><span class="annot"><span class="annottext">StrictMaybe ScriptHash
+</span><a href="#local-6989586621679872062"><span class="hs-identifier hs-var">sHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-96"></span><span>  </span><span id="local-6989586621679872063"><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
+</span><a href="#local-6989586621679872063"><span class="hs-identifier hs-var">ppu</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(PParamsUpdate EmulatorEra
  -&gt; ParamChange -&gt; Sem effs (PParamsUpdate EmulatorEra))
 -&gt; PParamsUpdate EmulatorEra
 -&gt; [ParamChange]
@@ -842,7 +842,7 @@ forall era. PParamsHKD StrictMaybe era -&gt; PParamsUpdate era
 </span><span class="hs-identifier hs-var">Conway.PParamsUpdate</span></span><span> </span><span class="annot"><span class="annottext">PParamsHKD StrictMaybe EmulatorEra
 forall era. EraPParams era =&gt; PParamsHKD StrictMaybe era
 </span><span class="hs-identifier hs-var">Cardano.emptyPParamsStrictMaybe</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[ParamChange]
-</span><a href="#local-6989586621679872066"><span class="hs-identifier hs-var">changes</span></a></span><span>
+</span><a href="#local-6989586621679872061"><span class="hs-identifier hs-var">changes</span></a></span><span>
 </span><span id="line-97"></span><span>  </span><span class="annot"><span class="annottext">GovAction EmulatorEra -&gt; Sem effs (GovAction EmulatorEra)
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -859,19 +859,19 @@ StrictMaybe (GovPurposeId 'PParamUpdatePurpose era)
 </span><span class="hs-identifier hs-var">Conway.ParameterChange</span></span><span> </span><span class="annot"><span class="annottext">StrictMaybe (GovPurposeId 'PParamUpdatePurpose EmulatorEra)
 forall a. StrictMaybe a
 </span><span class="hs-identifier hs-var">SNothing</span></span><span> </span><span class="annot"><span class="annottext">PParamsUpdate EmulatorEra
-</span><a href="#local-6989586621679872068"><span class="hs-identifier hs-var">ppu</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMaybe ScriptHash
-</span><a href="#local-6989586621679872067"><span class="hs-identifier hs-var">sHash</span></a></span><span>
+</span><a href="#local-6989586621679872063"><span class="hs-identifier hs-var">ppu</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMaybe ScriptHash
+</span><a href="#local-6989586621679872062"><span class="hs-identifier hs-var">sHash</span></a></span><span>
 </span><span id="line-98"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toGovAction"><span class="hs-identifier hs-var">toGovAction</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#TreasuryWithdrawals"><span class="hs-identifier hs-type">TreasuryWithdrawals</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map Credential Lovelace -&gt; [(Credential, Lovelace)]
 forall k a. Map k a -&gt; [(k, a)]
-</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872086"><span class="annot"><span class="annottext">[(Credential, Lovelace)]
-</span><a href="#local-6989586621679872086"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872087"><span class="annot"><span class="annottext">StrictMaybe ScriptHash
-</span><a href="#local-6989586621679872087"><span class="hs-identifier hs-var">sHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872081"><span class="annot"><span class="annottext">[(Credential, Lovelace)]
+</span><a href="#local-6989586621679872081"><span class="hs-identifier hs-var">withdrawals</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872082"><span class="annot"><span class="annottext">StrictMaybe ScriptHash
+</span><a href="#local-6989586621679872082"><span class="hs-identifier hs-var">sHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-99"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map RewardAccount Coin
 -&gt; StrictMaybe ScriptHash -&gt; GovAction EmulatorEra
 forall era.
 Map RewardAccount Coin -&gt; StrictMaybe ScriptHash -&gt; GovAction era
 </span><span class="hs-operator hs-var">`Conway.TreasuryWithdrawals`</span></span><span> </span><span class="annot"><span class="annottext">StrictMaybe ScriptHash
-</span><a href="#local-6989586621679872087"><span class="hs-identifier hs-var">sHash</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map RewardAccount Coin -&gt; GovAction EmulatorEra)
+</span><a href="#local-6989586621679872082"><span class="hs-identifier hs-var">sHash</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map RewardAccount Coin -&gt; GovAction EmulatorEra)
 -&gt; ([(RewardAccount, Coin)] -&gt; Map RewardAccount Coin)
 -&gt; [(RewardAccount, Coin)]
 -&gt; GovAction EmulatorEra
@@ -888,11 +888,11 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
 forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
-</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679872092"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872092"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span> </span><span id="local-6989586621679872094"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872094"><span class="hs-identifier hs-var">lv</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679872087"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872087"><span class="hs-identifier hs-var">cred</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Lovelace</span></span><span> </span><span id="local-6989586621679872089"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679872089"><span class="hs-identifier hs-var">lv</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="annot"><span class="annottext">Integer -&gt; Coin
 </span><span class="hs-identifier hs-var">Cardano.Coin</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679872094"><span class="hs-identifier hs-var">lv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(RewardAccount -&gt; (RewardAccount, Coin))
+</span><a href="#local-6989586621679872089"><span class="hs-identifier hs-var">lv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(RewardAccount -&gt; (RewardAccount, Coin))
 -&gt; Sem effs RewardAccount -&gt; Sem effs (RewardAccount, Coin)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Credential -&gt; Sem effs RewardAccount
@@ -900,34 +900,34 @@ forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs RewardAccount
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toRewardAccount"><span class="hs-identifier hs-var">toRewardAccount</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872092"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Credential, Lovelace)]
-</span><a href="#local-6989586621679872086"><span class="hs-identifier hs-var">withdrawals</span></a></span><span>
+</span><a href="#local-6989586621679872087"><span class="hs-identifier hs-var">cred</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Credential, Lovelace)]
+</span><a href="#local-6989586621679872081"><span class="hs-identifier hs-var">withdrawals</span></a></span><span>
 </span><span id="line-100"></span><span>
 </span><span id="line-101"></span><span class="annot"><span class="hs-comment">-- | Translates a list of skeleton proposals into a proposal procedures</span></span><span>
-</span><span id="line-102"></span><span id="local-6989586621679871694"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-type">toProposalProcedures</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-103"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679871694"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-102"></span><span id="local-6989586621679871689"><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-type">toProposalProcedures</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Error.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Error</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.ToCardanoError</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679871689"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-104"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#TxSkelProposal"><span class="hs-identifier hs-type">TxSkelProposal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-105"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871694"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxProposalProcedures</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679871689"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxProposalProcedures</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ConwayEra</span></span><span class="hs-special">)</span></span><span>
 </span><span id="line-106"></span><span id="toProposalProcedures"><span class="annot"><span class="annottext">toProposalProcedures :: forall (effs :: EffectRow).
 Members
   '[MockChainRead, Error MockChainError, Error ToCardanoError]
   effs =&gt;
 [TxSkelProposal]
 -&gt; Sem effs (TxProposalProcedures BuildTx ConwayEra)
-</span><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-var hs-var">toProposalProcedures</span></a></span></span><span> </span><span id="local-6989586621679872112"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679872112"><span class="hs-identifier hs-var">props</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal] -&gt; Bool
+</span><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-var hs-var">toProposalProcedures</span></a></span></span><span> </span><span id="local-6989586621679872107"><span class="annot"><span class="annottext">[TxSkelProposal]
+</span><a href="#local-6989586621679872107"><span class="hs-identifier hs-var">props</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal] -&gt; Bool
 forall a. [a] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679872112"><span class="hs-identifier hs-var">props</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxProposalProcedures BuildTx ConwayEra
+</span><a href="#local-6989586621679872107"><span class="hs-identifier hs-var">props</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxProposalProcedures BuildTx ConwayEra
 -&gt; Sem effs (TxProposalProcedures BuildTx ConwayEra)
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">TxProposalProcedures BuildTx ConwayEra
 forall build era. TxProposalProcedures build era
 </span><span class="hs-identifier hs-var">Cardano.TxProposalProceduresNone</span></span><span>
-</span><span id="line-107"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-var">toProposalProcedures</span></a></span><span> </span><span id="local-6989586621679872115"><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679872115"><span class="hs-identifier hs-var">props</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-107"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.Proposal.html#toProposalProcedures"><span class="hs-identifier hs-var">toProposalProcedures</span></a></span><span> </span><span id="local-6989586621679872110"><span class="annot"><span class="annottext">[TxSkelProposal]
+</span><a href="#local-6989586621679872110"><span class="hs-identifier hs-var">props</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-108"></span><span>  </span><span class="annot"><span class="annottext">OMap
   (ProposalProcedure (ShelleyLedgerEra ConwayEra))
   (BuildTxWith BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra)))
@@ -987,43 +987,43 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><span class="hs-identifier hs-var">forM</span></span><span>
 </span><span id="line-110"></span><span>      </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679872115"><span class="hs-identifier hs-var">props</span></a></span><span>
+</span><a href="#local-6989586621679872110"><span class="hs-identifier hs-var">props</span></a></span><span>
 </span><span id="line-111"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Proposal.html#TxSkelProposal"><span class="hs-identifier hs-type">TxSkelProposal</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cred -&gt; Credential
 forall a. ToCredential a =&gt; a -&gt; Credential
-</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872134"><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872134"><span class="hs-identifier hs-var">returnCredential</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872135"><span class="annot"><span class="annottext">GovernanceAction kind
-</span><a href="#local-6989586621679872135"><span class="hs-identifier hs-var">govAction</span></a></span></span><span> </span><span id="local-6989586621679872136"><span class="annot"><span class="annottext">Maybe (User kind 'Redemption)
-</span><a href="#local-6989586621679872136"><span class="hs-identifier hs-var">mConstitution</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelAnchor -&gt; Anchor
-</span><a href="Cooked.MockChain.GenerateTx.Anchor.html#toCardanoAnchor"><span class="hs-identifier hs-var">toCardanoAnchor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872138"><span class="annot"><span class="annottext">Anchor
-</span><a href="#local-6989586621679872138"><span class="hs-identifier hs-var">anchor</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-112"></span><span>          </span><span id="local-6989586621679872139"><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679872139"><span class="hs-identifier hs-var">proposalDeposit</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs Lovelace
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872129"><span class="annot"><span class="annottext">Credential
+</span><a href="#local-6989586621679872129"><span class="hs-identifier hs-var">returnCredential</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872130"><span class="annot"><span class="annottext">GovernanceAction kind
+</span><a href="#local-6989586621679872130"><span class="hs-identifier hs-var">govAction</span></a></span></span><span> </span><span id="local-6989586621679872131"><span class="annot"><span class="annottext">Maybe (User kind 'Redemption)
+</span><a href="#local-6989586621679872131"><span class="hs-identifier hs-var">mConstitution</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkelAnchor -&gt; Anchor
+</span><a href="Cooked.MockChain.GenerateTx.Anchor.html#toCardanoAnchor"><span class="hs-identifier hs-var">toCardanoAnchor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872133"><span class="annot"><span class="annottext">Anchor
+</span><a href="#local-6989586621679872133"><span class="hs-identifier hs-var">anchor</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-112"></span><span>          </span><span id="local-6989586621679872134"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679872134"><span class="hs-identifier hs-var">proposalDeposit</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs Lovelace
 forall (effs :: EffectRow).
 Member MockChainRead effs =&gt;
 Sem effs Lovelace
 </span><a href="Cooked.MockChain.Read.html#govActionDeposit"><span class="hs-identifier hs-var">govActionDeposit</span></a></span><span>
-</span><span id="line-113"></span><span>          </span><span id="local-6989586621679872141"><span class="annot"><span class="annottext">RewardAccount
-</span><a href="#local-6989586621679872141"><span class="hs-identifier hs-var">rewardAccount</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Credential -&gt; Sem effs RewardAccount
+</span><span id="line-113"></span><span>          </span><span id="local-6989586621679872136"><span class="annot"><span class="annottext">RewardAccount
+</span><a href="#local-6989586621679872136"><span class="hs-identifier hs-var">rewardAccount</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Credential -&gt; Sem effs RewardAccount
 forall (effs :: EffectRow).
 Member (Error ToCardanoError) effs =&gt;
 Credential -&gt; Sem effs RewardAccount
 </span><a href="Cooked.MockChain.GenerateTx.Credential.html#toRewardAccount"><span class="hs-identifier hs-var">toRewardAccount</span></a></span><span> </span><span class="annot"><span class="annottext">Credential
-</span><a href="#local-6989586621679872134"><span class="hs-identifier hs-var">returnCredential</span></a></span><span>
+</span><a href="#local-6989586621679872129"><span class="hs-identifier hs-var">returnCredential</span></a></span><span>
 </span><span id="line-114"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe (ScriptWitness WitCtxStake ConwayEra)
 -&gt; BuildTxWith
      BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra))
 forall a. a -&gt; BuildTxWith BuildTx a
-</span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872143"><span class="annot"><span class="annottext">BuildTxWith BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra))
-</span><a href="#local-6989586621679872143"><span class="hs-identifier hs-var">mConstitutionWitness</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679872144"><span class="annot"><span class="annottext">StrictMaybe ScriptHash
-</span><a href="#local-6989586621679872144"><span class="hs-identifier hs-var">mConstitutionHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe (User kind 'Redemption)
-</span><a href="#local-6989586621679872136"><span class="hs-identifier hs-var">mConstitution</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span class="hs-identifier hs-var">Cardano.BuildTxWith</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872138"><span class="annot"><span class="annottext">BuildTxWith BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra))
+</span><a href="#local-6989586621679872138"><span class="hs-identifier hs-var">mConstitutionWitness</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679872139"><span class="annot"><span class="annottext">StrictMaybe ScriptHash
+</span><a href="#local-6989586621679872139"><span class="hs-identifier hs-var">mConstitutionHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe (User kind 'Redemption)
+</span><a href="#local-6989586621679872131"><span class="hs-identifier hs-var">mConstitution</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-115"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; VScript
 forall script. ToVScript script =&gt; script -&gt; VScript
-</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872163"><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679872163"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872164"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679872164"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-116"></span><span>              </span><span id="local-6989586621679872165"><span class="annot"><span class="annottext">ScriptWitness WitCtxStake ConwayEra
-</span><a href="#local-6989586621679872165"><span class="hs-identifier hs-var">scriptWitness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">VScript
+</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679872158"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679872158"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679872159"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679872159"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-116"></span><span>              </span><span id="local-6989586621679872160"><span class="annot"><span class="annottext">ScriptWitness WitCtxStake ConwayEra
+</span><a href="#local-6989586621679872160"><span class="hs-identifier hs-var">scriptWitness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">VScript
 -&gt; TxSkelRedeemer
 -&gt; ScriptDatum WitCtxStake
 -&gt; Sem effs (ScriptWitness WitCtxStake ConwayEra)
@@ -1036,11 +1036,11 @@ a
 -&gt; ScriptDatum b
 -&gt; Sem effs (ScriptWitness b ConwayEra)
 </span><a href="Cooked.MockChain.GenerateTx.Witness.html#toScriptWitness"><span class="hs-identifier hs-var">toScriptWitness</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679872163"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679872164"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
+</span><a href="#local-6989586621679872158"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679872159"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxStake
 </span><span class="hs-identifier hs-var">Cardano.NoScriptDatumForStake</span></span><span>
-</span><span id="line-117"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptHash</span></span><span> </span><span id="local-6989586621679872169"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679872169"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either ToCardanoError ScriptHash -&gt; Sem effs ScriptHash
+</span><span id="line-117"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Cardano.ScriptHash</span></span><span> </span><span id="local-6989586621679872164"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679872164"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either ToCardanoError ScriptHash -&gt; Sem effs ScriptHash
 forall e (r :: EffectRow) a.
 Member (Error e) r =&gt;
 Either e a -&gt; Sem r a
@@ -1048,13 +1048,13 @@ Either e a -&gt; Sem r a
 -&gt; Either ToCardanoError ScriptHash -&gt; Sem effs ScriptHash
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; Either ToCardanoError ScriptHash
-</span><span class="hs-identifier hs-var">Ledger.toCardanoScriptHash</span></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; Either ToCardanoError ScriptHash)
+</span><span class="hs-identifier hs-var">P.Ledger.toCardanoScriptHash</span></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; Either ToCardanoError ScriptHash)
 -&gt; ScriptHash -&gt; Either ToCardanoError ScriptHash
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">VScript
-</span><a href="#local-6989586621679872163"><span class="hs-identifier hs-var">script</span></a></span><span>
+</span><a href="#local-6989586621679872158"><span class="hs-identifier hs-var">script</span></a></span><span>
 </span><span id="line-118"></span><span>              </span><span class="annot"><span class="annottext">(Maybe (ScriptWitness WitCtxStake ConwayEra),
  StrictMaybe ScriptHash)
 -&gt; Sem
@@ -1067,10 +1067,10 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 -&gt; Maybe (ScriptWitness WitCtxStake ConwayEra)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ScriptWitness WitCtxStake ConwayEra
-</span><a href="#local-6989586621679872165"><span class="hs-identifier hs-var">scriptWitness</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; StrictMaybe ScriptHash
+</span><a href="#local-6989586621679872160"><span class="hs-identifier hs-var">scriptWitness</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; StrictMaybe ScriptHash
 forall a. a -&gt; StrictMaybe a
 </span><span class="hs-identifier hs-var">SJust</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679872169"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872164"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-119"></span><span>            </span><span class="annot"><span class="annottext">Maybe (User kind 'Redemption)
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Maybe (ScriptWitness WitCtxStake ConwayEra),
  StrictMaybe ScriptHash)
@@ -1085,8 +1085,8 @@ forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StrictMaybe ScriptHash
 forall a. StrictMaybe a
 </span><span class="hs-identifier hs-var">SNothing</span></span><span class="hs-special">)</span><span>
-</span><span id="line-120"></span><span>          </span><span id="local-6989586621679872173"><span class="annot"><span class="annottext">GovAction EmulatorEra
-</span><a href="#local-6989586621679872173"><span class="hs-identifier hs-var">cardanoGovAction</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GovernanceAction kind
+</span><span id="line-120"></span><span>          </span><span id="local-6989586621679872168"><span class="annot"><span class="annottext">GovAction EmulatorEra
+</span><a href="#local-6989586621679872168"><span class="hs-identifier hs-var">cardanoGovAction</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GovernanceAction kind
 -&gt; StrictMaybe ScriptHash -&gt; Sem effs (GovAction EmulatorEra)
 forall (effs :: EffectRow) (a :: UserKind).
 Members
@@ -1095,8 +1095,8 @@ Members
 GovernanceAction a
 -&gt; StrictMaybe ScriptHash -&gt; Sem effs (GovAction EmulatorEra)
 </span><a href="Cooked.MockChain.GenerateTx.Proposal.html#toGovAction"><span class="hs-identifier hs-var">toGovAction</span></a></span><span> </span><span class="annot"><span class="annottext">GovernanceAction kind
-</span><a href="#local-6989586621679872135"><span class="hs-identifier hs-var">govAction</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMaybe ScriptHash
-</span><a href="#local-6989586621679872144"><span class="hs-identifier hs-var">mConstitutionHash</span></a></span><span>
+</span><a href="#local-6989586621679872130"><span class="hs-identifier hs-var">govAction</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMaybe ScriptHash
+</span><a href="#local-6989586621679872139"><span class="hs-identifier hs-var">mConstitutionHash</span></a></span><span>
 </span><span id="line-121"></span><span>          </span><span class="annot"><span class="annottext">(ProposalProcedure EmulatorEra,
  BuildTxWith BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra)))
 -&gt; Sem
@@ -1122,10 +1122,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Integer
 forall a b. Coercible a b =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
-</span><a href="#local-6989586621679872139"><span class="hs-identifier hs-var">proposalDeposit</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RewardAccount
-</span><a href="#local-6989586621679872141"><span class="hs-identifier hs-var">rewardAccount</span></a></span><span> </span><span class="annot"><span class="annottext">GovAction EmulatorEra
-</span><a href="#local-6989586621679872173"><span class="hs-identifier hs-var">cardanoGovAction</span></a></span><span> </span><span class="annot"><span class="annottext">Anchor
-</span><a href="#local-6989586621679872138"><span class="hs-identifier hs-var">anchor</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">BuildTxWith BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra))
-</span><a href="#local-6989586621679872143"><span class="hs-identifier hs-var">mConstitutionWitness</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679872134"><span class="hs-identifier hs-var">proposalDeposit</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">RewardAccount
+</span><a href="#local-6989586621679872136"><span class="hs-identifier hs-var">rewardAccount</span></a></span><span> </span><span class="annot"><span class="annottext">GovAction EmulatorEra
+</span><a href="#local-6989586621679872168"><span class="hs-identifier hs-var">cardanoGovAction</span></a></span><span> </span><span class="annot"><span class="annottext">Anchor
+</span><a href="#local-6989586621679872133"><span class="hs-identifier hs-var">anchor</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">BuildTxWith BuildTx (Maybe (ScriptWitness WitCtxStake ConwayEra))
+</span><a href="#local-6989586621679872138"><span class="hs-identifier hs-var">mConstitutionWitness</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-122"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-123"></span></pre></body></html>

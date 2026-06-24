@@ -24,17 +24,17 @@
 </span><span id="line-24"></span><span>
 </span><span id="line-25"></span><span class="hs-comment">-- | Ensures that a certain output is produced by a transaction. The return</span><span>
 </span><span id="line-26"></span><span class="hs-comment">-- value will be @Just@ the added output, when applicable.</span><span>
-</span><span id="line-27"></span><span id="local-6989586621679868472"><span class="annot"><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-type">ensureOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868472"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-27"></span><span id="local-6989586621679868467"><span class="annot"><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-type">ensureOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868467"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-29"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-30"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868472"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868467"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">)</span></span><span>
 </span><span id="line-31"></span><span id="ensureOutputTweak"><span class="annot"><span class="annottext">ensureOutputTweak :: forall (effs :: EffectRow).
 Member Tweak effs =&gt;
 TxSkelOut -&gt; Sem effs (Maybe TxSkelOut)
-</span><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-var hs-var">ensureOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679868642"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868642"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-32"></span><span>  </span><span id="local-6989586621679868643"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868643"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
+</span><a href="Cooked.Tweak.Outputs.html#ensureOutputTweak"><span class="hs-identifier hs-var hs-var">ensureOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679868637"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868637"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679868638"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868638"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Getter) =&gt;
@@ -42,13 +42,13 @@ Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span>
 </span><span id="line-33"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868642"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; Bool
+</span><a href="#local-6989586621679868637"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; Bool
 forall (a :: OpticKind). Eq a =&gt; a -&gt; [a] -&gt; Bool
 forall (t :: OpticKind -&gt; OpticKind) (a :: OpticKind).
 (Foldable t, Eq a) =&gt;
 a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868643"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
+</span><a href="#local-6989586621679868638"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
 </span><span id="line-34"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe TxSkelOut -&gt; Sem effs (Maybe TxSkelOut)
 forall (a :: OpticKind). a -&gt; Sem effs a
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
@@ -63,7 +63,7 @@ forall (effs :: EffectRow).
 Member Tweak effs =&gt;
 TxSkelOut -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var">addOutputTweak</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868642"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679868637"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-37"></span><span>      </span><span class="annot"><span class="annottext">Maybe TxSkelOut -&gt; Sem effs (Maybe TxSkelOut)
 forall (a :: OpticKind). a -&gt; Sem effs a
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
@@ -75,19 +75,19 @@ forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Maybe TxSkelOut
 forall (a :: OpticKind). a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868642"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="#local-6989586621679868637"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-38"></span><span>
 </span><span id="line-39"></span><span class="hs-comment">-- | Adds a transaction output, at the end of the current list of outputs, thus</span><span>
 </span><span id="line-40"></span><span class="hs-comment">-- retaining the initial outputs order.</span><span>
-</span><span id="line-41"></span><span id="local-6989586621679868495"><span class="annot"><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-type">addOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-42"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868495"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-41"></span><span id="local-6989586621679868490"><span class="annot"><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-type">addOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868490"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-43"></span><span>  </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-44"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868495"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868490"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-45"></span><span id="addOutputTweak"><span class="annot"><span class="annottext">addOutputTweak :: forall (effs :: EffectRow).
 Member Tweak effs =&gt;
 TxSkelOut -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var hs-var">addOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679868651"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868651"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
+</span><a href="Cooked.Tweak.Outputs.html#addOutputTweak"><span class="hs-identifier hs-var hs-var">addOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679868646"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868646"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 -&gt; ([TxSkelOut] -&gt; [TxSkelOut]) -&gt; Sem effs ()
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
@@ -97,34 +97,34 @@ Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Sem effs ()
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall (a :: OpticKind). [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868651"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679868646"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-46"></span><span>
 </span><span id="line-47"></span><span class="hs-comment">-- | Removes transaction outputs according to some predicate. The returned list</span><span>
 </span><span id="line-48"></span><span class="hs-comment">-- contains all the removed outputs.</span><span>
-</span><span id="line-49"></span><span id="local-6989586621679868506"><span class="annot"><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-type">removeOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868506"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-49"></span><span id="local-6989586621679868501"><span class="annot"><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-type">removeOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868501"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-51"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-52"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868506"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868501"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span></span><span>
 </span><span id="line-53"></span><span id="removeOutputTweak"><span class="annot"><span class="annottext">removeOutputTweak :: forall (effs :: EffectRow).
 Member Tweak effs =&gt;
 (TxSkelOut -&gt; Bool) -&gt; Sem effs [TxSkelOut]
-</span><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-var hs-var">removeOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679868661"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679868661"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-54"></span><span>  </span><span id="local-6989586621679868662"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868662"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
+</span><a href="Cooked.Tweak.Outputs.html#removeOutputTweak"><span class="hs-identifier hs-var hs-var">removeOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679868656"><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
+</span><a href="#local-6989586621679868656"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679868657"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868657"><span class="hs-identifier hs-var">presentOutputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span>
-</span><span id="line-55"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868663"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868663"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868664"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868664"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Bool) -&gt; [TxSkelOut] -&gt; ([TxSkelOut], [TxSkelOut])
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868658"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868658"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868659"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868659"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Bool) -&gt; [TxSkelOut] -&gt; ([TxSkelOut], [TxSkelOut])
 forall (a :: OpticKind). (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
 </span><span class="hs-identifier hs-var">partition</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; Bool
-</span><a href="#local-6989586621679868661"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868662"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
+</span><a href="#local-6989586621679868656"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868657"><span class="hs-identifier hs-var">presentOutputs</span></a></span><span>
 </span><span id="line-56"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; [TxSkelOut] -&gt; Sem effs ()
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
@@ -132,18 +132,18 @@ forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
 Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868664"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><a href="#local-6989586621679868659"><span class="hs-identifier hs-var">kept</span></a></span><span>
 </span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Sem effs [TxSkelOut]
 forall (a :: OpticKind). a -&gt; Sem effs a
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
 Monad m =&gt;
 a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868663"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><a href="#local-6989586621679868658"><span class="hs-identifier hs-var">removed</span></a></span><span>
 </span><span id="line-58"></span><span>
 </span><span id="line-59"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which the 'tamperDatumTweak' has been</span><span>
 </span><span id="line-60"></span><span class="hs-comment">-- successfully applied</span><span>
-</span><span id="line-61"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868668"><span id="local-6989586621679868670"><span id="local-6989586621679868674"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
+</span><span id="line-61"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868663"><span id="local-6989586621679868665"><span id="local-6989586621679868669"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
 [TamperDatumLbl] -&gt; ShowS
 TamperDatumLbl -&gt; String
 (Int -&gt; TamperDatumLbl -&gt; ShowS)
@@ -158,7 +158,7 @@ $cshow :: TamperDatumLbl -&gt; String
 show :: TamperDatumLbl -&gt; String
 $cshowList :: [TamperDatumLbl] -&gt; ShowS
 showList :: [TamperDatumLbl] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868678"><span id="local-6989586621679868680"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868673"><span id="local-6989586621679868675"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool)
 -&gt; (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool) -&gt; Eq TamperDatumLbl
 forall (a :: OpticKind).
@@ -167,7 +167,7 @@ $c== :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 == :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 $c/= :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 /= :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868687"><span id="local-6989586621679868689"><span id="local-6989586621679868691"><span id="local-6989586621679868695"><span id="local-6989586621679868698"><span id="local-6989586621679868701"><span id="local-6989586621679868704"><span class="annot"><span class="annottext">Eq TamperDatumLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868682"><span id="local-6989586621679868684"><span id="local-6989586621679868686"><span id="local-6989586621679868690"><span id="local-6989586621679868693"><span id="local-6989586621679868696"><span id="local-6989586621679868699"><span class="annot"><span class="annottext">Eq TamperDatumLbl
 Eq TamperDatumLbl =&gt;
 (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Ordering)
 -&gt; (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool)
@@ -206,9 +206,9 @@ $cmin :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; TamperDatumLbl
 min :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; TamperDatumLbl
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-62"></span><span>
-</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868708"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-type">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-64"></span><span>  </span><span id="local-6989586621679868715"><span class="annot"><span class="annottext">prettyCooked :: TamperDatumLbl -&gt; DocCooked
-</span><a href="#local-6989586621679868715"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868703"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#TamperDatumLbl"><span class="hs-identifier hs-type">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679868710"><span class="annot"><span class="annottext">prettyCooked :: TamperDatumLbl -&gt; DocCooked
+</span><a href="#local-6989586621679868710"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;TamperDatum&quot;</span></span><span>
 </span><span id="line-65"></span><span>
@@ -219,19 +219,19 @@ min :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; TamperDatumLbl
 </span><span id="line-70"></span><span class="hs-comment">-- The tweak returns a list of the modified datums, as they were *before* the</span><span>
 </span><span id="line-71"></span><span class="hs-comment">-- modification was applied to them.</span><span>
 </span><span id="line-72"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-type">tamperDatumTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-73"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679868527"><span class="annot"><a href="#local-6989586621679868527"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679868525"><span class="annot"><a href="#local-6989586621679868525"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-74"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679868525"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-75"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868527"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679868522"><span class="annot"><a href="#local-6989586621679868522"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679868520"><span class="annot"><a href="#local-6989586621679868520"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679868520"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868522"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-76"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679868527"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679868527"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-78"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868525"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679868527"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679868522"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679868522"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-78"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868520"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679868522"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-79"></span><span id="tamperDatumTweak"><span class="annot"><span class="annottext">tamperDatumTweak :: forall (a :: OpticKind) (effs :: EffectRow).
 (Members '[Tweak, NonDet] effs, DatumConstrs a) =&gt;
 (a -&gt; Maybe a) -&gt; Sem effs [a]
-</span><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-var hs-var">tamperDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679868761"><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679868761"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-80"></span><span>  </span><span id="local-6989586621679868762"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868762"><span class="hs-identifier hs-var">beforeModification</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel a -&gt; (a -&gt; Maybe a) -&gt; Sem effs [a]
+</span><a href="Cooked.Tweak.Outputs.html#tamperDatumTweak"><span class="hs-identifier hs-var hs-var">tamperDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679868756"><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679868756"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679868757"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679868757"><span class="hs-identifier hs-var">beforeModification</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel a -&gt; (a -&gt; Maybe a) -&gt; Sem effs [a]
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Traversal) =&gt;
@@ -278,7 +278,7 @@ forall (a :: OpticKind) (b :: OpticKind).
 (DatumConstrs a, DatumConstrs b) =&gt;
 AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
 </span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679868761"><span class="hs-identifier hs-var">change</span></a></span><span>
+</span><a href="#local-6989586621679868756"><span class="hs-identifier hs-var">change</span></a></span><span>
 </span><span id="line-81"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs ()
 forall (f :: OpticKind -&gt; OpticKind). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Sem effs ()) -&gt; ([a] -&gt; Bool) -&gt; [a] -&gt; Sem effs ()
@@ -296,7 +296,7 @@ t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; Sem effs ()) -&gt; [a] -&gt; Sem effs ()
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868762"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
+</span><a href="#local-6989586621679868757"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
 </span><span id="line-82"></span><span>  </span><span class="annot"><span class="annottext">TamperDatumLbl -&gt; Sem effs ()
 forall (lbl :: OpticKind) (effs :: EffectRow).
 (LabelConstrs lbl, Member Tweak effs) =&gt;
@@ -309,7 +309,7 @@ forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
 Monad m =&gt;
 a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868762"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
+</span><a href="#local-6989586621679868757"><span class="hs-identifier hs-var">beforeModification</span></a></span><span>
 </span><span id="line-84"></span><span>
 </span><span id="line-85"></span><span class="hs-comment">-- | A tweak that tries to change the datum on outputs carrying datums of a</span><span>
 </span><span id="line-86"></span><span class="hs-comment">-- certain type with a prescribed tampering function. There are two main</span><span>
@@ -330,19 +330,19 @@ a -&gt; m a
 </span><span id="line-101"></span><span class="hs-comment">--</span><span>
 </span><span id="line-102"></span><span class="hs-comment">-- modified transactions.</span><span>
 </span><span id="line-103"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-type">malformDatumTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-104"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679868584"><span class="annot"><a href="#local-6989586621679868584"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679868583"><span class="annot"><a href="#local-6989586621679868583"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-105"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679868583"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-106"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868584"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679868579"><span class="annot"><a href="#local-6989586621679868579"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679868578"><span class="annot"><a href="#local-6989586621679868578"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679868578"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-106"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Datum.html#DatumConstrs"><span class="hs-identifier hs-type">DatumConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679868579"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-107"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-108"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679868584"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-109"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868583"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-108"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679868579"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.BuiltinData</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-109"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679868578"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-110"></span><span id="malformDatumTweak"><span class="annot"><span class="annottext">malformDatumTweak :: forall (a :: OpticKind) (effs :: EffectRow).
 (Members '[Tweak, NonDet] effs, DatumConstrs a) =&gt;
 (a -&gt; [BuiltinData]) -&gt; Sem effs ()
-</span><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-var hs-var">malformDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679868839"><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
-</span><a href="#local-6989586621679868839"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-111"></span><span>  </span><span id="local-6989586621679868840"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868840"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal NoIx TxSkel TxSkel TxSkelOut TxSkelOut
+</span><a href="Cooked.Tweak.Outputs.html#malformDatumTweak"><span class="hs-identifier hs-var hs-var">malformDatumTweak</span></a></span></span><span> </span><span id="local-6989586621679868834"><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
+</span><a href="#local-6989586621679868834"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679868835"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868835"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal NoIx TxSkel TxSkel TxSkelOut TxSkelOut
 -&gt; Sem effs [TxSkelOut]
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
@@ -365,28 +365,28 @@ forall (t :: OpticKind -&gt; OpticKind) (a :: OpticKind)
 Traversable t =&gt;
 Traversal (t a) (t b) a b
 </span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span>
-</span><span id="line-112"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679868842"><span class="annot"><span class="annottext">modifiedOutputs :: [[TxSkelOut]]
-</span><a href="#local-6989586621679868842"><span class="hs-identifier hs-var hs-var">modifiedOutputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [[TxSkelOut]]
+</span><span id="line-112"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679868837"><span class="annot"><span class="annottext">modifiedOutputs :: [[TxSkelOut]]
+</span><a href="#local-6989586621679868837"><span class="hs-identifier hs-var hs-var">modifiedOutputs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [[TxSkelOut]]
 forall (a :: OpticKind) (b :: OpticKind). (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679868843"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868843"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868843"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679868838"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868838"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868838"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall (a :: OpticKind). a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut]
-</span><a href="#local-6989586621679868844"><span class="hs-identifier hs-var">changeOutput</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868843"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679868840"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><a href="#local-6989586621679868839"><span class="hs-identifier hs-var">changeOutput</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868838"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679868835"><span class="hs-identifier hs-var">outputs</span></a></span><span>
 </span><span id="line-113"></span><span>      </span><span class="hs-comment">-- We remove the first combination because it consists of all the heads</span><span>
 </span><span id="line-114"></span><span>      </span><span class="hs-comment">-- and therefore it is the combination consisting of no changes at all.</span><span>
-</span><span id="line-115"></span><span>      </span><span id="local-6989586621679868845"><span class="annot"><span class="annottext">modifiedOutputGroups :: [[TxSkelOut]]
-</span><a href="#local-6989586621679868845"><span class="hs-identifier hs-var hs-var">modifiedOutputGroups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]] -&gt; [[TxSkelOut]]
+</span><span id="line-115"></span><span>      </span><span id="local-6989586621679868840"><span class="annot"><span class="annottext">modifiedOutputGroups :: [[TxSkelOut]]
+</span><a href="#local-6989586621679868840"><span class="hs-identifier hs-var hs-var">modifiedOutputGroups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall (a :: OpticKind). HasCallStack =&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">tail</span></span><span> </span><span class="annot"><span class="annottext">([[TxSkelOut]] -&gt; [[TxSkelOut]]) -&gt; [[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall (a :: OpticKind). [[a]] -&gt; [[a]]
 </span><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]]
-</span><a href="#local-6989586621679868842"><span class="hs-identifier hs-var">modifiedOutputs</span></a></span><span>
+</span><a href="#local-6989586621679868837"><span class="hs-identifier hs-var">modifiedOutputs</span></a></span><span>
 </span><span id="line-116"></span><span>  </span><span class="annot"><span class="annottext">[Sem effs ()] -&gt; Sem effs ()
 forall (t :: OpticKind -&gt; OpticKind) (m :: OpticKind -&gt; OpticKind)
        (a :: OpticKind).
@@ -403,7 +403,7 @@ forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
 Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[[TxSkelOut]]
-</span><a href="#local-6989586621679868845"><span class="hs-identifier hs-var">modifiedOutputGroups</span></a></span><span>
+</span><a href="#local-6989586621679868840"><span class="hs-identifier hs-var">modifiedOutputGroups</span></a></span><span>
 </span><span id="line-117"></span><span>  </span><span class="annot"><span class="annottext">MalformDatumLbl -&gt; Sem effs ()
 forall (lbl :: OpticKind) (effs :: EffectRow).
 (LabelConstrs lbl, Member Tweak effs) =&gt;
@@ -411,13 +411,13 @@ lbl -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">MalformDatumLbl
 </span><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span><span>
 </span><span id="line-118"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-119"></span><span>    </span><span class="annot"><a href="#local-6989586621679868844"><span class="hs-identifier hs-type">changeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-120"></span><span>    </span><span id="local-6989586621679868844"><span class="annot"><span class="annottext">changeOutput :: TxSkelOut -&gt; [TxSkelOut]
-</span><a href="#local-6989586621679868844"><span class="hs-identifier hs-var hs-var">changeOutput</span></a></span></span><span> </span><span id="local-6989586621679868850"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868850"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-119"></span><span>    </span><span class="annot"><a href="#local-6989586621679868839"><span class="hs-identifier hs-type">changeOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Output.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-120"></span><span>    </span><span id="local-6989586621679868839"><span class="annot"><span class="annottext">changeOutput :: TxSkelOut -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679868839"><span class="hs-identifier hs-var hs-var">changeOutput</span></a></span></span><span> </span><span id="local-6989586621679868845"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868845"><span class="hs-identifier hs-var">txSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-121"></span><span>      </span><span class="hs-keyword">do</span><span>
-</span><span id="line-122"></span><span>        </span><span id="local-6989586621679868851"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679868851"><span class="hs-identifier hs-var">typedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [a]
+</span><span id="line-122"></span><span>        </span><span id="local-6989586621679868846"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679868846"><span class="hs-identifier hs-var">typedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [a]
 forall (a :: OpticKind). Maybe a -&gt; [a]
 </span><span class="hs-identifier hs-var">maybeToList</span></span><span> </span><span class="annot"><span class="annottext">(Maybe a -&gt; [a]) -&gt; Maybe a -&gt; [a]
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
@@ -441,11 +441,11 @@ forall (a :: OpticKind) (b :: OpticKind).
 (DatumConstrs a, DatumConstrs b) =&gt;
 AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
 </span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868850"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
-</span><span id="line-123"></span><span>        </span><span id="local-6989586621679868854"><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679868854"><span class="hs-identifier hs-var">modifiedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
-</span><a href="#local-6989586621679868839"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679868851"><span class="hs-identifier hs-var">typedDat</span></a></span><span>
+</span><a href="#local-6989586621679868845"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><span id="line-123"></span><span>        </span><span id="local-6989586621679868849"><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868849"><span class="hs-identifier hs-var">modifiedDat</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; [BuiltinData]
+</span><a href="#local-6989586621679868834"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679868846"><span class="hs-identifier hs-var">typedDat</span></a></span><span>
 </span><span id="line-124"></span><span>        </span><span class="annot"><span class="annottext">TxSkelOut -&gt; [TxSkelOut]
 forall (a :: OpticKind). a -&gt; [a]
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
@@ -473,13 +473,13 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">forall (a :: OpticKind) (b :: OpticKind).
 (DatumConstrs a, DatumConstrs b) =&gt;
 AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
-</span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679868584"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><a href="#local-6989586621679868854"><span class="hs-identifier hs-var">modifiedDat</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679868850"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
+</span><a href="Cooked.Skeleton.Datum.html#txSkelOutDatumTypedAT"><span class="hs-identifier hs-var">txSkelOutDatumTypedAT</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679868579"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">BuiltinData
+</span><a href="#local-6989586621679868849"><span class="hs-identifier hs-var">modifiedDat</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679868845"><span class="hs-identifier hs-var">txSkelOut</span></a></span><span>
 </span><span id="line-125"></span><span>
 </span><span id="line-126"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been</span><span>
 </span><span id="line-127"></span><span class="hs-comment">-- successfully applied</span><span>
-</span><span id="line-128"></span><span class="hs-keyword">data</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868857"><span id="local-6989586621679868859"><span id="local-6989586621679868862"><span class="annot"><span class="annottext">Int -&gt; MalformDatumLbl -&gt; ShowS
+</span><span id="line-128"></span><span class="hs-keyword">data</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MalformDatumLbl"><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-var">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868852"><span id="local-6989586621679868854"><span id="local-6989586621679868857"><span class="annot"><span class="annottext">Int -&gt; MalformDatumLbl -&gt; ShowS
 [MalformDatumLbl] -&gt; ShowS
 MalformDatumLbl -&gt; String
 (Int -&gt; MalformDatumLbl -&gt; ShowS)
@@ -494,7 +494,7 @@ $cshow :: MalformDatumLbl -&gt; String
 show :: MalformDatumLbl -&gt; String
 $cshowList :: [MalformDatumLbl] -&gt; ShowS
 showList :: [MalformDatumLbl] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868865"><span id="local-6989586621679868867"><span class="annot"><span class="annottext">MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868860"><span id="local-6989586621679868862"><span class="annot"><span class="annottext">MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool)
 -&gt; (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool)
 -&gt; Eq MalformDatumLbl
@@ -504,7 +504,7 @@ $c== :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 == :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 $c/= :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
 /= :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868872"><span id="local-6989586621679868874"><span id="local-6989586621679868876"><span id="local-6989586621679868879"><span id="local-6989586621679868882"><span id="local-6989586621679868885"><span id="local-6989586621679868888"><span class="annot"><span class="annottext">Eq MalformDatumLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868867"><span id="local-6989586621679868869"><span id="local-6989586621679868871"><span id="local-6989586621679868874"><span id="local-6989586621679868877"><span id="local-6989586621679868880"><span id="local-6989586621679868883"><span class="annot"><span class="annottext">Eq MalformDatumLbl
 Eq MalformDatumLbl =&gt;
 (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Ordering)
 -&gt; (MalformDatumLbl -&gt; MalformDatumLbl -&gt; Bool)
@@ -543,8 +543,8 @@ $cmin :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; MalformDatumLbl
 min :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; MalformDatumLbl
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-129"></span><span>
-</span><span id="line-130"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868891"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-type">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-131"></span><span>  </span><span id="local-6989586621679868895"><span class="annot"><span class="annottext">prettyCooked :: MalformDatumLbl -&gt; DocCooked
+</span><span id="line-130"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868886"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Tweak.Outputs.html#MalformDatumLbl"><span class="hs-identifier hs-type">MalformDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-131"></span><span>  </span><span id="local-6989586621679868890"><span class="annot"><span class="annottext">prettyCooked :: MalformDatumLbl -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCooked"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">MalformDatumLbl
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;MalformDatum&quot;</span></span><span>
@@ -567,21 +567,21 @@ min :: MalformDatumLbl -&gt; MalformDatumLbl -&gt; MalformDatumLbl
 </span><span id="line-148"></span><span class="hs-comment">-- and @a1@ comes before @a2@ in the list @l !! length p@. In particular, the</span><span>
 </span><span id="line-149"></span><span class="hs-comment">-- first element of the result list is the combination consisting of all the</span><span>
 </span><span id="line-150"></span><span class="hs-comment">-- first elements of the input lists.</span><span>
-</span><span id="line-151"></span><span id="local-6989586621679868605"><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-type">allCombinations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679868605"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679868605"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
+</span><span id="line-151"></span><span id="local-6989586621679868600"><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-type">allCombinations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679868600"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679868600"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
 </span><span id="line-152"></span><span id="allCombinations"><span class="annot"><span class="annottext">allCombinations :: forall (a :: OpticKind). [[a]] -&gt; [[a]]
 </span><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var hs-var">allCombinations</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
 </span><span id="line-153"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-comment">-- included in the next one</span><span>
-</span><span id="line-154"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868896"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868896"><span class="hs-identifier hs-var">first</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679868897"><span class="annot"><span class="annottext">[[a]]
-</span><a href="#local-6989586621679868897"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679868898"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><span id="line-154"></span><span class="annot"><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679868891"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679868891"><span class="hs-identifier hs-var">first</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679868892"><span class="annot"><span class="annottext">[[a]]
+</span><a href="#local-6989586621679868892"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679868893"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall (a :: OpticKind). a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868899"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679868898"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679868898"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868896"><span class="hs-identifier hs-var">first</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868899"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679868899"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[[a]] -&gt; [[a]]
+</span><a href="#local-6989586621679868894"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679868893"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679868893"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679868891"><span class="hs-identifier hs-var">first</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679868894"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679868894"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[[a]] -&gt; [[a]]
 forall (a :: OpticKind). [[a]] -&gt; [[a]]
 </span><a href="Cooked.Tweak.Outputs.html#allCombinations"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">[[a]]
-</span><a href="#local-6989586621679868897"><span class="hs-identifier hs-var">rest</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679868892"><span class="hs-identifier hs-var">rest</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-155"></span></pre></body></html>

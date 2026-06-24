@@ -56,7 +56,7 @@
 </span><span id="line-56"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
 </span><span id="line-57"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
 </span><span id="line-58"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
-</span><span id="line-59"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-59"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">P.Ledger</span></span><span>
 </span><span id="line-60"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
 </span><span id="line-61"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.TH</span></span><span>
 </span><span id="line-62"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
@@ -87,7 +87,7 @@
 </span><span id="line-84"></span><span>      </span><span id="txSkelSignatories"><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelSignatory]
 </span><a href="Cooked.Skeleton.html#txSkelSignatories"><span class="hs-identifier hs-var hs-var">txSkelSignatories</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Signatory.html#TxSkelSignatory"><span class="hs-identifier hs-type">TxSkelSignatory</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
 </span><span id="line-85"></span><span>      </span><span id="txSkelValidityRange"><span class="annot"><span class="annottext">TxSkel -&gt; SlotRange
-</span><a href="Cooked.Skeleton.html#txSkelValidityRange"><span class="hs-identifier hs-var hs-var">txSkelValidityRange</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span class="hs-special">,</span><span>
+</span><a href="Cooked.Skeleton.html#txSkelValidityRange"><span class="hs-identifier hs-var hs-var">txSkelValidityRange</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">P.Ledger.SlotRange</span></span><span class="hs-special">,</span><span>
 </span><span id="line-86"></span><span>      </span><span class="hs-comment">-- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer</span><span>
 </span><span id="line-87"></span><span>      </span><span class="hs-comment">-- specifying how to spend it. You must make sure that</span><span>
 </span><span id="line-88"></span><span>      </span><span class="hs-comment">--</span><span>
@@ -121,7 +121,7 @@
 </span><a href="Cooked.Skeleton.html#txSkelCertificates"><span class="hs-identifier hs-var hs-var">txSkelCertificates</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Certificate.html#TxSkelCertificate"><span class="hs-identifier hs-type">TxSkelCertificate</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-111"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-112"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-113"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679866840"><span id="local-6989586621679866870"><span id="local-6989586621679866874"><span class="annot"><span class="annottext">Int -&gt; TxSkel -&gt; ShowS
+</span><span id="line-113"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679866835"><span id="local-6989586621679866865"><span id="local-6989586621679866869"><span class="annot"><span class="annottext">Int -&gt; TxSkel -&gt; ShowS
 [TxSkel] -&gt; ShowS
 TxSkel -&gt; String
 (Int -&gt; TxSkel -&gt; ShowS)
@@ -134,7 +134,7 @@ $cshow :: TxSkel -&gt; String
 show :: TxSkel -&gt; String
 $cshowList :: [TxSkel] -&gt; ShowS
 showList :: [TxSkel] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679866886"><span id="local-6989586621679866915"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679866881"><span id="local-6989586621679866910"><span class="annot"><span class="annottext">TxSkel -&gt; TxSkel -&gt; Bool
 (TxSkel -&gt; TxSkel -&gt; Bool)
 -&gt; (TxSkel -&gt; TxSkel -&gt; Bool) -&gt; Eq TxSkel
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -258,7 +258,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span id="line-169"></span><span class="annot"><span class="hs-comment">-- | All 'Api.TxOutRef's in reference inputs from redeemers</span></span><span>
 </span><span id="line-170"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-type">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
 </span><span id="line-171"></span><span id="txSkelInsReferenceInRedeemers"><span class="annot"><span class="annottext">txSkelInsReferenceInRedeemers :: TxSkel -&gt; Set TxOutRef
-</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var hs-var">txSkelInsReferenceInRedeemers</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679867111"><span id="local-6989586621679867112"><span id="local-6989586621679867113"><span id="local-6989586621679867114"><span id="local-6989586621679867115"><span id="local-6989586621679867116"><span id="local-6989586621679867117"><span id="local-6989586621679867118"><span id="local-6989586621679867119"><span id="local-6989586621679867120"><span id="local-6989586621679867121"><span class="annot"><span class="annottext">[TxSkelSignatory]
+</span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var hs-var">txSkelInsReferenceInRedeemers</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679867106"><span id="local-6989586621679867107"><span id="local-6989586621679867108"><span id="local-6989586621679867109"><span id="local-6989586621679867110"><span id="local-6989586621679867111"><span id="local-6989586621679867112"><span id="local-6989586621679867113"><span id="local-6989586621679867114"><span id="local-6989586621679867115"><span id="local-6989586621679867116"><span class="annot"><span class="annottext">[TxSkelSignatory]
 [TxSkelProposal]
 [TxSkelCertificate]
 [TxSkelOut]
@@ -363,7 +363,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   TxOutRef
   TxOutRef
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerReferenceInputAT"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInputAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679867116"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
+</span><a href="#local-6989586621679867111"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span>
 </span><span id="line-174"></span><span>      </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; [TxOutRef] -&gt; [TxOutRef]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] [TxSkelProposal] TxOutRef
@@ -498,7 +498,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   TxOutRef
   TxOutRef
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerReferenceInputAT"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInputAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelProposal]
-</span><a href="#local-6989586621679867119"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span>
+</span><a href="#local-6989586621679867114"><span class="hs-identifier hs-var">txSkelProposals</span></a></span><span>
 </span><span id="line-175"></span><span>      </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; [TxOutRef] -&gt; [TxOutRef]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkelMints TxOutRef
@@ -603,7 +603,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   TxOutRef
   TxOutRef
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerReferenceInputAT"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInputAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679867113"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
+</span><a href="#local-6989586621679867108"><span class="hs-identifier hs-var">txSkelMints</span></a></span><span>
 </span><span id="line-176"></span><span>      </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; [TxOutRef] -&gt; [TxOutRef]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkelWithdrawals TxOutRef
@@ -724,7 +724,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   TxOutRef
   TxOutRef
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerReferenceInputAT"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInputAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelWithdrawals
-</span><a href="#local-6989586621679867120"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span>
+</span><a href="#local-6989586621679867115"><span class="hs-identifier hs-var">txSkelWithdrawals</span></a></span><span>
 </span><span id="line-177"></span><span>      </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; [TxOutRef] -&gt; [TxOutRef]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] [TxSkelCertificate] TxOutRef
@@ -832,7 +832,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   TxOutRef
   TxOutRef
 </span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerReferenceInputAT"><span class="hs-identifier hs-var">txSkelRedeemerReferenceInputAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxSkelCertificate]
-</span><a href="#local-6989586621679867121"><span class="hs-identifier hs-var">txSkelCertificates</span></a></span><span>
+</span><a href="#local-6989586621679867116"><span class="hs-identifier hs-var">txSkelCertificates</span></a></span><span>
 </span><span id="line-178"></span><span>
 </span><span id="line-179"></span><span class="hs-comment">-- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes</span><span>
 </span><span id="line-180"></span><span class="hs-comment">-- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference</span><span>
@@ -841,8 +841,8 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span id="line-183"></span><span class="hs-comment">-- inputs, as they are not part of the skeleton.</span><span>
 </span><span id="line-184"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-type">txSkelKnownTxOutRefs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span>
 </span><span id="line-185"></span><span id="txSkelKnownTxOutRefs"><span class="annot"><span class="annottext">txSkelKnownTxOutRefs :: TxSkel -&gt; Set TxOutRef
-</span><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-var hs-var">txSkelKnownTxOutRefs</span></a></span></span><span> </span><span id="local-6989586621679867137"><span class="annot"><span class="annottext">skel :: TxSkel
-</span><a href="#local-6989586621679867137"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679867138"><span id="local-6989586621679867139"><span id="local-6989586621679867140"><span id="local-6989586621679867141"><span id="local-6989586621679867142"><span id="local-6989586621679867143"><span id="local-6989586621679867144"><span id="local-6989586621679867145"><span id="local-6989586621679867146"><span id="local-6989586621679867147"><span id="local-6989586621679867148"><span class="annot"><span class="annottext">[TxSkelSignatory]
+</span><a href="Cooked.Skeleton.html#txSkelKnownTxOutRefs"><span class="hs-identifier hs-var hs-var">txSkelKnownTxOutRefs</span></a></span></span><span> </span><span id="local-6989586621679867132"><span class="annot"><span class="annottext">skel :: TxSkel
+</span><a href="#local-6989586621679867132"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679867133"><span id="local-6989586621679867134"><span id="local-6989586621679867135"><span id="local-6989586621679867136"><span id="local-6989586621679867137"><span id="local-6989586621679867138"><span id="local-6989586621679867139"><span id="local-6989586621679867140"><span id="local-6989586621679867141"><span id="local-6989586621679867142"><span id="local-6989586621679867143"><span class="annot"><span class="annottext">[TxSkelSignatory]
 [TxSkelProposal]
 [TxSkelCertificate]
 [TxSkelOut]
@@ -877,15 +877,15 @@ txSkelWithdrawals :: TxSkelWithdrawals
 txSkelCertificates :: [TxSkelCertificate]
 </span><a href="Cooked.Skeleton.html#txSkelLabels"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReferenceInRedeemers"><span class="hs-identifier hs-var">txSkelInsReferenceInRedeemers</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679867137"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679867132"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer -&gt; Set TxOutRef
 forall k a. Map k a -&gt; Set k
 </span><span class="hs-identifier hs-var">Map.keysSet</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxSkelRedeemer
-</span><a href="#local-6989586621679867143"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
+</span><a href="#local-6989586621679867138"><span class="hs-identifier hs-var">txSkelIns</span></a></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; Set TxOutRef -&gt; Set TxOutRef
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679867144"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span>
+</span><a href="#local-6989586621679867139"><span class="hs-identifier hs-var">txSkelInsReference</span></a></span><span>
 </span><span id="line-186"></span><span>
 </span><span id="line-187"></span><span class="annot"><span class="hs-comment">-- | Returns the total value withdrawn in this 'TxSkel'</span></span><span>
 </span><span id="line-188"></span><span class="annot"><a href="Cooked.Skeleton.html#txSkelWithdrawnValue"><span class="hs-identifier hs-type">txSkelWithdrawnValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
