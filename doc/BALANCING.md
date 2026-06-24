@@ -22,7 +22,7 @@ when a transaction involves scripts, and
 thus its validation can fail in phase 2, collaterals must be provided to account
 for such possible failures. These collaterals are related to the fee through the
 protocol parameter `collateralPercentage` by the inequation `totalCollateral >=
-fee * collateralPercentage`, and they must satisfy their own preservation
+fee * collateralPercentage / 100`, and they must satisfy their own preservation
 equation: `collateralInputs = totalCollaterals + returnCollaterals`. Lastly, the
 actual required fee for a given transaction depends on the size of the
 transaction and the (not yet executed) resources used by the scripts during
@@ -220,7 +220,7 @@ used.
 
 Here's how each option operates:
 
-* `AutoFeeComputation`: The balancing process will conduct a dichotomous search
+* `AutoFeeComputation`: The balancing process will conduct a dichotomic search
   between minFee and maxFee (both dependent on protocol parameters) to find an
   optimal fee around which the transaction can be balanced, considering
   available balancing UTXOs (see [`BalancingUtxos`](#balancing-utxos)). This
@@ -425,6 +425,31 @@ increased by the missing ADA, so that the returned solution always yields a
 valid surplus output. `Nothing` is returned when no subset can reach the target
 within the allowed number of utxos.
 
+### Fee bounds
+
+The fee search operates within an interval whose bounds are computed by
+`getMinAndMaxFee` from the protocol parameters and the number of scripts involved
+in the transaction:
+
+- The **minimum fee** is simply the fixed portion of the fee (`ppMinFeeB`).
+- The **maximum fee** is that fixed portion plus the maxima of every other fee
+  component: the fee for a maximally-sized transaction (`maxTxSize *
+  ppMinFeeA`), the fee for the maximum execution steps and memory of each script
+  (`ppMaxTxExUnits` weighted by `ppPrices`, multiplied by the number of
+  scripts), and the cost of reference scripts (`maxTxSize *
+  ppMinFeeRefScriptCostPerByte`).
+
+This guarantees the actual required fee always lies within `[minFee, maxFee]`.
+Note that the reference-script fee component is expected to change in the
+Dijkstra era; see the
+[ref-scripts fee-change ADR](https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md).
+
+The concrete fee for a candidate skeleton is estimated by `estimateTxSkelFee`,
+which generates the transaction body and calls the Cardano API's
+`calculateMinTxFee`. Because that estimate accounts for signature size, it
+depends on the **number of signatories** declared on the skeleton: a skeleton
+with more signers will be estimated to require a larger fee.
+
 ### Computing optimal fee
 
 Computing a reasonable fee for a given transaction skeleton is challenging in
@@ -444,14 +469,10 @@ Here are the requirements for our fee computation mechanism:
 * The transaction must be balanceable around the chosen fee.
 * Collateral must be computable around the chosen fee.
 
-Fortunately, fees are bounded within a specific interval that can be deduced
-from protocol parameters. The bounds of this interval are computed by
-`getMinAndMaxFee`, where the minimum fee is the fixed portion of the fee and the
-maximum fee additionally accounts for the maximum transaction size, the maximum
-execution units of the involved scripts, and the cost of reference scripts. Our
-implementation then relies on a dichotomic search within this interval. The
-function that performs this computation is `computeFeeAndBalance`, with the
-following signature:
+Fortunately, fees are bounded within the `[minFee, maxFee]` interval described in
+[Fee bounds](#fee-bounds). Our implementation relies on a dichotomic search
+within this interval. The function that performs this computation is
+`computeFeeAndBalance`, with the following signature:
 
 ``` haskell
 computeFeeAndBalance ::
@@ -512,31 +533,6 @@ the estimated fee resulting from this balancing, we adjust our search interval:
   
 The recursion continues until an error is propagated or the interval is reduced
 to a single point.
-
-### Fee bounds
-
-The dichotomic search above operates within an interval whose bounds are computed
-by `getMinAndMaxFee` from the protocol parameters and the number of scripts
-involved in the transaction:
-
-- The **minimum fee** is simply the fixed portion of the fee (`ppMinFeeB`).
-- The **maximum fee** is that fixed portion plus the maxima of every other fee
-  component: the fee for a maximally-sized transaction (`maxTxSize *
-  ppMinFeeA`), the fee for the maximum execution steps and memory of each script
-  (`ppMaxTxExUnits` weighted by `ppPrices`, multiplied by the number of
-  scripts), and the cost of reference scripts (`maxTxSize *
-  ppMinFeeRefScriptCostPerByte`).
-
-This guarantees the actual required fee always lies within `[minFee, maxFee]`.
-Note that the reference-script fee component is expected to change in the
-Dijkstra era; see the
-[ref-scripts fee-change ADR](https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md).
-
-The concrete fee for a candidate skeleton is estimated by `estimateTxSkelFee`,
-which generates the transaction body and calls the Cardano API's
-`calculateMinTxFee`. Because that estimate accounts for signature size, it
-depends on the **number of signatories** declared on the skeleton: a skeleton
-with more signers will be estimated to require a larger fee.
 
 ### Computing collaterals
 
