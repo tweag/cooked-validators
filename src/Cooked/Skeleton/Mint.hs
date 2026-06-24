@@ -170,7 +170,7 @@ txSkelMintsListI =
     ( foldl'
         ( \mints (Mint (UserRedeemedScript mp red) tks) ->
             foldl'
-              (\mints' (tk, n) -> mints' & txSkelMintsAssetClassAmountL mp tk %~ (\(_, n') -> (Just red, n + n')))
+              (\mints' (tk, n) -> over (txSkelMintsAssetClassAmountL mp tk) (\(_, n') -> (Just red, n + n')) mints')
               mints
               tks
         )

@@ -4,6 +4,9 @@
 
 ### Added
 
+- New `traverseTweak` primitive, the effectful sibling of `overTweak`: it
+  modifies every focus of an optic on the current `TxSkel` using a function
+  running in the tweak's effect stack.
 - New `withReferenceInput` helper to attach a reference input to a
   `TxSkelRedeemer`, replacing the more verbose
   `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
@@ -12,6 +15,8 @@
 
 ### Changed
 
+- `beginSearchP` has been renamed to `beginSearchPure` to avoid its suffix being
+  mistaken for the `P` (prism) optic-kind suffix.
 - Building a `ParameterChange` governance action containing a `CostModels`
   parameter update now fails with an explicit `MCEUnsupportedFeature` error
   instead of silently ignoring the requested change.

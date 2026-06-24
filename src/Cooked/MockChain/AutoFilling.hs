@@ -32,8 +32,7 @@ autoFillWithdrawalAmounts ::
   (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
   Sem effs ()
 autoFillWithdrawalAmounts = do
-  withdrawals <- viewTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI)
-  newWithdrawals <- forM withdrawals $ \withdrawal -> do
+  traverseTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed) $ \withdrawal -> do
     currentReward <- getCurrentReward $ view withdrawalUserL withdrawal
     case currentReward of
       Just reward | isn't withdrawalAmountAT withdrawal -> do
@@ -44,7 +43,6 @@ autoFillWithdrawalAmounts = do
             reward
         return newWithdrawal
       _ -> return withdrawal
-  setTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI) newWithdrawals
 
 -- * Auto filling constitution script
 
@@ -60,14 +58,12 @@ autoFillConstitution = do
   case currentConstitution of
     Nothing -> return ()
     Just constitutionScript -> do
-      proposals <- viewTweak txSkelProposalsL
-      newProposals <- forM proposals $ \prop -> do
+      traverseTweak (txSkelProposalsL % traversed) $ \prop -> do
         when (isn't txSkelProposalConstitutionAT prop) $
           logEvent $
             MCLogAutoFilledConstitution $
               Script.toScriptHash constitutionScript
         return (fillConstitution constitutionScript prop)
-      setTweak txSkelProposalsL newProposals
 
 -- * Auto filling reference scripts
 
@@ -112,9 +108,9 @@ autoFillReferenceScripts ::
 autoFillReferenceScripts = do
   inputsKeys <- viewTweak $ txSkelInsL % to Map.keys
   -- Updating minting redeemers
-  mints <- viewTweak $ txSkelMintsL % txSkelMintsListI
-  newMints <- forM mints $ \(Mint rs tks) -> (`Mint` tks) <$> updateRedeemedScript inputsKeys rs
-  setTweak (txSkelMintsL % txSkelMintsListI) newMints
+  traverseTweak
+    (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
+    (updateRedeemedScript inputsKeys)
   -- Updating spending redeemers
   inputsList <- viewTweak $ txSkelInsL % to Map.toList
   newInputs <- forM inputsList $ \(oRef, red) ->
@@ -125,19 +121,13 @@ autoFillReferenceScripts = do
         Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
   setTweak txSkelInsL $ Map.fromList newInputs
   -- Updating proposing redeemers
-  proposals <- viewTweak txSkelProposalsL
-  newProposals <- forM proposals $ \prop ->
-    case preview (txSkelProposalMConstitutionAT % _Just) prop of
-      Nothing -> return prop
-      Just rs -> flip (set (txSkelProposalMConstitutionAT % _Just)) prop <$> updateRedeemedScript inputsKeys rs
-  setTweak txSkelProposalsL newProposals
+  traverseTweak
+    (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just)
+    (updateRedeemedScript inputsKeys)
   -- Updating widrawing redeemers
-  withdrawals <- viewTweak $ txSkelWithdrawalsL % txSkelWithdrawalsListI
-  newWithdrawals <- forM withdrawals $
-    \withdrawal@(Withdrawal user lv) -> case preview userEitherScriptP user of
-      Nothing -> return withdrawal
-      Just urs -> (`Withdrawal` lv) . review userEitherScriptP <$> updateRedeemedScript inputsKeys urs
-  setTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI) newWithdrawals
+  traverseTweak
+    (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userEitherScriptP)
+    (updateRedeemedScript inputsKeys)
 
 -- * Auto filling min ada amounts
 
@@ -164,7 +154,7 @@ toTxSkelOutWithMinAda ::
   TxSkelOut ->
   Sem effs TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
-toTxSkelOutWithMinAda txSkelOut@((^. txSkelOutValueAutoAdjustL) -> False) = return txSkelOut
+toTxSkelOutWithMinAda txSkelOut@(view txSkelOutValueAutoAdjustL -> False) = return txSkelOut
 -- The auto adjustment is enabled
 toTxSkelOutWithMinAda txSkelOut = do
   txSkelOut' <- go txSkelOut
@@ -179,9 +169,9 @@ toTxSkelOutWithMinAda txSkelOut = do
       requiredAda <- getTxSkelOutMinAda skelOut
       -- If this amount is sufficient, we return Nothing, otherwise, we adjust the
       -- output and possibly iterate
-      if Api.getLovelace (skelOut ^. txSkelOutValueL % valueLovelaceL) >= requiredAda
+      if Api.getLovelace (view (txSkelOutValueL % valueLovelaceL) skelOut) >= requiredAda
         then return skelOut
-        else go $ skelOut & txSkelOutValueL % valueLovelaceL .~ Api.Lovelace requiredAda
+        else go $ set (txSkelOutValueL % valueLovelaceL) (Api.Lovelace requiredAda) skelOut
 
 -- | This goes through all the `TxSkelOut`s of the given skeleton and updates
 -- their ada value when requested by the user and required by the protocol
@@ -189,7 +179,4 @@ toTxSkelOutWithMinAda txSkelOut = do
 autoFillMinAda ::
   (Members '[Tweak, MockChainRead, MockChainLog, Error Ledger.ToCardanoError] effs) =>
   Sem effs ()
-autoFillMinAda = do
-  outputs <- viewTweak txSkelOutsL
-  newOutputs <- forM outputs toTxSkelOutWithMinAda
-  setTweak txSkelOutsL newOutputs
+autoFillMinAda = traverseTweak (txSkelOutsL % traversed) toTxSkelOutWithMinAda

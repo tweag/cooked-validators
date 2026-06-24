@@ -119,9 +119,9 @@ malformDatumTweak change = do
     changeOutput :: TxSkelOut -> [TxSkelOut]
     changeOutput txSkelOut =
       do
-        typedDat <- maybeToList $ txSkelOut ^? txSkelOutDatumL % txSkelOutDatumTypedAT
+        typedDat <- maybeToList $ preview (txSkelOutDatumL % txSkelOutDatumTypedAT) txSkelOut
         modifiedDat <- change typedDat
-        return $ txSkelOut & txSkelOutDatumL % txSkelOutDatumTypedAT @a .~ modifiedDat
+        return $ set (txSkelOutDatumL % txSkelOutDatumTypedAT @a) modifiedDat txSkelOut
 
 -- | A label added to a 'TxSkel' on which the 'malformDatumTweak' has been
 -- successfully applied

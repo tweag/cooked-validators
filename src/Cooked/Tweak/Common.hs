@@ -21,6 +21,7 @@ module Cooked.Tweak.Common
     viewAllTweak,
     setTweak,
     overTweak,
+    traverseTweak,
     overMaybeTweak,
     overMaybeSelectingTweak,
     combineModsTweak,
@@ -111,6 +112,16 @@ overTweak ::
   (a -> a) ->
   Sem effs ()
 overTweak optic change = getTxSkel >>= putTxSkel . over optic change
+
+-- | Like 'overTweak', but the modification of each focus runs in the tweak's
+-- effect stack. The foci are visited in the order in which they occur in the
+-- 'TxSkel'.
+traverseTweak ::
+  (Member Tweak effs, Is k A_Traversal) =>
+  Optic' k is TxSkel a ->
+  (a -> Sem effs a) ->
+  Sem effs ()
+traverseTweak optic change = getTxSkel >>= traverseOf optic change >>= putTxSkel
 
 -- | Like 'overTweak', but only modifies foci on which the argument function
 -- returns @Just@ the new focus. Returns a list of the foci that were modified,

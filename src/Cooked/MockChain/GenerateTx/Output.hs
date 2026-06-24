@@ -21,7 +21,7 @@ toCardanoTxOut ::
 toCardanoTxOut output = do
   let oAddress = view txSkelOutAddressG output
       oValue = view txSkelOutValueL output
-      oDatum = output ^. txSkelOutDatumL
+      oDatum = view txSkelOutDatumL output
       oRefScript = view txSkelOutMReferenceScriptL output
   networkId <- Emulator.pNetworkId <$> getParams
   address <- fromEither $ Ledger.toCardanoAddressInEra networkId oAddress

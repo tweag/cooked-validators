@@ -5,7 +5,7 @@ module Cooked.MockChain.UtxoSearch
   ( -- * UTxO searches
     UtxoSearch,
     beginSearch,
-    beginSearchP,
+    beginSearchPure,
 
     -- * Processing search result
     UtxoSearchResult,
@@ -76,10 +76,10 @@ beginSearch ::
 beginSearch = fmap (fmap (fmap (`HCons` HEmpty)))
 
 -- | Same as `beginSearch` with a pure input
-beginSearchP ::
+beginSearchPure ::
   Utxos ->
   UtxoSearch effs '[]
-beginSearchP = beginSearch . return
+beginSearchPure = beginSearch . return
 
 -- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult`
 getOutputs ::
