@@ -3,7 +3,7 @@ module Cooked.MockChain.GenerateTx.Proposal (toProposalProcedures) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
-import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as C.Ledger
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
@@ -21,8 +21,8 @@ import Data.Map qualified as Map
 import Data.Map.Ordered.Strict qualified as OMap
 import Data.Maybe
 import Data.Maybe.Strict
-import Ledger.Tx.CardanoAPI qualified as Ledger
-import Lens.Micro qualified as MicroLens
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
+import Lens.Micro qualified as Microlens
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -39,13 +39,13 @@ toPParamsUpdate ::
   Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
 toPParamsUpdate pChange ppu =
   -- From rational to bounded rational
-  let toBR :: (Cardano.BoundedRational r) => Rational -> r
-      toBR = fromMaybe minBound . Cardano.boundRational
+  let toBR :: (C.Ledger.BoundedRational r) => Rational -> r
+      toBR = fromMaybe minBound . C.Ledger.boundRational
       -- Helper to set one of the param update with a lens. The explicit
       -- signature is needed so that it stays polymorphic in @a@ under
       -- @MonoLocalBinds@ despite closing over @effs@ and @ppu@.
-      setL :: forall a. MicroLens.ASetter' (Conway.PParamsUpdate Emulator.EmulatorEra) (StrictMaybe a) -> a -> Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
-      setL l v = return $ MicroLens.set l (SJust v) ppu
+      setL :: forall a. Microlens.ASetter' (Conway.PParamsUpdate Emulator.EmulatorEra) (StrictMaybe a) -> a -> Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
+      setL l v = return $ Microlens.set l (SJust v) ppu
    in case pChange of
         FeePerByte n -> setL Conway.ppuMinFeeAL $ fromIntegral n
         FeeFixed n -> setL Conway.ppuMinFeeBL $ fromIntegral n
@@ -54,10 +54,10 @@ toPParamsUpdate pChange ppu =
         MaxBlockHeaderSize n -> setL Conway.ppuMaxBHSizeL $ fromIntegral n
         KeyDeposit n -> setL Conway.ppuKeyDepositL $ fromIntegral n
         PoolDeposit n -> setL Conway.ppuPoolDepositL $ fromIntegral n
-        PoolRetirementMaxEpoch n -> setL Conway.ppuEMaxL $ Cardano.EpochInterval $ fromIntegral n
+        PoolRetirementMaxEpoch n -> setL Conway.ppuEMaxL $ C.Ledger.EpochInterval $ fromIntegral n
         PoolNumber n -> setL Conway.ppuNOptL $ fromIntegral n
-        PoolInfluence q -> setL Conway.ppuA0L $ fromMaybe minBound $ Cardano.boundRational q
-        MonetaryExpansion q -> setL Conway.ppuRhoL $ fromMaybe minBound $ Cardano.boundRational q
+        PoolInfluence q -> setL Conway.ppuA0L $ fromMaybe minBound $ C.Ledger.boundRational q
+        MonetaryExpansion q -> setL Conway.ppuRhoL $ fromMaybe minBound $ C.Ledger.boundRational q
         TreasuryCut q -> setL Conway.ppuTauL $ toBR q
         MinPoolCost n -> setL Conway.ppuMinPoolCostL $ fromIntegral n
         CoinsPerUTxOByte n -> setL Conway.ppuCoinsPerUTxOByteL $ Conway.CoinPerByte $ fromIntegral n
@@ -75,16 +75,16 @@ toPParamsUpdate pChange ppu =
           setL Conway.ppuDRepVotingThresholdsL $
             Conway.DRepVotingThresholds (toBR a) (toBR b) (toBR c) (toBR d) (toBR e) (toBR f) (toBR g) (toBR h) (toBR i) (toBR j)
         CommitteeMinSize n -> setL Conway.ppuCommitteeMinSizeL $ fromIntegral n
-        CommitteeMaxTermLength n -> setL Conway.ppuCommitteeMaxTermLengthL $ Cardano.EpochInterval $ fromIntegral n
-        GovActionLifetime n -> setL Conway.ppuGovActionLifetimeL $ Cardano.EpochInterval $ fromIntegral n
+        CommitteeMaxTermLength n -> setL Conway.ppuCommitteeMaxTermLengthL $ C.Ledger.EpochInterval $ fromIntegral n
+        GovActionLifetime n -> setL Conway.ppuGovActionLifetimeL $ C.Ledger.EpochInterval $ fromIntegral n
         GovActionDeposit n -> setL Conway.ppuGovActionDepositL $ fromIntegral n
         DRepRegistrationDeposit n -> setL Conway.ppuDRepDepositL $ fromIntegral n
-        DRepActivity n -> setL Conway.ppuDRepActivityL $ Cardano.EpochInterval $ fromIntegral n
-        MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ Cardano.boundRational q
+        DRepActivity n -> setL Conway.ppuDRepActivityL $ C.Ledger.EpochInterval $ fromIntegral n
+        MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ C.Ledger.boundRational q
 
 -- | Translates a given skeleton proposal into a governance action
 toGovAction ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   GovernanceAction a ->
   StrictMaybe Conway.ScriptHash ->
   Sem effs (Conway.GovAction Emulator.EmulatorEra)
@@ -100,7 +100,7 @@ toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::
-  (Members '[MockChainRead, Error MockChainError, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   [TxSkelProposal] ->
   Sem effs (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone
@@ -114,7 +114,7 @@ toProposalProcedures props =
           (Cardano.BuildTxWith -> mConstitutionWitness, mConstitutionHash) <- case mConstitution of
             Just (UserRedeemedScript (toVScript -> script) redeemer) -> do
               scriptWitness <- toScriptWitness script redeemer Cardano.NoScriptDatumForStake
-              Cardano.ScriptHash scriptHash <- fromEither $ Ledger.toCardanoScriptHash $ Script.toScriptHash script
+              Cardano.ScriptHash scriptHash <- fromEither $ P.Ledger.toCardanoScriptHash $ Script.toScriptHash script
               return (Just scriptWitness, SJust scriptHash)
             _ -> return (Nothing, SNothing)
           cardanoGovAction <- toGovAction govAction mConstitutionHash

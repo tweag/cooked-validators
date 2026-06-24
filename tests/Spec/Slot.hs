@@ -4,8 +4,8 @@ import Cooked.MockChain.Error
 import Cooked.MockChain.Read
 import Cooked.MockChain.State
 import Data.Default
-import Ledger.Slot qualified as Ledger
-import Ledger.Tx qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
+import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
@@ -19,7 +19,7 @@ runSlot ::
     '[ MockChainRead,
        State MockChainState,
        Fail,
-       Error Ledger.ToCardanoError,
+       Error P.Ledger.ToCardanoError,
        Error MockChainError
      ]
     a ->
@@ -39,18 +39,18 @@ tests =
     [ testProperty "bounds computed by slotToMSRange are included in slot" $
         \n ->
           case runSlot $ do
-            (l, r) <- slotToMSRange $ Ledger.Slot n
-            Ledger.Slot nl <- getEnclosingSlot l
-            Ledger.Slot nr <- getEnclosingSlot r
+            (l, r) <- slotToMSRange $ P.Ledger.Slot n
+            P.Ledger.Slot nl <- getEnclosingSlot l
+            P.Ledger.Slot nr <- getEnclosingSlot r
             return (nl, nr) of
             Left _err -> False
             Right (nl, nr) -> nl == n && nr == n,
       testProperty "bounds computed by slotToMSRange are maximal" $
         \n ->
           case runSlot $ do
-            (l, r) <- slotToMSRange $ Ledger.Slot n
-            Ledger.Slot nl <- getEnclosingSlot (l - 1)
-            Ledger.Slot nr <- getEnclosingSlot (r + 1)
+            (l, r) <- slotToMSRange $ P.Ledger.Slot n
+            P.Ledger.Slot nl <- getEnclosingSlot (l - 1)
+            P.Ledger.Slot nr <- getEnclosingSlot (r + 1)
             return (nl, nr) of
             Left _err -> False
             Right (nl, nr) -> nl == n - 1 && nr == n + 1,

@@ -1,7 +1,7 @@
 -- | Transforming 'TxSkelAnchor' into its Cardano counterpart
 module Cooked.MockChain.GenerateTx.Anchor (toCardanoAnchor) where
 
-import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as C.Ledger
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Control.Monad.Catch
 import Cooked.Skeleton.Anchor
@@ -15,13 +15,13 @@ import Network.HTTP.Simple qualified as Network
 -- | This function transforms a 'TxSkelAnchor' into its Cardano counterpart. If
 -- the provided anchor does not provde a resolved page, it will be unsafely
 -- fetched online, so use at your own discretion.
-toCardanoAnchor :: TxSkelAnchor -> Cardano.Anchor
+toCardanoAnchor :: TxSkelAnchor -> C.Ledger.Anchor
 toCardanoAnchor txSkelAnchor =
   fromMaybe def $
     do
       (url, page) <- txSkelAnchor
-      anchorUrl <- Cardano.textToUrl (length url) (Text.pack url)
-      fmap (Cardano.Anchor anchorUrl . Conway.hashAnnotated . Cardano.AnchorData) $ case page of
+      anchorUrl <- C.Ledger.textToUrl (length url) (Text.pack url)
+      fmap (C.Ledger.Anchor anchorUrl . Conway.hashAnnotated . C.Ledger.AnchorData) $ case page of
         Just resolvedPage -> return resolvedPage
         Nothing ->
           -- WARNING: very unsafe and unreproducible

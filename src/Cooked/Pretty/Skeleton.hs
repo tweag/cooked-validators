@@ -14,7 +14,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
 import Data.Set qualified as Set
-import Ledger.Slot qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
@@ -78,7 +78,7 @@ instance PrettyCooked (CertificateAction req) where
   prettyCookedOpt _ DRepUpdate = "Update DRep"
   prettyCookedOpt _ DRepUnRegister = "Unregister DRep"
   prettyCookedOpt opt (PoolRegister poolVfr) = "Register pool" <+> prettyHash opt poolVfr
-  prettyCookedOpt _ (PoolRetire (Ledger.Slot n)) = "Retire pool at slot" <+> PP.pretty n
+  prettyCookedOpt _ (PoolRetire (P.Ledger.Slot n)) = "Retire pool at slot" <+> PP.pretty n
   prettyCookedOpt opt (CommitteeRegisterHot cred) = "Register hot credential" <+> prettyCookedOpt opt cred
   prettyCookedOpt _ CommitteeResign = "Resign committee"
 

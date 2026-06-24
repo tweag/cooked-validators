@@ -11,9 +11,9 @@ module Cooked.MockChain.Error
 where
 
 import Cooked.Skeleton.User
-import Ledger.Index qualified as Ledger
-import Ledger.Slot qualified as Ledger
-import Ledger.Tx qualified as Ledger
+import Ledger.Index qualified as P.Ledger
+import Ledger.Slot qualified as P.Ledger
+import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
@@ -41,28 +41,28 @@ data BalancingError
 -- | Errors that can be produced by the blockchain
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
-    MCEValidationError Ledger.ValidationPhase Ledger.ValidationError
+    MCEValidationError P.Ledger.ValidationPhase P.Ledger.ValidationError
   | -- | Balancing errors
     MCEBalancingError BalancingError
   | -- | Translating a skeleton element to its Cardano counterpart failed
-    MCEToCardanoError Ledger.ToCardanoError
+    MCEToCardanoError P.Ledger.ToCardanoError
   | -- | The required reference script is missing from a witness utxo
     MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
   | -- | A UTxO is missing from the mockchain state
     MCEUnknownOutRef Api.TxOutRef
   | -- | A jump in time would result in a past slot
-    MCEPastSlot Ledger.Slot Ledger.Slot
+    MCEPastSlot P.Ledger.Slot P.Ledger.Slot
   | -- | An attempt to invoke an unsupported feature has been made
     MCEUnsupportedFeature String
   | -- | Used to provide 'MonadFail' instances.
     MCEFailure String
   deriving (Show, Eq)
 
--- | Interpreting `Ledger.ToCardanoError` in terms of `MockChainError`
+-- | Interpreting `P.Ledger.ToCardanoError` in terms of `MockChainError`
 runToCardanoErrorInMockChainError ::
   forall effs a.
   (Member (Error MockChainError) effs) =>
-  Sem (Error Ledger.ToCardanoError : effs) a ->
+  Sem (Error P.Ledger.ToCardanoError : effs) a ->
   Sem effs a
 runToCardanoErrorInMockChainError = mapError MCEToCardanoError
 

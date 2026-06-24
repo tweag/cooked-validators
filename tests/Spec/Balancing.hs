@@ -7,7 +7,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text (isInfixOf)
-import Ledger.Index qualified as Ledger
+import Ledger.Index qualified as P.Ledger
 import Optics.Core
 import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
@@ -222,15 +222,15 @@ failsAtBalancing (MCEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool
 failsAtBalancing _ = testBool False
 
 failsWithTooLittleFee :: MockChainError -> Assertion
-failsWithTooLittleFee (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
+failsWithTooLittleFee (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
 failsWithTooLittleFee _ = testBool False
 
 failsWithValueNotConserved :: MockChainError -> Assertion
-failsWithValueNotConserved (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "ValueNotConserved" text
+failsWithValueNotConserved (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "ValueNotConserved" text
 failsWithValueNotConserved _ = testBool False
 
 failsWithEmptyTxIns :: MockChainError -> Assertion
-failsWithEmptyTxIns (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "InputSetEmptyUTxO" text
+failsWithEmptyTxIns (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "InputSetEmptyUTxO" text
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> MockChainError -> Assertion

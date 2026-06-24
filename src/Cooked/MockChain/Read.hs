@@ -58,9 +58,9 @@ import Data.Coerce (coerce)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
-import Ledger.Slot qualified as Ledger
-import Ledger.Tx qualified as Ledger
-import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
+import Ledger.Tx qualified as P.Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -75,7 +75,7 @@ import Polysemy.State
 data MockChainRead :: Effect where
   GetParams :: MockChainRead m Emulator.Params
   TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
-  CurrentSlot :: MockChainRead m Ledger.Slot
+  CurrentSlot :: MockChainRead m P.Ledger.Slot
   AllUtxos :: MockChainRead m Utxos
   UtxosAt :: (Script.ToCredential a) => a -> MockChainRead m Utxos
   GetConstitutionScript :: MockChainRead m (Maybe VScript)
@@ -88,7 +88,7 @@ runMockChainRead ::
   forall effs a.
   ( Members
       '[ State MockChainState,
-         Error Ledger.ToCardanoError,
+         Error P.Ledger.ToCardanoError,
          Error MockChainError
        ]
       effs
@@ -258,7 +258,7 @@ txSkelInputValue =
 -- | Returns the current slot
 currentSlot ::
   (Member MockChainRead effs) =>
-  Sem effs Ledger.Slot
+  Sem effs P.Ledger.Slot
 
 -- | Returns the closed ms interval corresponding to the current slot
 currentMSRange ::
@@ -271,7 +271,7 @@ currentMSRange = slotToMSRange =<< currentSlot
 getEnclosingSlot ::
   (Member MockChainRead effs) =>
   Api.POSIXTime ->
-  Sem effs Ledger.Slot
+  Sem effs P.Ledger.Slot
 getEnclosingSlot t =
   getParams
     <&> (`Emulator.posixTimeToEnclosingSlot` t)
@@ -281,7 +281,7 @@ getEnclosingSlot t =
 slotRangeBefore ::
   (Members '[MockChainRead, Fail] effs) =>
   Api.POSIXTime ->
-  Sem effs Ledger.SlotRange
+  Sem effs P.Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToMSRange n
@@ -294,7 +294,7 @@ slotRangeBefore t = do
 slotRangeAfter ::
   (Members '[MockChainRead, Fail] effs) =>
   Api.POSIXTime ->
-  Sem effs Ledger.SlotRange
+  Sem effs P.Ledger.SlotRange
 slotRangeAfter t = do
   n <- getEnclosingSlot t
   (a, _) <- slotToMSRange n
@@ -356,12 +356,12 @@ txSkelOutByRef ::
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx ::
   (Member MockChainRead effs) =>
-  Ledger.CardanoTx ->
+  P.Ledger.CardanoTx ->
   Sem effs [(Api.TxOutRef, TxSkelOut)]
 utxosFromCardanoTx =
   mapM (\txOutRef -> (txOutRef,) <$> txSkelOutByRef txOutRef)
-    . fmap (Ledger.fromCardanoTxIn . snd)
-    . Ledger.getCardanoTxOutRefs
+    . fmap (P.Ledger.fromCardanoTxIn . snd)
+    . P.Ledger.getCardanoTxOutRefs
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.

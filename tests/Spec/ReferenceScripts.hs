@@ -4,7 +4,7 @@ import Cardano.Api qualified as Cardano
 import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Ledger.Tx qualified as Ledger
+import Ledger.Tx qualified as P.Ledger
 import Optics.Core
 import Plutus.ReferenceScripts
 import Plutus.Script.Utils.V2 qualified as Script
@@ -59,7 +59,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
 -- should be consumed in the transaction or not. If it should, then at
 -- transaction generation no reference input should appear, as inputs also act
 -- as reference inputs.
-useReferenceScript :: Wallet -> Bool -> Script.Versioned Script.Validator -> DirectMockChain Ledger.CardanoTx
+useReferenceScript :: Wallet -> Bool -> Script.Versioned Script.Validator -> DirectMockChain P.Ledger.CardanoTx
 useReferenceScript spendingSubmitter consumeScriptOref theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
   (oref, _) : _ <-
@@ -214,7 +214,7 @@ tests =
                       Script.toPubKeyHash $
                         wallet 1
               )
-              `withSuccessProp` \_ _ (Ledger.CardanoEmulatorEraTx (Cardano.Tx (Cardano.getTxBodyContent -> bodyContent) _)) _ ->
+              `withSuccessProp` \_ _ (P.Ledger.CardanoEmulatorEraTx (Cardano.Tx (Cardano.getTxBodyContent -> bodyContent) _)) _ ->
                 case Cardano.txInsReference bodyContent of
                   Cardano.TxInsReference _ [_] _ -> testSuccess
                   _ -> testFailure,
@@ -226,7 +226,7 @@ tests =
                       Script.toPubKeyHash $
                         wallet 1
               )
-              `withSuccessProp` \_ _ (Ledger.CardanoEmulatorEraTx (Cardano.Tx (Cardano.getTxBodyContent -> bodyContent) _)) _ ->
+              `withSuccessProp` \_ _ (P.Ledger.CardanoEmulatorEraTx (Cardano.Tx (Cardano.getTxBodyContent -> bodyContent) _)) _ ->
                 case Cardano.txInsReference bodyContent of
                   -- We get this from cardano-api instead of TxInsReferenceNone
                   Cardano.TxInsReference _ [] _ -> testSuccess

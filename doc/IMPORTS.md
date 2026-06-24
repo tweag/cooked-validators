@@ -20,7 +20,7 @@ dependencies:
 ### [`cardano-node-emulator`](https://github.com/IntersectMBO/cardano-node-emulator)
 
 - package `plutus-script-utils`, prefix `Script`
-- package `plutus-ledger`, prefix `Ledger`
+- package `plutus-ledger`, prefix `P.Ledger`
 - package `cardano-node-emulator`, prefix `Emulator`
 
 ### [`plutus`](https://github.com/IntersectMBO/plutus)
@@ -40,6 +40,15 @@ dependencies:
 
 - package `cardano-ledger-shelley`, prefix `Shelley`
 - package `cardano-ledger-conway`, prefix `Conway`
+- the core packages (`cardano-ledger-core` and similar), whose modules live
+  directly under `Cardano.Ledger.*` (e.g. `Cardano.Ledger.BaseTypes`,
+  `Cardano.Ledger.Hashes`, `Cardano.Ledger.DRep`, `Cardano.Ledger.PoolParams`),
+  prefix `C.Ledger`.
+
+"Ledger" is the only ambiguous prefix, as it covers two unrelated package
+families. We thus use `P.Ledger` for `plutus-ledger` and `C.Ledger` for the
+`cardano-ledger` core packages. Every other dependency keeps a unique one-word
+prefix.
 
 ### Exception
 
@@ -76,4 +85,4 @@ plutus-ledger) should. For instance, `Value` should always be coming from
 definitions. It re-exports too many definitions so that it hides where they
 really come from, but not enough so that importing `Ledger` alone sufficies in
 most projects. Thus, we avoid importing it altogher and instead rely on
-`PlutusLedger.V3` and sub-modules `Ledger.*`.
+`PlutusLedgerApi.V3` and the sub-modules `Ledger.*` (aliased `P.Ledger`).

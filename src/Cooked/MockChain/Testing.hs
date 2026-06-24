@@ -17,8 +17,9 @@ import Data.Default
 import Data.List (isInfixOf)
 import Data.Set qualified as Set
 import Data.Text qualified as T
-import Ledger qualified
+import Ledger.Index qualified as P.Ledger
 import Plutus.Script.Utils.Address qualified as Script
+import PlutusLedgerApi.V1.Scripts qualified as Api
 import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Test.QuickCheck qualified as QC
@@ -477,7 +478,7 @@ withErrorProp test errorProp = withFailureProp test (\_ _ err _ -> errorProp err
 isPhase1Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase1Failure _ _ (MCEValidationError Ledger.Phase1 _) _ = testSuccess
+isPhase1Failure _ _ (MCEValidationError P.Ledger.Phase1 _) _ = testSuccess
 isPhase1Failure pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 1 evaluation failure, got: "
@@ -487,7 +488,7 @@ isPhase1Failure pcOpts _ e _ =
 isPhase2Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase2Failure _ _ (MCEValidationError Ledger.Phase2 _) _ = testSuccess
+isPhase2Failure _ _ (MCEValidationError P.Ledger.Phase2 _) _ = testSuccess
 isPhase2Failure pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 2 evaluation failure, got: "
@@ -498,7 +499,7 @@ isPhase1FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) _
+isPhase1FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) _
   | s `isInfixOf` T.unpack text =
       testSuccess
 isPhase1FailureWithMsg _ pcOpts _ e _ =
@@ -511,7 +512,7 @@ isPhase2FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError Ledger.Phase2 (Ledger.ScriptFailure (Ledger.EvaluationError texts _))) _
+isPhase2FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase2 (P.Ledger.ScriptFailure (Api.EvaluationError texts _))) _
   | any (isInfixOf s . T.unpack) texts =
       testSuccess
 isPhase2FailureWithMsg _ pcOpts _ e _ =

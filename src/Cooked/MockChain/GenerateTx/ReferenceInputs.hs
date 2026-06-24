@@ -6,7 +6,7 @@ import Cooked.MockChain.Read
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
@@ -17,7 +17,7 @@ import Polysemy.Error
 -- redeemers of the transaction, which can be gathered with
 -- 'txSkelInsReferenceInRedeemers'.
 toInsReference ::
-  (Members '[MockChainRead, Error Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
   TxSkel ->
   Sem effs (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
 toInsReference skel = do
@@ -30,10 +30,10 @@ toInsReference skel = do
   if null refInputs
     then return Cardano.TxInsReferenceNone
     else do
-      cardanoRefInputs <- fromEither $ mapM Ledger.toCardanoTxIn refInputs
+      cardanoRefInputs <- fromEither $ mapM P.Ledger.toCardanoTxIn refInputs
       resolvedDatums <- mapM (viewByRef txSkelOutDatumL) refInputs
       return $
         Cardano.TxInsReference Cardano.BabbageEraOnwardsConway cardanoRefInputs $
           Cardano.BuildTxWith $
             Set.fromList
-              [Ledger.toCardanoScriptData $ Api.toBuiltinData dat | SomeTxSkelOutDatum dat (Hashed _) <- resolvedDatums]
+              [P.Ledger.toCardanoScriptData $ Api.toBuiltinData dat | SomeTxSkelOutDatum dat (Hashed _) <- resolvedDatums]
