@@ -15,6 +15,12 @@
 
 ### Changed
 
+- Test coverage analysis is no longer enabled by default in `cabal.project`,
+  so `cabal test` output is no longer cluttered with `Writing: ….html` lines.
+  The `nix develop .#default` dev shell provides two commands to run the test
+  suite, `cooked-test` (without coverage) and `cooked-test-coverage` (with
+  coverage), replacing the previous `cabal` function override that hid the
+  coverage output but did not work under `direnv` with shells other than `bash`.
 - `doc/BALANCING.md` has been updated to match the current implementation:
   Polysemy effect signatures, the `ExtendedTxSkel` result of `balanceTxSkel`, the
   effectful `reachValue`/`computeFeeAndBalance` signatures and their actual

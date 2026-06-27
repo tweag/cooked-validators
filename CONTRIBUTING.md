@@ -35,12 +35,24 @@ Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC
 
 ### Running tests
 
-Unit tests are defined in `/cooked-validators/tests`. They can be run using:
+Unit tests are defined in `/cooked-validators/tests`. From within the
+`nix develop .#default` dev shell they can be run using:
+
+```console
+$ cooked-test
+...
+All 132 tests passed (3.18s)
+```
+
+This runs the suite without coverage analysis, which keeps the output clean. To
+run the suite with coverage analysis instead, use `cooked-test-coverage`. Both
+commands forward extra arguments to `cabal`, so a single test group or case can
+be selected with a [Tasty] pattern, e.g. `cooked-test -p "Balancing"`.
+
+Without the dev shell, the suite can still be run directly with:
 
 ```console
 $ cabal test all
-...
-All 132 tests passed (3.18s)
 ```
 
 Our continuous integration checks them automatically.
@@ -177,3 +189,4 @@ coding conventions in the exact same way the CI does.
 [ormolu]: https://github.com/tweag/ormolu
 [haddock]: https://haskell-haddock.readthedocs.io/en/latest/
 [nixfmt]: https://github.com/serokell/nixfmt
+[tasty]: https://github.com/UnkindPartition/tasty

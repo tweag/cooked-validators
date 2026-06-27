@@ -26,11 +26,6 @@ write-ghc-environment-files: never
 -- 'tasty' output.
 test-show-details: direct
 
--- We activate test coverage by default 
-package cooked-validators
-  coverage: True
-  library-coverage: True
-
 -- Removing optimization for these packages reduces their build time
 -- drastically and is not an issue for dev work
 package cardano-ledger-alonzo

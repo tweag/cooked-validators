@@ -34,6 +34,29 @@
           }
         );
 
+        ## Runs the test suite without coverage, for clean output. 'spec.tix' is
+        ## removed first to avoid stale HPC '.tix'/'.mix' mismatches (caused by
+        ## '-fignore-hpc-changes' in 'package.yaml'). Extra arguments are
+        ## forwarded to the 'tasty' test binary (e.g. '-p PATTERN').
+        cooked-test = pkgs.writeShellScriptBin "cooked-test" ''
+          rm -f spec.tix
+          opts=(--test-option=--color=always)
+          for arg in "$@"; do opts+=("--test-option=$arg"); done
+          cabal test all "''${opts[@]}"
+        '';
+
+        ## Like 'cooked-test' but with coverage analysis (only checked
+        ## punctually). The verbose "Writing: ....html" coverage lines are
+        ## filtered out, and 'PIPESTATUS' preserves the test binary's exit status
+        ## through that pipe.
+        cooked-test-coverage = pkgs.writeShellScriptBin "cooked-test-coverage" ''
+          rm -f spec.tix
+          opts=(--test-option=--color=always)
+          for arg in "$@"; do opts+=("--test-option=$arg"); done
+          cabal test all --enable-coverage "''${opts[@]}" | grep -vE --color=never "^Writing:.*html$"
+          exit "''${PIPESTATUS[0]}"
+        '';
+
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
@@ -82,7 +105,6 @@
               pkgs.openldap # For freer-extras‽
               pkgs.libsodium
               pkgs.secp256k1
-              pkgs.lmdb
               blst-portable
             ];
 
@@ -102,24 +124,14 @@
                 pkgs.hlint
                 pkgs.ormolu
                 hpkgs.haskell-language-server
+                cooked-test
+                cooked-test-coverage
               ];
 
               inherit LD_LIBRARY_PATH;
               inherit LANG;
 
-              # In addition to the pre-commit hooks, this redefines a cabal
-              # command that gets rid of annoying "Writing: .....*.html" output
-              # when running cabal test.
-              shellHook = pre-commit.shellHook + ''
-                function cabal() {
-                      if [ "$1" != "test" ]; then
-                        command cabal "$@"
-                      else
-                        command cabal --test-option=--color=always "$@" | grep -vE --color=never "^Writing:.*html$"
-                      fi
-                }
-                export -f cabal
-              '';
+              shellHook = pre-commit.shellHook;
             };
           };
 
