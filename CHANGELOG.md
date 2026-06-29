@@ -27,6 +27,9 @@
 
 ### Changed
 
+- The `select` predicate of `overMaybeSelectingTweak` now has type
+  `Int -> Bool` instead of `Integer -> Bool`. Its meaning is unchanged: the
+  argument is the `0`-based position of a focus among the /modifiable/ foci.
 - Test coverage analysis is no longer enabled by default in `cabal.project`,
   so `cabal test` output is no longer cluttered with `Writing: ….html` lines.
   The `nix develop .#default` dev shell provides two commands to run the test
