@@ -54,9 +54,9 @@ modifyRedeemersOfTypeAtTweak ::
   Sem effs [TxSkelRedeemer]
 modifyRedeemersOfTypeAtTweak optic f =
   overMaybeTweak optic $ \red -> do
-    typedRedeemer <- red ^? txSkelRedeemerTypedAT
+    typedRedeemer <- preview txSkelRedeemerTypedAT red
     typedRedeemerModified <- f typedRedeemer
-    return $ red & txSkelRedeemerTypedAT @a .~ typedRedeemerModified
+    return $ set (txSkelRedeemerTypedAT @a) typedRedeemerModified red
 
 -- | Applies an optional modification to all spending redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.
@@ -183,6 +183,6 @@ malformRedeemerTweak change = do
   where
     changeRedeemer :: TxSkelRedeemer -> [TxSkelRedeemer]
     changeRedeemer red = do
-      typedRed <- red ^.. txSkelRedeemerTypedAT @a
+      typedRed <- toListOf (txSkelRedeemerTypedAT @a) red
       modifiedData <- change typedRed
-      return $ red & txSkelRedeemerBuiltinDataL .~ modifiedData
+      return $ set txSkelRedeemerBuiltinDataL modifiedData red
