@@ -14,7 +14,7 @@ alice :: Wallet
 alice = wallet 1
 
 mkSkel :: [Integer] -> TxSkel
-mkSkel l = set txSkelOutsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
+mkSkel l = set txSkelOutputsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
 
 tests :: TestTree
 tests =
@@ -29,7 +29,7 @@ tests =
                     ( runNonDet $
                         execTweak skel $
                           overMaybeSelectingTweak
-                            (txSkelOutsL % traversed % txSkelOutValueL)
+                            (txSkelOutputsL % traversed % txSkelOutValueL)
                             (const Nothing)
                             (const True)
                     ),
@@ -39,7 +39,7 @@ tests =
                     ( runNonDet $
                         runTweak skel $
                           overMaybeSelectingTweak
-                            (txSkelOutsL % traversed % txSkelOutValueL)
+                            (txSkelOutputsL % traversed % txSkelOutValueL)
                             ( \value ->
                                 if value `Api.geq` Script.lovelace 200
                                   then Just $ Script.lovelace 789
@@ -53,7 +53,7 @@ tests =
                     ( runNonDet $
                         runTweak skel $
                           overMaybeSelectingTweak
-                            (txSkelOutsL % traversed % txSkelOutValueL)
+                            (txSkelOutputsL % traversed % txSkelOutValueL)
                             (const $ Just $ Script.lovelace 789)
                             (`elem` [0, 2])
                     )
@@ -98,7 +98,7 @@ tests =
                         runTweak skelIn $
                           combineModsTweak
                             (tail . subsequences)
-                            (txSkelOutsL % itraversed % txSkelOutValueL % valueLovelaceL)
+                            (txSkelOutputsL % itraversed % txSkelOutValueL % valueLovelaceL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
                   ),
               testCase "separate modifications" $
@@ -116,7 +116,7 @@ tests =
                         runTweak skelIn $
                           combineModsTweak
                             (map (: []))
-                            (txSkelOutsL % itraversed % txSkelOutValueL % valueLovelaceL)
+                            (txSkelOutputsL % itraversed % txSkelOutValueL % valueLovelaceL)
                             (\i x -> return [(x + 1, i), (x + 2, i)])
                   )
             ]

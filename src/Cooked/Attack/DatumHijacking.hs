@@ -132,9 +132,9 @@ redirectOutputTweakAll ::
   (Integer -> Bool) ->
   Sem effs [TxSkelOut]
 redirectOutputTweakAll outputPred indexPred = do
-  outputs <- viewTweak txSkelOutsL
+  outputs <- viewTweak txSkelOutputsL
   let (redirected, newOutputs) = go outputs 0
-  setTweak txSkelOutsL newOutputs
+  setTweak txSkelOutputsL newOutputs
   return redirected
   where
     go [] _ = ([], [])
@@ -155,9 +155,9 @@ redirectOutputTweakAny ::
   (Integer -> Bool) ->
   Sem effs [TxSkelOut]
 redirectOutputTweakAny outputPred indexPred = do
-  outputs <- viewTweak txSkelOutsL
+  outputs <- viewTweak txSkelOutputsL
   (redirected, newOutputs) <- go [] 0 outputs
-  setTweak txSkelOutsL newOutputs
+  setTweak txSkelOutputsL newOutputs
   return redirected
   where
     go _ _ [] = mzero
@@ -180,7 +180,7 @@ newtype DatumHijackingLabel = DatumHijackingLabel [TxSkelOut]
   deriving (Show, Eq, Ord)
 
 instance PrettyCooked DatumHijackingLabel where
-  prettyCookedOpt opts (DatumHijackingLabel txSkelOuts) = prettyItemize opts "Redirected outputs" "-" txSkelOuts
+  prettyCookedOpt opts (DatumHijackingLabel txSkelOutputs) = prettyItemize opts "Redirected outputs" "-" txSkelOutputs
 
 -- | The datum hijacking tries to substitute a different recipient on certain
 -- outputs based on a 'DatumHijackingParams'.

@@ -24,11 +24,11 @@ ensureInputTweak ::
   TxSkelRedeemer ->
   Sem effs (Maybe (Api.TxOutRef, TxSkelRedeemer))
 ensureInputTweak oref howConsumed = do
-  presentInputs <- viewTweak txSkelInsL
+  presentInputs <- viewTweak txSkelInputsL
   if presentInputs Map.!? oref == Just howConsumed
     then return Nothing
     else do
-      overTweak txSkelInsL (Map.insert oref howConsumed)
+      overTweak txSkelInputsL (Map.insert oref howConsumed)
       return $ Just (oref, howConsumed)
 
 -- | Add an input to a transaction. If the given 'Api.TxOutRef' is already being
@@ -39,9 +39,9 @@ addInputTweak ::
   TxSkelRedeemer ->
   Sem effs ()
 addInputTweak oref howConsumed = do
-  presentInputs <- viewTweak txSkelInsL
+  presentInputs <- viewTweak txSkelInputsL
   guard (Map.notMember oref presentInputs)
-  overTweak txSkelInsL (Map.insert oref howConsumed)
+  overTweak txSkelInputsL (Map.insert oref howConsumed)
 
 -- | Remove transaction inputs according to a given predicate. The returned list
 -- contains all removed inputs.
@@ -50,7 +50,7 @@ removeInputsTweak ::
   (Api.TxOutRef -> TxSkelRedeemer -> Bool) ->
   Sem effs [(Api.TxOutRef, TxSkelRedeemer)]
 removeInputsTweak removePred = do
-  presentInputs <- viewTweak txSkelInsL
+  presentInputs <- viewTweak txSkelInputsL
   let (removed, kept) = Map.partitionWithKey removePred presentInputs
-  setTweak txSkelInsL kept
+  setTweak txSkelInputsL kept
   return $ Map.toList removed

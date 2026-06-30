@@ -1,6 +1,6 @@
 -- | This module exposes the outputs constructs used in a
 -- 'Cooked.Skeleton.TxSkel' and their associated utilities. To build payments in
--- a skeleton, the usual way is to invoke @txSkelOuts = [pk `receives` Value v,
+-- a skeleton, the usual way is to invoke @txSkelOutputs = [pk `receives` Value v,
 -- script `receives` (InlineDatum dat <&&> ReferenceScript script)]@
 module Cooked.Skeleton.Output
   ( -- * Type constraints

@@ -456,7 +456,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   let surplusOutputOrUser = case txSkelOptBalanceOutputPolicy txSkelOpts of
         AdjustExistingOutput
           | Just txSkelOut <-
-              find ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOuts ->
+              find ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOutputs ->
               Left (over txSkelOutValueL (<> missingRight) txSkelOut)
         _ | missingRight == mempty -> Right balancingUser
         _ -> Left (balancingUser `receives` Value missingRight)
@@ -479,18 +479,18 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
     -- scenario, as the outputs will not change due to balancing. This means
     -- that there was no missing value on the right and the balancing utxos
     -- exactly account for what was missing on the left.
-    Just (newORefs, Nothing) -> return (newORefs, txSkelOuts)
+    Just (newORefs, Nothing) -> return (newORefs, txSkelOutputs)
     -- There in an existing output at the owner's address and the balancing
     -- policy allows us to adjust it with additional value.
     Just (newORefs, Just newTxSkelOut)
       | AdjustExistingOutput <- txSkelOptBalanceOutputPolicy txSkelOpts,
-        (before, _ : after) <- break ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOuts ->
+        (before, _ : after) <- break ((== Script.toCredential balancingUser) . view txSkelOutCredentialG) txSkelOutputs ->
           return (newORefs, before ++ (newTxSkelOut : after))
     -- There is no output at the balancing user address, or the balancing
     -- policy forces us to create a new output, both yielding the same result.
-    Just (newORefs, Just newTxSkelOut) -> return (newORefs, txSkelOuts ++ [newTxSkelOut])
-  let newTxSkelIns = txSkelIns <> Map.fromList ((,emptyTxSkelRedeemer) <$> additionalInsTxOutRefs)
-  return $ set txSkelInsL newTxSkelIns . set txSkelOutsL newTxSkelOuts $ txSkel
+    Just (newORefs, Just newTxSkelOut) -> return (newORefs, txSkelOutputs ++ [newTxSkelOut])
+  let newTxSkelIns = txSkelInputs <> Map.fromList ((,emptyTxSkelRedeemer) <$> additionalInsTxOutRefs)
+  return $ set txSkelInputsL newTxSkelIns . set txSkelOutputsL newTxSkelOuts $ txSkel
 
 -- | This computes the minimum and maximum possible fee a transaction can cost
 -- based on the current protocol parameters and its number of scripts.

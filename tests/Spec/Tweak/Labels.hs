@@ -19,7 +19,7 @@ payTo target amount = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelOuts = [target `receives` Value (Script.ada amount)]
+        txSkelOutputs = [target `receives` Value (Script.ada amount)]
       }
 
 payments :: StagedMockChain ()
@@ -33,14 +33,14 @@ payments = do
 
 labelAmountTweak :: StagedTweak ()
 labelAmountTweak = do
-  [target] <- viewAllTweak (txSkelOutsL % _head % txSkelOutValueL % valueLovelaceL)
+  [target] <- viewAllTweak (txSkelOutputsL % _head % txSkelOutValueL % valueLovelaceL)
   addLabelTweak $ Api.getLovelace target
 
 labelNameTweak :: StagedTweak ()
 labelNameTweak = do
   target <-
     viewAllTweak
-      ( txSkelOutsL
+      ( txSkelOutputsL
           % _head
           % txSkelOutOwnerL
           % userEitherPubKeyP

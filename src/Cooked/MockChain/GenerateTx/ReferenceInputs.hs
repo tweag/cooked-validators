@@ -13,7 +13,7 @@ import Polysemy.Error
 
 -- | Takes a 'TxSkel' and generates the associated 'Cardano.TxInsReference' from
 -- its content. These reference inputs can be found in two places, either in
--- direct reference inputs 'txSkelInsReference' or scattered in the various
+-- direct reference inputs 'txSkelReferenceInputs' or scattered in the various
 -- redeemers of the transaction, which can be gathered with
 -- 'txSkelInsReferenceInRedeemers'.
 toInsReference ::
@@ -25,8 +25,8 @@ toInsReference skel = do
   -- need to remove from the reference inputs stored in redeemers the ones that
   -- already appear in the inputs to avoid validation errors.
   let indirectReferenceInputs = txSkelInsReferenceInRedeemers skel
-      redundantReferenceInputs = indirectReferenceInputs `Set.intersection` Map.keysSet (txSkelIns skel)
-      refInputs = Set.toList (txSkelInsReference skel <> indirectReferenceInputs `Set.difference` redundantReferenceInputs)
+      redundantReferenceInputs = indirectReferenceInputs `Set.intersection` Map.keysSet (txSkelInputs skel)
+      refInputs = Set.toList (txSkelReferenceInputs skel <> indirectReferenceInputs `Set.difference` redundantReferenceInputs)
   if null refInputs
     then return Cardano.TxInsReferenceNone
     else do

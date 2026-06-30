@@ -23,7 +23,7 @@ oref = Api.TxOutRef (Api.TxId "")
 baseSkel :: TxSkel
 baseSkel =
   txSkelTemplate
-    { txSkelIns =
+    { txSkelInputs =
         Map.fromList
           [ (oref 0, someTxSkelRedeemer (10 :: Integer)),
             (oref 1, someTxSkelRedeemer (20 :: Integer)),
@@ -33,7 +33,7 @@ baseSkel =
 
 -- | The list of 'Integer'-typed spending redeemers of a skeleton.
 integerRedeemers :: TxSkel -> [Integer]
-integerRedeemers = toListOf (txSkelInsL % to Map.elems % folded % txSkelRedeemerTypedAT @Integer)
+integerRedeemers = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerTypedAT @Integer)
 
 modifySpendRedeemersTest :: TestTree
 modifySpendRedeemersTest =
@@ -67,7 +67,7 @@ malformRedeemerTest :: TestTree
 malformRedeemerTest =
   testCase "malformRedeemerTweak tries all combinations of redeemer modifications" $
     let allData :: TxSkel -> [PlutusTx.BuiltinData]
-        allData = toListOf (txSkelInsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
+        allData = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
         d :: (PlutusTx.ToData a) => a -> PlutusTx.BuiltinData
         d = PlutusTx.toBuiltinData
      in assertSameSets

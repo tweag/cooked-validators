@@ -27,7 +27,7 @@ paymentWithMinAda = do
   view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0)
     <$> validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
+        { txSkelOutputs = [wallet 2 `receives` VisibleHashedDatum heavyDatum],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
 
@@ -35,7 +35,7 @@ paymentWithoutMinAda :: Integer -> DirectMockChain ()
 paymentWithoutMinAda paidLovelaces = do
   validateTxSkel_
     txSkelTemplate
-      { txSkelOuts = [wallet 2 `receives` FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum],
+      { txSkelOutputs = [wallet 2 `receives` FixedValue (Script.lovelace paidLovelaces) <&&> VisibleHashedDatum heavyDatum],
         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
 

@@ -28,7 +28,7 @@ runScript = do
   [(oRef@(Api.TxOutRef txId _), _), (oRef', _), (oRef'', _)] <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts =
+        { txSkelOutputs =
             [ alice `receives` Value (Script.ada 3),
               alice `receives` Value (Script.ada 5)
             ],
@@ -48,13 +48,13 @@ runScript = do
     validateTxSkel' $
       txSkelTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [alice],
-          txSkelIns =
+          txSkelInputs =
             HMap.fromList
               [ (oRefScript, someTxSkelRedeemer Close),
                 (oRefScript1, someTxSkelRedeemer Step),
                 (oRefScript2, someTxSkelRedeemer Step)
               ],
-          txSkelOuts =
+          txSkelOutputs =
             [ script `receives` InlineDatum (0 :: Integer) <&&> Value mintValue2,
               script `receives` InlineDatum (1 :: Integer) <&&> Value mintValue3
             ],
@@ -65,12 +65,12 @@ runScript = do
     validateTxSkel' $
       txSkelTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [bob],
-          txSkelIns =
+          txSkelInputs =
             HMap.fromList
               [ (oRefScript1', someTxSkelRedeemer Close),
                 (oRefScript2', someTxSkelRedeemer Step)
               ],
-          txSkelOuts =
+          txSkelOutputs =
             [ script `receives` InlineDatum (0 :: Integer) <&&> Value mintValue3
             ],
           txSkelMints = review txSkelMintsListI [burn script BurnToken tn2 1]
@@ -79,7 +79,7 @@ runScript = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelIns = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
+        txSkelInputs = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
         txSkelMints = review txSkelMintsListI [burn script BurnToken tn3 1]
       }
   where
@@ -89,9 +89,9 @@ runScript = do
           mints = review txSkelMintsListI [mint script (MintToken oRef) tn 1]
           mintValue = Script.toValue mints
        in ( txSkelTemplate
-              { txSkelIns = HMap.singleton oRef emptyTxSkelRedeemer,
+              { txSkelInputs = HMap.singleton oRef emptyTxSkelRedeemer,
                 txSkelMints = mints,
-                txSkelOuts = [script `receives` InlineDatum index <&&> Value mintValue],
+                txSkelOutputs = [script `receives` InlineDatum index <&&> Value mintValue],
                 txSkelSignatories = txSkelSignatoriesFromList [signer]
               },
             mintValue,

@@ -29,7 +29,7 @@ ensureOutputTweak ::
   TxSkelOut ->
   Sem effs (Maybe TxSkelOut)
 ensureOutputTweak txSkelOut = do
-  presentOutputs <- viewTweak txSkelOutsL
+  presentOutputs <- viewTweak txSkelOutputsL
   if txSkelOut `elem` presentOutputs
     then return Nothing
     else do
@@ -42,7 +42,7 @@ addOutputTweak ::
   (Member Tweak effs) =>
   TxSkelOut ->
   Sem effs ()
-addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
+addOutputTweak txSkelOut = overTweak txSkelOutputsL (++ [txSkelOut])
 
 -- | Removes transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
@@ -51,9 +51,9 @@ removeOutputsTweak ::
   (TxSkelOut -> Bool) ->
   Sem effs [TxSkelOut]
 removeOutputsTweak removePred = do
-  presentOutputs <- viewTweak txSkelOutsL
+  presentOutputs <- viewTweak txSkelOutputsL
   let (removed, kept) = partition removePred presentOutputs
-  setTweak txSkelOutsL kept
+  setTweak txSkelOutputsL kept
   return removed
 
 -- | A label added to a 'TxSkel' on which the 'tamperDatumTweak' has been
@@ -77,7 +77,7 @@ tamperDatumTweak ::
   (a -> Maybe a) ->
   Sem effs [a]
 tamperDatumTweak change = do
-  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
+  beforeModification <- overMaybeTweak (txSkelOutputsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
   guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
@@ -108,12 +108,12 @@ malformDatumTweak ::
   (a -> [Api.BuiltinData]) ->
   Sem effs ()
 malformDatumTweak change = do
-  outputs <- viewAllTweak (txSkelOutsL % traversed)
+  outputs <- viewAllTweak (txSkelOutputsL % traversed)
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs
       -- We remove the first combination because it consists of all the heads
       -- and therefore it is the combination consisting of no changes at all.
       modifiedOutputGroups = tail $ sequence modifiedOutputs
-  msum $ map (setTweak txSkelOutsL) modifiedOutputGroups
+  msum $ map (setTweak txSkelOutputsL) modifiedOutputGroups
   addLabelTweak MalformDatumLbl
   where
     changeOutput :: TxSkelOut -> [TxSkelOut]

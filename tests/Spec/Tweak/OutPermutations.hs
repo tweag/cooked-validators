@@ -63,7 +63,7 @@ tests =
         let a = wallet 1 `receives` Value (Script.lovelace 123)
             b = wallet 2 `receives` Value (Script.lovelace 123)
             c = wallet 3 `receives` Value (Script.lovelace 123)
-            skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
+            skel x y z = txSkelTemplate {txSkelOutputs = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
                   [skel a b c, skel b a c]
@@ -83,7 +83,7 @@ tests =
             ],
       testGroup "tests for a single random outputs permutation:" $
         let l = (\i -> wallet i `receives` Value (Script.lovelace 123)) <$> [1 .. 5]
-            runs = txSkelOuts <$> ([1 .. 5] >>= (run . runNonDet . execTweak (txSkelTemplate {txSkelOuts = l}) . singleOutPermutTweak))
+            runs = txSkelOutputs <$> ([1 .. 5] >>= (run . runNonDet . execTweak (txSkelTemplate {txSkelOutputs = l}) . singleOutPermutTweak))
          in [ testCase "All permutations contain the correct elements" $
                 mapM_ (assertSameSets l) runs,
               testCase "All permutations are different from the initial distribution" $

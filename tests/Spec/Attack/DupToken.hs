@@ -23,7 +23,7 @@ dupTokenTrace pol tName amount recipient = do
           mintedValue = Script.toValue mints
        in txSkelTemplate
             { txSkelMints = mints,
-              txSkelOuts = [recipient `receives` Value mintedValue],
+              txSkelOutputs = [recipient `receives` Value mintedValue],
               txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
             }
 
@@ -47,7 +47,7 @@ tests =
                       [ mint pol1 () tName1 5,
                         mint pol2 () tName2 7
                       ],
-                  txSkelOuts =
+                  txSkelOutputs =
                     [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                       wallet 2 `receives` Value (Api.assetClassValue ac2 2)
                     ],
@@ -64,7 +64,7 @@ tests =
                               [ mint pol1 () tName1 v1,
                                 mint pol2 () tName2 v2
                               ],
-                          txSkelOuts =
+                          txSkelOutputs =
                             [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                               wallet 2 `receives` Value (Api.assetClassValue ac2 2),
                               attacker `receives` Value increment
@@ -102,14 +102,14 @@ tests =
             skelIn =
               txSkelTemplate
                 { txSkelMints = review txSkelMintsListI [mint pol () tName1 1],
-                  txSkelOuts = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
+                  txSkelOutputs = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
                 }
             skelExpected =
               [ ( txSkelTemplate
                     { txSkelLabels = Set.singleton $ TxSkelLabel DupTokenLbl,
                       txSkelMints = review txSkelMintsListI [mint pol () tName1 2],
-                      txSkelOuts =
+                      txSkelOutputs =
                         [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),
                           attacker `receives` Value (Api.assetClassValue ac1 1)
                         ],

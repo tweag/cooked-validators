@@ -459,8 +459,8 @@ be overridden.
 
 ```haskell
 myTxSkel = txSkelTemplate 
-  { txSkelIns = ...,
-	txSkelOuts = ...,
+  { txSkelInputs = ...,
+	txSkelOutputs = ...,
 	txSkelOpts = ...,
 	...
   }
@@ -548,11 +548,11 @@ Payments can automatically be adjusted in terms of minimal ADA requirements:
 
 ### Attaching payments to transactions
 
-Payments are given in the transaction using the `txSkelOuts` field:
+Payments are given in the transaction using the `txSkelOutputs` field:
 ```haskell
 txSkelTemplate
   { ...
-    txSkelOuts = [party1 `receives` payment1, party2 `receives` payment2, ...]
+    txSkelOutputs = [party1 `receives` payment1, party2 `receives` payment2, ...]
     ...
   }
 ```
@@ -584,7 +584,7 @@ myRedeemer =
 ```haskell
 txSkelTemplate
   { ...
-    txSkelIns = Map.fromList 
+    txSkelInputs = Map.fromList 
 	  [ (txOutRef1, someTxSkelRedeemer red), 
         (txOutRef2, withReferenceInput emptyTxSkelRedeemer txOutRef),
 	    (txOutRef3, someTxSkelRedeemerNoAutoFill red2)
@@ -622,7 +622,7 @@ txSkelTemplate
 ```haskell
 txSkelTemplate
   { ...
-    txSkelInsReference = Set.fromList [txOutRef1, txOutRef2, ...]
+    txSkelReferenceInputs = Set.fromList [txOutRef1, txOutRef2, ...]
     ...
   }
 ```
@@ -886,7 +886,7 @@ foo = do
 * Using optics in tweaks
 ```haskell
 foo = C.overTweak
-  (txSkelOutsL % ix 1 % txSkelOutValueL) -- Value of first output
+  (txSkelOutputsL % ix 1 % txSkelOutValueL) -- Value of first output
   (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
 ```
 

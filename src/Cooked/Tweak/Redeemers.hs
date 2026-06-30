@@ -66,7 +66,7 @@ modifySpendRedeemersOfTypeTweak ::
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifySpendRedeemersOfTypeTweak =
-  modifyRedeemersOfTypeAtTweak (txSkelInsL % iso Map.toList Map.fromList % traversed % _2)
+  modifyRedeemersOfTypeAtTweak (txSkelInputsL % iso Map.toList Map.fromList % traversed % _2)
 
 -- | Applies an optional modification to all minting redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.

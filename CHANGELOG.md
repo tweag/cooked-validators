@@ -29,6 +29,10 @@
 
 ### Changed
 
+- Renamed three `TxSkel` fields and their lenses for clarity: `txSkelIns` →
+  `txSkelInputs` (`txSkelInsL` → `txSkelInputsL`), `txSkelInsReference` →
+  `txSkelReferenceInputs` (`txSkelInsReferenceL` → `txSkelReferenceInputsL`),
+  and `txSkelOuts` → `txSkelOutputs` (`txSkelOutsL` → `txSkelOutputsL`).
 - The `select` predicate of `overMaybeSelectingTweak` now has type
   `Int -> Bool` instead of `Integer -> Bool`. Its meaning is unchanged: the
   argument is the `0`-based position of a focus among the /modifiable/ foci.

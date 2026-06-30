@@ -242,7 +242,7 @@ txSkelInputScripts =
   fmap catMaybes
     . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT))
     . Map.keys
-    . txSkelIns
+    . txSkelInputs
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue ::
@@ -253,7 +253,7 @@ txSkelInputValue =
   fmap mconcat
     . mapM (viewByRef txSkelOutValueL)
     . Map.keys
-    . txSkelIns
+    . txSkelInputs
 
 -- | Returns the current slot
 currentSlot ::

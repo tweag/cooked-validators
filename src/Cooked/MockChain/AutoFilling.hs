@@ -106,20 +106,20 @@ autoFillReferenceScripts ::
   (Members '[Tweak, MockChainRead, MockChainLog] effs) =>
   Sem effs ()
 autoFillReferenceScripts = do
-  inputsKeys <- viewTweak $ txSkelInsL % to Map.keys
+  inputsKeys <- viewTweak $ txSkelInputsL % to Map.keys
   -- Updating minting redeemers
   traverseTweak
     (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
     (updateRedeemedScript inputsKeys)
   -- Updating spending redeemers
-  inputsList <- viewTweak $ txSkelInsL % to Map.toList
+  inputsList <- viewTweak $ txSkelInputsL % to Map.toList
   newInputs <- forM inputsList $ \(oRef, red) ->
     (oRef,) <$> do
       validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
       case validatorM of
         Nothing -> return red
         Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
-  setTweak txSkelInsL $ Map.fromList newInputs
+  setTweak txSkelInputsL $ Map.fromList newInputs
   -- Updating proposing redeemers
   traverseTweak
     (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just)
@@ -179,4 +179,4 @@ toTxSkelOutWithMinAda txSkelOut = do
 autoFillMinAda ::
   (Members '[Tweak, MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
   Sem effs ()
-autoFillMinAda = traverseTweak (txSkelOutsL % traversed) toTxSkelOutWithMinAda
+autoFillMinAda = traverseTweak (txSkelOutputsL % traversed) toTxSkelOutWithMinAda
