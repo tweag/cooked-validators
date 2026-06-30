@@ -14,7 +14,11 @@
 -- that are less relevant to testing, such as collaterals or fees
 module Cooked.Skeleton
   ( module X,
+
+    -- * Data type
     TxSkel (..),
+
+    -- * Optics
     txSkelLabelsL,
     txSkelOptsL,
     txSkelMintsL,
@@ -26,7 +30,12 @@ module Cooked.Skeleton
     txSkelOutputsL,
     txSkelWithdrawalsL,
     txSkelCertificatesL,
+    txSkelRedeemersT,
+
+    -- * Smart constructor
     txSkelTemplate,
+
+    -- * Utilities
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
     txSkelWithdrawingScripts,
@@ -35,7 +44,6 @@ module Cooked.Skeleton
     txSkelProposingScripts,
     txSkelMintingScripts,
     txSkelCertifyingScripts,
-    txSkelRedeemersT,
   )
 where
 
@@ -62,8 +70,6 @@ import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-
--- * `TxSkel`: high-level, type-retaining abstractions of concrete transactions
 
 -- | A transaction skeleton. This is cooked-validators's variant of transaction
 -- bodies, eventually translated to Cardano @TxBody@.
@@ -127,6 +133,9 @@ makeLensesFor [("txSkelMints", "txSkelMintsL")] ''TxSkel
 -- | Focuses on the validity range of a 'TxSkel'
 makeLensesFor [("txSkelValidityRange", "txSkelValidityRangeL")] ''TxSkel
 
+-- | Focuses on the proposals of a 'TxSkel'
+makeLensesFor [("txSkelProposals", "txSkelProposalsL")] ''TxSkel
+
 -- | Focuses on the signatories of a 'TxSkel'
 makeLensesFor [("txSkelSignatories", "txSkelSignatoriesL")] ''TxSkel
 
@@ -139,14 +148,21 @@ makeLensesFor [("txSkelReferenceInputs", "txSkelReferenceInputsL")] ''TxSkel
 -- | Focuses on the outputs of a 'TxSkel'
 makeLensesFor [("txSkelOutputs", "txSkelOutputsL")] ''TxSkel
 
--- | Focuses on the proposals of a 'TxSkel'
-makeLensesFor [("txSkelProposals", "txSkelProposalsL")] ''TxSkel
-
 -- | Focuses on the withdrawals of a 'TxSkel'
 makeLensesFor [("txSkelWithdrawals", "txSkelWithdrawalsL")] ''TxSkel
 
 -- | Focuses on the certificates of a 'TxSkel'
 makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
+
+-- | A traversal focusing every 'TxSkelRedeemer' of a 'TxSkel', in all five
+-- positions (spending, minting, proposing, withdrawing and certifying).
+txSkelRedeemersT :: Traversal' TxSkel TxSkelRedeemer
+txSkelRedeemersT =
+  (txSkelInputsL % iso Map.toList Map.fromList % traversed % _2)
+    `adjoin` (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL)
+    `adjoin` (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL)
+    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT)
+    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL)
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel
@@ -165,15 +181,6 @@ txSkelTemplate =
       txSkelCertificates = mempty
     }
 
--- | Returns the full value contained in the skeleton outputs
-txSkelPaidValue :: TxSkel -> Api.Value
-txSkelPaidValue = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
-
--- | All 'Api.TxOutRef's in reference inputs from redeemers
-txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
-txSkelReferenceInputsInRedeemers =
-  Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
-
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
 -- inputs of the skeleton.  This does not include additional possible
@@ -190,6 +197,15 @@ txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 txSkelWithdrawingScripts :: TxSkel -> [VScript]
 txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userVScriptAT)
 
+-- | Returns the full value contained in the skeleton outputs
+txSkelPaidValue :: TxSkel -> Api.Value
+txSkelPaidValue = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
+
+-- | All 'Api.TxOutRef's in reference inputs from redeemers
+txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
+txSkelReferenceInputsInRedeemers =
+  Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
+
 -- | Returns all the scripts involved in proposals in this 'TxSkel'
 txSkelProposingScripts :: TxSkel -> [VScript]
 txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userVScriptL)
@@ -201,13 +217,3 @@ txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % m
 -- | Returns all the scripts involved in certificates in this 'TxSkel'
 txSkelCertifyingScripts :: TxSkel -> [VScript]
 txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userVScriptAT)
-
--- | A traversal focusing every 'TxSkelRedeemer' of a 'TxSkel', in all five
--- positions (spending, minting, proposing, withdrawing and certifying).
-txSkelRedeemersT :: Traversal' TxSkel TxSkelRedeemer
-txSkelRedeemersT =
-  (txSkelInputsL % iso Map.toList Map.fromList % traversed % _2)
-    `adjoin` (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL)
-    `adjoin` (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL)
-    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT)
-    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL)
