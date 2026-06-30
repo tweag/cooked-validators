@@ -2,6 +2,15 @@
 
 -- | This module defines 'Tweak's which are the building blocks of our DSL for
 -- attacks. They are skeleton modifications aware of the mockchain state.
+--
+-- Tweaks follow a set of naming and behavioral conventions described in
+-- @doc/TWEAKS.md@. In short: every tweak is suffixed with @Tweak@ and built as
+-- @\<verb\>\<Subject\>@ using a fixed verb vocabulary
+-- (@get@\/@set@\/@modify@\/@add@\/@remove@\/@ensure@\/@has@\/@is@); the subject
+-- is singular when acting on a single element and plural when acting on a list
+-- or via a predicate; and a tweak that multiplies the number of resulting
+-- skeletons (true non-deterministic branching) is marked @...Any@, as opposed
+-- to merely failing, which is not.
 module Cooked.Tweak.Common
   ( -- * Tweak effect
     Tweak (..),
@@ -19,13 +28,13 @@ module Cooked.Tweak.Common
     -- * Optics tweaks
     viewTweak,
     viewAllTweak,
+    viewAnyTweak,
     setTweak,
     overTweak,
     traverseTweak,
     overMaybeTweak,
     overMaybeSelectingTweak,
     combineModsTweak,
-    iviewTweak,
   )
 where
 
@@ -33,12 +42,13 @@ import Control.Arrow (second)
 import Control.Monad
 import Cooked.Skeleton
 import Data.Either.Combinators (rightToMaybe)
-import Data.List (mapAccumL)
 import Data.Maybe
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
 import Polysemy.State
+
+-- * Tweaks: state aware modifications over a `TxSkel`
 
 -- | An effet that allows to store or retrieve a `TxSkel` from a context
 data Tweak :: Effect where
@@ -48,6 +58,8 @@ data Tweak :: Effect where
   PutTxSkel :: TxSkel -> Tweak m ()
 
 makeSem ''Tweak
+
+-- * Running `Tweak`s
 
 -- | Running a Tweak is equivalent to running a state monad storing a `TxSkel`
 runTweak ::
@@ -76,26 +88,31 @@ execTweak ::
   Sem effs TxSkel
 execTweak skel = (fst <$>) . runTweak skel
 
--- | Retrieves some value from the 'TxSkel'
+-- * Basic viewing `Tweak`s
+
+-- | Retrieves some foci from the 'TxSkel' given a getter
 viewTweak ::
   (Member Tweak effs, Is k A_Getter) =>
   Optic' k is TxSkel a ->
   Sem effs a
 viewTweak optic = getTxSkel <&> view optic
 
--- | Like 'viewTweak', only for indexed optics.
-iviewTweak ::
-  (Member Tweak effs, Is k A_Getter) =>
-  Optic' k (WithIx is) TxSkel a ->
-  Sem effs (is, a)
-iviewTweak optic = getTxSkel <&> iview optic
-
--- | Like the 'viewTweak', but returns a list of all foci
+-- | Retrieves all the foci targeted by a given fold within a `TxSkel` and
+-- returns them as a list.
 viewAllTweak ::
   (Member Tweak effs, Is k A_Fold) =>
   Optic' k is TxSkel a ->
   Sem effs [a]
 viewAllTweak optic = getTxSkel <&> toListOf optic
+
+-- | Like `viewAllTweak`, but return each focus in a separate branch
+viewAnyTweak ::
+  (Members '[Tweak, NonDet] effs, Is k A_Fold) =>
+  Optic' k is TxSkel a ->
+  Sem effs a
+viewAnyTweak optic = viewAllTweak optic >>= msum . fmap return
+
+-- * Basic modifying `Tweak`s
 
 -- | The tweak that sets a certain value in the 'TxSkel'.
 setTweak ::
@@ -136,36 +153,23 @@ overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True
 
 -- | Sometimes 'overMaybeTweak' modifies too many foci. This might be the case
 -- if there are several identical foci, but you only want to modify some of
--- them. This is where this 'Tweak' becomes useful: The @(Integer -> Bool)@
+-- them. This is where this 'Tweak' becomes useful: The @(Int -> Bool)@
 -- argument can be used to select which of the modifiable foci should be
--- actually modified.
+-- actually modified, based on their @0@-based position among the /modifiable/
+-- foci (those on which the @(a -> Maybe a)@ argument returns @Just@).
 overMaybeSelectingTweak ::
   (Member Tweak effs, Is k A_Traversal) =>
   Optic' k is TxSkel a ->
   (a -> Maybe a) ->
-  (Integer -> Bool) ->
+  (Int -> Bool) ->
   Sem effs [a]
 overMaybeSelectingTweak optic mChange select = do
-  allFoci <- viewTweak $ partsOf optic
-  let evaluatedFoci =
-        snd $
-          mapAccumL
-            ( \i unmodifiedFocus ->
-                case mChange unmodifiedFocus of
-                  Just modifiedFocus ->
-                    if select i
-                      then (i + 1, (unmodifiedFocus, Just modifiedFocus))
-                      else (i + 1, (unmodifiedFocus, Nothing))
-                  Nothing -> (i, (unmodifiedFocus, Nothing))
-            )
-            0
-            allFoci
-  -- If the second component of the pair is @Just@, use it.
-  setTweak (partsOf optic) $ map (uncurry fromMaybe) evaluatedFoci
-  return $
-    mapMaybe
-      (\(original, mNew) -> if isJust mNew then Just original else Nothing)
-      evaluatedFoci
+  -- We first restrict the optic to its modifiable foci, then index those by
+  -- their position and keep only the ones selected by @select@.
+  let selectedOptic = elementsOf (castOptic @A_Traversal optic % selectP (isJust . mChange)) select
+  modifiedFoci <- viewAllTweak selectedOptic
+  overTweak selectedOptic (fromJust . mChange)
+  return modifiedFoci
 
 -- | When constructing a tweak from an optic and a modification of foci, there
 -- are in principle two options for optics with many foci: (a) apply the
@@ -266,7 +270,7 @@ combineModsTweak ::
   (is -> x -> Sem effs [(x, l)]) ->
   Sem effs [l]
 combineModsTweak groupings optic changes = do
-  (indexes, foci) <- iviewTweak (ipartsOf optic)
+  (indexes, foci) <- getTxSkel <&> iview (ipartsOf optic)
   msum $
     map
       ( \grouping -> do
@@ -286,13 +290,9 @@ combineModsTweak groupings optic changes = do
                   setTweak (partsOf optic) $ map fst combination
                   return $ mapMaybe (rightToMaybe . snd) combination
               )
-              (allCombinations changedFoci)
+              (sequence changedFoci)
       )
       (groupings indexes)
-  where
-    allCombinations :: [[a]] -> [[a]]
-    allCombinations [] = [[]]
-    allCombinations (first : rest) = [x : xs | x <- first, xs <- allCombinations rest]
 
 -- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
 -- Sometimes, it can prove more convenient to explicitly state which property

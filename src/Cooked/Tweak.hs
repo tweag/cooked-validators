@@ -9,5 +9,6 @@ import Cooked.Tweak.Labels as X
 import Cooked.Tweak.Mint as X
 import Cooked.Tweak.OutPermutations as X
 import Cooked.Tweak.Outputs as X
+import Cooked.Tweak.Redeemers as X
 import Cooked.Tweak.Signatories as X
 import Cooked.Tweak.ValidityRange as X

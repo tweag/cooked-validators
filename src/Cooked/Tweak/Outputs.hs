@@ -2,7 +2,7 @@
 module Cooked.Tweak.Outputs
   ( ensureOutputTweak,
     addOutputTweak,
-    removeOutputTweak,
+    removeOutputsTweak,
     tamperDatumTweak,
     TamperDatumLbl (..),
     malformDatumTweak,
@@ -29,7 +29,7 @@ ensureOutputTweak ::
   TxSkelOut ->
   Sem effs (Maybe TxSkelOut)
 ensureOutputTweak txSkelOut = do
-  presentOutputs <- viewTweak txSkelOutsL
+  presentOutputs <- viewTweak txSkelOutputsL
   if txSkelOut `elem` presentOutputs
     then return Nothing
     else do
@@ -42,18 +42,18 @@ addOutputTweak ::
   (Member Tweak effs) =>
   TxSkelOut ->
   Sem effs ()
-addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
+addOutputTweak txSkelOut = overTweak txSkelOutputsL (++ [txSkelOut])
 
 -- | Removes transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
-removeOutputTweak ::
+removeOutputsTweak ::
   (Member Tweak effs) =>
   (TxSkelOut -> Bool) ->
   Sem effs [TxSkelOut]
-removeOutputTweak removePred = do
-  presentOutputs <- viewTweak txSkelOutsL
+removeOutputsTweak removePred = do
+  presentOutputs <- viewTweak txSkelOutputsL
   let (removed, kept) = partition removePred presentOutputs
-  setTweak txSkelOutsL kept
+  setTweak txSkelOutputsL kept
   return removed
 
 -- | A label added to a 'TxSkel' on which the 'tamperDatumTweak' has been
@@ -77,7 +77,7 @@ tamperDatumTweak ::
   (a -> Maybe a) ->
   Sem effs [a]
 tamperDatumTweak change = do
-  beforeModification <- overMaybeTweak (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
+  beforeModification <- overMaybeTweak (txSkelOutputsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
   guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
@@ -108,12 +108,12 @@ malformDatumTweak ::
   (a -> [Api.BuiltinData]) ->
   Sem effs ()
 malformDatumTweak change = do
-  outputs <- viewAllTweak (txSkelOutsL % traversed)
+  outputs <- viewAllTweak (txSkelOutputsL % traversed)
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs
       -- We remove the first combination because it consists of all the heads
       -- and therefore it is the combination consisting of no changes at all.
-      modifiedOutputGroups = tail $ allCombinations modifiedOutputs
-  msum $ map (setTweak txSkelOutsL) modifiedOutputGroups
+      modifiedOutputGroups = tail $ sequence modifiedOutputs
+  msum $ map (setTweak txSkelOutputsL) modifiedOutputGroups
   addLabelTweak MalformDatumLbl
   where
     changeOutput :: TxSkelOut -> [TxSkelOut]
@@ -129,26 +129,3 @@ data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked MalformDatumLbl where
   prettyCooked _ = "MalformDatum"
-
--- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such
--- that - @length c == length l@, and - for all @0 <= i < length c@, @elem (c !!
--- i) (l !! i)@.
---
--- 'allCombinations', as the name suggests, returns all the possible
--- combinations of a given list of lists. For instance:
---
--- @allCombinations [[1,2,3], [4,5], [6]] == [[1,4,6], [1,5,6], [2,4,6], [2,5,6], [3,4,6], [3,5,6]]@
---
--- It is guaranteed that combinations are returned in such an order that a
--- combination @c1@ comes before a combination @c2@ in the result list if and
--- only if for some prefix list @p@, some elements @a1@ and @a2@ and for some
--- rest lists @r1@ and @r2@:
--- > c1 == p ++ (a1 : r1)
--- > c2 == p ++ (a2 : r2)
--- and @a1@ comes before @a2@ in the list @l !! length p@. In particular, the
--- first element of the result list is the combination consisting of all the
--- first elements of the input lists.
-allCombinations :: [[a]] -> [[a]]
-allCombinations [] = [[]]
-allCombinations [[]] = [] -- included in the next one
-allCombinations (first : rest) = [x : xs | x <- first, xs <- allCombinations rest]

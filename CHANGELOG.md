@@ -10,11 +10,49 @@
 - New `withReferenceInput` helper to attach a reference input to a
   `TxSkelRedeemer`, replacing the more verbose
   `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
+- New module `Cooked.Tweak.Redeemers` homogenizing redeemer tweaks across all
+  five redeemer positions (spending, minting, proposing, withdrawing,
+  certifying):
+  - `modifyRedeemersOfTypeAtTweak`, the position-agnostic building block;
+  - per-position `modify{Spend,Mint,Proposal,Withdrawal,Certificate}RedeemersOfTypeTweak`;
+  - `modifyRedeemersOfTypeTweak`, ranging over all positions at once;
+  - `tamperRedeemerTweak` and `malformRedeemerTweak`, the redeemer counterparts
+    of the existing `tamperDatumTweak` and `malformDatumTweak`.
+- New `addMintTweak` to add a single mint entry (singular counterpart of
+  `addMintsTweak`).
+- New `txSkelRedeemersT` traversal, exported from `Cooked.Skeleton`, focusing
+  every `TxSkelRedeemer` of a `TxSkel` across all five redeemer positions.
+- New `txSkelRedeemedScriptsT` traversal, exported from `Cooked.Skeleton`,
+  focusing every script redeemed directly within a `TxSkel` (minting,
+  proposing, withdrawing and certifying; the spending position is excluded as
+  its scripts come from the index, not the skeleton).
+- New `doc/TWEAKS.md` describing the naming and branching conventions tweaks
+  follow.
 
 ### Removed
 
+### Fixed
+
+- Certificate redeemers were silently ignored because certificate owners are
+  stored as `IsEither` whereas the code reaching them assumed `IsScript`. Both
+  `txSkelRedeemersT` (affecting `txSkelReferenceInputsInRedeemers` and
+  `malformRedeemerTweak`) and `modifyCertificateRedeemersOfTypeTweak` (affecting
+  `modifyRedeemersOfTypeTweak` and `tamperRedeemerTweak`) now cover certificate
+  redeemers correctly.
+- `autoFillReferenceScripts` now also auto-fills reference scripts for
+  certifying redeemers, which it previously overlooked.
+
 ### Changed
 
+- Renamed `txSkelInsReferenceInRedeemers` to `txSkelReferenceInputsInRedeemers`.
+- Renamed `txSkelValueInOutputs` to `txSkelPaidValue`.
+- Renamed three `TxSkel` fields and their lenses for clarity: `txSkelIns` →
+  `txSkelInputs` (`txSkelInsL` → `txSkelInputsL`), `txSkelInsReference` →
+  `txSkelReferenceInputs` (`txSkelInsReferenceL` → `txSkelReferenceInputsL`),
+  and `txSkelOuts` → `txSkelOutputs` (`txSkelOutsL` → `txSkelOutputsL`).
+- The `select` predicate of `overMaybeSelectingTweak` now has type
+  `Int -> Bool` instead of `Integer -> Bool`. Its meaning is unchanged: the
+  argument is the `0`-based position of a focus among the /modifiable/ foci.
 - Test coverage analysis is no longer enabled by default in `cabal.project`,
   so `cabal test` output is no longer cluttered with `Writing: ….html` lines.
   The `nix develop .#default` dev shell provides two commands to run the test
@@ -35,6 +73,14 @@
 - Building a `ParameterChange` governance action containing a `CostModels`
   parameter update now fails with an explicit `MCEUnsupportedFeature` error
   instead of silently ignoring the requested change.
+- Tweaks were homogenized for naming consistency (see `doc/TWEAKS.md`). The
+  following predicate-based removal tweaks were renamed to plural form:
+  - `removeInputTweak` → `removeInputsTweak`
+  - `removeOutputTweak` → `removeOutputsTweak`
+  - `removeMintTweak` → `removeMintsTweak`
+- `modifySpendRedeemersOfTypeTweak` moved from `Cooked.Tweak.Inputs` to the new
+  `Cooked.Tweak.Redeemers` module (re-exported from `Cooked.Tweak`, so imports
+  of `Cooked` are unaffected).
 
 ### Fixed
 

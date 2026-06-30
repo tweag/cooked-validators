@@ -106,28 +106,20 @@ autoFillReferenceScripts ::
   (Members '[Tweak, MockChainRead, MockChainLog] effs) =>
   Sem effs ()
 autoFillReferenceScripts = do
-  inputsKeys <- viewTweak $ txSkelInsL % to Map.keys
-  -- Updating minting redeemers
-  traverseTweak
-    (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
-    (updateRedeemedScript inputsKeys)
-  -- Updating spending redeemers
-  inputsList <- viewTweak $ txSkelInsL % to Map.toList
+  inputsKeys <- viewTweak $ txSkelInputsL % to Map.keys
+  -- Updating spending redeemers, whose validators are fetched from the index
+  -- based on the inputs' references, and thus require a dedicated treatment.
+  inputsList <- viewTweak $ txSkelInputsL % to Map.toList
   newInputs <- forM inputsList $ \(oRef, red) ->
     (oRef,) <$> do
       validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
       case validatorM of
         Nothing -> return red
         Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
-  setTweak txSkelInsL $ Map.fromList newInputs
-  -- Updating proposing redeemers
-  traverseTweak
-    (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just)
-    (updateRedeemedScript inputsKeys)
-  -- Updating widrawing redeemers
-  traverseTweak
-    (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userEitherScriptP)
-    (updateRedeemedScript inputsKeys)
+  setTweak txSkelInputsL $ Map.fromList newInputs
+  -- Updating minting, proposing, withdrawing and certifying redeemers, whose
+  -- scripts are directly stored in the skeleton, in one go.
+  traverseTweak txSkelRedeemedScriptsT (updateRedeemedScript inputsKeys)
 
 -- * Auto filling min ada amounts
 
@@ -179,4 +171,4 @@ toTxSkelOutWithMinAda txSkelOut = do
 autoFillMinAda ::
   (Members '[Tweak, MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
   Sem effs ()
-autoFillMinAda = traverseTweak (txSkelOutsL % traversed) toTxSkelOutWithMinAda
+autoFillMinAda = traverseTweak (txSkelOutputsL % traversed) toTxSkelOutWithMinAda

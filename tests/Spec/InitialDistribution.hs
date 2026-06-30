@@ -33,13 +33,13 @@ spendReferenceAlwaysTrueValidator = do
   ((scriptTxOutRef, _) : _) <-
     validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
+        { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
           txSkelSignatories = txSkelSignatoriesFromList [bob]
         }
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelOuts = [alice `receives` Value (Script.ada 2)],
-        txSkelIns = Map.singleton scriptTxOutRef $ TxSkelRedeemer () (Just referenceScriptTxOutRef) False,
+      { txSkelOutputs = [alice `receives` Value (Script.ada 2)],
+        txSkelInputs = Map.singleton scriptTxOutRef $ TxSkelRedeemer () (Just referenceScriptTxOutRef) False,
         txSkelSignatories = txSkelSignatoriesFromList [bob]
       }
 

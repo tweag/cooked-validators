@@ -46,10 +46,10 @@ allOutPermutsTweak ::
   PermutOutTweakMode ->
   Sem effs ()
 allOutPermutsTweak mode = do
-  oldOut <- viewTweak txSkelOutsL
+  oldOut <- viewTweak txSkelOutputsL
   msum $
     map
-      (setTweak txSkelOutsL)
+      (setTweak txSkelOutputsL)
       (perms oldOut)
   where
     perms = case mode of
@@ -100,7 +100,7 @@ singleOutPermutTweak ::
   Int ->
   Sem effs ()
 singleOutPermutTweak seed = do
-  outputs <- viewTweak txSkelOutsL
+  outputs <- viewTweak txSkelOutputsL
   let outputs' = shuffle' outputs (length outputs) (mkStdGen seed)
   guard $ outputs' /= outputs
-  setTweak txSkelOutsL outputs'
+  setTweak txSkelOutputsL outputs'

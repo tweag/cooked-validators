@@ -21,7 +21,7 @@ tamperDatumTweakTest =
   testCase "tamperDatumTweak" $
     [ ( txSkelTemplate
           { txSkelLabels = Set.singleton $ TxSkelLabel TamperDatumLbl,
-            txSkelOuts =
+            txSkelOutputs =
               [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
                 alice `receives` Value (Script.lovelace 234),
                 alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
@@ -33,7 +33,7 @@ tamperDatumTweakTest =
       @=? (run . runNonDet)
         ( runTweak
             txSkelTemplate
-              { txSkelOuts =
+              { txSkelOutputs =
                   [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
                     alice `receives` Value (Script.lovelace 234),
                     alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
@@ -48,7 +48,7 @@ malformDatumTweakTest :: TestTree
 malformDatumTweakTest =
   testCase "malformDatumTweak" $
     let allBuiltinData :: TxSkel -> [PlutusTx.BuiltinData]
-        allBuiltinData = toListOf (txSkelOutsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT)
+        allBuiltinData = toListOf (txSkelOutputsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT)
 
         txSkelWithDatums1And4 :: (PlutusTx.ToData a, PlutusTx.ToData b) => a -> b -> [PlutusTx.BuiltinData]
         txSkelWithDatums1And4 datum1 datum4 =
@@ -69,7 +69,7 @@ malformDatumTweakTest =
           ( (fmap allBuiltinData . run . runNonDet)
               ( execTweak
                   ( txSkelTemplate
-                      { txSkelOuts =
+                      { txSkelOutputs =
                           [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
                             alice `receives` Value (Script.lovelace 234),
                             alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer),

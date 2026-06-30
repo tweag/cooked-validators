@@ -71,8 +71,8 @@ tests =
             skelIn :: [(ARedeemer, V3.TxOutRef)] -> TxSkel
             skelIn aInputs =
               txSkelTemplate
-                { txSkelIns = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
-                  txSkelOuts = [wallet 2 `receives` Value (Script.lovelace 2_500_000)],
+                { txSkelInputs = Map.fromList $ map (second someTxSkelRedeemer . swap) aInputs,
+                  txSkelOutputs = [wallet 2 `receives` Value (Script.lovelace 2_500_000)],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                 }
 
@@ -89,7 +89,7 @@ tests =
                       execTweak (skelIn aInputs) $
                         doubleSatAttack
                           splitMode
-                          (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
+                          (txSkelInputsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
                           ( \aOref _aRedeemer -> do
                               bUtxos <- utxosAt bValidator
                               if
@@ -136,7 +136,7 @@ tests =
             skelExpected aInputs bInputs =
               txSkelTemplate
                 { txSkelLabels = Set.singleton $ TxSkelLabel DoubleSatLbl,
-                  txSkelIns =
+                  txSkelInputs =
                     Map.fromList
                       ( ( \(bRedeemer, (bOref, _)) ->
                             (bOref, someTxSkelRedeemer bRedeemer)
@@ -149,7 +149,7 @@ tests =
                           )
                             <$> aInputs
                         ),
-                  txSkelOuts =
+                  txSkelOutputs =
                     [ wallet 2 `receives` Value (Script.lovelace 2_500_000),
                       wallet 6 `receives` Value (foldMap (view txSkelOutValueL . snd . snd) bInputs)
                     ],

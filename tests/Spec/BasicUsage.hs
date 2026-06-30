@@ -16,7 +16,7 @@ pkToPk :: Wallet -> Wallet -> Integer -> StagedMockChain ()
 pkToPk sender recipient amount =
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelOuts = [recipient `receives` Value (Script.ada amount)],
+      { txSkelOutputs = [recipient `receives` Value (Script.ada amount)],
         txSkelSignatories = txSkelSignatoriesFromList [sender]
       }
 
@@ -32,7 +32,7 @@ mintingQuickValue =
   validateTxSkel_
     txSkelTemplate
       { txSkelMints = review txSkelMintsListI [mint (Script.trueMintingMPScript @()) () (Api.TokenName "banana") 10],
-        txSkelOuts = [alice `receives` Value (Script.multiPurposeScriptValue (Script.trueMintingMPScript @()) (Api.TokenName "banana") 10)],
+        txSkelOutputs = [alice `receives` Value (Script.multiPurposeScriptValue (Script.trueMintingMPScript @()) (Api.TokenName "banana") 10)],
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
@@ -41,7 +41,7 @@ payToAlwaysTrueValidator =
   fst . head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
+              { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
                 txSkelSignatories = txSkelSignatoriesFromList [alice]
               }
         )
@@ -51,8 +51,8 @@ consumeAlwaysTrueValidator = do
   outref <- payToAlwaysTrueValidator
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelIns = Map.fromList [(outref, someTxSkelRedeemer ())],
-        txSkelOuts = [alice `receives` Value (Script.ada 10)],
+      { txSkelInputs = Map.fromList [(outref, someTxSkelRedeemer ())],
+        txSkelOutputs = [alice `receives` Value (Script.ada 10)],
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 

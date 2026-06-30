@@ -1,0 +1,134 @@
+-- | Tests for 'Cooked.Tweak.Redeemers'.
+module Spec.Tweak.Redeemers where
+
+import Cooked
+import Data.Map qualified as Map
+import Data.Set qualified as Set
+import Optics.Core
+import Plutus.Script.Utils.V3 qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx qualified
+import Polysemy
+import Polysemy.NonDet
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, (@=?))
+
+-- | A fabricated 'Api.TxOutRef' for building spending inputs in pure tweak
+-- tests (no mockchain needed).
+oref :: Integer -> Api.TxOutRef
+oref = Api.TxOutRef (Api.TxId "")
+
+-- | A skeleton spending three inputs: two with 'Integer' redeemers and one with
+-- a redeemer of a different type, which redeemer tweaks targeting 'Integer'
+-- must leave untouched.
+baseSkel :: TxSkel
+baseSkel =
+  txSkelTemplate
+    { txSkelInputs =
+        Map.fromList
+          [ (oref 0, someTxSkelRedeemer (10 :: Integer)),
+            (oref 1, someTxSkelRedeemer (20 :: Integer)),
+            (oref 2, someTxSkelRedeemer True)
+          ]
+    }
+
+-- | The list of 'Integer'-typed spending redeemers of a skeleton.
+integerRedeemers :: TxSkel -> [Integer]
+integerRedeemers = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerTypedAT @Integer)
+
+-- | A skeleton registering a single script certificate whose redeemer is the
+-- given one. Certificate owners are stored with an 'IsEither' kind, which used
+-- to make their redeemers invisible to the redeemer traversals.
+certificateSkel :: TxSkelRedeemer -> TxSkel
+certificateSkel red =
+  txSkelTemplate
+    { txSkelCertificates =
+        [TxSkelCertificate (UserRedeemedScript (toVScript $ Script.trueMPScript @()) red) StakingRegister]
+    }
+
+-- | The list of 'Integer'-typed certifying redeemers of a skeleton.
+certificateIntegerRedeemers :: TxSkel -> [Integer]
+certificateIntegerRedeemers =
+  toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userTxSkelRedeemerAT % txSkelRedeemerTypedAT @Integer)
+
+modifySpendRedeemersTest :: TestTree
+modifySpendRedeemersTest =
+  testCase "modifySpendRedeemersOfTypeTweak only touches redeemers of the right type" $
+    [11, 21]
+      @=? ( integerRedeemers . fst . run $
+              runTweak
+                baseSkel
+                (modifySpendRedeemersOfTypeTweak @Integer @Integer (\n -> Just (n + 1)))
+          )
+
+modifyAllRedeemersTest :: TestTree
+modifyAllRedeemersTest =
+  testCase "modifyRedeemersOfTypeTweak reaches the spending redeemers" $
+    [0, 0]
+      @=? ( integerRedeemers . fst . run $
+              runTweak baseSkel (modifyRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))
+          )
+
+tamperRedeemerTest :: TestTree
+tamperRedeemerTest =
+  testCase "tamperRedeemerTweak modifies redeemers and adds its label" $
+    [(Set.singleton (TxSkelLabel TamperRedeemerLbl), [11, 21])]
+      @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
+              runTweak
+                baseSkel
+                (tamperRedeemerTweak @Integer (\n -> Just (n + 1)))
+          )
+
+malformRedeemerTest :: TestTree
+malformRedeemerTest =
+  testCase "malformRedeemerTweak tries all combinations of redeemer modifications" $
+    let allData :: TxSkel -> [PlutusTx.BuiltinData]
+        allData = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
+        d :: (PlutusTx.ToData a) => a -> PlutusTx.BuiltinData
+        d = PlutusTx.toBuiltinData
+     in assertSameSets
+          [ [d False, d (20 :: Integer), d True], -- only the first integer redeemer changed
+            [d (10 :: Integer), d False, d True], -- only the second integer redeemer changed
+            [d False, d False, d True] -- both integer redeemers changed
+          ]
+          ( (fmap allData . run . runNonDet)
+              ( execTweak
+                  baseSkel
+                  (malformRedeemerTweak @Integer (const [PlutusTx.toBuiltinData False]))
+              )
+          )
+
+-- | Regression test for the certificate-redeemer kind bug: certificate owners
+-- are stored with an 'IsEither' kind, which previously made their redeemers
+-- invisible to 'modifyRedeemersOfTypeTweak'.
+modifyCertificateRedeemersTest :: TestTree
+modifyCertificateRedeemersTest =
+  testCase "modifyRedeemersOfTypeTweak reaches the certifying redeemers" $
+    [0]
+      @=? ( certificateIntegerRedeemers . fst . run $
+              runTweak
+                (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
+                (modifyRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))
+          )
+
+-- | Regression test for the certificate-redeemer kind bug at the
+-- 'txSkelRedeemersT' level: reference inputs carried by a certificate redeemer
+-- were previously not collected by 'txSkelReferenceInputsInRedeemers'.
+certificateReferenceInputsTest :: TestTree
+certificateReferenceInputsTest =
+  testCase "txSkelReferenceInputsInRedeemers collects certifying redeemer reference inputs" $
+    Set.singleton (oref 7)
+      @=? txSkelReferenceInputsInRedeemers
+        (certificateSkel $ someTxSkelRedeemer (10 :: Integer) `withReferenceInput` oref 7)
+
+tests :: TestTree
+tests =
+  testGroup
+    "Redeemer tweaks"
+    [ modifySpendRedeemersTest,
+      modifyAllRedeemersTest,
+      tamperRedeemerTest,
+      malformRedeemerTest,
+      modifyCertificateRedeemersTest,
+      certificateReferenceInputsTest
+    ]
