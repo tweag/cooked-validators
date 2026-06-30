@@ -35,6 +35,7 @@ module Cooked.Skeleton
     txSkelProposingScripts,
     txSkelMintingScripts,
     txSkelCertifyingScripts,
+    txSkelRedeemersT,
   )
 where
 
@@ -168,13 +169,8 @@ txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
 -- | All 'Api.TxOutRef's in reference inputs from redeemers
 txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
-txSkelInsReferenceInRedeemers TxSkel {..} =
-  Set.fromList $
-    toListOf (to Map.elems % traversed % txSkelRedeemerReferenceInputAT) txSkelIns
-      <> toListOf (traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelProposals
-      <> toListOf (txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelMints
-      <> toListOf (txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT % txSkelRedeemerReferenceInputAT) txSkelWithdrawals
-      <> toListOf (traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL % txSkelRedeemerReferenceInputAT) txSkelCertificates
+txSkelInsReferenceInRedeemers =
+  Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
@@ -203,3 +199,13 @@ txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % m
 -- | Returns all the scripts involved in certificates in this 'TxSkel'
 txSkelCertifyingScripts :: TxSkel -> [VScript]
 txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userVScriptAT)
+
+-- | A traversal focusing every 'TxSkelRedeemer' of a 'TxSkel', in all five
+-- positions (spending, minting, proposing, withdrawing and certifying).
+txSkelRedeemersT :: Traversal' TxSkel TxSkelRedeemer
+txSkelRedeemersT =
+  (txSkelInsL % iso Map.toList Map.fromList % traversed % _2)
+    `adjoin` (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL)
+    `adjoin` (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL)
+    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT)
+    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL)

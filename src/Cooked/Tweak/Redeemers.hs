@@ -173,12 +173,12 @@ malformRedeemerTweak ::
   (a -> [Api.BuiltinData]) ->
   Sem effs ()
 malformRedeemerTweak change = do
-  redeemers <- viewAllTweak redeemersT
+  redeemers <- viewAllTweak txSkelRedeemersT
   let modifiedRedeemers = map (\red -> red : changeRedeemer red) redeemers
       -- We remove the first combination because it consists of all the heads
       -- and therefore it is the combination consisting of no changes at all.
-      modifiedRedeemerGroups = tail $ allCombinations modifiedRedeemers
-  msum $ map (setTweak (partsOf redeemersT)) modifiedRedeemerGroups
+      modifiedRedeemerGroups = tail $ sequence modifiedRedeemers
+  msum $ map (setTweak (partsOf txSkelRedeemersT)) modifiedRedeemerGroups
   addLabelTweak MalformRedeemerLbl
   where
     changeRedeemer :: TxSkelRedeemer -> [TxSkelRedeemer]
@@ -186,22 +186,3 @@ malformRedeemerTweak change = do
       typedRed <- red ^.. txSkelRedeemerTypedAT @a
       modifiedData <- change typedRed
       return $ red & txSkelRedeemerBuiltinDataL .~ modifiedData
-
--- | A traversal focusing every 'TxSkelRedeemer' of a skeleton, in all five
--- positions (spending, minting, proposing, withdrawing and certifying). The
--- five positions focus disjoint parts of the skeleton, so they can be safely
--- combined with 'adjoin'.
-redeemersT :: Traversal' TxSkel TxSkelRedeemer
-redeemersT =
-  (txSkelInsL % iso Map.toList Map.fromList % traversed % _2)
-    `adjoin` (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL)
-    `adjoin` (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL)
-    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT)
-    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL)
-
--- | All combinations of a list of lists: see
--- 'Cooked.Tweak.Outputs.allCombinations'.
-allCombinations :: [[a]] -> [[a]]
-allCombinations [] = [[]]
-allCombinations [[]] = []
-allCombinations (first : rest) = [x : xs | x <- first, xs <- allCombinations rest]

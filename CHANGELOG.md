@@ -20,6 +20,8 @@
     of the existing `tamperDatumTweak` and `malformDatumTweak`.
 - New `addMintTweak` to add a single mint entry (singular counterpart of
   `addMintsTweak`).
+- New `txSkelRedeemersT` traversal, exported from `Cooked.Skeleton`, focusing
+  every `TxSkelRedeemer` of a `TxSkel` across all five redeemer positions.
 - New `doc/TWEAKS.md` describing the naming and branching conventions tweaks
   follow.
 

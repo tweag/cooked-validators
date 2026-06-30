@@ -112,7 +112,7 @@ malformDatumTweak change = do
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs
       -- We remove the first combination because it consists of all the heads
       -- and therefore it is the combination consisting of no changes at all.
-      modifiedOutputGroups = tail $ allCombinations modifiedOutputs
+      modifiedOutputGroups = tail $ sequence modifiedOutputs
   msum $ map (setTweak txSkelOutsL) modifiedOutputGroups
   addLabelTweak MalformDatumLbl
   where
@@ -129,26 +129,3 @@ data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
 instance PrettyCooked MalformDatumLbl where
   prettyCooked _ = "MalformDatum"
-
--- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such
--- that - @length c == length l@, and - for all @0 <= i < length c@, @elem (c !!
--- i) (l !! i)@.
---
--- 'allCombinations', as the name suggests, returns all the possible
--- combinations of a given list of lists. For instance:
---
--- @allCombinations [[1,2,3], [4,5], [6]] == [[1,4,6], [1,5,6], [2,4,6], [2,5,6], [3,4,6], [3,5,6]]@
---
--- It is guaranteed that combinations are returned in such an order that a
--- combination @c1@ comes before a combination @c2@ in the result list if and
--- only if for some prefix list @p@, some elements @a1@ and @a2@ and for some
--- rest lists @r1@ and @r2@:
--- > c1 == p ++ (a1 : r1)
--- > c2 == p ++ (a2 : r2)
--- and @a1@ comes before @a2@ in the list @l !! length p@. In particular, the
--- first element of the result list is the combination consisting of all the
--- first elements of the input lists.
-allCombinations :: [[a]] -> [[a]]
-allCombinations [] = [[]]
-allCombinations [[]] = [] -- included in the next one
-allCombinations (first : rest) = [x : xs | x <- first, xs <- allCombinations rest]

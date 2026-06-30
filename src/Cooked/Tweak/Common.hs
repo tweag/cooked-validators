@@ -290,13 +290,9 @@ combineModsTweak groupings optic changes = do
                   setTweak (partsOf optic) $ map fst combination
                   return $ mapMaybe (rightToMaybe . snd) combination
               )
-              (allCombinations changedFoci)
+              (sequence changedFoci)
       )
       (groupings indexes)
-  where
-    allCombinations :: [[a]] -> [[a]]
-    allCombinations [] = [[]]
-    allCombinations (first : rest) = [x : xs | x <- first, xs <- allCombinations rest]
 
 -- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
 -- Sometimes, it can prove more convenient to explicitly state which property
