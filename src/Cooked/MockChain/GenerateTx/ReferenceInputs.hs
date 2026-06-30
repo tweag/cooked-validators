@@ -15,7 +15,7 @@ import Polysemy.Error
 -- its content. These reference inputs can be found in two places, either in
 -- direct reference inputs 'txSkelReferenceInputs' or scattered in the various
 -- redeemers of the transaction, which can be gathered with
--- 'txSkelInsReferenceInRedeemers'.
+-- 'txSkelReferenceInputsInRedeemers'.
 toInsReference ::
   (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
   TxSkel ->
@@ -24,7 +24,7 @@ toInsReference skel = do
   -- As regular inputs can be used to hold scripts as if in reference inputs, we
   -- need to remove from the reference inputs stored in redeemers the ones that
   -- already appear in the inputs to avoid validation errors.
-  let indirectReferenceInputs = txSkelInsReferenceInRedeemers skel
+  let indirectReferenceInputs = txSkelReferenceInputsInRedeemers skel
       redundantReferenceInputs = indirectReferenceInputs `Set.intersection` Map.keysSet (txSkelInputs skel)
       refInputs = Set.toList (txSkelReferenceInputs skel <> indirectReferenceInputs `Set.difference` redundantReferenceInputs)
   if null refInputs

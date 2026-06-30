@@ -31,7 +31,7 @@ module Cooked.Skeleton
     txSkelWithdrawnValue,
     txSkelWithdrawingScripts,
     txSkelPaidValue,
-    txSkelInsReferenceInRedeemers,
+    txSkelReferenceInputsInRedeemers,
     txSkelProposingScripts,
     txSkelMintingScripts,
     txSkelCertifyingScripts,
@@ -62,6 +62,8 @@ import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+
+-- * `TxSkel`: high-level, type-retaining abstractions of concrete transactions
 
 -- | A transaction skeleton. This is cooked-validators's variant of transaction
 -- bodies, eventually translated to Cardano @TxBody@.
@@ -97,7 +99,7 @@ data TxSkel where
       -- be directly translated into a Cardano reference input. Additional
       -- reference inputs can be found within the various redeemers of the
       -- skeleton to host reference scripts. Function
-      -- 'txSkelInsReferenceInRedeemers' collects those all.
+      -- 'txSkelReferenceInputsInRedeemers' collects those all.
       txSkelReferenceInputs :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
@@ -168,8 +170,8 @@ txSkelPaidValue :: TxSkel -> Api.Value
 txSkelPaidValue = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
 
 -- | All 'Api.TxOutRef's in reference inputs from redeemers
-txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef
-txSkelInsReferenceInRedeemers =
+txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
+txSkelReferenceInputsInRedeemers =
   Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
 
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
@@ -178,7 +180,7 @@ txSkelInsReferenceInRedeemers =
 -- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> Set Api.TxOutRef
-txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelInsReferenceInRedeemers skel <> Map.keysSet txSkelInputs <> txSkelReferenceInputs
+txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceInputsInRedeemers skel <> Map.keysSet txSkelInputs <> txSkelReferenceInputs
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
