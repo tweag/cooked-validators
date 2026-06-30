@@ -199,7 +199,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
           -- perfect balancing and force an output to be created at the balancing user
           -- address, thus we cannot assume the actual estimated fee can be accounted
           -- for with the current set of balancing utxos and cannot speed up search.
-          | txSkelValueInOutputs newSkel == txSkelValueInOutputs skel -> computeFeeAndBalance balancingUser minFee fee balancingUtxos mCollaterals skel
+          | txSkelPaidValue newSkel == txSkelPaidValue skel -> computeFeeAndBalance balancingUser minFee fee balancingUtxos mCollaterals skel
           -- Current fee is sufficient, and the set of utxo could account for
           -- less fee by feeding into whatever output already goes back to the
           -- balancing user. We can speed up search, because the current
@@ -424,7 +424,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
   let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
-      outValue = txSkelValueInOutputs txSkel
+      outValue = txSkelPaidValue txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
   inValue <- txSkelInputValue txSkel
   certificatesDepositedValue <- Script.toValue <$> txSkelDepositedValueInCertificates txSkel

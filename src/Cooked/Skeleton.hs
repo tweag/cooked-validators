@@ -30,7 +30,7 @@ module Cooked.Skeleton
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
     txSkelWithdrawingScripts,
-    txSkelValueInOutputs,
+    txSkelPaidValue,
     txSkelInsReferenceInRedeemers,
     txSkelProposingScripts,
     txSkelMintingScripts,
@@ -164,8 +164,8 @@ txSkelTemplate =
     }
 
 -- | Returns the full value contained in the skeleton outputs
-txSkelValueInOutputs :: TxSkel -> Api.Value
-txSkelValueInOutputs = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
+txSkelPaidValue :: TxSkel -> Api.Value
+txSkelPaidValue = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
 
 -- | All 'Api.TxOutRef's in reference inputs from redeemers
 txSkelInsReferenceInRedeemers :: TxSkel -> Set Api.TxOutRef

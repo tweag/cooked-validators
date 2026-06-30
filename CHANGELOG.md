@@ -29,6 +29,7 @@
 
 ### Changed
 
+- Renamed `txSkelValueInOutputs` to `txSkelPaidValue`.
 - Renamed three `TxSkel` fields and their lenses for clarity: `txSkelIns` →
   `txSkelInputs` (`txSkelInsL` → `txSkelInputsL`), `txSkelInsReference` →
   `txSkelReferenceInputs` (`txSkelInsReferenceL` → `txSkelReferenceInputsL`),
