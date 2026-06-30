@@ -107,11 +107,8 @@ autoFillReferenceScripts ::
   Sem effs ()
 autoFillReferenceScripts = do
   inputsKeys <- viewTweak $ txSkelInputsL % to Map.keys
-  -- Updating minting redeemers
-  traverseTweak
-    (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
-    (updateRedeemedScript inputsKeys)
-  -- Updating spending redeemers
+  -- Updating spending redeemers, whose validators are fetched from the index
+  -- based on the inputs' references, and thus require a dedicated treatment.
   inputsList <- viewTweak $ txSkelInputsL % to Map.toList
   newInputs <- forM inputsList $ \(oRef, red) ->
     (oRef,) <$> do
@@ -120,14 +117,9 @@ autoFillReferenceScripts = do
         Nothing -> return red
         Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
   setTweak txSkelInputsL $ Map.fromList newInputs
-  -- Updating proposing redeemers
-  traverseTweak
-    (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just)
-    (updateRedeemedScript inputsKeys)
-  -- Updating widrawing redeemers
-  traverseTweak
-    (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userEitherScriptP)
-    (updateRedeemedScript inputsKeys)
+  -- Updating minting, proposing, withdrawing and certifying redeemers, whose
+  -- scripts are directly stored in the skeleton, in one go.
+  traverseTweak txSkelRedeemedScriptsT (updateRedeemedScript inputsKeys)
 
 -- * Auto filling min ada amounts
 

@@ -5,6 +5,7 @@ import Cooked
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Optics.Core
+import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import Polysemy
@@ -34,6 +35,21 @@ baseSkel =
 -- | The list of 'Integer'-typed spending redeemers of a skeleton.
 integerRedeemers :: TxSkel -> [Integer]
 integerRedeemers = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerTypedAT @Integer)
+
+-- | A skeleton registering a single script certificate whose redeemer is the
+-- given one. Certificate owners are stored with an 'IsEither' kind, which used
+-- to make their redeemers invisible to the redeemer traversals.
+certificateSkel :: TxSkelRedeemer -> TxSkel
+certificateSkel red =
+  txSkelTemplate
+    { txSkelCertificates =
+        [TxSkelCertificate (UserRedeemedScript (toVScript $ Script.trueMPScript @()) red) StakingRegister]
+    }
+
+-- | The list of 'Integer'-typed certifying redeemers of a skeleton.
+certificateIntegerRedeemers :: TxSkel -> [Integer]
+certificateIntegerRedeemers =
+  toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userTxSkelRedeemerAT % txSkelRedeemerTypedAT @Integer)
 
 modifySpendRedeemersTest :: TestTree
 modifySpendRedeemersTest =
@@ -82,6 +98,29 @@ malformRedeemerTest =
               )
           )
 
+-- | Regression test for the certificate-redeemer kind bug: certificate owners
+-- are stored with an 'IsEither' kind, which previously made their redeemers
+-- invisible to 'modifyRedeemersOfTypeTweak'.
+modifyCertificateRedeemersTest :: TestTree
+modifyCertificateRedeemersTest =
+  testCase "modifyRedeemersOfTypeTweak reaches the certifying redeemers" $
+    [0]
+      @=? ( certificateIntegerRedeemers . fst . run $
+              runTweak
+                (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
+                (modifyRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))
+          )
+
+-- | Regression test for the certificate-redeemer kind bug at the
+-- 'txSkelRedeemersT' level: reference inputs carried by a certificate redeemer
+-- were previously not collected by 'txSkelReferenceInputsInRedeemers'.
+certificateReferenceInputsTest :: TestTree
+certificateReferenceInputsTest =
+  testCase "txSkelReferenceInputsInRedeemers collects certifying redeemer reference inputs" $
+    Set.singleton (oref 7)
+      @=? txSkelReferenceInputsInRedeemers
+        (certificateSkel $ someTxSkelRedeemer (10 :: Integer) `withReferenceInput` oref 7)
+
 tests :: TestTree
 tests =
   testGroup
@@ -89,5 +128,7 @@ tests =
     [ modifySpendRedeemersTest,
       modifyAllRedeemersTest,
       tamperRedeemerTest,
-      malformRedeemerTest
+      malformRedeemerTest,
+      modifyCertificateRedeemersTest,
+      certificateReferenceInputsTest
     ]

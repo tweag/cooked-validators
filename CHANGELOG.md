@@ -22,10 +22,25 @@
   `addMintsTweak`).
 - New `txSkelRedeemersT` traversal, exported from `Cooked.Skeleton`, focusing
   every `TxSkelRedeemer` of a `TxSkel` across all five redeemer positions.
+- New `txSkelRedeemedScriptsT` traversal, exported from `Cooked.Skeleton`,
+  focusing every script redeemed directly within a `TxSkel` (minting,
+  proposing, withdrawing and certifying; the spending position is excluded as
+  its scripts come from the index, not the skeleton).
 - New `doc/TWEAKS.md` describing the naming and branching conventions tweaks
   follow.
 
 ### Removed
+
+### Fixed
+
+- Certificate redeemers were silently ignored because certificate owners are
+  stored as `IsEither` whereas the code reaching them assumed `IsScript`. Both
+  `txSkelRedeemersT` (affecting `txSkelReferenceInputsInRedeemers` and
+  `malformRedeemerTweak`) and `modifyCertificateRedeemersOfTypeTweak` (affecting
+  `modifyRedeemersOfTypeTweak` and `tamperRedeemerTweak`) now cover certificate
+  redeemers correctly.
+- `autoFillReferenceScripts` now also auto-fills reference scripts for
+  certifying redeemers, which it previously overlooked.
 
 ### Changed
 

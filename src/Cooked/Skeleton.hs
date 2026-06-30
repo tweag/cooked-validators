@@ -31,6 +31,7 @@ module Cooked.Skeleton
     txSkelWithdrawalsL,
     txSkelCertificatesL,
     txSkelRedeemersT,
+    txSkelRedeemedScriptsT,
 
     -- * Smart constructor
     txSkelTemplate,
@@ -162,7 +163,18 @@ txSkelRedeemersT =
     `adjoin` (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL)
     `adjoin` (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL)
     `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT)
-    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL)
+    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userTxSkelRedeemerAT)
+
+-- | A traversal focusing every script redeemed directly within a 'TxSkel',
+-- that is in the minting, proposing, withdrawing and certifying positions. The
+-- spending position is excluded, as the scripts spent there are not stored in
+-- the skeleton but fetched from the index based on the inputs' references.
+txSkelRedeemedScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelRedeemedScriptsT =
+  (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
+    `adjoin` (txSkelProposalsL % traversed % txSkelProposalConstitutionAT)
+    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userEitherScriptP)
+    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userEitherScriptP)
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel

@@ -106,7 +106,7 @@ modifyCertificateRedeemersOfTypeTweak ::
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyCertificateRedeemersOfTypeTweak =
-  modifyRedeemersOfTypeAtTweak (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT % userTxSkelRedeemerL)
+  modifyRedeemersOfTypeAtTweak (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userTxSkelRedeemerAT)
 
 -- | Applies an optional modification to all redeemers of type @a@, regardless
 -- of their position in the skeleton (spending, minting, proposing, withdrawing
