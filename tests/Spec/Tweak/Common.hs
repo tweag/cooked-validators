@@ -20,7 +20,7 @@ tests :: TestTree
 tests =
   testGroup
     "building blocks for tweaks"
-    [ testGroup "overMaybeSelectingTweak" $
+    [ testGroup "overModsSelectingTweak" $
         let skel = mkSkel [123, 234, 345]
          in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test -- this one is a regression test
         -- this one is a regression test
@@ -28,7 +28,8 @@ tests =
                   @=? run
                     ( runNonDet $
                         execTweak skel $
-                          overMaybeSelectingTweak
+                          overModsSelectingTweak
+                            False
                             (txSkelOutputsL % traversed % txSkelOutValueL)
                             (const Nothing)
                             (const True)
@@ -38,7 +39,8 @@ tests =
                   @=? run
                     ( runNonDet $
                         runTweak skel $
-                          overMaybeSelectingTweak
+                          overModsSelectingTweak
+                            False
                             (txSkelOutputsL % traversed % txSkelOutValueL)
                             ( \value ->
                                 if value `Api.geq` Script.lovelace 200
@@ -52,13 +54,14 @@ tests =
                   @=? run
                     ( runNonDet $
                         runTweak skel $
-                          overMaybeSelectingTweak
+                          overModsSelectingTweak
+                            False
                             (txSkelOutputsL % traversed % txSkelOutValueL)
                             (const $ Just $ Script.lovelace 789)
                             (`elem` [0, 2])
                     )
             ],
-      testGroup "combineModsTweak" $
+      testGroup "overModsTweak" $
         let skelIn = mkSkel [0, 0, 0]
             skelOut x y z = (mkSkel [x, y, z], [0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0])
          in [ testCase "all combinations of modifications" $
@@ -96,10 +99,10 @@ tests =
                   ( run $
                       runNonDet $
                         runTweak skelIn $
-                          combineModsTweak
+                          overModsTweak
                             (tail . subsequences)
                             (txSkelOutputsL % itraversed % txSkelOutValueL % valueLovelaceL)
-                            (\i x -> return [(x + 1, i), (x + 2, i)])
+                            (\i x -> embedFoldable [(x + 1, i), (x + 2, i)])
                   ),
               testCase "separate modifications" $
                 assertSameSets
@@ -114,10 +117,10 @@ tests =
                   ( run $
                       runNonDet $
                         runTweak skelIn $
-                          combineModsTweak
+                          overModsTweak
                             (map (: []))
                             (txSkelOutputsL % itraversed % txSkelOutValueL % valueLovelaceL)
-                            (\i x -> return [(x + 1, i), (x + 2, i)])
+                            (\i x -> embedFoldable [(x + 1, i), (x + 2, i)])
                   )
             ]
     ]

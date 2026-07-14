@@ -54,8 +54,8 @@ certificateIntegerRedeemers =
 modifySpendRedeemersTest :: TestTree
 modifySpendRedeemersTest =
   testCase "modifySpendRedeemersOfTypeTweak only touches redeemers of the right type" $
-    [11, 21]
-      @=? ( integerRedeemers . fst . run $
+    [[11, 21]]
+      @=? ( fmap (integerRedeemers . fst) . run . runNonDet $
               runTweak
                 baseSkel
                 (modifySpendRedeemersOfTypeTweak @Integer @Integer (\n -> Just (n + 1)))
@@ -64,8 +64,8 @@ modifySpendRedeemersTest =
 modifyAllRedeemersTest :: TestTree
 modifyAllRedeemersTest =
   testCase "modifyRedeemersOfTypeTweak reaches the spending redeemers" $
-    [0, 0]
-      @=? ( integerRedeemers . fst . run $
+    [[0, 0]]
+      @=? ( fmap (integerRedeemers . fst) . run . runNonDet $
               runTweak baseSkel (modifyRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))
           )
 
@@ -104,8 +104,8 @@ malformRedeemerTest =
 modifyCertificateRedeemersTest :: TestTree
 modifyCertificateRedeemersTest =
   testCase "modifyRedeemersOfTypeTweak reaches the certifying redeemers" $
-    [0]
-      @=? ( certificateIntegerRedeemers . fst . run $
+    [[0]]
+      @=? ( fmap (certificateIntegerRedeemers . fst) . run . runNonDet $
               runTweak
                 (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
                 (modifyRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))

@@ -75,12 +75,12 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 doubleSatAttack ::
   forall effs is k owner a.
   ( Members '[Tweak, NonDet, MockChainRead] effs,
-    Eq is,
+    Ord is,
     Is k A_Traversal,
     IsTxSkelOutAllowedOwner owner
   ) =>
   -- | how to combine modifications from caused by different foci. See the
-  -- comment at 'combineModsTweak', which uses the same logic.
+  -- comment at 'overModsTweak', which uses the same logic.
   ([is] -> [[is]]) ->
   -- | Each focus of this optic is a potential reason to add some extra
   -- constraints.
@@ -116,7 +116,7 @@ doubleSatAttack ::
   owner ->
   Sem effs ()
 doubleSatAttack groupings optic change target = do
-  deltas <- combineModsTweak groupings optic change
+  deltas <- overModsTweak groupings optic (\i a -> change i a >>= embedFoldable)
   let delta = joinDoubleSatDeltas deltas
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta

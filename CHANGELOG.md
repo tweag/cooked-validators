@@ -7,6 +7,16 @@
 - New `traverseTweak` primitive, the effectful sibling of `overTweak`: it
   modifies every focus of an optic on the current `TxSkel` using a function
   running in the tweak's effect stack.
+- New localized-modification tweak family in `Cooked.Tweak.Common`:
+  `overModsTweak` (the general engine, returning the labels of the modified
+  foci), `overModsSelectingTweak`, and the convenience wrappers
+  `overModsTweakAll` (modify all selected foci in one transaction) and
+  `overModsTweakAny` (branch, modifying one selected focus per transaction).
+  These replace the previous `overMaybeTweak`, `overMaybeSelectingTweak` and
+  `combineModsTweak`.
+- New `selectF` helper refining a traversal to the foci for which a
+  transformation yields a non-empty foldable, and `embedFoldable` embedding a
+  foldable of results into a `NonDet` effect stack.
 - New `withReferenceInput` helper to attach a reference input to a
   `TxSkelRedeemer`, replacing the more verbose
   `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
@@ -31,6 +41,9 @@
 
 ### Removed
 
+- `overMaybeTweak`, `overMaybeSelectingTweak` and `combineModsTweak` are
+  replaced by the `overMods*` tweak family (see Added).
+
 ### Fixed
 
 - Certificate redeemers were silently ignored because certificate owners are
@@ -50,9 +63,6 @@
   `txSkelInputs` (`txSkelInsL` → `txSkelInputsL`), `txSkelInsReference` →
   `txSkelReferenceInputs` (`txSkelInsReferenceL` → `txSkelReferenceInputsL`),
   and `txSkelOuts` → `txSkelOutputs` (`txSkelOutsL` → `txSkelOutputsL`).
-- The `select` predicate of `overMaybeSelectingTweak` now has type
-  `Int -> Bool` instead of `Integer -> Bool`. Its meaning is unchanged: the
-  argument is the `0`-based position of a focus among the /modifiable/ foci.
 - Test coverage analysis is no longer enabled by default in `cabal.project`,
   so `cabal test` output is no longer cluttered with `Writing: ….html` lines.
   The `nix develop .#default` dev shell provides two commands to run the test

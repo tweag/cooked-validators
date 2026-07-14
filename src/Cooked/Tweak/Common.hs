@@ -18,35 +18,47 @@ module Cooked.Tweak.Common
     evalTweak,
     execTweak,
 
-    -- * Optics
-    selectP,
-
     -- * Tweak primitives
     getTxSkel,
     putTxSkel,
 
     -- * Optics tweaks
     viewTweak,
+    iviewTweak,
     viewAllTweak,
     viewAnyTweak,
     setTweak,
+    isetTweak,
     overTweak,
+    ioverTweak,
     traverseTweak,
-    overMaybeTweak,
-    overMaybeSelectingTweak,
-    combineModsTweak,
+    itraverseTweak,
+
+    -- * Helpers to build optics
+    selectP,
+
+    -- * Helpers to refine traversals
+    selectF,
+
+    -- * Helpers to build transformations
+    embedFoldable,
+
+    -- * Tweaks to perform localized modifications
+    overModsTweak,
+    overModsSelectingTweak,
+    overModsTweakAll,
+    overModsTweakAny,
   )
 where
 
-import Control.Arrow (second)
 import Control.Monad
 import Cooked.Skeleton
-import Data.Either.Combinators (rightToMaybe)
-import Data.Maybe
+import Data.Set qualified as Set
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
 import Polysemy.State
+import Polysemy.Writer
 
 -- * Tweaks: state aware modifications over a `TxSkel`
 
@@ -97,6 +109,14 @@ viewTweak ::
   Sem effs a
 viewTweak optic = getTxSkel <&> view optic
 
+-- | Like 'viewTweak', but also returns the index associated with the retrieved
+-- focus.
+iviewTweak ::
+  (Member Tweak effs, Is k A_Getter) =>
+  Optic' k (WithIx i) TxSkel a ->
+  Sem effs (i, a)
+iviewTweak optic = getTxSkel <&> iview optic
+
 -- | Retrieves all the foci targeted by a given fold within a `TxSkel` and
 -- returns them as a list.
 viewAllTweak ::
@@ -122,13 +142,31 @@ setTweak ::
   Sem effs ()
 setTweak optic = overTweak optic . const
 
+-- | Like 'setTweak', but the value to set is computed from the index of each
+-- focus.
+isetTweak ::
+  (Member Tweak effs, Is k A_Setter) =>
+  Optic' k (WithIx i) TxSkel a ->
+  (i -> a) ->
+  Sem effs ()
+isetTweak optic f = getTxSkel >>= putTxSkel . iset optic f
+
 -- | The tweak that modifies a certain value in the 'TxSkel'.
 overTweak ::
   (Member Tweak effs, Is k A_Setter) =>
-  Optic' k is TxSkel a ->
-  (a -> a) ->
+  Optic k is TxSkel TxSkel a b ->
+  (a -> b) ->
   Sem effs ()
 overTweak optic change = getTxSkel >>= putTxSkel . over optic change
+
+-- | Like 'overTweak', but the modification of each focus also depends on its
+-- index.
+ioverTweak ::
+  (Member Tweak effs, Is k A_Setter) =>
+  Optic k (WithIx i) TxSkel TxSkel a b ->
+  (i -> a -> b) ->
+  Sem effs ()
+ioverTweak optic change = getTxSkel >>= putTxSkel . iover optic change
 
 -- | Like 'overTweak', but the modification of each focus runs in the tweak's
 -- effect stack. The foci are visited in the order in which they occur in the
@@ -140,36 +178,42 @@ traverseTweak ::
   Sem effs ()
 traverseTweak optic change = getTxSkel >>= traverseOf optic change >>= putTxSkel
 
--- | Like 'overTweak', but only modifies foci on which the argument function
--- returns @Just@ the new focus. Returns a list of the foci that were modified,
--- as they were /before/ the tweak, and in the order in which they occurred on
--- the original transaction.
-overMaybeTweak ::
+-- | Like 'traverseTweak', for indexed optics
+itraverseTweak ::
   (Member Tweak effs, Is k A_Traversal) =>
-  Optic' k is TxSkel a ->
-  (a -> Maybe a) ->
-  Sem effs [a]
-overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True)
+  Optic' k (WithIx is) TxSkel a ->
+  (is -> a -> Sem effs a) ->
+  Sem effs ()
+itraverseTweak optic change = getTxSkel >>= itraverseOf optic change >>= putTxSkel
 
--- | Sometimes 'overMaybeTweak' modifies too many foci. This might be the case
--- if there are several identical foci, but you only want to modify some of
--- them. This is where this 'Tweak' becomes useful: The @(Int -> Bool)@
--- argument can be used to select which of the modifiable foci should be
--- actually modified, based on their @0@-based position among the /modifiable/
--- foci (those on which the @(a -> Maybe a)@ argument returns @Just@).
-overMaybeSelectingTweak ::
-  (Member Tweak effs, Is k A_Traversal) =>
+-- | A modification that can fail is sometimes best expressed by explicitly
+-- stating which property the foci should satisfy to be eligible for a
+-- modification that cannot fail. 'selectP' provides a prism to make such a
+-- selection. The intended use case is @overTweak (optic % selectP prop) mod@
+-- where @optic@ gives the candidate foci, @prop@ is the predicate to be
+-- satisfied by the foci, and @mod@ is the modification to be applied to the
+-- selected foci.
+selectP ::
+  (a -> Bool) ->
+  Prism' a a
+selectP prop = prism' id (mfilter prop . Just)
+
+-- | Refines a traversal by selecting elements for which a given transformation
+-- returns a non empty foldable structure.
+selectF ::
+  (Is k A_Traversal, Foldable t) =>
   Optic' k is TxSkel a ->
-  (a -> Maybe a) ->
-  (Int -> Bool) ->
-  Sem effs [a]
-overMaybeSelectingTweak optic mChange select = do
-  -- We first restrict the optic to its modifiable foci, then index those by
-  -- their position and keep only the ones selected by @select@.
-  let selectedOptic = elementsOf (castOptic @A_Traversal optic % selectP (isJust . mChange)) select
-  modifiedFoci <- viewAllTweak selectedOptic
-  overTweak selectedOptic (fromJust . mChange)
-  return modifiedFoci
+  (a -> t a) ->
+  Optic' A_Traversal is TxSkel a
+selectF optic change = castOptic @A_Traversal optic % selectP (not . null . change)
+
+-- | Embeds a transformation returning a foldable functor structure into an
+-- effect stack exposing `NonDet`.
+embedFoldable ::
+  (Member NonDet effs, Foldable t, Functor t) =>
+  t a ->
+  Sem effs a
+embedFoldable = msum . fmap return
 
 -- | When constructing a tweak from an optic and a modification of foci, there
 -- are in principle two options for optics with many foci: (a) apply the
@@ -263,43 +307,114 @@ overMaybeSelectingTweak optic mChange select = do
 --
 -- So you see that tweaks constructed like this can branch quite wildly. Use
 -- with caution!
-combineModsTweak ::
-  (Eq is, Is k A_Traversal, Members '[Tweak, NonDet] effs) =>
+--
+-- Note that if @changes@ branches to no result for a /targeted/ focus (one
+-- whose index occurs in a grouping), for example via 'mzero' or 'embedFoldable'
+-- of an empty structure, that entire grouping branch is dropped, since there is
+-- no possible value to put in place of that focus.
+overModsTweak ::
+  ( Ord is,
+    Is k A_Traversal,
+    Members '[Tweak, NonDet] effs
+  ) =>
+  -- | Function that explains which subsets of targeted indexes will be
+  -- simultaneously subject to being transformed. If you want to transform all
+  -- foci in a single transaction (assuming the transformation itself does not
+  -- branch), use @(: []). On the other end of the spectrum, if you want each
+  -- foci to be transformed separately in their own transaction, use @fmap (:
+  -- [])@. Everything in between is of course possible.
   ([is] -> [[is]]) ->
+  -- | Optic targeting the various foci which should be subject to being
+  -- transformed. This optic can be built manually, but can also be enlarged
+  -- using conveniency functions such as `selectF` or `elementsOf`.
   Optic' k (WithIx is) TxSkel x ->
-  (is -> x -> Sem effs [(x, l)]) ->
+  -- | Function that describes how the foci and their indexes can be transformed
+  -- within the structure. Bear in mind that @effs@ contains @NonDet@ so this
+  -- transformation can already branch. Use `embedFoldable` to build such a
+  -- transformation from simpler bricks.
+  (is -> x -> Sem effs (x, l)) ->
+  -- | Returns the list of all foci modified in the transaction, as they were
+  -- before the modification was applied, represented by their label. In most
+  -- cases, the label will be the element itself, but other use cases are
+  -- allowed.
   Sem effs [l]
-combineModsTweak groupings optic changes = do
-  (indexes, foci) <- getTxSkel <&> iview (ipartsOf optic)
+overModsTweak groupings optic changes = do
+  -- The 'castOptic' call below is necessary: a polymorphic optic kind @k@
+  -- constrained only by @Is k A_Traversal@ does not resolve @Is k A_Fold@
+  -- ('itoListOf') or @Is k A_Setter@ ('ioverTweak') at the use site, so we
+  -- concretise the kind to 'A_Traversal', for which those instances exist.
+  let tOptic = castOptic @A_Traversal optic
+  -- We retrieve all the sets of indexes that should be subject to modification
+  -- in a separate computation.
+  indexes <- viewTweak $ to $ groupings . fmap fst . itoListOf tOptic
+  -- We make a separate branch for each of those groupings, in which we apply
+  -- the modifications sequencially, for each of the targeted foci in the
+  -- grouping.
   msum $
-    map
-      ( \grouping -> do
-          let mChangedFoci =
-                zipWith
-                  ( \i a ->
-                      if i `elem` grouping
-                        then map (second Right) <$> changes i a
-                        else return [(a, Left ())]
-                  )
-                  indexes
-                  foci
-          changedFoci <- sequence mChangedFoci
-          msum $
-            map
-              ( \combination -> do
-                  setTweak (partsOf optic) $ map fst combination
-                  return $ mapMaybe (rightToMaybe . snd) combination
-              )
-              (sequence changedFoci)
-      )
-      (groupings indexes)
+    indexes
+      <&> \(Set.fromList -> grouping) -> do
+        -- Before browsing through the target foci, we restrict the optics with
+        -- the foci present in the grouping
+        fmap fst $ runWriter $ itraverseTweak (indices (`Set.member` grouping) tOptic) $ \index el -> do
+          -- For each of the foci, we perform the modification
+          (el', lbl) <- raise $ changes index el
+          -- We store the computed label
+          tell [lbl]
+          return el'
 
--- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
--- Sometimes, it can prove more convenient to explicitly state which property
--- the foci shoud satisfy to be eligible for a modification that cannot fail
--- instead. 'selectP' provides a prism to make such a selection.  The intended
--- use case is @overTweak (optic % selectP prop) mod@ where @optic@ gives the
--- candidate foci, @prop@ is the predicate to be satisfied by the foci, and
--- @mod@ is the modification to be applied to the selected foci.
-selectP :: (a -> Bool) -> Prism' a a
-selectP prop = prism' id (\a -> if prop a then Just a else Nothing)
+-- | `overModsTweak` is too remote from the usual use cases for tweaks. This
+-- functions reduces its scope and offers and more convenient signature, while
+-- keeping quite a lot of expressiveness. It provides a more straightfoward way
+-- to target and modify foci precisely within a transaction.
+overModsSelectingTweak ::
+  ( Members '[Tweak, NonDet] effs,
+    Is k A_Traversal,
+    Foldable f,
+    Functor f
+  ) =>
+  -- | Weither to branch on each targeted foci, or to modify all of them in a
+  -- single transaction.
+  Bool ->
+  -- | Targeted foci
+  Optic' k is TxSkel a ->
+  -- | A transformation that both signals which of the targeted foci should be
+  -- modified, and also describes the modification to apply.
+  (a -> f a) ->
+  -- | A predicate on the indexes of the targeted foci, after they've been
+  -- filtered out by the optics above. To be used as a way to further make a
+  -- distinction between foci.
+  (Int -> Bool) ->
+  Sem effs [a]
+overModsSelectingTweak branch optic mChange select = do
+  overModsTweak
+    (if branch then fmap (: []) else (: []))
+    (elementsOf (selectF optic mChange) select)
+    (\_ a -> (,a) <$> embedFoldable (mChange a))
+
+-- | Like 'overModsSelectingTweak' but does not branch, and does not use indexes
+-- to further constraint the targeted foci.
+overModsTweakAll ::
+  ( Members '[Tweak, NonDet] effs,
+    Is k A_Traversal,
+    Foldable f,
+    Functor f
+  ) =>
+  Optic' k is TxSkel a ->
+  (a -> f a) ->
+  Sem effs [a]
+overModsTweakAll optic mChange =
+  overModsSelectingTweak False optic mChange (const True)
+
+-- | Like 'overModsSelectingTweak' but always branches, and does not use indexes
+-- to further constrint the targeted foci.
+overModsTweakAny ::
+  ( Members '[Tweak, NonDet] effs,
+    Is k A_Traversal,
+    Foldable f,
+    Functor f
+  ) =>
+  Optic' k is TxSkel a ->
+  (a -> f a) ->
+  Sem effs [a]
+overModsTweakAny optic mChange =
+  overModsSelectingTweak True optic mChange (const True)

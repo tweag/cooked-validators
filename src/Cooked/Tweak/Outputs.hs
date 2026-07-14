@@ -77,7 +77,7 @@ tamperDatumTweak ::
   (a -> Maybe a) ->
   Sem effs [a]
 tamperDatumTweak change = do
-  beforeModification <- overMaybeTweak (txSkelOutputsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
+  beforeModification <- overModsTweakAll (txSkelOutputsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT) change
   guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification

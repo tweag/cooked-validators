@@ -205,10 +205,6 @@ txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceInputsInRedeemers skel <>
 txSkelWithdrawnValue :: TxSkel -> Api.Value
 txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 
--- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawingScripts :: TxSkel -> [VScript]
-txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userVScriptAT)
-
 -- | Returns the full value contained in the skeleton outputs
 txSkelPaidValue :: TxSkel -> Api.Value
 txSkelPaidValue = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
@@ -229,3 +225,7 @@ txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % m
 -- | Returns all the scripts involved in certificates in this 'TxSkel'
 txSkelCertifyingScripts :: TxSkel -> [VScript]
 txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userVScriptAT)
+
+-- | Returns all the scripts involved in withdrawals in this 'TxSkel'
+txSkelWithdrawingScripts :: TxSkel -> [VScript]
+txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userVScriptAT)

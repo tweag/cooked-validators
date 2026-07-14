@@ -44,7 +44,7 @@ modifyRedeemersOfTypeAtTweak ::
   forall a b k is effs.
   ( RedeemerConstrs a,
     RedeemerConstrs b,
-    Member Tweak effs,
+    Members '[NonDet, Tweak] effs,
     Is k A_Traversal
   ) =>
   -- | An optic focusing the redeemers to consider
@@ -53,7 +53,7 @@ modifyRedeemersOfTypeAtTweak ::
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyRedeemersOfTypeAtTweak optic f =
-  overMaybeTweak optic $ \red -> do
+  overModsTweakAll optic $ \red -> do
     typedRedeemer <- preview txSkelRedeemerTypedAT red
     typedRedeemerModified <- f typedRedeemer
     return $ set (txSkelRedeemerTypedAT @a) typedRedeemerModified red
@@ -62,7 +62,10 @@ modifyRedeemersOfTypeAtTweak optic f =
 -- Returns the list of modified redeemers, as they were before being modified.
 modifySpendRedeemersOfTypeTweak ::
   forall a b effs.
-  (RedeemerConstrs a, RedeemerConstrs b, Member Tweak effs) =>
+  ( RedeemerConstrs a,
+    RedeemerConstrs b,
+    Members '[NonDet, Tweak] effs
+  ) =>
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifySpendRedeemersOfTypeTweak =
@@ -72,7 +75,10 @@ modifySpendRedeemersOfTypeTweak =
 -- Returns the list of modified redeemers, as they were before being modified.
 modifyMintRedeemersOfTypeTweak ::
   forall a b effs.
-  (RedeemerConstrs a, RedeemerConstrs b, Member Tweak effs) =>
+  ( RedeemerConstrs a,
+    RedeemerConstrs b,
+    Members '[NonDet, Tweak] effs
+  ) =>
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyMintRedeemersOfTypeTweak =
@@ -82,7 +88,10 @@ modifyMintRedeemersOfTypeTweak =
 -- Returns the list of modified redeemers, as they were before being modified.
 modifyProposalRedeemersOfTypeTweak ::
   forall a b effs.
-  (RedeemerConstrs a, RedeemerConstrs b, Member Tweak effs) =>
+  ( RedeemerConstrs a,
+    RedeemerConstrs b,
+    Members '[NonDet, Tweak] effs
+  ) =>
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyProposalRedeemersOfTypeTweak =
@@ -92,7 +101,10 @@ modifyProposalRedeemersOfTypeTweak =
 -- Returns the list of modified redeemers, as they were before being modified.
 modifyWithdrawalRedeemersOfTypeTweak ::
   forall a b effs.
-  (RedeemerConstrs a, RedeemerConstrs b, Member Tweak effs) =>
+  ( RedeemerConstrs a,
+    RedeemerConstrs b,
+    Members '[NonDet, Tweak] effs
+  ) =>
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyWithdrawalRedeemersOfTypeTweak =
@@ -102,7 +114,10 @@ modifyWithdrawalRedeemersOfTypeTweak =
 -- Returns the list of modified redeemers, as they were before being modified.
 modifyCertificateRedeemersOfTypeTweak ::
   forall a b effs.
-  (RedeemerConstrs a, RedeemerConstrs b, Member Tweak effs) =>
+  ( RedeemerConstrs a,
+    RedeemerConstrs b,
+    Members '[NonDet, Tweak] effs
+  ) =>
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyCertificateRedeemersOfTypeTweak =
@@ -114,7 +129,10 @@ modifyCertificateRedeemersOfTypeTweak =
 -- being modified.
 modifyRedeemersOfTypeTweak ::
   forall a b effs.
-  (RedeemerConstrs a, RedeemerConstrs b, Member Tweak effs) =>
+  ( RedeemerConstrs a,
+    RedeemerConstrs b,
+    Members '[NonDet, Tweak] effs
+  ) =>
   (a -> Maybe b) ->
   Sem effs [TxSkelRedeemer]
 modifyRedeemersOfTypeTweak f =
