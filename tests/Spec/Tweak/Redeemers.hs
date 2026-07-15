@@ -7,6 +7,7 @@ import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx qualified
 import Polysemy
 import Polysemy.NonDet
 import Test.Tasty (TestTree, testGroup)
@@ -33,7 +34,7 @@ baseSkel =
 
 -- | The list of 'Integer'-typed spending redeemers of a skeleton.
 integerRedeemers :: TxSkel -> [Integer]
-integerRedeemers = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerTypedAT @Integer)
+integerRedeemers = toListOf (txSkelSpendingRedeemersT % txSkelRedeemerTypedAT)
 
 -- | A skeleton registering a single script certificate whose redeemer is the
 -- given one. Certificate owners are stored with an 'IsEither' kind, which used
@@ -57,7 +58,7 @@ tamperSpendingRedeemersTest =
       @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperSpendingRedeemersOfTypeTweak @Integer @Integer (\n -> Just (n + 1)))
+                (tamperSpendingRedeemersOfTypeTweak @Integer (\n -> Just (n + 1)))
           )
 
 tamperAllRedeemersTest :: TestTree
@@ -82,8 +83,33 @@ tamperBranchingTest =
       ( fmap (integerRedeemers . fst) . run . runNonDet $
           runTweak
             baseSkel
-            (tamperRedeemersOfTypeTweak @Integer @Integer txSkelSpendingRedeemersT (\n -> [n + 1, n + 2]))
+            (tamperRedeemersOfTypeTweak @Integer txSkelSpendingRedeemersT (\n -> [n + 1, n + 2]))
       )
+
+-- | Transforming @Integer@ redeemers into raw 'Api.BuiltinData' (of a possibly
+-- unrelated type) still works: 'Api.BuiltinData' satisfies 'RedeemerConstrs',
+-- and setting through 'txSkelRedeemerTypedAT' re-encodes with the identity, so
+-- genuinely malformed redeemers are reachable. Offering two data options per
+-- redeemer (its actual representation and a constant one) branches into all
+-- combinations across the two spending redeemers.
+tamperToBuiltinDataTest :: TestTree
+tamperToBuiltinDataTest =
+  testCase "tamperRedeemersOfTypeTweak can malform redeemers into arbitrary BuiltinData, trying all combinations" $
+    let allData :: TxSkel -> [PlutusTx.BuiltinData]
+        allData = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
+        d :: (PlutusTx.ToData a) => a -> PlutusTx.BuiltinData
+        d = PlutusTx.toBuiltinData
+     in assertSameSets
+          [ [d (10 :: Integer), d (20 :: Integer), d True], -- both redeemers kept as-is
+            [d False, d (20 :: Integer), d True], -- only the first integer redeemer changed
+            [d (10 :: Integer), d False, d True], -- only the second integer redeemer changed
+            [d False, d False, d True] -- both integer redeemers changed
+          ]
+          ( fmap (allData . fst) . run . runNonDet $
+              runTweak
+                baseSkel
+                (tamperRedeemersOfTypeTweak @Integer @Api.BuiltinData txSkelSpendingRedeemersT (\n -> [d n, d False]))
+          )
 
 -- | Regression test for the certificate-redeemer kind bug: certificate owners
 -- are stored with an 'IsEither' kind, which previously made their redeemers
@@ -115,6 +141,7 @@ tests =
     [ tamperSpendingRedeemersTest,
       tamperAllRedeemersTest,
       tamperBranchingTest,
+      tamperToBuiltinDataTest,
       tamperCertificateRedeemersTest,
       certificateReferenceInputsTest
     ]
