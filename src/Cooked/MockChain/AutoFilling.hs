@@ -88,7 +88,7 @@ updateRedeemedScript
       -- If a reference input is found, we assign it and log the event
       ( \oRef -> do
           logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
-          return $ over userTxSkelRedeemerAT (fillReferenceInput oRef) rs
+          return $ over userRedeemerAT (fillReferenceInput oRef) rs
       )
       $ case oRefsInInputs of
         [] -> Nothing
@@ -115,7 +115,7 @@ autoFillReferenceScripts = do
       validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
       case validatorM of
         Nothing -> return red
-        Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
+        Just val -> view userRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
   setTweak txSkelInputsL $ Map.fromList newInputs
   -- Updating minting, proposing, withdrawing and certifying redeemers, whose
   -- scripts are directly stored in the skeleton, in one go.

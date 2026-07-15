@@ -30,6 +30,11 @@ module Cooked.Skeleton
     txSkelOutputsL,
     txSkelWithdrawalsL,
     txSkelCertificatesL,
+    txSkelProposingScriptsT,
+    txSkelMintingScriptsT,
+    txSkelCertifyingScriptsT,
+    txSkelWithdrawingScriptsT,
+    txSkelSpendingRedeemersT,
     txSkelRedeemersT,
     txSkelRedeemedScriptsT,
 
@@ -39,12 +44,8 @@ module Cooked.Skeleton
     -- * Utilities
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
-    txSkelWithdrawingScripts,
     txSkelPaidValue,
     txSkelReferenceInputsInRedeemers,
-    txSkelProposingScripts,
-    txSkelMintingScripts,
-    txSkelCertifyingScripts,
   )
 where
 
@@ -92,6 +93,8 @@ data TxSkel where
       -- for fees and balancing. You can change that with
       -- 'Cooked.Skeleton.Option.txSkelOptBalancingPolicy'.
       txSkelSignatories :: [TxSkelSignatory],
+      -- | The validity range of the transaction i.e. the time range in which
+      -- the transaction is allowed to be processed successfully.
       txSkelValidityRange :: P.Ledger.SlotRange,
       -- | To each 'Api.TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that
@@ -155,15 +158,38 @@ makeLensesFor [("txSkelWithdrawals", "txSkelWithdrawalsL")] ''TxSkel
 -- | Focuses on the certificates of a 'TxSkel'
 makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
 
--- | A traversal focusing every 'TxSkelRedeemer' of a 'TxSkel', in all five
--- positions (spending, minting, proposing, withdrawing and certifying).
-txSkelRedeemersT :: Traversal' TxSkel TxSkelRedeemer
-txSkelRedeemersT =
-  (txSkelInputsL % iso Map.toList Map.fromList % traversed % _2)
-    `adjoin` (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userTxSkelRedeemerL)
-    `adjoin` (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL)
-    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userTxSkelRedeemerAT)
-    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userTxSkelRedeemerAT)
+-- | Returns all the scripts involved in proposals in this 'TxSkel'
+txSkelProposingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelProposingScriptsT =
+  txSkelProposalsL
+    % traversed
+    % txSkelProposalMConstitutionAT
+    % _Just
+
+-- | Returns all the scripts involved in minting in this 'TxSkel'
+txSkelMintingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelMintingScriptsT =
+  txSkelMintsL
+    % txSkelMintsListI
+    % traversed
+    % mintRedeemedScriptL
+
+-- | Returns all the scripts involved in certificates in this 'TxSkel'
+txSkelCertifyingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelCertifyingScriptsT =
+  txSkelCertificatesL
+    % traversed
+    % txSkelCertificateOwnerAT @IsEither
+    % userEitherScriptP
+
+-- | Returns all the scripts involved in withdrawals in this 'TxSkel'
+txSkelWithdrawingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelWithdrawingScriptsT =
+  txSkelWithdrawalsL
+    % txSkelWithdrawalsListI
+    % traversed
+    % withdrawalUserL
+    % userEitherScriptP
 
 -- | A traversal focusing every script redeemed directly within a 'TxSkel',
 -- that is in the minting, proposing, withdrawing and certifying positions. The
@@ -171,10 +197,26 @@ txSkelRedeemersT =
 -- the skeleton but fetched from the index based on the inputs' references.
 txSkelRedeemedScriptsT :: Traversal' TxSkel (User IsScript Redemption)
 txSkelRedeemedScriptsT =
-  (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
-    `adjoin` (txSkelProposalsL % traversed % txSkelProposalConstitutionAT)
-    `adjoin` (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userEitherScriptP)
-    `adjoin` (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userEitherScriptP)
+  txSkelMintingScriptsT
+    `adjoin` txSkelProposingScriptsT
+    `adjoin` txSkelWithdrawingScriptsT
+    `adjoin` txSkelCertifyingScriptsT
+
+-- | A traversal focusing every redeemer involved with the spending purpose in
+-- the given 'TxSkel'.
+txSkelSpendingRedeemersT :: Traversal' TxSkel TxSkelRedeemer
+txSkelSpendingRedeemersT =
+  txSkelInputsL
+    % iso Map.toList Map.fromList
+    % traversed
+    % _2
+
+-- | A traversal focusing every 'TxSkelRedeemer' of a 'TxSkel', in all five
+-- positions (spending, minting, proposing, withdrawing and certifying).
+txSkelRedeemersT :: Traversal' TxSkel TxSkelRedeemer
+txSkelRedeemersT =
+  txSkelSpendingRedeemersT
+    `adjoin` (txSkelRedeemedScriptsT % userRedeemerL)
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel
@@ -193,13 +235,21 @@ txSkelTemplate =
       txSkelCertificates = mempty
     }
 
+-- | All 'Api.TxOutRef's in reference inputs from redeemers
+txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
+txSkelReferenceInputsInRedeemers =
+  Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
+
 -- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
 -- inputs of the skeleton.  This does not include additional possible
 -- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> Set Api.TxOutRef
-txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceInputsInRedeemers skel <> Map.keysSet txSkelInputs <> txSkelReferenceInputs
+txSkelKnownTxOutRefs skel@TxSkel {..} =
+  txSkelReferenceInputsInRedeemers skel
+    <> Map.keysSet txSkelInputs
+    <> txSkelReferenceInputs
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
@@ -207,25 +257,8 @@ txSkelWithdrawnValue = Script.toValue . txSkelWithdrawals
 
 -- | Returns the full value contained in the skeleton outputs
 txSkelPaidValue :: TxSkel -> Api.Value
-txSkelPaidValue = foldOf (txSkelOutputsL % folded % txSkelOutValueL)
-
--- | All 'Api.TxOutRef's in reference inputs from redeemers
-txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
-txSkelReferenceInputsInRedeemers =
-  Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
-
--- | Returns all the scripts involved in proposals in this 'TxSkel'
-txSkelProposingScripts :: TxSkel -> [VScript]
-txSkelProposingScripts = toListOf (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just % userVScriptL)
-
--- | Returns all the scripts involved in minting in this 'TxSkel'
-txSkelMintingScripts :: TxSkel -> [VScript]
-txSkelMintingScripts = toListOf (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL % userVScriptL)
-
--- | Returns all the scripts involved in certificates in this 'TxSkel'
-txSkelCertifyingScripts :: TxSkel -> [VScript]
-txSkelCertifyingScripts = toListOf (txSkelCertificatesL % traversed % txSkelCertificateOwnerAT @IsEither % userVScriptAT)
-
--- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawingScripts :: TxSkel -> [VScript]
-txSkelWithdrawingScripts = toListOf (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userVScriptAT)
+txSkelPaidValue =
+  foldOf $
+    txSkelOutputsL
+      % folded
+      % txSkelOutValueL

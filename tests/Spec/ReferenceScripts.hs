@@ -109,7 +109,7 @@ referenceMint mp1 mp2 n autoRefScript = do
       { txSkelMints =
           review
             txSkelMintsListI
-            [ set (mintRedeemedScriptL % userTxSkelRedeemerL) (if autoRefScript then emptyTxSkelRedeemer else TxSkelRedeemer () (Just mpOutRef) False) $
+            [ set (mintRedeemedScriptL % userRedeemerL) (if autoRefScript then emptyTxSkelRedeemer else TxSkelRedeemer () (Just mpOutRef) False) $
                 mint mp2 () (Api.TokenName "banana") 3
             ],
         txSkelOutputs = [wallet 1 `receives` Value (Script.ada 2 <> Api.assetClassValue (Api.AssetClass (Script.toCurrencySymbol mp2, Api.TokenName "banana")) 3)],

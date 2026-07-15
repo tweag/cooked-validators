@@ -203,7 +203,7 @@ selectP prop = prism' id (mfilter prop . Just)
 selectF ::
   (Is k A_Traversal, Foldable t) =>
   Optic' k is TxSkel a ->
-  (a -> t a) ->
+  (a -> t b) ->
   Optic' A_Traversal is TxSkel a
 selectF optic change = castOptic @A_Traversal optic % selectP (not . null . change)
 

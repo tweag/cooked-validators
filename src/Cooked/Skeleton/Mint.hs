@@ -118,7 +118,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
   lens
     -- We return (Nothing, 0) when the mp is not in the map, (Just red, 0) when
     -- the mp is present but not the token, and (Just red, n) otherwise.
-    (maybe (Nothing, 0) (bimap (Just . view userTxSkelRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . unTxSkelMints)
+    (maybe (Nothing, 0) (bimap (Just . view userRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . unTxSkelMints)
     ( \(TxSkelMints mints) (newRed, i) -> TxSkelMints $ case Map.lookup mph mints of
         -- No previous mp entry and nothing to add
         Nothing | i == 0 -> mints
@@ -132,7 +132,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
         -- A prevous mp and tk entry, which either needs to be removed in case
         -- of i == 0, or updated otherwise.
         Just (prevUser, if i == 0 then Map.delete tk else Map.insert tk i -> subMap)
-          | newUser <- maybe prevUser (flip (set userTxSkelRedeemerL) prevUser) newRed -> Map.insert mph (newUser, subMap) mints
+          | newUser <- maybe prevUser (flip (set userRedeemerL) prevUser) newRed -> Map.insert mph (newUser, subMap) mints
     )
 
 -- | Focuses on the submap for a given minting policy, following the same rules
@@ -140,7 +140,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
 txSkelMintsPolicyTokensL :: (ToVScript mp, Typeable mp) => mp -> Lens' TxSkelMints (Maybe (TxSkelRedeemer, Map Api.TokenName Integer))
 txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
   lens
-    (fmap (first (view userTxSkelRedeemerL)) . view (to unTxSkelMints % at mph))
+    (fmap (first (view userRedeemerL)) . view (to unTxSkelMints % at mph))
     ( \mints -> \case
         Nothing -> TxSkelMints . Map.delete mph . unTxSkelMints $ mints
         Just (red, Map.toList -> tokens) -> foldl' (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens

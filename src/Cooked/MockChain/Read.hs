@@ -225,13 +225,9 @@ txSkelAllScripts ::
   Sem effs [VScript]
 txSkelAllScripts txSkel = do
   txSkelSpendingScripts <- txSkelInputScripts txSkel
-  return
-    ( txSkelMintingScripts txSkel
-        <> txSkelWithdrawingScripts txSkel
-        <> txSkelProposingScripts txSkel
-        <> txSkelCertifyingScripts txSkel
-        <> txSkelSpendingScripts
-    )
+  return $
+    toListOf (txSkelRedeemedScriptsT % userVScriptL) txSkel
+      <> txSkelSpendingScripts
 
 -- | Returns all scripts which guard transaction inputs
 txSkelInputScripts ::
