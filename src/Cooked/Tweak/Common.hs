@@ -1,58 +1,61 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 -- | This module defines 'Tweak's which are the building blocks of our DSL for
 -- attacks. They are skeleton modifications aware of the mockchain state.
---
--- Tweaks follow a set of naming and behavioral conventions described in
--- @doc/TWEAKS.md@. In short: every tweak is suffixed with @Tweak@ and built as
--- @\<verb\>\<Subject\>@ using a fixed verb vocabulary
--- (@get@\/@set@\/@modify@\/@add@\/@remove@\/@ensure@\/@has@\/@is@); the subject
--- is singular when acting on a single element and plural when acting on a list
--- or via a predicate; and a tweak that multiplies the number of resulting
--- skeletons (true non-deterministic branching) is marked @...Any@, as opposed
--- to merely failing, which is not.
 module Cooked.Tweak.Common
   ( -- * Tweak effect
     Tweak (..),
+    getTxSkel,
+    putTxSkel,
+
+    -- * Running a tweak
     runTweak,
     evalTweak,
     execTweak,
 
-    -- * Tweak primitives
-    getTxSkel,
-    putTxSkel,
-
-    -- * Optics tweaks
+    -- * Viewing tweaks
     viewTweak,
     iviewTweak,
     viewAllTweak,
     viewAnyTweak,
+
+    -- * Setting tweaks
     setTweak,
     isetTweak,
+
+    -- * Overing tweaks
     overTweak,
     ioverTweak,
-    traverseTweak,
-    itraverseTweak,
-
-    -- * Helpers to build optics
-    selectP,
-
-    -- * Helpers to refine traversals
-    selectF,
-
-    -- * Helpers to build transformations
-    embedFoldable,
-
-    -- * Tweaks to perform localized modifications
     overModsTweak,
     overModsSelectingTweak,
     overModsTweakAll,
     overModsTweakAny,
+
+    -- * Traversing tweaks
+    traverseTweak,
+    itraverseTweak,
+
+    -- * Adding tweaks
+    addTweak,
+    addThereTweak,
+    addFirstTweak,
+    addLastTweak,
+
+    -- * Removing tweaks
+    removeIfTweak,
+    removeAtTweak,
+
+    -- * Helpers to build optics
+    selectP,
+    selectF,
+    embedFoldable,
+    embedTypeChange,
   )
 where
 
+import Control.Applicative (Alternative, empty, (<|>))
 import Control.Monad
 import Cooked.Skeleton
+import Data.Either (isRight)
+import Data.List (partition)
 import Data.Set qualified as Set
 import Optics.Core
 import Polysemy
@@ -201,19 +204,38 @@ selectP prop = prism' id (mfilter prop . Just)
 -- | Refines a traversal by selecting elements for which a given transformation
 -- returns a non-empty foldable structure.
 selectF ::
-  (Is k A_Traversal, Foldable t) =>
+  ( Is k A_Traversal,
+    Foldable t
+  ) =>
   Optic' k is TxSkel a ->
   (a -> t b) ->
   Optic' A_Traversal is TxSkel a
 selectF optic change = castOptic @A_Traversal optic % selectP (not . null . change)
 
--- | Embeds a transformation returning a foldable functor structure into an
--- effect stack exposing 'NonDet'.
+-- | Embeds a foldable structure into an effect stack exposing 'NonDet', by
+-- turning each of its elements into a separate non-deterministic branch.
 embedFoldable ::
-  (Member NonDet effs, Foldable t, Functor t) =>
+  ( Member NonDet effs,
+    Foldable t
+  ) =>
   t a ->
   Sem effs a
-embedFoldable = msum . fmap return
+embedFoldable = foldr ((<|>) . pure) empty
+
+-- | Embeds a type-changing operation into a type-preserving operation on a
+-- container of the original elements. This is necessary because a simple call
+-- to 'traverseOf' would be successful if the optic does not have any focus,
+-- which we want to avoid (hence the @guard@ call).
+embedTypeChange ::
+  ( Is k An_AffineTraversal,
+    Alternative f
+  ) =>
+  Optic k is a a b c ->
+  (b -> f c) ->
+  (a -> f a)
+embedTypeChange (castOptic @An_AffineTraversal -> optic) mChange el =
+  guard (isRight $ matching optic el)
+    *> traverseOf optic mChange el
 
 -- | When constructing a tweak from an optic and a modification of foci, there
 -- are in principle two options for optics with many foci: (a) apply the
@@ -360,8 +382,7 @@ overModsTweak groupings optic changes = do
 overModsSelectingTweak ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Traversal,
-    Foldable f,
-    Functor f
+    Foldable f
   ) =>
   -- | Whether to branch on each targeted focus, or to modify all of them in a
   -- single transaction.
@@ -387,8 +408,7 @@ overModsSelectingTweak branch optic mChange select = do
 overModsTweakAll ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Traversal,
-    Foldable f,
-    Functor f
+    Foldable f
   ) =>
   Optic' k is TxSkel a ->
   (a -> f a) ->
@@ -401,11 +421,86 @@ overModsTweakAll optic mChange =
 overModsTweakAny ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Traversal,
-    Foldable f,
-    Functor f
+    Foldable f
   ) =>
   Optic' k is TxSkel a ->
   (a -> f a) ->
   Sem effs [a]
 overModsTweakAny optic mChange =
   overModsSelectingTweak True optic mChange (const True)
+
+-- | Appends an element within a semigroup focused in a 'TxSkel'
+addTweak ::
+  ( Member Tweak effs,
+    Is k A_Setter,
+    Semigroup a
+  ) =>
+  Optic' k is TxSkel a ->
+  a ->
+  Sem effs ()
+addTweak optic el = overTweak optic (<> el)
+
+-- | Appends an element at the end of a list focused in a 'TxSkel'
+addLastTweak ::
+  ( Member Tweak effs,
+    Is k A_Setter
+  ) =>
+  Optic' k is TxSkel [a] ->
+  a ->
+  Sem effs ()
+addLastTweak optic = addTweak optic . (: [])
+
+-- | Appends an element at a specific position in a list focused in a 'TxSkel'
+addThereTweak ::
+  ( Member Tweak effs,
+    Is k A_Setter
+  ) =>
+  Optic' k is TxSkel [a] ->
+  Int ->
+  a ->
+  Sem effs ()
+addThereTweak optic i a =
+  overTweak optic (\(splitAt i -> (before, after)) -> before ++ (a : after))
+
+-- | Appends an element at the end of a list focused in a 'TxSkel'
+addFirstTweak ::
+  ( Member Tweak effs,
+    Is k A_Setter
+  ) =>
+  Optic' k is TxSkel [a] ->
+  a ->
+  Sem effs ()
+addFirstTweak optic = addThereTweak optic 0
+
+-- | Removes elements satisfying a predicate from a list focused in a 'TxSkel',
+-- returning the elements that were removed.
+removeIfTweak ::
+  ( Member Tweak effs,
+    Is k A_Lens
+  ) =>
+  Optic' k is TxSkel [a] ->
+  (a -> Bool) ->
+  Sem effs [a]
+removeIfTweak (castOptic @A_Lens -> optic) removePred = do
+  as <- viewTweak optic
+  let (removed, kept) = partition removePred as
+  setTweak optic kept
+  return removed
+
+-- | Removes an element at the specific index in a list focused in a 'TxSkel',
+-- returning @Just@ the removed element if any, @Nothing@ otherwise.
+removeAtTweak ::
+  ( Member Tweak effs,
+    Is k A_Lens
+  ) =>
+  Optic' k is TxSkel [a] ->
+  Int ->
+  Sem effs (Maybe a)
+removeAtTweak (castOptic @A_Lens -> optic) i = do
+  as <- viewTweak optic
+  let (before, after) = splitAt i as
+  case after of
+    [] -> return Nothing
+    x : xs -> do
+      setTweak optic (before ++ xs)
+      return $ Just x

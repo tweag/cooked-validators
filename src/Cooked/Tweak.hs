@@ -4,6 +4,7 @@
 module Cooked.Tweak (module X) where
 
 import Cooked.Tweak.Common as X
+import Cooked.Tweak.Datum as X
 import Cooked.Tweak.Inputs as X
 import Cooked.Tweak.Labels as X
 import Cooked.Tweak.Mint as X

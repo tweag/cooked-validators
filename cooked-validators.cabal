@@ -71,6 +71,7 @@ library
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
+      Cooked.Tweak.Datum
       Cooked.Tweak.Inputs
       Cooked.Tweak.Labels
       Cooked.Tweak.Mint
