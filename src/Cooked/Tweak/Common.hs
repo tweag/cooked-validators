@@ -133,7 +133,7 @@ viewAnyTweak ::
   (Members '[Tweak, NonDet] effs, Is k A_Fold) =>
   Optic' k is TxSkel a ->
   Sem effs a
-viewAnyTweak optic = viewAllTweak optic >>= msum . fmap return
+viewAnyTweak optic = viewAllTweak optic >>= embedFoldable
 
 -- * Basic modifying 'Tweak's
 

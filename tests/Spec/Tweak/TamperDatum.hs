@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 -- | Tests for 'Cooked.Tweak.TamperDatum'.
 module Spec.Tweak.TamperDatum where
 
