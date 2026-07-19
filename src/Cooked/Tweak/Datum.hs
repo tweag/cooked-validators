@@ -1,14 +1,8 @@
+-- | This module provides 'Tweak's that modify the datums of a 'TxSkel'.
 module Cooked.Tweak.Datum
-  ( -- * Optic-based datum modifications
-    tamperDatumsOfTypeTweak,
-    tamperDatumsOfTypeTweakAny,
-
-    -- * All-position datum modifications
-    tamperAllDatumsOfTypeTweak,
-    tamperAllDatumsOfTypeTweakAny,
-
-    -- * Tampered label
-    TamperedDatumLbl (..),
+  ( TamperedDatumLbl (..),
+    tamperDatumsTweak,
+    tamperAllDatumsTweak,
   )
 where
 
@@ -17,7 +11,6 @@ import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
-import Data.Maybe
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
@@ -35,8 +28,7 @@ instance (PrettyCooked a) => PrettyCooked (TamperedDatumLbl a) where
 -- | Applies a modification to all datums of type @a@ focused by a given
 -- optic. Returns the list of modified datums, as they were before being
 -- modified.
-tamperDatumsOfTypeTweak ::
-  forall a b k is t effs.
+tamperDatumsTweak ::
   ( DatumConstrs a,
     Ord a,
     DatumConstrs b,
@@ -45,39 +37,20 @@ tamperDatumsOfTypeTweak ::
     Alternative t,
     Is k A_Traversal
   ) =>
+  -- | The branching options
+  Branching ->
   -- | An optic focusing the redeemers to consider
   Optic' k is TxSkel TxSkelOutDatum ->
-  -- | The modification to attempt on each typed redeemer
+  -- | The modification to attempt on each typed datum
   (a -> t b) ->
-  Sem effs [TxSkelOutDatum]
-tamperDatumsOfTypeTweak optic mChange = do
-  modified <- overModsTweakAll optic $ embedTypeChange txSkelOutDatumTypedAT mChange
-  addLabelTweak $ TamperedDatumLbl $ fromJust . preview (txSkelOutDatumTypedAT @a) <$> modified
+  Sem effs [a]
+tamperDatumsTweak branching optic mChange = do
+  modified <- modifyTweak branching optic txSkelOutDatumTypedAT mChange (const True)
+  addLabelTweak $ TamperedDatumLbl modified
   return modified
 
--- | Same as 'tamperDatumsOfTypeTweak' but branches on each focus
-tamperDatumsOfTypeTweakAny ::
-  forall a b k is t effs.
-  ( DatumConstrs a,
-    Ord a,
-    DatumConstrs b,
-    Members '[NonDet, Tweak] effs,
-    Foldable t,
-    Alternative t,
-    Is k A_Traversal
-  ) =>
-  -- | An optic focusing the redeemers to consider
-  Optic' k is TxSkel TxSkelOutDatum ->
-  -- | The modification to attempt on each typed redeemer
-  (a -> t b) ->
-  Sem effs [TxSkelOutDatum]
-tamperDatumsOfTypeTweakAny optic mChange = do
-  modified <- overModsTweakAny optic $ embedTypeChange txSkelOutDatumTypedAT mChange
-  addLabelTweak $ TamperedDatumLbl $ fromJust . preview (txSkelOutDatumTypedAT @a) <$> modified
-  return modified
-
--- | Same as 'tamperDatumsOfTypeTweak', focusing all the datums in the 'TxSkel'
-tamperAllDatumsOfTypeTweak ::
+-- | Same as 'tamperDatumsTweak', focusing all the datums in the 'TxSkel'
+tamperAllDatumsTweak ::
   ( DatumConstrs a,
     DatumConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -85,22 +58,10 @@ tamperAllDatumsOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  -- | The branching options
+  Branching ->
+  -- | The modification to attempt on each typed datum
   (a -> t b) ->
-  Sem effs [TxSkelOutDatum]
-tamperAllDatumsOfTypeTweak =
-  tamperDatumsOfTypeTweak (txSkelOutputsL % traversed % txSkelOutDatumL)
-
--- | Same as 'tamperDatumsOfTypeTweakAny', focusing all the datums in the
--- 'TxSkel'
-tamperAllDatumsOfTypeTweakAny ::
-  ( DatumConstrs a,
-    DatumConstrs b,
-    Members '[NonDet, Tweak] effs,
-    Foldable t,
-    Alternative t,
-    Ord a
-  ) =>
-  (a -> t b) ->
-  Sem effs [TxSkelOutDatum]
-tamperAllDatumsOfTypeTweakAny =
-  tamperDatumsOfTypeTweakAny (txSkelOutputsL % traversed % txSkelOutDatumL)
+  Sem effs [a]
+tamperAllDatumsTweak branching =
+  tamperDatumsTweak branching (txSkelOutputsL % traversed % txSkelOutDatumL)

@@ -53,27 +53,27 @@ certificateIntegerRedeemers =
 
 tamperSpendingRedeemersTest :: TestTree
 tamperSpendingRedeemersTest =
-  testCase "tamperSpendingRedeemersOfTypeTweak only touches redeemers of the right type and records them in its label" $
+  testCase "tamperSpendingRedeemersTweak only touches redeemers of the right type and records them in its label" $
     [(Set.singleton (TxSkelLabel (TamperedRedeemerLbl [10, 20 :: Integer])), [11, 21])]
       @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperSpendingRedeemersOfTypeTweak @Integer (\n -> Just (n + 1)))
+                (tamperSpendingRedeemersTweak @Integer All (\n -> Just (n + 1)))
           )
 
 tamperAllRedeemersTest :: TestTree
 tamperAllRedeemersTest =
-  testCase "tamperAllRedeemersOfTypeTweak reaches the spending redeemers" $
+  testCase "tamperAllRedeemersTweak reaches the spending redeemers" $
     [[0, 0]]
       @=? ( fmap (integerRedeemers . fst) . run . runNonDet $
-              runTweak baseSkel (tamperAllRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))
+              runTweak baseSkel (tamperAllRedeemersTweak @Integer @Integer All (const $ Just 0))
           )
 
 -- | A change returning several options branches the tweak into every
 -- combination of per-redeemer choices.
 tamperBranchingTest :: TestTree
 tamperBranchingTest =
-  testCase "tamperRedeemersOfTypeTweak branches on every combination of redeemer modifications" $
+  testCase "tamperRedeemersTweak branches on every combination of redeemer modifications" $
     assertSameSets
       [ [11, 21],
         [11, 22],
@@ -83,45 +83,53 @@ tamperBranchingTest =
       ( fmap (integerRedeemers . fst) . run . runNonDet $
           runTweak
             baseSkel
-            (tamperRedeemersOfTypeTweak @Integer txSkelSpendingRedeemersT (\n -> [n + 1, n + 2]))
+            (tamperRedeemersTweak @Integer All txSkelSpendingRedeemersT (\n -> [n + 1, n + 2]))
       )
 
 -- | Transforming @Integer@ redeemers into raw 'Api.BuiltinData' (of a possibly
 -- unrelated type) still works: 'Api.BuiltinData' satisfies 'RedeemerConstrs',
 -- and setting through 'txSkelRedeemerTypedAT' re-encodes with the identity, so
 -- genuinely malformed redeemers are reachable. Offering two data options per
--- redeemer (its actual representation and a constant one) branches into all
--- combinations across the two spending redeemers.
+-- redeemer (its actual representation and a constant one) and branching with
+-- 'PowerSet' modifies every non-empty subset of the two integer redeemers,
+-- branching over each option within a subset. The groupings @[0]@, @[1]@ and
+-- @[0, 1]@ produce 2 + 2 + 4 = 8 skeletons, with repeats: keeping both
+-- redeemers occurs in all three groupings, and each single change occurs both
+-- in its singleton grouping and in the @[0, 1]@ grouping.
 tamperToBuiltinDataTest :: TestTree
 tamperToBuiltinDataTest =
-  testCase "tamperRedeemersOfTypeTweak can malform redeemers into arbitrary BuiltinData, trying all combinations" $
+  testCase "tamperRedeemersTweak can malform redeemers into arbitrary BuiltinData, trying every subset" $
     let allData :: TxSkel -> [PlutusTx.BuiltinData]
         allData = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
         d :: (PlutusTx.ToData a) => a -> PlutusTx.BuiltinData
         d = PlutusTx.toBuiltinData
      in assertSameSets
-          [ [d (10 :: Integer), d (20 :: Integer), d True], -- both redeemers kept as-is
-            [d False, d (20 :: Integer), d True], -- only the first integer redeemer changed
-            [d (10 :: Integer), d False, d True], -- only the second integer redeemer changed
-            [d False, d False, d True] -- both integer redeemers changed
+          [ [d (10 :: Integer), d (20 :: Integer), d True], -- both kept (grouping [0])
+            [d (10 :: Integer), d (20 :: Integer), d True], -- both kept (grouping [1])
+            [d (10 :: Integer), d (20 :: Integer), d True], -- both kept (grouping [0, 1])
+            [d False, d (20 :: Integer), d True], -- first changed (grouping [0])
+            [d False, d (20 :: Integer), d True], -- first changed (grouping [0, 1])
+            [d (10 :: Integer), d False, d True], -- second changed (grouping [1])
+            [d (10 :: Integer), d False, d True], -- second changed (grouping [0, 1])
+            [d False, d False, d True] -- both changed (grouping [0, 1])
           ]
           ( fmap (allData . fst) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperRedeemersOfTypeTweak @Integer @Api.BuiltinData txSkelSpendingRedeemersT (\n -> [d n, d False]))
+                (tamperRedeemersTweak @Integer @Api.BuiltinData PowerSet txSkelSpendingRedeemersT (\n -> [d n, d False]))
           )
 
 -- | Regression test for the certificate-redeemer kind bug: certificate owners
 -- are stored with an 'IsEither' kind, which previously made their redeemers
--- invisible to 'tamperAllRedeemersOfTypeTweak'.
+-- invisible to 'tamperAllRedeemersTweak'.
 tamperCertificateRedeemersTest :: TestTree
 tamperCertificateRedeemersTest =
-  testCase "tamperAllRedeemersOfTypeTweak reaches the certifying redeemers" $
+  testCase "tamperAllRedeemersTweak reaches the certifying redeemers" $
     [[0]]
       @=? ( fmap (certificateIntegerRedeemers . fst) . run . runNonDet $
               runTweak
                 (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
-                (tamperAllRedeemersOfTypeTweak @Integer @Integer (const $ Just 0))
+                (tamperAllRedeemersTweak @Integer @Integer All (const $ Just 0))
           )
 
 -- | Regression test for the certificate-redeemer kind bug at the

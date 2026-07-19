@@ -20,7 +20,7 @@ tests :: TestTree
 tests =
   testGroup
     "building blocks for tweaks"
-    [ testGroup "overModsSelectingTweak" $
+    [ testGroup "modifyTweak" $
         let skel = mkSkel [123, 234, 345]
          in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test -- this one is a regression test
         -- this one is a regression test
@@ -28,9 +28,10 @@ tests =
                   @=? run
                     ( runNonDet $
                         execTweak skel $
-                          overModsSelectingTweak
-                            False
+                          modifyTweak
+                            All
                             (txSkelOutputsL % traversed % txSkelOutValueL)
+                            simple
                             (const Nothing)
                             (const True)
                     ),
@@ -39,9 +40,10 @@ tests =
                   @=? run
                     ( runNonDet $
                         runTweak skel $
-                          overModsSelectingTweak
-                            False
+                          modifyTweak
+                            All
                             (txSkelOutputsL % traversed % txSkelOutValueL)
+                            simple
                             ( \value ->
                                 if value `Api.geq` Script.lovelace 200
                                   then Just $ Script.lovelace 789
@@ -54,9 +56,10 @@ tests =
                   @=? run
                     ( runNonDet $
                         runTweak skel $
-                          overModsSelectingTweak
-                            False
+                          modifyTweak
+                            All
                             (txSkelOutputsL % traversed % txSkelOutValueL)
+                            simple
                             (const $ Just $ Script.lovelace 789)
                             (`elem` [0, 2])
                     )

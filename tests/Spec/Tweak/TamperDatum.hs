@@ -35,7 +35,8 @@ tamperDatumTweakTest =
                     alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
-            ( tamperAllDatumsOfTypeTweak @(Integer, Integer)
+            ( tamperAllDatumsTweak @(Integer, Integer)
+                All
                 (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
             )
         )
@@ -69,7 +70,8 @@ malformDatumTweakTest =
                           ]
                       }
                   )
-                  ( tamperAllDatumsOfTypeTweakAny @(Integer, Integer)
+                  ( tamperAllDatumsTweak @(Integer, Integer)
+                      Any
                       ( \(x, y) ->
                           if y == 77
                             then []

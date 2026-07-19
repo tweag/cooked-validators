@@ -5,21 +5,14 @@
 -- position, a tweak ranging over all positions at once, and a generic
 -- optic-based tweak from which they are all derived.
 module Cooked.Tweak.Redeemers
-  ( -- * Optic-based redeemer modifications
-    tamperRedeemersOfTypeTweak,
-
-    -- * Per-position redeemer modifications
-    tamperSpendingRedeemersOfTypeTweak,
-    tamperMintingRedeemersOfTypeTweak,
-    tamperProposingRedeemersOfTypeTweak,
-    tamperWithdrawingRedeemersOfTypeTweak,
-    tamperCertifyingRedeemersOfTypeTweak,
-
-    -- * All-position redeemer modifications
-    tamperAllRedeemersOfTypeTweak,
-
-    -- * Tampered label
-    TamperedRedeemerLbl (..),
+  ( TamperedRedeemerLbl (..),
+    tamperRedeemersTweak,
+    tamperSpendingRedeemersTweak,
+    tamperMintingRedeemersTweak,
+    tamperProposingRedeemersTweak,
+    tamperWithdrawingRedeemersTweak,
+    tamperCertifyingRedeemersTweak,
+    tamperAllRedeemersTweak,
   )
 where
 
@@ -28,7 +21,6 @@ import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
-import Data.Maybe
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
@@ -46,7 +38,7 @@ instance (PrettyCooked a) => PrettyCooked (TamperedRedeemerLbl a) where
 -- | Applies a modification to all redeemers of type @a@ focused by a
 -- given optic. Returns the list of modified redeemers, as they were before
 -- being modified.
-tamperRedeemersOfTypeTweak ::
+tamperRedeemersTweak ::
   forall a b k is t effs.
   ( RedeemerConstrs a,
     Ord a,
@@ -56,19 +48,21 @@ tamperRedeemersOfTypeTweak ::
     Alternative t,
     Is k A_Traversal
   ) =>
+  -- | The branching options
+  Branching ->
   -- | An optic focusing the redeemers to consider
   Optic' k is TxSkel TxSkelRedeemer ->
   -- | The modification to attempt on each typed redeemer
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperRedeemersOfTypeTweak optic mChange = do
-  modified <- overModsTweakAll optic $ embedTypeChange txSkelRedeemerTypedAT mChange
-  addLabelTweak $ TamperedRedeemerLbl $ fromJust . preview (txSkelRedeemerTypedAT @a) <$> modified
+  Sem effs [a]
+tamperRedeemersTweak branching optic mChange = do
+  modified <- modifyTweak branching optic txSkelRedeemerTypedAT mChange (const True)
+  addLabelTweak $ TamperedRedeemerLbl modified
   return modified
 
 -- | Applies a modification to all spending redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.
-tamperSpendingRedeemersOfTypeTweak ::
+tamperSpendingRedeemersTweak ::
   ( RedeemerConstrs a,
     RedeemerConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -76,14 +70,15 @@ tamperSpendingRedeemersOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  Branching ->
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperSpendingRedeemersOfTypeTweak =
-  tamperRedeemersOfTypeTweak txSkelSpendingRedeemersT
+  Sem effs [a]
+tamperSpendingRedeemersTweak branching =
+  tamperRedeemersTweak branching txSkelSpendingRedeemersT
 
 -- | Applies a modification to all minting redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.
-tamperMintingRedeemersOfTypeTweak ::
+tamperMintingRedeemersTweak ::
   ( RedeemerConstrs a,
     RedeemerConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -91,14 +86,15 @@ tamperMintingRedeemersOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  Branching ->
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperMintingRedeemersOfTypeTweak =
-  tamperRedeemersOfTypeTweak $ txSkelMintingScriptsT % userRedeemerL
+  Sem effs [a]
+tamperMintingRedeemersTweak branching =
+  tamperRedeemersTweak branching $ txSkelMintingScriptsT % userRedeemerL
 
 -- | Applies a modification to all proposing redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.
-tamperProposingRedeemersOfTypeTweak ::
+tamperProposingRedeemersTweak ::
   ( RedeemerConstrs a,
     RedeemerConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -106,14 +102,15 @@ tamperProposingRedeemersOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  Branching ->
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperProposingRedeemersOfTypeTweak =
-  tamperRedeemersOfTypeTweak $ txSkelProposingScriptsT % userRedeemerL
+  Sem effs [a]
+tamperProposingRedeemersTweak branching =
+  tamperRedeemersTweak branching $ txSkelProposingScriptsT % userRedeemerL
 
 -- | Applies a modification to all withdrawing redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.
-tamperWithdrawingRedeemersOfTypeTweak ::
+tamperWithdrawingRedeemersTweak ::
   ( RedeemerConstrs a,
     RedeemerConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -121,14 +118,15 @@ tamperWithdrawingRedeemersOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  Branching ->
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperWithdrawingRedeemersOfTypeTweak =
-  tamperRedeemersOfTypeTweak $ txSkelWithdrawingScriptsT % userRedeemerAT
+  Sem effs [a]
+tamperWithdrawingRedeemersTweak branching =
+  tamperRedeemersTweak branching $ txSkelWithdrawingScriptsT % userRedeemerAT
 
 -- | Applies a modification to all certifying redeemers of type @a@.
 -- Returns the list of modified redeemers, as they were before being modified.
-tamperCertifyingRedeemersOfTypeTweak ::
+tamperCertifyingRedeemersTweak ::
   ( RedeemerConstrs a,
     RedeemerConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -136,16 +134,17 @@ tamperCertifyingRedeemersOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  Branching ->
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperCertifyingRedeemersOfTypeTweak =
-  tamperRedeemersOfTypeTweak $ txSkelCertifyingScriptsT % userRedeemerAT
+  Sem effs [a]
+tamperCertifyingRedeemersTweak branching =
+  tamperRedeemersTweak branching $ txSkelCertifyingScriptsT % userRedeemerAT
 
 -- | Applies a modification to all redeemers of type @a@, regardless
 -- of their position in the skeleton (spending, minting, proposing, withdrawing
 -- or certifying). Returns the list of modified redeemers, as they were before
 -- being modified.
-tamperAllRedeemersOfTypeTweak ::
+tamperAllRedeemersTweak ::
   ( RedeemerConstrs a,
     RedeemerConstrs b,
     Members '[NonDet, Tweak] effs,
@@ -153,7 +152,8 @@ tamperAllRedeemersOfTypeTweak ::
     Alternative t,
     Ord a
   ) =>
+  Branching ->
   (a -> t b) ->
-  Sem effs [TxSkelRedeemer]
-tamperAllRedeemersOfTypeTweak =
-  tamperRedeemersOfTypeTweak txSkelRedeemersT
+  Sem effs [a]
+tamperAllRedeemersTweak branching =
+  tamperRedeemersTweak branching txSkelRedeemersT
