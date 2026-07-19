@@ -101,22 +101,31 @@ tamperToBuiltinDataTest =
   testCase "tamperRedeemersTweak can malform redeemers into arbitrary BuiltinData, trying every subset" $
     let allData :: TxSkel -> [PlutusTx.BuiltinData]
         allData = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
-        d :: (PlutusTx.ToData a) => a -> PlutusTx.BuiltinData
-        d = PlutusTx.toBuiltinData
+        dI :: Integer -> PlutusTx.BuiltinData
+        dI = PlutusTx.toBuiltinData
+        dB :: Bool -> PlutusTx.BuiltinData
+        dB = PlutusTx.toBuiltinData
      in assertSameSets
-          [ [d (10 :: Integer), d (20 :: Integer), d True], -- both kept (grouping [0])
-            [d (10 :: Integer), d (20 :: Integer), d True], -- both kept (grouping [1])
-            [d (10 :: Integer), d (20 :: Integer), d True], -- both kept (grouping [0, 1])
-            [d False, d (20 :: Integer), d True], -- first changed (grouping [0])
-            [d False, d (20 :: Integer), d True], -- first changed (grouping [0, 1])
-            [d (10 :: Integer), d False, d True], -- second changed (grouping [1])
-            [d (10 :: Integer), d False, d True], -- second changed (grouping [0, 1])
-            [d False, d False, d True] -- both changed (grouping [0, 1])
+          [ -- grouping [10]
+            [dI (10 + 1), dI 20, dB True],
+            [dB False, dI 20, dB True],
+            -- grouping [20]
+            [dI 10, dI (20 + 1), dB True],
+            [dI 10, dB False, dB True],
+            -- grouping [10,20]
+            [dI (10 + 1), dI (20 + 1), dB True],
+            [dB False, dI (20 + 1), dB True],
+            [dI (10 + 1), dB False, dB True],
+            [dB False, dB False, dB True]
           ]
           ( fmap (allData . fst) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperRedeemersTweak @Integer @Api.BuiltinData PowerSet txSkelSpendingRedeemersT (\n -> [d n, d False]))
+                ( tamperRedeemersTweak @Integer @Api.BuiltinData
+                    PowerSet
+                    txSkelSpendingRedeemersT
+                    (\n -> [dI (n + 1), dB False])
+                )
           )
 
 -- | Regression test for the certificate-redeemer kind bug: certificate owners
