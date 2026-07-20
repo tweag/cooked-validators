@@ -1,9 +1,7 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 -- | This module provides an automated attack to try and perform double
 -- satisfaction on a contract.
 module Cooked.Attack.DoubleSat
-  ( DoubleSatDelta,
+  ( DoubleSatDelta (..),
     DoubleSatLbl (..),
     doubleSatAttack,
   )
@@ -52,17 +50,21 @@ and mints depending on each focus and the current 'MockChainSt'ate. -}
 -- | A triplet of transaction inputs, transaction outputs, and minted
 -- value. This is what we can add to the transaction in order to try a double
 -- satisfaction attack.
-type DoubleSatDelta = (Map Api.TxOutRef TxSkelRedeemer, [TxSkelOut], TxSkelMints)
+data DoubleSatDelta
+  = DoubleSatDelta
+      (Map Api.TxOutRef TxSkelRedeemer)
+      [TxSkelOut]
+      TxSkelMints
 
-instance {-# OVERLAPPING #-} Semigroup DoubleSatDelta where
-  (i, o, m) <> (i', o', m') =
-    ( i <> i', -- this is left-biased union
-      o ++ o',
-      m <> m' -- see the 'Semigroup' instance of 'TxSkelMints'
-    )
+instance Semigroup DoubleSatDelta where
+  DoubleSatDelta i o m <> DoubleSatDelta i' o' m' =
+    DoubleSatDelta
+      (i <> i') -- this is left-biased union
+      (o ++ o')
+      (m <> m') -- see the 'Semigroup' instance of 'TxSkelMints'
 
-instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
-  mempty = (Map.empty, [], mempty)
+instance Monoid DoubleSatDelta where
+  mempty = DoubleSatDelta Map.empty [] mempty
 
 -- | Double satisfaction attack. See the comment above for what such an
 -- attack is about conceptually.
@@ -108,7 +110,7 @@ doubleSatAttack ::
   -- 'Cooked.MockChain.UtxoState.UtxoState' argument.
   --
   -- ###################################
-  (is -> a -> Sem effs [(a, DoubleSatDelta)]) ->
+  (is -> a -> Sem effs (a, DoubleSatDelta)) ->
   -- | The attacker, who receives any surplus.
   --
   -- In the example, the extra value in the added input will be paid to the
@@ -116,7 +118,7 @@ doubleSatAttack ::
   owner ->
   Sem effs ()
 doubleSatAttack groupings optic change target = do
-  deltas <- overModsTweak groupings optic (\i a -> change i a >>= embedFoldable)
+  deltas <- modifyTweak groupings optic change
   let delta = joinDoubleSatDeltas deltas
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta
@@ -128,13 +130,13 @@ doubleSatAttack groupings optic change target = do
     -- for each triple of additional inputs, outputs, and mints,
     -- calculate its balance
     deltaBalance :: DoubleSatDelta -> Sem effs Api.Value
-    deltaBalance (inputs, outputs, mints) = do
+    deltaBalance (DoubleSatDelta inputs outputs mints) = do
       inValue <- foldMap (view txSkelOutValueL . snd) . filter ((`Map.member` inputs) . fst) <$> allUtxos
       return $ inValue <> PlutusTx.negate (foldOf (traversed % txSkelOutValueL) outputs) <> Script.toValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
     addDoubleSatDeltaTweak :: DoubleSatDelta -> Sem effs ()
-    addDoubleSatDeltaTweak (ins, outs, mints) =
+    addDoubleSatDeltaTweak (DoubleSatDelta ins outs mints) =
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs
         >> addMintsTweak (view txSkelMintsListI mints)

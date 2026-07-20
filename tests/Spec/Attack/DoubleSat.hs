@@ -3,6 +3,7 @@
 module Spec.Attack.DoubleSat (tests) where
 
 import Control.Arrow
+import Control.Monad
 import Cooked
 import Data.Either
 import Data.List (subsequences)
@@ -94,38 +95,41 @@ tests =
                               bUtxos <- utxosAt bValidator
                               if
                                 | aOref == fst aUtxo1 ->
-                                    return
-                                      [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                      | (bOref, bOut) <- bUtxos,
-                                        view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                      ]
+                                    msum $
+                                      fmap return $
+                                        [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
+                                        | (bOref, bOut) <- bUtxos,
+                                          view txSkelOutValueL bOut == Script.lovelace 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        ]
                                 | aOref == fst aUtxo2 ->
-                                    return
-                                      [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
-                                      | (bOref, _) <- bUtxos,
-                                        bOref == fst bUtxo1
-                                      ]
+                                    msum $
+                                      fmap return $
+                                        [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)
+                                        | (bOref, _) <- bUtxos,
+                                          bOref == fst bUtxo1
+                                        ]
                                 | aOref == fst aUtxo3 ->
-                                    return $
-                                      concatMap
-                                        ( \(bOref, _) ->
-                                            if
-                                              | bOref == fst bUtxo1 ->
-                                                  [(someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)]
-                                              | bOref == fst bUtxo2 ->
-                                                  [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1),
-                                                    (someTxSkelRedeemer ARedeemer3, toDelta bOref $ someTxSkelRedeemer BRedeemer2)
-                                                  ]
-                                              | otherwise -> []
-                                        )
-                                        bUtxos
-                                | otherwise -> return []
+                                    msum $
+                                      return
+                                        <$> concatMap
+                                          ( \(bOref, _) ->
+                                              if
+                                                | bOref == fst bUtxo1 ->
+                                                    [(someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1)]
+                                                | bOref == fst bUtxo2 ->
+                                                    [ (someTxSkelRedeemer ARedeemer2, toDelta bOref $ someTxSkelRedeemer BRedeemer1),
+                                                      (someTxSkelRedeemer ARedeemer3, toDelta bOref $ someTxSkelRedeemer BRedeemer2)
+                                                    ]
+                                                | otherwise -> []
+                                          )
+                                          bUtxos
+                                | otherwise -> mzero
                           )
                           (wallet 6)
                 )
               where
                 toDelta :: V3.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
-                toDelta oref howSpent = (Map.singleton oref howSpent, [], mempty)
+                toDelta oref howSpent = DoubleSatDelta (Map.singleton oref howSpent) [] mempty
 
             -- generate a transaction that spends the given
             -- 'aValidator' UTxOs (all with 'ARedeemer') and the

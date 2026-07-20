@@ -36,7 +36,7 @@ tamperDatumTweakTest =
                   ]
               }
             ( tamperAllDatumsTweak @(Integer, Integer)
-                All
+                OneBranchForAllFoci
                 (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
             )
         )
@@ -71,7 +71,7 @@ malformDatumTweakTest =
                       }
                   )
                   ( tamperAllDatumsTweak @(Integer, Integer)
-                      Any
+                      OneBranchPerFoci
                       ( \(x, y) ->
                           if y == 77
                             then []

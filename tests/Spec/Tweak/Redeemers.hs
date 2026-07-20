@@ -58,7 +58,7 @@ tamperSpendingRedeemersTest =
       @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperSpendingRedeemersTweak @Integer All (\n -> Just (n + 1)))
+                (tamperSpendingRedeemersTweak @Integer OneBranchForAllFoci (Just . (+ 1)))
           )
 
 tamperAllRedeemersTest :: TestTree
@@ -66,7 +66,7 @@ tamperAllRedeemersTest =
   testCase "tamperAllRedeemersTweak reaches the spending redeemers" $
     [[0, 0]]
       @=? ( fmap (integerRedeemers . fst) . run . runNonDet $
-              runTweak baseSkel (tamperAllRedeemersTweak @Integer @Integer All (const $ Just 0))
+              runTweak baseSkel (tamperAllRedeemersTweak @Integer @Integer OneBranchForAllFoci (const $ Just 0))
           )
 
 -- | A change returning several options branches the tweak into every
@@ -83,7 +83,7 @@ tamperBranchingTest =
       ( fmap (integerRedeemers . fst) . run . runNonDet $
           runTweak
             baseSkel
-            (tamperRedeemersTweak @Integer All txSkelSpendingRedeemersT (\n -> [n + 1, n + 2]))
+            (tamperSpendingRedeemersTweak @Integer OneBranchForAllFoci (\n -> [n + 1, n + 2]))
       )
 
 -- | Transforming @Integer@ redeemers into raw 'Api.BuiltinData' (of a possibly
@@ -122,7 +122,7 @@ tamperToBuiltinDataTest =
               runTweak
                 baseSkel
                 ( tamperRedeemersTweak @Integer @Api.BuiltinData
-                    PowerSet
+                    OneBranchPerSubset
                     txSkelSpendingRedeemersT
                     (\n -> [dI (n + 1), dB False])
                 )
@@ -138,7 +138,7 @@ tamperCertificateRedeemersTest =
       @=? ( fmap (certificateIntegerRedeemers . fst) . run . runNonDet $
               runTweak
                 (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
-                (tamperAllRedeemersTweak @Integer @Integer All (const $ Just 0))
+                (tamperAllRedeemersTweak @Integer @Integer OneBranchForAllFoci (const $ Just 0))
           )
 
 -- | Regression test for the certificate-redeemer kind bug at the

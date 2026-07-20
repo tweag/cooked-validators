@@ -56,7 +56,9 @@ tamperRedeemersTweak ::
   (a -> t b) ->
   Sem effs [a]
 tamperRedeemersTweak branching optic mChange = do
-  modified <- modifyTweak branching optic txSkelRedeemerTypedAT mChange (const True)
+  modified <-
+    modifyTweakFromParams $
+      modifyTweakParamsAllIndexes branching optic txSkelRedeemerTypedAT mChange
   addLabelTweak $ TamperedRedeemerLbl modified
   return modified
 

@@ -24,9 +24,19 @@ module Cooked.Tweak.Common
     -- * Overing tweaks
     overTweak,
     ioverTweak,
-    overModsTweak,
+
+    -- * Modification parameters
     Branching (..),
+    ModifyTweakParams (..),
+    modifyTweakParamsAllIndexes,
+    modifyTweakParamsNoTypeChange,
+    modifyTweakParamsOneBranchForAllFoci,
+    modifyTweakParamsOneBranchPerFoci,
+    modifyTweakParamsOneBranchPerSubset,
+
+    -- * Modifying tweaks
     modifyTweak,
+    modifyTweakFromParams,
 
     -- * Traversing tweaks
     traverseTweak,
@@ -42,14 +52,12 @@ module Cooked.Tweak.Common
     removeIfTweak,
     removeAtTweak,
 
-    -- * Helpers to build optics
+    -- * Helper to build optics
     selectP,
-    selectF,
-    embedFoldable,
   )
 where
 
-import Control.Applicative (Alternative, empty, (<|>))
+import Control.Applicative (Alternative)
 import Control.Monad
 import Cooked.Skeleton
 import Data.Either (isRight)
@@ -132,7 +140,7 @@ viewAnyTweak ::
   (Members '[Tweak, NonDet] effs, Is k A_Fold) =>
   Optic' k is TxSkel a ->
   Sem effs a
-viewAnyTweak optic = viewAllTweak optic >>= embedFoldable
+viewAnyTweak optic = viewAllTweak optic >>= msum . fmap return
 
 -- * Basic modifying 'Tweak's
 
@@ -210,27 +218,6 @@ selectP ::
   Prism' a a
 selectP prop = prism' id (mfilter prop . Just)
 
--- | Refines a traversal by selecting elements for which a given transformation
--- returns a non-empty foldable structure.
-selectF ::
-  ( Is k A_Traversal,
-    Foldable t
-  ) =>
-  Optic' k is TxSkel a ->
-  (a -> t b) ->
-  Optic' A_Traversal is TxSkel a
-selectF optic change = castOptic @A_Traversal optic % selectP (not . null . change)
-
--- | Embeds a foldable structure into an effect stack exposing 'NonDet', by
--- turning each of its elements into a separate non-deterministic branch.
-embedFoldable ::
-  ( Member NonDet effs,
-    Foldable t
-  ) =>
-  t a ->
-  Sem effs a
-embedFoldable = foldr ((<|>) . pure) empty
-
 -- | When constructing a tweak from an optic and a modification of foci, there
 -- are in principle two options for optics with many foci: (a) apply the
 -- modification to all foci and return /one/ modified transaction (b) generate a
@@ -282,7 +269,7 @@ embedFoldable = foldr ((<|>) . pure) empty
 -- In the same setting, if you want to combine all possible modifications of one
 -- focus with all possible modifications of the other foci, choose @tail .
 -- subsequences@ for the @[is] -> [[is]]@ argument. This is the grouping used by
--- the 'PowerSet' 'Branching' of 'modifyTweak'. We have
+-- the 'OneBranchPerSubset' 'Branching' of 'modifyTweak'. We have
 --
 -- > tail (subsequences [1, 2, 3])
 -- >   == [ [1], [2], [3],
@@ -319,10 +306,9 @@ embedFoldable = foldr ((<|>) . pure) empty
 -- with caution!
 --
 -- Note that if @changes@ branches to no result for a /targeted/ focus (one
--- whose index occurs in a grouping), for example via 'mzero' or 'embedFoldable'
--- of an empty structure, that entire grouping branch is dropped, since there is
--- no possible value to put in place of that focus.
-overModsTweak ::
+-- whose index occurs in a grouping), that entire grouping branch is dropped,
+-- since there is no possible value to put in place of that focus.
+modifyTweak ::
   ( Ord is,
     Is k A_Traversal,
     Members '[Tweak, NonDet] effs
@@ -340,15 +326,14 @@ overModsTweak ::
   Optic' k (WithIx is) TxSkel x ->
   -- | Function that describes how the foci and their indexes can be transformed
   -- within the structure. Bear in mind that @effs@ contains @NonDet@ so this
-  -- transformation can already branch. Use 'embedFoldable' to build such a
-  -- transformation from simpler bricks.
+  -- transformation can already branch.
   (is -> x -> Sem effs (x, l)) ->
   -- | Returns the list of all foci modified in the transaction, as they were
   -- before the modification was applied, represented by their label. In most
   -- cases, the label will be the element itself, but other use cases are
   -- allowed as the label is arbitrary data.
   Sem effs [l]
-overModsTweak groupings optic changes = do
+modifyTweak groupings optic changes = do
   -- The 'castOptic' call below is necessary: a polymorphic optic kind @k@
   -- constrained only by @Is k A_Traversal@ does not resolve @Is k A_Fold@
   -- ('itoListOf') or @Is k A_Setter@ ('ioverTweak') at the use site, so we
@@ -370,21 +355,88 @@ overModsTweak groupings optic changes = do
           (el', lbl) <- raise $ changes index el
           -- We store the computed label
           tell [lbl]
+          -- We return the modified foci
           return el'
 
 -- | How to combine the branches generated when several foci are eligible for
 -- modification in the same skeleton. See 'modifyTweak'.
 data Branching
   = -- | Modify all eligible foci together, yielding a single modified skeleton.
-    All
-  | -- | Modify exactly one eligible focus, yielding one branch per focus.
-    Any
+    OneBranchForAllFoci
+  | -- | Modify exactly one eligible focus per branch.
+    OneBranchPerFoci
   | -- | Modify every non-empty subset of the eligible foci, yielding one branch
     -- per subset (the power set, minus the empty set).
-    PowerSet
-  | -- | Modify all the subsets computed by the given function applied on the
-    -- focused indexes.
+    OneBranchPerSubset
+  | -- | Create a new branch for all the subsets computed by the given function
+    -- applied on the focused indexes.
     Manual ([Int] -> [[Int]])
+
+-- | The set of parameters piloting the modification tweak
+data ModifyTweakParams k k' is is' f a b c where
+  ModifyTweakParams ::
+    { -- | The branching policy to apply when several foci are targeted
+      branching :: Branching,
+      -- | A type-preserving optic traversing the 'TxSkel' and pinpointing a first
+      -- layer of elements. Being type-preserving, it only chooses /where/ to act.
+      outerOptic :: Optic' k is TxSkel a,
+      -- | A second, type-changing 'AffineTraversal' reaching from within each
+      -- selected element to the inner focus that is actually modified. It carries
+      -- the @b -> c@ type change that the outer optic cannot, and its
+      -- affine-ness (0 or 1 focus) acts as an additional selection layer.
+      innerOptic :: Optic k' is' a a b c,
+      -- | The modifying function, which can possibly fail through @f@, further
+      -- selecting elements to modify.
+      modification :: b -> f c,
+      -- | A selection function based on the indexes of the selected foci. This is
+      -- the last layer of selection, if all the others are insufficient.
+      selection :: Int -> Bool
+    } ->
+    ModifyTweakParams k k' is is' f a b c
+
+-- | A standard 'ModifyTweakParams' without the index filtering
+modifyTweakParamsAllIndexes ::
+  Branching ->
+  Optic' k is TxSkel a ->
+  Optic k' is' a a b c ->
+  (b -> f c) ->
+  ModifyTweakParams k k' is is' f a b c
+modifyTweakParamsAllIndexes branching opticOut opticIn mChange =
+  ModifyTweakParams branching opticOut opticIn mChange (const True)
+
+-- | A standard 'ModifyTweakParams' without any index filtering or type changing
+-- inner optic
+modifyTweakParamsNoTypeChange ::
+  Branching ->
+  Optic' k is TxSkel a ->
+  (a -> f a) ->
+  ModifyTweakParams k An_Iso is NoIx f a a a
+modifyTweakParamsNoTypeChange branching optic =
+  modifyTweakParamsAllIndexes branching optic simple
+
+-- | A standard 'ModifyTweakParams' without any index filtering or type changing
+-- inner optic, modifying each foci in the same transaction.
+modifyTweakParamsOneBranchForAllFoci ::
+  Optic' k is TxSkel a ->
+  (a -> f a) ->
+  ModifyTweakParams k An_Iso is NoIx f a a a
+modifyTweakParamsOneBranchForAllFoci = modifyTweakParamsNoTypeChange OneBranchForAllFoci
+
+-- | A standard 'ModifyTweakParams' without any index filtering or type changing
+-- inner optic, branching on each foci.
+modifyTweakParamsOneBranchPerFoci ::
+  Optic' k is TxSkel a ->
+  (a -> f a) ->
+  ModifyTweakParams k An_Iso is NoIx f a a a
+modifyTweakParamsOneBranchPerFoci = modifyTweakParamsNoTypeChange OneBranchPerFoci
+
+-- | A standard 'ModifyTweakParams' without any index filtering or type changing
+-- inner optic, branching on each subset of foci.
+modifyTweakParamsOneBranchPerSubset ::
+  Optic' k is TxSkel a ->
+  (a -> f a) ->
+  ModifyTweakParams k An_Iso is NoIx f a a a
+modifyTweakParamsOneBranchPerSubset = modifyTweakParamsNoTypeChange OneBranchPerSubset
 
 -- | The most convenient and expressive way to build a focusing-and-modifying
 -- 'Tweak'. It targets foci in a 'TxSkel' through /two/ optics and applies a
@@ -393,7 +445,7 @@ data Branching
 --
 -- == Why two optics?
 --
--- The underlying engine ('overModsTweak') can only apply /type-preserving/
+-- The underlying engine ('modifyTweak') can only apply /type-preserving/
 -- modifications: each modified focus is written back into the 'TxSkel' in
 -- place, so the skeleton's overall shape is fixed and the outer optic must be
 -- an @'Optic'' ... TxSkel a@. That optic can therefore only decide /where/ in
@@ -415,33 +467,19 @@ data Branching
 -- and the index predicate @select@, this gives several independent layers of
 -- selection: outer optic, inner-optic existence, modification success, and
 -- index.
-modifyTweak ::
+modifyTweakFromParams ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Traversal,
     Is k' An_AffineTraversal,
     Foldable f,
     Alternative f
   ) =>
-  -- | How to branch when several foci are eligible in the same skeleton.
-  Branching ->
-  -- | A type-preserving optic traversing the 'TxSkel' and pinpointing a first
-  -- layer of elements. Being type-preserving, it only chooses /where/ to act.
-  Optic' k is TxSkel a ->
-  -- | A second, type-changing 'AffineTraversal' reaching from within each
-  -- selected element to the inner focus that is actually modified. It carries
-  -- the @b -> c@ type change that the outer optic cannot, and its
-  -- affine-ness (0 or 1 focus) acts as an additional selection layer.
-  Optic k' is' a a b c ->
-  -- | The modifying function, which can possibly fail through @f@, further
-  -- selecting elements to modify.
-  (b -> f c) ->
-  -- | A selection function based on the indexes of the selected foci. This is
-  -- the last layer of selection, if all the others are insufficient.
-  (Int -> Bool) ->
+  -- | The parameters piloting the modifications
+  ModifyTweakParams k k' is is' f a b c ->
   -- | Returns the list of inner foci (as they were /before/ modification) that
   -- were modified.
   Sem effs [b]
-modifyTweak branching opticOut opticIn change select =
+modifyTweakFromParams (ModifyTweakParams branching opticOut opticIn change select) =
   -- We concretise the inner optic's kind once, since a polymorphic @Is k'
   -- An_AffineTraversal@ does not resolve the 'matching'/'traverseOf' instances
   -- at the use site.
@@ -451,26 +489,26 @@ modifyTweak branching opticOut opticIn change select =
       -- no inner focus, so the outer engine only ever sees type-preserving
       -- work, and 'traverseOf' rebuilds the same @a@ with its inner @b@
       -- replaced by a @c@.
-      mChange a =
-        guard (isRight $ matching aInOptic a)
-          *> traverseOf aInOptic change a
-   in overModsTweak
+      mChange a = guard (isRight $ matching aInOptic a) *> traverseOf aInOptic change a
+      -- This restricts the foci of @opticOut@ to those for which @mChange@ is
+      -- successfully applied
+      opticOutE = castOptic @A_Traversal opticOut % selectP (not . null . mChange)
+   in modifyTweak
         ( case branching of
-            All -> (: [])
-            Any -> fmap (: [])
-            PowerSet -> tail . subsequences
+            OneBranchForAllFoci -> (: [])
+            OneBranchPerFoci -> fmap (: [])
+            OneBranchPerSubset -> tail . subsequences
             Manual f -> f
         )
         -- 'selectF' keeps only the outer foci where @mChange@ is non-empty, and
         -- @select@ further restricts them by index.
-        (elementsOf (selectF opticOut mChange) select)
+        (elementsOf opticOutE select)
         ( \_ a ->
             -- We pair each non-deterministically modified element with the
             -- original inner focus. 'matching' (not 'preview') is required
             -- here because @opticIn@ is type-changing; the 'fromRight'' is safe
             -- because 'selectF'/the @guard@ already guaranteed a focus.
-            (,fromRight' $ matching aInOptic a)
-              <$> embedFoldable (mChange a)
+            (,fromRight' $ matching aInOptic a) <$> msum (return <$> mChange a)
         )
 
 -- | Appends an element within a semigroup focused in a 'TxSkel'

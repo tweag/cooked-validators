@@ -45,7 +45,7 @@ tamperDatumsTweak ::
   (a -> t b) ->
   Sem effs [a]
 tamperDatumsTweak branching optic mChange = do
-  modified <- modifyTweak branching optic txSkelOutDatumTypedAT mChange (const True)
+  modified <- modifyTweakFromParams $ modifyTweakParamsAllIndexes branching optic txSkelOutDatumTypedAT mChange
   addLabelTweak $ TamperedDatumLbl modified
   return modified
 
