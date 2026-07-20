@@ -183,10 +183,10 @@ test-suite spec
       Spec.Slot
       Spec.Tweak
       Spec.Tweak.Common
+      Spec.Tweak.Datums
       Spec.Tweak.Labels
       Spec.Tweak.OutPermutations
       Spec.Tweak.Redeemers
-      Spec.Tweak.TamperDatum
       Spec.Tweak.ValidityRange
       Spec.Withdrawals
       Paths_cooked_validators

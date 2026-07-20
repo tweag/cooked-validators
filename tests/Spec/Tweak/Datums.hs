@@ -1,5 +1,5 @@
 -- | Tests for 'Cooked.Tweak.TamperDatum'.
-module Spec.Tweak.TamperDatum where
+module Spec.Tweak.Datums where
 
 import Cooked
 import Data.Set qualified as Set
