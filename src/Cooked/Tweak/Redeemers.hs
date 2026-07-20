@@ -5,7 +5,7 @@
 -- position, a tweak ranging over all positions at once, and a generic
 -- optic-based tweak from which they are all derived.
 module Cooked.Tweak.Redeemers
-  ( TamperedRedeemerLbl (..),
+  ( TamperedRedeemerLabel (..),
     tamperRedeemersTweak,
     tamperSpendingRedeemersTweak,
     tamperMintingRedeemersTweak,
@@ -28,11 +28,11 @@ import Polysemy.NonDet
 -- | A label added to a 'TxSkel' on which a tweak tampering a redeemer has been
 -- applied. The label contains all the redeemer contents that have been
 -- modified, before the modification was applied.
-newtype TamperedRedeemerLbl a = TamperedRedeemerLbl [a]
+newtype TamperedRedeemerLabel a = TamperedRedeemerLabel [a]
   deriving (Show, Eq, Ord)
 
-instance (PrettyCooked a) => PrettyCooked (TamperedRedeemerLbl a) where
-  prettyCookedOpt opts (TamperedRedeemerLbl reds) =
+instance (PrettyCooked a) => PrettyCooked (TamperedRedeemerLabel a) where
+  prettyCookedOpt opts (TamperedRedeemerLabel reds) =
     prettyItemize opts "Tampered Redeemers" "-" reds
 
 -- | Applies a modification to all redeemers of type @a@ focused by a
@@ -59,7 +59,7 @@ tamperRedeemersTweak branching optic mChange = do
   modified <-
     modifyTweakFromParams $
       modifyTweakParamsAllIndexes branching optic txSkelRedeemerTypedAT mChange
-  addLabelTweak $ TamperedRedeemerLbl modified
+  addLabelTweak $ TamperedRedeemerLabel modified
   return modified
 
 -- | Applies a modification to all spending redeemers of type @a@.

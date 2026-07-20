@@ -1,6 +1,6 @@
 -- | This module provides 'Tweak's that modify the datums of a 'TxSkel'.
 module Cooked.Tweak.Datum
-  ( TamperedDatumLbl (..),
+  ( TamperedDatumLabel (..),
     tamperDatumsTweak,
     tamperAllDatumsTweak,
   )
@@ -18,11 +18,11 @@ import Polysemy.NonDet
 -- | A label added to a 'TxSkel' on which a tweak tampering a datum has been
 -- applied. The label contains all the datum contents that have been
 -- modified, before the modification was applied.
-newtype TamperedDatumLbl a = TamperedDatumLbl [a]
+newtype TamperedDatumLabel a = TamperedDatumLabel [a]
   deriving (Show, Eq, Ord)
 
-instance (PrettyCooked a) => PrettyCooked (TamperedDatumLbl a) where
-  prettyCookedOpt opts (TamperedDatumLbl dats) =
+instance (PrettyCooked a) => PrettyCooked (TamperedDatumLabel a) where
+  prettyCookedOpt opts (TamperedDatumLabel dats) =
     prettyItemize opts "Tampered Datums" "-" dats
 
 -- | Applies a modification to all datums of type @a@ focused by a given
@@ -46,7 +46,7 @@ tamperDatumsTweak ::
   Sem effs [a]
 tamperDatumsTweak branching optic mChange = do
   modified <- modifyTweakFromParams $ modifyTweakParamsAllIndexes branching optic txSkelOutDatumTypedAT mChange
-  addLabelTweak $ TamperedDatumLbl modified
+  addLabelTweak $ TamperedDatumLabel modified
   return modified
 
 -- | Same as 'tamperDatumsTweak', focusing all the datums in the 'TxSkel'
