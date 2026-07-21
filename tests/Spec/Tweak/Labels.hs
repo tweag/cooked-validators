@@ -64,14 +64,24 @@ tests =
           everywhere labelNameTweak $
             there
               0
-              (redirectOutputTweakAll (const (Just carrie)) (== 0))
+              ( datumHijackingAttack $
+                  DatumHijackingParams
+                    OneBranchForAllFoci
+                    (const (Just carrie))
+                    (== 0)
+              )
               payments,
       testCooked "Adding labels whenever possible" $
         mustSucceedTest $
           whenAble labelNameTweak $
             there
               0
-              (redirectOutputTweakAll (const (Just carrie)) (== 0))
+              ( datumHijackingAttack $
+                  DatumHijackingParams
+                    OneBranchForAllFoci
+                    (const (Just carrie))
+                    (== 0)
+              )
               payments,
       testCooked "Applying a modification to all transactions with a given exact label" $
         mustSucceedTest $

@@ -48,8 +48,7 @@ data DatumHijackingParams where
       -- redirected in the same transaction, or one at a time, each in a
       -- distinct transaction.
       dhpBranching :: Branching,
-      -- | Return 'Just' the new owner, or 'Nothing' if you want to leave this
-      -- output unchanged.
+      -- | Return the new owner embedded in @f@
       dhpOutputPred :: TxSkelOut -> f owner,
       -- | The redirection described by the previous argument might apply to more
       -- than one of the outputs of the transaction. Use this predicate to select

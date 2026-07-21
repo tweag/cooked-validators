@@ -54,7 +54,7 @@ certificateIntegerRedeemers =
 tamperSpendingRedeemersTest :: TestTree
 tamperSpendingRedeemersTest =
   testCase "tamperSpendingRedeemersTweak only touches redeemers of the right type and records them in its label" $
-    [(Set.singleton (TxSkelLabel (TamperedRedeemerLbl [10, 20 :: Integer])), [11, 21])]
+    [(Set.singleton (TxSkelLabel (TamperedRedeemerLabel [10, 20 :: Integer])), [11, 21])]
       @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
               runTweak
                 baseSkel

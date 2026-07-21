@@ -107,10 +107,10 @@ tests =
         "The Spending purpose behaves properly"
         [ testCooked "We cannot redirect any output to a private key" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams alice) runScript,
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams OneBranchPerFoci alice) runScript,
           testCooked "We cannot redirect any output to another script" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams $ Script.trueSpendingMPScript @()) runScript
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams OneBranchPerFoci $ Script.trueSpendingMPScript @()) runScript
         ],
       testGroup
         "The Minting purpose behaves properly"
