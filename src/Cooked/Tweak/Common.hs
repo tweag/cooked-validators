@@ -340,8 +340,10 @@ modifyTweak groupings optic changes = do
   -- concretise the kind to 'A_Traversal', for which those instances exist.
   let tOptic = castOptic @A_Traversal optic
   -- We retrieve all the sets of indexes that should be subject to modification
-  -- in a separate computation.
-  indexes <- viewTweak $ to $ groupings . fmap fst . itoListOf tOptic
+  -- in a separate computation, removing the empty groupings in the process,
+  -- which would yield an unmodified transaction. NOTE: removing the empty
+  -- groupings is a design decision, not a necessity.
+  indexes <- viewTweak $ to $ filter (not . null) . groupings . fmap fst . itoListOf tOptic
   -- We make a separate branch for each of those groupings, in which we apply
   -- the modifications sequentially, for each of the targeted foci in the
   -- grouping.
@@ -420,7 +422,8 @@ modifyTweakParamsOneBranchForAllFoci ::
   Optic' k is TxSkel a ->
   (a -> f a) ->
   ModifyTweakParams k An_Iso is NoIx f a a a
-modifyTweakParamsOneBranchForAllFoci = modifyTweakParamsNoTypeChange OneBranchForAllFoci
+modifyTweakParamsOneBranchForAllFoci =
+  modifyTweakParamsNoTypeChange OneBranchForAllFoci
 
 -- | A standard 'ModifyTweakParams' without any index filtering or type changing
 -- inner optic, branching on each foci.
@@ -428,7 +431,8 @@ modifyTweakParamsOneBranchPerFoci ::
   Optic' k is TxSkel a ->
   (a -> f a) ->
   ModifyTweakParams k An_Iso is NoIx f a a a
-modifyTweakParamsOneBranchPerFoci = modifyTweakParamsNoTypeChange OneBranchPerFoci
+modifyTweakParamsOneBranchPerFoci =
+  modifyTweakParamsNoTypeChange OneBranchPerFoci
 
 -- | A standard 'ModifyTweakParams' without any index filtering or type changing
 -- inner optic, branching on each subset of foci.
@@ -436,7 +440,8 @@ modifyTweakParamsOneBranchPerSubset ::
   Optic' k is TxSkel a ->
   (a -> f a) ->
   ModifyTweakParams k An_Iso is NoIx f a a a
-modifyTweakParamsOneBranchPerSubset = modifyTweakParamsNoTypeChange OneBranchPerSubset
+modifyTweakParamsOneBranchPerSubset =
+  modifyTweakParamsNoTypeChange OneBranchPerSubset
 
 -- | The most convenient and expressive way to build a focusing-and-modifying
 -- 'Tweak'. It targets foci in a 'TxSkel' through /two/ optics and applies a
@@ -479,37 +484,35 @@ modifyTweakFromParams ::
   -- | Returns the list of inner foci (as they were /before/ modification) that
   -- were modified.
   Sem effs [b]
-modifyTweakFromParams (ModifyTweakParams branching opticOut opticIn change select) =
-  -- We concretise the inner optic's kind once, since a polymorphic @Is k'
-  -- An_AffineTraversal@ does not resolve the 'matching'/'traverseOf' instances
-  -- at the use site.
-  let aInOptic = castOptic @An_AffineTraversal opticIn
-      -- This turns the inner, type-changing modification into a type-preserving
-      -- @a -> f a@ operation. The @guard@ fails (in @f@) when the element has
-      -- no inner focus, so the outer engine only ever sees type-preserving
-      -- work, and 'traverseOf' rebuilds the same @a@ with its inner @b@
-      -- replaced by a @c@.
-      mChange a = guard (isRight $ matching aInOptic a) *> traverseOf aInOptic change a
-      -- This restricts the foci of @opticOut@ to those for which @mChange@ is
-      -- successfully applied
-      opticOutE = castOptic @A_Traversal opticOut % selectP (not . null . mChange)
-   in modifyTweak
-        ( case branching of
-            OneBranchForAllFoci -> (: [])
-            OneBranchPerFoci -> fmap (: [])
-            OneBranchPerSubset -> tail . subsequences
-            Manual f -> f
-        )
-        -- 'selectF' keeps only the outer foci where @mChange@ is non-empty, and
-        -- @select@ further restricts them by index.
-        (elementsOf opticOutE select)
-        ( \_ a ->
-            -- We pair each non-deterministically modified element with the
-            -- original inner focus. 'matching' (not 'preview') is required
-            -- here because @opticIn@ is type-changing; the 'fromRight'' is safe
-            -- because 'selectF'/the @guard@ already guaranteed a focus.
-            (,fromRight' $ matching aInOptic a) <$> msum (return <$> mChange a)
-        )
+modifyTweakFromParams
+  ( ModifyTweakParams
+      branching
+      (castOptic @A_Traversal -> opticOut)
+      (castOptic @An_AffineTraversal -> opticIn)
+      change
+      select
+    ) =
+    let -- This turns the inner, type-changing modification into a type-preserving
+        -- @a -> f a@ operation. The @guard@ fails (in @f@) when the element has
+        -- no inner focus, so the outer engine only ever sees type-preserving
+        -- work, and 'traverseOf' rebuilds the same @a@ with its inner @b@
+        -- replaced by a @c@.
+        mChange a = guard (isRight $ matching opticIn a) *> traverseOf opticIn change a
+     in modifyTweak
+          ( case branching of
+              OneBranchForAllFoci -> (: [])
+              OneBranchPerFoci -> fmap (: [])
+              OneBranchPerSubset -> tail . subsequences
+              Manual f -> f
+          )
+          -- 'selectF' keeps only the outer foci where @mChange@ is non-empty, and
+          -- @select@ further restricts them by index.
+          (elementsOf (opticOut % selectP (not . null . mChange)) select)
+          -- We pair each non-deterministically modified element with the
+          -- original inner focus. 'matching' (not 'preview') is required
+          -- here because @opticIn@ is type-changing; the 'fromRight'' is safe
+          -- because 'selectF'/the @guard@ already guaranteed a focus.
+          (\_ a -> (,fromRight' $ matching opticIn a) <$> msum (return <$> mChange a))
 
 -- | Appends an element within a semigroup focused in a 'TxSkel'
 addTweak ::

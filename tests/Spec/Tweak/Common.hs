@@ -21,8 +21,8 @@ tests =
     "building blocks for tweaks"
     [ testGroup "modifyTweak" $
         let skel = mkSkel [123, 234, 345]
-         in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test
-                [skel]
+         in [ testCase "return no modified transaction when no foci are eligible" $
+                []
                   @=? run
                     ( runNonDet $
                         execTweak skel $
