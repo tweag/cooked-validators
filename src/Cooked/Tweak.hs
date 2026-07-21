@@ -4,12 +4,13 @@
 module Cooked.Tweak (module X) where
 
 import Cooked.Tweak.Common as X
-import Cooked.Tweak.Datum as X
 import Cooked.Tweak.Inputs as X
+import Cooked.Tweak.Insertion as X
 import Cooked.Tweak.Labels as X
 import Cooked.Tweak.Mint as X
+import Cooked.Tweak.Modification as X
 import Cooked.Tweak.OutPermutations as X
 import Cooked.Tweak.Outputs as X
-import Cooked.Tweak.Redeemers as X
+import Cooked.Tweak.Removal as X
 import Cooked.Tweak.Signatories as X
 import Cooked.Tweak.ValidityRange as X

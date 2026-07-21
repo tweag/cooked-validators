@@ -1,5 +1,5 @@
--- | Tests for 'Cooked.Tweak.Redeemers'.
-module Spec.Tweak.Redeemers where
+-- | Tests for 'Cooked.Attack.TamperRedeemer'.
+module Spec.Attack.TamperRedeemer where
 
 import Cooked
 import Data.Map qualified as Map
@@ -54,11 +54,11 @@ certificateIntegerRedeemers =
 tamperSpendingRedeemersTest :: TestTree
 tamperSpendingRedeemersTest =
   testCase "tamperSpendingRedeemersTweak only touches redeemers of the right type and records them in its label" $
-    [(Set.singleton (TxSkelLabel (TamperedRedeemerLabel [10, 20 :: Integer])), [11, 21])]
+    [(Set.singleton (TxSkelLabel (TamperRedeemerLabel [10, 20 :: Integer])), [11, 21])]
       @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperSpendingRedeemersTweak @Integer OneBranchForAllFoci (Just . (+ 1)))
+                (tamperRedeemerAttack $ spendingTamperRedeemerParams @Integer OneBranchForAllFoci (Just . (+ 1)))
           )
 
 tamperAllRedeemersTest :: TestTree
@@ -66,7 +66,7 @@ tamperAllRedeemersTest =
   testCase "tamperAllRedeemersTweak reaches the spending redeemers" $
     [[0, 0]]
       @=? ( fmap (integerRedeemers . fst) . run . runNonDet $
-              runTweak baseSkel (tamperAllRedeemersTweak @Integer @Integer OneBranchForAllFoci (const $ Just 0))
+              runTweak baseSkel (tamperRedeemerAttack $ allTamperRedeemerParams @Integer @Integer OneBranchForAllFoci (const $ Just 0))
           )
 
 -- | A change returning several options branches the tweak into every
@@ -83,7 +83,7 @@ tamperBranchingTest =
       ( fmap (integerRedeemers . fst) . run . runNonDet $
           runTweak
             baseSkel
-            (tamperSpendingRedeemersTweak @Integer OneBranchForAllFoci (\n -> [n + 1, n + 2]))
+            (tamperRedeemerAttack $ spendingTamperRedeemerParams @Integer OneBranchForAllFoci (\n -> [n + 1, n + 2]))
       )
 
 -- | Transforming @Integer@ redeemers into raw 'Api.BuiltinData' (of a possibly
@@ -121,10 +121,10 @@ tamperToBuiltinDataTest =
           ( fmap (allData . fst) . run . runNonDet $
               runTweak
                 baseSkel
-                ( tamperRedeemersTweak @Integer @Api.BuiltinData
-                    OneBranchPerSubset
-                    txSkelSpendingRedeemersT
-                    (\n -> [dI (n + 1), dB False])
+                ( tamperRedeemerAttack $
+                    spendingTamperRedeemerParams @Integer @Api.BuiltinData
+                      OneBranchPerSubset
+                      (\n -> [dI (n + 1), dB False])
                 )
           )
 
@@ -138,7 +138,7 @@ tamperCertificateRedeemersTest =
       @=? ( fmap (certificateIntegerRedeemers . fst) . run . runNonDet $
               runTweak
                 (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
-                (tamperAllRedeemersTweak @Integer @Integer OneBranchForAllFoci (const $ Just 0))
+                (tamperRedeemerAttack $ allTamperRedeemerParams @Integer @Integer OneBranchForAllFoci (const $ Just 0))
           )
 
 -- | Regression test for the certificate-redeemer kind bug at the

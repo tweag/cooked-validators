@@ -1,5 +1,5 @@
--- | Tests for 'Cooked.Tweak.TamperDatum'.
-module Spec.Tweak.Datums where
+-- | Tests for 'Cooked.Attack.TamperDatum'.
+module Spec.Attack.TamperDatum where
 
 import Cooked
 import Data.Set qualified as Set
@@ -14,11 +14,11 @@ import Test.Tasty.HUnit (testCase, (@=?))
 alice :: Wallet
 alice = wallet 1
 
-tamperDatumTweakTest :: TestTree
-tamperDatumTweakTest =
-  testCase "tamperDatumTweak" $
+tamperDatumAttackTest :: TestTree
+tamperDatumAttackTest =
+  testCase "tamperDatumAttack" $
     [ txSkelTemplate
-        { txSkelLabels = Set.singleton $ TxSkelLabel $ TamperedDatumLabel [(52 :: Integer, 53 :: Integer)],
+        { txSkelLabels = Set.singleton $ TxSkelLabel $ TamperDatumLabel [(52 :: Integer, 53 :: Integer)],
           txSkelOutputs =
             [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
               alice `receives` Value (Script.lovelace 234),
@@ -35,15 +35,16 @@ tamperDatumTweakTest =
                     alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
-            ( tamperAllDatumsTweak @(Integer, Integer)
-                OneBranchForAllFoci
-                (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
+            ( tamperDatumAttack $
+                allTamperDatumParams @(Integer, Integer)
+                  OneBranchForAllFoci
+                  (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
             )
         )
 
-malformDatumTweakTest :: TestTree
-malformDatumTweakTest =
-  testCase "malformDatumTweak" $
+malformDatumAttackTest :: TestTree
+malformDatumAttackTest =
+  testCase "malformDatumAttack" $
     let allBuiltinData :: TxSkel -> [PlutusTx.BuiltinData]
         allBuiltinData = toListOf (txSkelOutputsL % traversed % txSkelOutDatumL % txSkelOutDatumTypedAT)
 
@@ -70,16 +71,17 @@ malformDatumTweakTest =
                           ]
                       }
                   )
-                  ( tamperAllDatumsTweak @(Integer, Integer)
-                      OneBranchPerFoci
-                      ( \(x, y) ->
-                          if y == 77
-                            then []
-                            else
-                              [ PlutusTx.toBuiltinData (x, ()),
-                                PlutusTx.toBuiltinData False
-                              ]
-                      )
+                  ( tamperDatumAttack $
+                      allTamperDatumParams @(Integer, Integer)
+                        OneBranchPerFoci
+                        ( \(x, y) ->
+                            if y == 77
+                              then []
+                              else
+                                [ PlutusTx.toBuiltinData (x, ()),
+                                  PlutusTx.toBuiltinData False
+                                ]
+                        )
                   )
               )
           )
@@ -88,6 +90,6 @@ tests :: TestTree
 tests =
   testGroup
     "Tamper datum tweaks"
-    [ tamperDatumTweakTest,
-      malformDatumTweakTest
+    [ tamperDatumAttackTest,
+      malformDatumAttackTest
     ]

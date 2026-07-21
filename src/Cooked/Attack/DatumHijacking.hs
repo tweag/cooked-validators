@@ -1,26 +1,29 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
--- | This module provides an automated attack to try and redirect outputs to a
--- certain target with a similar datum type.
+-- | This module provides an attack to try and redirect selectable outputs to a
+-- given thief target.
 module Cooked.Attack.DatumHijacking
-  ( DatumHijackingParams (..),
-    DatumHijackingLabel (..),
-    datumHijackingAttack,
+  ( -- * Datum hijacking params
+    DatumHijackingParams (..),
     typedByDatumHijackingParams,
     ownedByDatumHijackingParams,
     scriptsDatumHijackingParams,
     defaultDatumHijackingParams,
     datumOfDatumHijackingParams,
     outPredDatumHijackingParams,
+
+    -- * Datum hijacking label
+    DatumHijackingLabel (..),
+
+    -- * Datum hijacking attack
+    datumHijackingAttack,
   )
 where
 
-import Control.Applicative
 import Cooked.Pretty.Class
 import Cooked.Pretty.Skeleton ()
 import Cooked.Skeleton
-import Cooked.Tweak.Common
-import Cooked.Tweak.Labels
+import Cooked.Tweak
 import Data.Kind (Type)
 import Data.Typeable
 import Optics.Core
@@ -37,37 +40,28 @@ instance PrettyCooked DatumHijackingLabel where
   prettyCookedOpt opts (DatumHijackingLabel txSkelOutputs) =
     prettyItemize opts "Hijacked outputs" "-" txSkelOutputs
 
--- | Parameters of the datum hijacking attacks. They state precisely which
--- outputs should have their owner changed, wich owner should be assigned, to
--- each of these outputs, and whether several modified outputs should be
--- combined in a single transaction, or instead spread out multiple branches.
-data DatumHijackingParams where
-  DatumHijackingParams ::
-    (IsTxSkelOutAllowedOwner owner, Foldable f, Alternative f) =>
-    { -- | Whether all the outputs targetted by the predicates should be
-      -- redirected in the same transaction, or one at a time, each in a
-      -- distinct transaction.
-      dhpBranching :: Branching,
-      -- | Return the new owner embedded in @f@
-      dhpOutputPred :: TxSkelOut -> f owner,
-      -- | The redirection described by the previous argument might apply to more
-      -- than one of the outputs of the transaction. Use this predicate to select
-      -- which of the redirectable outputs to actually redirect. We count the
-      -- redirectable outputs from the left to the right, starting with zero.
-      dhpIndexPred :: Int -> Bool
-    } ->
-    DatumHijackingParams
+-- | Parameters of the datum hijacking attacks
+data DatumHijackingParams owner f
+  = DatumHijackingParams
+  { -- | The branching policy to use when several outputs are targeted
+    dhpBranching :: Branching,
+    -- | Return the new owner embedded in @f@
+    dhpOutputPred :: TxSkelOut -> f owner,
+    -- | The redirection described by the previous argument might apply to more
+    -- than one of the outputs of the transaction. Use this predicate to select
+    -- which of the redirectable outputs to actually redirect. We count the
+    -- redirectable outputs from the left to the right, starting with zero.
+    dhpIndexPred :: Int -> Bool
+  }
 
 -- | Hijacks all the outputs for which the focus of a given optic exist. Returns
 -- the list of hijacked outputs, as they were before being hijacked.
 defaultDatumHijackingParams ::
-  ( IsTxSkelOutAllowedOwner owner,
-    Is k An_AffineFold
-  ) =>
+  (Is k An_AffineFold) =>
   Branching ->
   Optic' k is TxSkelOut a ->
   owner ->
-  DatumHijackingParams
+  DatumHijackingParams owner Maybe
 defaultDatumHijackingParams branching optic thief =
   DatumHijackingParams
     branching
@@ -76,11 +70,10 @@ defaultDatumHijackingParams branching optic thief =
 
 -- | Targets all the outputs satisfying a given predicate
 outPredDatumHijackingParams ::
-  (IsTxSkelOutAllowedOwner owner) =>
   Branching ->
   (TxSkelOut -> Bool) ->
   owner ->
-  DatumHijackingParams
+  DatumHijackingParams owner Maybe
 outPredDatumHijackingParams branching =
   defaultDatumHijackingParams branching . filtered
 
@@ -88,12 +81,10 @@ outPredDatumHijackingParams branching =
 -- type of owner.
 typedByDatumHijackingParams ::
   forall (oldOwner :: Type) owner.
-  ( IsTxSkelOutAllowedOwner owner,
-    Typeable oldOwner
-  ) =>
+  (Typeable oldOwner) =>
   Branching ->
   owner ->
-  DatumHijackingParams
+  DatumHijackingParams owner Maybe
 typedByDatumHijackingParams branching =
   defaultDatumHijackingParams branching (txSkelOutOwnerL % userTypedAF @oldOwner)
 
@@ -101,24 +92,22 @@ typedByDatumHijackingParams branching =
 -- user, and redirecting each of them in a separate transaction.
 ownedByDatumHijackingParams ::
   forall oldOwner owner.
-  ( IsTxSkelOutAllowedOwner owner,
-    Typeable oldOwner,
+  ( Typeable oldOwner,
     Eq oldOwner
   ) =>
   Branching ->
   oldOwner ->
   owner ->
-  DatumHijackingParams
+  DatumHijackingParams owner Maybe
 ownedByDatumHijackingParams branching user =
   defaultDatumHijackingParams branching (txSkelOutOwnerL % userTypedAF @oldOwner % filtered (== user))
 
 -- | Datum hijacking parameters targetting all the outputs owned by a script,
 -- and redirecting each of them in a separate transaction.
 scriptsDatumHijackingParams ::
-  (IsTxSkelOutAllowedOwner owner) =>
   Branching ->
   owner ->
-  DatumHijackingParams
+  DatumHijackingParams owner Maybe
 scriptsDatumHijackingParams branching =
   defaultDatumHijackingParams branching (txSkelOutOwnerL % userScriptHashAF)
 
@@ -126,12 +115,10 @@ scriptsDatumHijackingParams branching =
 -- of datum, and redirecting each of them in a separate transaction.
 datumOfDatumHijackingParams ::
   forall dat owner.
-  ( IsTxSkelOutAllowedOwner owner,
-    DatumConstrs dat
-  ) =>
+  (DatumConstrs dat) =>
   Branching ->
   owner ->
-  DatumHijackingParams
+  DatumHijackingParams owner Maybe
 datumOfDatumHijackingParams branching =
   defaultDatumHijackingParams branching (txSkelOutDatumL % txSkelOutDatumTypedAT @dat)
 
@@ -139,8 +126,10 @@ datumOfDatumHijackingParams branching =
 -- indexes match a given predicate. Returns the list of hijacked outputs, as
 -- they were before being hijacked.
 datumHijackingAttack ::
-  (Members '[NonDet, Tweak] effs) =>
-  DatumHijackingParams ->
+  ( Members '[NonDet, Tweak] effs,
+    IsTxSkelOutAllowedOwner owner
+  ) =>
+  DatumHijackingParams owner Maybe ->
   Sem effs [TxSkelOut]
 datumHijackingAttack (DatumHijackingParams branching mChange select) = do
   modified <-

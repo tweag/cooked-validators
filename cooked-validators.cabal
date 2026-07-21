@@ -17,6 +17,8 @@ library
       Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
+      Cooked.Attack.TamperDatum
+      Cooked.Attack.TamperRedeemer
       Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
@@ -71,13 +73,14 @@ library
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
-      Cooked.Tweak.Datum
       Cooked.Tweak.Inputs
+      Cooked.Tweak.Insertion
       Cooked.Tweak.Labels
       Cooked.Tweak.Mint
+      Cooked.Tweak.Modification
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.Outputs
-      Cooked.Tweak.Redeemers
+      Cooked.Tweak.Removal
       Cooked.Tweak.Signatories
       Cooked.Tweak.ValidityRange
       Cooked.Wallet
@@ -137,6 +140,7 @@ library
     , optics-core
     , optics-th
     , ordered-containers
+    , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-script-utils
@@ -169,6 +173,8 @@ test-suite spec
       Spec.Attack.DatumHijacking
       Spec.Attack.DoubleSat
       Spec.Attack.DupToken
+      Spec.Attack.TamperDatum
+      Spec.Attack.TamperRedeemer
       Spec.Balancing
       Spec.BasicUsage
       Spec.Certificates
@@ -183,10 +189,8 @@ test-suite spec
       Spec.Slot
       Spec.Tweak
       Spec.Tweak.Common
-      Spec.Tweak.Datums
       Spec.Tweak.Labels
       Spec.Tweak.OutPermutations
-      Spec.Tweak.Redeemers
       Spec.Tweak.ValidityRange
       Spec.Withdrawals
       Paths_cooked_validators

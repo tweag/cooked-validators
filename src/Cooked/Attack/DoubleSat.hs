@@ -15,6 +15,7 @@ import Cooked.Tweak.Common
 import Cooked.Tweak.Inputs
 import Cooked.Tweak.Labels
 import Cooked.Tweak.Mint
+import Cooked.Tweak.Modification
 import Cooked.Tweak.Outputs
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -119,7 +120,7 @@ doubleSatAttack ::
   Sem effs ()
 doubleSatAttack groupings optic change target = do
   deltas <- modifyTweak groupings optic change
-  let delta = joinDoubleSatDeltas deltas
+  let delta = mconcat deltas
   addDoubleSatDeltaTweak delta
   addedValue <- deltaBalance delta
   if addedValue `Api.gt` mempty
@@ -140,11 +141,6 @@ doubleSatAttack groupings optic change target = do
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs
         >> addMintsTweak (view txSkelMintsListI mints)
-
-    -- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
-    -- eveything that is contained in the input.
-    joinDoubleSatDeltas :: [DoubleSatDelta] -> DoubleSatDelta
-    joinDoubleSatDeltas = mconcat
 
 -- | A label that is added to a 'TxSkel' that has successfully been modified by
 -- the 'doubleSatAttack'

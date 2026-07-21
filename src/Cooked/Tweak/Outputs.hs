@@ -7,6 +7,8 @@ where
 
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Insertion
+import Cooked.Tweak.Removal
 import Polysemy
 
 -- | Adds a transaction output, at the end of the current list of outputs, thus
@@ -15,7 +17,7 @@ addOutputTweak ::
   (Member Tweak effs) =>
   TxSkelOut ->
   Sem effs ()
-addOutputTweak = addLastTweak txSkelOutputsL
+addOutputTweak = insertLastTweak txSkelOutputsL
 
 -- | Removes transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
