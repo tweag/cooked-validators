@@ -15,7 +15,6 @@ library
       Cooked
       Cooked.Attack
       Cooked.Attack.DatumHijacking
-      Cooked.Attack.DoubleSat
       Cooked.Attack.TamperDatum
       Cooked.Attack.TamperRedeemer
       Cooked.Attack.TokenDuplication
@@ -161,7 +160,6 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Plutus.Attack.DatumHijacking
-      Plutus.Attack.DoubleSat
       Plutus.Attack.DupToken
       Plutus.InlineDatums
       Plutus.MultiPurpose
@@ -171,7 +169,6 @@ test-suite spec
       Plutus.Withdrawals
       Spec.Attack
       Spec.Attack.DatumHijacking
-      Spec.Attack.DoubleSat
       Spec.Attack.TamperDatum
       Spec.Attack.TamperRedeemer
       Spec.Attack.TokenDuplication

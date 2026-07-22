@@ -1,7 +1,6 @@
 module Spec.Attack (tests) where
 
 import Spec.Attack.DatumHijacking qualified as DatumHijacking
-import Spec.Attack.DoubleSat qualified as DoubleSat
 import Spec.Attack.TamperDatum qualified as TampDat
 import Spec.Attack.TamperRedeemer qualified as TampRed
 import Spec.Attack.TokenDuplication qualified as DupToken
@@ -11,9 +10,8 @@ tests :: TestTree
 tests =
   testGroup
     "Attack DSL"
-    [ DupToken.tests,
-      DatumHijacking.tests,
-      DoubleSat.tests,
+    [ DatumHijacking.tests,
+      DupToken.tests,
       TampDat.tests,
       TampRed.tests
     ]
