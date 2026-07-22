@@ -12,6 +12,7 @@ import Data.Map qualified as Map
 import Data.Map.Strict qualified as SMap
 import GHC.Exts (fromList)
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
+import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Builtins.Internal qualified as PlutusTx
@@ -24,7 +25,7 @@ toMintValue ::
   TxSkelMints ->
   Sem effs (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue txSkelMints | txSkelMints == mempty = return Cardano.TxMintNone
-toMintValue (txSkelMintsMap -> mints) = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $
+toMintValue (view txSkelMintsMapG -> mints) = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $
   forM (Map.toList mints) $ \(policyHash, (UserRedeemedScript policy red, Map.toList -> assets)) -> do
     policyId <- fromEither $ P.Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash policyHash
     mintWitness <- Cardano.BuildTxWith <$> toScriptWitness policy red Cardano.NoScriptDatumForMint

@@ -4,6 +4,7 @@
 -- use in our 'Cooked.Skeleton.TxSkel' and are not defined anywhere else.
 module Cooked.Skeleton.Value
   ( -- * Optics
+    valueAssetClassesI,
     valueAssetClassAmountL,
     valueLovelaceL,
     valueAssetClassAmountP,
@@ -38,6 +39,13 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
         -- whether the tk was already present).
         Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
     )
+
+-- | An isomorphism between a value and its flattened representation
+valueAssetClassesI :: Iso' Api.Value [(Api.CurrencySymbol, Api.TokenName, Integer)]
+valueAssetClassesI =
+  iso
+    Api.flattenValue
+    (foldl (\val (cur, tk, i) -> set (valueAssetClassAmountL cur tk) i val) mempty)
 
 -- | An isomorphism between an 'Api.Lovelace' and an 'Integer'
 lovelaceIntegerI :: Iso' Api.Lovelace Integer

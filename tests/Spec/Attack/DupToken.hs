@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Spec.Attack.DupToken (tests) where
 
 import Cooked
@@ -53,9 +51,14 @@ tests =
                     ],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
                 }
-            skelOut select = (run . runNonDet . runTweak skelIn) (dupTokenAttack select attacker)
+            skelOut select = (run . runNonDet . runTweak skelIn) (addTokenAttack $ fromAssetClassAddTokenParams select attacker)
             skelExpected v1 v2 =
-              let increment = Api.assetClassValue ac1 (v1 - 5) <> Api.assetClassValue ac2 (v2 - 7)
+              let increment =
+                    review
+                      valueAssetClassesI
+                      [ (Script.toCurrencySymbol pol1, tName1, v1 - 5),
+                        (Script.toCurrencySymbol pol2, tName2, v2 - 7)
+                      ]
                in [ ( txSkelTemplate
                         { txSkelLabels = Set.singleton $ TxSkelLabel $ AddTokenLabel increment,
                           txSkelMints =
@@ -86,12 +89,12 @@ tests =
             pol = carefulPolicy tName 1
          in mustFailInPhase2Test $
               somewhere
-                (dupTokenAttack (\_ _ n -> n + 1) (wallet 6))
+                (addTokenAttack $ fromAssetClassAddTokenParams (\_ _ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCooked "careless minting policy" $
         mustSucceedTest $
           somewhere
-            (dupTokenAttack (\_ _ n -> n + 1) (wallet 6))
+            (addTokenAttack $ fromAssetClassAddTokenParams (\_ _ n -> n + 1) (wallet 6))
             (dupTokenTrace carelessPolicy (Api.TokenName "MockToken") 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
@@ -118,6 +121,6 @@ tests =
                   Api.assetClassValue ac1 1
                 )
               ]
-            skelOut = (run . runNonDet . runTweak skelIn) (dupTokenAttack (\_ _ i -> i + 1) attacker)
+            skelOut = (run . runNonDet . runTweak skelIn) (addTokenAttack $ fromAssetClassAddTokenParams (\_ _ i -> i + 1) attacker)
          in skelExpected @=? skelOut
     ]

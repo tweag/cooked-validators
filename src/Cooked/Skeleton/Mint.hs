@@ -7,13 +7,13 @@
 module Cooked.Skeleton.Mint
   ( -- * Data types
     Mint (..),
-    TxSkelMints (..),
+    TxSkelMints,
 
     -- * Optics
     mintRedeemedScriptL,
     mintTokensL,
     mintCurrencySymbolG,
-    txSkelMintsMapL,
+    txSkelMintsMapG,
     txSkelMintsListI,
     txSkelMintsAssetClassAmountL,
     txSkelMintsAssetClassesG,
@@ -28,6 +28,7 @@ where
 
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
+import Cooked.Skeleton.Value
 import Data.Bifunctor
 import Data.List (foldl')
 import Data.Map (Map)
@@ -41,7 +42,6 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.AssocMap qualified as PMap
 
 -- * Describing single mint entries
 
@@ -96,10 +96,16 @@ mintCurrencySymbolG =
 -- with a non-zero amount of tokens. This invariant is guaranteed because the
 -- raw constructor is not exposed, and functions working around it preserve it.
 -- To build a 'TxSkelMints', use 'txSkelMintsFromList'.
-newtype TxSkelMints = TxSkelMints {txSkelMintsMap :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)}
+newtype TxSkelMints = TxSkelMints
+  { txSkelMintsMap :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)
+  }
   deriving (Show, Eq)
 
-makeLensesFor [("txSkelMintsMap", "txSkelMintsMapL")] ''TxSkelMints
+-- | Retrieves the inner map of a 'TxSkelMints'. This could be a lense but we
+-- want to avoid unsafe assignement of this inner map, for which we keep
+-- invariants so we have it as a getter instead.
+txSkelMintsMapG :: Getter TxSkelMints (Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer))
+txSkelMintsMapG = to txSkelMintsMap
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'
 
@@ -150,16 +156,13 @@ txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
     )
 
 instance Script.ToValue TxSkelMints where
-  toValue =
-    Api.Value
-      . PMap.unsafeFromList
-      . fmap
-        ( bimap
-            Script.toCurrencySymbol
-            (PMap.unsafeFromList . Map.toList . snd)
-        )
-      . Map.toList
-      . txSkelMintsMap
+  toValue txSkelMints =
+    review
+      valueAssetClassesI
+      [ (Script.toCurrencySymbol $ toVScript script, tk, i)
+      | Mint (UserRedeemedScript script _) tks <- view txSkelMintsListI txSkelMints,
+        (tk, i) <- tks
+      ]
 
 -- | Retrieves the asset classes of a 'TxSkelMints'
 txSkelMintsAssetClassesG :: Getter TxSkelMints [(VScript, Api.TokenName)]

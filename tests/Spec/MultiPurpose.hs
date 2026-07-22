@@ -116,9 +116,9 @@ tests =
         "The Minting purpose behaves properly"
         [ testCooked "We cannot duplicate the tokens" $
             mustFailWithSizeTest 6 $
-              somewhere (dupTokenAttack (\_ _ n -> n + 1) alice) runScript,
+              somewhere (addTokenAttack $ fromAssetClassAddTokenParams (\_ _ n -> n + 1) alice) runScript,
           testCooked "We cannot mint additional tokens" $
             mustFailWithSizeTest 6 $
-              somewhere (addTokenAttack (const [(Api.TokenName "myToken", 1)]) alice) runScript
+              somewhere (addTokenAttack $ fromCurrencyAddTokenParams (const [(Api.TokenName "myToken", 1)]) alice) runScript
         ]
     ]
