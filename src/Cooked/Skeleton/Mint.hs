@@ -7,12 +7,13 @@
 module Cooked.Skeleton.Mint
   ( -- * Data types
     Mint (..),
-    TxSkelMints (unTxSkelMints),
+    TxSkelMints (..),
 
     -- * Optics
     mintRedeemedScriptL,
     mintTokensL,
     mintCurrencySymbolG,
+    txSkelMintsMapL,
     txSkelMintsListI,
     txSkelMintsAssetClassAmountL,
     txSkelMintsAssetClassesG,
@@ -95,8 +96,10 @@ mintCurrencySymbolG =
 -- with a non-zero amount of tokens. This invariant is guaranteed because the
 -- raw constructor is not exposed, and functions working around it preserve it.
 -- To build a 'TxSkelMints', use 'txSkelMintsFromList'.
-newtype TxSkelMints = TxSkelMints {unTxSkelMints :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)}
+newtype TxSkelMints = TxSkelMints {txSkelMintsMap :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)}
   deriving (Show, Eq)
+
+makeLensesFor [("txSkelMintsMap", "txSkelMintsMapL")] ''TxSkelMints
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'
 
@@ -118,7 +121,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
   lens
     -- We return (Nothing, 0) when the mp is not in the map, (Just red, 0) when
     -- the mp is present but not the token, and (Just red, n) otherwise.
-    (maybe (Nothing, 0) (bimap (Just . view userRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . unTxSkelMints)
+    (maybe (Nothing, 0) (bimap (Just . view userRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . txSkelMintsMap)
     ( \(TxSkelMints mints) (newRed, i) -> TxSkelMints $ case Map.lookup mph mints of
         -- No previous mp entry and nothing to add
         Nothing | i == 0 -> mints
@@ -140,9 +143,9 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
 txSkelMintsPolicyTokensL :: (ToVScript mp, Typeable mp) => mp -> Lens' TxSkelMints (Maybe (TxSkelRedeemer, Map Api.TokenName Integer))
 txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
   lens
-    (fmap (first (view userRedeemerL)) . view (to unTxSkelMints % at mph))
+    (fmap (first (view userRedeemerL)) . view (to txSkelMintsMap % at mph))
     ( \mints -> \case
-        Nothing -> TxSkelMints . Map.delete mph . unTxSkelMints $ mints
+        Nothing -> TxSkelMints . Map.delete mph . txSkelMintsMap $ mints
         Just (red, Map.toList -> tokens) -> foldl' (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
     )
 
@@ -156,7 +159,7 @@ instance Script.ToValue TxSkelMints where
             (PMap.unsafeFromList . Map.toList . snd)
         )
       . Map.toList
-      . unTxSkelMints
+      . txSkelMintsMap
 
 -- | Retrieves the asset classes of a 'TxSkelMints'
 txSkelMintsAssetClassesG :: Getter TxSkelMints [(VScript, Api.TokenName)]
@@ -166,7 +169,7 @@ txSkelMintsAssetClassesG = txSkelMintsListI % to (\l -> [(toVScript mp, tk) | Mi
 txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
-    (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . unTxSkelMints)
+    (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . txSkelMintsMap)
     ( foldl'
         ( \mints (Mint (UserRedeemedScript mp red) tks) ->
             foldl'

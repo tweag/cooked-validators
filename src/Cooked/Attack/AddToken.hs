@@ -2,9 +2,8 @@
 -- a certain target.
 module Cooked.Attack.AddToken
   ( addTokenAttack,
-    AddTokenLbl (..),
     dupTokenAttack,
-    DupTokenLbl (..),
+    AddTokenLabel (..),
   )
 where
 
@@ -13,15 +12,13 @@ import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
+import Cooked.Tweak.Modification
 import Cooked.Tweak.Outputs
 import Data.Map qualified as Map
 import Optics.Core
-import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.Numeric qualified as PlutusTx
+import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Polysemy.NonDet
-import Prettyprinter qualified as PP
 
 -- | This attack adds extra tokens of any kind for minting policies already
 -- present in the minted value. The additional minted value is redirected to a
@@ -39,20 +36,32 @@ addTokenAttack ::
   o ->
   Sem effs Api.Value
 addTokenAttack extraTokens attacker = do
-  currencies <- viewTweak (txSkelMintsL % txSkelMintsAssetClassesG % to (fmap fst))
-  oldMintsValue <- viewTweak (txSkelMintsL % to Script.toValue)
-  forM_ [(mp, tk, n) | mp <- currencies, (tk, n) <- extraTokens mp] $ \(mp, tk, n) ->
-    overTweak (txSkelMintsL % txSkelMintsAssetClassAmountL mp tk % _2) (+ n)
-  totalIncrement <- viewTweak (txSkelMintsL % to Script.toValue % to (<> PlutusTx.negate oldMintsValue))
-  guard (totalIncrement /= mempty)
-  addOutputTweak $ attacker `receives` Value totalIncrement
-  addLabelTweak AddTokenLbl
-  return totalIncrement
+  res <-
+    modifyTweak
+      (: [])
+      (txSkelMintsL % txSkelMintsMapL % itraversed)
+      ( \_ (rScript@(UserRedeemedScript (toVScript -> script) _), subMap) -> do
+          let (surplus, newSubMap) =
+                foldl
+                  ( \(value, sMap) (tn, i) ->
+                      ( over (valueAssetClassAmountL script tn) (+ i) value,
+                        over (at tn) (maybe (Just i) (Just . (+ i))) sMap
+                      )
+                  )
+                  (mempty, subMap)
+                  (extraTokens script)
+          return ((rScript, newSubMap), surplus)
+      )
+  let surplus = mconcat res
+  guard $ surplus `Api.geq` mempty
+  addOutputTweak $ attacker `receives` Value surplus
+  addLabelTweak $ AddTokenLabel surplus
+  return surplus
 
 -- | This attack is similar to 'addTokenAttack' with the exception that it only
 -- tampers with token names already present.
 --
--- This attack adds an 'DupTokenLbl' label
+-- This attack adds an 'AddTokenLabel' label
 dupTokenAttack ::
   ( Members '[Tweak, NonDet] effs,
     IsTxSkelOutAllowedOwner o
@@ -71,30 +80,18 @@ dupTokenAttack ::
   Sem effs Api.Value
 dupTokenAttack change attacker = do
   mints <- viewTweak txSkelMintsL
-  res <-
-    addTokenAttack
-      ( \s ->
-          maybe
-            []
-            (\(_, subMap) -> [(tk, change s tk n - n) | (tk, n) <- Map.toList subMap])
-            (view (txSkelMintsPolicyTokensL s) mints)
-      )
-      attacker
-  removeLabelTweak AddTokenLbl
-  addLabelTweak DupTokenLbl
-  return res
+  addTokenAttack
+    ( \s ->
+        maybe
+          []
+          (\(_, subMap) -> [(tk, change s tk n - n) | (tk, n) <- Map.toList subMap])
+          (view (txSkelMintsPolicyTokensL s) mints)
+    )
+    attacker
 
 -- | A label that is added to a 'TxSkel' that has successfully been modified by
 -- 'addTokenAttack'
-data AddTokenLbl = AddTokenLbl deriving (Show, Eq, Ord)
+newtype AddTokenLabel = AddTokenLabel Api.Value deriving (Show, Eq, Ord)
 
-instance PrettyCooked AddTokenLbl where
-  prettyCooked = PP.viaShow
-
--- | A label that is added to a 'TxSkel' that has successfully been modified by
--- the 'dupTokenAttack'
-data DupTokenLbl = DupTokenLbl
-  deriving (Eq, Show, Ord)
-
-instance PrettyCooked DupTokenLbl where
-  prettyCooked _ = "DupToken"
+instance PrettyCooked AddTokenLabel where
+  prettyCookedOpt ops val = "Added value: " <> prettyCookedOpt ops val

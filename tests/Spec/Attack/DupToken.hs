@@ -57,7 +57,7 @@ tests =
             skelExpected v1 v2 =
               let increment = Api.assetClassValue ac1 (v1 - 5) <> Api.assetClassValue ac2 (v2 - 7)
                in [ ( txSkelTemplate
-                        { txSkelLabels = Set.singleton $ TxSkelLabel DupTokenLbl,
+                        { txSkelLabels = Set.singleton $ TxSkelLabel $ AddTokenLabel increment,
                           txSkelMints =
                             review
                               txSkelMintsListI
@@ -107,7 +107,7 @@ tests =
                 }
             skelExpected =
               [ ( txSkelTemplate
-                    { txSkelLabels = Set.singleton $ TxSkelLabel DupTokenLbl,
+                    { txSkelLabels = Set.singleton $ TxSkelLabel $ AddTokenLabel $ review (valueAssetClassAmountP pol tName1) 1,
                       txSkelMints = review txSkelMintsListI [mint pol () tName1 2],
                       txSkelOutputs =
                         [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),

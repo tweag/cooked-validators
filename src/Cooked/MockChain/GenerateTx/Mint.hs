@@ -24,7 +24,7 @@ toMintValue ::
   TxSkelMints ->
   Sem effs (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue txSkelMints | txSkelMints == mempty = return Cardano.TxMintNone
-toMintValue (unTxSkelMints -> mints) = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $
+toMintValue (txSkelMintsMap -> mints) = fmap (Cardano.TxMintValue Cardano.MaryEraOnwardsConway . SMap.fromList) $
   forM (Map.toList mints) $ \(policyHash, (UserRedeemedScript policy red, Map.toList -> assets)) -> do
     policyId <- fromEither $ P.Ledger.toCardanoPolicyId $ Script.toMintingPolicyHash policyHash
     mintWitness <- Cardano.BuildTxWith <$> toScriptWitness policy red Cardano.NoScriptDatumForMint
