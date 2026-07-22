@@ -1,17 +1,19 @@
--- | This module provides two automated attacks to mint and give extra tokens to
--- a certain target.
-module Cooked.Attack.AddToken
-  ( -- * Add token params
-    AddTokenParams (..),
-    fromMintsAddTokenParams,
-    fromCurrencyAddTokenParams,
-    fromAssetClassAddTokenParams,
+-- | This module provides an automated attack to add minted tokens in a
+-- 'TxSkel'. In principle, a token duplication attack consist in minting a
+-- higher amount of tokens already minted in the transaction, but we generalise
+-- it to also add arbitrary tokens if needed.
+module Cooked.Attack.TokenDuplication
+  ( -- * Token duplication params
+    TokenDuplicationParams (..),
+    anyMintTokenDuplicationParams,
+    existingCurrencyTokenDuplicationParams,
+    existingAssetClassTokenDuplicationParams,
 
-    -- * Add token label
-    AddTokenLabel (..),
+    -- * Token duplication label
+    TokenDuplicationLabel (..),
 
-    -- * Add token attack
-    addTokenAttack,
+    -- * Token duplication attack
+    tokenDuplicationAttack,
   )
 where
 
@@ -29,17 +31,17 @@ import Polysemy
 import Polysemy.NonDet
 
 -- | A label that is added to a 'TxSkel' that has successfully been modified by
--- 'addTokenAttack'
-newtype AddTokenLabel = AddTokenLabel Api.Value
+-- 'tokenDuplicationAttack'
+newtype TokenDuplicationLabel = TokenDuplicationLabel Api.Value
   deriving (Show, Eq, Ord)
 
-instance PrettyCooked AddTokenLabel where
-  prettyCookedOpt ops (AddTokenLabel val) =
+instance PrettyCooked TokenDuplicationLabel where
+  prettyCookedOpt ops (TokenDuplicationLabel val) =
     "Added value: " <> prettyCookedOpt ops val
 
 -- | Parameters of the add token attack
-data AddTokenParams owner effs
-  = AddTokenParams
+data TokenDuplicationParams owner effs
+  = TokenDuplicationParams
   { -- | The new mints to add in the transaction. These are effectful because
     -- they can depend on the existing mints.
     atpNewMints :: Sem effs [Mint],
@@ -47,19 +49,19 @@ data AddTokenParams owner effs
     atpThief :: owner
   }
 
--- | Add tokens based on a list of 'Mint'.
-fromMintsAddTokenParams ::
+-- | Token duplications based on a list of 'Mint'.
+anyMintTokenDuplicationParams ::
   -- | The 'Mint's to add.
   [Mint] ->
   -- | The attacker, who receives the extra tokens.
   owner ->
-  AddTokenParams owner effs
-fromMintsAddTokenParams mints =
-  AddTokenParams (return mints)
+  TokenDuplicationParams owner effs
+anyMintTokenDuplicationParams mints =
+  TokenDuplicationParams (return mints)
 
--- | Add tokens based on a function applied to existing currencies (cannot add
+-- | Token duplications based on a function applied to existing currencies (cannot add
 -- new currencies, but can add new types of tokens).
-fromCurrencyAddTokenParams ::
+existingCurrencyTokenDuplicationParams ::
   (Member Tweak effs) =>
   -- | For each policy that occurs in some 'Mint' constraint, return a list of
   -- token names together with how many tokens with that name should be minted,
@@ -67,8 +69,8 @@ fromCurrencyAddTokenParams ::
   (VScript -> [(Api.TokenName, Integer)]) ->
   -- | The attacker, who receives the extra tokens.
   owner ->
-  AddTokenParams owner effs
-fromCurrencyAddTokenParams newTokens = AddTokenParams $ do
+  TokenDuplicationParams owner effs
+existingCurrencyTokenDuplicationParams newTokens = TokenDuplicationParams $ do
   currencies <- viewAllTweak (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
   return $
     foldl
@@ -78,17 +80,17 @@ fromCurrencyAddTokenParams newTokens = AddTokenParams $ do
       []
       currencies
 
--- | Add tokens based on a function applied to both existing currencies and
+-- | Token duplications based on a function applied to both existing currencies and
 -- token (cannot add new currencies nor new types of tokens).
-fromAssetClassAddTokenParams ::
+existingAssetClassTokenDuplicationParams ::
   (Member Tweak effs) =>
   -- | A function returning the new amount of tokens to mint given a specific
   -- currency, token name and amount. This new amount replaces the old one.
   (VScript -> Api.TokenName -> Integer -> Integer) ->
   -- | The attacker, who receives the extra tokens.
   owner ->
-  AddTokenParams owner effs
-fromAssetClassAddTokenParams newTokens = AddTokenParams $ do
+  TokenDuplicationParams owner effs
+existingAssetClassTokenDuplicationParams newTokens = TokenDuplicationParams $ do
   mints <- viewTweak (txSkelMintsL % txSkelMintsListI)
   return $
     foldl
@@ -99,19 +101,26 @@ fromAssetClassAddTokenParams newTokens = AddTokenParams $ do
       mints
 
 -- | This attack adds extra tokens of any kind in the minted value. The
--- additional minted value is redirected to a certain owner in a dedicated
--- output.
-addTokenAttack ::
+-- additional minted value is redirected to the attacker.
+tokenDuplicationAttack ::
   ( Members '[Tweak, NonDet] effs,
     IsTxSkelOutAllowedOwner owner
   ) =>
-  AddTokenParams owner effs ->
+  -- | The parameters of the attack
+  TokenDuplicationParams owner effs ->
   Sem effs Api.Value
-addTokenAttack AddTokenParams {..} = do
+tokenDuplicationAttack TokenDuplicationParams {..} = do
+  -- We compute the additional minting to add.
   newMints <- atpNewMints
+  -- We compute the total value added this way.
   let totalIncrement = Script.toValue $ review txSkelMintsListI newMints
-  guard (totalIncrement /= mempty)
+  -- We ensure the total value is positive
+  guard (totalIncrement `Api.gt` mempty)
+  -- We add the new mints into the 'TxSkel'
   addMintsTweak newMints
+  -- We redirect the extra value to an attacker
   addOutputTweak $ atpThief `receives` Value totalIncrement
-  addLabelTweak $ AddTokenLabel totalIncrement
+  -- We label the transaction by the added tokens
+  addLabelTweak $ TokenDuplicationLabel totalIncrement
+  -- We return the added tokens
   return totalIncrement

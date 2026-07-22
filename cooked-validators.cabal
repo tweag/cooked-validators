@@ -14,11 +14,11 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
-      Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.TamperDatum
       Cooked.Attack.TamperRedeemer
+      Cooked.Attack.TokenDuplication
       Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
@@ -172,9 +172,9 @@ test-suite spec
       Spec.Attack
       Spec.Attack.DatumHijacking
       Spec.Attack.DoubleSat
-      Spec.Attack.DupToken
       Spec.Attack.TamperDatum
       Spec.Attack.TamperRedeemer
+      Spec.Attack.TokenDuplication
       Spec.Balancing
       Spec.BasicUsage
       Spec.Certificates
