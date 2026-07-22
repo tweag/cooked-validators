@@ -13,6 +13,7 @@ module Cooked.Skeleton.Value
   )
 where
 
+import Data.List (sortOn)
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -40,12 +41,16 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
         Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
     )
 
--- | An isomorphism between a value and its flattened representation
+-- | An isomorphism between a value and its flattened representation. The
+-- flattened representation is always sorted by asset class (as produced by
+-- 'Api.flattenValue'), and building a value back from a list canonicalises it
+-- the same way, so that the internal map ordering of the resulting value does
+-- not depend on the order of the input list.
 valueAssetClassesI :: Iso' Api.Value [(Api.CurrencySymbol, Api.TokenName, Integer)]
 valueAssetClassesI =
   iso
     Api.flattenValue
-    (foldl (\val (cur, tk, i) -> set (valueAssetClassAmountL cur tk) i val) mempty)
+    (foldl (\val (cur, tk, i) -> set (valueAssetClassAmountL cur tk) i val) mempty . sortOn (\(cur, tk, _) -> (cur, tk)))
 
 -- | An isomorphism between an 'Api.Lovelace' and an 'Integer'
 lovelaceIntegerI :: Iso' Api.Lovelace Integer
