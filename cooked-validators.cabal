@@ -15,6 +15,7 @@ library
       Cooked
       Cooked.Attack
       Cooked.Attack.DatumHijacking
+      Cooked.Attack.PeerTampering
       Cooked.Attack.TamperDatum
       Cooked.Attack.TamperRedeemer
       Cooked.Attack.TokenDuplication
@@ -72,6 +73,7 @@ library
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
+      Cooked.Tweak.Guard
       Cooked.Tweak.Inputs
       Cooked.Tweak.Insertion
       Cooked.Tweak.Labels

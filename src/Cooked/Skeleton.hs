@@ -30,13 +30,16 @@ module Cooked.Skeleton
     txSkelOutputsL,
     txSkelWithdrawalsL,
     txSkelCertificatesL,
-    txSkelProposingScriptsT,
-    txSkelMintingScriptsT,
-    txSkelCertifyingScriptsT,
-    txSkelWithdrawingScriptsT,
+    txSkelProposingRedeemedScriptsT,
+    txSkelMintingRedeemedScriptsT,
+    txSkelCertifyingRedeemedUsersT,
+    txSkelWithdrawingRedeemedUsersT,
     txSkelSpendingRedeemersT,
     txSkelRedeemersT,
     txSkelRedeemedScriptsT,
+    txSkelRedeemedPeersT,
+    txSkelAllocatedPeersT,
+    txSkelAllocatedScriptsT,
 
     -- * Smart constructor
     txSkelTemplate,
@@ -67,6 +70,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.Typeable
 import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import Optics.TH
@@ -158,38 +162,39 @@ makeLensesFor [("txSkelWithdrawals", "txSkelWithdrawalsL")] ''TxSkel
 -- | Focuses on the certificates of a 'TxSkel'
 makeLensesFor [("txSkelCertificates", "txSkelCertificatesL")] ''TxSkel
 
--- | Returns all the scripts involved in proposals in this 'TxSkel'
-txSkelProposingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
-txSkelProposingScriptsT =
+-- | Returns all the redeemed scripts involved in proposals in this 'TxSkel'
+txSkelProposingRedeemedScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelProposingRedeemedScriptsT =
   txSkelProposalsL
     % traversed
     % txSkelProposalMConstitutionAT
     % _Just
 
--- | Returns all the scripts involved in minting in this 'TxSkel'
-txSkelMintingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
-txSkelMintingScriptsT =
+-- | Returns all the redeemed scripts involved in minting in this 'TxSkel'
+txSkelMintingRedeemedScriptsT :: Traversal' TxSkel (User IsScript Redemption)
+txSkelMintingRedeemedScriptsT =
   txSkelMintsL
     % txSkelMintsListI
     % traversed
     % mintRedeemedScriptL
 
--- | Returns all the scripts involved in certificates in this 'TxSkel'
-txSkelCertifyingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
-txSkelCertifyingScriptsT =
+-- | Returns all the redeemed users involved in certificates in this 'TxSkel'
+txSkelCertifyingRedeemedUsersT ::
+  forall user.
+  (Typeable user) =>
+  Traversal' TxSkel (User user Redemption)
+txSkelCertifyingRedeemedUsersT =
   txSkelCertificatesL
     % traversed
-    % txSkelCertificateOwnerAT @IsEither
-    % userEitherScriptP
+    % txSkelCertificateOwnerAT @user
 
 -- | Returns all the scripts involved in withdrawals in this 'TxSkel'
-txSkelWithdrawingScriptsT :: Traversal' TxSkel (User IsScript Redemption)
-txSkelWithdrawingScriptsT =
+txSkelWithdrawingRedeemedUsersT :: Traversal' TxSkel (User IsEither Redemption)
+txSkelWithdrawingRedeemedUsersT =
   txSkelWithdrawalsL
     % txSkelWithdrawalsListI
     % traversed
     % withdrawalUserL
-    % userEitherScriptP
 
 -- | A traversal focusing every script redeemed directly within a 'TxSkel',
 -- that is in the minting, proposing, withdrawing and certifying positions. The
@@ -197,10 +202,27 @@ txSkelWithdrawingScriptsT =
 -- the skeleton but fetched from the index based on the inputs' references.
 txSkelRedeemedScriptsT :: Traversal' TxSkel (User IsScript Redemption)
 txSkelRedeemedScriptsT =
-  txSkelMintingScriptsT
-    `adjoin` txSkelProposingScriptsT
-    `adjoin` txSkelWithdrawingScriptsT
-    `adjoin` txSkelCertifyingScriptsT
+  txSkelMintingRedeemedScriptsT
+    `adjoin` txSkelProposingRedeemedScriptsT
+    `adjoin` (txSkelWithdrawingRedeemedUsersT % userEitherScriptP)
+    `adjoin` (txSkelCertifyingRedeemedUsersT % userEitherScriptP)
+
+-- | A traversal focusing every pubkey used in redemption mode.
+txSkelRedeemedPeersT :: Traversal' TxSkel (User IsPubKey Redemption)
+txSkelRedeemedPeersT =
+  (txSkelWithdrawingRedeemedUsersT % userEitherPubKeyP)
+    `adjoin` (txSkelCertifyingRedeemedUsersT % userEitherPubKeyP)
+    `adjoin` txSkelCertifyingRedeemedUsersT
+
+-- | A traversal focusing every pubkey used in allocation mode.
+txSkelAllocatedPeersT :: Traversal' TxSkel (User IsPubKey Allocation)
+txSkelAllocatedPeersT =
+  (txSkelOutputsL % traversed % txSkelOutOwnerL % userEitherPubKeyP)
+    `adjoin` (txSkelSignatoriesL % traversed % txSkelSignatoryPubKeyHashL % re userPubKeyHashI)
+
+-- | A traversal focusing every script used in allocation mode.
+txSkelAllocatedScriptsT :: Traversal' TxSkel (User IsScript Allocation)
+txSkelAllocatedScriptsT = txSkelOutputsL % traversed % txSkelOutOwnerL % userEitherScriptP
 
 -- | A traversal focusing every redeemer involved with the spending purpose in
 -- the given 'TxSkel'.
@@ -217,6 +239,8 @@ txSkelRedeemersT :: Traversal' TxSkel TxSkelRedeemer
 txSkelRedeemersT =
   txSkelSpendingRedeemersT
     `adjoin` (txSkelRedeemedScriptsT % userRedeemerL)
+
+-- | A traversal focusing every 'Peer' of a 'TxSkel'
 
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel

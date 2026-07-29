@@ -66,7 +66,7 @@ mintingTamperRedeemerParams ::
   (a -> f b) ->
   TamperRedeemerParams a b f A_Traversal NoIx
 mintingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelMintingScriptsT % userRedeemerL) mChange (const True)
+  TamperRedeemerParams branching (txSkelMintingRedeemedScriptsT % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all proposing redeemers
 -- of type @a@.
@@ -76,7 +76,7 @@ proposingTamperRedeemerParams ::
   (a -> f b) ->
   TamperRedeemerParams a b f A_Traversal NoIx
 proposingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelProposingScriptsT % userRedeemerL) mChange (const True)
+  TamperRedeemerParams branching (txSkelProposingRedeemedScriptsT % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all withdrawing redeemers
 -- of type @a@.
@@ -86,7 +86,7 @@ withdrawingTamperRedeemerParams ::
   (a -> f b) ->
   TamperRedeemerParams a b f A_Traversal NoIx
 withdrawingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelWithdrawingScriptsT % userRedeemerL) mChange (const True)
+  TamperRedeemerParams branching (txSkelWithdrawingRedeemedUsersT % userEitherScriptP % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all certifying redeemers
 -- of type @a@.
@@ -96,7 +96,7 @@ certifyingTamperRedeemerParams ::
   (a -> f b) ->
   TamperRedeemerParams a b f A_Traversal NoIx
 certifyingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelCertifyingScriptsT % userRedeemerL) mChange (const True)
+  TamperRedeemerParams branching (txSkelCertifyingRedeemedUsersT % userEitherScriptP % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all redeemers of type
 -- @a@.
