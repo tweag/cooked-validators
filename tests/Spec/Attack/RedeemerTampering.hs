@@ -1,5 +1,5 @@
--- | Tests for 'Cooked.Attack.TamperRedeemer'.
-module Spec.Attack.TamperRedeemer where
+-- | Tests for 'Cooked.Attack.RedeemerTampering'.
+module Spec.Attack.RedeemerTampering where
 
 import Cooked
 import Data.Map qualified as Map
@@ -54,11 +54,11 @@ certificateIntegerRedeemers =
 tamperSpendingRedeemersTest :: TestTree
 tamperSpendingRedeemersTest =
   testCase "tamperSpendingRedeemersTweak only touches redeemers of the right type and records them in its label" $
-    [(Set.singleton (TxSkelLabel (TamperRedeemerLabel [10, 20 :: Integer])), [11, 21])]
+    [(Set.singleton (TxSkelLabel (RedeemerTamperingLabel [10, 20 :: Integer])), [11, 21])]
       @=? ( fmap (\(skel, _) -> (view txSkelLabelsL skel, integerRedeemers skel)) . run . runNonDet $
               runTweak
                 baseSkel
-                (tamperRedeemerAttack $ spendingTamperRedeemerParams @Integer OneBranchForAllFoci (Just . (+ 1)))
+                (redeemerTamperingAttack $ spendingRedeemerTamperingParams @Integer OneBranchForAllFoci (Just . (+ 1)))
           )
 
 tamperAllRedeemersTest :: TestTree
@@ -66,14 +66,14 @@ tamperAllRedeemersTest =
   testCase "tamperAllRedeemersTweak reaches the spending redeemers" $
     [[0, 0]]
       @=? ( fmap (integerRedeemers . fst) . run . runNonDet $
-              runTweak baseSkel (tamperRedeemerAttack $ allTamperRedeemerParams @Integer @Integer OneBranchForAllFoci (const $ Just 0))
+              runTweak baseSkel (redeemerTamperingAttack $ allRedeemerTamperingParams @Integer @Integer OneBranchForAllFoci (const $ Just 0))
           )
 
 -- | A change returning several options branches the tweak into every
 -- combination of per-redeemer choices.
 tamperBranchingTest :: TestTree
 tamperBranchingTest =
-  testCase "tamperRedeemersTweak branches on every combination of redeemer modifications" $
+  testCase "redeemerTamperingsTweak branches on every combination of redeemer modifications" $
     assertSameSets
       [ [11, 21],
         [11, 22],
@@ -83,7 +83,7 @@ tamperBranchingTest =
       ( fmap (integerRedeemers . fst) . run . runNonDet $
           runTweak
             baseSkel
-            (tamperRedeemerAttack $ spendingTamperRedeemerParams @Integer OneBranchForAllFoci (\n -> [n + 1, n + 2]))
+            (redeemerTamperingAttack $ spendingRedeemerTamperingParams @Integer OneBranchForAllFoci (\n -> [n + 1, n + 2]))
       )
 
 -- | Transforming @Integer@ redeemers into raw 'Api.BuiltinData' (of a possibly
@@ -98,7 +98,7 @@ tamperBranchingTest =
 -- in its singleton grouping and in the @[0, 1]@ grouping.
 tamperToBuiltinDataTest :: TestTree
 tamperToBuiltinDataTest =
-  testCase "tamperRedeemersTweak can malform redeemers into arbitrary BuiltinData, trying every subset" $
+  testCase "redeemerTamperingsTweak can malform redeemers into arbitrary BuiltinData, trying every subset" $
     let allData :: TxSkel -> [PlutusTx.BuiltinData]
         allData = toListOf (txSkelInputsL % to Map.elems % folded % txSkelRedeemerBuiltinDataL)
         dI :: Integer -> PlutusTx.BuiltinData
@@ -121,8 +121,8 @@ tamperToBuiltinDataTest =
           ( fmap (allData . fst) . run . runNonDet $
               runTweak
                 baseSkel
-                ( tamperRedeemerAttack $
-                    spendingTamperRedeemerParams @Integer @Api.BuiltinData
+                ( redeemerTamperingAttack $
+                    spendingRedeemerTamperingParams @Integer @Api.BuiltinData
                       OneBranchPerSubset
                       (\n -> [dI (n + 1), dB False])
                 )
@@ -138,7 +138,7 @@ tamperCertificateRedeemersTest =
       @=? ( fmap (certificateIntegerRedeemers . fst) . run . runNonDet $
               runTweak
                 (certificateSkel $ someTxSkelRedeemer (10 :: Integer))
-                (tamperRedeemerAttack $ allTamperRedeemerParams @Integer @Integer OneBranchForAllFoci (const $ Just 0))
+                (redeemerTamperingAttack $ allRedeemerTamperingParams @Integer @Integer OneBranchForAllFoci (const $ Just 0))
           )
 
 -- | Regression test for the certificate-redeemer kind bug at the

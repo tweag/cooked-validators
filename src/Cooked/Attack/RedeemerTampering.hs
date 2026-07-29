@@ -1,19 +1,19 @@
 -- | This module provides an attack that modifies the redeemers of a 'TxSkel'.
-module Cooked.Attack.TamperRedeemer
+module Cooked.Attack.RedeemerTampering
   ( -- * Tamper redeemer params
-    TamperRedeemerParams (..),
-    spendingTamperRedeemerParams,
-    mintingTamperRedeemerParams,
-    proposingTamperRedeemerParams,
-    certifyingTamperRedeemerParams,
-    withdrawingTamperRedeemerParams,
-    allTamperRedeemerParams,
+    RedeemerTamperingParams (..),
+    spendingRedeemerTamperingParams,
+    mintingRedeemerTamperingParams,
+    proposingRedeemerTamperingParams,
+    certifyingRedeemerTamperingParams,
+    withdrawingRedeemerTamperingParams,
+    allRedeemerTamperingParams,
 
     -- * Tamper redeemer label
-    TamperRedeemerLabel (..),
+    RedeemerTamperingLabel (..),
 
     -- * Tamper redeemer attack
-    tamperRedeemerAttack,
+    redeemerTamperingAttack,
   )
 where
 
@@ -28,16 +28,16 @@ import Polysemy.NonDet
 -- | A label added to a 'TxSkel' on which a tweak tampering a redeemer has been
 -- applied. The label contains all the redeemer contents that have been
 -- modified, before the modification was applied.
-newtype TamperRedeemerLabel a = TamperRedeemerLabel [a]
+newtype RedeemerTamperingLabel a = RedeemerTamperingLabel [a]
   deriving (Show, Eq, Ord)
 
-instance (PrettyCooked a) => PrettyCooked (TamperRedeemerLabel a) where
-  prettyCookedOpt opts (TamperRedeemerLabel reds) =
+instance (PrettyCooked a) => PrettyCooked (RedeemerTamperingLabel a) where
+  prettyCookedOpt opts (RedeemerTamperingLabel reds) =
     prettyItemize opts "Tamper Redeemers" "-" reds
 
 -- | Parameters of the tamper datum attack
-data TamperRedeemerParams a b f k is
-  = TamperRedeemerParams
+data RedeemerTamperingParams a b f k is
+  = RedeemerTamperingParams
   { -- | The branching policy to use when several redeemers are targeted
     trpBranching :: Branching,
     -- | The optic to use to select eligible 'TxSkelRedeemer'
@@ -50,68 +50,68 @@ data TamperRedeemerParams a b f k is
 
 -- | A tamper redeemer params to apply a modification to all spending redeemers
 -- of type @a@.
-spendingTamperRedeemerParams ::
+spendingRedeemerTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperRedeemerParams a b f A_Traversal NoIx
-spendingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching txSkelSpendingRedeemersT mChange (const True)
+  RedeemerTamperingParams a b f A_Traversal NoIx
+spendingRedeemerTamperingParams branching mChange =
+  RedeemerTamperingParams branching txSkelSpendingRedeemersT mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all minting redeemers
 -- of type @a@.
-mintingTamperRedeemerParams ::
+mintingRedeemerTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperRedeemerParams a b f A_Traversal NoIx
-mintingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelMintingRedeemedScriptsT % userRedeemerL) mChange (const True)
+  RedeemerTamperingParams a b f A_Traversal NoIx
+mintingRedeemerTamperingParams branching mChange =
+  RedeemerTamperingParams branching (txSkelMintingRedeemedScriptsT % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all proposing redeemers
 -- of type @a@.
-proposingTamperRedeemerParams ::
+proposingRedeemerTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperRedeemerParams a b f A_Traversal NoIx
-proposingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelProposingRedeemedScriptsT % userRedeemerL) mChange (const True)
+  RedeemerTamperingParams a b f A_Traversal NoIx
+proposingRedeemerTamperingParams branching mChange =
+  RedeemerTamperingParams branching (txSkelProposingRedeemedScriptsT % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all withdrawing redeemers
 -- of type @a@.
-withdrawingTamperRedeemerParams ::
+withdrawingRedeemerTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperRedeemerParams a b f A_Traversal NoIx
-withdrawingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelWithdrawingRedeemedUsersT % userEitherScriptP % userRedeemerL) mChange (const True)
+  RedeemerTamperingParams a b f A_Traversal NoIx
+withdrawingRedeemerTamperingParams branching mChange =
+  RedeemerTamperingParams branching (txSkelWithdrawingRedeemedUsersT % userEitherScriptP % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all certifying redeemers
 -- of type @a@.
-certifyingTamperRedeemerParams ::
+certifyingRedeemerTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperRedeemerParams a b f A_Traversal NoIx
-certifyingTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching (txSkelCertifyingRedeemedUsersT % userEitherScriptP % userRedeemerL) mChange (const True)
+  RedeemerTamperingParams a b f A_Traversal NoIx
+certifyingRedeemerTamperingParams branching mChange =
+  RedeemerTamperingParams branching (txSkelCertifyingRedeemedUsersT % userEitherScriptP % userRedeemerL) mChange (const True)
 
 -- | A tamper redeemer params to apply a modification to all redeemers of type
 -- @a@.
-allTamperRedeemerParams ::
+allRedeemerTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperRedeemerParams a b f A_Traversal NoIx
-allTamperRedeemerParams branching mChange =
-  TamperRedeemerParams branching txSkelRedeemersT mChange (const True)
+  RedeemerTamperingParams a b f A_Traversal NoIx
+allRedeemerTamperingParams branching mChange =
+  RedeemerTamperingParams branching txSkelRedeemersT mChange (const True)
 
 -- | Applies a modification to all redeemers of type @a@ focused by a
 -- given optic. Returns the list of modified redeemers, as they were before
 -- being modified.
-tamperRedeemerAttack ::
+redeemerTamperingAttack ::
   forall a b f k is effs.
   ( RedeemerConstrs a,
     Ord a,
@@ -121,11 +121,11 @@ tamperRedeemerAttack ::
     Is k A_Traversal,
     Members '[NonDet, Tweak] effs
   ) =>
-  TamperRedeemerParams a b f k is ->
+  RedeemerTamperingParams a b f k is ->
   Sem effs [a]
-tamperRedeemerAttack TamperRedeemerParams {..} = do
+redeemerTamperingAttack RedeemerTamperingParams {..} = do
   modified <-
     modifyTweakFromParams $
       ModifyTweakParams trpBranching trpOptic txSkelRedeemerTypedAT trpModification trpIndexPred
-  addLabelTweak $ TamperRedeemerLabel modified
+  addLabelTweak $ RedeemerTamperingLabel modified
   return modified

@@ -1,5 +1,5 @@
--- | Tests for 'Cooked.Attack.TamperDatum'.
-module Spec.Attack.TamperDatum where
+-- | Tests for 'Cooked.Attack.DatumTampering'.
+module Spec.Attack.DatumTampering where
 
 import Cooked
 import Data.Set qualified as Set
@@ -14,11 +14,11 @@ import Test.Tasty.HUnit (testCase, (@=?))
 alice :: Wallet
 alice = wallet 1
 
-tamperDatumAttackTest :: TestTree
-tamperDatumAttackTest =
-  testCase "tamperDatumAttack" $
+datumTamperingAttackTest :: TestTree
+datumTamperingAttackTest =
+  testCase "datumTamperingAttack" $
     [ txSkelTemplate
-        { txSkelLabels = Set.singleton $ TxSkelLabel $ TamperDatumLabel [(52 :: Integer, 53 :: Integer)],
+        { txSkelLabels = Set.singleton $ TxSkelLabel $ DatumTamperingLabel [(52 :: Integer, 53 :: Integer)],
           txSkelOutputs =
             [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
               alice `receives` Value (Script.lovelace 234),
@@ -35,8 +35,8 @@ tamperDatumAttackTest =
                     alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
-            ( tamperDatumAttack $
-                allTamperDatumParams @(Integer, Integer)
+            ( datumTamperingAttack $
+                allDatumTamperingParams @(Integer, Integer)
                   OneBranchForAllFoci
                   (\(x, y) -> if y == 77 then Nothing else Just (x, y + 1))
             )
@@ -71,8 +71,8 @@ malformDatumAttackTest =
                           ]
                       }
                   )
-                  ( tamperDatumAttack $
-                      allTamperDatumParams @(Integer, Integer)
+                  ( datumTamperingAttack $
+                      allDatumTamperingParams @(Integer, Integer)
                         OneBranchPerFoci
                         ( \(x, y) ->
                             if y == 77
@@ -90,6 +90,6 @@ tests :: TestTree
 tests =
   testGroup
     "Tamper datum tweaks"
-    [ tamperDatumAttackTest,
+    [ datumTamperingAttackTest,
       malformDatumAttackTest
     ]

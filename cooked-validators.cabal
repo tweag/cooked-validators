@@ -15,9 +15,9 @@ library
       Cooked
       Cooked.Attack
       Cooked.Attack.DatumHijacking
+      Cooked.Attack.DatumTampering
       Cooked.Attack.PeerTampering
-      Cooked.Attack.TamperDatum
-      Cooked.Attack.TamperRedeemer
+      Cooked.Attack.RedeemerTampering
       Cooked.Attack.TokenDuplication
       Cooked.Families
       Cooked.Ltl
@@ -171,8 +171,8 @@ test-suite spec
       Plutus.Withdrawals
       Spec.Attack
       Spec.Attack.DatumHijacking
-      Spec.Attack.TamperDatum
-      Spec.Attack.TamperRedeemer
+      Spec.Attack.DatumTampering
+      Spec.Attack.RedeemerTampering
       Spec.Attack.TokenDuplication
       Spec.Balancing
       Spec.BasicUsage

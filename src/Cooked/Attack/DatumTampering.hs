@@ -1,15 +1,15 @@
 -- | This module provides an attack that modifies the datums of a 'TxSkel'.
-module Cooked.Attack.TamperDatum
+module Cooked.Attack.DatumTampering
   ( -- * Tamper datum params
-    TamperDatumParams (..),
-    allTamperDatumParams,
-    overloadTamperDatumParams,
+    DatumTamperingParams (..),
+    allDatumTamperingParams,
+    overloadDatumTamperingParams,
 
     -- * Tamper datum label
-    TamperDatumLabel (..),
+    DatumTamperingLabel (..),
 
     -- * Tamper datum attack
-    tamperDatumAttack,
+    datumTamperingAttack,
   )
 where
 
@@ -26,16 +26,16 @@ import Polysemy.NonDet
 -- | A label added to a 'TxSkel' on which a tweak tampering a datum has been
 -- applied. The label contains all the datum contents that have been
 -- modified, before the modification was applied.
-newtype TamperDatumLabel a = TamperDatumLabel [a]
+newtype DatumTamperingLabel a = DatumTamperingLabel [a]
   deriving (Show, Eq, Ord)
 
-instance (PrettyCooked a) => PrettyCooked (TamperDatumLabel a) where
-  prettyCookedOpt opts (TamperDatumLabel dats) =
+instance (PrettyCooked a) => PrettyCooked (DatumTamperingLabel a) where
+  prettyCookedOpt opts (DatumTamperingLabel dats) =
     prettyItemize opts "Tampered Datums" "-" dats
 
 -- | Parameters of the tamper datum attack
-data TamperDatumParams a b f k is
-  = TamperDatumParams
+data DatumTamperingParams a b f k is
+  = DatumTamperingParams
   { -- | The branching policy to use when several datums are targeted
     tdpBranching :: Branching,
     -- | The optic to use to select eligible 'TxSkelOutDatum'
@@ -47,13 +47,13 @@ data TamperDatumParams a b f k is
   }
 
 -- | A tamper datum params where all the datums are considered for targets
-allTamperDatumParams ::
+allDatumTamperingParams ::
   forall a b f.
   Branching ->
   (a -> f b) ->
-  TamperDatumParams a b f A_Traversal '[]
-allTamperDatumParams branching modif =
-  TamperDatumParams
+  DatumTamperingParams a b f A_Traversal '[]
+allDatumTamperingParams branching modif =
+  DatumTamperingParams
     branching
     (txSkelOutputsL % traversed % txSkelOutDatumL)
     modif
@@ -62,14 +62,14 @@ allTamperDatumParams branching modif =
 -- | A tamper datum params where the targeted datums are overloaded with dummy
 -- extra data @I 42@ at the end of their @BuiltinData@ representation. This only
 -- works if the root data is either a @Constr@ or a @List@.
-overloadTamperDatumParams ::
+overloadDatumTamperingParams ::
   forall k is.
   Branching ->
   Optic' k is TxSkel TxSkelOutDatum ->
   (Int -> Bool) ->
-  TamperDatumParams PlutusTx.BuiltinData PlutusTx.BuiltinData Maybe k is
-overloadTamperDatumParams branching optic =
-  TamperDatumParams
+  DatumTamperingParams PlutusTx.BuiltinData PlutusTx.BuiltinData Maybe k is
+overloadDatumTamperingParams branching optic =
+  DatumTamperingParams
     branching
     optic
     ( \(PlutusTx.builtinDataToData -> bData) -> case bData of
@@ -81,7 +81,7 @@ overloadTamperDatumParams branching optic =
 -- | Applies a modification to all datums of type @a@ focused by a given
 -- optic. Returns the list of modified datums, as they were before being
 -- modified.
-tamperDatumAttack ::
+datumTamperingAttack ::
   forall a b f k is effs.
   ( DatumConstrs a,
     Ord a,
@@ -91,11 +91,11 @@ tamperDatumAttack ::
     Is k A_Traversal,
     Members '[NonDet, Tweak] effs
   ) =>
-  TamperDatumParams a b f k is ->
+  DatumTamperingParams a b f k is ->
   Sem effs [a]
-tamperDatumAttack TamperDatumParams {..} = do
+datumTamperingAttack DatumTamperingParams {..} = do
   modified <-
     modifyTweakFromParams $
       ModifyTweakParams tdpBranching tdpOptic txSkelOutDatumTypedAT tdpModification tdpIndexPred
-  addLabelTweak $ TamperDatumLabel modified
+  addLabelTweak $ DatumTamperingLabel modified
   return modified
