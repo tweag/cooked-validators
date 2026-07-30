@@ -16,6 +16,7 @@ library
       Cooked.Attack
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DatumTampering
+      Cooked.Attack.OutputsReordering
       Cooked.Attack.PeerTampering
       Cooked.Attack.RedeemerTampering
       Cooked.Attack.TokenDuplication
@@ -79,7 +80,6 @@ library
       Cooked.Tweak.Labels
       Cooked.Tweak.Mint
       Cooked.Tweak.Modification
-      Cooked.Tweak.OutPermutations
       Cooked.Tweak.Outputs
       Cooked.Tweak.Removal
       Cooked.Tweak.Signatories
@@ -172,6 +172,7 @@ test-suite spec
       Spec.Attack
       Spec.Attack.DatumHijacking
       Spec.Attack.DatumTampering
+      Spec.Attack.OutputsReordering
       Spec.Attack.RedeemerTampering
       Spec.Attack.TokenDuplication
       Spec.Balancing
@@ -189,7 +190,6 @@ test-suite spec
       Spec.Tweak
       Spec.Tweak.Common
       Spec.Tweak.Labels
-      Spec.Tweak.OutPermutations
       Spec.Tweak.ValidityRange
       Spec.Withdrawals
       Paths_cooked_validators
