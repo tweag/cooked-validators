@@ -118,7 +118,7 @@ setTweak ::
   Optic' k is TxSkel a ->
   a ->
   Sem effs ()
-setTweak optic = overTweak optic . const
+setTweak optic a = getTxSkel >>= putTxSkel . set optic a
 
 -- | Like 'setTweak', but the value to set is computed from the index of each
 -- focus.
