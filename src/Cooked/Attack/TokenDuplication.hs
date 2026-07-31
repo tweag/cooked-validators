@@ -22,7 +22,6 @@ import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Insertion
-import Cooked.Tweak.Mint
 import Cooked.Tweak.Outputs
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
@@ -117,7 +116,7 @@ tokenDuplicationAttack TokenDuplicationParams {..} = do
   -- We ensure the total value is positive
   guard (totalIncrement `Api.gt` mempty)
   -- We add the new mints into the 'TxSkel'
-  addMintsTweak newMints
+  overTweak (txSkelMintsL % txSkelMintsListI) (++ newMints)
   -- We redirect the extra value to an attacker
   addOutputTweak $ atpThief `receives` Value totalIncrement
   -- We label the transaction by the added tokens
