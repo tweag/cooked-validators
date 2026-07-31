@@ -77,10 +77,8 @@ library
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Guard
-      Cooked.Tweak.Inputs
       Cooked.Tweak.Insertion
       Cooked.Tweak.Modification
-      Cooked.Tweak.Outputs
       Cooked.Tweak.Removal
       Cooked.Tweak.Signatories
       Cooked.Wallet
