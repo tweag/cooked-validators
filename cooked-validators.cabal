@@ -80,7 +80,6 @@ library
       Cooked.Tweak.Insertion
       Cooked.Tweak.Modification
       Cooked.Tweak.Removal
-      Cooked.Tweak.Signatories
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators

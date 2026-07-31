@@ -7,4 +7,3 @@ import Cooked.Tweak.Common as X
 import Cooked.Tweak.Insertion as X
 import Cooked.Tweak.Modification as X
 import Cooked.Tweak.Removal as X
-import Cooked.Tweak.Signatories as X
