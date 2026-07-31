@@ -79,7 +79,6 @@ library
       Cooked.Tweak.Guard
       Cooked.Tweak.Inputs
       Cooked.Tweak.Insertion
-      Cooked.Tweak.Labels
       Cooked.Tweak.Mint
       Cooked.Tweak.Modification
       Cooked.Tweak.Outputs

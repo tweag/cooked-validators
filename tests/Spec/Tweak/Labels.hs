@@ -2,6 +2,7 @@ module Spec.Tweak.Labels where
 
 import Control.Monad
 import Cooked
+import Cooked.Tweak.Guard
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Optics.Core
@@ -34,7 +35,7 @@ payments = do
 labelAmountTweak :: StagedTweak ()
 labelAmountTweak = do
   [target] <- viewAllTweak (txSkelOutputsL % _head % txSkelOutValueL % valueLovelaceL)
-  addLabelTweak $ Api.getLovelace target
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ Api.getLovelace target
 
 labelNameTweak :: StagedTweak ()
 labelNameTweak = do
@@ -47,8 +48,8 @@ labelNameTweak = do
           % userTypedPubKeyAT @Wallet
       )
   case target of
-    [t] | t == alice -> addLabelTweak @Text "Alice"
-    [t] | t == bob -> addLabelTweak @Text "Bob"
+    [t] | t == alice -> insertInTweak txSkelLabelsL $ TxSkelLabel @Text "Alice"
+    [t] | t == bob -> insertInTweak txSkelLabelsL $ TxSkelLabel @Text "Bob"
     _ -> mzero
 
 labelNames :: StagedMockChain ()

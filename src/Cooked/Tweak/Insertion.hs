@@ -83,7 +83,7 @@ insertInTweak ::
   a ->
   Sem effs ()
 insertInTweak (castOptic @A_Traversal -> optic) a = do
-  guardTweak $ optic % contains a % filtered not
+  guardTweak $ optic % at a % _Nothing
   setTweak (optic % contains a) True
 
 -- * Inserting elements in maps
