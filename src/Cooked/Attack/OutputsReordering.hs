@@ -14,7 +14,9 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Cooked.Tweak.Insertion
+import Cooked.Tweak.Insert
+import Cooked.Tweak.Query
+import Cooked.Tweak.Update
 import Data.List (permutations)
 import Polysemy (Members, Sem)
 import Polysemy.NonDet

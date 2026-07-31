@@ -1,4 +1,4 @@
-module Cooked.Tweak.Removal
+module Cooked.Tweak.Remove
   ( removeIfTweak,
     removeAtTweak,
   )
@@ -6,6 +6,8 @@ where
 
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
+import Cooked.Tweak.Update
 import Data.List (partition)
 import Optics.Core
 import Polysemy

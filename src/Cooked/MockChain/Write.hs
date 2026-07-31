@@ -43,6 +43,7 @@ import Cooked.MockChain.Read
 import Cooked.MockChain.State
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()

@@ -1,4 +1,4 @@
-module Cooked.Tweak.Modification
+module Cooked.Tweak.Modify
   ( -- * Modification parameters
     Branching (..),
     ModifyTweakParams (..),
@@ -21,6 +21,8 @@ import Control.Applicative (Alternative)
 import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
+import Cooked.Tweak.Update
 import Data.Either (isRight)
 import Data.Either.Combinators (fromRight')
 import Data.List (subsequences)

@@ -12,6 +12,8 @@ import Cooked.MockChain.Read
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
+import Cooked.Tweak.Update
 import Data.List (find)
 import Data.Map qualified as Map
 import Ledger.Tx qualified as P.Ledger

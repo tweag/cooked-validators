@@ -77,9 +77,11 @@ library
       Cooked.Tweak
       Cooked.Tweak.Common
       Cooked.Tweak.Guard
-      Cooked.Tweak.Insertion
-      Cooked.Tweak.Modification
-      Cooked.Tweak.Removal
+      Cooked.Tweak.Insert
+      Cooked.Tweak.Modify
+      Cooked.Tweak.Query
+      Cooked.Tweak.Remove
+      Cooked.Tweak.Update
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators

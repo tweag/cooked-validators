@@ -11,6 +11,7 @@ where
 import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
 import Data.Text (Text)
 import Optics.Core
 import Polysemy
@@ -22,7 +23,7 @@ assertTweak ::
   ) =>
   Optic' k is TxSkel a ->
   Sem effs Bool
-assertTweak = fmap (not . null) . viewAllTweak
+assertTweak = fmap (not . null) . toListOfTweak
 
 assertPredTweak ::
   ( Member Tweak effs,

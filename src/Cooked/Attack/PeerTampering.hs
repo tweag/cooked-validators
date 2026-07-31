@@ -20,8 +20,9 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Cooked.Tweak.Insertion
-import Cooked.Tweak.Modification
+import Cooked.Tweak.Insert
+import Cooked.Tweak.Modify
+import Cooked.Tweak.Query
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -76,7 +77,7 @@ balancingPeerTamperingParams (Script.toPubKeyHash -> new) =
     balancingPolicy <- viewTweak (txSkelOptsL % txSkelOptBalancingPolicyL)
     existing <- case balancingPolicy of
       BalanceWithFirstSignatory -> do
-        signatories <- viewAllTweak (txSkelSignatoriesL % traversed % txSkelSignatoryPubKeyHashL)
+        signatories <- toListOfTweak (txSkelSignatoriesL % traversed % txSkelSignatoryPubKeyHashL)
         case signatories of
           [] -> mzero
           first : _ -> return first

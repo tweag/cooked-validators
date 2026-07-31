@@ -4,6 +4,9 @@
 module Cooked.Tweak (module X) where
 
 import Cooked.Tweak.Common as X
-import Cooked.Tweak.Insertion as X
-import Cooked.Tweak.Modification as X
-import Cooked.Tweak.Removal as X
+import Cooked.Tweak.Guard as X
+import Cooked.Tweak.Insert as X
+import Cooked.Tweak.Modify as X
+import Cooked.Tweak.Query as X
+import Cooked.Tweak.Remove as X
+import Cooked.Tweak.Update as X

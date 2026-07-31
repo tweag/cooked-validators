@@ -21,7 +21,8 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Cooked.Tweak.Insertion
+import Cooked.Tweak.Insert
+import Cooked.Tweak.Query
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -69,7 +70,7 @@ existingCurrencyTokenDuplicationParams ::
   owner ->
   TokenDuplicationParams owner effs
 existingCurrencyTokenDuplicationParams newTokens = TokenDuplicationParams $ do
-  currencies <- viewAllTweak (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
+  currencies <- toListOfTweak (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
   return $
     foldl
       ( \newMints rScript@(UserRedeemedScript (toVScript -> script) _) ->

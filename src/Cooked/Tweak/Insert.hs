@@ -1,4 +1,4 @@
-module Cooked.Tweak.Insertion
+module Cooked.Tweak.Insert
   ( insertUsingTweak,
     appendAfterTweak,
     appendBeforeTweak,
@@ -13,6 +13,7 @@ where
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Guard
+import Cooked.Tweak.Update
 import Data.Map (Map)
 import Data.Set (Set)
 import Optics.Core
