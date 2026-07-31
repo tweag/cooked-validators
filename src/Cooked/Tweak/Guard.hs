@@ -1,8 +1,17 @@
+-- | This module exposes tweaks revolving around parts of a 'TxSkel' satisfying
+-- given conditions. The only parameter these tweaks take is an optic, and the
+-- guards ensure that at least a foci is targeted by it. This might look
+-- insufficientl, but thanks to @filtered@ which turns a predicate into an
+-- optic, this is actually sufficiently expressive. For example, if you have an
+-- optic @o@ targeting an element of type @a@, and a predicate @p@ and would
+-- like to ensure the targeted elements satisfy @p@, use @o % filtered p@.
 module Cooked.Tweak.Guard
-  ( assertTweak,
-    assertPredTweak,
+  ( -- * Standard guarding tweaks
+    assertTweak,
     guardTweak,
-    guardPredTweak,
+    condTweak,
+
+    -- * Custom guarding tweaks
     labelled,
     labelled',
   )
@@ -17,6 +26,7 @@ import Optics.Core
 import Polysemy
 import Polysemy.NonDet
 
+-- | Asserts weither a given optic targets at least a foci
 assertTweak ::
   ( Member Tweak effs,
     Is k A_Fold
@@ -25,16 +35,7 @@ assertTweak ::
   Sem effs Bool
 assertTweak = fmap (not . null) . toListOfTweak
 
-assertPredTweak ::
-  ( Member Tweak effs,
-    Is k A_Fold
-  ) =>
-  Optic' k is TxSkel a ->
-  (a -> Bool) ->
-  Sem effs Bool
-assertPredTweak (castOptic @A_Fold -> optic) p =
-  assertTweak (optic % filtered p)
-
+-- | Ensures a given optic targets at least a foci, failing otherwise
 guardTweak ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Fold
@@ -43,14 +44,16 @@ guardTweak ::
   Sem effs ()
 guardTweak optic = assertTweak optic >>= guard
 
-guardPredTweak ::
+-- | Only executes the given computation provided the given optic targets at
+-- least a foci, failing otherwise.
+condTweak ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Fold
   ) =>
   Optic' k is TxSkel a ->
-  (a -> Bool) ->
-  Sem effs ()
-guardPredTweak optic p = assertPredTweak optic p >>= guard
+  Sem effs b ->
+  Sem effs b
+condTweak optic = (guardTweak optic >>)
 
 -- | Apply a tweak to a given transaction if it has a specific label. Fails if
 -- it does not.
@@ -74,7 +77,7 @@ labelled ::
   lbl ->
   Sem effs a ->
   Sem effs a
-labelled lbl = (guardTweak (txSkelLabelsL % at (TxSkelLabel lbl) % _Just) >>)
+labelled lbl = condTweak $ txSkelLabelsL % at (TxSkelLabel lbl) % _Just
 
 -- | `labelled` specialised to Text labels
 --

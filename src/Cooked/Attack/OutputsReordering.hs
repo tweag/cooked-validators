@@ -1,3 +1,6 @@
+-- | This module exposes an attack consisting in reordering the outputs of a
+-- transaction, in an attempt to uncover vulnerabilities on smart contract
+-- relying on the outputs order.
 module Cooked.Attack.OutputsReordering
   ( -- * Outputs reordering params
     OutputsReorderingParams (..),

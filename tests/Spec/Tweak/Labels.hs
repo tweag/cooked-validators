@@ -87,13 +87,8 @@ tests =
         mustSucceedTest $
           whenAble (labelled' "Alice" labelAmountTweak) $
             everywhere labelNameTweak payments,
-      testCooked "Apply a modification to all transactions with a given type of label"
-        $ mustSucceedTest
-        $ everywhere
-          ( do
-              txSkelLabels <- toListOfTweak $ txSkelLabelsL % to Set.toList % traversed % txSkelLabelTypedP @Text
-              guard $ not $ null txSkelLabels
-              labelAmountTweak
-          )
-        $ everywhere labelNameTweak payments
+      testCooked "Applying a modification to all transactions with a given type of label" $
+        mustSucceedTest $
+          everywhere (condTweak (txSkelLabelsL % to Set.toList % traversed % txSkelLabelTypedP @Text) labelAmountTweak) $
+            everywhere labelNameTweak payments
     ]

@@ -4,13 +4,11 @@ module Cooked.MockChain.Tweak
   ( -- * Modifying mockchain runs using tweaks
     reinterpretMockChainWriteWithTweak,
 
-    -- * Typed and Untyped tweaks geared for `Cooked.Skeleton.TxSkel`
-
-    --   modifications
+    -- * Tweaks geared for 'Cooked.Skeleton.TxSkel' modifications
     TypedTweak,
     UntypedTweak (..),
 
-    -- * Modalities to deploy `UntypedTweak`s on time
+    -- * Modalities to deploy 'UntypedTweak's on time
     somewhere,
     everywhere,
     nowhere,
@@ -36,11 +34,6 @@ type TypedTweak tweakEffs a = Sem (Tweak : NonDet : tweakEffs) a
 data UntypedTweak tweakEffs where
   UntypedTweak :: TypedTweak tweakEffs a -> UntypedTweak tweakEffs
 
-fromTweak ::
-  TypedTweak tweakEffs a ->
-  Ltl (UntypedTweak tweakEffs)
-fromTweak = LtlAtom . UntypedTweak
-
 -- | Applies a 'Tweak' to every step in a trace where it is applicable,
 -- branching at any such locations. The tweak must apply at least once.
 somewhere ::
@@ -48,7 +41,7 @@ somewhere ::
   TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
-somewhere = modifyLtl . ltlEventually . fromTweak
+somewhere = modifyLtl . ltlEventually . LtlAtom . UntypedTweak
 
 -- | Applies a 'Tweak' to every transaction in a given trace. Fails if the tweak
 -- fails anywhere in the trace.
@@ -57,7 +50,7 @@ everywhere ::
   TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
-everywhere = modifyLtl . ltlAlways . fromTweak
+everywhere = modifyLtl . ltlAlways . LtlAtom . UntypedTweak
 
 -- | Ensures a given 'Tweak' can never successfully be applied in a computation,
 -- and leaves the computation unchanged.
@@ -66,7 +59,7 @@ nowhere ::
   TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
-nowhere = modifyLtl . ltlNever . fromTweak
+nowhere = modifyLtl . ltlNever . LtlAtom . UntypedTweak
 
 -- | Apply a given 'Tweak' at every location in a computation where it does not
 -- fail, which might never occur.
@@ -75,7 +68,7 @@ whenAble ::
   TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
-whenAble = modifyLtl . ltlWhenPossible . fromTweak
+whenAble = modifyLtl . ltlWhenPossible . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
 -- trace. Successful when this transaction exists and can be modified.
@@ -88,7 +81,7 @@ there ::
   TypedTweak tweakEffs b ->
   Sem effs a ->
   Sem effs a
-there n = modifyLtl . ltlDelay n . fromTweak
+there n = modifyLtl . ltlDelay n . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments enables an idiom like

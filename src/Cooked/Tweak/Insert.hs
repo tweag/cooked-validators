@@ -1,11 +1,20 @@
+-- | This module exposes tweaks to insert elements within various structures
+-- focused in a 'TxSkel'.
 module Cooked.Tweak.Insert
-  ( insertUsingTweak,
+  ( -- * Generic insert functions
+    insertUsingTweak,
     appendAfterTweak,
     appendBeforeTweak,
+
+    -- * Insert elements in lists
     insertThereTweak,
     insertFirstTweak,
     insertLastTweak,
+
+    -- * Insert elements in sets
     insertInTweak,
+
+    -- * Insert elements in maps
     insertAtTweak,
   )
 where
@@ -19,8 +28,6 @@ import Data.Set (Set)
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
-
--- * Main insertion function
 
 -- | Inserts an element in a structure using a custom function
 insertUsingTweak ::
@@ -54,8 +61,6 @@ appendBeforeTweak ::
   a ->
   Sem effs ()
 appendBeforeTweak optic a = overTweak optic (a <>)
-
--- * Inserting elements in lists
 
 -- | Inserts an element at a specific position in a list focused in a
 -- 'TxSkel'. If the index is beyond or equal to the list length, inserts it at
@@ -95,8 +100,6 @@ insertLastTweak ::
   Sem effs ()
 insertLastTweak optic = insertUsingTweak optic (\el -> (++ [el]))
 
--- * Inserting elements in sets
-
 -- | Inserts an element in a set focused in a 'TxSkel'. Fails if the element is
 -- already present in the set.
 insertInTweak ::
@@ -110,8 +113,6 @@ insertInTweak ::
 insertInTweak (castOptic @A_Traversal -> optic) a = do
   guardTweak $ optic % at a % _Nothing
   setTweak (optic % contains a) True
-
--- * Inserting elements in maps
 
 -- | Inserts an element in a map focused in a 'TxSkel'. Fails if the key is
 -- already present in the map.

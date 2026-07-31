@@ -1,3 +1,5 @@
+-- | This module exposes involved tweaks to selectively and systematically
+-- modify elements of the same nature within a 'TxSkel'
 module Cooked.Tweak.Modify
   ( -- * Modification parameters
     Branching (..),
@@ -78,8 +80,8 @@ selectP prop = prism' id (mfilter prop . Just)
 -- grouping @[[1, 2, 3]]@, so all foci are modified together. Assuming the
 -- modification does not itself branch (@changes@ returns exactly one result per
 -- focus), this produces exactly /one/ modified transaction, in which @a@, @b@,
--- and @c@ are all modified. This is the grouping used by the 'All' 'Branching'
--- of 'modifyTweak'.
+-- and @c@ are all modified. This is the grouping used by the
+-- 'OneBranchForAllFoci' 'Branching' of 'modifyTweak'.
 --
 -- __Example 2: one modification per transaction__
 --
@@ -96,8 +98,8 @@ selectP prop = prism' id (mfilter prop . Just)
 -- > [a1, a2, b1, b2, b3, c1, c2, c3, c4, c5]
 --
 -- you get one modified transaction that includes that value in place of the
--- original focus. This is the grouping used by the 'Any' 'Branching' of
--- 'modifyTweak'.
+-- original focus. This is the grouping used by the 'OneBranchPerFoci'
+-- 'Branching' of 'modifyTweak'.
 --
 -- __Example 3: all combinations of modifications__
 --
@@ -157,7 +159,7 @@ modifyTweak ::
   ([is] -> [[is]]) ->
   -- | Optic targeting the various foci which should be subject to being
   -- transformed. This optic can be built manually, but can also be enlarged
-  -- using convenience functions such as 'selectF' or 'elementsOf'.
+  -- using convenience functions such as 'elementsOf'.
   Optic' k (WithIx is) TxSkel x ->
   -- | Function that describes how the foci and their indexes can be transformed
   -- within the structure. Bear in mind that @effs@ contains @NonDet@ so this

@@ -46,6 +46,7 @@ instance PrettyCooked ValidityTamperingLabel where
   prettyCooked (ValidityTamperingLabel s) =
     "Validity tampering:" PP.<+> PP.pretty s
 
+-- | Parameters of the validity tampering attack.
 data ValidityTamperingParams k is f b
   = ValidityTamperingParams
   { -- | What part of the validity range to modify

@@ -1,6 +1,15 @@
+-- | This module provides tweaks able to remove elements from collections
+-- focused in a 'TxSkel'.
 module Cooked.Tweak.Remove
-  ( removeIfTweak,
+  ( -- * Removing elements from lists
+    removeIfTweak,
+    removeAtPosTweak,
+
+    -- * Removing elements from maps
     removeAtTweak,
+
+    -- * Removing elements from sets
+    removeInTweak,
   )
 where
 
@@ -9,6 +18,8 @@ import Cooked.Tweak.Common
 import Cooked.Tweak.Query
 import Cooked.Tweak.Update
 import Data.List (partition)
+import Data.Map (Map)
+import Data.Set (Set)
 import Optics.Core
 import Polysemy
 
@@ -27,16 +38,16 @@ removeIfTweak (castOptic @A_Lens -> optic) removePred = do
   setTweak optic kept
   return removed
 
--- | Removes an element at the specific index in a list focused in a 'TxSkel',
--- returning @Just@ the removed element if any, @Nothing@ otherwise.
-removeAtTweak ::
+-- | Removes an element at the specific position in a list focused in a
+-- 'TxSkel', the removed element if any.
+removeAtPosTweak ::
   ( Member Tweak effs,
     Is k A_Lens
   ) =>
   Optic' k is TxSkel [a] ->
   Int ->
   Sem effs (Maybe a)
-removeAtTweak (castOptic @A_Lens -> optic) i = do
+removeAtPosTweak (castOptic @A_Lens -> optic) i = do
   as <- viewTweak optic
   let (before, after) = splitAt i as
   case after of
@@ -44,3 +55,33 @@ removeAtTweak (castOptic @A_Lens -> optic) i = do
     x : xs -> do
       setTweak optic (before ++ xs)
       return $ Just x
+
+-- | Removes an element at a specific key in a map focused in a 'TxSkel',
+-- returning the removed value, if any.
+removeAtTweak ::
+  ( Member Tweak effs,
+    Is k A_Lens,
+    Ord a
+  ) =>
+  Optic' k is TxSkel (Map a b) ->
+  a ->
+  Sem effs (Maybe b)
+removeAtTweak (castOptic @A_Lens -> optic) a = do
+  mb <- viewTweak (optic % at a)
+  setTweak (optic % at a) Nothing
+  return mb
+
+-- | Removes an element in a set focused in a 'TxSkel', returning the remove
+-- value, if any.
+removeInTweak ::
+  ( Member Tweak effs,
+    Is k A_Lens,
+    Ord a
+  ) =>
+  Optic' k is TxSkel (Set a) ->
+  a ->
+  Sem effs (Maybe a)
+removeInTweak (castOptic @A_Lens -> optic) a = do
+  mb <- viewTweak (optic % at a)
+  setTweak (optic % at a) Nothing
+  return $ a <$ mb
