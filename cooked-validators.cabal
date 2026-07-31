@@ -70,6 +70,7 @@ library
       Cooked.Skeleton.Redeemer
       Cooked.Skeleton.Signatory
       Cooked.Skeleton.User
+      Cooked.Skeleton.ValidityRange
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak

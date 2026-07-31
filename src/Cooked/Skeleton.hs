@@ -63,6 +63,7 @@ import Cooked.Skeleton.Proposal as X
 import Cooked.Skeleton.Redeemer as X
 import Cooked.Skeleton.Signatory as X
 import Cooked.Skeleton.User as X
+import Cooked.Skeleton.ValidityRange as X
 import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
 import Data.Default
