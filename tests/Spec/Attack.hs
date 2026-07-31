@@ -5,6 +5,7 @@ import Spec.Attack.DatumTampering qualified as TampDat
 import Spec.Attack.OutputsReordering qualified as Reorder
 import Spec.Attack.RedeemerTampering qualified as TampRed
 import Spec.Attack.TokenDuplication qualified as DupToken
+import Spec.Attack.ValidityTampering qualified as Validity
 import Test.Tasty
 
 tests :: TestTree
@@ -15,5 +16,6 @@ tests =
       DupToken.tests,
       Reorder.tests,
       TampDat.tests,
-      TampRed.tests
+      TampRed.tests,
+      Validity.tests
     ]

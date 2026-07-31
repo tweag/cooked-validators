@@ -12,4 +12,3 @@ import Cooked.Tweak.Modification as X
 import Cooked.Tweak.Outputs as X
 import Cooked.Tweak.Removal as X
 import Cooked.Tweak.Signatories as X
-import Cooked.Tweak.ValidityRange as X
