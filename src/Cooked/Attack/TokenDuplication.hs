@@ -115,7 +115,7 @@ tokenDuplicationAttack TokenDuplicationParams {..} = do
   -- We ensure the total value is positive
   guard (totalIncrement `Api.gt` mempty)
   -- We add the new mints into the 'TxSkel'
-  overTweak (txSkelMintsL % txSkelMintsListI) (++ newMints)
+  appendAfterTweak (txSkelMintsL % txSkelMintsListI) newMints
   -- We redirect the extra value to an attacker
   insertLastTweak txSkelOutputsL $ atpThief `receives` Value totalIncrement
   -- We label the transaction by the added tokens

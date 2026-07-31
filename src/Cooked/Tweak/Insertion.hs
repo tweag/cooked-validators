@@ -1,5 +1,7 @@
 module Cooked.Tweak.Insertion
   ( insertUsingTweak,
+    appendAfterTweak,
+    appendBeforeTweak,
     insertThereTweak,
     insertFirstTweak,
     insertLastTweak,
@@ -29,6 +31,28 @@ insertUsingTweak ::
   a ->
   Sem effs ()
 insertUsingTweak optic op el = overTweak optic (op el)
+
+-- | Appending an element in a Semigroup after the existing element
+appendAfterTweak ::
+  ( Member Tweak effs,
+    Is k A_Setter,
+    Semigroup a
+  ) =>
+  Optic' k is TxSkel a ->
+  a ->
+  Sem effs ()
+appendAfterTweak optic a = overTweak optic (<> a)
+
+-- | Appending an element in a Semigroup after the existing element
+appendBeforeTweak ::
+  ( Member Tweak effs,
+    Is k A_Setter,
+    Semigroup a
+  ) =>
+  Optic' k is TxSkel a ->
+  a ->
+  Sem effs ()
+appendBeforeTweak optic a = overTweak optic (a <>)
 
 -- * Inserting elements in lists
 
