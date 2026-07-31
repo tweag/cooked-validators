@@ -140,5 +140,5 @@ datumHijackingAttack (DatumHijackingParams branching mChange select) = do
         simple
         (\out -> (\owner -> set txSkelOutOwnerL (toPKHOrVScript owner) out) <$> mChange out)
         select
-  addLabelTweak $ DatumHijackingLabel modified
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ DatumHijackingLabel modified
   return modified

@@ -14,7 +14,7 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Cooked.Tweak.Labels
+import Cooked.Tweak.Insertion
 import Data.List (permutations)
 import Polysemy (Members, Sem)
 import Polysemy.NonDet
@@ -65,7 +65,7 @@ outputsReorderingAttack params = do
           Shuffle -> permutations outputs
           ManualReordering f -> f outputs
           _ -> []
-  addLabelTweak OutputsReorderingLabel
+  insertInTweak txSkelLabelsL $ TxSkelLabel OutputsReorderingLabel
   where
     valid :: Int -> Int -> Bool
     valid i iMax = i >= 0 && i < iMax

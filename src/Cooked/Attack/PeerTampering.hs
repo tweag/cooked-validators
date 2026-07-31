@@ -20,7 +20,7 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Cooked.Tweak.Labels
+import Cooked.Tweak.Insertion
 import Cooked.Tweak.Modification
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
@@ -98,5 +98,5 @@ peerTamperingAttack (PeerTamperingParams branching mChanges) = do
         branching
         ((txSkelAllocatedPeersT % userPubKeyHashI) `adjoin` (txSkelRedeemedPeersT % userPubKeyHashI))
       $ \pkh -> if pkh == existing then targets else []
-  addLabelTweak $ PeerTamperingLabel modified
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ PeerTamperingLabel modified
   return modified

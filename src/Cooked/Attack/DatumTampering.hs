@@ -97,5 +97,5 @@ datumTamperingAttack DatumTamperingParams {..} = do
   modified <-
     modifyTweakFromParams $
       ModifyTweakParams tdpBranching tdpOptic txSkelOutDatumTypedAT tdpModification tdpIndexPred
-  addLabelTweak $ DatumTamperingLabel modified
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ DatumTamperingLabel modified
   return modified

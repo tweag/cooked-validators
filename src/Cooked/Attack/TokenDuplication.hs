@@ -21,7 +21,7 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Cooked.Tweak.Labels
+import Cooked.Tweak.Insertion
 import Cooked.Tweak.Mint
 import Cooked.Tweak.Outputs
 import Optics.Core
@@ -121,6 +121,6 @@ tokenDuplicationAttack TokenDuplicationParams {..} = do
   -- We redirect the extra value to an attacker
   addOutputTweak $ atpThief `receives` Value totalIncrement
   -- We label the transaction by the added tokens
-  addLabelTweak $ TokenDuplicationLabel totalIncrement
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ TokenDuplicationLabel totalIncrement
   -- We return the added tokens
   return totalIncrement

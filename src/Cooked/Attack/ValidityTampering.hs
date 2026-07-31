@@ -128,5 +128,5 @@ validityTamperingAttack (ValidityTamperingParams optics change) = do
         OneBranchForAllFoci
         (txSkelValidityRangeL % castOptic @A_Traversal optics)
         change
-  addLabelTweak $ ValidityTamperingLabel currentValidityRange
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ ValidityTamperingLabel currentValidityRange
   return currentValidityRange

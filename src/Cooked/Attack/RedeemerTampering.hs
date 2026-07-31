@@ -127,5 +127,5 @@ redeemerTamperingAttack RedeemerTamperingParams {..} = do
   modified <-
     modifyTweakFromParams $
       ModifyTweakParams trpBranching trpOptic txSkelRedeemerTypedAT trpModification trpIndexPred
-  addLabelTweak $ RedeemerTamperingLabel modified
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ RedeemerTamperingLabel modified
   return modified
