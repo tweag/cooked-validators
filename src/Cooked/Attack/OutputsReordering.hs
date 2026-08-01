@@ -38,9 +38,10 @@ data OutputsReorderingParams
     Swap Int Int
   | -- | Moves one element from a given index to a given index in the list
     Move Int Int
-  | -- | Shuffle the list (generate all permutation, except the identity)
+  | -- | Shuffle the list (generate all permutations, except the identity)
     Shuffle
-  | -- | Do whatever you want with the outputs, manually
+  | -- | Do whatever you want with the outputs, manually, including removing
+    -- some of them, or fully changing the list.
     ManualReordering (forall a. [a] -> [[a]])
 
 -- | Reorders the outputs following a given policy (parameters) to try and
@@ -80,10 +81,8 @@ outputsReorderingAttack params = do
     modifyAt _ _ [] = []
     modifyAt n f (x : xs) = x : modifyAt (n - 1) f xs
 
-    replaceAt n a = modifyAt n $ \case
-      [] -> []
-      (_ : xs) -> a : xs
-    removeAt n = modifyAt n $ \case
-      [] -> []
-      (_ : xs) -> xs
+    replaceAt n a = modifyAt n $ \case [] -> []; (_ : xs) -> a : xs
+
+    removeAt n = modifyAt n $ \case [] -> []; (_ : xs) -> xs
+
     insertAt n a = modifyAt n (a :)
