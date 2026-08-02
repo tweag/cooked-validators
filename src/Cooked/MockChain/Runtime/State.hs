@@ -116,6 +116,7 @@ removeOutput oRef = set (mcstOutputsL % at oRef % _Just % _2) False
 data UtxoPayloadDatum where
   NoUtxoPayloadDatum :: UtxoPayloadDatum
   SomeUtxoPayloadDatum :: (DatumConstrs dat) => dat -> Bool -> UtxoPayloadDatum
+  UtxoPayloadDatumHash :: Api.DatumHash -> UtxoPayloadDatum
 
 -- | Focuses on the optional hashed flag of a 'UtxoPayloadDatum'
 utxoPayloadDatumKindAT :: AffineTraversal' UtxoPayloadDatum Bool
@@ -124,11 +125,13 @@ utxoPayloadDatumKindAT =
     ( \case
         NoUtxoPayloadDatum -> Left NoUtxoPayloadDatum
         SomeUtxoPayloadDatum _ b -> Right b
+        UtxoPayloadDatumHash _ -> Right True
     )
     ( flip
         ( \kind -> \case
             NoUtxoPayloadDatum -> NoUtxoPayloadDatum
             SomeUtxoPayloadDatum content _ -> SomeUtxoPayloadDatum content kind
+            datum@(UtxoPayloadDatumHash _) -> datum
         )
     )
 
@@ -146,6 +149,7 @@ utxoPayloadDatumTypedAT =
         ( \content -> \case
             NoUtxoPayloadDatum -> NoUtxoPayloadDatum
             SomeUtxoPayloadDatum _ kind -> SomeUtxoPayloadDatum content kind
+            UtxoPayloadDatumHash _ -> SomeUtxoPayloadDatum content True
         )
     )
 
@@ -159,6 +163,9 @@ instance Ord UtxoPayloadDatum where
     (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat) b)
     (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat') b') =
       compare (dat, b) (dat', b')
+  compare SomeUtxoPayloadDatum {} _ = LT
+  compare _ SomeUtxoPayloadDatum {} = GT
+  compare (UtxoPayloadDatumHash hash) (UtxoPayloadDatumHash hash') = compare hash hash'
 
 instance Eq UtxoPayloadDatum where
   dat == dat' = compare dat dat' == EQ
@@ -269,6 +276,7 @@ mcstToUtxoState =
                   ( case view txSkelOutDatumL txSkelOut of
                       NoTxSkelOutDatum -> NoUtxoPayloadDatum
                       SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)
+                      SomeTxSkelOutDatumHash hash -> UtxoPayloadDatumHash hash
                   )
                   (preview txSkelOutReferenceScriptHashAF txSkelOut)
               ]

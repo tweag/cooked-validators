@@ -25,11 +25,11 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
   TxSkelOut {txSkelOutOwner, txSkelOutDatum} <- txSkelOutByRef txOutRef
   witness <- case txSkelOutOwner of
     UserPubKey _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-    UserScript script ->
-      fmap (Cardano.ScriptWitness Cardano.ScriptWitnessForSpending) $
-        toScriptWitness script txSkelRedeemer $
-          case txSkelOutDatum of
-            NoTxSkelOutDatum -> Cardano.ScriptDatumForTxIn Nothing
-            SomeTxSkelOutDatum _ Inline -> Cardano.InlineScriptDatum
-            SomeTxSkelOutDatum dat _ -> Cardano.ScriptDatumForTxIn $ Just $ P.Ledger.toCardanoScriptData $ Api.toBuiltinData dat
+    UserScript script -> do
+      scriptDatum <- case txSkelOutDatum of
+        NoTxSkelOutDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
+        SomeTxSkelOutDatum _ Inline -> return Cardano.InlineScriptDatum
+        SomeTxSkelOutDatum dat _ -> return $ Cardano.ScriptDatumForTxIn $ Just $ P.Ledger.toCardanoScriptData $ Api.toBuiltinData dat
+        SomeTxSkelOutDatumHash hash -> throw $ MCESpendingHashOnlyDatum txOutRef hash
+      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> toScriptWitness script txSkelRedeemer scriptDatum
   (,Cardano.BuildTxWith witness) <$> fromEither (P.Ledger.toCardanoTxIn txOutRef)

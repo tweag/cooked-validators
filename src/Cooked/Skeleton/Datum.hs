@@ -75,16 +75,19 @@ datumKindResolvedP =
 -- | Datums to be placed in 'Cooked.Skeleton.TxSkel' outputs, which are either
 -- empty, or composed of a datum content and its placement
 data TxSkelOutDatum where
-  -- | use no datum
+  -- | Don't use any datum
   NoTxSkelOutDatum :: TxSkelOutDatum
-  -- | use some datum content and associated placement
+  -- | Use some datum content with a datum kind
   SomeTxSkelOutDatum :: (DatumConstrs dat) => dat -> DatumKind -> TxSkelOutDatum
+  -- | Use some datum hash only
+  SomeTxSkelOutDatumHash :: Api.DatumHash -> TxSkelOutDatum
 
 deriving instance Show TxSkelOutDatum
 
 instance Eq TxSkelOutDatum where
   NoTxSkelOutDatum == NoTxSkelOutDatum = True
   (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b) == (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') = (dat, b) == (dat', b')
+  (SomeTxSkelOutDatumHash hash) == (SomeTxSkelOutDatumHash hash') = hash == hash'
   _ == _ = False
 
 instance Ord TxSkelOutDatum where
@@ -95,6 +98,9 @@ instance Ord TxSkelOutDatum where
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b)
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') =
       compare (dat, b) (dat', b')
+  compare SomeTxSkelOutDatum {} _ = LT
+  compare _ SomeTxSkelOutDatum {} = GT
+  compare (SomeTxSkelOutDatumHash hash) (SomeTxSkelOutDatumHash hash') = compare hash hash'
 
 -- * Optics working on 'TxSkelOutDatum'
 
@@ -105,11 +111,13 @@ txSkelOutDatumKindAT =
     ( \case
         NoTxSkelOutDatum -> Left NoTxSkelOutDatum
         SomeTxSkelOutDatum _ kind -> Right kind
+        SomeTxSkelOutDatumHash _ -> Right (Hashed NotResolved)
     )
     ( flip
         ( \kind -> \case
             NoTxSkelOutDatum -> NoTxSkelOutDatum
             SomeTxSkelOutDatum content _ -> SomeTxSkelOutDatum content kind
+            datum@(SomeTxSkelOutDatumHash _) -> datum
         )
     )
 
@@ -135,6 +143,7 @@ txSkelOutDatumTypedAT =
         ( \content -> \case
             NoTxSkelOutDatum -> NoTxSkelOutDatum
             SomeTxSkelOutDatum _ kind -> SomeTxSkelOutDatum content kind
+            SomeTxSkelOutDatumHash _ -> SomeTxSkelOutDatum content (Hashed NotResolved)
         )
     )
 
@@ -144,7 +153,12 @@ txSkelOutDatumDatumAF = txSkelOutDatumTypedAT % to Api.Datum
 
 -- | Retrieves the optional 'Api.DatumHash' of a 'TxSkelOutDatum'
 txSkelOutDatumDatumHashAF :: AffineFold TxSkelOutDatum Api.DatumHash
-txSkelOutDatumDatumHashAF = txSkelOutDatumDatumAF % to Script.datumHash
+txSkelOutDatumDatumHashAF =
+  afolding
+    ( \case
+        SomeTxSkelOutDatumHash hash -> Just hash
+        datum -> Script.datumHash <$> preview txSkelOutDatumDatumAF datum
+    )
 
 -- | Retrieves the 'Api.OutputDatum' of a 'TxSkelOutDatum'
 txSkelOutDatumOutputDatumG :: Getter TxSkelOutDatum Api.OutputDatum
@@ -154,3 +168,4 @@ instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum NoTxSkelOutDatum = Api.NoOutputDatum
   toOutputDatum (SomeTxSkelOutDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
   toOutputDatum (SomeTxSkelOutDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
+  toOutputDatum (SomeTxSkelOutDatumHash hash) = Api.OutputDatumHash hash

@@ -4,6 +4,12 @@
 
 ### Added
 
+- New `SomeTxSkelOutDatumHash` constructor for `TxSkelOutDatum`, representing an
+  output datum known only by its hash (no datum content). It is mirrored by a
+  new `UtxoPayloadDatumHash` constructor in the resulting `UtxoState`, and a new
+  `MCESpendingHashOnlyDatum` error is raised when attempting to build the
+  spending witness of a script output whose datum is only a hash.
+
 ### Changed
 
 ### Removed
