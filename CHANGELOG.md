@@ -4,6 +4,15 @@
 
 ### Added
 
+- New `UserScriptHash` constructor for `User`, representing an allocation-mode
+  script owner known only by its `Api.ScriptHash` (no script body). It can be
+  used to pay to a bare script hash through `receives` (a new
+  `IsTxSkelOutAllowedOwner Api.ScriptHash` instance). Spending an output owned by
+  such a user requires providing the full script through a matching reference
+  input; otherwise a new `MCESpendingHashOnlyScript` error is raised. The
+  `userVScriptL` optic is now restricted to `User IsScript Redemption`, since an
+  allocation-mode script owner may no longer carry a script body.
+
 - New `SomeTxSkelOutDatumHash` constructor for `TxSkelOutDatum`, representing an
   output datum known only by its hash (no datum content). It is mirrored by a
   new `UtxoPayloadDatumHash` constructor in the resulting `UtxoState`, and a new
