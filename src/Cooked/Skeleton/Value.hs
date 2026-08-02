@@ -20,7 +20,7 @@ import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
 
 -- | Focuses on the amount of tokens of a certain 'Api.AssetClass'
--- from a given 'Api.Value'. This removes the entry if the new amount is 0.
+-- in a given 'Api.Value'. This removes the entry if the new amount is 0.
 valueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' Api.Value Integer
 valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
   lens
@@ -60,8 +60,8 @@ lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
 valueLovelaceL :: Lens' Api.Value Api.Lovelace
 valueLovelaceL = valueAssetClassAmountL Api.adaSymbol Api.adaToken % re lovelaceIntegerI
 
--- | A prism to build a value from an asset class and amount, or retrieves the
--- amount from this asset class if it is not zero
+-- | Builds or retrieves the amount of tokens of a certain 'Api.AssetClass' in an
+-- 'Api.Value', treating a zero amount as absent
 valueAssetClassAmountP :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Prism' Api.Value Integer
 valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
   | ac <- Api.assetClass cs tk =

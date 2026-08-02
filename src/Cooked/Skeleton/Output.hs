@@ -73,7 +73,7 @@ data TxSkelOut where
 -- | Focuses on the optional reference script of a 'TxSkelOut'
 makeLensesFor [("txSkelOutReferenceScript", "txSkelOutMReferenceScriptL")] ''TxSkelOut
 
--- | Focuses on the reference script of a 'TxSkelOut'
+-- | Focuses on the optional reference script of a 'TxSkelOut'
 txSkelOutReferenceScriptAT :: AffineTraversal' TxSkelOut VScript
 txSkelOutReferenceScriptAT = txSkelOutMReferenceScriptL % _Just
 
@@ -86,7 +86,7 @@ txSkelOutReferenceScriptHashAF = txSkelOutReferenceScriptAT % to Script.toScript
 -- | Focuses on the optional staking credential of a 'TxSkelOut'
 makeLensesFor [("txSkelOutStakingCredential", "txSkelOutMStakingCredentialL")] ''TxSkelOut
 
--- | Focuses on the staking credential of a 'TxSkelOut'
+-- | Focuses on the optional staking credential of a 'TxSkelOut'
 txSkelOutStakingCredentialAT :: AffineTraversal' TxSkelOut Api.StakingCredential
 txSkelOutStakingCredentialAT = txSkelOutMStakingCredentialL % _Just
 

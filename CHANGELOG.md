@@ -7,6 +7,11 @@
 - New `traverseTweak` primitive, the effectful sibling of `overTweak`: it
   modifies every focus of an optic on the current `TxSkel` using a function
   running in the tweak's effect stack.
+- The attack DSL now exposes focused modules for datum hijacking, datum
+  tampering, outputs reordering, peer tampering, redeemer tampering, token
+  duplication, and validity tampering.
+- The tweak DSL was split into focused modules: `Guard`, `Insert`, `Modify`,
+  `Query`, `Remove`, and `Update`, all re-exported from `Cooked.Tweak`.
 - New localized-modification tweak family in `Cooked.Tweak.Common`:
   `overModsTweak` (the general engine, returning the labels of the modified
   foci), `overModsSelectingTweak`, and the convenience wrappers
@@ -36,6 +41,11 @@
   focusing every script redeemed directly within a `TxSkel` (minting,
   proposing, withdrawing and certifying; the spending position is excluded as
   its scripts come from the index, not the skeleton).
+- `TxSkel` fields and lenses were renamed for clarity: `txSkelIns` →
+  `txSkelInputs`, `txSkelInsReference` → `txSkelReferenceInputs`, and
+  `txSkelOuts` → `txSkelOutputs`.
+- New `Cooked.Skeleton.ValidityRange` helpers expose the validity range and its
+  redeemed users/scripts through dedicated traversals.
 - New `doc/TWEAKS.md` describing the naming and branching conventions tweaks
   follow.
 
@@ -43,6 +53,12 @@
 
 - `overMaybeTweak`, `overMaybeSelectingTweak` and `combineModsTweak` are
   replaced by the `overMods*` tweak family (see Added).
+- `Cooked.Attack.DoubleSat` was removed; order-sensitive attacks now live in
+  `Cooked.Attack.OutputsReordering`.
+- `Cooked.Tweak.Inputs`, `Cooked.Tweak.Labels`, `Cooked.Tweak.Mint`,
+  `Cooked.Tweak.OutPermutations`, `Cooked.Tweak.Outputs`,
+  `Cooked.Tweak.Signatories`, and `Cooked.Tweak.ValidityRange` were replaced by
+  the new focused tweak modules.
 
 ### Fixed
 

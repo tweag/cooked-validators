@@ -1,7 +1,7 @@
 -- | This module exposes tweaks revolving around parts of a 'TxSkel' satisfying
 -- given conditions. The only parameter these tweaks take is an optic, and the
--- guards ensure that at least a foci is targeted by it. This might look
--- insufficientl, but thanks to @filtered@ which turns a predicate into an
+-- guards ensure that at least one focus is targeted by it. This might look
+-- insufficient, but thanks to @filtered@ which turns a predicate into an
 -- optic, this is actually sufficiently expressive. For example, if you have an
 -- optic @o@ targeting an element of type @a@, and a predicate @p@ and would
 -- like to ensure the targeted elements satisfy @p@, use @o % filtered p@.
@@ -26,7 +26,7 @@ import Optics.Core
 import Polysemy
 import Polysemy.NonDet
 
--- | Asserts weither a given optic targets at least a foci
+-- | Asserts whether a given optic targets at least one focus
 assertTweak ::
   ( Member Tweak effs,
     Is k A_Fold
@@ -35,7 +35,7 @@ assertTweak ::
   Sem effs Bool
 assertTweak = fmap (not . null) . toListOfTweak
 
--- | Ensures a given optic targets at least a foci, failing otherwise
+-- | Ensures a given optic targets at least one focus, failing otherwise
 guardTweak ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Fold
@@ -45,7 +45,7 @@ guardTweak ::
 guardTweak optic = assertTweak optic >>= guard
 
 -- | Only executes the given computation provided the given optic targets at
--- least a foci, failing otherwise.
+-- least one focus, failing otherwise.
 condTweak ::
   ( Members '[Tweak, NonDet] effs,
     Is k A_Fold

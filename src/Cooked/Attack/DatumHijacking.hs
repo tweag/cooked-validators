@@ -30,7 +30,7 @@ import Optics.Core
 import Polysemy
 import Polysemy.NonDet
 
--- | A label added to a 'TxSkel' on which a tweak highjacking a datum has been
+-- | A label added to a 'TxSkel' on which a tweak hijacking a datum has been
 -- applied. The label contains all the outputs that have been hijacked, before
 -- the hijacking happened.
 newtype DatumHijackingLabel = DatumHijackingLabel [TxSkelOut]
@@ -77,7 +77,7 @@ outPredDatumHijackingParams ::
 outPredDatumHijackingParams branching =
   defaultDatumHijackingParams branching . filtered
 
--- | Datum hijacking parameters targetting all the outputs owned by a certain
+-- | Datum hijacking parameters targeting all the outputs owned by a certain
 -- type of owner.
 typedByDatumHijackingParams ::
   forall (oldOwner :: Type) owner.
@@ -88,8 +88,8 @@ typedByDatumHijackingParams ::
 typedByDatumHijackingParams branching =
   defaultDatumHijackingParams branching (txSkelOutOwnerL % userTypedAF @oldOwner)
 
--- | Datum hijacking parameters targetting all the outputs owner by a given
--- user, and redirecting each of them in a separate transaction.
+-- | Datum hijacking parameters targeting all the outputs owned by a given
+-- user.
 ownedByDatumHijackingParams ::
   forall oldOwner owner.
   ( Typeable oldOwner,
@@ -102,8 +102,7 @@ ownedByDatumHijackingParams ::
 ownedByDatumHijackingParams branching user =
   defaultDatumHijackingParams branching (txSkelOutOwnerL % userTypedAF @oldOwner % filtered (== user))
 
--- | Datum hijacking parameters targetting all the outputs owned by a script,
--- and redirecting each of them in a separate transaction.
+-- | Datum hijacking parameters targeting all the outputs owned by a script.
 scriptsDatumHijackingParams ::
   Branching ->
   owner ->
@@ -111,8 +110,8 @@ scriptsDatumHijackingParams ::
 scriptsDatumHijackingParams branching =
   defaultDatumHijackingParams branching (txSkelOutOwnerL % userScriptHashAF)
 
--- | Datum hijacking parameters targetting all the outputs with a certain type
--- of datum, and redirecting each of them in a separate transaction.
+-- | Datum hijacking parameters targeting all the outputs with a certain type
+-- of datum.
 datumOfDatumHijackingParams ::
   forall dat owner.
   (DatumConstrs dat) =>

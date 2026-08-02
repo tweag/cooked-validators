@@ -55,7 +55,7 @@ data ValidityTamperingParams k is f b
     vtpChange :: b -> f b
   }
 
--- | Modifies the extended (possible infinite) lower bound of the validity
+-- | Modifies the extended (possibly infinite) lower bound of the validity
 -- interval with a given tampering function.
 lowerExtendedValidityTamperingParams ::
   (Maybe Ledger.Slot -> f (Maybe Ledger.Slot)) ->
@@ -71,7 +71,7 @@ lowerStrictValidityTamperingParams ::
 lowerStrictValidityTamperingParams =
   ValidityTamperingParams $ ix Lower
 
--- | Modifies the extended (possible infinite) upper bound of the validity
+-- | Modifies the extended (possibly infinite) upper bound of the validity
 -- interval with a given tampering function.
 upperExtendedValidityTamperingParams ::
   (Maybe Ledger.Slot -> f (Maybe Ledger.Slot)) ->
@@ -87,7 +87,7 @@ upperStrictValidityTamperingParams ::
 upperStrictValidityTamperingParams =
   ValidityTamperingParams $ ix Upper
 
--- | Modifies both the extended (possible infinite) lower and upper bounds of
+-- | Modifies both the extended (possibly infinite) lower and upper bounds of
 -- the validity interval with a given tampering function.
 bothExtendedValidityTamperingParams ::
   (Maybe Ledger.Slot -> f (Maybe Ledger.Slot)) ->
@@ -121,13 +121,13 @@ validityTamperingAttack ::
   ) =>
   ValidityTamperingParams k is f a ->
   Sem effs Ledger.SlotRange
-validityTamperingAttack (ValidityTamperingParams optics change) = do
+validityTamperingAttack (ValidityTamperingParams {..}) = do
   currentValidityRange <- viewTweak txSkelValidityRangeL
   void $
     modifyTweakFromParams $
       modifyTweakParamsNoTypeChange
         OneBranchForAllFoci
-        (txSkelValidityRangeL % castOptic @A_Traversal optics)
-        change
+        (txSkelValidityRangeL % castOptic @A_Traversal vtpOptic)
+        vtpChange
   insertInTweak txSkelLabelsL $ TxSkelLabel $ ValidityTamperingLabel currentValidityRange
   return currentValidityRange

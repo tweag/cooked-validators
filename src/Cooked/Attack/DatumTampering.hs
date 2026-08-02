@@ -37,13 +37,13 @@ instance (PrettyCooked a) => PrettyCooked (DatumTamperingLabel a) where
 data DatumTamperingParams a b f k is
   = DatumTamperingParams
   { -- | The branching policy to use when several datums are targeted
-    tdpBranching :: Branching,
+    dtpBranching :: Branching,
     -- | The optic to use to select eligible 'TxSkelOutDatum'
-    tdpOptic :: Optic' k is TxSkel TxSkelOutDatum,
+    dtpOptic :: Optic' k is TxSkel TxSkelOutDatum,
     -- | The modification to apply on targeted datums of type @a@
-    tdpModification :: a -> f b,
+    dtpModification :: a -> f b,
     -- | The selection function based on the targeted datums indexes
-    tdpIndexPred :: Int -> Bool
+    dtpIndexPred :: Int -> Bool
   }
 
 -- | A tamper datum params where all the datums are considered for targets
@@ -96,6 +96,6 @@ datumTamperingAttack ::
 datumTamperingAttack DatumTamperingParams {..} = do
   modified <-
     modifyTweakFromParams $
-      ModifyTweakParams tdpBranching tdpOptic txSkelOutDatumTypedAT tdpModification tdpIndexPred
+      ModifyTweakParams dtpBranching dtpOptic txSkelOutDatumTypedAT dtpModification dtpIndexPred
   insertInTweak txSkelLabelsL $ TxSkelLabel $ DatumTamperingLabel modified
   return modified

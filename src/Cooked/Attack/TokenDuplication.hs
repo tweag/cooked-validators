@@ -20,17 +20,15 @@ where
 import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
-import Cooked.Tweak.Common
-import Cooked.Tweak.Insert
-import Cooked.Tweak.Query
+import Cooked.Tweak
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Polysemy.NonDet
 
--- | A label that is added to a 'TxSkel' that has successfully been modified by
--- 'tokenDuplicationAttack'
+-- | A label added to a 'TxSkel' on which a tweak duplicating tokens has been
+-- applied. The label contains the value that was added to the transaction.
 newtype TokenDuplicationLabel = TokenDuplicationLabel Api.Value
   deriving (Show, Eq, Ord)
 
@@ -38,14 +36,14 @@ instance PrettyCooked TokenDuplicationLabel where
   prettyCookedOpt ops (TokenDuplicationLabel val) =
     "Added value: " <> prettyCookedOpt ops val
 
--- | Parameters of the add token attack
+-- | Parameters of the token duplication attack
 data TokenDuplicationParams owner effs
   = TokenDuplicationParams
   { -- | The new mints to add in the transaction. These are effectful because
     -- they can depend on the existing mints.
-    atpNewMints :: Sem effs [Mint],
+    tdpNewMints :: Sem effs [Mint],
     -- | The target of the added tokens.
-    atpThief :: owner
+    tdpThief :: owner
   }
 
 -- | Token duplications based on a list of 'Mint'.
@@ -110,7 +108,7 @@ tokenDuplicationAttack ::
   Sem effs Api.Value
 tokenDuplicationAttack TokenDuplicationParams {..} = do
   -- We compute the additional minting to add.
-  newMints <- atpNewMints
+  newMints <- tdpNewMints
   -- We compute the total value added this way.
   let totalIncrement = Script.toValue $ review txSkelMintsListI newMints
   -- We ensure the total value is positive
@@ -118,7 +116,7 @@ tokenDuplicationAttack TokenDuplicationParams {..} = do
   -- We add the new mints into the 'TxSkel'
   appendAfterTweak (txSkelMintsL % txSkelMintsListI) newMints
   -- We redirect the extra value to an attacker
-  insertLastTweak txSkelOutputsL $ atpThief `receives` Value totalIncrement
+  insertLastTweak txSkelOutputsL $ tdpThief `receives` Value totalIncrement
   -- We label the transaction by the added tokens
   insertInTweak txSkelLabelsL $ TxSkelLabel $ TokenDuplicationLabel totalIncrement
   -- We return the added tokens

@@ -11,7 +11,7 @@ import Ledger.Slot qualified as Ledger
 import Optics.Core
 import PlutusLedgerApi.V1.Interval qualified as Api
 
--- | A type used to index optics within a 'Ledger.SlotRange'. This allow the
+-- | A type used to index optics within a 'Ledger.SlotRange'. This allows the
 -- usage of the following optics: @at Lower@, @at Upper@, @ix Lower@ and @ix
 -- Upper@ to modify parts of a slot range. When set to @Nothing@, the associated
 -- bound of the interval is considered infinite, and otherwise it is considered

@@ -19,10 +19,7 @@ where
 import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
-import Cooked.Tweak.Common
-import Cooked.Tweak.Insert
-import Cooked.Tweak.Modify
-import Cooked.Tweak.Query
+import Cooked.Tweak
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -30,8 +27,8 @@ import Polysemy
 import Polysemy.NonDet
 
 -- | A label added to a 'TxSkel' on which a tweak tampering a peer has been
--- applied. The label contains both the peer that has been replaced, and the
--- peer that replaced it during the attack.
+-- applied. The label contains all the peers that have been replaced, as they
+-- were before being replaced.
 newtype PeerTamperingLabel = PeerTamperingLabel [Api.PubKeyHash]
   deriving (Show, Eq, Ord)
 
@@ -85,18 +82,18 @@ balancingPeerTamperingParams (Script.toPubKeyHash -> new) =
       DoNotBalance -> mzero
     return (existing, [new])
 
--- | Attempts to change the give peer into other peers everywhere in a 'TxSkel'
--- in ah attempt to uncover permission breaches.
+-- | Attempts to change the given peer into other peers everywhere in a 'TxSkel'
+-- in an attempt to uncover permission breaches.
 peerTamperingAttack ::
   (Members '[Tweak, NonDet] effs) =>
   PeerTamperingParams effs ->
   Sem effs [Api.PubKeyHash]
-peerTamperingAttack (PeerTamperingParams branching mChanges) = do
-  (existing, targets) <- mChanges
+peerTamperingAttack (PeerTamperingParams {..}) = do
+  (existing, targets) <- ptpChanges
   modified <-
     modifyTweakFromParams
       $ modifyTweakParamsNoTypeChange
-        branching
+        ptpBranching
         ((txSkelAllocatedPeersT % userPubKeyHashI) `adjoin` (txSkelRedeemedPeersT % userPubKeyHashI))
       $ \pkh -> if pkh == existing then targets else []
   insertInTweak txSkelLabelsL $ TxSkelLabel $ PeerTamperingLabel modified

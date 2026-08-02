@@ -66,6 +66,14 @@ see how things have evolved and are currently done in `cooked-validators`!
   - [Temporal modifications](#temporal-modifications)
     - [Builtin formulas](#builtin-formulas)
     - [Custom formulas](#custom-formulas)
+- [Attacks](#attacks)
+  - [Datum hijacking](#datum-hijacking)
+  - [Token duplication](#token-duplication)
+  - [Datum tampering](#datum-tampering)
+  - [Redeemer tampering](#redeemer-tampering)
+  - [Validity tampering](#validity-tampering)
+  - [Peer tampering](#peer-tampering)
+  - [Outputs reordering](#outputs-reordering)
 
 # Mockchain runs
 
@@ -832,11 +840,18 @@ myTweak :: TypedTweak effs ()
 myTweak = do
   myActionInEffs
   ...
-  setTxSkel ...
-  overTweak ...
+  setTweak someOptic someValue
+  overTweak someOptic someModification
   myOtherActionInEffs
   ...
 ```
+
+The tweak primitives are re-exported from `Cooked.Tweak`, and split into focused
+modules: `Query` (`viewTweak`, `toListOfTweak`, `previewTweak`, ...), `Update`
+(`setTweak`, `overTweak`, `traverseTweak`, ...), `Insert` (`insertLastTweak`,
+`insertAtTweak`, `insertInTweak`, ...), `Remove` (`removeIfTweak`,
+`removeAtTweak`, ...), `Modify` (`modifyTweak` and its branching helpers), and
+`Guard` (`guardTweak`, `condTweak`, `labelled`, ...).
 
 ## Tweaks: modify single transactions
 
@@ -866,21 +881,21 @@ myTrace = do
 
 ## Examples
 
-* Tamper with inputs and outputs 
+* Tamper with inputs and outputs
 ```haskell
 foo = do
-  addOutputTweak $ bazValidator `receives` bazPayment
-  removeOutputsTweak (\(Pays out) -> somePredicate out)
-  addInputTweak somePkTxOutRef emptyTxSkelRedeemer
-  removeInputsTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
+  insertLastTweak txSkelOutputsL $ bazValidator `receives` bazPayment
+  removeIfTweak txSkelOutputsL somePredicate
+  insertAtTweak txSkelInputsL somePkTxOutRef emptyTxSkelRedeemer
+  removeAtTweak txSkelInputsL somePkTxOutRef
 ```
 
 * Tamper with signatories
 ```haskell
 foo = do
-   addSignatoriesTweak [signatory1, signatory2]
-   replaceFirstSigner signatory3
-   removeSigners [signatory2]
+   appendAfterTweak txSkelSignatoriesL [signatoryPubKey user1, signatoryPubKey user2]
+   setTweak (txSkelSignatoriesL % _head) (signatoryPubKey user3)
+   removeIfTweak txSkelSignatoriesL somePredicate
 ```
 
 * Using optics in tweaks
@@ -958,3 +973,164 @@ myTrace = do
   modifyLtl myFormula myTrace
   ...
 ```
+
+# Attacks
+
+Attacks are predefined, state-aware tweaks that try to uncover vulnerabilities by
+systematically modifying transactions. Being tweaks, they are deployed on a trace
+using the temporal combinators (`somewhere`, `everywhere`, `there`, ...) or
+applied to a single skeleton with `execTweak`/`withTweak`. Each attack takes a
+parameters record, adds a descriptive label to the modified transactions, and
+returns the parts it modified, as they were before modification. All attacks are
+re-exported from `Cooked`.
+
+Most attacks take a `Branching` policy describing how to branch when several foci
+are eligible:
+* `OneBranchForAllFoci`: modify all eligible foci in a single transaction
+* `OneBranchPerFoci`: modify exactly one eligible focus per branch
+* `OneBranchPerSubset`: one branch per non-empty subset of eligible foci
+* `Manual f`: branch according to a custom function on the focused indexes
+
+## Datum hijacking
+
+Redirects selected outputs to a given thief, to check that a script cannot be
+tricked into paying an attacker.
+
+```haskell
+myTrace = do
+  ...
+  somewhere
+    (datumHijackingAttack $ scriptsDatumHijackingParams OneBranchForAllFoci thief)
+    myTrace
+  ...
+```
+
+* Select which outputs to redirect with a params builder:
+  * from an affine fold: `defaultDatumHijackingParams branching optic thief`
+  * from a predicate: `outPredDatumHijackingParams branching outPred thief`
+  * by owner type: `typedByDatumHijackingParams @OldOwner branching thief`
+  * by specific owner: `ownedByDatumHijackingParams branching oldOwner thief`
+  * owned by any script: `scriptsDatumHijackingParams branching thief`
+  * by datum type: `datumOfDatumHijackingParams @Dat branching thief`
+* Restrict which of the redirectable outputs are actually redirected (counted
+  from the left, starting at zero) by overriding `dhpIndexPred`:
+```haskell
+(scriptsDatumHijackingParams OneBranchForAllFoci thief) { dhpIndexPred = (== 1) }
+```
+
+## Token duplication
+
+Adds extra minted tokens and redirects the surplus to an attacker.
+
+```haskell
+myTrace = do
+  ...
+  somewhere
+    (tokenDuplicationAttack $ existingAssetClassTokenDuplicationParams (\_ _ n -> n + 1) attacker)
+    myTrace
+  ...
+```
+
+* Params builders:
+  * from an explicit list of `Mint`s: `anyMintTokenDuplicationParams mints attacker`
+  * per existing currency: `existingCurrencyTokenDuplicationParams (\script -> [(tName, n)]) attacker`
+  * per existing asset class: `existingAssetClassTokenDuplicationParams (\script tName n -> newN) attacker`
+
+## Datum tampering
+
+Modifies the datums of a transaction.
+
+```haskell
+myTrace = do
+  ...
+  somewhere
+    (datumTamperingAttack $ overloadDatumTamperingParams OneBranchForAllFoci someOptic (const True))
+    myTrace
+  ...
+```
+
+* Params builders:
+  * target all datums with a modification: `allDatumTamperingParams branching modification`
+  * append dummy data to the targeted datums: `overloadDatumTamperingParams branching optic indexPred`
+
+## Redeemer tampering
+
+Modifies redeemers of a given type, at one or all of the five redeemer positions.
+
+```haskell
+myTrace = do
+  ...
+  somewhere
+    (redeemerTamperingAttack $ spendingRedeemerTamperingParams OneBranchForAllFoci (\r -> Just (r + 1)))
+    myTrace
+  ...
+```
+
+* Params builders, one per position plus a catch-all, each taking a branching
+  policy and a modification `a -> f b`:
+  * `spendingRedeemerTamperingParams`
+  * `mintingRedeemerTamperingParams`
+  * `proposingRedeemerTamperingParams`
+  * `withdrawingRedeemerTamperingParams`
+  * `certifyingRedeemerTamperingParams`
+  * `allRedeemerTamperingParams`
+
+## Validity tampering
+
+Tampers with the validity interval of a transaction.
+
+```haskell
+myTrace = do
+  ...
+  somewhere
+    (validityTamperingAttack $ lowerStrictValidityTamperingParams (\s -> [s + 1]))
+    myTrace
+  ...
+```
+
+* Params builders, each taking a tampering function embedded in a `Foldable`
+  `Alternative` (e.g. a list):
+  * lower bound: `lowerExtendedValidityTamperingParams`, `lowerStrictValidityTamperingParams`
+  * upper bound: `upperExtendedValidityTamperingParams`, `upperStrictValidityTamperingParams`
+  * both bounds: `bothExtendedValidityTamperingParams`, `bothStrictValidityTamperingParams`
+  * whole interval: `intervalValidityTamperingParams`
+
+The `Extended` variants target the possibly-infinite bounds (`Maybe Slot`), while
+the `Strict` variants target finite bounds and fail on infinite ones.
+
+## Peer tampering
+
+Replaces a peer with another everywhere it appears in a skeleton, to uncover
+permission breaches between peers with different privileges.
+
+```haskell
+myTrace = do
+  ...
+  somewhere
+    (peerTamperingAttack $ singlePeerTamperingParams existingPeer newPeer)
+    myTrace
+  ...
+```
+
+* Params builders:
+  * a single replacement: `singlePeerTamperingParams existingPeer newPeer`
+  * replace the balancing user: `balancingPeerTamperingParams newPeer`
+  * a pure list of replacements: `purePeerTamperingParams branching [(existingPeer, [newPeer1, newPeer2])]`
+
+## Outputs reordering
+
+Reorders the outputs of a transaction, which can uncover vulnerabilities in
+scripts relying on the outputs order (including some double satisfaction cases).
+
+```haskell
+myTrace = do
+  ...
+  somewhere (outputsReorderingAttack Shuffle) myTrace
+  ...
+```
+
+* Reordering policies:
+  * swap two outputs: `Swap i j`
+  * move an output: `Move i j`
+  * try every permutation (except the identity): `Shuffle`
+  * do it manually: `ManualReordering (\outs -> [reorderings])`

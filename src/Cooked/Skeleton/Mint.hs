@@ -109,7 +109,7 @@ txSkelMintsMapG = to txSkelMintsMap
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'
 
--- | Sets or gets the amount of tokens minted for a certain asset class,
+-- | Focuses on the amount of tokens minted for a certain asset class,
 -- represented by a token name and a versioned minting policy. This removes the
 -- appropriate entries (the token entry, and possible the mp entry if it would
 -- leave it empty) when setting the amount to 0. This function is very similar

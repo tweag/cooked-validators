@@ -1,4 +1,4 @@
--- | This module provides straightfoward tweaks to modify parts of the current
+-- | This module provides straightforward tweaks to modify parts of the current
 -- 'TxSkel' based on various kinds of optics.
 module Cooked.Tweak.Update
   ( -- * Setting tweaks

@@ -1,5 +1,5 @@
 -- | This module exposes an attack consisting in reordering the outputs of a
--- transaction, in an attempt to uncover vulnerabilities on smart contract
+-- transaction, in an attempt to uncover vulnerabilities in smart contracts
 -- relying on the outputs order.
 module Cooked.Attack.OutputsReordering
   ( -- * Outputs reordering params
@@ -16,10 +16,7 @@ where
 import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
-import Cooked.Tweak.Common
-import Cooked.Tweak.Insert
-import Cooked.Tweak.Query
-import Cooked.Tweak.Update
+import Cooked.Tweak
 import Data.List (permutations)
 import Polysemy (Members, Sem)
 import Polysemy.NonDet
@@ -45,10 +42,10 @@ data OutputsReorderingParams
     ManualReordering (forall a. [a] -> [[a]])
 
 -- | Reorders the outputs following a given policy (parameters) to try and
--- uncover vulnerabilities for smart contract depending on the outputs
+-- uncover vulnerabilities for smart contracts depending on the outputs
 -- order. This can also be used to uncover some cases of double
 -- satisfaction. This removes the permutations that turn out to be identical
--- than the initial outputs list.
+-- to the initial outputs list.
 outputsReorderingAttack ::
   (Members '[Tweak, NonDet] effs) =>
   OutputsReorderingParams ->

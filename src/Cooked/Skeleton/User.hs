@@ -276,7 +276,8 @@ userRedeemerL =
     (\(UserRedeemedScript _ red) -> red)
     (\(UserRedeemedScript script _) -> UserRedeemedScript script)
 
--- | Viewing a redeemed script as a pair (script, redeemer)
+-- | An isomorphism between a @User IsScript Redemption@ and a pair of 'VScript'
+-- and 'TxSkelRedeemer'
 userScriptRedeemerI :: Iso' (User IsScript Redemption) (VScript, TxSkelRedeemer)
 userScriptRedeemerI =
   iso

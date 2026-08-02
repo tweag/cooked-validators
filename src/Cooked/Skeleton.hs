@@ -189,7 +189,7 @@ txSkelCertifyingRedeemedUsersT =
     % traversed
     % txSkelCertificateOwnerAT @user
 
--- | Returns all the scripts involved in withdrawals in this 'TxSkel'
+-- | Returns all the redeemed users involved in withdrawals in this 'TxSkel'
 txSkelWithdrawingRedeemedUsersT :: Traversal' TxSkel (User IsEither Redemption)
 txSkelWithdrawingRedeemedUsersT =
   txSkelWithdrawalsL
@@ -241,8 +241,6 @@ txSkelRedeemersT =
   txSkelSpendingRedeemersT
     `adjoin` (txSkelRedeemedScriptsT % userRedeemerL)
 
--- | A traversal focusing every 'Peer' of a 'TxSkel'
-
 -- | A convenience template of an empty transaction skeleton.
 txSkelTemplate :: TxSkel
 txSkelTemplate =
@@ -265,9 +263,9 @@ txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
 txSkelReferenceInputsInRedeemers =
   Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
 
--- | All `Api.TxOutRef`s known by a given transaction skeleton. This includes
--- TxOutRef`s used as inputs of the skeleton and 'Api.TxOutRef's used as reference
--- inputs of the skeleton.  This does not include additional possible
+-- | All 'Api.TxOutRef's known by a given transaction skeleton. This includes
+-- 'Api.TxOutRef's used as inputs of the skeleton and 'Api.TxOutRef's used as reference
+-- inputs of the skeleton. This does not include additional possible
 -- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> Set Api.TxOutRef

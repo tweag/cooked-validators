@@ -35,17 +35,17 @@ instance (PrettyCooked a) => PrettyCooked (RedeemerTamperingLabel a) where
   prettyCookedOpt opts (RedeemerTamperingLabel reds) =
     prettyItemize opts "Tamper Redeemers" "-" reds
 
--- | Parameters of the tamper datum attack
+-- | Parameters of the tamper redeemer attack
 data RedeemerTamperingParams a b f k is
   = RedeemerTamperingParams
   { -- | The branching policy to use when several redeemers are targeted
-    trpBranching :: Branching,
+    rtpBranching :: Branching,
     -- | The optic to use to select eligible 'TxSkelRedeemer'
-    trpOptic :: Optic' k is TxSkel TxSkelRedeemer,
+    rtpOptic :: Optic' k is TxSkel TxSkelRedeemer,
     -- | The modification to apply on targeted redeemers of type @a@
-    trpModification :: a -> f b,
+    rtpModification :: a -> f b,
     -- | The selection function based on the targeted redeemers indexes
-    trpIndexPred :: Int -> Bool
+    rtpIndexPred :: Int -> Bool
   }
 
 -- | A tamper redeemer params to apply a modification to all spending redeemers
@@ -126,6 +126,6 @@ redeemerTamperingAttack ::
 redeemerTamperingAttack RedeemerTamperingParams {..} = do
   modified <-
     modifyTweakFromParams $
-      ModifyTweakParams trpBranching trpOptic txSkelRedeemerTypedAT trpModification trpIndexPred
+      ModifyTweakParams rtpBranching rtpOptic txSkelRedeemerTypedAT rtpModification rtpIndexPred
   insertInTweak txSkelLabelsL $ TxSkelLabel $ RedeemerTamperingLabel modified
   return modified

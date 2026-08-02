@@ -254,7 +254,7 @@ modifyTweakParamsNoTypeChange branching optic =
   modifyTweakParamsAllIndexes branching optic simple
 
 -- | A standard 'ModifyTweakParams' without any index filtering or type changing
--- inner optic, modifying each foci in the same transaction.
+-- inner optic, modifying all foci in the same transaction.
 modifyTweakParamsOneBranchForAllFoci ::
   Optic' k is TxSkel a ->
   (a -> f a) ->
@@ -263,7 +263,7 @@ modifyTweakParamsOneBranchForAllFoci =
   modifyTweakParamsNoTypeChange OneBranchForAllFoci
 
 -- | A standard 'ModifyTweakParams' without any index filtering or type changing
--- inner optic, branching on each foci.
+-- inner optic, branching on each focus.
 modifyTweakParamsOneBranchPerFoci ::
   Optic' k is TxSkel a ->
   (a -> f a) ->

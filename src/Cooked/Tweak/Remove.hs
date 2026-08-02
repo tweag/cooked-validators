@@ -38,8 +38,8 @@ removeIfTweak (castOptic @A_Lens -> optic) removePred = do
   setTweak optic kept
   return removed
 
--- | Removes an element at the specific position in a list focused in a
--- 'TxSkel', the removed element if any.
+-- | Removes an element at a specific position in a list focused in a
+-- 'TxSkel', returning the removed element, if any.
 removeAtPosTweak ::
   ( Member Tweak effs,
     Is k A_Lens
@@ -71,7 +71,7 @@ removeAtTweak (castOptic @A_Lens -> optic) a = do
   setTweak (optic % at a) Nothing
   return mb
 
--- | Removes an element in a set focused in a 'TxSkel', returning the remove
+-- | Removes an element in a set focused in a 'TxSkel', returning the removed
 -- value, if any.
 removeInTweak ::
   ( Member Tweak effs,
