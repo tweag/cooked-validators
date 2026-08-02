@@ -105,6 +105,12 @@ instance PrettyCooked MockChainError where
       <+> prettyCookedOpt opts txOutRef
       <+> "with datum hash:"
       <+> prettyHash opts datumHash
+  prettyCookedOpt opts (MCESpendingHashOnlyScript txOutRef scriptHash) =
+    "Unable to spend the following output, whose script is only known by its hash:"
+      <+> prettyCookedOpt opts txOutRef
+      <+> "with script hash:"
+      <+> prettyHash opts scriptHash
+      <+> "; the full script must be provided through a matching reference input."
   prettyCookedOpt _ (MCEPastSlot current target) =
     "Unable to move back in time; current slot:"
       <+> PP.viaShow current

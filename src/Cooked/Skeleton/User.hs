@@ -83,6 +83,11 @@ data User :: UserKind -> UserMode -> Type where
   -- | A script user. This can be used whenever a script is needed, but only for
   -- the allocation mode.
   UserScript :: forall script kind. (kind ∈ '[IsScript, IsEither], ToVScript script, Typeable script) => script -> User kind Allocation
+  -- | A script user known only by its hash. This can be used whenever a script
+  -- is needed for the allocation mode but the full script is not available.
+  -- Spending an output owned by such a user requires providing the full script
+  -- through a reference input.
+  UserScriptHash :: forall kind. (kind ∈ '[IsScript, IsEither]) => Api.ScriptHash -> User kind Allocation
   -- | A script user with an associated redeemer. This can be used whenever a
   -- script is needed for redemption mode.
   UserRedeemedScript :: forall script kind. (kind ∈ [IsScript, IsEither], ToVScript script, Typeable script) => script -> TxSkelRedeemer -> User kind Redemption
@@ -93,6 +98,7 @@ type Peer = User IsPubKey Allocation
 instance Show (User kind mode) where
   show (UserPubKey (Script.toPubKeyHash -> pkh)) = "UserPubKey " <> show pkh
   show (UserScript (toVScript -> vScript)) = "UserScript " <> show (Script.toScriptHash vScript)
+  show (UserScriptHash sHash) = "UserScriptHash " <> show sHash
   show (UserRedeemedScript (toVScript -> vScript) red) = "UserRedeemedScript " <> show (Script.toScriptHash vScript) <> " " <> show red
 
 instance Eq (User kind mode) where
@@ -100,17 +106,24 @@ instance Eq (User kind mode) where
     pkh == pkh'
   (UserScript (Script.toScriptHash . toVScript -> sHash)) == (UserScript (Script.toScriptHash . toVScript -> sHash')) =
     sHash == sHash'
+  (UserScriptHash sHash) == (UserScriptHash sHash') =
+    sHash == sHash'
   (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) red) == (UserRedeemedScript (Script.toScriptHash . toVScript -> sHash') red') =
     sHash == sHash' && red == red'
   _ == _ = False
 
 instance Ord (User kind mode) where
   compare (UserPubKey {}) (UserScript {}) = LT
+  compare (UserPubKey {}) (UserScriptHash {}) = LT
   compare (UserPubKey {}) (UserRedeemedScript {}) = LT
   compare (UserScript {}) (UserPubKey {}) = GT
+  compare (UserScript {}) (UserScriptHash {}) = LT
+  compare (UserScriptHash {}) (UserPubKey {}) = GT
+  compare (UserScriptHash {}) (UserScript {}) = GT
   compare (UserRedeemedScript {}) (UserPubKey {}) = GT
   compare (UserPubKey (Script.toPubKeyHash -> pkh)) (UserPubKey (Script.toPubKeyHash -> pkh')) = compare pkh pkh'
   compare (UserScript (Script.toScriptHash . toVScript -> sh)) (UserScript (Script.toScriptHash . toVScript -> sh')) = compare sh sh'
+  compare (UserScriptHash sh) (UserScriptHash sh') = compare sh sh'
   compare (UserRedeemedScript (Script.toScriptHash . toVScript -> sh) red) (UserRedeemedScript (Script.toScriptHash . toVScript -> sh') red') =
     compare (sh, red) (sh', red')
 
@@ -120,6 +133,7 @@ instance Script.ToPubKeyHash (User IsPubKey mode) where
 instance Script.ToCredential (User kind mode) where
   toCredential (UserPubKey (Script.toPubKeyHash -> pkh)) = Script.toCredential pkh
   toCredential (UserScript (toVScript -> vScript)) = Script.toCredential vScript
+  toCredential (UserScriptHash sHash) = Script.toCredential sHash
   toCredential (UserRedeemedScript (toVScript -> vScript) _) = Script.toCredential vScript
 
 instance Script.ToAddress (User kind mode) where
@@ -134,6 +148,7 @@ userHashG =
     ( \case
         UserPubKey (Script.toPubKeyHash -> Api.PubKeyHash hs) -> hs
         UserScript (Script.toScriptHash . toVScript -> Api.ScriptHash hs) -> hs
+        UserScriptHash (Api.ScriptHash hs) -> hs
         UserRedeemedScript (Script.toScriptHash . toVScript -> Api.ScriptHash hs) _ -> hs
     )
 
@@ -144,6 +159,7 @@ userTypedAF =
     ( \case
         UserPubKey @user' pkh | Just Refl <- eqT @user @user' -> Just pkh
         UserScript @user' script | Just Refl <- eqT @user @user' -> Just script
+        UserScriptHash sHash | Just Refl <- eqT @user @Api.ScriptHash -> Just sHash
         UserRedeemedScript @user' script _ | Just Refl <- eqT @user @user' -> Just script
         _ -> Nothing
     )
@@ -230,7 +246,14 @@ userVScriptAT =
 
 -- | Retrieves the optional 'Api.ScriptHash' of a 'User'
 userScriptHashAF :: AffineFold (User kind mode) Api.ScriptHash
-userScriptHashAF = userVScriptAT % to Script.toScriptHash
+userScriptHashAF =
+  afolding
+    ( \case
+        UserScript (Script.toScriptHash . toVScript -> sHash) -> Just sHash
+        UserScriptHash sHash -> Just sHash
+        UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) _ -> Just sHash
+        _ -> Nothing
+    )
 
 -- | Focuses on the optional 'Api.PubKeyHash' of a 'User'
 userPubKeyHashAT :: AffineTraversal' (User kind mode) Api.PubKeyHash
@@ -252,22 +275,22 @@ userPubKeyHashI =
     (\(UserPubKey (Script.toPubKeyHash -> pkh)) -> pkh)
     UserPubKey
 
--- | Focuses on the 'VScript' of a script
-userVScriptL :: Lens' (User IsScript mode) VScript
+-- | Focuses on the 'VScript' of a redeemed script
+userVScriptL :: Lens' (User IsScript Redemption) VScript
 userVScriptL =
   lens
-    ( \case
-        UserScript (toVScript -> vScript) -> vScript
-        UserRedeemedScript (toVScript -> vScript) _ -> vScript
-    )
-    ( \case
-        UserScript _ -> UserScript
-        UserRedeemedScript _ red -> (`UserRedeemedScript` red)
-    )
+    (\(UserRedeemedScript (toVScript -> vScript) _) -> vScript)
+    (\(UserRedeemedScript _ red) -> (`UserRedeemedScript` red))
 
 -- | Retrieves the 'Api.ScriptHash' of a script
 userScriptHashG :: Getter (User IsScript mode) Api.ScriptHash
-userScriptHashG = userVScriptL % to Script.toScriptHash
+userScriptHashG =
+  to
+    ( \case
+        UserScript (Script.toScriptHash . toVScript -> sHash) -> sHash
+        UserScriptHash sHash -> sHash
+        UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) _ -> sHash
+    )
 
 -- | Focuses on the 'TxSkelRedeemer' of a script being redeemed
 userRedeemerL :: Lens' (User IsScript Redemption) TxSkelRedeemer

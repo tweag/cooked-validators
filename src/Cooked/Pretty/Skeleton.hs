@@ -66,6 +66,7 @@ instance PrettyCooked TxSkelCertificate where
 instance PrettyCookedList (User req mode) where
   prettyCookedOptListMaybe opt (UserPubKey (Script.toPubKeyHash -> pkh)) = [Just ("User" <+> prettyHash opt pkh)]
   prettyCookedOptListMaybe opt (UserScript (toVScript -> vScript)) = [Just ("Script" <+> prettyHash opt vScript)]
+  prettyCookedOptListMaybe opt (UserScriptHash sHash) = [Just ("Script" <+> prettyHash opt sHash)]
   prettyCookedOptListMaybe opt (UserRedeemedScript (toVScript -> script) red) =
     Just (prettyHash opt script) : prettyCookedOptListMaybe opt red
 

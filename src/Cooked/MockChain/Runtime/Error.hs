@@ -57,6 +57,9 @@ data MockChainError
   | -- | An attempt to spend a script output whose datum is only known by its
     -- hash, which does not provide the datum content required by the witness
     MCESpendingHashOnlyDatum Api.TxOutRef Api.DatumHash
+  | -- | An attempt to spend a script output whose script is only known by its
+    -- hash, without providing the full script through a matching reference input
+    MCESpendingHashOnlyScript Api.TxOutRef Api.ScriptHash
   | -- | Used to provide 'MonadFail' instances.
     MCEFailure String
   deriving (Show, Eq)

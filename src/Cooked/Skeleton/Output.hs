@@ -149,6 +149,9 @@ instance IsTxSkelOutAllowedOwner Wallet where
 instance IsTxSkelOutAllowedOwner VScript where
   toPKHOrVScript = UserScript
 
+instance IsTxSkelOutAllowedOwner Api.ScriptHash where
+  toPKHOrVScript = UserScriptHash
+
 instance (Typeable a) => IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
   toPKHOrVScript = UserScript
 
