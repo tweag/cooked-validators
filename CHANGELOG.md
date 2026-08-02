@@ -12,47 +12,37 @@
   duplication, and validity tampering.
 - The tweak DSL was split into focused modules: `Guard`, `Insert`, `Modify`,
   `Query`, `Remove`, and `Update`, all re-exported from `Cooked.Tweak`.
-- New localized-modification tweak family in `Cooked.Tweak.Common`:
-  `overModsTweak` (the general engine, returning the labels of the modified
-  foci), `overModsSelectingTweak`, and the convenience wrappers
-  `overModsTweakAll` (modify all selected foci in one transaction) and
-  `overModsTweakAny` (branch, modifying one selected focus per transaction).
-  These replace the previous `overMaybeTweak`, `overMaybeSelectingTweak` and
-  `combineModsTweak`.
-- New `selectF` helper refining a traversal to the foci for which a
-  transformation yields a non-empty foldable, and `embedFoldable` embedding a
-  foldable of results into a `NonDet` effect stack.
+- New modification engine in `Cooked.Tweak.Modify`: `modifyTweak`, the general
+  branching tweak that selectively and systematically modifies foci of the same
+  nature within a `TxSkel`, and `modifyTweakFromParams`, driven by a
+  `ModifyTweakParams` record and a `Branching` strategy (`OneBranchForAllFoci`,
+  `OneBranchPerFoci`, `OneBranchPerSubset`, `Manual`). It comes with the
+  convenience builders `modifyTweakParamsAllIndexes`,
+  `modifyTweakParamsNoTypeChange`, `modifyTweakParamsOneBranchForAllFoci`,
+  `modifyTweakParamsOneBranchPerFoci` and `modifyTweakParamsOneBranchPerSubset`,
+  and the `selectP` optic helper for predicate-based selection. This engine
+  underpins the attack DSL.
 - New `withReferenceInput` helper to attach a reference input to a
   `TxSkelRedeemer`, replacing the more verbose
   `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
-- New module `Cooked.Tweak.Redeemers` homogenizing redeemer tweaks across all
-  five redeemer positions (spending, minting, proposing, withdrawing,
-  certifying):
-  - `modifyRedeemersOfTypeAtTweak`, the position-agnostic building block;
-  - per-position `modify{Spend,Mint,Proposal,Withdrawal,Certificate}RedeemersOfTypeTweak`;
-  - `modifyRedeemersOfTypeTweak`, ranging over all positions at once;
-  - `tamperRedeemerTweak` and `malformRedeemerTweak`, the redeemer counterparts
-    of the existing `tamperDatumTweak` and `malformDatumTweak`.
-- New `addMintTweak` to add a single mint entry (singular counterpart of
-  `addMintsTweak`).
 - New `txSkelRedeemersT` traversal, exported from `Cooked.Skeleton`, focusing
   every `TxSkelRedeemer` of a `TxSkel` across all five redeemer positions.
 - New `txSkelRedeemedScriptsT` traversal, exported from `Cooked.Skeleton`,
   focusing every script redeemed directly within a `TxSkel` (minting,
   proposing, withdrawing and certifying; the spending position is excluded as
   its scripts come from the index, not the skeleton).
-- `TxSkel` fields and lenses were renamed for clarity: `txSkelIns` →
-  `txSkelInputs`, `txSkelInsReference` → `txSkelReferenceInputs`, and
-  `txSkelOuts` → `txSkelOutputs`.
 - New `Cooked.Skeleton.ValidityRange` helpers expose the validity range and its
   redeemed users/scripts through dedicated traversals.
-- New `doc/TWEAKS.md` describing the naming and branching conventions tweaks
-  follow.
 
 ### Removed
 
 - `overMaybeTweak`, `overMaybeSelectingTweak` and `combineModsTweak` are
-  replaced by the `overMods*` tweak family (see Added).
+  replaced by the modification engine in `Cooked.Tweak.Modify` (`modifyTweak`
+  and `modifyTweakFromParams`, see Added).
+- The mint-adding tweaks `addMintsTweak`/`addMintTweak` and the redeemer tweak
+  `modifySpendRedeemersOfTypeTweak` were removed; adding mints is now done
+  through the generic insertion tweaks, and redeemer modification lives in the
+  `Cooked.Attack.RedeemerTampering` attack.
 - `Cooked.Attack.DoubleSat` was removed; order-sensitive attacks now live in
   `Cooked.Attack.OutputsReordering`.
 - `Cooked.Tweak.Inputs`, `Cooked.Tweak.Labels`, `Cooked.Tweak.Mint`,
@@ -63,11 +53,10 @@
 ### Fixed
 
 - Certificate redeemers were silently ignored because certificate owners are
-  stored as `IsEither` whereas the code reaching them assumed `IsScript`. Both
-  `txSkelRedeemersT` (affecting `txSkelReferenceInputsInRedeemers` and
-  `malformRedeemerTweak`) and `modifyCertificateRedeemersOfTypeTweak` (affecting
-  `modifyRedeemersOfTypeTweak` and `tamperRedeemerTweak`) now cover certificate
-  redeemers correctly.
+  stored as `IsEither` whereas the code reaching them assumed `IsScript`. The
+  new `txSkelRedeemersT` traversal now covers all five redeemer positions,
+  including certifying ones, so `txSkelReferenceInputsInRedeemers` correctly
+  accounts for certificate redeemers.
 - `autoFillReferenceScripts` now also auto-fills reference scripts for
   certifying redeemers, which it previously overlooked.
 
@@ -99,14 +88,15 @@
 - Building a `ParameterChange` governance action containing a `CostModels`
   parameter update now fails with an explicit `MCEUnsupportedFeature` error
   instead of silently ignoring the requested change.
-- Tweaks were homogenized for naming consistency (see `doc/TWEAKS.md`). The
-  following predicate-based removal tweaks were renamed to plural form:
-  - `removeInputTweak` → `removeInputsTweak`
-  - `removeOutputTweak` → `removeOutputsTweak`
-  - `removeMintTweak` → `removeMintsTweak`
-- `modifySpendRedeemersOfTypeTweak` moved from `Cooked.Tweak.Inputs` to the new
-  `Cooked.Tweak.Redeemers` module (re-exported from `Cooked.Tweak`, so imports
-  of `Cooked` are unaffected).
+- Tweaks were homogenized for naming consistency. The predicate-based removal
+  tweaks were generalized into `Cooked.Tweak.Remove`: `removeInputTweak`,
+  `removeOutputTweak` and `removeMintTweak` are superseded by the collection-
+  generic `removeIfTweak` (lists), `removeAtPosTweak` (lists by position),
+  `removeAtTweak` (maps) and `removeInTweak` (sets).
+- The datum hijacking attack now stores the optic selecting eligible outputs in
+  its parameters: `DatumHijackingParams` gained a `dhpOptic` field and its
+  owner-computing field was renamed `dhpOutputPred` → `dhpNewOwner`, aligning it
+  with the other tampering attacks.
 
 ### Fixed
 
