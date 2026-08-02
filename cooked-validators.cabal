@@ -171,6 +171,7 @@ test-suite spec
       Spec.Attack.DatumHijacking
       Spec.Attack.DatumTampering
       Spec.Attack.OutputsReordering
+      Spec.Attack.PeerTampering
       Spec.Attack.RedeemerTampering
       Spec.Attack.TokenDuplication
       Spec.Attack.ValidityTampering

@@ -9,7 +9,7 @@ module Cooked.Attack.PeerTampering
     balancingPeerTamperingParams,
 
     -- * Peer tampering label
-    PeerTamperingLabel,
+    PeerTamperingLabel (..),
 
     -- * Peer tampering attack
     peerTamperingAttack,
