@@ -54,6 +54,9 @@ data MockChainError
     MCEPastSlot P.Ledger.Slot P.Ledger.Slot
   | -- | An attempt to invoke an unsupported feature has been made
     MCEUnsupportedFeature String
+  | -- | An attempt to spend a script output whose datum is only known by its
+    -- hash, which does not provide the datum content required by the witness
+    MCESpendingHashOnlyDatum Api.TxOutRef Api.DatumHash
   | -- | Used to provide 'MonadFail' instances.
     MCEFailure String
   deriving (Show, Eq)

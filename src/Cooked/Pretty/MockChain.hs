@@ -100,6 +100,11 @@ instance PrettyCooked MockChainError where
       <+> "but instead got:"
       <+> (case got of Nothing -> "none"; Just sHash -> prettyHash opts sHash)
   prettyCookedOpt _ (MCEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
+  prettyCookedOpt opts (MCESpendingHashOnlyDatum txOutRef datumHash) =
+    "Unable to spend the following output, whose datum is only known by its hash:"
+      <+> prettyCookedOpt opts txOutRef
+      <+> "with datum hash:"
+      <+> prettyHash opts datumHash
   prettyCookedOpt _ (MCEPastSlot current target) =
     "Unable to move back in time; current slot:"
       <+> PP.viaShow current
@@ -263,6 +268,7 @@ instance PrettyCookedList UtxoPayloadSet where
       splitDatum :: UtxoPayloadDatum -> Maybe (DocCooked, Bool)
       splitDatum NoUtxoPayloadDatum = Nothing
       splitDatum (SomeUtxoPayloadDatum dat b) = Just (prettyCookedOpt opts dat, b)
+      splitDatum (UtxoPayloadDatumHash hash) = Just (prettyHash opts hash, True)
 
 newtype CollateralInput = CollateralInput {unCollateralInput :: Api.TxOutRef}
 

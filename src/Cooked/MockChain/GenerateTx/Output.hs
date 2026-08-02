@@ -41,4 +41,7 @@ toCardanoTxOut output = do
         Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $
           P.Ledger.toCardanoScriptData $
             Api.toBuiltinData datum
+    SomeTxSkelOutDatumHash hash ->
+      Cardano.TxOutDatumHash Cardano.AlonzoEraOnwardsConway
+        <$> fromEither (P.Ledger.toCardanoScriptDataHash hash)
   return $ Cardano.TxOut address value datum $ P.Ledger.toCardanoReferenceScript oRefScript

@@ -277,6 +277,8 @@ instance PrettyCookedMaybe TxSkelOutDatum where
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatumHash hash) =
+    Just $ "Datum (hash only)" <+> "(" <> prettyHash opts hash <> ")"
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default.
