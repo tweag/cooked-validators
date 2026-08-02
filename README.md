@@ -42,7 +42,7 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
 - Compose and deploy tweaks on sequences of transactions using idioms inspired
   by linear temporal logic.
 - Deploy automated attacks on existing transaction sequences, such as datum
-  hijacking or double satisfaction attacks, to uncover vulnerabilities.
+  hijacking or outputs reordering attacks, to uncover vulnerabilities.
 - Express expected outcomes on the result of running a trace in a precise and
   declarative way, for example by:
     * specifying the expected number of outcomes in case branching occurred,

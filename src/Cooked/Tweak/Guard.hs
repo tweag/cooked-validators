@@ -68,7 +68,7 @@ condTweak optic = (guardTweak optic >>)
 -- >         , TxSkelLabel SomeLabelType]
 -- >      }
 -- >
--- > someTest = someEndpoint & eveywhere (labelled SomeLabelType someTweak)
+-- > someTest = someEndpoint & everywhere (labelled SomeLabelType someTweak)
 -- > anotherTest = someEndpoint & somewhere (labelled SomeLabelType someTweak)
 labelled ::
   ( LabelConstrs lbl,
@@ -92,7 +92,7 @@ labelled lbl = condTweak $ txSkelLabelsL % at (TxSkelLabel lbl) % _Just
 -- >         , TxSkelLabel SomeLabelType]
 -- >      }
 -- >
--- > someTest = someEndpoint & somewhere (labelled' "Spending" doubleSatAttack)
+-- > someTest = someEndpoint & somewhere (labelled' "Spending" someTweak)
 labelled' ::
   (Members '[Tweak, NonDet] effs) =>
   Text ->

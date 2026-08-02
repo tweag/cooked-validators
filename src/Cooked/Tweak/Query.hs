@@ -1,4 +1,4 @@
--- | This modules provides tweaks that query the stored 'TxSkel' based on
+-- | This module provides tweaks that query the stored 'TxSkel' based on
 -- various kinds of optics.
 module Cooked.Tweak.Query
   ( -- * Querying via a getter
