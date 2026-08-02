@@ -67,6 +67,7 @@ tests =
               ( datumHijackingAttack $
                   DatumHijackingParams
                     OneBranchForAllFoci
+                    (txSkelOutputsL % traversed)
                     (const (Just carrie))
                     (== 0)
               )
@@ -79,6 +80,7 @@ tests =
               ( datumHijackingAttack $
                   DatumHijackingParams
                     OneBranchForAllFoci
+                    (txSkelOutputsL % traversed)
                     (const (Just carrie))
                     (== 0)
               )
