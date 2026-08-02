@@ -88,7 +88,7 @@ peerTamperingAttack ::
   (Members '[Tweak, NonDet] effs) =>
   PeerTamperingParams effs ->
   Sem effs [Api.PubKeyHash]
-peerTamperingAttack (PeerTamperingParams {..}) = do
+peerTamperingAttack PeerTamperingParams {..} = do
   (existing, targets) <- ptpChanges
   modified <-
     modifyTweakFromParams

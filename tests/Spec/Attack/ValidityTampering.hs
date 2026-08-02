@@ -25,7 +25,7 @@ runValidityTampering ::
     Is k A_Traversal
   ) =>
   Ledger.SlotRange ->
-  ValidityTamperingParams k is f a ->
+  ValidityTamperingParams a f k is ->
   [Ledger.SlotRange]
 runValidityTampering initialRange params =
   fmap (view txSkelValidityRangeL)
