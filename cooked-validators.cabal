@@ -131,6 +131,7 @@ library
     , cardano-ledger-core
     , cardano-ledger-shelley
     , cardano-node-emulator
+    , cardano-slotting
     , cardano-strict-containers
     , containers
     , data-default
@@ -154,6 +155,7 @@ library
     , tasty-hunit
     , tasty-quickcheck
     , text
+    , time
   default-language: Haskell2010
 
 test-suite spec

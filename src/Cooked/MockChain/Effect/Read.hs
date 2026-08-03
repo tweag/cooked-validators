@@ -6,6 +6,7 @@ module Cooked.MockChain.Effect.Read
   ( -- * The `MockChainRead` effect
     MockChainRead,
     runMockChainRead,
+    runMockChainReadNode,
 
     -- * Queries related to protocol parameters
     getParams,
@@ -21,7 +22,7 @@ module Cooked.MockChain.Effect.Read
     txSkelInputScripts,
     txSkelInputValue,
 
-    -- * Queries related to timing
+    -- * Queries related to time
     currentSlot,
     currentMSRange,
     getEnclosingSlot,
@@ -30,7 +31,6 @@ module Cooked.MockChain.Effect.Read
     slotToMSRange,
 
     -- * Queries related to fetching UTxOs
-    allUtxos,
     utxosAt,
     txSkelOutByRef,
     utxosFromCardanoTx,
@@ -38,15 +38,27 @@ module Cooked.MockChain.Effect.Read
     previewByRef,
     viewByRef,
 
-    -- * Other queries
-    getConstitutionScript,
+    -- * Fetching reward amount query
     getCurrentReward,
+
+    -- * The `MockChainReadExtra` effect
+    MockChainReadExtra (..),
+    runMockChainReadExtra,
+
+    -- * Fetching all Utxos query
+    allUtxos,
+
+    -- * Retrieving the full constitution script query
+    getConstitutionScript,
   )
 where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Ledger.Conway qualified as Conway
 import Cardano.Ledger.Conway.Core qualified as Conway
+import Cardano.Ledger.Core qualified as C.Ledger
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Cardano.Slotting.Time qualified as Time
 import Control.Lens qualified as Lens
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Credential (toStakeCredential)
@@ -58,6 +70,9 @@ import Data.Coerce (coerce)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Set qualified as Set
+import Data.Time.Clock (addUTCTime)
+import Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
@@ -67,18 +82,19 @@ import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
+import Polysemy.Reader
 import Polysemy.State
 
 -- | An effect that offers primitives to query the current state of the
 -- mockchain. As its name suggests, this effect is read-only and does not alter
 -- the state in any way.
 data MockChainRead :: Effect where
-  GetParams :: MockChainRead m Emulator.Params
+  GetParams :: MockChainRead m (C.Ledger.PParams Conway.ConwayEra)
   TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
   CurrentSlot :: MockChainRead m P.Ledger.Slot
-  AllUtxos :: MockChainRead m Utxos
+  SlotToMSRange :: P.Ledger.Slot -> MockChainRead m (Api.POSIXTime, Api.POSIXTime)
+  GetEnclosingSlot :: Api.POSIXTime -> MockChainRead m P.Ledger.Slot
   UtxosAt :: (Script.ToCredential a) => a -> MockChainRead m Utxos
-  GetConstitutionScript :: MockChainRead m (Maybe VScript)
   GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
 
 makeSem_ ''MockChainRead
@@ -89,23 +105,34 @@ runMockChainRead ::
   ( Members
       '[ State MockChainState,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError
+         Error MockChainError,
+         Fail
        ]
       effs
   ) =>
   Sem (MockChainRead : effs) a ->
   Sem effs a
 runMockChainRead = interpret $ \case
-  GetParams -> gets mcstParams
+  GetParams -> gets $ Emulator.pEmulatorPParams . mcstParams
   TxSkelOutByRef oRef -> do
     res <- gets $ Map.lookup oRef . mcstOutputs
     case res of
       Just (txSkelOut, True) -> return txSkelOut
       _ -> throw $ MCEUnknownOutRef oRef
-  AllUtxos -> fetchUtxos $ const True
   UtxosAt (Script.toCredential -> cred) -> fetchUtxos $ (== cred) . Script.toCredential
   CurrentSlot -> gets $ view $ mcstLedgerStateL % to Emulator.getSlot
-  GetConstitutionScript -> gets $ view mcstConstitutionL
+  SlotToMSRange slot -> do
+    slotConfig <- gets $ Emulator.pSlotConfig . mcstParams
+    case Emulator.slotToPOSIXTimeRange slotConfig slot of
+      Api.Interval
+        (Api.LowerBound (Api.Finite l) leftclosed)
+        (Api.UpperBound (Api.Finite r) rightclosed) ->
+          return
+            ( if leftclosed then l else l + 1,
+              if rightclosed then r else r - 1
+            )
+      _ -> fail "Unexpected unbounded slot: please report a bug at https://github.com/tweag/cooked-validators/issues"
+  GetEnclosingSlot t -> gets $ (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotConfig . mcstParams
   GetCurrentReward (Script.toCredential -> cred) -> do
     stakeCredential <- toStakeCredential cred
     gets $
@@ -128,7 +155,7 @@ runMockChainRead = interpret $ \case
 -- | Returns the emulator parameters, including protocol parameters
 getParams ::
   (Member MockChainRead effs) =>
-  Sem effs Emulator.Params
+  Sem effs (C.Ledger.PParams Conway.ConwayEra)
 
 -- | Retrieves the required governance action deposit amount
 govActionDeposit ::
@@ -139,7 +166,6 @@ govActionDeposit =
     <&> Api.Lovelace
     . Cardano.unCoin
     . Lens.view Conway.ppGovActionDepositL
-    . Emulator.emulatorPParams
 
 -- | Retrieves the required drep deposit amount
 dRepDeposit ::
@@ -150,7 +176,6 @@ dRepDeposit =
     <&> Api.Lovelace
     . Cardano.unCoin
     . Lens.view Conway.ppDRepDepositL
-    . Emulator.emulatorPParams
 
 -- | Retrieves the required stake address deposit amount
 stakeAddressDeposit ::
@@ -161,7 +186,6 @@ stakeAddressDeposit =
     <&> Api.Lovelace
     . Cardano.unCoin
     . Lens.view Conway.ppKeyDepositL
-    . Emulator.emulatorPParams
 
 -- | Retrieves the required stake pool deposit amount
 stakePoolDeposit ::
@@ -172,7 +196,6 @@ stakePoolDeposit =
     <&> Api.Lovelace
     . Cardano.unCoin
     . Lens.view Conway.ppPoolDepositL
-    . Emulator.emulatorPParams
 
 -- | Retrieves the total amount of lovelace deposited in certificates in this
 -- skeleton. Note that unregistering a staking address or a dRep lead to a
@@ -256,6 +279,13 @@ currentSlot ::
   (Member MockChainRead effs) =>
   Sem effs P.Ledger.Slot
 
+-- | Returns the closed ms interval corresponding to the slot with the given
+-- number.
+slotToMSRange ::
+  (Members '[MockChainRead, Fail] effs) =>
+  P.Ledger.Slot ->
+  Sem effs (Api.POSIXTime, Api.POSIXTime)
+
 -- | Returns the closed ms interval corresponding to the current slot
 currentMSRange ::
   (Members '[MockChainRead, Fail] effs) =>
@@ -268,10 +298,6 @@ getEnclosingSlot ::
   (Member MockChainRead effs) =>
   Api.POSIXTime ->
   Sem effs P.Ledger.Slot
-getEnclosingSlot t =
-  getParams
-    <&> (`Emulator.posixTimeToEnclosingSlot` t)
-    . Emulator.pSlotConfig
 
 -- | The infinite range of slots ending before or at the given time
 slotRangeBefore ::
@@ -295,41 +321,6 @@ slotRangeAfter t = do
   n <- getEnclosingSlot t
   (a, _) <- slotToMSRange n
   return $ Api.from $ if t == a then n else n + 1
-
--- | Returns the closed ms interval corresponding to the slot with the given
--- number. It holds that
---
--- > slotToMSRange (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
---
--- and
---
--- > slotToMSRange n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
---
--- and
---
--- > slotToMSRange n == (a, b)   ==>   getEnclosingSlot (a-1) == n-1 && getEnclosingSlot (b+1) == n+1
-slotToMSRange ::
-  ( Members '[MockChainRead, Fail] effs,
-    Integral i
-  ) =>
-  i ->
-  Sem effs (Api.POSIXTime, Api.POSIXTime)
-slotToMSRange (fromIntegral -> slot) = do
-  slotConfig <- Emulator.pSlotConfig <$> getParams
-  case Emulator.slotToPOSIXTimeRange slotConfig slot of
-    Api.Interval
-      (Api.LowerBound (Api.Finite l) leftclosed)
-      (Api.UpperBound (Api.Finite r) rightclosed) ->
-        return
-          ( if leftclosed then l else l + 1,
-            if rightclosed then r else r - 1
-          )
-    _ -> fail "Unexpected unbounded slot: please report a bug at https://github.com/tweag/cooked-validators/issues"
-
--- | Returns a list of all currently known outputs
-allUtxos ::
-  (Member MockChainRead effs) =>
-  Sem effs Utxos
 
 -- | Returns a list of all UTxOs at a certain address.
 utxosAt ::
@@ -390,11 +381,6 @@ previewByRef ::
   Sem effs (Maybe c)
 previewByRef optic = (preview optic <$>) . txSkelOutByRef
 
--- | Gets the current official constitution script
-getConstitutionScript ::
-  (Member MockChainRead effs) =>
-  Sem effs (Maybe VScript)
-
 -- | Gets the current reward associated with a credential
 getCurrentReward ::
   ( Member MockChainRead effs,
@@ -402,3 +388,128 @@ getCurrentReward ::
   ) =>
   c ->
   Sem effs (Maybe Api.Lovelace)
+
+data MockChainReadExtra :: Effect where
+  AllUtxos :: MockChainReadExtra m Utxos
+  GetConstitutionScript :: MockChainReadExtra m (Maybe VScript)
+
+makeSem_ ''MockChainReadExtra
+
+runMockChainReadExtra ::
+  forall effs a.
+  ( Members
+      '[ State MockChainState,
+         Error P.Ledger.ToCardanoError,
+         Error MockChainError,
+         Fail
+       ]
+      effs
+  ) =>
+  Sem (MockChainReadExtra : effs) a ->
+  Sem effs a
+runMockChainReadExtra = interpret $ \case
+  AllUtxos -> gets $ toListOf $ mcstOutputsL % to Map.toList % traversed % filtered (snd . snd) % to (fmap fst)
+  GetConstitutionScript -> gets $ view mcstConstitutionL
+
+-- | Returns a list of all currently known outputs
+allUtxos ::
+  (Member MockChainReadExtra effs) =>
+  Sem effs Utxos
+
+-- | Gets the current official constitution script
+getConstitutionScript ::
+  (Member MockChainReadExtra effs) =>
+  Sem effs (Maybe VScript)
+
+-- * Interpreting `MockChainRead` against a deployed node
+
+-- NOTE: The following is a first sketch of an interpretation of `MockChainRead`
+-- against a real, deployed Cardano node, using `cardano-api`'s local-state
+-- query and chain-sync protocols. The primitives that map directly onto
+-- `cardano-api` queries are implemented; the ones that require rebuilding a
+-- `TxSkelOut` from an on-chain output (as well as credential-based address
+-- filtering and the exact credential conversion) are left as clearly marked
+-- `TODO`s to be refined.
+
+-- | Interpret the `MockChainRead` effect by talking to a deployed node through
+-- a `Cardano.LocalNodeConnectInfo` (socket path and network id) provided via a
+-- `Reader`, running in a stack featuring @IO@ (via `Embed`). Failures are
+-- surfaced through the corresponding typed `Error` effects rather than being
+-- collapsed into generic failures.
+runMockChainReadNode ::
+  forall effs a.
+  ( Members
+      '[ Embed IO,
+         Error Cardano.UnsupportedNtcVersionError,
+         Error Cardano.EraMismatch,
+         Error Cardano.AcquiringFailure,
+         Error Cardano.PastHorizonException,
+         Error P.Ledger.ToCardanoError,
+         Reader Cardano.LocalNodeConnectInfo
+       ]
+      effs
+  ) =>
+  Sem (MockChainRead : effs) a ->
+  Sem effs a
+runMockChainReadNode = interpret $ \case
+  -- Protocol parameters: a plain shelley-based-era query.
+  GetParams -> querySbe $ Cardano.queryProtocolParameters Cardano.ShelleyBasedEraConway
+  -- The current slot is read from the chain tip.
+  CurrentSlot -> ask >>= fmap chainTipSlot . embed . Cardano.getLocalChainTip
+  -- Slot -> closed ms interval, computed from the era history and system start.
+  SlotToMSRange slot -> do
+    eraHistory <- execExpr Cardano.queryEraHistory >>= fromEither
+    systemStart <- execExpr Cardano.querySystemStart >>= fromEither
+    (relStart, slotLen) <- fromEither $ Cardano.getProgress (toSlotNo slot) eraHistory
+    let startUTC = Time.fromRelativeTime systemStart relStart
+        endUTC = addUTCTime (Time.getSlotLength slotLen) startUTC
+    -- TODO: refine the closed-interval boundary handling (the emulator returns
+    -- an inclusive ms interval; here we take [start, start + slotLength]).
+    return (utcToPOSIXTime startUTC, utcToPOSIXTime endUTC)
+  -- POSIXTime -> enclosing slot, via the era history interpreter.
+  GetEnclosingSlot t -> do
+    eraHistory <- execExpr Cardano.queryEraHistory >>= fromEither
+    systemStart <- execExpr Cardano.querySystemStart >>= fromEither
+    let relTime = Time.toRelativeTime systemStart (posixTimeToUTC t)
+    fromSlotNo <$> fromEither (Cardano.getSlotForRelativeTime relTime eraHistory)
+  -- All UTxOs owned by a credential.
+  UtxosAt _cred -> do
+    -- TODO: filter node-side by address. A credential alone does not determine
+    -- an address (the staking part is unknown), and `QueryUTxOByAddress` takes
+    -- full addresses. For now we query the whole set and would filter
+    -- client-side by `Script.toCredential cred` once `txSkelOutFromApiTxOut` is
+    -- implemented. Querying the whole UTxO set is expensive: refine later.
+    utxo <- queryUtxos Cardano.QueryUTxOWhole
+    mapM convertUtxo (Map.toList (Cardano.unUTxO utxo))
+  -- A single output, resolved by its reference.
+  TxSkelOutByRef oRef -> do
+    txIn <- fromEither $ P.Ledger.toCardanoTxIn oRef
+    utxo <- queryUtxos $ Cardano.QueryUTxOByTxIn $ Set.singleton txIn
+    case Map.elems (Cardano.unUTxO utxo) of
+      [txOut] -> txSkelOutFromApiTxOut txOut
+      -- TODO: decide how a missing UTxO should be signalled by the node backend.
+      _ -> error "runMockChainReadNode: TxSkelOutByRef on a missing UTxO"
+  -- The current reward accumulated by a credential's stake address.
+  GetCurrentReward (Script.toCredential -> cred) -> do
+    networkId <- asks Cardano.localNodeNetworkId
+    let stakeCred = toCardanoStakeCredential cred
+        stakeAddr = Cardano.makeStakeAddress networkId stakeCred
+    (rewards, _) <- querySbe $ Cardano.queryStakeAddresses Cardano.ShelleyBasedEraConway (Set.singleton stakeCred) networkId
+    return $ Api.Lovelace . Cardano.unCoin <$> Map.lookup stakeAddr rewards
+  where
+    execExpr expr = ask >>= \conn -> embed (Cardano.executeLocalStateQueryExpr conn Cardano.VolatileTip expr) >>= fromEither
+    querySbe expr = execExpr expr >>= fromEither >>= fromEither
+    queryUtxos flt = querySbe (Cardano.queryUtxo Cardano.ShelleyBasedEraConway flt)
+    chainTipSlot Cardano.ChainTipAtGenesis = P.Ledger.Slot 0
+    chainTipSlot (Cardano.ChainTip slotNo _ _) = fromSlotNo slotNo
+    toSlotNo = Cardano.SlotNo . fromInteger . P.Ledger.getSlot
+    fromSlotNo (Cardano.SlotNo w) = P.Ledger.Slot (toInteger w)
+    posixTimeToUTC t = posixSecondsToUTCTime (fromRational (toRational (Api.getPOSIXTime t) / 1000))
+    utcToPOSIXTime u = Api.POSIXTime (round (1000 * utcTimeToPOSIXSeconds u))
+    convertUtxo (txIn, txOut) = (P.Ledger.fromCardanoTxIn txIn,) <$> txSkelOutFromApiTxOut txOut
+    -- TODO: reconstruct a `TxSkelOut` from an on-chain output (owner and staking
+    -- credentials from the address, value, datum, reference script).
+    txSkelOutFromApiTxOut _ = error "txSkelOutFromApiTxOut: not implemented yet"
+    -- TODO: convert a Plutus credential into a `Cardano.StakeCredential`
+    -- (`toStakeCredential`, already imported, may be reusable here).
+    toCardanoStakeCredential _ = error "toCardanoStakeCredential: not implemented yet"
