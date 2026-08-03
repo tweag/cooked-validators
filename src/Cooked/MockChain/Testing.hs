@@ -6,12 +6,12 @@ module Cooked.MockChain.Testing where
 
 import Control.Exception qualified as E
 import Control.Monad
-import Cooked.MockChain.Error
-import Cooked.MockChain.Journal
-import Cooked.MockChain.Log
-import Cooked.MockChain.Runnable
-import Cooked.MockChain.State
-import Cooked.MockChain.Write
+import Cooked.MockChain.Effect.Log
+import Cooked.MockChain.Effect.Write
+import Cooked.MockChain.Run.Runnable
+import Cooked.MockChain.Runtime.Error
+import Cooked.MockChain.Runtime.Journal
+import Cooked.MockChain.Runtime.State
 import Cooked.Pretty
 import Data.Default
 import Data.List (isInfixOf)

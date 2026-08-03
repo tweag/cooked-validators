@@ -1,12 +1,12 @@
 -- | This modules exposes the generation of withdrawals
-module Cooked.MockChain.GenerateTx.Withdrawals (toWithdrawals) where
+module Cooked.MockChain.Automation.GenerateTx.Withdrawals (toWithdrawals) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.Read
+import Cooked.MockChain.Automation.GenerateTx.Witness
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton.User
 import Cooked.Skeleton.Withdrawal
 import Data.Coerce

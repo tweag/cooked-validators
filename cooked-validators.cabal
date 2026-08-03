@@ -24,33 +24,36 @@ library
       Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
-      Cooked.MockChain.AutoFilling
-      Cooked.MockChain.Balancing
+      Cooked.MockChain.Automation.AutoFilling.Constitution
+      Cooked.MockChain.Automation.AutoFilling.MinAda
+      Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
+      Cooked.MockChain.Automation.AutoFilling.Withdrawals
+      Cooked.MockChain.Automation.Balancing
+      Cooked.MockChain.Automation.GenerateTx.Anchor
+      Cooked.MockChain.Automation.GenerateTx.Body
+      Cooked.MockChain.Automation.GenerateTx.Certificate
+      Cooked.MockChain.Automation.GenerateTx.Collateral
+      Cooked.MockChain.Automation.GenerateTx.Credential
+      Cooked.MockChain.Automation.GenerateTx.Input
+      Cooked.MockChain.Automation.GenerateTx.Mint
+      Cooked.MockChain.Automation.GenerateTx.Output
+      Cooked.MockChain.Automation.GenerateTx.Proposal
+      Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
+      Cooked.MockChain.Automation.GenerateTx.Withdrawals
+      Cooked.MockChain.Automation.GenerateTx.Witness
       Cooked.MockChain.Common
-      Cooked.MockChain.Error
-      Cooked.MockChain.GenerateTx.Anchor
-      Cooked.MockChain.GenerateTx.Body
-      Cooked.MockChain.GenerateTx.Certificate
-      Cooked.MockChain.GenerateTx.Collateral
-      Cooked.MockChain.GenerateTx.Credential
-      Cooked.MockChain.GenerateTx.Input
-      Cooked.MockChain.GenerateTx.Mint
-      Cooked.MockChain.GenerateTx.Output
-      Cooked.MockChain.GenerateTx.Proposal
-      Cooked.MockChain.GenerateTx.ReferenceInputs
-      Cooked.MockChain.GenerateTx.Withdrawals
-      Cooked.MockChain.GenerateTx.Witness
-      Cooked.MockChain.Instances
-      Cooked.MockChain.Journal
-      Cooked.MockChain.Log
-      Cooked.MockChain.Misc
-      Cooked.MockChain.Read
-      Cooked.MockChain.Runnable
-      Cooked.MockChain.State
+      Cooked.MockChain.Effect.Log
+      Cooked.MockChain.Effect.Misc
+      Cooked.MockChain.Effect.Read
+      Cooked.MockChain.Effect.Write
+      Cooked.MockChain.Run.Instances
+      Cooked.MockChain.Run.Runnable
+      Cooked.MockChain.Run.Tweak
+      Cooked.MockChain.Runtime.Error
+      Cooked.MockChain.Runtime.Journal
+      Cooked.MockChain.Runtime.State
       Cooked.MockChain.Testing
-      Cooked.MockChain.Tweak
       Cooked.MockChain.UtxoSearch
-      Cooked.MockChain.Write
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable

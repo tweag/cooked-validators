@@ -1,6 +1,6 @@
 -- | This modules exposes entry points to convert a 'TxSkel' into a fully
 -- fledged transaction body
-module Cooked.MockChain.GenerateTx.Body
+module Cooked.MockChain.Automation.GenerateTx.Body
   ( txSkelToTxBody,
     txBodyContentToTxBody,
     txSkelToTxBodyContent,
@@ -13,18 +13,18 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
+import Cooked.MockChain.Automation.GenerateTx.Certificate
+import Cooked.MockChain.Automation.GenerateTx.Collateral
+import Cooked.MockChain.Automation.GenerateTx.Input
+import Cooked.MockChain.Automation.GenerateTx.Mint
+import Cooked.MockChain.Automation.GenerateTx.Output
+import Cooked.MockChain.Automation.GenerateTx.Proposal
+import Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
+import Cooked.MockChain.Automation.GenerateTx.Withdrawals
+import Cooked.MockChain.Automation.GenerateTx.Witness
 import Cooked.MockChain.Common
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Certificate
-import Cooked.MockChain.GenerateTx.Collateral
-import Cooked.MockChain.GenerateTx.Input
-import Cooked.MockChain.GenerateTx.Mint
-import Cooked.MockChain.GenerateTx.Output
-import Cooked.MockChain.GenerateTx.Proposal
-import Cooked.MockChain.GenerateTx.ReferenceInputs
-import Cooked.MockChain.GenerateTx.Withdrawals
-import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.Read
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Maybe

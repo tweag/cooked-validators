@@ -1,5 +1,5 @@
 -- | This module exposes the generation of various kinds of credentials
-module Cooked.MockChain.GenerateTx.Credential
+module Cooked.MockChain.Automation.GenerateTx.Credential
   ( toRewardAccount,
     toCardanoCredential,
     toStakeCredential,

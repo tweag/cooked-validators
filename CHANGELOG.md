@@ -77,6 +77,18 @@
   its parameters: `DatumHijackingParams` gained a `dhpOptic` field and its
   owner-computing field was renamed `dhpOutputPred` → `dhpNewOwner`, aligning it
   with the other tampering attacks.
+- Restructured the `Cooked.MockChain.*` module tree into thematic
+  subdirectories. The `Cooked.MockChain` umbrella module still re-exports
+  everything, so user-facing imports are unchanged, but the individual modules
+  moved: run-state types (`State`, `Journal`, `Error`) now live under
+  `Cooked.MockChain.Runtime.*`; the effect definitions (`Read`, `Write`, `Log`,
+  `Misc`) under `Cooked.MockChain.Effect.*`; the skeleton-to-ledger machinery
+  (`Balancing`, `AutoFilling`, `GenerateTx.*`) under
+  `Cooked.MockChain.Automation.*`; and the execution modules (`Runnable`,
+  `Instances`, `Tweak`) under `Cooked.MockChain.Run.*`. `Common`, `UtxoSearch`
+  and `Testing` remain at the top level. The former `AutoFilling` module was
+  further split into focused submodules (`Withdrawals`, `Constitution`,
+  `ReferenceScripts` and `MinAda`).
 
 ### Removed
 

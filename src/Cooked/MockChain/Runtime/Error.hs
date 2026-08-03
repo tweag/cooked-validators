@@ -1,5 +1,5 @@
 -- | This module exposes the errors that can be raised during a mockchain run
-module Cooked.MockChain.Error
+module Cooked.MockChain.Runtime.Error
   ( -- * Mockchain errors
     BalancingError (..),
     MockChainError (..),

@@ -1,5 +1,5 @@
 -- | This module exposes the generation of proposal procedures
-module Cooked.MockChain.GenerateTx.Proposal (toProposalProcedures) where
+module Cooked.MockChain.Automation.GenerateTx.Proposal (toProposalProcedures) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
@@ -9,11 +9,11 @@ import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Anchor
-import Cooked.MockChain.GenerateTx.Credential
-import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.Read
+import Cooked.MockChain.Automation.GenerateTx.Anchor
+import Cooked.MockChain.Automation.GenerateTx.Credential
+import Cooked.MockChain.Automation.GenerateTx.Witness
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton.Proposal
 import Cooked.Skeleton.User
 import Data.Coerce

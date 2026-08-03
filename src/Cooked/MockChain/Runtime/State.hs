@@ -11,7 +11,7 @@
 -- - For testings purposes, when querying the final state of a run is
 --   needed. For instance, properties such as "does Alice indeed owns 3 XXX
 --   tokens at the end of this run?" become much easier to express.
-module Cooked.MockChain.State
+module Cooked.MockChain.Runtime.State
   ( -- * `MockChainState` and associated optics
     MockChainState (..),
     mcstParamsL,

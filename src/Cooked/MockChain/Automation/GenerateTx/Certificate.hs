@@ -1,6 +1,6 @@
 -- | This module provide primitives to transform certificates from our skeleton
 -- to certificate in Cardano transaction bodies.
-module Cooked.MockChain.GenerateTx.Certificate (toCertificates) where
+module Cooked.MockChain.Automation.GenerateTx.Certificate (toCertificates) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Conway.TxCert qualified as Conway
@@ -8,10 +8,10 @@ import Cardano.Ledger.DRep qualified as C.Ledger
 import Cardano.Ledger.PoolParams qualified as C.Ledger
 import Cardano.Ledger.Shelley.TxCert qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Credential
-import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.Read
+import Cooked.MockChain.Automation.GenerateTx.Credential
+import Cooked.MockChain.Automation.GenerateTx.Witness
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton.Certificate
 import Cooked.Skeleton.User
 import Data.Default

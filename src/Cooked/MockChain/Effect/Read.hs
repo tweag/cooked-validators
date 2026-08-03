@@ -2,7 +2,7 @@
 
 -- | This module exposes primitives to query the current state of the
 -- blockchain.
-module Cooked.MockChain.Read
+module Cooked.MockChain.Effect.Read
   ( -- * The `MockChainRead` effect
     MockChainRead,
     runMockChainRead,
@@ -49,10 +49,10 @@ import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad
+import Cooked.MockChain.Automation.GenerateTx.Credential (toStakeCredential)
 import Cooked.MockChain.Common
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Credential (toStakeCredential)
-import Cooked.MockChain.State
+import Cooked.MockChain.Runtime.Error
+import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
 import Data.Coerce (coerce)
 import Data.Map (Map)

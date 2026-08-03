@@ -8,12 +8,12 @@
 -- - The initial configuration with which to execute a run
 --
 -- - The notion of `RunnableMockChain` to actually execute computations
-module Cooked.MockChain.Runnable where
+module Cooked.MockChain.Run.Runnable where
 
-import Cooked.MockChain.Error
-import Cooked.MockChain.Journal
-import Cooked.MockChain.State
-import Cooked.MockChain.Write
+import Cooked.MockChain.Effect.Write
+import Cooked.MockChain.Runtime.Error
+import Cooked.MockChain.Runtime.Journal
+import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton.Output
 import Cooked.Wallet
 import Data.Default
