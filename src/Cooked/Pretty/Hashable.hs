@@ -1,7 +1,10 @@
 -- | This module provides an interface for plutus elements that can be
 -- hashed. This is used to provide aliases for hashes when pretty printing those
 -- elements.
-module Cooked.Pretty.Hashable where
+module Cooked.Pretty.Hashable
+  ( ToHash (..),
+  )
+where
 
 import Cooked.Wallet
 import Plutus.Script.Utils.Address qualified as Script

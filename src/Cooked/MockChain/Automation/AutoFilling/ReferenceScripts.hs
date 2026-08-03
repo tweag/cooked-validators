@@ -1,7 +1,11 @@
 -- | This module exposes functions to automatically attach reference inputs
 -- carrying reference scripts to the redeemers of a 'Cooked.Skeleton.TxSkel',
 -- based on the current state of the blockchain.
-module Cooked.MockChain.Automation.AutoFilling.ReferenceScripts where
+module Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
+  ( updateRedeemedScript,
+    autoFillReferenceScripts,
+  )
+where
 
 import Control.Monad
 import Cooked.MockChain.Effect.Log

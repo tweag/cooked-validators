@@ -120,7 +120,7 @@ library
       TypeFamilies
       TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin=Polysemy.Plugin -Wmissing-export-lists
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -150,8 +150,6 @@ library
     , polysemy
     , polysemy-plugin
     , prettyprinter
-    , random
-    , random-shuffle
     , tasty
     , tasty-hunit
     , tasty-quickcheck

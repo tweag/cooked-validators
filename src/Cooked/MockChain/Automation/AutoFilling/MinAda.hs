@@ -1,7 +1,12 @@
 -- | This module exposes functions to automatically adjust the ADA contained in
 -- the outputs of a 'Cooked.Skeleton.TxSkel' to satisfy the minimal amount
 -- required by the protocol parameters.
-module Cooked.MockChain.Automation.AutoFilling.MinAda where
+module Cooked.MockChain.Automation.AutoFilling.MinAda
+  ( getTxSkelOutMinAda,
+    toTxSkelOutWithMinAda,
+    autoFillMinAda,
+  )
+where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Shelley.Core qualified as Shelley

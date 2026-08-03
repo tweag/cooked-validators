@@ -1,5 +1,12 @@
 -- | This module exposes the various events emitted during a mockchain run.
-module Cooked.MockChain.Runtime.Journal where
+module Cooked.MockChain.Runtime.Journal
+  ( MockChainJournal (..),
+    fromLogEntry,
+    fromAlias,
+    fromNote,
+    fromAssert,
+  )
+where
 
 import Cooked.MockChain.Effect.Log
 import Cooked.Pretty.Class

@@ -1,6 +1,9 @@
 -- | This module exposes the generation of transaction collaterals, which
 -- consist of a collateral amount, collateral inputs and return collateral
-module Cooked.MockChain.Automation.GenerateTx.Collateral where
+module Cooked.MockChain.Automation.GenerateTx.Collateral
+  ( toCollateralTriplet,
+  )
+where
 
 import Cardano.Api qualified as Cardano
 import Cooked.MockChain.Automation.GenerateTx.Output

@@ -1,7 +1,10 @@
 -- | This module exposes a function to automatically fill the constitution
 -- scripts of the proposals in a 'Cooked.Skeleton.TxSkel' based on the current
 -- state of the blockchain.
-module Cooked.MockChain.Automation.AutoFilling.Constitution where
+module Cooked.MockChain.Automation.AutoFilling.Constitution
+  ( autoFillConstitution,
+  )
+where
 
 import Control.Monad
 import Cooked.MockChain.Effect.Log

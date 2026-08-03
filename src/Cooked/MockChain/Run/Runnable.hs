@@ -8,7 +8,23 @@
 -- - The initial configuration with which to execute a run
 --
 -- - The notion of `RunnableMockChain` to actually execute computations
-module Cooked.MockChain.Run.Runnable where
+module Cooked.MockChain.Run.Runnable
+  ( InitialDistribution,
+    initialDistributionTemplate,
+    distributionFromList,
+    RawMockChainReturn,
+    MockChainReturn (..),
+    FunOnMockChainResult,
+    unRawMockChainReturn,
+    MockChainConf (..),
+    mockChainConfTemplate,
+    RunnableMockChain (..),
+    runMockChainFromConf,
+    runMockChainFromInitDist,
+    runMockChainFromInitDistTemplate,
+    runMockChainDef,
+  )
+where
 
 import Cooked.MockChain.Effect.Write
 import Cooked.MockChain.Runtime.Error

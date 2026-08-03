@@ -2,7 +2,88 @@
 
 -- | This modules provides primitives to run tests over mockchain executions and
 -- to provide requirements on the the number and results of these runs.
-module Cooked.MockChain.Testing where
+module Cooked.MockChain.Testing
+  ( -- * Common interface between HUnit and QuickCheck
+    IsProp (..),
+    testBool,
+    testBoolMsg,
+    testAll,
+    testAny,
+    (.==.),
+    (.&&.),
+    (.||.),
+    assertionToMaybe,
+
+    -- * Extra HUnit assertions
+    forAll,
+    assertSubset,
+    assertSameSets,
+
+    -- * Data structure to test mockchain traces
+    FailureProp,
+    SuccessProp,
+    SizeProp,
+    LogProp,
+    StateProp,
+    Runner,
+    Test (..),
+    testToProp,
+
+    -- * Simple test templates
+    testCooked,
+    testCookedFromInitDistTemplate,
+    testCookedQC,
+    testCookedQCFromInitDistTemplate,
+    mustSucceedTest',
+    mustSucceedTest,
+    mustFailTest',
+    mustFailTest,
+
+    -- * Appending elements (in particular requirements) to existing tests
+    withInitDist,
+    withPrettyOpts,
+    withLogProp,
+    withStateProp,
+    withSuccessProp,
+    withResultProp,
+    withSizeProp,
+    withFailureProp,
+    withErrorProp,
+
+    -- * Specific properties around failures
+    isPhase1Failure,
+    isPhase2Failure,
+    isPhase1FailureWithMsg,
+    isPhase2FailureWithMsg,
+
+    -- * Specific properties around number of outcomes
+    isOfSize,
+    isAtLeastOfSize,
+    isAtMostOfSize,
+
+    -- * Specific properties over the log
+    happened,
+    didNotHappen,
+
+    -- * Specific properties over successes
+    isAtAddress,
+    possesses,
+
+    -- * Advanced test templates
+    mustFailInPhase2Test',
+    mustFailInPhase2Test,
+    mustFailInPhase2WithMsgTest',
+    mustFailInPhase2WithMsgTest,
+    mustFailInPhase1Test',
+    mustFailInPhase1Test,
+    mustFailInPhase1WithMsgTest',
+    mustFailInPhase1WithMsgTest,
+    mustSucceedWithSizeTest',
+    mustSucceedWithSizeTest,
+    mustFailWithSizeTest',
+    mustFailWithSizeTest,
+  )
+where
 
 import Control.Exception qualified as E
 import Control.Monad

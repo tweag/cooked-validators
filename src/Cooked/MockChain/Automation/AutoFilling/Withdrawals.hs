@@ -1,6 +1,9 @@
 -- | This module exposes a function to automatically fill the withdrawn amounts
 -- of a 'Cooked.Skeleton.TxSkel' based on the current state of the blockchain.
-module Cooked.MockChain.Automation.AutoFilling.Withdrawals where
+module Cooked.MockChain.Automation.AutoFilling.Withdrawals
+  ( autoFillWithdrawalAmounts,
+  )
+where
 
 import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Read
