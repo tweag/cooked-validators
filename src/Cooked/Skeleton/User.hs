@@ -175,6 +175,7 @@ userTypedScriptAT =
     )
     ( \case
         UserScript _ -> UserScript
+        UserScriptHash _ -> UserScript
         UserRedeemedScript _ red -> (`UserRedeemedScript` red)
     )
 
@@ -194,10 +195,12 @@ userEitherScriptP =
   prism
     ( \case
         UserScript script -> UserScript script
+        UserScriptHash sHash -> UserScriptHash sHash
         UserRedeemedScript script red -> UserRedeemedScript script red
     )
     ( \case
         UserScript script -> Right (UserScript script)
+        UserScriptHash sHash -> Right (UserScriptHash sHash)
         UserRedeemedScript script red -> Right (UserRedeemedScript script red)
         user -> Left user
     )
@@ -275,13 +278,6 @@ userPubKeyHashI =
     (\(UserPubKey (Script.toPubKeyHash -> pkh)) -> pkh)
     UserPubKey
 
--- | Focuses on the 'VScript' of a redeemed script
-userVScriptL :: Lens' (User IsScript Redemption) VScript
-userVScriptL =
-  lens
-    (\(UserRedeemedScript (toVScript -> vScript) _) -> vScript)
-    (\(UserRedeemedScript _ red) -> (`UserRedeemedScript` red))
-
 -- | Retrieves the 'Api.ScriptHash' of a script
 userScriptHashG :: Getter (User IsScript mode) Api.ScriptHash
 userScriptHashG =
@@ -292,13 +288,6 @@ userScriptHashG =
         UserRedeemedScript (Script.toScriptHash . toVScript -> sHash) _ -> sHash
     )
 
--- | Focuses on the 'TxSkelRedeemer' of a script being redeemed
-userRedeemerL :: Lens' (User IsScript Redemption) TxSkelRedeemer
-userRedeemerL =
-  lens
-    (\(UserRedeemedScript _ red) -> red)
-    (\(UserRedeemedScript script _) -> UserRedeemedScript script)
-
 -- | An isomorphism between a @User IsScript Redemption@ and a pair of 'VScript'
 -- and 'TxSkelRedeemer'
 userScriptRedeemerI :: Iso' (User IsScript Redemption) (VScript, TxSkelRedeemer)
@@ -306,3 +295,11 @@ userScriptRedeemerI =
   iso
     (\(UserRedeemedScript (toVScript -> vScript) red) -> (vScript, red))
     (uncurry UserRedeemedScript)
+
+-- | Focuses on the 'TxSkelRedeemer' of a script being redeemed
+userRedeemerL :: Lens' (User IsScript Redemption) TxSkelRedeemer
+userRedeemerL = userScriptRedeemerI % _2
+
+-- | Focuses on the 'VScript' of a redeemed script
+userVScriptL :: Lens' (User IsScript Redemption) VScript
+userVScriptL = userScriptRedeemerI % _1
