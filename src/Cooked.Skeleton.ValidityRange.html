@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | This module provides a way of accessing lower and upper bounds of</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- transaction validity through optics using @at@ and @ix@.</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Skeleton.ValidityRange</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.ValidityRange.html#ValidityBound"><span class="hs-identifier">ValidityBound</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V1.Interval</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- | A type used to index optics within a 'Ledger.SlotRange'. This allows the</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- usage of the following optics: @at Lower@, @at Upper@, @ix Lower@ and @ix</span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- Upper@ to modify parts of a slot range. When set to @Nothing@, the associated</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- bound of the interval is considered infinite, and otherwise it is considered</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- finite, with closed closure.</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">data</span><span> </span><span id="ValidityBound"><span class="annot"><a href="Cooked.Skeleton.ValidityRange.html#ValidityBound"><span class="hs-identifier hs-var">ValidityBound</span></a></span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="Lower"><span class="annot"><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Upper"><span class="annot"><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="Index"><span class="annot"><span class="hs-identifier hs-var">Index</span></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.Skeleton.ValidityRange.html#ValidityBound"><span class="hs-identifier hs-type">ValidityBound</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="IxValue"><span class="annot"><span class="hs-identifier hs-var">IxValue</span></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679868492"><span class="annot"><span class="hs-identifier hs-type">Ixed</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">At</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679868512"><span class="annot"><span class="annottext">at :: Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+</span><a href="#local-6989586621679868512"><span class="hs-identifier hs-var hs-var hs-var hs-var">at</span></a></span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">(SlotRange -&gt; Maybe Slot)
+-&gt; (SlotRange -&gt; Maybe Slot -&gt; SlotRange)
+-&gt; Lens SlotRange SlotRange (Maybe Slot) (Maybe Slot)
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-32"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-33"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Interval</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.LowerBound</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Finite</span></span><span> </span><span id="local-6989586621679868518"><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679868518"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868519"><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679868519"><span class="hs-identifier hs-var">closure</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">UpperBound Slot
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Maybe Slot
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Slot -&gt; Maybe Slot) -&gt; Slot -&gt; Maybe Slot
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679868519"><span class="hs-identifier hs-var">closure</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679868518"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679868518"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Slot -&gt; Slot
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Slot
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-34"></span><span>          </span><span class="annot"><span class="annottext">SlotRange
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe Slot
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-35"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Interval</span></span><span> </span><span class="annot"><span class="annottext">LowerBound Slot
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679868521"><span class="annot"><span class="annottext">UpperBound Slot
+</span><a href="#local-6989586621679868521"><span class="hs-identifier hs-var">upperBound</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868522"><span class="annot"><span class="annottext">Maybe Slot
+</span><a href="#local-6989586621679868522"><span class="hs-identifier hs-var">newLowerBound</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-37"></span><span>          </span><span class="annot"><span class="annottext">LowerBound Slot -&gt; UpperBound Slot -&gt; SlotRange
+forall a. LowerBound a -&gt; UpperBound a -&gt; Interval a
+</span><span class="hs-identifier hs-var">Api.Interval</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Extended Slot -&gt; Closure -&gt; LowerBound Slot
+forall a. Extended a -&gt; Closure -&gt; LowerBound a
+</span><span class="hs-identifier hs-var">Api.LowerBound</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Extended Slot
+-&gt; (Slot -&gt; Extended Slot) -&gt; Maybe Slot -&gt; Extended Slot
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Extended Slot
+forall a. Extended a
+</span><span class="hs-identifier hs-var">Api.NegInf</span></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Extended Slot
+forall a. a -&gt; Extended a
+</span><span class="hs-identifier hs-var">Api.Finite</span></span><span> </span><span class="annot"><span class="annottext">Maybe Slot
+</span><a href="#local-6989586621679868522"><span class="hs-identifier hs-var">newLowerBound</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Closure
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">UpperBound Slot
+</span><a href="#local-6989586621679868521"><span class="hs-identifier hs-var">upperBound</span></a></span><span>
+</span><span id="line-38"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="annottext">(SlotRange -&gt; Maybe Slot)
+-&gt; (SlotRange -&gt; Maybe Slot -&gt; SlotRange)
+-&gt; Lens SlotRange SlotRange (Maybe Slot) (Maybe Slot)
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-41"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-42"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Interval</span></span><span> </span><span class="annot"><span class="annottext">LowerBound Slot
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.UpperBound</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Finite</span></span><span> </span><span id="local-6989586621679868526"><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679868526"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868527"><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679868527"><span class="hs-identifier hs-var">closure</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Maybe Slot
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Slot -&gt; Maybe Slot) -&gt; Slot -&gt; Maybe Slot
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679868527"><span class="hs-identifier hs-var">closure</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679868526"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679868526"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Slot -&gt; Slot
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Slot
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-43"></span><span>          </span><span class="annot"><span class="annottext">SlotRange
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe Slot
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-44"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Interval</span></span><span> </span><span id="local-6989586621679868528"><span class="annot"><span class="annottext">LowerBound Slot
+</span><a href="#local-6989586621679868528"><span class="hs-identifier hs-var">lowerBound</span></a></span></span><span> </span><span class="annot"><span class="annottext">UpperBound Slot
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679868529"><span class="annot"><span class="annottext">Maybe Slot
+</span><a href="#local-6989586621679868529"><span class="hs-identifier hs-var">newUpperBound</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-46"></span><span>          </span><span class="annot"><span class="annottext">LowerBound Slot -&gt; UpperBound Slot -&gt; SlotRange
+forall a. LowerBound a -&gt; UpperBound a -&gt; Interval a
+</span><span class="hs-identifier hs-var">Api.Interval</span></span><span> </span><span class="annot"><span class="annottext">LowerBound Slot
+</span><a href="#local-6989586621679868528"><span class="hs-identifier hs-var">lowerBound</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Extended Slot -&gt; Closure -&gt; UpperBound Slot
+forall a. Extended a -&gt; Closure -&gt; UpperBound a
+</span><span class="hs-identifier hs-var">Api.UpperBound</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Extended Slot
+-&gt; (Slot -&gt; Extended Slot) -&gt; Maybe Slot -&gt; Extended Slot
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Extended Slot
+forall a. Extended a
+</span><span class="hs-identifier hs-var">Api.PosInf</span></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Extended Slot
+forall a. a -&gt; Extended a
+</span><span class="hs-identifier hs-var">Api.Finite</span></span><span> </span><span class="annot"><span class="annottext">Maybe Slot
+</span><a href="#local-6989586621679868529"><span class="hs-identifier hs-var">newUpperBound</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Closure
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span></pre></body></html>

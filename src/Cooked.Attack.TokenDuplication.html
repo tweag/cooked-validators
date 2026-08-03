@@ -1,0 +1,451 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides an automated attack to add minted tokens in a</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- 'TxSkel'. In principle, a token duplication attack consist in minting a</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- higher amount of tokens already minted in the transaction, but we generalise</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- it to also add arbitrary tokens if needed.</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.TokenDuplication</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Token duplication params</span></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier">TokenDuplicationParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#anyMintTokenDuplicationParams"><span class="hs-identifier">anyMintTokenDuplicationParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#existingCurrencyTokenDuplicationParams"><span class="hs-identifier">existingCurrencyTokenDuplicationParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#existingAssetClassTokenDuplicationParams"><span class="hs-identifier">existingAssetClassTokenDuplicationParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Token duplication label</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationLabel"><span class="hs-identifier">TokenDuplicationLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Token duplication attack</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#tokenDuplicationAttack"><span class="hs-identifier">tokenDuplicationAttack</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V1.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.NonDet</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which a tweak duplicating tokens has been</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- applied. The label contains the value that was added to the transaction.</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">newtype</span><span> </span><span id="TokenDuplicationLabel"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationLabel"><span class="hs-identifier hs-var">TokenDuplicationLabel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TokenDuplicationLabel"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationLabel"><span class="hs-identifier hs-var">TokenDuplicationLabel</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679886717"><span id="local-6989586621679886723"><span id="local-6989586621679886727"><span class="annot"><span class="annottext">Int -&gt; TokenDuplicationLabel -&gt; ShowS
+[TokenDuplicationLabel] -&gt; ShowS
+TokenDuplicationLabel -&gt; String
+(Int -&gt; TokenDuplicationLabel -&gt; ShowS)
+-&gt; (TokenDuplicationLabel -&gt; String)
+-&gt; ([TokenDuplicationLabel] -&gt; ShowS)
+-&gt; Show TokenDuplicationLabel
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; TokenDuplicationLabel -&gt; ShowS
+showsPrec :: Int -&gt; TokenDuplicationLabel -&gt; ShowS
+$cshow :: TokenDuplicationLabel -&gt; String
+show :: TokenDuplicationLabel -&gt; String
+$cshowList :: [TokenDuplicationLabel] -&gt; ShowS
+showList :: [TokenDuplicationLabel] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679886731"><span id="local-6989586621679886736"><span class="annot"><span class="annottext">TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+(TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool)
+-&gt; (TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool)
+-&gt; Eq TokenDuplicationLabel
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+== :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+$c/= :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+/= :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679886744"><span id="local-6989586621679886749"><span id="local-6989586621679886753"><span id="local-6989586621679886757"><span id="local-6989586621679886761"><span id="local-6989586621679886765"><span id="local-6989586621679886769"><span class="annot"><span class="annottext">Eq TokenDuplicationLabel
+Eq TokenDuplicationLabel =&gt;
+(TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Ordering)
+-&gt; (TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool)
+-&gt; (TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool)
+-&gt; (TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool)
+-&gt; (TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool)
+-&gt; (TokenDuplicationLabel
+    -&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel)
+-&gt; (TokenDuplicationLabel
+    -&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel)
+-&gt; Ord TokenDuplicationLabel
+TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Ordering
+TokenDuplicationLabel
+-&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+$ccompare :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Ordering
+compare :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Ordering
+$c&lt; :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+&lt; :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+$c&lt;= :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+&lt;= :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+$c&gt; :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+&gt; :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+$c&gt;= :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+&gt;= :: TokenDuplicationLabel -&gt; TokenDuplicationLabel -&gt; Bool
+$cmax :: TokenDuplicationLabel
+-&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel
+max :: TokenDuplicationLabel
+-&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel
+$cmin :: TokenDuplicationLabel
+-&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel
+min :: TokenDuplicationLabel
+-&gt; TokenDuplicationLabel -&gt; TokenDuplicationLabel
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679886776"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationLabel"><span class="hs-identifier hs-type">TokenDuplicationLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679886786"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; TokenDuplicationLabel -&gt; DocCooked
+</span><a href="#local-6989586621679886786"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679886788"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679886788"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationLabel"><span class="hs-identifier hs-type">TokenDuplicationLabel</span></a></span><span> </span><span id="local-6989586621679886789"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679886789"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-string">&quot;Added value: &quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Value -&gt; DocCooked
+forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679886788"><span class="hs-identifier hs-var">ops</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679886789"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="annot"><span class="hs-comment">-- | Parameters of the token duplication attack</span></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">data</span><span> </span><span id="TokenDuplicationParams"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-var">TokenDuplicationParams</span></a></span></span><span> </span><span id="local-6989586621679886572"><span class="annot"><a href="#local-6989586621679886572"><span class="hs-identifier hs-type">owner</span></a></span></span><span> </span><span id="local-6989586621679886573"><span class="annot"><a href="#local-6989586621679886573"><span class="hs-identifier hs-type">effs</span></a></span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="TokenDuplicationParams"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-var">TokenDuplicationParams</span></a></span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | The new mints to add in the transaction. These are effectful because</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-comment">-- they can depend on the existing mints.</span><span>
+</span><span id="line-44"></span><span>    </span><span id="tdpNewMints"><span class="annot"><span class="annottext">forall owner (effs :: EffectRow).
+TokenDuplicationParams owner effs -&gt; Sem effs [Mint]
+</span><a href="Cooked.Attack.TokenDuplication.html#tdpNewMints"><span class="hs-identifier hs-var hs-var">tdpNewMints</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679886573"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="hs-comment">-- | The target of the added tokens.</span></span><span>
+</span><span id="line-46"></span><span>    </span><span id="tdpThief"><span class="annot"><span class="annottext">forall owner (effs :: EffectRow).
+TokenDuplicationParams owner effs -&gt; owner
+</span><a href="Cooked.Attack.TokenDuplication.html#tdpThief"><span class="hs-identifier hs-var hs-var">tdpThief</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679886572"><span class="hs-identifier hs-type">owner</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- | Token duplications based on a list of 'Mint'.</span></span><span>
+</span><span id="line-50"></span><span id="local-6989586621679886581"><span id="local-6989586621679886582"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#anyMintTokenDuplicationParams"><span class="hs-identifier hs-type">anyMintTokenDuplicationParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-51"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The 'Mint's to add.</span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The attacker, who receives the extra tokens.</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><a href="#local-6989586621679886581"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-type">TokenDuplicationParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886581"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886582"><span class="hs-identifier hs-type">effs</span></a></span></span></span><span>
+</span><span id="line-56"></span><span id="anyMintTokenDuplicationParams"><span class="annot"><span class="annottext">anyMintTokenDuplicationParams :: forall owner (effs :: EffectRow).
+[Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+</span><a href="Cooked.Attack.TokenDuplication.html#anyMintTokenDuplicationParams"><span class="hs-identifier hs-var hs-var">anyMintTokenDuplicationParams</span></a></span></span><span> </span><span id="local-6989586621679886796"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886796"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+forall owner (effs :: EffectRow).
+Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+</span><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-var">TokenDuplicationParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Mint] -&gt; Sem effs [Mint]
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886796"><span class="hs-identifier hs-var">mints</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- | Token duplications based on a function applied to existing currencies (cannot add</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- new currencies, but can add new types of tokens).</span><span>
+</span><span id="line-61"></span><span id="local-6989586621679886589"><span id="local-6989586621679886593"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#existingCurrencyTokenDuplicationParams"><span class="hs-identifier hs-type">existingCurrencyTokenDuplicationParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886589"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-comment">-- | For each policy that occurs in some 'Mint' constraint, return a list of</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-comment">-- token names together with how many tokens with that name should be minted,</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-comment">-- in addition to the existing tokens.</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#VScript"><span class="hs-identifier hs-type">VScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The attacker, who receives the extra tokens.</span></span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><a href="#local-6989586621679886593"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-type">TokenDuplicationParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886593"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886589"><span class="hs-identifier hs-type">effs</span></a></span></span></span><span>
+</span><span id="line-70"></span><span id="existingCurrencyTokenDuplicationParams"><span class="annot"><span class="annottext">existingCurrencyTokenDuplicationParams :: forall (effs :: EffectRow) owner.
+Member Tweak effs =&gt;
+(VScript -&gt; [(TokenName, Integer)])
+-&gt; owner -&gt; TokenDuplicationParams owner effs
+</span><a href="Cooked.Attack.TokenDuplication.html#existingCurrencyTokenDuplicationParams"><span class="hs-identifier hs-var hs-var">existingCurrencyTokenDuplicationParams</span></a></span></span><span> </span><span id="local-6989586621679886824"><span class="annot"><span class="annottext">VScript -&gt; [(TokenName, Integer)]
+</span><a href="#local-6989586621679886824"><span class="hs-identifier hs-var">newTokens</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+forall owner (effs :: EffectRow).
+Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+</span><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-var">TokenDuplicationParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs)
+-&gt; Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-71"></span><span>  </span><span id="local-6989586621679886825"><span class="annot"><span class="annottext">[User 'IsScript 'Redemption]
+</span><a href="#local-6989586621679886825"><span class="hs-identifier hs-var">currencies</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+-&gt; Sem effs [User 'IsScript 'Redemption]
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Fold) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs [a]
+</span><a href="Cooked.Tweak.Query.html#toListOfTweak"><span class="hs-identifier hs-var">toListOfTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+-&gt; Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+-&gt; Optic A_Traversal '[] [Mint] [Mint] Mint Mint
+-&gt; Optic A_Traversal '[] TxSkel TxSkel Mint Mint
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] [Mint] [Mint] Mint Mint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal '[] TxSkel TxSkel Mint Mint
+-&gt; Optic
+     A_Lens
+     '[]
+     Mint
+     Mint
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+-&gt; Optic' A_Traversal '[] TxSkel (User 'IsScript 'Redemption)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  Mint
+  Mint
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+</span><a href="Cooked.Skeleton.Mint.html#mintRedeemedScriptL"><span class="hs-identifier hs-var">mintRedeemedScriptL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="annottext">[Mint] -&gt; Sem effs [Mint]
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">([Mint] -&gt; Sem effs [Mint]) -&gt; [Mint] -&gt; Sem effs [Mint]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-73"></span><span>    </span><span class="annot"><span class="annottext">([Mint] -&gt; User 'IsScript 'Redemption -&gt; [Mint])
+-&gt; [Mint] -&gt; [User 'IsScript 'Redemption] -&gt; [Mint]
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span>
+</span><span id="line-74"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679886833"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886833"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span id="local-6989586621679886834"><span class="annot"><span class="annottext">rScript :: User 'IsScript 'Redemption
+</span><a href="#local-6989586621679886834"><span class="hs-identifier hs-var">rScript</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; VScript
+forall script. ToVScript script =&gt; script -&gt; VScript
+</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679886842"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679886842"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-75"></span><span>          </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; [(TokenName, Integer)] -&gt; Mint
+</span><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
+</span><a href="#local-6989586621679886834"><span class="hs-identifier hs-var">rScript</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; [(TokenName, Integer)]
+</span><a href="#local-6989586621679886824"><span class="hs-identifier hs-var">newTokens</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679886842"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Mint -&gt; [Mint] -&gt; [Mint]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886833"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><span id="line-76"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">[User 'IsScript 'Redemption]
+</span><a href="#local-6989586621679886825"><span class="hs-identifier hs-var">currencies</span></a></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- | Token duplications based on a function applied to both existing currencies and</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- token (cannot add new currencies nor new types of tokens).</span><span>
+</span><span id="line-82"></span><span id="local-6989586621679886653"><span id="local-6989586621679886654"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#existingAssetClassTokenDuplicationParams"><span class="hs-identifier hs-type">existingAssetClassTokenDuplicationParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886653"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-comment">-- | A function returning the new amount of tokens to mint given a specific</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-comment">-- currency, token name and amount. This new amount replaces the old one.</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#VScript"><span class="hs-identifier hs-type">VScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-87"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The attacker, who receives the extra tokens.</span></span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><a href="#local-6989586621679886654"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-89"></span><span>  </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-type">TokenDuplicationParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886654"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886653"><span class="hs-identifier hs-type">effs</span></a></span></span></span><span>
+</span><span id="line-90"></span><span id="existingAssetClassTokenDuplicationParams"><span class="annot"><span class="annottext">existingAssetClassTokenDuplicationParams :: forall (effs :: EffectRow) owner.
+Member Tweak effs =&gt;
+(VScript -&gt; TokenName -&gt; Integer -&gt; Integer)
+-&gt; owner -&gt; TokenDuplicationParams owner effs
+</span><a href="Cooked.Attack.TokenDuplication.html#existingAssetClassTokenDuplicationParams"><span class="hs-identifier hs-var hs-var">existingAssetClassTokenDuplicationParams</span></a></span></span><span> </span><span id="local-6989586621679886854"><span class="annot"><span class="annottext">VScript -&gt; TokenName -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679886854"><span class="hs-identifier hs-var">newTokens</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+forall owner (effs :: EffectRow).
+Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+</span><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-var">TokenDuplicationParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs)
+-&gt; Sem effs [Mint] -&gt; owner -&gt; TokenDuplicationParams owner effs
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679886855"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886855"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint] -&gt; Sem effs [Mint]
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+-&gt; Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>  </span><span class="annot"><span class="annottext">[Mint] -&gt; Sem effs [Mint]
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">([Mint] -&gt; Sem effs [Mint]) -&gt; [Mint] -&gt; Sem effs [Mint]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-93"></span><span>    </span><span class="annot"><span class="annottext">([Mint] -&gt; Mint -&gt; [Mint]) -&gt; [Mint] -&gt; [Mint] -&gt; [Mint]
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span>
+</span><span id="line-94"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679886857"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886857"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-type">Mint</span></a></span><span> </span><span id="local-6989586621679886858"><span class="annot"><span class="annottext">rScript :: User 'IsScript 'Redemption
+</span><a href="#local-6989586621679886858"><span class="hs-identifier hs-var">rScript</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.User.html#UserRedeemedScript"><span class="hs-identifier hs-type">UserRedeemedScript</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">script -&gt; VScript
+forall script. ToVScript script =&gt; script -&gt; VScript
+</span><a href="Cooked.Skeleton.User.html#toVScript"><span class="hs-identifier hs-var">toVScript</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679886867"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679886867"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679886868"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679886868"><span class="hs-identifier hs-var">tks</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-95"></span><span>          </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption -&gt; [(TokenName, Integer)] -&gt; Mint
+</span><a href="Cooked.Skeleton.Mint.html#Mint"><span class="hs-identifier hs-var">Mint</span></a></span><span> </span><span class="annot"><span class="annottext">User 'IsScript 'Redemption
+</span><a href="#local-6989586621679886858"><span class="hs-identifier hs-var">rScript</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">([(TokenName, Integer)]
+ -&gt; (TokenName, Integer) -&gt; [(TokenName, Integer)])
+-&gt; [(TokenName, Integer)]
+-&gt; [(TokenName, Integer)]
+-&gt; [(TokenName, Integer)]
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; b
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679886869"><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679886869"><span class="hs-identifier hs-var">newTks</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679886870"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679886870"><span class="hs-identifier hs-var">tk</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679886871"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679886871"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679886870"><span class="hs-identifier hs-var">tk</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">VScript -&gt; TokenName -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679886854"><span class="hs-identifier hs-var">newTokens</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679886867"><span class="hs-identifier hs-var">script</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679886870"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679886871"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679886871"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(TokenName, Integer)
+-&gt; [(TokenName, Integer)] -&gt; [(TokenName, Integer)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679886869"><span class="hs-identifier hs-var">newTks</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[(TokenName, Integer)]
+</span><a href="#local-6989586621679886868"><span class="hs-identifier hs-var">tks</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Mint -&gt; [Mint] -&gt; [Mint]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886857"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><span id="line-96"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-98"></span><span>      </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886855"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- | This attack adds extra tokens of any kind in the minted value. The</span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- additional minted value is redirected to the attacker.</span><span>
+</span><span id="line-102"></span><span id="local-6989586621679886665"><span id="local-6989586621679886667"><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#tokenDuplicationAttack"><span class="hs-identifier hs-type">tokenDuplicationAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679886665"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-104"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Output.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886667"><span class="hs-identifier hs-type">owner</span></a></span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-106"></span><span>  </span><span class="annot"><span class="hs-comment">-- | The parameters of the attack</span></span><span>
+</span><span id="line-107"></span><span>  </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-type">TokenDuplicationParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886667"><span class="hs-identifier hs-type">owner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886665"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-108"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679886665"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span></span><span>
+</span><span id="line-109"></span><span id="tokenDuplicationAttack"><span class="annot"><span class="annottext">tokenDuplicationAttack :: forall (effs :: EffectRow) owner.
+(Members '[Tweak, NonDet] effs, IsTxSkelOutAllowedOwner owner) =&gt;
+TokenDuplicationParams owner effs -&gt; Sem effs Value
+</span><a href="Cooked.Attack.TokenDuplication.html#tokenDuplicationAttack"><span class="hs-identifier hs-var hs-var">tokenDuplicationAttack</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationParams"><span class="hs-identifier hs-type">TokenDuplicationParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679886917"><span id="local-6989586621679886918"><span class="annot"><span class="annottext">owner
+Sem effs [Mint]
+tdpNewMints :: forall owner (effs :: EffectRow).
+TokenDuplicationParams owner effs -&gt; Sem effs [Mint]
+tdpThief :: forall owner (effs :: EffectRow).
+TokenDuplicationParams owner effs -&gt; owner
+tdpNewMints :: Sem effs [Mint]
+tdpThief :: owner
+</span><a href="Cooked.Attack.TokenDuplication.html#tdpNewMints"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-110"></span><span>  </span><span class="hs-comment">-- We compute the additional minting to add.</span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679886919"><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886919"><span class="hs-identifier hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs [Mint]
+</span><a href="#local-6989586621679886917"><span class="hs-identifier hs-var">tdpNewMints</span></a></span><span>
+</span><span id="line-112"></span><span>  </span><span class="hs-comment">-- We compute the total value added this way.</span><span>
+</span><span id="line-113"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679886920"><span class="annot"><span class="annottext">totalIncrement :: Value
+</span><a href="#local-6989586621679886920"><span class="hs-identifier hs-var hs-var">totalIncrement</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
+forall a. ToValue a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">Script.toValue</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints -&gt; Value) -&gt; TxSkelMints -&gt; Value
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+-&gt; [Mint] -&gt; TxSkelMints
+forall k (is :: IxList) t b.
+Is k A_Review =&gt;
+Optic' k is t b -&gt; b -&gt; t
+</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span> </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886919"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-comment">-- We ensure the total value is positive</span><span>
+</span><span id="line-115"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs ()
+forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
+</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679886920"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
+</span><span class="hs-operator hs-var">`Api.gt`</span></span><span> </span><span class="annot"><span class="annottext">Value
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-comment">-- We add the new mints into the 'TxSkel'</span><span>
+</span><span id="line-117"></span><span>  </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+-&gt; [Mint] -&gt; Sem effs ()
+forall (effs :: EffectRow) k a (is :: IxList).
+(Member Tweak effs, Is k A_Setter, Semigroup a) =&gt;
+Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Insert.html#appendAfterTweak"><span class="hs-identifier hs-var">appendAfterTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+</span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+-&gt; Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Mint] [Mint]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic An_Iso '[] TxSkelMints TxSkelMints [Mint] [Mint]
+</span><a href="Cooked.Skeleton.Mint.html#txSkelMintsListI"><span class="hs-identifier hs-var">txSkelMintsListI</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Mint]
+</span><a href="#local-6989586621679886919"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-comment">-- We redirect the extra value to an attacker</span><span>
+</span><span id="line-119"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkel [TxSkelOut] -&gt; TxSkelOut -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k is TxSkel [a] -&gt; a -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Insert.html#insertLastTweak"><span class="hs-identifier hs-var">insertLastTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkel [TxSkelOut]
+</span><a href="Cooked.Skeleton.html#txSkelOutputsL"><span class="hs-identifier hs-var">txSkelOutputsL</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Sem effs ()) -&gt; TxSkelOut -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">owner
+</span><a href="#local-6989586621679886918"><span class="hs-identifier hs-var">tdpThief</span></a></span><span> </span><span class="annot"><span class="annottext">owner -&gt; Payable '[ 'IsValue] -&gt; TxSkelOut
+forall owner (els :: [PayableKind]).
+IsTxSkelOutAllowedOwner owner =&gt;
+owner -&gt; Payable els -&gt; TxSkelOut
+</span><a href="Cooked.Skeleton.Output.html#receives"><span class="hs-operator hs-var">`receives`</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Payable '[ 'IsValue]
+forall a1. ToValue a1 =&gt; a1 -&gt; Payable '[ 'IsValue]
+</span><a href="Cooked.Skeleton.Output.html#Value"><span class="hs-identifier hs-var">Value</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679886920"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><span id="line-120"></span><span>  </span><span class="hs-comment">-- We label the transaction by the added tokens</span><span>
+</span><span id="line-121"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkel (Set TxSkelLabel)
+-&gt; TxSkelLabel -&gt; Sem effs ()
+forall (effs :: EffectRow) k a (is :: IxList).
+(Members '[Tweak, NonDet] effs, Is k A_Traversal, Ord a) =&gt;
+Optic' k is TxSkel (Set a) -&gt; a -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Insert.html#insertInTweak"><span class="hs-identifier hs-var">insertInTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] TxSkel (Set TxSkelLabel)
+</span><a href="Cooked.Skeleton.html#txSkelLabelsL"><span class="hs-identifier hs-var">txSkelLabelsL</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelLabel -&gt; Sem effs ()) -&gt; TxSkelLabel -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TokenDuplicationLabel -&gt; TxSkelLabel
+forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
+</span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(TokenDuplicationLabel -&gt; TxSkelLabel)
+-&gt; TokenDuplicationLabel -&gt; TxSkelLabel
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; TokenDuplicationLabel
+</span><a href="Cooked.Attack.TokenDuplication.html#TokenDuplicationLabel"><span class="hs-identifier hs-var">TokenDuplicationLabel</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679886920"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-comment">-- We return the added tokens</span><span>
+</span><span id="line-123"></span><span>  </span><span class="annot"><span class="annottext">Value -&gt; Sem effs Value
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679886920"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><span id="line-124"></span></pre></body></html>

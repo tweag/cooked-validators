@@ -1,0 +1,446 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module defines an attack tampering on the validity interval of</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- transactions.</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.ValidityTampering</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Validity tampering params</span></span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier">ValidityTamperingParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#lowerExtendedValidityTamperingParams"><span class="hs-identifier">lowerExtendedValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#lowerStrictValidityTamperingParams"><span class="hs-identifier">lowerStrictValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#upperExtendedValidityTamperingParams"><span class="hs-identifier">upperExtendedValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#upperStrictValidityTamperingParams"><span class="hs-identifier">upperStrictValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#bothExtendedValidityTamperingParams"><span class="hs-identifier">bothExtendedValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#bothStrictValidityTamperingParams"><span class="hs-identifier">bothStrictValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#intervalValidityTamperingParams"><span class="hs-identifier">intervalValidityTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Validity tampering label</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier">ValidityTamperingLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Validity tampering attack</span></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#validityTamperingAttack"><span class="hs-identifier">validityTamperingAttack</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Slot</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.NonDet</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PP</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which a tweak tampering the validity</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- interval has been applied. The label contains the interval as it was before</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- being tampered with.</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">newtype</span><span> </span><span id="ValidityTamperingLabel"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-var">ValidityTamperingLabel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ValidityTamperingLabel"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-var">ValidityTamperingLabel</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679886381"><span id="local-6989586621679886388"><span id="local-6989586621679886392"><span class="annot"><span class="annottext">Int -&gt; ValidityTamperingLabel -&gt; ShowS
+[ValidityTamperingLabel] -&gt; ShowS
+ValidityTamperingLabel -&gt; String
+(Int -&gt; ValidityTamperingLabel -&gt; ShowS)
+-&gt; (ValidityTamperingLabel -&gt; String)
+-&gt; ([ValidityTamperingLabel] -&gt; ShowS)
+-&gt; Show ValidityTamperingLabel
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; ValidityTamperingLabel -&gt; ShowS
+showsPrec :: Int -&gt; ValidityTamperingLabel -&gt; ShowS
+$cshow :: ValidityTamperingLabel -&gt; String
+show :: ValidityTamperingLabel -&gt; String
+$cshowList :: [ValidityTamperingLabel] -&gt; ShowS
+showList :: [ValidityTamperingLabel] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679886397"><span id="local-6989586621679886404"><span class="annot"><span class="annottext">ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool
+(ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool)
+-&gt; (ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool)
+-&gt; Eq ValidityTamperingLabel
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool
+== :: ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool
+$c/= :: ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool
+/= :: ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679886417"><span id="local-6989586621679886421"><span id="local-6989586621679886424"><span id="local-6989586621679886427"><span id="local-6989586621679886430"><span id="local-6989586621679886433"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-type">ValidityTamperingLabel</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679886453"><span class="annot"><span class="annottext">compare :: ValidityTamperingLabel -&gt; ValidityTamperingLabel -&gt; Ordering
+</span><a href="#local-6989586621679886453"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-type">ValidityTamperingLabel</span></a></span><span> </span><span id="local-6989586621679886455"><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886455"><span class="hs-identifier hs-var">s1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-type">ValidityTamperingLabel</span></a></span><span> </span><span id="local-6989586621679886456"><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886456"><span class="hs-identifier hs-var">s2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><span class="annottext">(Maybe Slot, Maybe Slot) -&gt; (Maybe Slot, Maybe Slot) -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span>
+</span><span id="line-42"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; SlotRange -&gt; Maybe Slot
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886455"><span class="hs-identifier hs-var">s1</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; SlotRange -&gt; Maybe Slot
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886455"><span class="hs-identifier hs-var">s1</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; SlotRange -&gt; Maybe Slot
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886456"><span class="hs-identifier hs-var">s2</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; SlotRange -&gt; Maybe Slot
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886456"><span class="hs-identifier hs-var">s2</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679886462"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-type">ValidityTamperingLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679886473"><span class="annot"><span class="annottext">prettyCooked :: ValidityTamperingLabel -&gt; DocCooked
+</span><a href="#local-6989586621679886473"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-type">ValidityTamperingLabel</span></a></span><span> </span><span id="local-6989586621679886475"><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886475"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-string">&quot;Validity tampering:&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
+</span><span class="hs-operator hs-var">PP.&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">SlotRange -&gt; DocCooked
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+forall ann. SlotRange -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886475"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="annot"><span class="hs-comment">-- | Parameters of the validity tampering attack.</span></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">data</span><span> </span><span id="ValidityTamperingParams"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679886247"><span class="annot"><a href="#local-6989586621679886247"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679886248"><span class="annot"><a href="#local-6989586621679886248"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621679886249"><span class="annot"><a href="#local-6989586621679886249"><span class="hs-identifier hs-type">k</span></a></span></span><span> </span><span id="local-6989586621679886250"><span class="annot"><a href="#local-6989586621679886250"><span class="hs-identifier hs-type">is</span></a></span></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ValidityTamperingParams"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | What part of the validity range to modify</span></span><span>
+</span><span id="line-53"></span><span>    </span><span id="vtpOptic"><span class="annot"><span class="annottext">forall b (f :: * -&gt; *) k (is :: IxList).
+ValidityTamperingParams b f k is -&gt; Optic' k is SlotRange b
+</span><a href="Cooked.Attack.ValidityTampering.html#vtpOptic"><span class="hs-identifier hs-var hs-var">vtpOptic</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679886249"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886250"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span> </span><span class="annot"><a href="#local-6989586621679886247"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-54"></span><span>    </span><span class="annot"><span class="hs-comment">-- | How to modify the targeted part</span></span><span>
+</span><span id="line-55"></span><span>    </span><span id="vtpChange"><span class="annot"><span class="annottext">forall b (f :: * -&gt; *) k (is :: IxList).
+ValidityTamperingParams b f k is -&gt; b -&gt; f b
+</span><a href="Cooked.Attack.ValidityTampering.html#vtpChange"><span class="hs-identifier hs-var hs-var">vtpChange</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679886247"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886248"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886247"><span class="hs-identifier hs-type">b</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | Modifies the extended (possibly infinite) lower bound of the validity</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- interval with a given tampering function.</span><span>
+</span><span id="line-60"></span><span id="local-6989586621679886260"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#lowerExtendedValidityTamperingParams"><span class="hs-identifier hs-type">lowerExtendedValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886260"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-62"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679886260"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-63"></span><span id="lowerExtendedValidityTamperingParams"><span class="annot"><span class="annottext">lowerExtendedValidityTamperingParams :: forall (f :: * -&gt; *).
+(Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#lowerExtendedValidityTamperingParams"><span class="hs-identifier hs-var hs-var">lowerExtendedValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; (Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Lens NoIx SlotRange (Maybe Slot)
+ -&gt; (Maybe Slot -&gt; f (Maybe Slot))
+ -&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx)
+-&gt; Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; (Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- | Modifies the strict lower bound of the validity interval with a given</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- tampering function, failing if it is infinite.</span><span>
+</span><span id="line-68"></span><span id="local-6989586621679886265"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#lowerStrictValidityTamperingParams"><span class="hs-identifier hs-type">lowerStrictValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886265"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="annot"><a href="#local-6989586621679886265"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_AffineTraversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-71"></span><span id="lowerStrictValidityTamperingParams"><span class="annot"><span class="annottext">lowerStrictValidityTamperingParams :: forall (f :: * -&gt; *).
+(Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#lowerStrictValidityTamperingParams"><span class="hs-identifier hs-var hs-var">lowerStrictValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx SlotRange Slot
+-&gt; (Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' An_AffineTraversal NoIx SlotRange Slot
+ -&gt; (Slot -&gt; f Slot)
+ -&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx)
+-&gt; Optic' An_AffineTraversal NoIx SlotRange Slot
+-&gt; (Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+-&gt; Optic' (IxKind SlotRange) NoIx SlotRange (IxValue SlotRange)
+forall m. Ixed m =&gt; Index m -&gt; Optic' (IxKind m) NoIx m (IxValue m)
+</span><span class="hs-identifier hs-var">ix</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | Modifies the extended (possibly infinite) upper bound of the validity</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- interval with a given tampering function.</span><span>
+</span><span id="line-76"></span><span id="local-6989586621679886485"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#upperExtendedValidityTamperingParams"><span class="hs-identifier hs-type">upperExtendedValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886485"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-78"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679886485"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-79"></span><span id="upperExtendedValidityTamperingParams"><span class="annot"><span class="annottext">upperExtendedValidityTamperingParams :: forall (f :: * -&gt; *).
+(Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#upperExtendedValidityTamperingParams"><span class="hs-identifier hs-var hs-var">upperExtendedValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; (Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Lens NoIx SlotRange (Maybe Slot)
+ -&gt; (Maybe Slot -&gt; f (Maybe Slot))
+ -&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx)
+-&gt; Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; (Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Lens NoIx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- | Modifies the strict upper bound of the validity interval with a given</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- tampering function, failing if it is infinite.</span><span>
+</span><span id="line-84"></span><span id="local-6989586621679886487"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#upperStrictValidityTamperingParams"><span class="hs-identifier hs-type">upperStrictValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886487"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-86"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="annot"><a href="#local-6989586621679886487"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_AffineTraversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-87"></span><span id="upperStrictValidityTamperingParams"><span class="annot"><span class="annottext">upperStrictValidityTamperingParams :: forall (f :: * -&gt; *).
+(Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#upperStrictValidityTamperingParams"><span class="hs-identifier hs-var hs-var">upperStrictValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx SlotRange Slot
+-&gt; (Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' An_AffineTraversal NoIx SlotRange Slot
+ -&gt; (Slot -&gt; f Slot)
+ -&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx)
+-&gt; Optic' An_AffineTraversal NoIx SlotRange Slot
+-&gt; (Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f An_AffineTraversal NoIx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+-&gt; Optic' (IxKind SlotRange) NoIx SlotRange (IxValue SlotRange)
+forall m. Ixed m =&gt; Index m -&gt; Optic' (IxKind m) NoIx m (IxValue m)
+</span><span class="hs-identifier hs-var">ix</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- | Modifies both the extended (possibly infinite) lower and upper bounds of</span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- the validity interval with a given tampering function.</span><span>
+</span><span id="line-92"></span><span id="local-6989586621679886273"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#bothExtendedValidityTamperingParams"><span class="hs-identifier hs-type">bothExtendedValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886273"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-94"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679886273"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-95"></span><span id="bothExtendedValidityTamperingParams"><span class="annot"><span class="annottext">bothExtendedValidityTamperingParams :: forall (f :: * -&gt; *).
+(Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Traversal NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#bothExtendedValidityTamperingParams"><span class="hs-identifier hs-var hs-var">bothExtendedValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx SlotRange (Maybe Slot)
+-&gt; (Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Traversal NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Traversal NoIx SlotRange (Maybe Slot)
+ -&gt; (Maybe Slot -&gt; f (Maybe Slot))
+ -&gt; ValidityTamperingParams (Maybe Slot) f A_Traversal NoIx)
+-&gt; Optic' A_Traversal NoIx SlotRange (Maybe Slot)
+-&gt; (Maybe Slot -&gt; f (Maybe Slot))
+-&gt; ValidityTamperingParams (Maybe Slot) f A_Traversal NoIx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; Optic' A_Lens NoIx SlotRange (Maybe Slot)
+-&gt; Optic' A_Traversal NoIx SlotRange (Maybe Slot)
+forall k l (is :: IxList) s a (js :: IxList).
+(Is k A_Traversal, Is l A_Traversal) =&gt;
+Optic' k is s a -&gt; Optic' l js s a -&gt; Traversal' s a
+</span><span class="hs-operator hs-var">`adjoin`</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange -&gt; Lens' SlotRange (Maybe (IxValue SlotRange))
+forall m. At m =&gt; Index m -&gt; Lens' m (Maybe (IxValue m))
+</span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | Modifies both the strict lower and upper bounds of the validity interval</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- with a given tampering function, failing if both are infinite.</span><span>
+</span><span id="line-100"></span><span id="local-6989586621679886283"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#bothStrictValidityTamperingParams"><span class="hs-identifier hs-type">bothStrictValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886283"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-102"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.Slot</span></span><span> </span><span class="annot"><a href="#local-6989586621679886283"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-103"></span><span id="bothStrictValidityTamperingParams"><span class="annot"><span class="annottext">bothStrictValidityTamperingParams :: forall (f :: * -&gt; *).
+(Slot -&gt; f Slot) -&gt; ValidityTamperingParams Slot f A_Traversal NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#bothStrictValidityTamperingParams"><span class="hs-identifier hs-var hs-var">bothStrictValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-104"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx SlotRange Slot
+-&gt; (Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f A_Traversal NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic' A_Traversal NoIx SlotRange Slot
+ -&gt; (Slot -&gt; f Slot)
+ -&gt; ValidityTamperingParams Slot f A_Traversal NoIx)
+-&gt; Optic' A_Traversal NoIx SlotRange Slot
+-&gt; (Slot -&gt; f Slot)
+-&gt; ValidityTamperingParams Slot f A_Traversal NoIx
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+-&gt; Optic' (IxKind SlotRange) NoIx SlotRange (IxValue SlotRange)
+forall m. Ixed m =&gt; Index m -&gt; Optic' (IxKind m) NoIx m (IxValue m)
+</span><span class="hs-identifier hs-var">ix</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Lower"><span class="hs-identifier hs-var">Lower</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal NoIx SlotRange Slot
+-&gt; Optic' An_AffineTraversal NoIx SlotRange Slot
+-&gt; Optic' A_Traversal NoIx SlotRange Slot
+forall k l (is :: IxList) s a (js :: IxList).
+(Is k A_Traversal, Is l A_Traversal) =&gt;
+Optic' k is s a -&gt; Optic' l js s a -&gt; Traversal' s a
+</span><span class="hs-operator hs-var">`adjoin`</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+-&gt; Optic' (IxKind SlotRange) NoIx SlotRange (IxValue SlotRange)
+forall m. Ixed m =&gt; Index m -&gt; Optic' (IxKind m) NoIx m (IxValue m)
+</span><span class="hs-identifier hs-var">ix</span></span><span> </span><span class="annot"><span class="annottext">Index SlotRange
+ValidityBound
+</span><a href="Cooked.Skeleton.ValidityRange.html#Upper"><span class="hs-identifier hs-var">Upper</span></a></span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="annot"><span class="hs-comment">-- | Modifies the full validity interval directly</span></span><span>
+</span><span id="line-107"></span><span id="local-6989586621679886285"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#intervalValidityTamperingParams"><span class="hs-identifier hs-type">intervalValidityTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-108"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886285"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-109"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span><span> </span><span class="annot"><a href="#local-6989586621679886285"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_Iso</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span></span><span>
+</span><span id="line-110"></span><span id="intervalValidityTamperingParams"><span class="annot"><span class="annottext">intervalValidityTamperingParams :: forall (f :: * -&gt; *).
+(SlotRange -&gt; f SlotRange)
+-&gt; ValidityTamperingParams SlotRange f An_Iso NoIx
+</span><a href="Cooked.Attack.ValidityTampering.html#intervalValidityTamperingParams"><span class="hs-identifier hs-var hs-var">intervalValidityTamperingParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-111"></span><span>  </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx SlotRange SlotRange
+-&gt; (SlotRange -&gt; f SlotRange)
+-&gt; ValidityTamperingParams SlotRange f An_Iso NoIx
+forall b (f :: * -&gt; *) k (is :: IxList).
+Optic' k is SlotRange b
+-&gt; (b -&gt; f b) -&gt; ValidityTamperingParams b f k is
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-var">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx SlotRange SlotRange
+forall a. Iso' a a
+</span><span class="hs-identifier hs-var">simple</span></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- | The validity tampering attack attempts to tamper with the validity interval</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- of a transaction following a given set of parameters. This returns the</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- validity interval of the transaction before modification.</span><span>
+</span><span id="line-116"></span><span id="local-6989586621679886293"><span id="local-6989586621679886295"><span id="local-6989586621679886296"><span id="local-6989586621679886298"><span id="local-6989586621679886299"><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#validityTamperingAttack"><span class="hs-identifier hs-type">validityTamperingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-117"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679886293"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679886295"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">,</span><span>
+</span><span id="line-119"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Foldable</span></span><span> </span><span class="annot"><a href="#local-6989586621679886296"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Alternative</span></span><span> </span><span class="annot"><a href="#local-6989586621679886296"><span class="hs-identifier hs-type">f</span></a></span><span>
+</span><span id="line-121"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-122"></span><span>  </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886298"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886296"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886295"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886299"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-123"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679886293"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.SlotRange</span></span></span></span></span></span></span><span>
+</span><span id="line-124"></span><span id="validityTamperingAttack"><span class="annot"><span class="annottext">validityTamperingAttack :: forall (effs :: EffectRow) k (f :: * -&gt; *) a (is :: IxList).
+(Members '[Tweak, NonDet] effs, Is k A_Traversal, Foldable f,
+ Alternative f) =&gt;
+ValidityTamperingParams a f k is -&gt; Sem effs SlotRange
+</span><a href="Cooked.Attack.ValidityTampering.html#validityTamperingAttack"><span class="hs-identifier hs-var hs-var">validityTamperingAttack</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingParams"><span class="hs-identifier hs-type">ValidityTamperingParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679886540"><span id="local-6989586621679886541"><span class="annot"><span class="annottext">Optic' k is SlotRange a
+a -&gt; f a
+vtpOptic :: forall b (f :: * -&gt; *) k (is :: IxList).
+ValidityTamperingParams b f k is -&gt; Optic' k is SlotRange b
+vtpChange :: forall b (f :: * -&gt; *) k (is :: IxList).
+ValidityTamperingParams b f k is -&gt; b -&gt; f b
+vtpOptic :: Optic' k is SlotRange a
+vtpChange :: a -&gt; f a
+</span><a href="Cooked.Attack.ValidityTampering.html#vtpOptic"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679886542"><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886542"><span class="hs-identifier hs-var">currentValidityRange</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel SlotRange -&gt; Sem effs SlotRange
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Getter) =&gt;
+Optic' k is TxSkel a -&gt; Sem effs a
+</span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel SlotRange
+</span><a href="Cooked.Skeleton.html#txSkelValidityRangeL"><span class="hs-identifier hs-var">txSkelValidityRangeL</span></a></span><span>
+</span><span id="line-126"></span><span>  </span><span class="annot"><span class="annottext">Sem effs [a] -&gt; Sem effs ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(Sem effs [a] -&gt; Sem effs ()) -&gt; Sem effs [a] -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-127"></span><span>    </span><span class="annot"><span class="annottext">ModifyTweakParams A_Traversal An_Iso is NoIx f a a a
+-&gt; Sem effs [a]
+forall (effs :: EffectRow) k k' (f :: * -&gt; *) (is :: IxList)
+       (is' :: IxList) a b c.
+(Members '[Tweak, NonDet] effs, Is k A_Traversal,
+ Is k' An_AffineTraversal, Foldable f, Alternative f) =&gt;
+ModifyTweakParams k k' is is' f a b c -&gt; Sem effs [b]
+</span><a href="Cooked.Tweak.Modify.html#modifyTweakFromParams"><span class="hs-identifier hs-var">modifyTweakFromParams</span></a></span><span> </span><span class="annot"><span class="annottext">(ModifyTweakParams A_Traversal An_Iso is NoIx f a a a
+ -&gt; Sem effs [a])
+-&gt; ModifyTweakParams A_Traversal An_Iso is NoIx f a a a
+-&gt; Sem effs [a]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-128"></span><span>      </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal is TxSkel a
+-&gt; (a -&gt; f a)
+-&gt; ModifyTweakParams A_Traversal An_Iso is NoIx f a a a
+forall k (is :: IxList) a (f :: * -&gt; *).
+Branching
+-&gt; Optic' k is TxSkel a
+-&gt; (a -&gt; f a)
+-&gt; ModifyTweakParams k An_Iso is NoIx f a a a
+</span><a href="Cooked.Tweak.Modify.html#modifyTweakParamsNoTypeChange"><span class="hs-identifier hs-var">modifyTweakParamsNoTypeChange</span></a></span><span>
+</span><span id="line-129"></span><span>        </span><span class="annot"><span class="annottext">Branching
+</span><a href="Cooked.Tweak.Modify.html#OneBranchForAllFoci"><span class="hs-identifier hs-var">OneBranchForAllFoci</span></a></span><span>
+</span><span id="line-130"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel SlotRange
+</span><a href="Cooked.Skeleton.html#txSkelValidityRangeL"><span class="hs-identifier hs-var">txSkelValidityRangeL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel SlotRange
+-&gt; Optic A_Traversal is SlotRange SlotRange a a
+-&gt; Optic' A_Traversal is TxSkel a
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">forall destKind srcKind (is :: IxList) s t a b.
+Is srcKind destKind =&gt;
+Optic srcKind is s t a b -&gt; Optic destKind is s t a b
+</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is SlotRange a
+</span><a href="#local-6989586621679886540"><span class="hs-identifier hs-var">vtpOptic</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>        </span><span class="annot"><span class="annottext">a -&gt; f a
+</span><a href="#local-6989586621679886541"><span class="hs-identifier hs-var">vtpChange</span></a></span><span>
+</span><span id="line-132"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
+-&gt; TxSkelLabel -&gt; Sem effs ()
+forall (effs :: EffectRow) k a (is :: IxList).
+(Members '[Tweak, NonDet] effs, Is k A_Traversal, Ord a) =&gt;
+Optic' k is TxSkel (Set a) -&gt; a -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Insert.html#insertInTweak"><span class="hs-identifier hs-var">insertInTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
+</span><a href="Cooked.Skeleton.html#txSkelLabelsL"><span class="hs-identifier hs-var">txSkelLabelsL</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelLabel -&gt; Sem effs ()) -&gt; TxSkelLabel -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ValidityTamperingLabel -&gt; TxSkelLabel
+forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
+</span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(ValidityTamperingLabel -&gt; TxSkelLabel)
+-&gt; ValidityTamperingLabel -&gt; TxSkelLabel
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SlotRange -&gt; ValidityTamperingLabel
+</span><a href="Cooked.Attack.ValidityTampering.html#ValidityTamperingLabel"><span class="hs-identifier hs-var">ValidityTamperingLabel</span></a></span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886542"><span class="hs-identifier hs-var">currentValidityRange</span></a></span><span>
+</span><span id="line-133"></span><span>  </span><span class="annot"><span class="annottext">SlotRange -&gt; Sem effs SlotRange
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">SlotRange
+</span><a href="#local-6989586621679886542"><span class="hs-identifier hs-var">currentValidityRange</span></a></span><span>
+</span><span id="line-134"></span></pre></body></html>

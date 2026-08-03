@@ -1,0 +1,259 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides straightforward tweaks to modify parts of the current</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- 'TxSkel' based on various kinds of optics.</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Tweak.Update</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Setting tweaks</span></span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier">setTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Update.html#isetTweak"><span class="hs-identifier">isetTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Overing tweaks</span></span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Update.html#overTweak"><span class="hs-identifier">overTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Update.html#ioverTweak"><span class="hs-identifier">ioverTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Traversing tweaks</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Update.html#traverseTweak"><span class="hs-identifier">traverseTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.Tweak.Update.html#itraverseTweak"><span class="hs-identifier">itraverseTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html"><span class="hs-identifier">Cooked.Tweak.Common</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><span class="hs-comment">-- * Basic modifying 'Tweak's</span></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="annot"><span class="hs-comment">-- | The tweak that sets a certain value in the 'TxSkel'.</span></span><span>
+</span><span id="line-26"></span><span id="local-6989586621679875670"><span id="local-6989586621679875672"><span id="local-6989586621679875675"><span id="local-6989586621679875677"><span class="annot"><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier hs-type">setTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875670"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679875672"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679875672"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875675"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875677"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><a href="#local-6989586621679875677"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875670"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-31"></span><span id="setTweak"><span class="annot"><span class="annottext">setTweak :: forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
+       (a :: OpticKind).
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier hs-var hs-var">setTweak</span></a></span></span><span> </span><span id="local-6989586621679875798"><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><a href="#local-6989586621679875798"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679875799"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679875799"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel
+forall (r :: EffectRow). Member Tweak r =&gt; Sem r TxSkel
+</span><a href="Cooked.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs ()) -&gt; Sem effs ()
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs ()
+forall (r :: EffectRow). Member Tweak r =&gt; TxSkel -&gt; Sem r ()
+</span><a href="Cooked.Tweak.Common.html#putTxSkel"><span class="hs-identifier hs-var">putTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; Sem effs ())
+-&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; Sem effs ()
+forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
+(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a -&gt; a -&gt; TxSkel -&gt; TxSkel
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind).
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">set</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><a href="#local-6989586621679875798"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679875799"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- | Like 'setTweak', but the value to set is computed from the index of each</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- focus.</span><span>
+</span><span id="line-35"></span><span id="local-6989586621679875700"><span id="local-6989586621679875701"><span id="local-6989586621679875702"><span id="local-6989586621679875704"><span class="annot"><a href="Cooked.Tweak.Update.html#isetTweak"><span class="hs-identifier hs-type">isetTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875700"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679875701"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679875701"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithIx</span></span><span> </span><span class="annot"><a href="#local-6989586621679875702"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875704"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679875702"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679875704"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875700"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-40"></span><span id="isetTweak"><span class="annot"><span class="annottext">isetTweak :: forall (effs :: EffectRow) (k :: OpticKind) (i :: OpticKind)
+       (a :: OpticKind).
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic' k (WithIx i) TxSkel a -&gt; (i -&gt; a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#isetTweak"><span class="hs-identifier hs-var hs-var">isetTweak</span></a></span></span><span> </span><span id="local-6989586621679875812"><span class="annot"><span class="annottext">Optic' k (WithIx i) TxSkel a
+</span><a href="#local-6989586621679875812"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679875813"><span class="annot"><span class="annottext">i -&gt; a
+</span><a href="#local-6989586621679875813"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel
+forall (r :: EffectRow). Member Tweak r =&gt; Sem r TxSkel
+</span><a href="Cooked.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs ()) -&gt; Sem effs ()
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs ()
+forall (r :: EffectRow). Member Tweak r =&gt; TxSkel -&gt; Sem r ()
+</span><a href="Cooked.Tweak.Common.html#putTxSkel"><span class="hs-identifier hs-var">putTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; Sem effs ())
+-&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; Sem effs ()
+forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
+(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic' k (WithIx i) TxSkel a -&gt; (i -&gt; a) -&gt; TxSkel -&gt; TxSkel
+forall (k :: OpticKind) (is :: IxList) (i :: OpticKind)
+       (s :: OpticKind) (t :: OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+(Is k A_Setter, HasSingleIndex is i) =&gt;
+Optic k is s t a b -&gt; (i -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">iset</span></span><span> </span><span class="annot"><span class="annottext">Optic' k (WithIx i) TxSkel a
+</span><a href="#local-6989586621679875812"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; a
+</span><a href="#local-6989586621679875813"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="annot"><span class="hs-comment">-- | The tweak that modifies a certain value in the 'TxSkel'.</span></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679875718"><span id="local-6989586621679875719"><span id="local-6989586621679875720"><span id="local-6989586621679875721"><span id="local-6989586621679875722"><span class="annot"><a href="Cooked.Tweak.Update.html#overTweak"><span class="hs-identifier hs-type">overTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875718"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679875719"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic</span></span><span> </span><span class="annot"><a href="#local-6989586621679875719"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875720"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875721"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875722"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679875721"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679875722"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-47"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875718"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span></span><span>
+</span><span id="line-48"></span><span id="overTweak"><span class="annot"><span class="annottext">overTweak :: forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
+       (a :: OpticKind) (b :: OpticKind).
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic k is TxSkel TxSkel a b -&gt; (a -&gt; b) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#overTweak"><span class="hs-identifier hs-var hs-var">overTweak</span></a></span></span><span> </span><span id="local-6989586621679875821"><span class="annot"><span class="annottext">Optic k is TxSkel TxSkel a b
+</span><a href="#local-6989586621679875821"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679875822"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679875822"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel
+forall (r :: EffectRow). Member Tweak r =&gt; Sem r TxSkel
+</span><a href="Cooked.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs ()) -&gt; Sem effs ()
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs ()
+forall (r :: EffectRow). Member Tweak r =&gt; TxSkel -&gt; Sem r ()
+</span><a href="Cooked.Tweak.Common.html#putTxSkel"><span class="hs-identifier hs-var">putTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; Sem effs ())
+-&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; Sem effs ()
+forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
+(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic k is TxSkel TxSkel a b -&gt; (a -&gt; b) -&gt; TxSkel -&gt; TxSkel
+forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
+       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind).
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic k is TxSkel TxSkel a b
+</span><a href="#local-6989586621679875821"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679875822"><span class="hs-identifier hs-var">change</span></a></span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- | Like 'overTweak', but the modification of each focus also depends on its</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- index.</span><span>
+</span><span id="line-52"></span><span id="local-6989586621679875734"><span id="local-6989586621679875735"><span id="local-6989586621679875736"><span id="local-6989586621679875737"><span id="local-6989586621679875738"><span class="annot"><a href="Cooked.Tweak.Update.html#ioverTweak"><span class="hs-identifier hs-type">ioverTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875734"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679875735"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic</span></span><span> </span><span class="annot"><a href="#local-6989586621679875735"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithIx</span></span><span> </span><span class="annot"><a href="#local-6989586621679875736"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875737"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875738"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679875736"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679875737"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679875738"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-56"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875734"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span></span><span>
+</span><span id="line-57"></span><span id="ioverTweak"><span class="annot"><span class="annottext">ioverTweak :: forall (effs :: EffectRow) (k :: OpticKind) (i :: OpticKind)
+       (a :: OpticKind) (b :: OpticKind).
+(Member Tweak effs, Is k A_Setter) =&gt;
+Optic k (WithIx i) TxSkel TxSkel a b
+-&gt; (i -&gt; a -&gt; b) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#ioverTweak"><span class="hs-identifier hs-var hs-var">ioverTweak</span></a></span></span><span> </span><span id="local-6989586621679875831"><span class="annot"><span class="annottext">Optic k (WithIx i) TxSkel TxSkel a b
+</span><a href="#local-6989586621679875831"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679875832"><span class="annot"><span class="annottext">i -&gt; a -&gt; b
+</span><a href="#local-6989586621679875832"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel
+forall (r :: EffectRow). Member Tweak r =&gt; Sem r TxSkel
+</span><a href="Cooked.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs ()) -&gt; Sem effs ()
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs ()
+forall (r :: EffectRow). Member Tweak r =&gt; TxSkel -&gt; Sem r ()
+</span><a href="Cooked.Tweak.Common.html#putTxSkel"><span class="hs-identifier hs-var">putTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; Sem effs ())
+-&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; Sem effs ()
+forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
+(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic k (WithIx i) TxSkel TxSkel a b
+-&gt; (i -&gt; a -&gt; b) -&gt; TxSkel -&gt; TxSkel
+forall (k :: OpticKind) (is :: IxList) (i :: OpticKind)
+       (s :: OpticKind) (t :: OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+(Is k A_Setter, HasSingleIndex is i) =&gt;
+Optic k is s t a b -&gt; (i -&gt; a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">iover</span></span><span> </span><span class="annot"><span class="annottext">Optic k (WithIx i) TxSkel TxSkel a b
+</span><a href="#local-6989586621679875831"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; a -&gt; b
+</span><a href="#local-6989586621679875832"><span class="hs-identifier hs-var">change</span></a></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- | Like 'overTweak', but the modification of each focus runs in the tweak's</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- effect stack. The foci are visited in the order in which they occur in the</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- 'TxSkel'.</span><span>
+</span><span id="line-62"></span><span id="local-6989586621679875751"><span id="local-6989586621679875752"><span id="local-6989586621679875754"><span id="local-6989586621679875755"><span class="annot"><a href="Cooked.Tweak.Update.html#traverseTweak"><span class="hs-identifier hs-type">traverseTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875751"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679875752"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679875752"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875754"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875755"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679875755"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875751"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875755"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875751"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-67"></span><span id="traverseTweak"><span class="annot"><span class="annottext">traverseTweak :: forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
+       (a :: OpticKind).
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#traverseTweak"><span class="hs-identifier hs-var hs-var">traverseTweak</span></a></span></span><span> </span><span id="local-6989586621679875843"><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><a href="#local-6989586621679875843"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679875844"><span class="annot"><span class="annottext">a -&gt; Sem effs a
+</span><a href="#local-6989586621679875844"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel
+forall (r :: EffectRow). Member Tweak r =&gt; Sem r TxSkel
+</span><a href="Cooked.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs TxSkel) -&gt; Sem effs TxSkel
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+-&gt; (a -&gt; Sem effs a) -&gt; TxSkel -&gt; Sem effs TxSkel
+forall (k :: OpticKind) (f :: OpticKind -&gt; OpticKind)
+       (is :: IxList) (s :: OpticKind) (t :: OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+(Is k A_Traversal, Applicative f) =&gt;
+Optic k is s t a b -&gt; (a -&gt; f b) -&gt; s -&gt; f t
+</span><span class="hs-identifier hs-var">traverseOf</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><a href="#local-6989586621679875843"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Sem effs a
+</span><a href="#local-6989586621679875844"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs ()) -&gt; Sem effs ()
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs ()
+forall (r :: EffectRow). Member Tweak r =&gt; TxSkel -&gt; Sem r ()
+</span><a href="Cooked.Tweak.Common.html#putTxSkel"><span class="hs-identifier hs-var">putTxSkel</span></a></span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span class="annot"><span class="hs-comment">-- | Like 'traverseTweak', for indexed optics</span></span><span>
+</span><span id="line-70"></span><span id="local-6989586621679875768"><span id="local-6989586621679875769"><span id="local-6989586621679875770"><span id="local-6989586621679875771"><span class="annot"><a href="Cooked.Tweak.Update.html#itraverseTweak"><span class="hs-identifier hs-type">itraverseTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875768"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679875769"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679875769"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithIx</span></span><span> </span><span class="annot"><a href="#local-6989586621679875770"><span class="hs-identifier hs-type">is</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875771"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679875770"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679875771"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875768"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679875771"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-74"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679875768"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-75"></span><span id="itraverseTweak"><span class="annot"><span class="annottext">itraverseTweak :: forall (effs :: EffectRow) (k :: OpticKind) (is :: OpticKind)
+       (a :: OpticKind).
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k (WithIx is) TxSkel a
+-&gt; (is -&gt; a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#itraverseTweak"><span class="hs-identifier hs-var hs-var">itraverseTweak</span></a></span></span><span> </span><span id="local-6989586621679875855"><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
+</span><a href="#local-6989586621679875855"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679875856"><span class="annot"><span class="annottext">is -&gt; a -&gt; Sem effs a
+</span><a href="#local-6989586621679875856"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel
+forall (r :: EffectRow). Member Tweak r =&gt; Sem r TxSkel
+</span><a href="Cooked.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs TxSkel) -&gt; Sem effs TxSkel
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
+-&gt; (is -&gt; a -&gt; Sem effs a) -&gt; TxSkel -&gt; Sem effs TxSkel
+forall (k :: OpticKind) (f :: OpticKind -&gt; OpticKind)
+       (is :: IxList) (i :: OpticKind) (s :: OpticKind) (t :: OpticKind)
+       (a :: OpticKind) (b :: OpticKind).
+(Is k A_Traversal, Applicative f, HasSingleIndex is i) =&gt;
+Optic k is s t a b -&gt; (i -&gt; a -&gt; f b) -&gt; s -&gt; f t
+</span><span class="hs-identifier hs-var">itraverseOf</span></span><span> </span><span class="annot"><span class="annottext">Optic' k (WithIx is) TxSkel a
+</span><a href="#local-6989586621679875855"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">is -&gt; a -&gt; Sem effs a
+</span><a href="#local-6989586621679875856"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">Sem effs TxSkel -&gt; (TxSkel -&gt; Sem effs ()) -&gt; Sem effs ()
+forall (a :: OpticKind) (b :: OpticKind).
+Sem effs a -&gt; (a -&gt; Sem effs b) -&gt; Sem effs b
+forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind)
+       (b :: OpticKind).
+Monad m =&gt;
+m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Sem effs ()
+forall (r :: EffectRow). Member Tweak r =&gt; TxSkel -&gt; Sem r ()
+</span><a href="Cooked.Tweak.Common.html#putTxSkel"><span class="hs-identifier hs-var">putTxSkel</span></a></span><span>
+</span><span id="line-76"></span></pre></body></html>

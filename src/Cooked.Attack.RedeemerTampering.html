@@ -1,0 +1,592 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="annot"><span class="hs-comment">-- | This module provides an attack that modifies the redeemers of a 'TxSkel'.</span></span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.RedeemerTampering</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Tamper redeemer params</span></span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier">RedeemerTamperingParams</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#spendingRedeemerTamperingParams"><span class="hs-identifier">spendingRedeemerTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#mintingRedeemerTamperingParams"><span class="hs-identifier">mintingRedeemerTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#proposingRedeemerTamperingParams"><span class="hs-identifier">proposingRedeemerTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#certifyingRedeemerTamperingParams"><span class="hs-identifier">certifyingRedeemerTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#withdrawingRedeemerTamperingParams"><span class="hs-identifier">withdrawingRedeemerTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#allRedeemerTamperingParams"><span class="hs-identifier">allRedeemerTamperingParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Tamper redeemer label</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingLabel"><span class="hs-identifier">RedeemerTamperingLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Tamper redeemer attack</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#redeemerTamperingAttack"><span class="hs-identifier">redeemerTamperingAttack</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy.NonDet</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which a tweak tampering a redeemer has been</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- applied. The label contains all the redeemer contents that have been</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- modified, before the modification was applied.</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">newtype</span><span> </span><span id="RedeemerTamperingLabel"><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingLabel"><span class="hs-identifier hs-var">RedeemerTamperingLabel</span></a></span></span><span> </span><span id="local-6989586621679887121"><span class="annot"><a href="#local-6989586621679887121"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="RedeemerTamperingLabel"><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingLabel"><span class="hs-identifier hs-var">RedeemerTamperingLabel</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887121"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679887135"><span id="local-6989586621679887141"><span id="local-6989586621679887145"><span class="annot"><span class="annottext">Int -&gt; RedeemerTamperingLabel a -&gt; ShowS
+[RedeemerTamperingLabel a] -&gt; ShowS
+RedeemerTamperingLabel a -&gt; String
+(Int -&gt; RedeemerTamperingLabel a -&gt; ShowS)
+-&gt; (RedeemerTamperingLabel a -&gt; String)
+-&gt; ([RedeemerTamperingLabel a] -&gt; ShowS)
+-&gt; Show (RedeemerTamperingLabel a)
+forall a. Show a =&gt; Int -&gt; RedeemerTamperingLabel a -&gt; ShowS
+forall a. Show a =&gt; [RedeemerTamperingLabel a] -&gt; ShowS
+forall a. Show a =&gt; RedeemerTamperingLabel a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; RedeemerTamperingLabel a -&gt; ShowS
+showsPrec :: Int -&gt; RedeemerTamperingLabel a -&gt; ShowS
+$cshow :: forall a. Show a =&gt; RedeemerTamperingLabel a -&gt; String
+show :: RedeemerTamperingLabel a -&gt; String
+$cshowList :: forall a. Show a =&gt; [RedeemerTamperingLabel a] -&gt; ShowS
+showList :: [RedeemerTamperingLabel a] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887150"><span id="local-6989586621679887155"><span class="annot"><span class="annottext">RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+(RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool)
+-&gt; (RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool)
+-&gt; Eq (RedeemerTamperingLabel a)
+forall a.
+Eq a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: forall a.
+Eq a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+== :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+$c/= :: forall a.
+Eq a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+/= :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887165"><span id="local-6989586621679887170"><span id="local-6989586621679887174"><span id="local-6989586621679887178"><span id="local-6989586621679887182"><span id="local-6989586621679887186"><span id="local-6989586621679887190"><span class="annot"><span class="annottext">Eq (RedeemerTamperingLabel a)
+Eq (RedeemerTamperingLabel a) =&gt;
+(RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Ordering)
+-&gt; (RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool)
+-&gt; (RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool)
+-&gt; (RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool)
+-&gt; (RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool)
+-&gt; (RedeemerTamperingLabel a
+    -&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a)
+-&gt; (RedeemerTamperingLabel a
+    -&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a)
+-&gt; Ord (RedeemerTamperingLabel a)
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Ordering
+RedeemerTamperingLabel a
+-&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (RedeemerTamperingLabel a)
+forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Ordering
+forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a
+-&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a
+$ccompare :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Ordering
+compare :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Ordering
+$c&lt; :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+&lt; :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+$c&lt;= :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+&lt;= :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+$c&gt; :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+&gt; :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+$c&gt;= :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+&gt;= :: RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a -&gt; Bool
+$cmax :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a
+-&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a
+max :: RedeemerTamperingLabel a
+-&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a
+$cmin :: forall a.
+Ord a =&gt;
+RedeemerTamperingLabel a
+-&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a
+min :: RedeemerTamperingLabel a
+-&gt; RedeemerTamperingLabel a -&gt; RedeemerTamperingLabel a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679886954"><span id="local-6989586621679887199"><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886954"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingLabel"><span class="hs-identifier hs-type">RedeemerTamperingLabel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886954"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679887208"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; RedeemerTamperingLabel a -&gt; DocCooked
+</span><a href="#local-6989586621679887208"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679887210"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679887210"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingLabel"><span class="hs-identifier hs-type">RedeemerTamperingLabel</span></a></span><span> </span><span id="local-6989586621679887211"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679887211"><span class="hs-identifier hs-var">reds</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-36"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; DocCooked -&gt; DocCooked -&gt; [a] -&gt; DocCooked
+forall a.
+PrettyCookedList a =&gt;
+PrettyCookedOpts -&gt; DocCooked -&gt; DocCooked -&gt; a -&gt; DocCooked
+</span><a href="Cooked.Pretty.Class.html#prettyItemize"><span class="hs-identifier hs-var">prettyItemize</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679887210"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-string">&quot;Tamper Redeemers&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679887211"><span class="hs-identifier hs-var">reds</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="annot"><span class="hs-comment">-- | Parameters of the tamper redeemer attack</span></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="RedeemerTamperingParams"><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679886962"><span class="annot"><a href="#local-6989586621679886962"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679886963"><span class="annot"><a href="#local-6989586621679886963"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679886964"><span class="annot"><a href="#local-6989586621679886964"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621679886965"><span class="annot"><a href="#local-6989586621679886965"><span class="hs-identifier hs-type">k</span></a></span></span><span> </span><span id="local-6989586621679886966"><span class="annot"><a href="#local-6989586621679886966"><span class="hs-identifier hs-type">is</span></a></span></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="RedeemerTamperingParams"><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | The branching policy to use when several redeemers are targeted</span></span><span>
+</span><span id="line-42"></span><span>    </span><span id="rtpBranching"><span class="annot"><span class="annottext">forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is -&gt; Branching
+</span><a href="Cooked.Attack.RedeemerTampering.html#rtpBranching"><span class="hs-identifier hs-var hs-var">rtpBranching</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-43"></span><span>    </span><span class="annot"><span class="hs-comment">-- | The optic to use to select eligible 'TxSkelRedeemer'</span></span><span>
+</span><span id="line-44"></span><span>    </span><span id="rtpOptic"><span class="annot"><span class="annottext">forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+</span><a href="Cooked.Attack.RedeemerTampering.html#rtpOptic"><span class="hs-identifier hs-var hs-var">rtpOptic</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679886965"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886966"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="hs-comment">-- | The modification to apply on targeted redeemers of type @a@</span></span><span>
+</span><span id="line-46"></span><span>    </span><span id="rtpModification"><span class="annot"><span class="annottext">forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is -&gt; a -&gt; f b
+</span><a href="Cooked.Attack.RedeemerTampering.html#rtpModification"><span class="hs-identifier hs-var hs-var">rtpModification</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679886962"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886964"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886963"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="hs-comment">-- | The selection function based on the targeted redeemers indexes</span></span><span>
+</span><span id="line-48"></span><span>    </span><span id="rtpIndexPred"><span class="annot"><span class="annottext">forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is -&gt; Int -&gt; Bool
+</span><a href="Cooked.Attack.RedeemerTampering.html#rtpIndexPred"><span class="hs-identifier hs-var hs-var">rtpIndexPred</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- | A tamper redeemer params to apply a modification to all spending redeemers</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- of type @a@.</span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#spendingRedeemerTamperingParams"><span class="hs-identifier hs-type">spendingRedeemerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679886997"><span class="annot"><a href="#local-6989586621679886997"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679886999"><span class="annot"><a href="#local-6989586621679886999"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679886998"><span class="annot"><a href="#local-6989586621679886998"><span class="hs-identifier hs-type">f</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679886997"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679886998"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886999"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886997"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886999"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679886998"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span><span>
+</span><span id="line-58"></span><span id="spendingRedeemerTamperingParams"><span class="annot"><span class="annottext">spendingRedeemerTamperingParams :: forall {k} a (b :: k) (f :: k -&gt; *).
+Branching
+-&gt; (a -&gt; f b) -&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+</span><a href="Cooked.Attack.RedeemerTampering.html#spendingRedeemerTamperingParams"><span class="hs-identifier hs-var hs-var">spendingRedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887219"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887219"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span id="local-6989586621679887220"><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887220"><span class="hs-identifier hs-var">mChange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-59"></span><span>  </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f k is
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887219"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+</span><a href="Cooked.Skeleton.html#txSkelSpendingRedeemersT"><span class="hs-identifier hs-var">txSkelSpendingRedeemersT</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887220"><span class="hs-identifier hs-var">mChange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Int -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | A tamper redeemer params to apply a modification to all minting redeemers</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- of type @a@.</span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#mintingRedeemerTamperingParams"><span class="hs-identifier hs-type">mintingRedeemerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887223"><span class="annot"><a href="#local-6989586621679887223"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679887224"><span class="annot"><a href="#local-6989586621679887224"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679887225"><span class="annot"><a href="#local-6989586621679887225"><span class="hs-identifier hs-type">f</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679887223"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679887225"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887224"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887223"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887224"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887225"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span><span>
+</span><span id="line-68"></span><span id="mintingRedeemerTamperingParams"><span class="annot"><span class="annottext">mintingRedeemerTamperingParams :: forall {k} a (b :: k) (f :: k -&gt; *).
+Branching
+-&gt; (a -&gt; f b) -&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+</span><a href="Cooked.Attack.RedeemerTampering.html#mintingRedeemerTamperingParams"><span class="hs-identifier hs-var hs-var">mintingRedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887232"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887232"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span id="local-6989586621679887233"><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887233"><span class="hs-identifier hs-var">mChange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f k is
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887232"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsScript 'Redemption)
+</span><a href="Cooked.Skeleton.html#txSkelMintingRedeemedScriptsT"><span class="hs-identifier hs-var">txSkelMintingRedeemedScriptsT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsScript 'Redemption)
+-&gt; Optic
+     A_Lens
+     NoIx
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+     TxSkelRedeemer
+     TxSkelRedeemer
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+  TxSkelRedeemer
+  TxSkelRedeemer
+</span><a href="Cooked.Skeleton.User.html#userRedeemerL"><span class="hs-identifier hs-var">userRedeemerL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887233"><span class="hs-identifier hs-var">mChange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Int -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- | A tamper redeemer params to apply a modification to all proposing redeemers</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- of type @a@.</span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#proposingRedeemerTamperingParams"><span class="hs-identifier hs-type">proposingRedeemerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887237"><span class="annot"><a href="#local-6989586621679887237"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679887238"><span class="annot"><a href="#local-6989586621679887238"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679887239"><span class="annot"><a href="#local-6989586621679887239"><span class="hs-identifier hs-type">f</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679887237"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679887239"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887238"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887237"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887238"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887239"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span><span>
+</span><span id="line-78"></span><span id="proposingRedeemerTamperingParams"><span class="annot"><span class="annottext">proposingRedeemerTamperingParams :: forall {k} a (b :: k) (f :: k -&gt; *).
+Branching
+-&gt; (a -&gt; f b) -&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+</span><a href="Cooked.Attack.RedeemerTampering.html#proposingRedeemerTamperingParams"><span class="hs-identifier hs-var hs-var">proposingRedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887244"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887244"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span id="local-6989586621679887245"><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887245"><span class="hs-identifier hs-var">mChange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f k is
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887244"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsScript 'Redemption)
+</span><a href="Cooked.Skeleton.html#txSkelProposingRedeemedScriptsT"><span class="hs-identifier hs-var">txSkelProposingRedeemedScriptsT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsScript 'Redemption)
+-&gt; Optic
+     A_Lens
+     NoIx
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+     TxSkelRedeemer
+     TxSkelRedeemer
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+  TxSkelRedeemer
+  TxSkelRedeemer
+</span><a href="Cooked.Skeleton.User.html#userRedeemerL"><span class="hs-identifier hs-var">userRedeemerL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887245"><span class="hs-identifier hs-var">mChange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Int -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- | A tamper redeemer params to apply a modification to all withdrawing redeemers</span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- of type @a@.</span><span>
+</span><span id="line-83"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#withdrawingRedeemerTamperingParams"><span class="hs-identifier hs-type">withdrawingRedeemerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887247"><span class="annot"><a href="#local-6989586621679887247"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679887248"><span class="annot"><a href="#local-6989586621679887248"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679887249"><span class="annot"><a href="#local-6989586621679887249"><span class="hs-identifier hs-type">f</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-85"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679887247"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679887249"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887248"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-87"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887247"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887248"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887249"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span><span>
+</span><span id="line-88"></span><span id="withdrawingRedeemerTamperingParams"><span class="annot"><span class="annottext">withdrawingRedeemerTamperingParams :: forall {k} a (b :: k) (f :: k -&gt; *).
+Branching
+-&gt; (a -&gt; f b) -&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+</span><a href="Cooked.Attack.RedeemerTampering.html#withdrawingRedeemerTamperingParams"><span class="hs-identifier hs-var hs-var">withdrawingRedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887260"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887260"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span id="local-6989586621679887261"><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887261"><span class="hs-identifier hs-var">mChange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-89"></span><span>  </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f k is
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887260"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsEither 'Redemption)
+</span><a href="Cooked.Skeleton.html#txSkelWithdrawingRedeemedUsersT"><span class="hs-identifier hs-var">txSkelWithdrawingRedeemedUsersT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsEither 'Redemption)
+-&gt; Optic
+     A_Prism
+     NoIx
+     (User 'IsEither 'Redemption)
+     (User 'IsEither 'Redemption)
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+-&gt; Traversal' TxSkel (User 'IsScript 'Redemption)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Prism
+  NoIx
+  (User 'IsEither 'Redemption)
+  (User 'IsEither 'Redemption)
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+forall (mode :: UserMode).
+Prism' (User 'IsEither mode) (User 'IsScript mode)
+</span><a href="Cooked.Skeleton.User.html#userEitherScriptP"><span class="hs-identifier hs-var">userEitherScriptP</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsScript 'Redemption)
+-&gt; Optic
+     A_Lens
+     NoIx
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+     TxSkelRedeemer
+     TxSkelRedeemer
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+  TxSkelRedeemer
+  TxSkelRedeemer
+</span><a href="Cooked.Skeleton.User.html#userRedeemerL"><span class="hs-identifier hs-var">userRedeemerL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887261"><span class="hs-identifier hs-var">mChange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Int -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- | A tamper redeemer params to apply a modification to all certifying redeemers</span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- of type @a@.</span><span>
+</span><span id="line-93"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#certifyingRedeemerTamperingParams"><span class="hs-identifier hs-type">certifyingRedeemerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887264"><span class="annot"><a href="#local-6989586621679887264"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679887265"><span class="annot"><a href="#local-6989586621679887265"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679887266"><span class="annot"><a href="#local-6989586621679887266"><span class="hs-identifier hs-type">f</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679887264"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679887266"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887265"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-97"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887264"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887265"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887266"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span><span>
+</span><span id="line-98"></span><span id="certifyingRedeemerTamperingParams"><span class="annot"><span class="annottext">certifyingRedeemerTamperingParams :: forall {k} a (b :: k) (f :: k -&gt; *).
+Branching
+-&gt; (a -&gt; f b) -&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+</span><a href="Cooked.Attack.RedeemerTampering.html#certifyingRedeemerTamperingParams"><span class="hs-identifier hs-var hs-var">certifyingRedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887276"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887276"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span id="local-6989586621679887277"><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887277"><span class="hs-identifier hs-var">mChange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-99"></span><span>  </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f k is
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887276"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsEither 'Redemption)
+forall (user :: UserKind).
+Typeable user =&gt;
+Traversal' TxSkel (User user 'Redemption)
+</span><a href="Cooked.Skeleton.html#txSkelCertifyingRedeemedUsersT"><span class="hs-identifier hs-var">txSkelCertifyingRedeemedUsersT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsEither 'Redemption)
+-&gt; Optic
+     A_Prism
+     NoIx
+     (User 'IsEither 'Redemption)
+     (User 'IsEither 'Redemption)
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+-&gt; Traversal' TxSkel (User 'IsScript 'Redemption)
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Prism
+  NoIx
+  (User 'IsEither 'Redemption)
+  (User 'IsEither 'Redemption)
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+forall (mode :: UserMode).
+Prism' (User 'IsEither mode) (User 'IsScript mode)
+</span><a href="Cooked.Skeleton.User.html#userEitherScriptP"><span class="hs-identifier hs-var">userEitherScriptP</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsScript 'Redemption)
+-&gt; Optic
+     A_Lens
+     NoIx
+     (User 'IsScript 'Redemption)
+     (User 'IsScript 'Redemption)
+     TxSkelRedeemer
+     TxSkelRedeemer
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (User 'IsScript 'Redemption)
+  (User 'IsScript 'Redemption)
+  TxSkelRedeemer
+  TxSkelRedeemer
+</span><a href="Cooked.Skeleton.User.html#userRedeemerL"><span class="hs-identifier hs-var">userRedeemerL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887277"><span class="hs-identifier hs-var">mChange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Int -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- | A tamper redeemer params to apply a modification to all redeemers of type</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- @a@.</span><span>
+</span><span id="line-103"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#allRedeemerTamperingParams"><span class="hs-identifier hs-type">allRedeemerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887279"><span class="annot"><a href="#local-6989586621679887279"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679887280"><span class="annot"><a href="#local-6989586621679887280"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679887281"><span class="annot"><a href="#local-6989586621679887281"><span class="hs-identifier hs-type">f</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679887279"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679887281"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887280"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-107"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887279"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887280"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887281"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoIx</span></span><span>
+</span><span id="line-108"></span><span id="allRedeemerTamperingParams"><span class="annot"><span class="annottext">allRedeemerTamperingParams :: forall {k} a (b :: k) (f :: k -&gt; *).
+Branching
+-&gt; (a -&gt; f b) -&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+</span><a href="Cooked.Attack.RedeemerTampering.html#allRedeemerTamperingParams"><span class="hs-identifier hs-var hs-var">allRedeemerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887282"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887282"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span id="local-6989586621679887283"><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887283"><span class="hs-identifier hs-var">mChange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-109"></span><span>  </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f A_Traversal NoIx
+forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; RedeemerTamperingParams a b f k is
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-var">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887282"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel TxSkelRedeemer
+</span><a href="Cooked.Skeleton.html#txSkelRedeemersT"><span class="hs-identifier hs-var">txSkelRedeemersT</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887283"><span class="hs-identifier hs-var">mChange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Int -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- | Applies a modification to all redeemers of type @a@ focused by a</span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- given optic. Returns the list of modified redeemers, as they were before</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- being modified.</span><span>
+</span><span id="line-114"></span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#redeemerTamperingAttack"><span class="hs-identifier hs-type">redeemerTamperingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887062"><span class="annot"><a href="#local-6989586621679887062"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679887064"><span class="annot"><a href="#local-6989586621679887064"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span id="local-6989586621679887065"><span class="annot"><a href="#local-6989586621679887065"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621679887067"><span class="annot"><a href="#local-6989586621679887067"><span class="hs-identifier hs-type">k</span></a></span></span><span> </span><span id="local-6989586621679887073"><span class="annot"><a href="#local-6989586621679887073"><span class="hs-identifier hs-type">is</span></a></span></span><span> </span><span id="local-6989586621679887071"><span class="annot"><a href="#local-6989586621679887071"><span class="hs-identifier hs-type">effs</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#RedeemerConstrs"><span class="hs-identifier hs-type">RedeemerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887062"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-117"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679887062"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><a href="Cooked.Skeleton.Redeemer.html#RedeemerConstrs"><span class="hs-identifier hs-type">RedeemerConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887064"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-119"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Foldable</span></span><span> </span><span class="annot"><a href="#local-6989586621679887065"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Alternative</span></span><span> </span><span class="annot"><a href="#local-6989586621679887065"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-121"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679887067"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">,</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679887071"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887062"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887064"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887065"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887067"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887073"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-125"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679887071"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887062"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-126"></span><span id="redeemerTamperingAttack"><span class="annot"><span class="annottext">redeemerTamperingAttack :: forall a b (f :: * -&gt; *) k (is :: IxList) (effs :: EffectRow).
+(RedeemerConstrs a, Ord a, RedeemerConstrs b, Foldable f,
+ Alternative f, Is k A_Traversal, Members '[NonDet, Tweak] effs) =&gt;
+RedeemerTamperingParams a b f k is -&gt; Sem effs [a]
+</span><a href="Cooked.Attack.RedeemerTampering.html#redeemerTamperingAttack"><span class="hs-identifier hs-var hs-var">redeemerTamperingAttack</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingParams"><span class="hs-identifier hs-type">RedeemerTamperingParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679887327"><span id="local-6989586621679887328"><span id="local-6989586621679887329"><span id="local-6989586621679887330"><span class="annot"><span class="annottext">Optic' k is TxSkel TxSkelRedeemer
+Branching
+a -&gt; f b
+Int -&gt; Bool
+rtpBranching :: forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is -&gt; Branching
+rtpOptic :: forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+rtpModification :: forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is -&gt; a -&gt; f b
+rtpIndexPred :: forall {k} a (b :: k) (f :: k -&gt; *) k (is :: IxList).
+RedeemerTamperingParams a b f k is -&gt; Int -&gt; Bool
+rtpBranching :: Branching
+rtpOptic :: Optic' k is TxSkel TxSkelRedeemer
+rtpModification :: a -&gt; f b
+rtpIndexPred :: Int -&gt; Bool
+</span><a href="Cooked.Attack.RedeemerTampering.html#rtpBranching"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-127"></span><span>  </span><span id="local-6989586621679887331"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679887331"><span class="hs-identifier hs-var">modified</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-128"></span><span>    </span><span class="annot"><span class="annottext">ModifyTweakParams k An_AffineTraversal is NoIx f TxSkelRedeemer a b
+-&gt; Sem effs [a]
+forall (effs :: EffectRow) k k' (f :: * -&gt; *) (is :: IxList)
+       (is' :: IxList) a b c.
+(Members '[Tweak, NonDet] effs, Is k A_Traversal,
+ Is k' An_AffineTraversal, Foldable f, Alternative f) =&gt;
+ModifyTweakParams k k' is is' f a b c -&gt; Sem effs [b]
+</span><a href="Cooked.Tweak.Modify.html#modifyTweakFromParams"><span class="hs-identifier hs-var">modifyTweakFromParams</span></a></span><span> </span><span class="annot"><span class="annottext">(ModifyTweakParams
+   k An_AffineTraversal is NoIx f TxSkelRedeemer a b
+ -&gt; Sem effs [a])
+-&gt; ModifyTweakParams
+     k An_AffineTraversal is NoIx f TxSkelRedeemer a b
+-&gt; Sem effs [a]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-129"></span><span>      </span><span class="annot"><span class="annottext">Branching
+-&gt; Optic' k is TxSkel TxSkelRedeemer
+-&gt; Optic An_AffineTraversal NoIx TxSkelRedeemer TxSkelRedeemer a b
+-&gt; (a -&gt; f b)
+-&gt; (Int -&gt; Bool)
+-&gt; ModifyTweakParams
+     k An_AffineTraversal is NoIx f TxSkelRedeemer a b
+forall k (is :: IxList) a k' (is' :: IxList) b c (f :: * -&gt; *).
+Branching
+-&gt; Optic' k is TxSkel a
+-&gt; Optic k' is' a a b c
+-&gt; (b -&gt; f c)
+-&gt; (Int -&gt; Bool)
+-&gt; ModifyTweakParams k k' is is' f a b c
+</span><a href="Cooked.Tweak.Modify.html#ModifyTweakParams"><span class="hs-identifier hs-var">ModifyTweakParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887327"><span class="hs-identifier hs-var">rtpBranching</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel TxSkelRedeemer
+</span><a href="#local-6989586621679887328"><span class="hs-identifier hs-var">rtpOptic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic An_AffineTraversal NoIx TxSkelRedeemer TxSkelRedeemer a b
+forall a b.
+(RedeemerConstrs a, RedeemerConstrs b) =&gt;
+AffineTraversal TxSkelRedeemer TxSkelRedeemer a b
+</span><a href="Cooked.Skeleton.Redeemer.html#txSkelRedeemerTypedAT"><span class="hs-identifier hs-var">txSkelRedeemerTypedAT</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f b
+</span><a href="#local-6989586621679887329"><span class="hs-identifier hs-var">rtpModification</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679887330"><span class="hs-identifier hs-var">rtpIndexPred</span></a></span><span>
+</span><span id="line-130"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
+-&gt; TxSkelLabel -&gt; Sem effs ()
+forall (effs :: EffectRow) k a (is :: IxList).
+(Members '[Tweak, NonDet] effs, Is k A_Traversal, Ord a) =&gt;
+Optic' k is TxSkel (Set a) -&gt; a -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Insert.html#insertInTweak"><span class="hs-identifier hs-var">insertInTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
+</span><a href="Cooked.Skeleton.html#txSkelLabelsL"><span class="hs-identifier hs-var">txSkelLabelsL</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelLabel -&gt; Sem effs ()) -&gt; TxSkelLabel -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">RedeemerTamperingLabel a -&gt; TxSkelLabel
+forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
+</span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(RedeemerTamperingLabel a -&gt; TxSkelLabel)
+-&gt; RedeemerTamperingLabel a -&gt; TxSkelLabel
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; RedeemerTamperingLabel a
+forall a. [a] -&gt; RedeemerTamperingLabel a
+</span><a href="Cooked.Attack.RedeemerTampering.html#RedeemerTamperingLabel"><span class="hs-identifier hs-var">RedeemerTamperingLabel</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679887331"><span class="hs-identifier hs-var">modified</span></a></span><span>
+</span><span id="line-131"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Sem effs [a]
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679887331"><span class="hs-identifier hs-var">modified</span></a></span><span>
+</span><span id="line-132"></span></pre></body></html>
