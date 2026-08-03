@@ -1,10 +1,10 @@
 -- | This module exposes the generation of transaction inputs
-module Cooked.MockChain.GenerateTx.Input (toTxInAndWitness) where
+module Cooked.MockChain.Automation.GenerateTx.Input (toTxInAndWitness) where
 
 import Cardano.Api qualified as Cardano
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.Read
+import Cooked.MockChain.Automation.GenerateTx.Witness
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api

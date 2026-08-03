@@ -5,8 +5,8 @@
 -- adjustment automatically done by \cooked-validators\ during the transaction
 -- processing phase. This effect is typically not available to users, and should
 -- solely be used to track internal events. To trace additional elements from a
--- user's perspective, use `Cooked.MockChain.Misc.note` instead.
-module Cooked.MockChain.Log
+-- user's perspective, use `Cooked.MockChain.Effect.Misc.note` instead.
+module Cooked.MockChain.Effect.Log
   ( -- * Logging events
     MockChainLogEntry (..),
 

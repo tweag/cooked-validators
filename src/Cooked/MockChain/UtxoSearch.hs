@@ -45,7 +45,7 @@ where
 import Control.Monad (filterM, forM)
 import Cooked.Families hiding (Member)
 import Cooked.MockChain.Common
-import Cooked.MockChain.Read
+import Cooked.MockChain.Effect.Read
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value

@@ -2,7 +2,7 @@
 
 -- | This module exposes primitives to update the current state of the
 -- blockchain, including by sending transactions for validation.
-module Cooked.MockChain.Write
+module Cooked.MockChain.Effect.Write
   ( -- * The `MockChainWrite` effect
     MockChainWrite (..),
     runMockChainWrite,
@@ -32,15 +32,18 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad
-import Cooked.MockChain.AutoFilling
-import Cooked.MockChain.Balancing
+import Cooked.MockChain.Automation.AutoFilling.Constitution
+import Cooked.MockChain.Automation.AutoFilling.MinAda
+import Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
+import Cooked.MockChain.Automation.AutoFilling.Withdrawals
+import Cooked.MockChain.Automation.Balancing
+import Cooked.MockChain.Automation.GenerateTx.Body
+import Cooked.MockChain.Automation.GenerateTx.Output
 import Cooked.MockChain.Common
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Body
-import Cooked.MockChain.GenerateTx.Output
-import Cooked.MockChain.Log
-import Cooked.MockChain.Read
-import Cooked.MockChain.State
+import Cooked.MockChain.Effect.Log
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
+import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Query

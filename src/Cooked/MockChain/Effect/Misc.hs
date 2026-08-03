@@ -2,7 +2,7 @@
 
 -- | This module defines primitives that offer quality of life features when
 -- operating a mockchain without interacting with the mockchain state itself.
-module Cooked.MockChain.Misc
+module Cooked.MockChain.Effect.Misc
   ( -- * Misc effect
     MockChainMisc (..),
     runMockChainMisc,

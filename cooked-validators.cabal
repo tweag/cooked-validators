@@ -5,7 +5,7 @@ cabal-version: 3.4
 -- see: https://github.com/sol/hpack
 
 name:           cooked-validators
-version:        9.0.0
+version:        10.0.0
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
@@ -24,33 +24,36 @@ library
       Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
-      Cooked.MockChain.AutoFilling
-      Cooked.MockChain.Balancing
+      Cooked.MockChain.Automation.AutoFilling.Constitution
+      Cooked.MockChain.Automation.AutoFilling.MinAda
+      Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
+      Cooked.MockChain.Automation.AutoFilling.Withdrawals
+      Cooked.MockChain.Automation.Balancing
+      Cooked.MockChain.Automation.GenerateTx.Anchor
+      Cooked.MockChain.Automation.GenerateTx.Body
+      Cooked.MockChain.Automation.GenerateTx.Certificate
+      Cooked.MockChain.Automation.GenerateTx.Collateral
+      Cooked.MockChain.Automation.GenerateTx.Credential
+      Cooked.MockChain.Automation.GenerateTx.Input
+      Cooked.MockChain.Automation.GenerateTx.Mint
+      Cooked.MockChain.Automation.GenerateTx.Output
+      Cooked.MockChain.Automation.GenerateTx.Proposal
+      Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
+      Cooked.MockChain.Automation.GenerateTx.Withdrawals
+      Cooked.MockChain.Automation.GenerateTx.Witness
       Cooked.MockChain.Common
-      Cooked.MockChain.Error
-      Cooked.MockChain.GenerateTx.Anchor
-      Cooked.MockChain.GenerateTx.Body
-      Cooked.MockChain.GenerateTx.Certificate
-      Cooked.MockChain.GenerateTx.Collateral
-      Cooked.MockChain.GenerateTx.Credential
-      Cooked.MockChain.GenerateTx.Input
-      Cooked.MockChain.GenerateTx.Mint
-      Cooked.MockChain.GenerateTx.Output
-      Cooked.MockChain.GenerateTx.Proposal
-      Cooked.MockChain.GenerateTx.ReferenceInputs
-      Cooked.MockChain.GenerateTx.Withdrawals
-      Cooked.MockChain.GenerateTx.Witness
-      Cooked.MockChain.Instances
-      Cooked.MockChain.Journal
-      Cooked.MockChain.Log
-      Cooked.MockChain.Misc
-      Cooked.MockChain.Read
-      Cooked.MockChain.Runnable
-      Cooked.MockChain.State
+      Cooked.MockChain.Effect.Log
+      Cooked.MockChain.Effect.Misc
+      Cooked.MockChain.Effect.Read
+      Cooked.MockChain.Effect.Write
+      Cooked.MockChain.Run.Instances
+      Cooked.MockChain.Run.Runnable
+      Cooked.MockChain.Run.Tweak
+      Cooked.MockChain.Runtime.Error
+      Cooked.MockChain.Runtime.Journal
+      Cooked.MockChain.Runtime.State
       Cooked.MockChain.Testing
-      Cooked.MockChain.Tweak
       Cooked.MockChain.UtxoSearch
-      Cooked.MockChain.Write
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable
@@ -117,7 +120,7 @@ library
       TypeFamilies
       TypeOperators
       ViewPatterns
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin=Polysemy.Plugin -Wmissing-export-lists
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -147,8 +150,6 @@ library
     , polysemy
     , polysemy-plugin
     , prettyprinter
-    , random
-    , random-shuffle
     , tasty
     , tasty-hunit
     , tasty-quickcheck

@@ -1,11 +1,11 @@
 -- | This module exposes the generation of a transaction minted value
-module Cooked.MockChain.GenerateTx.Mint (toMintValue) where
+module Cooked.MockChain.Automation.GenerateTx.Mint (toMintValue) where
 
 import Cardano.Api qualified as Cardano
 import Control.Monad
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Witness
-import Cooked.MockChain.Read
+import Cooked.MockChain.Automation.GenerateTx.Witness
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton.Mint
 import Cooked.Skeleton.User
 import Data.Map qualified as Map

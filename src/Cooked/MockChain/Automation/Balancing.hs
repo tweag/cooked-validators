@@ -1,7 +1,7 @@
 -- | This module handles auto-balancing of transaction skeleton. This includes
 -- computation of fees and collaterals because their computation cannot be
 -- separated from the balancing.
-module Cooked.MockChain.Balancing
+module Cooked.MockChain.Automation.Balancing
   ( Body,
     ExtendedTxSkel (..),
     balanceTxSkel,
@@ -16,13 +16,13 @@ import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.AutoFilling
+import Cooked.MockChain.Automation.AutoFilling.MinAda
+import Cooked.MockChain.Automation.GenerateTx.Body
+import Cooked.MockChain.Automation.GenerateTx.Output
 import Cooked.MockChain.Common
-import Cooked.MockChain.Error
-import Cooked.MockChain.GenerateTx.Body
-import Cooked.MockChain.GenerateTx.Output
-import Cooked.MockChain.Log
-import Cooked.MockChain.Read
+import Cooked.MockChain.Effect.Log
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Data.ByteString qualified as BS

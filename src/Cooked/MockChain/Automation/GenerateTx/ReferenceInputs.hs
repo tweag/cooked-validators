@@ -1,8 +1,8 @@
 -- | This module allows the generation of Cardano reference inputs
-module Cooked.MockChain.GenerateTx.ReferenceInputs (toInsReference) where
+module Cooked.MockChain.Automation.GenerateTx.ReferenceInputs (toInsReference) where
 
 import Cardano.Api qualified as Cardano
-import Cooked.MockChain.Read
+import Cooked.MockChain.Effect.Read
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Set qualified as Set

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module provides 'PrettyCooked' instances of plutus types
-module Cooked.Pretty.Plutus where
+module Cooked.Pretty.Plutus () where
 
 import Cooked.Pretty.Class
 import Ledger.Index qualified as P.Ledger

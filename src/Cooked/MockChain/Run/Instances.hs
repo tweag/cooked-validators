@@ -21,7 +21,7 @@
 --   including intermediate hidden in the other instances. This should only be
 --   used when explicitly executing internal primitives of cooked, such as
 --   balancing, is required.
-module Cooked.MockChain.Instances
+module Cooked.MockChain.Run.Instances
   ( -- * Direct, simple mockchain instance
     DirectEffs,
     DirectMockChain,
@@ -48,15 +48,15 @@ module Cooked.MockChain.Instances
 where
 
 import Cooked.Ltl
-import Cooked.MockChain.Error
-import Cooked.MockChain.Journal
-import Cooked.MockChain.Log
-import Cooked.MockChain.Misc
-import Cooked.MockChain.Read
-import Cooked.MockChain.Runnable
-import Cooked.MockChain.State
-import Cooked.MockChain.Tweak
-import Cooked.MockChain.Write
+import Cooked.MockChain.Effect.Log
+import Cooked.MockChain.Effect.Misc
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Write
+import Cooked.MockChain.Run.Runnable
+import Cooked.MockChain.Run.Tweak
+import Cooked.MockChain.Runtime.Error
+import Cooked.MockChain.Runtime.Journal
+import Cooked.MockChain.Runtime.State
 import Ledger.Tx qualified as P.Ledger
 import Polysemy
 import Polysemy.Bundle

@@ -1,13 +1,13 @@
 -- | This module exposes the generation of key and script witnesses
-module Cooked.MockChain.GenerateTx.Witness
+module Cooked.MockChain.Automation.GenerateTx.Witness
   ( toScriptWitness,
     toKeyWitness,
   )
 where
 
 import Cardano.Api qualified as Cardano
-import Cooked.MockChain.Error
-import Cooked.MockChain.Read
+import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
 import Ledger.Address qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
