@@ -7,14 +7,47 @@
 - New `traverseTweak` primitive, the effectful sibling of `overTweak`: it
   modifies every focus of an optic on the current `TxSkel` using a function
   running in the tweak's effect stack.
+- The tweak DSL was split into focused modules: `Guard`, `Insert`, `Modify`,
+  `Query`, `Remove`, and `Update`, all re-exported from `Cooked.Tweak`.
+- New modification engine in `Cooked.Tweak.Modify`: `modifyTweak`, the general
+  branching tweak that selectively and systematically modifies foci of the same
+  nature within a `TxSkel`, and `modifyTweakFromParams`, driven by a
+  `ModifyTweakParams` record and a `Branching` strategy (`OneBranchForAllFoci`,
+  `OneBranchPerFoci`, `OneBranchPerSubset`, `Manual`). It comes with the
+  convenience builders `modifyTweakParamsAllIndexes`,
+  `modifyTweakParamsNoTypeChange`, `modifyTweakParamsOneBranchForAllFoci`,
+  `modifyTweakParamsOneBranchPerFoci` and `modifyTweakParamsOneBranchPerSubset`,
+  and the `selectP` optic helper for predicate-based selection.
 - New `withReferenceInput` helper to attach a reference input to a
   `TxSkelRedeemer`, replacing the more verbose
   `set txSkelRedeemerMReferenceInputL (Just …)` idiom.
-
-### Removed
+- New `txSkelRedeemersT` traversal, exported from `Cooked.Skeleton`, focusing
+  every `TxSkelRedeemer` of a `TxSkel` across all five redeemer positions.
+- New `txSkelRedeemedScriptsT` traversal, exported from `Cooked.Skeleton`,
+  focusing every script redeemed directly within a `TxSkel` (minting,
+  proposing, withdrawing and certifying; the spending position is excluded as
+  its scripts come from the index, not the skeleton).
+- New `Cooked.Skeleton.ValidityRange` helpers expose the validity range and its
+  redeemed users/scripts through dedicated traversals.
+- The attack framework has been improved, homogenized, and extended with new
+  attacks, now exposed through focused modules re-exported from the attack DSL.
+  It contains the following attacks: `DatumHijacking`, to redirect outputs to
+  attackers; `DatumTampering`, to selectively modify datums; `OutputsReordering`,
+  to selectively reorder outputs; `PeerTampering`, to change one user into
+  another everywhere in a transaction; `RedeemerTampering`, to selectively
+  modify redeemers; `TokenDuplication`, to modify minted values; and
+  `ValidityTampering`, to tamper on either, or both, bounds of the validity
+  interval of a transaction. This framework is underpinned by the modification
+  engine in `Cooked.Tweak.Modify`.
 
 ### Changed
 
+- Renamed `txSkelInsReferenceInRedeemers` to `txSkelReferenceInputsInRedeemers`.
+- Renamed `txSkelValueInOutputs` to `txSkelPaidValue`.
+- Renamed three `TxSkel` fields and their lenses for clarity: `txSkelIns` →
+  `txSkelInputs` (`txSkelInsL` → `txSkelInputsL`), `txSkelInsReference` →
+  `txSkelReferenceInputs` (`txSkelInsReferenceL` → `txSkelReferenceInputsL`),
+  and `txSkelOuts` → `txSkelOutputs` (`txSkelOutsL` → `txSkelOutputsL`).
 - Test coverage analysis is no longer enabled by default in `cabal.project`,
   so `cabal test` output is no longer cluttered with `Writing: ….html` lines.
   The `nix develop .#default` dev shell provides two commands to run the test
@@ -35,9 +68,40 @@
 - Building a `ParameterChange` governance action containing a `CostModels`
   parameter update now fails with an explicit `MCEUnsupportedFeature` error
   instead of silently ignoring the requested change.
+- Tweaks were homogenized for naming consistency. The predicate-based removal
+  tweaks were generalized into `Cooked.Tweak.Remove`: `removeInputTweak`,
+  `removeOutputTweak` and `removeMintTweak` are superseded by the collection-
+  generic `removeIfTweak` (lists), `removeAtPosTweak` (lists by position),
+  `removeAtTweak` (maps) and `removeInTweak` (sets).
+- The datum hijacking attack now stores the optic selecting eligible outputs in
+  its parameters: `DatumHijackingParams` gained a `dhpOptic` field and its
+  owner-computing field was renamed `dhpOutputPred` → `dhpNewOwner`, aligning it
+  with the other tampering attacks.
+
+### Removed
+
+- `overMaybeTweak`, `overMaybeSelectingTweak` and `combineModsTweak` are
+  replaced by the modification engine in `Cooked.Tweak.Modify` (`modifyTweak`
+  and `modifyTweakFromParams`, see Added).
+- The mint-adding tweaks `addMintsTweak`/`addMintTweak` and the redeemer tweak
+  `modifySpendRedeemersOfTypeTweak` were removed; adding mints is now done
+  through the generic insertion tweaks, and redeemer modification lives in the
+  `Cooked.Attack.RedeemerTampering` attack.
+- `Cooked.Attack.DoubleSat` was removed.
+- `Cooked.Tweak.Inputs`, `Cooked.Tweak.Labels`, `Cooked.Tweak.Mint`,
+  `Cooked.Tweak.OutPermutations`, `Cooked.Tweak.Outputs`,
+  `Cooked.Tweak.Signatories`, and `Cooked.Tweak.ValidityRange` were replaced by
+  the new focused tweak modules.
 
 ### Fixed
 
+- Certificate redeemers were silently ignored because certificate owners are
+  stored as `IsEither` whereas the code reaching them assumed `IsScript`. The
+  new `txSkelRedeemersT` traversal now covers all five redeemer positions,
+  including certifying ones, so `txSkelReferenceInputsInRedeemers` correctly
+  accounts for certificate redeemers.
+- `autoFillReferenceScripts` now also auto-fills reference scripts for
+  certifying redeemers, which it previously overlooked.
 - Pretty-printing a `TxSkel` with `pcOptPrintDefaultTxSkelOpts` enabled no longer
   crashes when `txSkelOptMaxNbOfBalancingUtxos` is left at its default (`Nothing`).
 - Transaction-generation failures while assigning execution units and while

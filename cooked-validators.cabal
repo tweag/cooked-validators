@@ -14,9 +14,13 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
-      Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
-      Cooked.Attack.DoubleSat
+      Cooked.Attack.DatumTampering
+      Cooked.Attack.OutputsReordering
+      Cooked.Attack.PeerTampering
+      Cooked.Attack.RedeemerTampering
+      Cooked.Attack.TokenDuplication
+      Cooked.Attack.ValidityTampering
       Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
@@ -67,17 +71,17 @@ library
       Cooked.Skeleton.Redeemer
       Cooked.Skeleton.Signatory
       Cooked.Skeleton.User
+      Cooked.Skeleton.ValidityRange
       Cooked.Skeleton.Value
       Cooked.Skeleton.Withdrawal
       Cooked.Tweak
       Cooked.Tweak.Common
-      Cooked.Tweak.Inputs
-      Cooked.Tweak.Labels
-      Cooked.Tweak.Mint
-      Cooked.Tweak.OutPermutations
-      Cooked.Tweak.Outputs
-      Cooked.Tweak.Signatories
-      Cooked.Tweak.ValidityRange
+      Cooked.Tweak.Guard
+      Cooked.Tweak.Insert
+      Cooked.Tweak.Modify
+      Cooked.Tweak.Query
+      Cooked.Tweak.Remove
+      Cooked.Tweak.Update
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators
@@ -135,6 +139,7 @@ library
     , optics-core
     , optics-th
     , ordered-containers
+    , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-script-utils
@@ -155,7 +160,6 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Plutus.Attack.DatumHijacking
-      Plutus.Attack.DoubleSat
       Plutus.Attack.DupToken
       Plutus.InlineDatums
       Plutus.MultiPurpose
@@ -165,8 +169,12 @@ test-suite spec
       Plutus.Withdrawals
       Spec.Attack
       Spec.Attack.DatumHijacking
-      Spec.Attack.DoubleSat
-      Spec.Attack.DupToken
+      Spec.Attack.DatumTampering
+      Spec.Attack.OutputsReordering
+      Spec.Attack.PeerTampering
+      Spec.Attack.RedeemerTampering
+      Spec.Attack.TokenDuplication
+      Spec.Attack.ValidityTampering
       Spec.Balancing
       Spec.BasicUsage
       Spec.Certificates
@@ -182,9 +190,6 @@ test-suite spec
       Spec.Tweak
       Spec.Tweak.Common
       Spec.Tweak.Labels
-      Spec.Tweak.OutPermutations
-      Spec.Tweak.TamperDatum
-      Spec.Tweak.ValidityRange
       Spec.Withdrawals
       Paths_cooked_validators
   autogen-modules:

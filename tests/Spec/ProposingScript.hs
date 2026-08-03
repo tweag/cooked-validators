@@ -25,7 +25,7 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
   setConstitutionScript constitution
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelOuts = [alice `receives` ReferenceScript constitution],
+      { txSkelOutputs = [alice `receives` ReferenceScript constitution],
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
   validateTxSkel_ $

@@ -42,7 +42,7 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
 - Compose and deploy tweaks on sequences of transactions using idioms inspired
   by linear temporal logic.
 - Deploy automated attacks on existing transaction sequences, such as datum
-  hijacking or double satisfaction attacks, to uncover vulnerabilities.
+  hijacking or outputs reordering attacks, to uncover vulnerabilities.
 - Express expected outcomes on the result of running a trace in a precise and
   declarative way, for example by:
     * specifying the expected number of outcomes in case branching occurred,
@@ -241,6 +241,10 @@ handling fees or balancing.
 
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
+
+- The [TWEAKS](doc/TWEAKS.md) file describes the conventions our tweaks (the
+  building blocks of the attack DSL) follow, regarding naming and branching
+  behavior.
 
 ## Blog posts
 

@@ -53,7 +53,7 @@ instance Ord TxSkelLabel where
       (compare b)
       (cast a)
 
--- | A prism to create a label and retrieve a typed content
+-- | Builds or retrieves the typed content of a 'TxSkelLabel'
 txSkelLabelTypedP :: (LabelConstrs a) => Prism' TxSkelLabel a
 txSkelLabelTypedP =
   prism

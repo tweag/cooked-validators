@@ -19,19 +19,20 @@ module Cooked.Skeleton.User
     -- * Optics
     userHashG,
     userCredentialG,
-    userTxSkelRedeemerAT,
+    userRedeemerAT,
     userVScriptAT,
     userScriptHashAF,
     userPubKeyHashAT,
     userPubKeyHashI,
     userVScriptL,
     userScriptHashG,
-    userTxSkelRedeemerL,
+    userRedeemerL,
     userEitherScriptP,
     userEitherPubKeyP,
     userTypedAF,
     userTypedScriptAT,
     userTypedPubKeyAT,
+    userScriptRedeemerI,
   )
 where
 
@@ -200,8 +201,8 @@ userCredentialG :: Getter (User kind mode) Api.Credential
 userCredentialG = to Script.toCredential
 
 -- | Focuses on the optional 'TxSkelRedeemer' of a 'User'
-userTxSkelRedeemerAT :: AffineTraversal' (User kind mode) TxSkelRedeemer
-userTxSkelRedeemerAT =
+userRedeemerAT :: AffineTraversal' (User kind mode) TxSkelRedeemer
+userRedeemerAT =
   atraversal
     ( \case
         UserRedeemedScript _ red -> Right red
@@ -269,8 +270,16 @@ userScriptHashG :: Getter (User IsScript mode) Api.ScriptHash
 userScriptHashG = userVScriptL % to Script.toScriptHash
 
 -- | Focuses on the 'TxSkelRedeemer' of a script being redeemed
-userTxSkelRedeemerL :: Lens' (User IsScript Redemption) TxSkelRedeemer
-userTxSkelRedeemerL =
+userRedeemerL :: Lens' (User IsScript Redemption) TxSkelRedeemer
+userRedeemerL =
   lens
     (\(UserRedeemedScript _ red) -> red)
     (\(UserRedeemedScript script _) -> UserRedeemedScript script)
+
+-- | An isomorphism between a @User IsScript Redemption@ and a pair of 'VScript'
+-- and 'TxSkelRedeemer'
+userScriptRedeemerI :: Iso' (User IsScript Redemption) (VScript, TxSkelRedeemer)
+userScriptRedeemerI =
+  iso
+    (\(UserRedeemedScript (toVScript -> vScript) red) -> (vScript, red))
+    (uncurry UserRedeemedScript)

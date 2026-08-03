@@ -18,7 +18,7 @@ trace1 = do
   (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts =
+        { txSkelOutputs =
             [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
               barTypedValidator `receives` Value (Script.ada 5)
             ],
@@ -26,9 +26,9 @@ trace1 = do
         }
   validateTxSkel_
     txSkelTemplate
-      { txSkelIns = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
-        txSkelInsReference = Set.singleton txOutRefFoo,
-        txSkelOuts = [wallet 4 `receives` Value (Script.ada 5)],
+      { txSkelInputs = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
+        txSkelReferenceInputs = Set.singleton txOutRefFoo,
+        txSkelOutputs = [wallet 4 `receives` Value (Script.ada 5)],
         txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
       }
 
@@ -37,7 +37,7 @@ trace2 = do
   (refORef, _) : (scriptORef, _) : _ <-
     validateTxSkel'
       ( txSkelTemplate
-          { txSkelOuts =
+          { txSkelOutputs =
               [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
                 bazTypedValidator `receives` Value (Script.ada 10)
               ],
@@ -47,8 +47,8 @@ trace2 = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
-        txSkelIns = Map.singleton scriptORef (someTxSkelRedeemer ()),
-        txSkelInsReference = Set.singleton refORef
+        txSkelInputs = Map.singleton scriptORef (someTxSkelRedeemer ()),
+        txSkelReferenceInputs = Set.singleton refORef
       }
 
 tests :: Tasty.TestTree

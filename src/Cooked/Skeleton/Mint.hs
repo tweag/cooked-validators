@@ -7,12 +7,13 @@
 module Cooked.Skeleton.Mint
   ( -- * Data types
     Mint (..),
-    TxSkelMints (unTxSkelMints),
+    TxSkelMints,
 
     -- * Optics
     mintRedeemedScriptL,
     mintTokensL,
     mintCurrencySymbolG,
+    txSkelMintsMapG,
     txSkelMintsListI,
     txSkelMintsAssetClassAmountL,
     txSkelMintsAssetClassesG,
@@ -27,6 +28,7 @@ where
 
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
+import Cooked.Skeleton.Value
 import Data.Bifunctor
 import Data.List (foldl')
 import Data.Map (Map)
@@ -40,7 +42,6 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.AssocMap qualified as PMap
 
 -- * Describing single mint entries
 
@@ -95,12 +96,20 @@ mintCurrencySymbolG =
 -- with a non-zero amount of tokens. This invariant is guaranteed because the
 -- raw constructor is not exposed, and functions working around it preserve it.
 -- To build a 'TxSkelMints', use 'txSkelMintsFromList'.
-newtype TxSkelMints = TxSkelMints {unTxSkelMints :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)}
+newtype TxSkelMints = TxSkelMints
+  { txSkelMintsMap :: Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer)
+  }
   deriving (Show, Eq)
+
+-- | Retrieves the inner map of a 'TxSkelMints'. This could be a lense but we
+-- want to avoid unsafe assignement of this inner map, for which we keep
+-- invariants so we have it as a getter instead.
+txSkelMintsMapG :: Getter TxSkelMints (Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer))
+txSkelMintsMapG = to txSkelMintsMap
 
 -- * Optics to manipulate components of 'TxSkelMints' bind it to 'Mint'
 
--- | Sets or gets the amount of tokens minted for a certain asset class,
+-- | Focuses on the amount of tokens minted for a certain asset class,
 -- represented by a token name and a versioned minting policy. This removes the
 -- appropriate entries (the token entry, and possible the mp entry if it would
 -- leave it empty) when setting the amount to 0. This function is very similar
@@ -118,7 +127,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
   lens
     -- We return (Nothing, 0) when the mp is not in the map, (Just red, 0) when
     -- the mp is present but not the token, and (Just red, n) otherwise.
-    (maybe (Nothing, 0) (bimap (Just . view userTxSkelRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . unTxSkelMints)
+    (maybe (Nothing, 0) (bimap (Just . view userRedeemerL) (fromMaybe 0 . Map.lookup tk)) . Map.lookup mph . txSkelMintsMap)
     ( \(TxSkelMints mints) (newRed, i) -> TxSkelMints $ case Map.lookup mph mints of
         -- No previous mp entry and nothing to add
         Nothing | i == 0 -> mints
@@ -132,7 +141,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
         -- A prevous mp and tk entry, which either needs to be removed in case
         -- of i == 0, or updated otherwise.
         Just (prevUser, if i == 0 then Map.delete tk else Map.insert tk i -> subMap)
-          | newUser <- maybe prevUser (flip (set userTxSkelRedeemerL) prevUser) newRed -> Map.insert mph (newUser, subMap) mints
+          | newUser <- maybe prevUser (flip (set userRedeemerL) prevUser) newRed -> Map.insert mph (newUser, subMap) mints
     )
 
 -- | Focuses on the submap for a given minting policy, following the same rules
@@ -140,23 +149,20 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
 txSkelMintsPolicyTokensL :: (ToVScript mp, Typeable mp) => mp -> Lens' TxSkelMints (Maybe (TxSkelRedeemer, Map Api.TokenName Integer))
 txSkelMintsPolicyTokensL mp@(Script.toScriptHash . toVScript -> mph) =
   lens
-    (fmap (first (view userTxSkelRedeemerL)) . view (to unTxSkelMints % at mph))
+    (fmap (first (view userRedeemerL)) . view (to txSkelMintsMap % at mph))
     ( \mints -> \case
-        Nothing -> TxSkelMints . Map.delete mph . unTxSkelMints $ mints
+        Nothing -> TxSkelMints . Map.delete mph . txSkelMintsMap $ mints
         Just (red, Map.toList -> tokens) -> foldl' (flip $ \(tk, n) -> set (txSkelMintsAssetClassAmountL mp tk) (Just red, n)) mints tokens
     )
 
 instance Script.ToValue TxSkelMints where
-  toValue =
-    Api.Value
-      . PMap.unsafeFromList
-      . fmap
-        ( bimap
-            Script.toCurrencySymbol
-            (PMap.unsafeFromList . Map.toList . snd)
-        )
-      . Map.toList
-      . unTxSkelMints
+  toValue txSkelMints =
+    review
+      valueAssetClassesI
+      [ (Script.toCurrencySymbol $ toVScript script, tk, i)
+      | Mint (UserRedeemedScript script _) tks <- view txSkelMintsListI txSkelMints,
+        (tk, i) <- tks
+      ]
 
 -- | Retrieves the asset classes of a 'TxSkelMints'
 txSkelMintsAssetClassesG :: Getter TxSkelMints [(VScript, Api.TokenName)]
@@ -166,7 +172,7 @@ txSkelMintsAssetClassesG = txSkelMintsListI % to (\l -> [(toVScript mp, tk) | Mi
 txSkelMintsListI :: Iso' TxSkelMints [Mint]
 txSkelMintsListI =
   iso
-    (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . unTxSkelMints)
+    (map (\(user, m) -> Mint user (Map.toList m)) . Map.elems . txSkelMintsMap)
     ( foldl'
         ( \mints (Mint (UserRedeemedScript mp red) tks) ->
             foldl'

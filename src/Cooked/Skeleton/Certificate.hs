@@ -64,14 +64,14 @@ instance Eq TxSkelCertificate where
   (TxSkelCertificate owner action) == (TxSkelCertificate owner' action') =
     cast owner == Just owner' && cast action == Just action'
 
--- | Focuses on the owner of a 'TxSkelCertificate'
+-- | Focuses on the optional owner of a 'TxSkelCertificate'
 txSkelCertificateOwnerAT :: (Typeable user) => AffineTraversal' TxSkelCertificate (User user Redemption)
 txSkelCertificateOwnerAT =
   atraversal
     (\cert@(TxSkelCertificate {txSkelCertificateOwner}) -> maybe (Left cert) Right $ cast txSkelCertificateOwner)
     (\cert@(TxSkelCertificate @user' _ action) -> maybe cert (`TxSkelCertificate` action) . cast @_ @(User user' Redemption))
 
--- | Focuses on the action of a 'TxSkelCertificate'
+-- | Focuses on the optional action of a 'TxSkelCertificate'
 txSkelCertificateActionAT :: (Typeable user) => AffineTraversal' TxSkelCertificate (CertificateAction user)
 txSkelCertificateActionAT =
   atraversal

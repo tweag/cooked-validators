@@ -23,8 +23,8 @@ instance PrettyCooked LockDatum where
 lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
-    { txSkelIns = Map.singleton o emptyTxSkelRedeemer,
-      txSkelOuts = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
+    { txSkelInputs = Map.singleton o emptyTxSkelRedeemer,
+      txSkelOutputs = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
     }
 
@@ -36,8 +36,8 @@ txLock v = do
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
-    { txSkelIns = Map.singleton o $ someTxSkelRedeemer (),
-      txSkelOuts = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
+    { txSkelInputs = Map.singleton o $ someTxSkelRedeemer (),
+      txSkelOutputs = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
     }
 
@@ -66,7 +66,7 @@ tests =
             value_9_999 = Script.lovelace 9999
             inSkel =
               txSkelTemplate
-                { txSkelOuts =
+                { txSkelOutputs =
                     [ carelessValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
                       carelessValidator `receives` InlineDatum SecondLock <&&> Value value_9_999,
                       carefulValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
@@ -75,11 +75,12 @@ tests =
                     ],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                 }
-            outSkelOutputs :: Api.Value -> (Integer -> Bool) -> [[TxSkelOut]]
+            outSkelOutputs :: Api.Value -> (Int -> Bool) -> [[TxSkelOut]]
             outSkelOutputs bound select =
-              (fmap txSkelOuts . run . runNonDet . execTweak inSkel)
+              (fmap txSkelOutputs . run . runNonDet . execTweak inSkel)
                 ( datumHijackingAttack $
                     ( outPredDatumHijackingParams
+                        OneBranchForAllFoci
                         ( \out ->
                             preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carelessValidator)
                               && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
@@ -87,8 +88,7 @@ tests =
                         )
                         thief
                     )
-                      { dhpAllOutputs = True,
-                        dhpIndexPred = select
+                      { dhpIndexPred = select
                       }
                 )
             outsExpected a b =
@@ -115,15 +115,13 @@ tests =
           forceOutputs_ initialDistributionTemplate
           somewhere
             ( datumHijackingAttack $
-                ( outPredDatumHijackingParams
-                    ( \out ->
-                        preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carefulValidator)
-                          && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
-                    )
-                    thief
-                )
-                  { dhpAllOutputs = True
-                  }
+                outPredDatumHijackingParams
+                  OneBranchForAllFoci
+                  ( \out ->
+                      preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carefulValidator)
+                        && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
+                  )
+                  thief
             )
             (datumHijackingTrace carefulValidator),
       testCooked "careless validator" $
@@ -131,15 +129,13 @@ tests =
           forceOutputs_ initialDistributionTemplate
           somewhere
             ( datumHijackingAttack $
-                ( outPredDatumHijackingParams
-                    ( \out ->
-                        preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carelessValidator)
-                          && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
-                    )
-                    thief
-                )
-                  { dhpAllOutputs = True
-                  }
+                outPredDatumHijackingParams
+                  OneBranchForAllFoci
+                  ( \out ->
+                      preview (txSkelOutOwnerL % userScriptHashAF) out == Just (Script.toScriptHash carelessValidator)
+                        && view txSkelOutDatumL out == SomeTxSkelOutDatum SecondLock Inline
+                  )
+                  thief
             )
             (datumHijackingTrace carelessValidator)
     ]

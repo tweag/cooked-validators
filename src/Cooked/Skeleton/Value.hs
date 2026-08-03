@@ -4,6 +4,7 @@
 -- use in our 'Cooked.Skeleton.TxSkel' and are not defined anywhere else.
 module Cooked.Skeleton.Value
   ( -- * Optics
+    valueAssetClassesI,
     valueAssetClassAmountL,
     valueLovelaceL,
     valueAssetClassAmountP,
@@ -12,13 +13,14 @@ module Cooked.Skeleton.Value
   )
 where
 
+import Data.List (sortOn)
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusTx.AssocMap qualified as PMap
 
 -- | Focuses on the amount of tokens of a certain 'Api.AssetClass'
--- from a given 'Api.Value'. This removes the entry if the new amount is 0.
+-- in a given 'Api.Value'. This removes the entry if the new amount is 0.
 valueAssetClassAmountL :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Lens' Api.Value Integer
 valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
   lens
@@ -39,6 +41,17 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
         Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
     )
 
+-- | An isomorphism between a value and its flattened representation. The
+-- flattened representation is always sorted by asset class (as produced by
+-- 'Api.flattenValue'), and building a value back from a list canonicalises it
+-- the same way, so that the internal map ordering of the resulting value does
+-- not depend on the order of the input list.
+valueAssetClassesI :: Iso' Api.Value [(Api.CurrencySymbol, Api.TokenName, Integer)]
+valueAssetClassesI =
+  iso
+    Api.flattenValue
+    (foldl (\val (cur, tk, i) -> set (valueAssetClassAmountL cur tk) i val) mempty . sortOn (\(cur, tk, _) -> (cur, tk)))
+
 -- | An isomorphism between an 'Api.Lovelace' and an 'Integer'
 lovelaceIntegerI :: Iso' Api.Lovelace Integer
 lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
@@ -47,8 +60,8 @@ lovelaceIntegerI = iso Api.getLovelace Api.Lovelace
 valueLovelaceL :: Lens' Api.Value Api.Lovelace
 valueLovelaceL = valueAssetClassAmountL Api.adaSymbol Api.adaToken % re lovelaceIntegerI
 
--- | A prism to build a value from an asset class and amount, or retrieves the
--- amount from this asset class if it is not zero
+-- | Builds or retrieves the amount of tokens of a certain 'Api.AssetClass' in an
+-- 'Api.Value', treating a zero amount as absent
 valueAssetClassAmountP :: (Script.ToMintingPolicyHash mp) => mp -> Api.TokenName -> Prism' Api.Value Integer
 valueAssetClassAmountP (Script.toCurrencySymbol -> cs) tk
   | ac <- Api.assetClass cs tk =

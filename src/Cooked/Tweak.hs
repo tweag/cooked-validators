@@ -4,10 +4,9 @@
 module Cooked.Tweak (module X) where
 
 import Cooked.Tweak.Common as X
-import Cooked.Tweak.Inputs as X
-import Cooked.Tweak.Labels as X
-import Cooked.Tweak.Mint as X
-import Cooked.Tweak.OutPermutations as X
-import Cooked.Tweak.Outputs as X
-import Cooked.Tweak.Signatories as X
-import Cooked.Tweak.ValidityRange as X
+import Cooked.Tweak.Guard as X
+import Cooked.Tweak.Insert as X
+import Cooked.Tweak.Modify as X
+import Cooked.Tweak.Query as X
+import Cooked.Tweak.Remove as X
+import Cooked.Tweak.Update as X

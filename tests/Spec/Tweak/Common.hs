@@ -1,7 +1,6 @@
 module Spec.Tweak.Common (tests) where
 
 import Cooked
-import Data.List (subsequences)
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -14,53 +13,58 @@ alice :: Wallet
 alice = wallet 1
 
 mkSkel :: [Integer] -> TxSkel
-mkSkel l = set txSkelOutsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
+mkSkel l = set txSkelOutputsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
 
 tests :: TestTree
 tests =
   testGroup
     "building blocks for tweaks"
-    [ testGroup "overMaybeSelectingTweak" $
+    [ testGroup "modifyTweak" $
         let skel = mkSkel [123, 234, 345]
-         in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test -- this one is a regression test
-        -- this one is a regression test
-                [skel]
+         in [ testCase "return no modified transaction when no foci are eligible" $
+                []
                   @=? run
                     ( runNonDet $
                         execTweak skel $
-                          overMaybeSelectingTweak
-                            (txSkelOutsL % traversed % txSkelOutValueL)
-                            (const Nothing)
-                            (const True)
+                          modifyTweakFromParams $
+                            modifyTweakParamsOneBranchForAllFoci
+                              (txSkelOutputsL % traversed % txSkelOutValueL)
+                              (const Nothing)
                     ),
               testCase "select applied modification by index" $
                 [(mkSkel [123, 234, 789], [Script.lovelace 345])]
                   @=? run
                     ( runNonDet $
                         runTweak skel $
-                          overMaybeSelectingTweak
-                            (txSkelOutsL % traversed % txSkelOutValueL)
-                            ( \value ->
-                                if value `Api.geq` Script.lovelace 200
-                                  then Just $ Script.lovelace 789
-                                  else Nothing
-                            )
-                            (== 1)
+                          modifyTweakFromParams $
+                            ModifyTweakParams
+                              OneBranchForAllFoci
+                              (txSkelOutputsL % traversed % txSkelOutValueL)
+                              simple
+                              ( \value ->
+                                  if value `Api.geq` Script.lovelace 200
+                                    then Just $ Script.lovelace 789
+                                    else Nothing
+                              )
+                              (== 1)
                     ),
               testCase "return unmodified foci in the right order" $
                 [(mkSkel [789, 234, 789], [Script.lovelace 123, Script.lovelace 345])]
                   @=? run
                     ( runNonDet $
                         runTweak skel $
-                          overMaybeSelectingTweak
-                            (txSkelOutsL % traversed % txSkelOutValueL)
-                            (const $ Just $ Script.lovelace 789)
-                            (`elem` [0, 2])
+                          modifyTweakFromParams $
+                            ModifyTweakParams
+                              OneBranchForAllFoci
+                              (txSkelOutputsL % traversed % txSkelOutValueL)
+                              simple
+                              (const $ Just $ Script.lovelace 789)
+                              (`elem` [0, 2])
                     )
             ],
-      testGroup "combineModsTweak" $
+      testGroup "modifyTweak" $
         let skelIn = mkSkel [0, 0, 0]
-            skelOut x y z = (mkSkel [x, y, z], [0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0])
+            skelOut x y z = (mkSkel [x, y, z], [0 | x /= 0] ++ [0 | y /= 0] ++ [0 | z /= 0])
          in [ testCase "all combinations of modifications" $
                 assertSameSets
                   [ -- one changed focus
@@ -96,10 +100,10 @@ tests =
                   ( run $
                       runNonDet $
                         runTweak skelIn $
-                          combineModsTweak
-                            (tail . subsequences)
-                            (txSkelOutsL % itraversed % txSkelOutValueL % valueLovelaceL)
-                            (\i x -> return [(x + 1, i), (x + 2, i)])
+                          modifyTweakFromParams $
+                            modifyTweakParamsOneBranchPerSubset
+                              (txSkelOutputsL % itraversed % txSkelOutValueL % valueLovelaceL)
+                              (\x -> [x + 1, x + 2])
                   ),
               testCase "separate modifications" $
                 assertSameSets
@@ -114,10 +118,10 @@ tests =
                   ( run $
                       runNonDet $
                         runTweak skelIn $
-                          combineModsTweak
-                            (map (: []))
-                            (txSkelOutsL % itraversed % txSkelOutValueL % valueLovelaceL)
-                            (\i x -> return [(x + 1, i), (x + 2, i)])
+                          modifyTweakFromParams $
+                            modifyTweakParamsOneBranchPerFoci
+                              (txSkelOutputsL % itraversed % txSkelOutValueL % valueLovelaceL)
+                              (\x -> [x + 1, x + 2])
                   )
             ]
     ]

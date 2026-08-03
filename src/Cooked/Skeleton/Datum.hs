@@ -117,7 +117,7 @@ txSkelOutDatumKindAT =
 txSkelOutDatumResolvedAT :: AffineTraversal' TxSkelOutDatum DatumResolved
 txSkelOutDatumResolvedAT = txSkelOutDatumKindAT % datumKindResolvedP
 
--- | Extracts, or sets, the typed datum of a 'TxSkelOutDatum'. This is attempted
+-- | Focuses on the optional typed datum of a 'TxSkelOutDatum'. This is attempted
 -- in two ways: first, we try to simply cast the content, and then, if it fails,
 -- we serialise the content and then attempt to deserialise it to the right
 -- type. This second case is specifically useful when the current content is an

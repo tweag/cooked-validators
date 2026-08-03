@@ -58,13 +58,13 @@ data Withdrawal where
     Withdrawal
   deriving (Show, Eq)
 
--- | Focuses on the optional amount in a 'Withdrawal'
+-- | Focuses on the optional amount of a 'Withdrawal'
 makeLensesFor [("withdrawalAmount", "withdrawalMAmountL")] ''Withdrawal
 
--- | Focuses on the user owning a 'Withdrawal'
+-- | Focuses on the user of a 'Withdrawal'
 makeLensesFor [("withdrawalUser", "withdrawalUserL")] ''Withdrawal
 
--- | Focuses on the amount in a 'Withdrawal'
+-- | Focuses on the optional amount of a 'Withdrawal'
 withdrawalAmountAT :: AffineTraversal' Withdrawal Api.Lovelace
 withdrawalAmountAT = withdrawalMAmountL % _Just
 

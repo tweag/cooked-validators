@@ -1,199 +1,153 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
--- | This module provides an automated attack to try and redirect outputs to a
--- certain target with a similar datum type.
+-- | This module provides an attack to try and redirect selectable outputs to a
+-- given thief target.
 module Cooked.Attack.DatumHijacking
-  ( redirectOutputTweakAll,
+  ( -- * Datum hijacking params
     DatumHijackingParams (..),
-    DatumHijackingLabel (..),
-    redirectOutputTweakAny,
-    datumHijackingAttack,
     typedByDatumHijackingParams,
     ownedByDatumHijackingParams,
     scriptsDatumHijackingParams,
     defaultDatumHijackingParams,
     datumOfDatumHijackingParams,
     outPredDatumHijackingParams,
+
+    -- * Datum hijacking label
+    DatumHijackingLabel (..),
+
+    -- * Datum hijacking attack
+    datumHijackingAttack,
   )
 where
 
-import Control.Monad
+import Control.Applicative (Alternative)
 import Cooked.Pretty.Class
 import Cooked.Pretty.Skeleton ()
 import Cooked.Skeleton
-import Cooked.Tweak.Common
-import Cooked.Tweak.Labels
-import Data.Bifunctor
+import Cooked.Tweak
 import Data.Kind (Type)
-import Data.Maybe
 import Data.Typeable
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
 
--- | Parameters of the datum hijacking attacks. They state precisely which
--- outputs should have their owner changed, wich owner should be assigned, to
--- each of these outputs, and whether several modified outputs should be
--- combined in a single transaction, or instead spread out multiple branches.
-data DatumHijackingParams where
-  DatumHijackingParams ::
-    (IsTxSkelOutAllowedOwner owner) =>
-    { -- | Return 'Just' the new owner, or 'Nothing' if you want to leave this
-      -- output unchanged.
-      dhpOutputPred :: TxSkelOut -> Maybe owner,
-      -- | The redirection described by the previous argument might apply to more
-      -- than one of the outputs of the transaction. Use this predicate to select
-      -- which of the redirectable outputs to actually redirect. We count the
-      -- redirectable outputs from the left to the right, starting with zero.
-      dhpIndexPred :: Integer -> Bool,
-      -- | Whether all the outputs targetted by the predicates should be
-      -- redirected in the same transaction, or one at a time, each in a
-      -- distinct transaction.
-      dhpAllOutputs :: Bool
-    } ->
-    DatumHijackingParams
-
--- | Targets all the outputs for which the focus of a given optic exists, and
--- redirects each of them in a separate transaction.
-defaultDatumHijackingParams ::
-  ( IsTxSkelOutAllowedOwner owner,
-    Is k An_AffineFold
-  ) =>
-  Optic' k is TxSkelOut x ->
-  owner ->
-  DatumHijackingParams
-defaultDatumHijackingParams optic thief =
-  DatumHijackingParams
-    ((thief <$) . preview optic)
-    (const True)
-    False
-
--- | Targets all the outputs satisfying a given predicate, and redirects each of
--- them in a separate transaction.
-outPredDatumHijackingParams ::
-  (IsTxSkelOutAllowedOwner owner) =>
-  (TxSkelOut -> Bool) ->
-  owner ->
-  DatumHijackingParams
-outPredDatumHijackingParams = defaultDatumHijackingParams . filtered
-
--- | Datum hijacking parameters targetting all the outputs owned by a certain
--- type of owner, and redirecting each of them in a separate transaction.
-typedByDatumHijackingParams ::
-  forall (oldOwner :: Type) owner.
-  ( IsTxSkelOutAllowedOwner owner,
-    Typeable oldOwner
-  ) =>
-  owner ->
-  DatumHijackingParams
-typedByDatumHijackingParams = defaultDatumHijackingParams (txSkelOutOwnerL % userTypedAF @oldOwner)
-
--- | Datum hijacking parameters targetting all the outputs owner by a given
--- user, and redirecting each of them in a separate transaction.
-ownedByDatumHijackingParams ::
-  forall oldOwner owner.
-  ( IsTxSkelOutAllowedOwner owner,
-    Typeable oldOwner,
-    Eq oldOwner
-  ) =>
-  oldOwner ->
-  owner ->
-  DatumHijackingParams
-ownedByDatumHijackingParams user = defaultDatumHijackingParams (txSkelOutOwnerL % userTypedAF @oldOwner % filtered (== user))
-
--- | Datum hijacking parameters targetting all the outputs owned by a script,
--- and redirecting each of them in a separate transaction.
-scriptsDatumHijackingParams ::
-  (IsTxSkelOutAllowedOwner owner) =>
-  owner ->
-  DatumHijackingParams
-scriptsDatumHijackingParams = defaultDatumHijackingParams (txSkelOutOwnerL % userScriptHashAF)
-
--- | Datum hijacking parameters targetting all the outputs with a certain type
--- of datum, and redirecting each of them in a separate transaction.
-datumOfDatumHijackingParams ::
-  forall dat owner.
-  ( IsTxSkelOutAllowedOwner owner,
-    DatumConstrs dat
-  ) =>
-  owner ->
-  DatumHijackingParams
-datumOfDatumHijackingParams = defaultDatumHijackingParams (txSkelOutDatumL % txSkelOutDatumTypedAT @dat)
-
--- | Redirects, in the same transaction, all the outputs targetted by an output
--- and an index predicates. See 'DatumHijackingParams' for more information on
--- those predicates. Returns the list of outputs that were successfully
--- modified, before the modification is applied.
-redirectOutputTweakAll ::
-  ( Member Tweak effs,
-    IsTxSkelOutAllowedOwner owner
-  ) =>
-  (TxSkelOut -> Maybe owner) ->
-  (Integer -> Bool) ->
-  Sem effs [TxSkelOut]
-redirectOutputTweakAll outputPred indexPred = do
-  outputs <- viewTweak txSkelOutsL
-  let (redirected, newOutputs) = go outputs 0
-  setTweak txSkelOutsL newOutputs
-  return redirected
-  where
-    go [] _ = ([], [])
-    go (out : l) n =
-      case outputPred out of
-        Nothing -> second (out :) $ go l n
-        Just newOwner | indexPred n -> bimap (out :) (set txSkelOutOwnerL (toPKHOrVScript newOwner) out :) $ go l (n + 1)
-        _ -> second (out :) $ go l (n + 1)
-
--- | Redirects, each in their own transaction, all the outputs targetted by an
--- output and an index predicates. See 'DatumHijackingParams' for more
--- information on those predicates.
-redirectOutputTweakAny ::
-  ( Members '[Tweak, NonDet] effs,
-    IsTxSkelOutAllowedOwner owner
-  ) =>
-  (TxSkelOut -> Maybe owner) ->
-  (Integer -> Bool) ->
-  Sem effs [TxSkelOut]
-redirectOutputTweakAny outputPred indexPred = do
-  outputs <- viewTweak txSkelOutsL
-  (redirected, newOutputs) <- go [] 0 outputs
-  setTweak txSkelOutsL newOutputs
-  return redirected
-  where
-    go _ _ [] = mzero
-    go l' n (out : l)
-      | indexPred n =
-          fromMaybe
-            (go (l' ++ [out]) (n + 1) l)
-            ( do
-                newOwner <- outputPred out
-                return $
-                  mplus
-                    (return ([out], l' ++ set txSkelOutOwnerL (toPKHOrVScript newOwner) out : l))
-                    (go (l' ++ [out]) (n + 1) l)
-            )
-    go l' n (out : l) = go (l' ++ [out]) n l
-
--- | The 'DatumHijackingLabel' stores the outputs that have been redirected,
--- before their destination were changed.
+-- | A label added to a 'TxSkel' on which a tweak hijacking a datum has been
+-- applied. The label contains all the outputs that have been hijacked, before
+-- the hijacking happened.
 newtype DatumHijackingLabel = DatumHijackingLabel [TxSkelOut]
   deriving (Show, Eq, Ord)
 
 instance PrettyCooked DatumHijackingLabel where
-  prettyCookedOpt opts (DatumHijackingLabel txSkelOuts) = prettyItemize opts "Redirected outputs" "-" txSkelOuts
+  prettyCookedOpt opts (DatumHijackingLabel txSkelOutputs) =
+    prettyItemize opts "Hijacked outputs" "-" txSkelOutputs
 
--- | The datum hijacking tries to substitute a different recipient on certain
--- outputs based on a 'DatumHijackingParams'.
---
--- A 'DatumHijackingLabel' is added to the labels of the 'TxSkel'. It contains
--- the outputs that have been redirected, which also corresponds to the returned
--- value of this tweak. The tweak fails if no such outputs have been redirected.
+-- | Parameters of the datum hijacking attacks
+data DatumHijackingParams owner f k is
+  = DatumHijackingParams
+  { -- | The branching policy to use when several outputs are targeted
+    dhpBranching :: Branching,
+    -- | The optic selecting the outputs eligible for redirection, directly from
+    -- the skeleton. Only outputs focused by this optic are redirected.
+    dhpOptic :: Optic' k is TxSkel TxSkelOut,
+    -- | Returns the new owner (embedded in @f@) of a targeted output. The @f@
+    -- allows this computation to fail or branch, offering an extra layer of
+    -- selection and multiplication on top of 'dhpOptic'.
+    dhpNewOwner :: TxSkelOut -> f owner,
+    -- | The redirection described by the previous arguments might apply to more
+    -- than one of the outputs of the transaction. Use this predicate to select
+    -- which of the redirectable outputs to actually redirect. We count the
+    -- redirectable outputs from the left to the right, starting with zero.
+    dhpIndexPred :: Int -> Bool
+  }
+
+-- | Hijacks all the outputs for which the focus of a given optic exist. Returns
+-- the list of hijacked outputs, as they were before being hijacked.
+defaultDatumHijackingParams ::
+  (Is k An_AffineFold) =>
+  Branching ->
+  Optic' k is TxSkelOut a ->
+  owner ->
+  DatumHijackingParams owner Maybe A_Traversal NoIx
+defaultDatumHijackingParams branching optic thief =
+  DatumHijackingParams
+    branching
+    (txSkelOutputsL % traversed % selectP (has _Just . preview optic))
+    (const (Just thief))
+    (const True)
+
+-- | Targets all the outputs satisfying a given predicate
+outPredDatumHijackingParams ::
+  Branching ->
+  (TxSkelOut -> Bool) ->
+  owner ->
+  DatumHijackingParams owner Maybe A_Traversal NoIx
+outPredDatumHijackingParams branching =
+  defaultDatumHijackingParams branching . filtered
+
+-- | Datum hijacking parameters targeting all the outputs owned by a certain
+-- type of owner.
+typedByDatumHijackingParams ::
+  forall (oldOwner :: Type) owner.
+  (Typeable oldOwner) =>
+  Branching ->
+  owner ->
+  DatumHijackingParams owner Maybe A_Traversal NoIx
+typedByDatumHijackingParams branching =
+  defaultDatumHijackingParams branching (txSkelOutOwnerL % userTypedAF @oldOwner)
+
+-- | Datum hijacking parameters targeting all the outputs owned by a given
+-- user.
+ownedByDatumHijackingParams ::
+  forall oldOwner owner.
+  ( Typeable oldOwner,
+    Eq oldOwner
+  ) =>
+  Branching ->
+  oldOwner ->
+  owner ->
+  DatumHijackingParams owner Maybe A_Traversal NoIx
+ownedByDatumHijackingParams branching user =
+  defaultDatumHijackingParams branching (txSkelOutOwnerL % userTypedAF @oldOwner % filtered (== user))
+
+-- | Datum hijacking parameters targeting all the outputs owned by a script.
+scriptsDatumHijackingParams ::
+  Branching ->
+  owner ->
+  DatumHijackingParams owner Maybe A_Traversal NoIx
+scriptsDatumHijackingParams branching =
+  defaultDatumHijackingParams branching (txSkelOutOwnerL % userScriptHashAF)
+
+-- | Datum hijacking parameters targeting all the outputs with a certain type
+-- of datum.
+datumOfDatumHijackingParams ::
+  forall dat owner.
+  (DatumConstrs dat) =>
+  Branching ->
+  owner ->
+  DatumHijackingParams owner Maybe A_Traversal NoIx
+datumOfDatumHijackingParams branching =
+  defaultDatumHijackingParams branching (txSkelOutDatumL % txSkelOutDatumTypedAT @dat)
+
+-- | Hijacks all the outputs from which a new owner can be computed, and whose
+-- indexes match a given predicate. Returns the list of hijacked outputs, as
+-- they were before being hijacked.
 datumHijackingAttack ::
-  (Members '[Tweak, NonDet] effs) =>
-  DatumHijackingParams ->
+  ( Members '[NonDet, Tweak] effs,
+    IsTxSkelOutAllowedOwner owner,
+    Is k A_Traversal,
+    Foldable f,
+    Alternative f
+  ) =>
+  DatumHijackingParams owner f k is ->
   Sem effs [TxSkelOut]
-datumHijackingAttack (DatumHijackingParams outputPred indexPred mode) = do
-  redirected <- (if mode then redirectOutputTweakAll else redirectOutputTweakAny) outputPred indexPred
-  guard $ not $ null redirected
-  addLabelTweak $ DatumHijackingLabel redirected
-  return redirected
+datumHijackingAttack DatumHijackingParams {..} = do
+  modified <-
+    modifyTweakFromParams $
+      ModifyTweakParams
+        dhpBranching
+        dhpOptic
+        simple
+        (\out -> (\owner -> set txSkelOutOwnerL (toPKHOrVScript owner) out) <$> dhpNewOwner out)
+        dhpIndexPred
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ DatumHijackingLabel modified
+  return modified

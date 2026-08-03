@@ -1,6 +1,4 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
-module Spec.Attack.DupToken (tests) where
+module Spec.Attack.TokenDuplication (tests) where
 
 import Cooked
 import Data.Set qualified as Set
@@ -23,7 +21,7 @@ dupTokenTrace pol tName amount recipient = do
           mintedValue = Script.toValue mints
        in txSkelTemplate
             { txSkelMints = mints,
-              txSkelOuts = [recipient `receives` Value mintedValue],
+              txSkelOutputs = [recipient `receives` Value mintedValue],
               txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
             }
 
@@ -47,24 +45,29 @@ tests =
                       [ mint pol1 () tName1 5,
                         mint pol2 () tName2 7
                       ],
-                  txSkelOuts =
+                  txSkelOutputs =
                     [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                       wallet 2 `receives` Value (Api.assetClassValue ac2 2)
                     ],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
                 }
-            skelOut select = (run . runNonDet . runTweak skelIn) (dupTokenAttack select attacker)
+            skelOut select = (run . runNonDet . runTweak skelIn) (tokenDuplicationAttack $ existingAssetClassTokenDuplicationParams select attacker)
             skelExpected v1 v2 =
-              let increment = Api.assetClassValue ac1 (v1 - 5) <> Api.assetClassValue ac2 (v2 - 7)
+              let increment =
+                    review
+                      valueAssetClassesI
+                      [ (Script.toCurrencySymbol pol1, tName1, v1 - 5),
+                        (Script.toCurrencySymbol pol2, tName2, v2 - 7)
+                      ]
                in [ ( txSkelTemplate
-                        { txSkelLabels = Set.singleton $ TxSkelLabel DupTokenLbl,
+                        { txSkelLabels = Set.singleton $ TxSkelLabel $ TokenDuplicationLabel increment,
                           txSkelMints =
                             review
                               txSkelMintsListI
                               [ mint pol1 () tName1 v1,
                                 mint pol2 () tName2 v2
                               ],
-                          txSkelOuts =
+                          txSkelOutputs =
                             [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Script.lovelace 1234),
                               wallet 2 `receives` Value (Api.assetClassValue ac2 2),
                               attacker `receives` Value increment
@@ -86,12 +89,12 @@ tests =
             pol = carefulPolicy tName 1
          in mustFailInPhase2Test $
               somewhere
-                (dupTokenAttack (\_ _ n -> n + 1) (wallet 6))
+                (tokenDuplicationAttack $ existingAssetClassTokenDuplicationParams (\_ _ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCooked "careless minting policy" $
         mustSucceedTest $
           somewhere
-            (dupTokenAttack (\_ _ n -> n + 1) (wallet 6))
+            (tokenDuplicationAttack $ existingAssetClassTokenDuplicationParams (\_ _ n -> n + 1) (wallet 6))
             (dupTokenTrace carelessPolicy (Api.TokenName "MockToken") 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
@@ -102,14 +105,14 @@ tests =
             skelIn =
               txSkelTemplate
                 { txSkelMints = review txSkelMintsListI [mint pol () tName1 1],
-                  txSkelOuts = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
+                  txSkelOutputs = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
                 }
             skelExpected =
               [ ( txSkelTemplate
-                    { txSkelLabels = Set.singleton $ TxSkelLabel DupTokenLbl,
+                    { txSkelLabels = Set.singleton $ TxSkelLabel $ TokenDuplicationLabel $ review (valueAssetClassAmountP pol tName1) 1,
                       txSkelMints = review txSkelMintsListI [mint pol () tName1 2],
-                      txSkelOuts =
+                      txSkelOutputs =
                         [ wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2),
                           attacker `receives` Value (Api.assetClassValue ac1 1)
                         ],
@@ -118,6 +121,10 @@ tests =
                   Api.assetClassValue ac1 1
                 )
               ]
-            skelOut = (run . runNonDet . runTweak skelIn) (dupTokenAttack (\_ _ i -> i + 1) attacker)
+            skelOut =
+              (run . runNonDet . runTweak skelIn)
+                ( tokenDuplicationAttack $
+                    existingAssetClassTokenDuplicationParams (\_ _ i -> i + 1) attacker
+                )
          in skelExpected @=? skelOut
     ]

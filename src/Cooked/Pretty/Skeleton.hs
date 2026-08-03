@@ -189,7 +189,7 @@ instance PrettyCookedList TxSkelProposal where
       ("Other governance action:" <+>) . prettyCookedOpt opts <$> preview (txSkelProposalGovernanceActionAT @IsNone) txSkelProposal,
       ("Constitution witness:" <+>) . prettyHash opts <$> preview (txSkelProposalMConstitutionAT % _Just % userVScriptL) txSkelProposal
     ]
-      ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userTxSkelRedeemerL) txSkelProposal)
+      ++ maybe [] (prettyCookedOptListMaybe opts) (preview (txSkelProposalMConstitutionAT % _Just % userRedeemerL) txSkelProposal)
 
 instance PrettyCooked (GovernanceAction a) where
   prettyCookedOpt opts (ParameterChange params) = prettyItemize opts "Parameter changes:" "-" params
@@ -302,7 +302,7 @@ instance PrettyCookedList TxSkelOpts where
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
         prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
         prettyIfNot False (const "Defer Phase 2 failures during balancing") txSkelOptDeferFailures,
-        (("Limit the number of balancing Utxos to " <>) . PP.pretty <$> txSkelOptMaxNbOfBalancingUtxos)
+        ("Limit the number of balancing Utxos to " <>) . PP.pretty <$> txSkelOptMaxNbOfBalancingUtxos
       ]
       where
         prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked

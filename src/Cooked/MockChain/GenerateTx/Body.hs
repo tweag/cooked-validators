@@ -44,10 +44,10 @@ txSkelToTxBodyContent ::
   Maybe Collaterals ->
   Sem effs (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
-  txIns <- mapM toTxInAndWitness $ Map.toList txSkelIns
+  txIns <- mapM toTxInAndWitness $ Map.toList txSkelInputs
   txInsReference <- toInsReference skel
   (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet mCollaterals
-  txOuts <- mapM toCardanoTxOut txSkelOuts
+  txOuts <- mapM toCardanoTxOut txSkelOutputs
   (txValidityLowerBound, txValidityUpperBound) <- fromEither $ P.Ledger.toCardanoValidityRange txSkelValidityRange
   txMintValue <- toMintValue txSkelMints
   txExtraKeyWits <-

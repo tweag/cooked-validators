@@ -71,13 +71,13 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   let valueConstr = if adjust then Value else FixedValue
       skel =
         txSkelTemplate
-          { txSkelOuts =
+          { txSkelOutputs =
               List.filter
                 ((/= mempty) . (^. txSkelOutValueL))
                 [ bob `receives` valueConstr toBobValue,
                   alice `receives` valueConstr toAliceValue
                 ],
-            txSkelIns = additionalSpend <> Map.fromList ((,emptyTxSkelRedeemer) <$> toSpendUtxos),
+            txSkelInputs = additionalSpend <> Map.fromList ((,emptyTxSkelRedeemer) <$> toSpendUtxos),
             txSkelOpts =
               optionsMod
                 def
@@ -144,8 +144,8 @@ noBalanceMaxFee = do
   (txOutRef : _) <- aliceNAdaUtxos 30
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelOuts = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
-        txSkelIns = Map.singleton txOutRef emptyTxSkelRedeemer,
+      { txSkelOutputs = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
+        txSkelInputs = Map.singleton txOutRef emptyTxSkelRedeemer,
         txSkelOpts =
           def
             { txSkelOptBalancingPolicy = DoNotBalance,
@@ -158,7 +158,7 @@ balanceReduceFee :: FullMockChain (Integer, Integer, Integer, Integer)
 balanceReduceFee = do
   let skelAutoFee =
         txSkelTemplate
-          { txSkelOuts = [bob `receives` Value (Script.ada 50)],
+          { txSkelOutputs = [bob `receives` Value (Script.ada 50)],
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   ExtendedTxSkel skelBalanced feeBalanced mCols _ <- balanceTxSkel skelAutoFee
@@ -179,7 +179,7 @@ reachingMagic = do
   bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
   validateTxSkel_ $
     txSkelTemplate
-      { txSkelOuts = [bob `receives` Value (Script.ada 106 <> banana 12)],
+      { txSkelOutputs = [bob `receives` Value (Script.ada 106 <> banana 12)],
         txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelOpts =
           def
@@ -193,10 +193,10 @@ hasFee :: Integer -> ResProp
 hasFee fee (_, _, fee', _, _) = testBoolMsg "hasFee" $ fee == fee'
 
 additionalOutsNb :: Int -> ResProp
-additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBoolMsg "AdditionalOutsNb" $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
+additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBoolMsg "AdditionalOutsNb" $ length (txSkelOutputs txSkel2) - length (txSkelOutputs txSkel1) == ao
 
 insNb :: Int -> ResProp
-insNb n (_, TxSkel {..}, _, _, _) = testBoolMsg "insNb" $ length txSkelIns == n
+insNb n (_, TxSkel {..}, _, _, _) = testBoolMsg "insNb" $ length txSkelInputs == n
 
 colInsNb :: Int -> ResProp
 colInsNb cis (_, _, _, Nothing, _) = testBoolMsg "colInsNb" $ cis == 0

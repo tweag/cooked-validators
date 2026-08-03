@@ -1,6 +1,6 @@
 -- | This module exposes the outputs constructs used in a
 -- 'Cooked.Skeleton.TxSkel' and their associated utilities. To build payments in
--- a skeleton, the usual way is to invoke @txSkelOuts = [pk `receives` Value v,
+-- a skeleton, the usual way is to invoke @txSkelOutputs = [pk `receives` Value v,
 -- script `receives` (InlineDatum dat <&&> ReferenceScript script)]@
 module Cooked.Skeleton.Output
   ( -- * Type constraints
@@ -73,7 +73,7 @@ data TxSkelOut where
 -- | Focuses on the optional reference script of a 'TxSkelOut'
 makeLensesFor [("txSkelOutReferenceScript", "txSkelOutMReferenceScriptL")] ''TxSkelOut
 
--- | Focuses on the reference script of a 'TxSkelOut'
+-- | Focuses on the optional reference script of a 'TxSkelOut'
 txSkelOutReferenceScriptAT :: AffineTraversal' TxSkelOut VScript
 txSkelOutReferenceScriptAT = txSkelOutMReferenceScriptL % _Just
 
@@ -86,7 +86,7 @@ txSkelOutReferenceScriptHashAF = txSkelOutReferenceScriptAT % to Script.toScript
 -- | Focuses on the optional staking credential of a 'TxSkelOut'
 makeLensesFor [("txSkelOutStakingCredential", "txSkelOutMStakingCredentialL")] ''TxSkelOut
 
--- | Focuses on the staking credential of a 'TxSkelOut'
+-- | Focuses on the optional staking credential of a 'TxSkelOut'
 txSkelOutStakingCredentialAT :: AffineTraversal' TxSkelOut Api.StakingCredential
 txSkelOutStakingCredentialAT = txSkelOutMStakingCredentialL % _Just
 

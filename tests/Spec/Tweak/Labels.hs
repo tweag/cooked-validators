@@ -19,7 +19,7 @@ payTo target amount = do
   validateTxSkel_ $
     txSkelTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelOuts = [target `receives` Value (Script.ada amount)]
+        txSkelOutputs = [target `receives` Value (Script.ada amount)]
       }
 
 payments :: StagedMockChain ()
@@ -33,22 +33,22 @@ payments = do
 
 labelAmountTweak :: StagedTweak ()
 labelAmountTweak = do
-  [target] <- viewAllTweak (txSkelOutsL % _head % txSkelOutValueL % valueLovelaceL)
-  addLabelTweak $ Api.getLovelace target
+  [target] <- toListOfTweak (txSkelOutputsL % _head % txSkelOutValueL % valueLovelaceL)
+  insertInTweak txSkelLabelsL $ TxSkelLabel $ Api.getLovelace target
 
 labelNameTweak :: StagedTweak ()
 labelNameTweak = do
   target <-
-    viewAllTweak
-      ( txSkelOutsL
+    toListOfTweak
+      ( txSkelOutputsL
           % _head
           % txSkelOutOwnerL
           % userEitherPubKeyP
           % userTypedPubKeyAT @Wallet
       )
   case target of
-    [t] | t == alice -> addLabelTweak @Text "Alice"
-    [t] | t == bob -> addLabelTweak @Text "Bob"
+    [t] | t == alice -> insertInTweak txSkelLabelsL $ TxSkelLabel @Text "Alice"
+    [t] | t == bob -> insertInTweak txSkelLabelsL $ TxSkelLabel @Text "Bob"
     _ -> mzero
 
 labelNames :: StagedMockChain ()
@@ -64,26 +64,33 @@ tests =
           everywhere labelNameTweak $
             there
               0
-              (redirectOutputTweakAll (const (Just carrie)) (== 0))
+              ( datumHijackingAttack $
+                  DatumHijackingParams
+                    OneBranchForAllFoci
+                    (txSkelOutputsL % traversed)
+                    (const (Just carrie))
+                    (== 0)
+              )
               payments,
       testCooked "Adding labels whenever possible" $
         mustSucceedTest $
           whenAble labelNameTweak $
             there
               0
-              (redirectOutputTweakAll (const (Just carrie)) (== 0))
+              ( datumHijackingAttack $
+                  DatumHijackingParams
+                    OneBranchForAllFoci
+                    (txSkelOutputsL % traversed)
+                    (const (Just carrie))
+                    (== 0)
+              )
               payments,
       testCooked "Applying a modification to all transactions with a given exact label" $
         mustSucceedTest $
           whenAble (labelled' "Alice" labelAmountTweak) $
             everywhere labelNameTweak payments,
-      testCooked "Apply a modification to all transactions with a given type of label"
-        $ mustSucceedTest
-        $ everywhere
-          ( do
-              txSkelLabels <- viewAllTweak $ txSkelLabelsL % to Set.toList % traversed % txSkelLabelTypedP @Text
-              guard $ not $ null txSkelLabels
-              labelAmountTweak
-          )
-        $ everywhere labelNameTweak payments
+      testCooked "Applying a modification to all transactions with a given type of label" $
+        mustSucceedTest $
+          everywhere (condTweak (txSkelLabelsL % to Set.toList % traversed % txSkelLabelTypedP @Text) labelAmountTweak) $
+            everywhere labelNameTweak payments
     ]

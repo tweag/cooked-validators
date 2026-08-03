@@ -27,6 +27,7 @@ library:
     - optics-core
     - optics-th
     - ordered-containers
+    - plutus-core
     - plutus-ledger
     - plutus-ledger-api
     - plutus-script-utils

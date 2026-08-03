@@ -43,6 +43,7 @@ import Cooked.MockChain.Read
 import Cooked.MockChain.State
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
@@ -214,11 +215,11 @@ runMockChainWrite = interpret $ \case
         -- We retrieve the utxos created by the transaction
         let utxos = P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx
         -- We combine them with their corresponding `TxSkelOut`
-        let newOutputs = zip utxos (txSkelOuts finalTxSkel)
+        let newOutputs = zip utxos (txSkelOutputs finalTxSkel)
         -- We add the news utxos to the state
         forM_ newOutputs $ modify' . uncurry addOutput
         -- And remove the old ones
-        forM_ (Map.toList $ txSkelIns finalTxSkel) $ modify' . removeOutput . fst
+        forM_ (Map.toList $ txSkelInputs finalTxSkel) $ modify' . removeOutput . fst
         -- We return the newly created outputs
         return newOutputs
       -- This is a theoretical unreachable case. Since we fail in Phase 2, it

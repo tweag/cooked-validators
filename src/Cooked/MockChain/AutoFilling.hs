@@ -12,6 +12,8 @@ import Cooked.MockChain.Read
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Query
+import Cooked.Tweak.Update
 import Data.List (find)
 import Data.Map qualified as Map
 import Ledger.Tx qualified as P.Ledger
@@ -88,7 +90,7 @@ updateRedeemedScript
       -- If a reference input is found, we assign it and log the event
       ( \oRef -> do
           logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
-          return $ over userTxSkelRedeemerAT (fillReferenceInput oRef) rs
+          return $ over userRedeemerAT (fillReferenceInput oRef) rs
       )
       $ case oRefsInInputs of
         [] -> Nothing
@@ -106,28 +108,20 @@ autoFillReferenceScripts ::
   (Members '[Tweak, MockChainRead, MockChainLog] effs) =>
   Sem effs ()
 autoFillReferenceScripts = do
-  inputsKeys <- viewTweak $ txSkelInsL % to Map.keys
-  -- Updating minting redeemers
-  traverseTweak
-    (txSkelMintsL % txSkelMintsListI % traversed % mintRedeemedScriptL)
-    (updateRedeemedScript inputsKeys)
-  -- Updating spending redeemers
-  inputsList <- viewTweak $ txSkelInsL % to Map.toList
+  inputsKeys <- viewTweak $ txSkelInputsL % to Map.keys
+  -- Updating spending redeemers, whose validators are fetched from the index
+  -- based on the inputs' references, and thus require a dedicated treatment.
+  inputsList <- viewTweak $ txSkelInputsL % to Map.toList
   newInputs <- forM inputsList $ \(oRef, red) ->
     (oRef,) <$> do
       validatorM <- previewByRef (txSkelOutOwnerL % userVScriptAT) oRef
       case validatorM of
         Nothing -> return red
-        Just val -> view userTxSkelRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
-  setTweak txSkelInsL $ Map.fromList newInputs
-  -- Updating proposing redeemers
-  traverseTweak
-    (txSkelProposalsL % traversed % txSkelProposalMConstitutionAT % _Just)
-    (updateRedeemedScript inputsKeys)
-  -- Updating widrawing redeemers
-  traverseTweak
-    (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed % withdrawalUserL % userEitherScriptP)
-    (updateRedeemedScript inputsKeys)
+        Just val -> view userRedeemerL <$> updateRedeemedScript inputsKeys (UserRedeemedScript val red)
+  setTweak txSkelInputsL $ Map.fromList newInputs
+  -- Updating minting, proposing, withdrawing and certifying redeemers, whose
+  -- scripts are directly stored in the skeleton, in one go.
+  traverseTweak txSkelRedeemedScriptsT (updateRedeemedScript inputsKeys)
 
 -- * Auto filling min ada amounts
 
@@ -179,4 +173,4 @@ toTxSkelOutWithMinAda txSkelOut = do
 autoFillMinAda ::
   (Members '[Tweak, MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
   Sem effs ()
-autoFillMinAda = traverseTweak (txSkelOutsL % traversed) toTxSkelOutWithMinAda
+autoFillMinAda = traverseTweak (txSkelOutputsL % traversed) toTxSkelOutWithMinAda
