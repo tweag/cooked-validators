@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+## [[10.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v10.0.0) - 2026-08-03
+
+### Added
+
 - New `traverseTweak` primitive, the effectful sibling of `overTweak`: it
   modifies every focus of an optic on the current `TxSkel` using a function
   running in the tweak's effect stack.
