@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module exposes a function to automatically fill the constitution</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- scripts of the proposals in a 'Cooked.Skeleton.TxSkel' based on the current</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- state of the blockchain.</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Automation.AutoFilling.Constitution</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.Automation.AutoFilling.Constitution.html#autoFillConstitution"><span class="hs-identifier">autoFillConstitution</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Effect.Log.html"><span class="hs-identifier">Cooked.MockChain.Effect.Log</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Effect.Read.html"><span class="hs-identifier">Cooked.MockChain.Effect.Read</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html"><span class="hs-identifier">Cooked.Tweak.Common</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Update.html"><span class="hs-identifier">Cooked.Tweak.Update</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><span class="hs-comment">-- * Auto filling constitution script</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Goes through all the proposals of the input skeleton and attempts to fill</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- out the constitution scripts with the current one. Does not tamper with an</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- existing specified script in such proposals. Logs an event when the</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- constitution script has been successfully auto-filled.</span><span>
+</span><span id="line-25"></span><span id="local-6989586621679881096"><span class="annot"><a href="Cooked.MockChain.Automation.AutoFilling.Constitution.html#autoFillConstitution"><span class="hs-identifier hs-type">autoFillConstitution</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Effect.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Effect.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679881096"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679881096"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-28"></span><span id="autoFillConstitution"><span class="annot"><span class="annottext">autoFillConstitution :: forall (effs :: EffectRow).
+Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.Automation.AutoFilling.Constitution.html#autoFillConstitution"><span class="hs-identifier hs-var hs-var">autoFillConstitution</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679881212"><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679881212"><span class="hs-identifier hs-var">currentConstitution</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (Maybe VScript)
+forall (effs :: EffectRow).
+Member MockChainRead effs =&gt;
+Sem effs (Maybe VScript)
+</span><a href="Cooked.MockChain.Effect.Read.html#getConstitutionScript"><span class="hs-identifier hs-var">getConstitutionScript</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe VScript
+</span><a href="#local-6989586621679881212"><span class="hs-identifier hs-var">currentConstitution</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">Maybe VScript
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; Sem effs ()
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679881214"><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679881214"><span class="hs-identifier hs-var">constitutionScript</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>      </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel TxSkelProposal
+-&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal) -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+</span><a href="Cooked.Skeleton.html#txSkelProposalsL"><span class="hs-identifier hs-var">txSkelProposalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelProposal]
+-&gt; Optic
+     A_Traversal
+     NoIx
+     [TxSkelProposal]
+     [TxSkelProposal]
+     TxSkelProposal
+     TxSkelProposal
+-&gt; Optic' A_Traversal NoIx TxSkel TxSkelProposal
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  [TxSkelProposal]
+  [TxSkelProposal]
+  TxSkelProposal
+  TxSkelProposal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((TxSkelProposal -&gt; Sem effs TxSkelProposal) -&gt; Sem effs ())
+-&gt; (TxSkelProposal -&gt; Sem effs TxSkelProposal) -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679881219"><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679881219"><span class="hs-identifier hs-var">prop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>        </span><span class="annot"><span class="annottext">Bool -&gt; Sem effs () -&gt; Sem effs ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic'
+  An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
+-&gt; TxSkelProposal -&gt; Bool
+forall k (is :: IxList) s a.
+Is k An_AffineFold =&gt;
+Optic' k is s a -&gt; s -&gt; Bool
+</span><span class="hs-identifier hs-var">isn't</span></span><span> </span><span class="annot"><span class="annottext">Optic'
+  An_AffineTraversal NoIx TxSkelProposal (User 'IsScript 'Redemption)
+</span><a href="Cooked.Skeleton.Proposal.html#txSkelProposalConstitutionAT"><span class="hs-identifier hs-var">txSkelProposalConstitutionAT</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679881219"><span class="hs-identifier hs-var">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Sem effs () -&gt; Sem effs ()) -&gt; Sem effs () -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-35"></span><span>          </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
+forall (effs :: EffectRow).
+Member MockChainLog effs =&gt;
+MockChainLogEntry -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Effect.Log.html#logEvent"><span class="hs-identifier hs-var">logEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainLogEntry -&gt; Sem effs ())
+-&gt; MockChainLogEntry -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-36"></span><span>            </span><span class="annot"><span class="annottext">ScriptHash -&gt; MockChainLogEntry
+</span><a href="Cooked.MockChain.Effect.Log.html#MCLogAutoFilledConstitution"><span class="hs-identifier hs-var">MCLogAutoFilledConstitution</span></a></span><span> </span><span class="annot"><span class="annottext">(ScriptHash -&gt; MockChainLogEntry)
+-&gt; ScriptHash -&gt; MockChainLogEntry
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-37"></span><span>              </span><span class="annot"><span class="annottext">VScript -&gt; ScriptHash
+forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
+</span><span class="hs-identifier hs-var">Script.toScriptHash</span></span><span> </span><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679881214"><span class="hs-identifier hs-var">constitutionScript</span></a></span><span>
+</span><span id="line-38"></span><span>        </span><span class="annot"><span class="annottext">TxSkelProposal -&gt; Sem effs TxSkelProposal
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VScript -&gt; TxSkelProposal -&gt; TxSkelProposal
+forall script.
+(ToVScript script, Typeable script) =&gt;
+script -&gt; TxSkelProposal -&gt; TxSkelProposal
+</span><a href="Cooked.Skeleton.Proposal.html#fillConstitution"><span class="hs-identifier hs-var">fillConstitution</span></a></span><span> </span><span class="annot"><span class="annottext">VScript
+</span><a href="#local-6989586621679881214"><span class="hs-identifier hs-var">constitutionScript</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelProposal
+</span><a href="#local-6989586621679881219"><span class="hs-identifier hs-var">prop</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span></pre></body></html>

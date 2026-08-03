@@ -24,7 +24,7 @@
 </span><span id="line-24"></span><span class="hs-comment">-- | A label added to a 'TxSkel' on which a tweak reordering some outputs has</span><span>
 </span><span id="line-25"></span><span class="hs-comment">-- been applied.</span><span>
 </span><span id="line-26"></span><span class="hs-keyword">data</span><span> </span><span id="OutputsReorderingLabel"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#OutputsReorderingLabel"><span class="hs-identifier hs-var">OutputsReorderingLabel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="OutputsReorderingLabel"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#OutputsReorderingLabel"><span class="hs-identifier hs-var">OutputsReorderingLabel</span></a></span></span><span>
-</span><span id="line-27"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679887821"><span id="local-6989586621679887823"><span id="local-6989586621679887827"><span class="annot"><span class="annottext">Int -&gt; OutputsReorderingLabel -&gt; ShowS
+</span><span id="line-27"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679888190"><span id="local-6989586621679888192"><span id="local-6989586621679888196"><span class="annot"><span class="annottext">Int -&gt; OutputsReorderingLabel -&gt; ShowS
 [OutputsReorderingLabel] -&gt; ShowS
 OutputsReorderingLabel -&gt; String
 (Int -&gt; OutputsReorderingLabel -&gt; ShowS)
@@ -39,7 +39,7 @@ $cshow :: OutputsReorderingLabel -&gt; String
 show :: OutputsReorderingLabel -&gt; String
 $cshowList :: [OutputsReorderingLabel] -&gt; ShowS
 showList :: [OutputsReorderingLabel] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887831"><span id="local-6989586621679887833"><span class="annot"><span class="annottext">OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679888200"><span id="local-6989586621679888202"><span class="annot"><span class="annottext">OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool
 (OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool)
 -&gt; (OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool)
 -&gt; Eq OutputsReorderingLabel
@@ -48,7 +48,7 @@ $c== :: OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool
 == :: OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool
 $c/= :: OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool
 /= :: OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887840"><span id="local-6989586621679887842"><span id="local-6989586621679887844"><span id="local-6989586621679887848"><span id="local-6989586621679887851"><span id="local-6989586621679887854"><span id="local-6989586621679887857"><span class="annot"><span class="annottext">Eq OutputsReorderingLabel
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679888209"><span id="local-6989586621679888211"><span id="local-6989586621679888213"><span id="local-6989586621679888217"><span id="local-6989586621679888220"><span id="local-6989586621679888223"><span id="local-6989586621679888226"><span class="annot"><span class="annottext">Eq OutputsReorderingLabel
 Eq OutputsReorderingLabel =&gt;
 (OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Ordering)
 -&gt; (OutputsReorderingLabel -&gt; OutputsReorderingLabel -&gt; Bool)
@@ -94,9 +94,9 @@ min :: OutputsReorderingLabel
 -&gt; OutputsReorderingLabel -&gt; OutputsReorderingLabel
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-28"></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679887861"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#OutputsReorderingLabel"><span class="hs-identifier hs-type">OutputsReorderingLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-30"></span><span>  </span><span id="local-6989586621679887868"><span class="annot"><span class="annottext">prettyCooked :: OutputsReorderingLabel -&gt; DocCooked
-</span><a href="#local-6989586621679887868"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">OutputsReorderingLabel
+</span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679888230"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#OutputsReorderingLabel"><span class="hs-identifier hs-type">OutputsReorderingLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679888237"><span class="annot"><span class="annottext">prettyCooked :: OutputsReorderingLabel -&gt; DocCooked
+</span><a href="#local-6989586621679888237"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">OutputsReorderingLabel
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Outputs reordering&quot;</span></span><span>
 </span><span id="line-31"></span><span>
@@ -110,35 +110,35 @@ min :: OutputsReorderingLabel
 </span><span id="line-39"></span><span>    </span><span id="Shuffle"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#Shuffle"><span class="hs-identifier hs-var">Shuffle</span></a></span></span><span>
 </span><span id="line-40"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Do whatever you want with the outputs, manually, including removing</span><span>
 </span><span id="line-41"></span><span>    </span><span class="hs-comment">-- some of them, or fully changing the list.</span><span>
-</span><span id="line-42"></span><span>    </span><span id="ManualReordering"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#ManualReordering"><span class="hs-identifier hs-var">ManualReordering</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679887874"><span class="annot"><a href="#local-6989586621679887874"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887874"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887874"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>    </span><span id="ManualReordering"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#ManualReordering"><span class="hs-identifier hs-var">ManualReordering</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679888243"><span class="annot"><a href="#local-6989586621679888243"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679888243"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679888243"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-43"></span><span>
 </span><span id="line-44"></span><span class="hs-comment">-- | Reorders the outputs following a given policy (parameters) to try and</span><span>
 </span><span id="line-45"></span><span class="hs-comment">-- uncover vulnerabilities for smart contracts depending on the outputs</span><span>
 </span><span id="line-46"></span><span class="hs-comment">-- order. This can also be used to uncover some cases of double</span><span>
 </span><span id="line-47"></span><span class="hs-comment">-- satisfaction. This removes the permutations that turn out to be identical</span><span>
 </span><span id="line-48"></span><span class="hs-comment">-- to the initial outputs list.</span><span>
-</span><span id="line-49"></span><span id="local-6989586621679887754"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#outputsReorderingAttack"><span class="hs-identifier hs-type">outputsReorderingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679887754"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-49"></span><span id="local-6989586621679888123"><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#outputsReorderingAttack"><span class="hs-identifier hs-type">outputsReorderingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679888123"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-51"></span><span>  </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#OutputsReorderingParams"><span class="hs-identifier hs-type">OutputsReorderingParams</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-52"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679887754"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679888123"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-53"></span><span id="outputsReorderingAttack"><span class="annot"><span class="annottext">outputsReorderingAttack :: forall (effs :: EffectRow).
 Members '[Tweak, NonDet] effs =&gt;
 OutputsReorderingParams -&gt; Sem effs ()
-</span><a href="Cooked.Attack.OutputsReordering.html#outputsReorderingAttack"><span class="hs-identifier hs-var hs-var">outputsReorderingAttack</span></a></span></span><span> </span><span id="local-6989586621679887928"><span class="annot"><span class="annottext">OutputsReorderingParams
-</span><a href="#local-6989586621679887928"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-54"></span><span>  </span><span id="local-6989586621679887929"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
+</span><a href="Cooked.Attack.OutputsReordering.html#outputsReorderingAttack"><span class="hs-identifier hs-var hs-var">outputsReorderingAttack</span></a></span></span><span> </span><span id="local-6989586621679888297"><span class="annot"><span class="annottext">OutputsReorderingParams
+</span><a href="#local-6989586621679888297"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679888298"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut] -&gt; Sem effs [TxSkelOut]
 forall (effs :: EffectRow) k (is :: IxList) a.
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutputsL"><span class="hs-identifier hs-var">txSkelOutputsL</span></a></span><span>
-</span><span id="line-55"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679887932"><span class="annot"><span class="annottext">iMax :: Int
-</span><a href="#local-6989586621679887932"><span class="hs-identifier hs-var hs-var">iMax</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679888301"><span class="annot"><span class="annottext">iMax :: Int
+</span><a href="#local-6989586621679888301"><span class="hs-identifier hs-var hs-var">iMax</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int
 forall a. [a] -&gt; Int
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
 </span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span>
 </span><span id="line-56"></span><span>  </span><span class="annot"><span class="annottext">[Sem effs ()] -&gt; Sem effs ()
 forall (t :: * -&gt; *) (m :: * -&gt; *) a.
 (Foldable t, MonadPlus m) =&gt;
@@ -162,101 +162,101 @@ forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([[TxSkelOut]] -&gt; [[TxSkelOut]]) -&gt; [[TxSkelOut]] -&gt; [[TxSkelOut]]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([[TxSkelOut]] -&gt; [[TxSkelOut]]) -&gt; [[TxSkelOut]] -&gt; [[TxSkelOut]]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
 </span><span id="line-59"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">OutputsReorderingParams
-</span><a href="#local-6989586621679887928"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-60"></span><span>          </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#Swap"><span class="hs-identifier hs-type">Swap</span></a></span><span> </span><span id="local-6989586621679887937"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887937"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679887938"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887938"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="#local-6989586621679888297"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-60"></span><span>          </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#Swap"><span class="hs-identifier hs-type">Swap</span></a></span><span> </span><span id="local-6989586621679888306"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888306"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679888307"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888307"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-61"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
-</span><a href="#local-6989586621679887939"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887937"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887932"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679888308"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888306"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888301"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
-</span><a href="#local-6989586621679887939"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887938"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887932"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679888308"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888307"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888301"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887937"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679888306"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887938"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-62"></span><span>                </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679887941"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679887941"><span class="hs-identifier hs-var">ai</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887942"><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679887942"><span class="hs-identifier hs-var">aj</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int -&gt; TxSkelOut
+</span><a href="#local-6989586621679888307"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-62"></span><span>                </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679888310"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679888310"><span class="hs-identifier hs-var">ai</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679888311"><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679888311"><span class="hs-identifier hs-var">aj</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int -&gt; TxSkelOut
 forall a. HasCallStack =&gt; [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887937"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int -&gt; TxSkelOut
+</span><a href="#local-6989586621679888306"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int -&gt; TxSkelOut
 forall a. HasCallStack =&gt; [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887938"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679888307"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-63"></span><span>                 </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall {a}. Int -&gt; a -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887944"><span class="hs-identifier hs-var">replaceAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887937"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679887942"><span class="hs-identifier hs-var">aj</span></a></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679888313"><span class="hs-identifier hs-var">replaceAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888306"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679888311"><span class="hs-identifier hs-var">aj</span></a></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall {a}. Int -&gt; a -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887944"><span class="hs-identifier hs-var">replaceAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887938"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679887941"><span class="hs-identifier hs-var">ai</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-64"></span><span>          </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#Move"><span class="hs-identifier hs-type">Move</span></a></span><span> </span><span id="local-6989586621679887945"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887945"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679887946"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887946"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="#local-6989586621679888313"><span class="hs-identifier hs-var">replaceAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888307"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679888310"><span class="hs-identifier hs-var">ai</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-64"></span><span>          </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#Move"><span class="hs-identifier hs-type">Move</span></a></span><span> </span><span id="local-6989586621679888314"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888314"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679888315"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888315"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-65"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
-</span><a href="#local-6989586621679887939"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887945"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887932"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679888308"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888314"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888301"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
-</span><a href="#local-6989586621679887939"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887946"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887932"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679888308"><span class="hs-identifier hs-var">valid</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888315"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888301"><span class="hs-identifier hs-var">iMax</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887945"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679888314"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887946"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-66"></span><span>                </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679887947"><span class="annot"><span class="annottext">ai :: TxSkelOut
-</span><a href="#local-6989586621679887947"><span class="hs-identifier hs-var hs-var">ai</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int -&gt; TxSkelOut
+</span><a href="#local-6989586621679888315"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-66"></span><span>                </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679888316"><span class="annot"><span class="annottext">ai :: TxSkelOut
+</span><a href="#local-6989586621679888316"><span class="hs-identifier hs-var hs-var">ai</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; Int -&gt; TxSkelOut
 forall a. HasCallStack =&gt; [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887945"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679888314"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-67"></span><span>                 </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; TxSkelOut -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall {a}. Int -&gt; a -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887948"><span class="hs-identifier hs-var">insertAt</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887945"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679888317"><span class="hs-identifier hs-var">insertAt</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888314"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887946"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887946"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679888315"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888315"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887946"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
-</span><a href="#local-6989586621679887947"><span class="hs-identifier hs-var">ai</span></a></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="#local-6989586621679888315"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelOut
+</span><a href="#local-6989586621679888316"><span class="hs-identifier hs-var">ai</span></a></span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; [TxSkelOut]) -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall {a}. Int -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887950"><span class="hs-identifier hs-var">removeAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887945"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679888319"><span class="hs-identifier hs-var">removeAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888314"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-68"></span><span>          </span><span class="annot"><span class="annottext">OutputsReorderingParams
 </span><a href="Cooked.Attack.OutputsReordering.html#Shuffle"><span class="hs-identifier hs-var">Shuffle</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [[TxSkelOut]]
 forall a. [a] -&gt; [[a]]
 </span><span class="hs-identifier hs-var">permutations</span></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span>
-</span><span id="line-69"></span><span>          </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#ManualReordering"><span class="hs-identifier hs-type">ManualReordering</span></a></span><span> </span><span id="local-6989586621679887951"><span class="annot"><span class="annottext">forall a. [a] -&gt; [[a]]
-</span><a href="#local-6989586621679887951"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [[TxSkelOut]]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><span id="line-69"></span><span>          </span><span class="annot"><a href="Cooked.Attack.OutputsReordering.html#ManualReordering"><span class="hs-identifier hs-type">ManualReordering</span></a></span><span> </span><span id="local-6989586621679888320"><span class="annot"><span class="annottext">forall a. [a] -&gt; [[a]]
+</span><a href="#local-6989586621679888320"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [[TxSkelOut]]
 forall a. [a] -&gt; [[a]]
-</span><a href="#local-6989586621679887951"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679887929"><span class="hs-identifier hs-var">outputs</span></a></span><span>
+</span><a href="#local-6989586621679888320"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679888298"><span class="hs-identifier hs-var">outputs</span></a></span><span>
 </span><span id="line-70"></span><span>          </span><span class="annot"><span class="annottext">OutputsReorderingParams
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
 </span><span id="line-71"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
@@ -272,85 +272,85 @@ forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
 </span><a href="Cooked.Skeleton.Label.html#TxSkelLabel"><span class="hs-identifier hs-var">TxSkelLabel</span></a></span><span> </span><span class="annot"><span class="annottext">OutputsReorderingLabel
 </span><a href="Cooked.Attack.OutputsReordering.html#OutputsReorderingLabel"><span class="hs-identifier hs-var">OutputsReorderingLabel</span></a></span><span>
 </span><span id="line-72"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-73"></span><span>    </span><span class="annot"><a href="#local-6989586621679887939"><span class="hs-identifier hs-type">valid</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
-</span><span id="line-74"></span><span>    </span><span id="local-6989586621679887939"><span class="annot"><span class="annottext">valid :: Int -&gt; Int -&gt; Bool
-</span><a href="#local-6989586621679887939"><span class="hs-identifier hs-var hs-var">valid</span></a></span></span><span> </span><span id="local-6989586621679887955"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887955"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679887956"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887956"><span class="hs-identifier hs-var">iMax</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887955"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><span id="line-73"></span><span>    </span><span class="annot"><a href="#local-6989586621679888308"><span class="hs-identifier hs-type">valid</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621679888308"><span class="annot"><span class="annottext">valid :: Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679888308"><span class="hs-identifier hs-var hs-var">valid</span></a></span></span><span> </span><span id="local-6989586621679888324"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888324"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679888325"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888325"><span class="hs-identifier hs-var">iMax</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888324"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887955"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679888324"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887956"><span class="hs-identifier hs-var">iMax</span></a></span><span>
+</span><a href="#local-6989586621679888325"><span class="hs-identifier hs-var">iMax</span></a></span><span>
 </span><span id="line-75"></span><span>
-</span><span id="line-76"></span><span>    </span><span id="local-6989586621679887813"><span class="annot"><a href="#local-6989586621679887957"><span class="hs-identifier hs-type">modifyAt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887813"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887813"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887813"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679887813"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
-</span><span id="line-77"></span><span>    </span><span id="local-6989586621679887957"><span class="annot"><span class="annottext">modifyAt :: forall a. Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887957"><span class="hs-identifier hs-var hs-var">modifyAt</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679887962"><span class="annot"><span class="annottext">[a] -&gt; [a]
-</span><a href="#local-6989586621679887962"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679887963"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887963"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
-</span><a href="#local-6989586621679887962"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887963"><span class="hs-identifier hs-var">l</span></a></span><span>
-</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679887957"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span id="line-76"></span><span>    </span><span id="local-6989586621679888182"><span class="annot"><a href="#local-6989586621679888326"><span class="hs-identifier hs-type">modifyAt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679888182"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679888182"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679888182"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679888182"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-77"></span><span>    </span><span id="local-6989586621679888326"><span class="annot"><span class="annottext">modifyAt :: forall a. Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888326"><span class="hs-identifier hs-var hs-var">modifyAt</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679888331"><span class="annot"><span class="annottext">[a] -&gt; [a]
+</span><a href="#local-6989586621679888331"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679888332"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888332"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
+</span><a href="#local-6989586621679888331"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888332"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679888326"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-79"></span><span>    </span><span class="annot"><a href="#local-6989586621679887957"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span id="local-6989586621679887964"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887964"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679887965"><span class="annot"><span class="annottext">[a] -&gt; [a]
-</span><a href="#local-6989586621679887965"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679887966"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679887966"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679887967"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887967"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679887966"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><span id="line-79"></span><span>    </span><span class="annot"><a href="#local-6989586621679888326"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span id="local-6989586621679888333"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888333"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679888334"><span class="annot"><span class="annottext">[a] -&gt; [a]
+</span><a href="#local-6989586621679888334"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679888335"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679888335"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679888336"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888336"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679888335"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
 forall a. Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887957"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887964"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679888326"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888333"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
-</span><a href="#local-6989586621679887965"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887967"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><a href="#local-6989586621679888334"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888336"><span class="hs-identifier hs-var">xs</span></a></span><span>
 </span><span id="line-80"></span><span>
-</span><span id="line-81"></span><span>    </span><span id="local-6989586621679887944"><span class="annot"><span class="annottext">replaceAt :: Int -&gt; a -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887944"><span class="hs-identifier hs-var hs-var">replaceAt</span></a></span></span><span> </span><span id="local-6989586621679887968"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887968"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679887969"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679887969"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+</span><span id="line-81"></span><span>    </span><span id="local-6989586621679888313"><span class="annot"><span class="annottext">replaceAt :: Int -&gt; a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888313"><span class="hs-identifier hs-var hs-var">replaceAt</span></a></span></span><span> </span><span id="local-6989586621679888337"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888337"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679888338"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679888338"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
 forall a. Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887957"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887968"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">(([a] -&gt; [a]) -&gt; [a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888326"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888337"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">(([a] -&gt; [a]) -&gt; [a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679887970"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887970"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679887969"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679888339"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888339"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679888338"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887970"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><a href="#local-6989586621679888339"><span class="hs-identifier hs-var">xs</span></a></span><span>
 </span><span id="line-82"></span><span>
-</span><span id="line-83"></span><span>    </span><span id="local-6989586621679887950"><span class="annot"><span class="annottext">removeAt :: Int -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887950"><span class="hs-identifier hs-var hs-var">removeAt</span></a></span></span><span> </span><span id="local-6989586621679887971"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887971"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+</span><span id="line-83"></span><span>    </span><span id="local-6989586621679888319"><span class="annot"><span class="annottext">removeAt :: Int -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888319"><span class="hs-identifier hs-var hs-var">removeAt</span></a></span></span><span> </span><span id="local-6989586621679888340"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888340"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
 forall a. Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887957"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887971"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">(([a] -&gt; [a]) -&gt; [a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888326"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888340"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">(([a] -&gt; [a]) -&gt; [a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679887972"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887972"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679887972"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679888341"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888341"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679888341"><span class="hs-identifier hs-var">xs</span></a></span><span>
 </span><span id="line-84"></span><span>
-</span><span id="line-85"></span><span>    </span><span id="local-6989586621679887948"><span class="annot"><span class="annottext">insertAt :: Int -&gt; a -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887948"><span class="hs-identifier hs-var hs-var">insertAt</span></a></span></span><span> </span><span id="local-6989586621679887973"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887973"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679887974"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679887974"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+</span><span id="line-85"></span><span>    </span><span id="local-6989586621679888317"><span class="annot"><span class="annottext">insertAt :: Int -&gt; a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888317"><span class="hs-identifier hs-var hs-var">insertAt</span></a></span></span><span> </span><span id="local-6989586621679888342"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888342"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679888343"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679888343"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
 forall a. Int -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679887957"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679887973"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679887974"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679888326"><span class="hs-identifier hs-var">modifyAt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679888342"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679888343"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
 </span><span id="line-86"></span></pre></body></html>

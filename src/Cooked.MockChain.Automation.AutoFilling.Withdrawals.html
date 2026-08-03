@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module exposes a function to automatically fill the withdrawn amounts</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- of a 'Cooked.Skeleton.TxSkel' based on the current state of the blockchain.</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Automation.AutoFilling.Withdrawals</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.MockChain.Automation.AutoFilling.Withdrawals.html#autoFillWithdrawalAmounts"><span class="hs-identifier">autoFillWithdrawalAmounts</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Effect.Log.html"><span class="hs-identifier">Cooked.MockChain.Effect.Log</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Effect.Read.html"><span class="hs-identifier">Cooked.MockChain.Effect.Read</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html"><span class="hs-identifier">Cooked.Tweak.Common</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.Update.html"><span class="hs-identifier">Cooked.Tweak.Update</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Address</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Polysemy</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><span class="hs-comment">-- * Auto filling withdrawal amounts</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- | Goes through all the withdrawals of the input skeleton and attempts to fill</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- out the withdrawn amount based on the associated user rewards. Does not</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- tamper with an existing specified amount in such withdrawals. Logs an event</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- when an amount has been successfully auto-filled.</span><span>
+</span><span id="line-23"></span><span id="local-6989586621679880943"><span class="annot"><a href="Cooked.MockChain.Automation.AutoFilling.Withdrawals.html#autoFillWithdrawalAmounts"><span class="hs-identifier hs-type">autoFillWithdrawalAmounts</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Effect.Read.html#MockChainRead"><span class="hs-identifier hs-type">MockChainRead</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Effect.Log.html#MockChainLog"><span class="hs-identifier hs-type">MockChainLog</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679880943"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-25"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679880943"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-26"></span><span id="autoFillWithdrawalAmounts"><span class="annot"><span class="annottext">autoFillWithdrawalAmounts :: forall (effs :: EffectRow).
+Members '[MockChainRead, Tweak, MockChainLog] effs =&gt;
+Sem effs ()
+</span><a href="Cooked.MockChain.Automation.AutoFilling.Withdrawals.html#autoFillWithdrawalAmounts"><span class="hs-identifier hs-var hs-var">autoFillWithdrawalAmounts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel Withdrawal
+-&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs ()
+forall (effs :: EffectRow) k (is :: IxList) a.
+(Member Tweak effs, Is k A_Traversal) =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Sem effs a) -&gt; Sem effs ()
+</span><a href="Cooked.Tweak.Update.html#traverseTweak"><span class="hs-identifier hs-var">traverseTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+</span><a href="Cooked.Skeleton.html#txSkelWithdrawalsL"><span class="hs-identifier hs-var">txSkelWithdrawalsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelWithdrawals
+-&gt; Optic
+     An_Iso
+     '[]
+     TxSkelWithdrawals
+     TxSkelWithdrawals
+     [Withdrawal]
+     [Withdrawal]
+-&gt; Optic A_Lens '[] TxSkel TxSkel [Withdrawal] [Withdrawal]
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  An_Iso
+  '[]
+  TxSkelWithdrawals
+  TxSkelWithdrawals
+  [Withdrawal]
+  [Withdrawal]
+</span><a href="Cooked.Skeleton.Withdrawal.html#txSkelWithdrawalsListI"><span class="hs-identifier hs-var">txSkelWithdrawalsListI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] TxSkel TxSkel [Withdrawal] [Withdrawal]
+-&gt; Optic
+     A_Traversal '[] [Withdrawal] [Withdrawal] Withdrawal Withdrawal
+-&gt; Optic' A_Traversal '[] TxSkel Withdrawal
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal '[] [Withdrawal] [Withdrawal] Withdrawal Withdrawal
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs ())
+-&gt; (Withdrawal -&gt; Sem effs Withdrawal) -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679881078"><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881078"><span class="hs-identifier hs-var">withdrawal</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-28"></span><span>    </span><span id="local-6989586621679881079"><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679881079"><span class="hs-identifier hs-var">currentReward</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace)
+forall (effs :: EffectRow) c.
+(Member MockChainRead effs, ToCredential c) =&gt;
+c -&gt; Sem effs (Maybe Lovelace)
+</span><a href="Cooked.MockChain.Effect.Read.html#getCurrentReward"><span class="hs-identifier hs-var">getCurrentReward</span></a></span><span> </span><span class="annot"><span class="annottext">(User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace))
+-&gt; User 'IsEither 'Redemption -&gt; Sem effs (Maybe Lovelace)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+-&gt; Withdrawal -&gt; User 'IsEither 'Redemption
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier hs-var">withdrawalUserL</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881078"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe Lovelace
+</span><a href="#local-6989586621679881079"><span class="hs-identifier hs-var">currentReward</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-30"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679881083"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679881083"><span class="hs-identifier hs-var">reward</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal '[] Withdrawal Lovelace
+-&gt; Withdrawal -&gt; Bool
+forall k (is :: IxList) s a.
+Is k An_AffineFold =&gt;
+Optic' k is s a -&gt; s -&gt; Bool
+</span><span class="hs-identifier hs-var">isn't</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_AffineTraversal '[] Withdrawal Lovelace
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalAmountAT"><span class="hs-identifier hs-var">withdrawalAmountAT</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881078"><span class="hs-identifier hs-var">withdrawal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679881086"><span class="annot"><span class="annottext">newWithdrawal :: Withdrawal
+</span><a href="#local-6989586621679881086"><span class="hs-identifier hs-var hs-var">newWithdrawal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Withdrawal -&gt; Withdrawal
+</span><a href="Cooked.Skeleton.Withdrawal.html#fillAmount"><span class="hs-identifier hs-var">fillAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679881083"><span class="hs-identifier hs-var">reward</span></a></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881078"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
+</span><span id="line-32"></span><span>        </span><span class="annot"><span class="annottext">MockChainLogEntry -&gt; Sem effs ()
+forall (effs :: EffectRow).
+Member MockChainLog effs =&gt;
+MockChainLogEntry -&gt; Sem effs ()
+</span><a href="Cooked.MockChain.Effect.Log.html#logEvent"><span class="hs-identifier hs-var">logEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainLogEntry -&gt; Sem effs ())
+-&gt; MockChainLogEntry -&gt; Sem effs ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-33"></span><span>          </span><span class="annot"><span class="annottext">Credential -&gt; Lovelace -&gt; MockChainLogEntry
+</span><a href="Cooked.MockChain.Effect.Log.html#MCLogAutoFilledWithdrawalAmount"><span class="hs-identifier hs-var">MCLogAutoFilledWithdrawalAmount</span></a></span><span>
+</span><span id="line-34"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Getter '[] Withdrawal Credential
+-&gt; Withdrawal -&gt; Credential
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+</span><a href="Cooked.Skeleton.Withdrawal.html#withdrawalUserL"><span class="hs-identifier hs-var">withdrawalUserL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens '[] Withdrawal (User 'IsEither 'Redemption)
+-&gt; Optic
+     A_Getter
+     '[]
+     (User 'IsEither 'Redemption)
+     (User 'IsEither 'Redemption)
+     Credential
+     Credential
+-&gt; Optic' A_Getter '[] Withdrawal Credential
+forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
+       b.
+(JoinKinds k l m, AppendIndices is js ks) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(User 'IsEither 'Redemption -&gt; Credential)
+-&gt; Optic
+     A_Getter
+     '[]
+     (User 'IsEither 'Redemption)
+     (User 'IsEither 'Redemption)
+     Credential
+     Credential
+forall s a. (s -&gt; a) -&gt; Getter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">User 'IsEither 'Redemption -&gt; Credential
+forall a. ToCredential a =&gt; a -&gt; Credential
+</span><span class="hs-identifier hs-var">Script.toCredential</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881086"><span class="hs-identifier hs-var">newWithdrawal</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>            </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679881083"><span class="hs-identifier hs-var">reward</span></a></span><span>
+</span><span id="line-36"></span><span>        </span><span class="annot"><span class="annottext">Withdrawal -&gt; Sem effs Withdrawal
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881086"><span class="hs-identifier hs-var">newWithdrawal</span></a></span><span>
+</span><span id="line-37"></span><span>      </span><span class="annot"><span class="annottext">Maybe Lovelace
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Withdrawal -&gt; Sem effs Withdrawal
+forall a. a -&gt; Sem effs a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Withdrawal
+</span><a href="#local-6989586621679881078"><span class="hs-identifier hs-var">withdrawal</span></a></span><span>
+</span><span id="line-38"></span></pre></body></html>

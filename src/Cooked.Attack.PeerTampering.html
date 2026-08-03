@@ -30,7 +30,7 @@
 </span><span id="line-30"></span><span class="hs-comment">-- applied. The label contains all the peers that have been replaced, as they</span><span>
 </span><span id="line-31"></span><span class="hs-comment">-- were before being replaced.</span><span>
 </span><span id="line-32"></span><span class="hs-keyword">newtype</span><span> </span><span id="PeerTamperingLabel"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-var">PeerTamperingLabel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="PeerTamperingLabel"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-var">PeerTamperingLabel</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">]</span><span>
-</span><span id="line-33"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679887510"><span id="local-6989586621679887517"><span id="local-6989586621679887521"><span class="annot"><span class="annottext">Int -&gt; PeerTamperingLabel -&gt; ShowS
+</span><span id="line-33"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679887879"><span id="local-6989586621679887886"><span id="local-6989586621679887890"><span class="annot"><span class="annottext">Int -&gt; PeerTamperingLabel -&gt; ShowS
 [PeerTamperingLabel] -&gt; ShowS
 PeerTamperingLabel -&gt; String
 (Int -&gt; PeerTamperingLabel -&gt; ShowS)
@@ -45,7 +45,7 @@ $cshow :: PeerTamperingLabel -&gt; String
 show :: PeerTamperingLabel -&gt; String
 $cshowList :: [PeerTamperingLabel] -&gt; ShowS
 showList :: [PeerTamperingLabel] -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887526"><span id="local-6989586621679887532"><span class="annot"><span class="annottext">PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887895"><span id="local-6989586621679887901"><span class="annot"><span class="annottext">PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool
 (PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool)
 -&gt; (PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool)
 -&gt; Eq PeerTamperingLabel
@@ -54,7 +54,7 @@ $c== :: PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool
 == :: PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool
 $c/= :: PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool
 /= :: PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887542"><span id="local-6989586621679887548"><span id="local-6989586621679887553"><span id="local-6989586621679887558"><span id="local-6989586621679887563"><span id="local-6989586621679887568"><span id="local-6989586621679887573"><span class="annot"><span class="annottext">Eq PeerTamperingLabel
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887911"><span id="local-6989586621679887917"><span id="local-6989586621679887922"><span id="local-6989586621679887927"><span id="local-6989586621679887932"><span id="local-6989586621679887937"><span id="local-6989586621679887942"><span class="annot"><span class="annottext">Eq PeerTamperingLabel
 Eq PeerTamperingLabel =&gt;
 (PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Ordering)
 -&gt; (PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; Bool)
@@ -93,31 +93,31 @@ $cmin :: PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; PeerTamperingLabel
 min :: PeerTamperingLabel -&gt; PeerTamperingLabel -&gt; PeerTamperingLabel
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-34"></span><span>
-</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679887582"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-type">PeerTamperingLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-36"></span><span>  </span><span id="local-6989586621679887597"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; PeerTamperingLabel -&gt; DocCooked
-</span><a href="#local-6989586621679887597"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679887599"><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679887599"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-type">PeerTamperingLabel</span></a></span><span> </span><span id="local-6989586621679887600"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887600"><span class="hs-identifier hs-var">changes</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679887951"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-type">PeerTamperingLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679887966"><span class="annot"><span class="annottext">prettyCookedOpt :: PrettyCookedOpts -&gt; PeerTamperingLabel -&gt; DocCooked
+</span><a href="#local-6989586621679887966"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCookedOpt</span></a></span></span><span> </span><span id="local-6989586621679887968"><span class="annot"><span class="annottext">PrettyCookedOpts
+</span><a href="#local-6989586621679887968"><span class="hs-identifier hs-var">opts</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-type">PeerTamperingLabel</span></a></span><span> </span><span id="local-6989586621679887969"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679887969"><span class="hs-identifier hs-var">changes</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts
 -&gt; DocCooked -&gt; DocCooked -&gt; [DocCooked] -&gt; DocCooked
 forall a.
 PrettyCookedList a =&gt;
 PrettyCookedOpts -&gt; DocCooked -&gt; DocCooked -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyItemize"><span class="hs-identifier hs-var">prettyItemize</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679887599"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><a href="#local-6989586621679887968"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Modified peers&quot;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">([DocCooked] -&gt; DocCooked) -&gt; [DocCooked] -&gt; DocCooked
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PubKeyHash -&gt; DocCooked
 forall a. ToHash a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyHash"><span class="hs-identifier hs-var">prettyHash</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
-</span><a href="#local-6989586621679887599"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; DocCooked) -&gt; [PubKeyHash] -&gt; [DocCooked]
+</span><a href="#local-6989586621679887968"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; DocCooked) -&gt; [PubKeyHash] -&gt; [DocCooked]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887600"><span class="hs-identifier hs-var">changes</span></a></span><span>
+</span><a href="#local-6989586621679887969"><span class="hs-identifier hs-var">changes</span></a></span><span>
 </span><span id="line-38"></span><span>
 </span><span id="line-39"></span><span class="annot"><span class="hs-comment">-- | Parameters of the peer tampering attack</span></span><span>
-</span><span id="line-40"></span><span class="hs-keyword">data</span><span> </span><span id="PeerTamperingParams"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-var">PeerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887368"><span class="annot"><a href="#local-6989586621679887368"><span class="hs-identifier hs-type">effs</span></a></span></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">data</span><span> </span><span id="PeerTamperingParams"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-var">PeerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887737"><span class="annot"><a href="#local-6989586621679887737"><span class="hs-identifier hs-type">effs</span></a></span></span><span>
 </span><span id="line-41"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="PeerTamperingParams"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-var">PeerTamperingParams</span></a></span></span><span>
 </span><span id="line-42"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="hs-comment">-- | The branching policy to use when several peers are targeted</span></span><span>
 </span><span id="line-43"></span><span>    </span><span id="ptpBranching"><span class="annot"><span class="annottext">forall (effs :: EffectRow). PeerTamperingParams effs -&gt; Branching
@@ -125,27 +125,27 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span id="line-44"></span><span>    </span><span class="annot"><span class="hs-comment">-- | The peer to replace, associated with a list of replacing peers</span></span><span>
 </span><span id="line-45"></span><span>    </span><span id="ptpChanges"><span class="annot"><span class="annottext">forall (effs :: EffectRow).
 PeerTamperingParams effs -&gt; Sem effs (PubKeyHash, [PubKeyHash])
-</span><a href="Cooked.Attack.PeerTampering.html#ptpChanges"><span class="hs-identifier hs-var hs-var">ptpChanges</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679887368"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><a href="Cooked.Attack.PeerTampering.html#ptpChanges"><span class="hs-identifier hs-var hs-var">ptpChanges</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679887737"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-46"></span><span>  </span><span class="hs-special">}</span><span>
 </span><span id="line-47"></span><span>
 </span><span id="line-48"></span><span class="annot"><span class="hs-comment">-- | A pure variant of 'PeerTamperingParams'</span></span><span>
-</span><span id="line-49"></span><span id="local-6989586621679887375"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#purePeerTamperingParams"><span class="hs-identifier hs-type">purePeerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span> </span><span class="annot"><a href="#local-6989586621679887375"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-49"></span><span id="local-6989586621679887744"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#purePeerTamperingParams"><span class="hs-identifier hs-type">purePeerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span> </span><span class="annot"><a href="#local-6989586621679887744"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-51"></span><span>  </span><span class="annot"><a href="Cooked.Tweak.Modify.html#Branching"><span class="hs-identifier hs-type">Branching</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-52"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-53"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887375"><span class="hs-identifier hs-type">effs</span></a></span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887744"><span class="hs-identifier hs-type">effs</span></a></span></span><span>
 </span><span id="line-54"></span><span id="purePeerTamperingParams"><span class="annot"><span class="annottext">purePeerTamperingParams :: forall (effs :: EffectRow).
 Member NonDet effs =&gt;
 Branching
 -&gt; [(PubKeyHash, [PubKeyHash])] -&gt; PeerTamperingParams effs
-</span><a href="Cooked.Attack.PeerTampering.html#purePeerTamperingParams"><span class="hs-identifier hs-var hs-var">purePeerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887615"><span class="annot"><span class="annottext">Branching
-</span><a href="#local-6989586621679887615"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Branching
+</span><a href="Cooked.Attack.PeerTampering.html#purePeerTamperingParams"><span class="hs-identifier hs-var hs-var">purePeerTamperingParams</span></a></span></span><span> </span><span id="local-6989586621679887984"><span class="annot"><span class="annottext">Branching
+</span><a href="#local-6989586621679887984"><span class="hs-identifier hs-var">branching</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Branching
 -&gt; Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs
 forall (effs :: EffectRow).
 Branching
 -&gt; Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs
 </span><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-var">PeerTamperingParams</span></a></span><span> </span><span class="annot"><span class="annottext">Branching
-</span><a href="#local-6989586621679887615"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs)
+</span><a href="#local-6989586621679887984"><span class="hs-identifier hs-var">branching</span></a></span><span> </span><span class="annot"><span class="annottext">(Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs)
 -&gt; ([(PubKeyHash, [PubKeyHash])]
     -&gt; Sem effs (PubKeyHash, [PubKeyHash]))
 -&gt; [(PubKeyHash, [PubKeyHash])]
@@ -174,21 +174,21 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span>
 </span><span id="line-55"></span><span>
 </span><span id="line-56"></span><span class="annot"><span class="hs-comment">-- | Peer tampering params transforming a single user into another</span></span><span>
-</span><span id="line-57"></span><span id="local-6989586621679887392"><span id="local-6989586621679887394"><span id="local-6989586621679887395"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#singlePeerTamperingParams"><span class="hs-identifier hs-type">singlePeerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-58"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679887392"><span class="hs-identifier hs-type">existing</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679887394"><span class="hs-identifier hs-type">new</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-59"></span><span>  </span><span class="annot"><a href="#local-6989586621679887392"><span class="hs-identifier hs-type">existing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-60"></span><span>  </span><span class="annot"><a href="#local-6989586621679887394"><span class="hs-identifier hs-type">new</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-61"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887395"><span class="hs-identifier hs-type">effs</span></a></span></span></span></span><span>
+</span><span id="line-57"></span><span id="local-6989586621679887761"><span id="local-6989586621679887763"><span id="local-6989586621679887764"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#singlePeerTamperingParams"><span class="hs-identifier hs-type">singlePeerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679887761"><span class="hs-identifier hs-type">existing</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679887763"><span class="hs-identifier hs-type">new</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-59"></span><span>  </span><span class="annot"><a href="#local-6989586621679887761"><span class="hs-identifier hs-type">existing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><a href="#local-6989586621679887763"><span class="hs-identifier hs-type">new</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-61"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887764"><span class="hs-identifier hs-type">effs</span></a></span></span></span></span><span>
 </span><span id="line-62"></span><span id="singlePeerTamperingParams"><span class="annot"><span class="annottext">singlePeerTamperingParams :: forall existing new (effs :: EffectRow).
 (ToPubKeyHash existing, ToPubKeyHash new) =&gt;
 existing -&gt; new -&gt; PeerTamperingParams effs
 </span><a href="Cooked.Attack.PeerTampering.html#singlePeerTamperingParams"><span class="hs-identifier hs-var hs-var">singlePeerTamperingParams</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">existing -&gt; PubKeyHash
 forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679887624"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887624"><span class="hs-identifier hs-var">existing</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">new -&gt; PubKeyHash
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679887993"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679887993"><span class="hs-identifier hs-var">existing</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">new -&gt; PubKeyHash
 forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679887625"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887625"><span class="hs-identifier hs-var">new</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679887994"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679887994"><span class="hs-identifier hs-var">new</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-63"></span><span>  </span><span class="annot"><span class="annottext">Branching
 -&gt; Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs
 forall (effs :: EffectRow).
@@ -199,23 +199,23 @@ Branching
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887624"><span class="hs-identifier hs-var">existing</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887625"><span class="hs-identifier hs-var">new</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679887993"><span class="hs-identifier hs-var">existing</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679887994"><span class="hs-identifier hs-var">new</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-64"></span><span>
 </span><span id="line-65"></span><span class="annot"><span class="hs-comment">-- | Peer tampering params transforming the balancing user into another</span></span><span>
-</span><span id="line-66"></span><span id="local-6989586621679887400"><span id="local-6989586621679887402"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#balancingPeerTamperingParams"><span class="hs-identifier hs-type">balancingPeerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-67"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679887400"><span class="hs-identifier hs-type">new</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-68"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679887402"><span class="hs-identifier hs-type">effs</span></a></span><span>
+</span><span id="line-66"></span><span id="local-6989586621679887769"><span id="local-6989586621679887771"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#balancingPeerTamperingParams"><span class="hs-identifier hs-type">balancingPeerTamperingParams</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ToPubKeyHash</span></span><span> </span><span class="annot"><a href="#local-6989586621679887769"><span class="hs-identifier hs-type">new</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679887771"><span class="hs-identifier hs-type">effs</span></a></span><span>
 </span><span id="line-69"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-70"></span><span>  </span><span class="annot"><a href="#local-6989586621679887400"><span class="hs-identifier hs-type">new</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-71"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887402"><span class="hs-identifier hs-type">effs</span></a></span></span></span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><a href="#local-6989586621679887769"><span class="hs-identifier hs-type">new</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-71"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887771"><span class="hs-identifier hs-type">effs</span></a></span></span></span><span>
 </span><span id="line-72"></span><span id="balancingPeerTamperingParams"><span class="annot"><span class="annottext">balancingPeerTamperingParams :: forall new (effs :: EffectRow).
 (ToPubKeyHash new, Members '[Tweak, NonDet] effs) =&gt;
 new -&gt; PeerTamperingParams effs
 </span><a href="Cooked.Attack.PeerTampering.html#balancingPeerTamperingParams"><span class="hs-identifier hs-var hs-var">balancingPeerTamperingParams</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">new -&gt; PubKeyHash
 forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679887666"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887666"><span class="hs-identifier hs-var">new</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679888035"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888035"><span class="hs-identifier hs-var">new</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-73"></span><span>  </span><span class="annot"><span class="annottext">Branching
 -&gt; Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs
 forall (effs :: EffectRow).
@@ -226,8 +226,8 @@ Branching
 -&gt; Sem effs (PubKeyHash, [PubKeyHash]) -&gt; PeerTamperingParams effs
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-74"></span><span>    </span><span id="local-6989586621679887667"><span class="annot"><span class="annottext">BalancingPolicy
-</span><a href="#local-6989586621679887667"><span class="hs-identifier hs-var">balancingPolicy</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel BalancingPolicy
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621679888036"><span class="annot"><span class="annottext">BalancingPolicy
+</span><a href="#local-6989586621679888036"><span class="hs-identifier hs-var">balancingPolicy</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel BalancingPolicy
 -&gt; Sem effs BalancingPolicy
 forall (effs :: EffectRow) k (is :: IxList) a.
 (Member Tweak effs, Is k A_Getter) =&gt;
@@ -244,13 +244,13 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   A_Lens NoIx TxSkelOpts TxSkelOpts BalancingPolicy BalancingPolicy
 </span><a href="Cooked.Skeleton.Option.html#txSkelOptBalancingPolicyL"><span class="hs-identifier hs-var">txSkelOptBalancingPolicyL</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-75"></span><span>    </span><span id="local-6989586621679887672"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887672"><span class="hs-identifier hs-var">existing</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">BalancingPolicy
-</span><a href="#local-6989586621679887667"><span class="hs-identifier hs-var">balancingPolicy</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-75"></span><span>    </span><span id="local-6989586621679888041"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888041"><span class="hs-identifier hs-var">existing</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">BalancingPolicy
+</span><a href="#local-6989586621679888036"><span class="hs-identifier hs-var">balancingPolicy</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">BalancingPolicy
 </span><a href="Cooked.Skeleton.Option.html#BalanceWithFirstSignatory"><span class="hs-identifier hs-var">BalanceWithFirstSignatory</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-77"></span><span>        </span><span id="local-6989586621679887674"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887674"><span class="hs-identifier hs-var">signatories</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel PubKeyHash -&gt; Sem effs [PubKeyHash]
+</span><span id="line-77"></span><span>        </span><span id="local-6989586621679888043"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679888043"><span class="hs-identifier hs-var">signatories</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel PubKeyHash -&gt; Sem effs [PubKeyHash]
 forall (effs :: EffectRow) k (is :: IxList) a.
 (Member Tweak effs, Is k A_Fold) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs [a]
@@ -292,26 +292,26 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   A_Lens NoIx TxSkelSignatory TxSkelSignatory PubKeyHash PubKeyHash
 </span><a href="Cooked.Skeleton.Signatory.html#txSkelSignatoryPubKeyHashL"><span class="hs-identifier hs-var">txSkelSignatoryPubKeyHashL</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-78"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887674"><span class="hs-identifier hs-var">signatories</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679888043"><span class="hs-identifier hs-var">signatories</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-79"></span><span>          </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Sem effs PubKeyHash
 forall a. Sem effs a
 forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
 </span><span class="hs-identifier hs-var">mzero</span></span><span>
-</span><span id="line-80"></span><span>          </span><span id="local-6989586621679887680"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887680"><span class="hs-identifier hs-var">first</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
+</span><span id="line-80"></span><span>          </span><span id="local-6989586621679888049"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888049"><span class="hs-identifier hs-var">first</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Sem effs PubKeyHash
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887680"><span class="hs-identifier hs-var">first</span></a></span><span>
+</span><a href="#local-6989586621679888049"><span class="hs-identifier hs-var">first</span></a></span><span>
 </span><span id="line-81"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.Option.html#BalanceWith"><span class="hs-identifier hs-type">BalanceWith</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">pkh -&gt; PubKeyHash
 forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
-</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679887686"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887686"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Sem effs PubKeyHash
+</span><span class="hs-identifier hs-var">Script.toPubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679888055"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888055"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Sem effs PubKeyHash
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887686"><span class="hs-identifier hs-var">user</span></a></span><span>
+</span><a href="#local-6989586621679888055"><span class="hs-identifier hs-var">user</span></a></span><span>
 </span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">BalancingPolicy
 </span><a href="Cooked.Skeleton.Option.html#DoNotBalance"><span class="hs-identifier hs-var">DoNotBalance</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Sem effs PubKeyHash
 forall a. Sem effs a
@@ -321,19 +321,19 @@ forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887672"><span class="hs-identifier hs-var">existing</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887666"><span class="hs-identifier hs-var">new</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679888041"><span class="hs-identifier hs-var">existing</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888035"><span class="hs-identifier hs-var">new</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-84"></span><span>
 </span><span id="line-85"></span><span class="hs-comment">-- | Attempts to change the given peer into other peers everywhere in a 'TxSkel'</span><span>
 </span><span id="line-86"></span><span class="hs-comment">-- in an attempt to uncover permission breaches.</span><span>
-</span><span id="line-87"></span><span id="local-6989586621679887459"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#peerTamperingAttack"><span class="hs-identifier hs-type">peerTamperingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-88"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679887459"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-89"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887459"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-90"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679887459"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">]</span></span><span>
+</span><span id="line-87"></span><span id="local-6989586621679887828"><span class="annot"><a href="Cooked.Attack.PeerTampering.html#peerTamperingAttack"><span class="hs-identifier hs-type">peerTamperingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Members</span></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NonDet</span></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679887828"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-89"></span><span>  </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679887828"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-90"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679887828"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.PubKeyHash</span></span><span class="hs-special">]</span></span><span>
 </span><span id="line-91"></span><span id="peerTamperingAttack"><span class="annot"><span class="annottext">peerTamperingAttack :: forall (effs :: EffectRow).
 Members '[Tweak, NonDet] effs =&gt;
 PeerTamperingParams effs -&gt; Sem effs [PubKeyHash]
-</span><a href="Cooked.Attack.PeerTampering.html#peerTamperingAttack"><span class="hs-identifier hs-var hs-var">peerTamperingAttack</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679887725"><span id="local-6989586621679887726"><span class="annot"><span class="annottext">Sem effs (PubKeyHash, [PubKeyHash])
+</span><a href="Cooked.Attack.PeerTampering.html#peerTamperingAttack"><span class="hs-identifier hs-var hs-var">peerTamperingAttack</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Attack.PeerTampering.html#PeerTamperingParams"><span class="hs-identifier hs-type">PeerTamperingParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679888094"><span id="local-6989586621679888095"><span class="annot"><span class="annottext">Sem effs (PubKeyHash, [PubKeyHash])
 Branching
 ptpBranching :: forall (effs :: EffectRow). PeerTamperingParams effs -&gt; Branching
 ptpChanges :: forall (effs :: EffectRow).
@@ -341,12 +341,12 @@ PeerTamperingParams effs -&gt; Sem effs (PubKeyHash, [PubKeyHash])
 ptpBranching :: Branching
 ptpChanges :: Sem effs (PubKeyHash, [PubKeyHash])
 </span><a href="Cooked.Attack.PeerTampering.html#ptpBranching"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-92"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679887727"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887727"><span class="hs-identifier hs-var">existing</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679887728"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887728"><span class="hs-identifier hs-var">targets</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (PubKeyHash, [PubKeyHash])
-</span><a href="#local-6989586621679887726"><span class="hs-identifier hs-var">ptpChanges</span></a></span><span>
-</span><span id="line-93"></span><span>  </span><span id="local-6989586621679887729"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887729"><span class="hs-identifier hs-var">modified</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679888096"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888096"><span class="hs-identifier hs-var">existing</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679888097"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679888097"><span class="hs-identifier hs-var">targets</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Sem effs (PubKeyHash, [PubKeyHash])
+</span><a href="#local-6989586621679888095"><span class="hs-identifier hs-var">ptpChanges</span></a></span><span>
+</span><span id="line-93"></span><span>  </span><span id="local-6989586621679888098"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679888098"><span class="hs-identifier hs-var">modified</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-94"></span><span>    </span><span class="annot"><span class="annottext">ModifyTweakParams
   A_Traversal An_Iso NoIx NoIx [] PubKeyHash PubKeyHash PubKeyHash
 -&gt; Sem effs [PubKeyHash]
@@ -375,7 +375,7 @@ Branching
 -&gt; ModifyTweakParams k An_Iso is NoIx f a a a
 </span><a href="Cooked.Tweak.Modify.html#modifyTweakParamsNoTypeChange"><span class="hs-identifier hs-var">modifyTweakParamsNoTypeChange</span></a></span><span>
 </span><span id="line-96"></span><span>        </span><span class="annot"><span class="annottext">Branching
-</span><a href="#local-6989586621679887725"><span class="hs-identifier hs-var">ptpBranching</span></a></span><span>
+</span><a href="#local-6989586621679888094"><span class="hs-identifier hs-var">ptpBranching</span></a></span><span>
 </span><span id="line-97"></span><span>        </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsPubKey 'Allocation)
 </span><a href="Cooked.Skeleton.html#txSkelAllocatedPeersT"><span class="hs-identifier hs-var">txSkelAllocatedPeersT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel (User 'IsPubKey 'Allocation)
 -&gt; Optic
@@ -434,13 +434,13 @@ forall (mode :: UserMode). Iso' (User 'IsPubKey mode) PubKeyHash
 -&gt; ModifyTweakParams
      A_Traversal An_Iso NoIx NoIx [] PubKeyHash PubKeyHash PubKeyHash
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679887736"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887736"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887736"><span class="hs-identifier hs-var">pkh</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; PubKeyHash -&gt; Bool
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679888105"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888105"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679888105"><span class="hs-identifier hs-var">pkh</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; PubKeyHash -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679887727"><span class="hs-identifier hs-var">existing</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887728"><span class="hs-identifier hs-var">targets</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679888096"><span class="hs-identifier hs-var">existing</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679888097"><span class="hs-identifier hs-var">targets</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
 </span><span id="line-99"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel (Set TxSkelLabel)
 -&gt; TxSkelLabel -&gt; Sem effs ()
 forall (effs :: EffectRow) k a (is :: IxList).
@@ -456,10 +456,10 @@ forall x. LabelConstrs x =&gt; x -&gt; TxSkelLabel
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; PeerTamperingLabel
 </span><a href="Cooked.Attack.PeerTampering.html#PeerTamperingLabel"><span class="hs-identifier hs-var">PeerTamperingLabel</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887729"><span class="hs-identifier hs-var">modified</span></a></span><span>
+</span><a href="#local-6989586621679888098"><span class="hs-identifier hs-var">modified</span></a></span><span>
 </span><span id="line-100"></span><span>  </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Sem effs [PubKeyHash]
 forall a. a -&gt; Sem effs a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679887729"><span class="hs-identifier hs-var">modified</span></a></span><span>
+</span><a href="#local-6989586621679888098"><span class="hs-identifier hs-var">modified</span></a></span><span>
 </span><span id="line-101"></span></pre></body></html>

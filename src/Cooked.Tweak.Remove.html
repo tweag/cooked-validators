@@ -25,13 +25,13 @@
 </span><span id="line-25"></span><span>
 </span><span id="line-26"></span><span class="hs-comment">-- | Removes elements satisfying a predicate from a list focused in a 'TxSkel',</span><span>
 </span><span id="line-27"></span><span class="hs-comment">-- returning the elements that were removed.</span><span>
-</span><span id="line-28"></span><span id="local-6989586621679876013"><span id="local-6989586621679876015"><span id="local-6989586621679876018"><span id="local-6989586621679876020"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeIfTweak"><span class="hs-identifier hs-type">removeIfTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-29"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876013"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-30"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876015"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span>
+</span><span id="line-28"></span><span id="local-6989586621679876134"><span id="local-6989586621679876136"><span id="local-6989586621679876139"><span id="local-6989586621679876141"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeIfTweak"><span class="hs-identifier hs-type">removeIfTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876134"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-30"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876136"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span>
 </span><span id="line-31"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-32"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876015"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876018"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876020"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679876020"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-34"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876013"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876020"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876136"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876139"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876141"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679876141"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876134"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876141"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span></span><span>
 </span><span id="line-35"></span><span id="removeIfTweak"><span class="annot"><span class="annottext">removeIfTweak :: forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Lens) =&gt;
@@ -41,49 +41,49 @@ Optic' k is TxSkel [a] -&gt; (a -&gt; Bool) -&gt; Sem effs [a]
        (b :: OpticKind).
 Is srcKind destKind =&gt;
 Optic srcKind is s t a b -&gt; Optic destKind is s t a b
-</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876134"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
-</span><a href="#local-6989586621679876134"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876135"><span class="annot"><span class="annottext">a -&gt; Bool
-</span><a href="#local-6989586621679876135"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-36"></span><span>  </span><span id="local-6989586621679876136"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876136"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a] -&gt; Sem effs [a]
+</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876255"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
+</span><a href="#local-6989586621679876255"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876256"><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679876256"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679876257"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876257"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a] -&gt; Sem effs [a]
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
-</span><a href="#local-6989586621679876134"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-37"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876138"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876138"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679876139"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876139"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
+</span><a href="#local-6989586621679876255"><span class="hs-identifier hs-var">optic</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876259"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876259"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679876260"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876260"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
 forall (a :: OpticKind). (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
 </span><span class="hs-identifier hs-var">partition</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
-</span><a href="#local-6989586621679876135"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876136"><span class="hs-keyword hs-var">as</span></a></span><span>
+</span><a href="#local-6989586621679876256"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876257"><span class="hs-keyword hs-var">as</span></a></span><span>
 </span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a] -&gt; [a] -&gt; Sem effs ()
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Setter) =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
-</span><a href="#local-6989586621679876134"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876139"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><a href="#local-6989586621679876255"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876260"><span class="hs-identifier hs-var">kept</span></a></span><span>
 </span><span id="line-39"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Sem effs [a]
 forall (a :: OpticKind). a -&gt; Sem effs a
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
 Monad m =&gt;
 a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876138"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><a href="#local-6989586621679876259"><span class="hs-identifier hs-var">removed</span></a></span><span>
 </span><span id="line-40"></span><span>
 </span><span id="line-41"></span><span class="hs-comment">-- | Removes an element at a specific position in a list focused in a</span><span>
 </span><span id="line-42"></span><span class="hs-comment">-- 'TxSkel', returning the removed element, if any.</span><span>
-</span><span id="line-43"></span><span id="local-6989586621679876049"><span id="local-6989586621679876050"><span id="local-6989586621679876051"><span id="local-6989586621679876052"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeAtPosTweak"><span class="hs-identifier hs-type">removeAtPosTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876049"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-45"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876050"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679876170"><span id="local-6989586621679876171"><span id="local-6989586621679876172"><span id="local-6989586621679876173"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeAtPosTweak"><span class="hs-identifier hs-type">removeAtPosTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876170"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876171"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span>
 </span><span id="line-46"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-47"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876050"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876051"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876052"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-47"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876171"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876172"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679876173"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-48"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-49"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876049"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679876052"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876170"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679876173"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
 </span><span id="line-50"></span><span id="removeAtPosTweak"><span class="annot"><span class="annottext">removeAtPosTweak :: forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Lens) =&gt;
@@ -93,26 +93,26 @@ Optic' k is TxSkel [a] -&gt; Int -&gt; Sem effs (Maybe a)
        (b :: OpticKind).
 Is srcKind destKind =&gt;
 Optic srcKind is s t a b -&gt; Optic destKind is s t a b
-</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876152"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
-</span><a href="#local-6989586621679876152"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876153"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679876153"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-51"></span><span>  </span><span id="local-6989586621679876154"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876154"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a] -&gt; Sem effs [a]
+</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876273"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
+</span><a href="#local-6989586621679876273"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876274"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679876274"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679876275"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876275"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a] -&gt; Sem effs [a]
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
-</span><a href="#local-6989586621679876152"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-52"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876155"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876155"><span class="hs-identifier hs-var">before</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679876156"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876156"><span class="hs-identifier hs-var">after</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [a] -&gt; ([a], [a])
+</span><a href="#local-6989586621679876273"><span class="hs-identifier hs-var">optic</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679876276"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876276"><span class="hs-identifier hs-var">before</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679876277"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876277"><span class="hs-identifier hs-var">after</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [a] -&gt; ([a], [a])
 forall (a :: OpticKind). Int -&gt; [a] -&gt; ([a], [a])
 </span><span class="hs-identifier hs-var">splitAt</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679876153"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876154"><span class="hs-keyword hs-var">as</span></a></span><span>
+</span><a href="#local-6989586621679876274"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876275"><span class="hs-keyword hs-var">as</span></a></span><span>
 </span><span id="line-53"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876156"><span class="hs-identifier hs-var">after</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679876277"><span class="hs-identifier hs-var">after</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-54"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; Sem effs (Maybe a)
 forall (a :: OpticKind). a -&gt; Sem effs a
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
@@ -121,20 +121,20 @@ a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
 forall (a :: OpticKind). Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-55"></span><span>    </span><span id="local-6989586621679876158"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679876158"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679876159"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876159"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679876279"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679876279"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679876280"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876280"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-56"></span><span>      </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a] -&gt; [a] -&gt; Sem effs ()
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Setter) =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel [a] [a]
-</span><a href="#local-6989586621679876152"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876155"><span class="hs-identifier hs-var">before</span></a></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679876273"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679876276"><span class="hs-identifier hs-var">before</span></a></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a] -&gt; [a]
 forall (a :: OpticKind). [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679876159"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679876280"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">Maybe a -&gt; Sem effs (Maybe a)
 forall (a :: OpticKind). a -&gt; Sem effs a
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
@@ -145,18 +145,18 @@ forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
 forall (a :: OpticKind). a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679876158"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><a href="#local-6989586621679876279"><span class="hs-identifier hs-var">x</span></a></span><span>
 </span><span id="line-58"></span><span>
 </span><span id="line-59"></span><span class="hs-comment">-- | Removes an element at a specific key in a map focused in a 'TxSkel',</span><span>
 </span><span id="line-60"></span><span class="hs-comment">-- returning the removed value, if any.</span><span>
-</span><span id="line-61"></span><span id="local-6989586621679876063"><span id="local-6989586621679876064"><span id="local-6989586621679876065"><span id="local-6989586621679876066"><span id="local-6989586621679876067"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeAtTweak"><span class="hs-identifier hs-type">removeAtTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-62"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876063"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-63"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876064"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span class="hs-special">,</span><span>
-</span><span id="line-64"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679876065"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-61"></span><span id="local-6989586621679876184"><span id="local-6989586621679876185"><span id="local-6989586621679876186"><span id="local-6989586621679876187"><span id="local-6989586621679876188"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeAtTweak"><span class="hs-identifier hs-type">removeAtTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876184"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876185"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span class="hs-special">,</span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679876186"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-65"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-66"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876064"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876066"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679876065"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876067"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-67"></span><span>  </span><span class="annot"><a href="#local-6989586621679876065"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-68"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876063"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679876067"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span></span></span></span></span></span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876185"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876187"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679876186"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876188"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><a href="#local-6989586621679876186"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876184"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679876188"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span></span></span></span></span></span><span>
 </span><span id="line-69"></span><span id="removeAtTweak"><span class="annot"><span class="annottext">removeAtTweak :: forall (effs :: EffectRow) (k :: OpticKind) (a :: OpticKind)
        (is :: IxList) (b :: OpticKind).
 (Member Tweak effs, Is k A_Lens, Ord a) =&gt;
@@ -166,17 +166,17 @@ Optic' k is TxSkel (Map a b) -&gt; a -&gt; Sem effs (Maybe b)
        (b :: OpticKind).
 Is srcKind destKind =&gt;
 Optic srcKind is s t a b -&gt; Optic destKind is s t a b
-</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876184"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
-</span><a href="#local-6989586621679876184"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876185"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679876185"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-70"></span><span>  </span><span id="local-6989586621679876186"><span class="annot"><span class="annottext">Maybe b
-</span><a href="#local-6989586621679876186"><span class="hs-identifier hs-var">mb</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens is TxSkel (Maybe b) -&gt; Sem effs (Maybe b)
+</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876305"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
+</span><a href="#local-6989586621679876305"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876306"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679876306"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-70"></span><span>  </span><span id="local-6989586621679876307"><span class="annot"><span class="annottext">Maybe b
+</span><a href="#local-6989586621679876307"><span class="hs-identifier hs-var">mb</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens is TxSkel (Maybe b) -&gt; Sem effs (Maybe b)
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
-</span><a href="#local-6989586621679876184"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
+</span><a href="#local-6989586621679876305"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
 -&gt; Optic A_Lens NoIx (Map a b) (Map a b) (Maybe b) (Maybe b)
 -&gt; Optic' A_Lens is TxSkel (Maybe b)
 forall (k :: OpticKind) (l :: OpticKind) (m :: OpticKind)
@@ -191,14 +191,14 @@ At m =&gt;
 Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">a
 Index (Map a b)
-</span><a href="#local-6989586621679876185"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679876306"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-71"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens is TxSkel (Maybe b) -&gt; Maybe b -&gt; Sem effs ()
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Setter) =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
-</span><a href="#local-6989586621679876184"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
+</span><a href="#local-6989586621679876305"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Map a b) (Map a b)
 -&gt; Optic A_Lens NoIx (Map a b) (Map a b) (Maybe b) (Maybe b)
 -&gt; Optic' A_Lens is TxSkel (Maybe b)
 forall (k :: OpticKind) (l :: OpticKind) (m :: OpticKind)
@@ -213,7 +213,7 @@ At m =&gt;
 Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">a
 Index (Map a b)
-</span><a href="#local-6989586621679876185"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe b
+</span><a href="#local-6989586621679876306"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe b
 forall (a :: OpticKind). Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-72"></span><span>  </span><span class="annot"><span class="annottext">Maybe b -&gt; Sem effs (Maybe b)
@@ -222,18 +222,18 @@ forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
 Monad m =&gt;
 a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe b
-</span><a href="#local-6989586621679876186"><span class="hs-identifier hs-var">mb</span></a></span><span>
+</span><a href="#local-6989586621679876307"><span class="hs-identifier hs-var">mb</span></a></span><span>
 </span><span id="line-73"></span><span>
 </span><span id="line-74"></span><span class="hs-comment">-- | Removes an element in a set focused in a 'TxSkel', returning the removed</span><span>
 </span><span id="line-75"></span><span class="hs-comment">-- value, if any.</span><span>
-</span><span id="line-76"></span><span id="local-6989586621679876101"><span id="local-6989586621679876102"><span id="local-6989586621679876103"><span id="local-6989586621679876104"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeInTweak"><span class="hs-identifier hs-type">removeInTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876101"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876102"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span class="hs-special">,</span><span>
-</span><span id="line-79"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679876103"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-76"></span><span id="local-6989586621679876222"><span id="local-6989586621679876223"><span id="local-6989586621679876224"><span id="local-6989586621679876225"><span class="annot"><a href="Cooked.Tweak.Remove.html#removeInTweak"><span class="hs-identifier hs-type">removeInTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Member</span></span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876222"><span class="hs-identifier hs-type">effs</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679876223"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span class="hs-special">,</span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679876224"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-80"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-81"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876102"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876104"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><a href="#local-6989586621679876103"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-82"></span><span>  </span><span class="annot"><a href="#local-6989586621679876103"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-83"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876101"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679876103"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679876223"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679876225"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><a href="#local-6989586621679876224"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-82"></span><span>  </span><span class="annot"><a href="#local-6989586621679876224"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-83"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Sem</span></span><span> </span><span class="annot"><a href="#local-6989586621679876222"><span class="hs-identifier hs-type">effs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679876224"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
 </span><span id="line-84"></span><span id="removeInTweak"><span class="annot"><span class="annottext">removeInTweak :: forall (effs :: EffectRow) (k :: OpticKind) (a :: OpticKind)
        (is :: IxList).
 (Member Tweak effs, Is k A_Lens, Ord a) =&gt;
@@ -243,17 +243,17 @@ Optic' k is TxSkel (Set a) -&gt; a -&gt; Sem effs (Maybe a)
        (b :: OpticKind).
 Is srcKind destKind =&gt;
 Optic srcKind is s t a b -&gt; Optic destKind is s t a b
-</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876213"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
-</span><a href="#local-6989586621679876213"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876214"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679876214"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-85"></span><span>  </span><span id="local-6989586621679876215"><span class="annot"><span class="annottext">Maybe ()
-</span><a href="#local-6989586621679876215"><span class="hs-identifier hs-var">mb</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens is TxSkel (Maybe ()) -&gt; Sem effs (Maybe ())
+</span><span class="hs-identifier hs-var">castOptic</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">A_Lens</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679876334"><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
+</span><a href="#local-6989586621679876334"><span class="hs-identifier hs-var">optic</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679876335"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679876335"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-85"></span><span>  </span><span id="local-6989586621679876336"><span class="annot"><span class="annottext">Maybe ()
+</span><a href="#local-6989586621679876336"><span class="hs-identifier hs-var">mb</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens is TxSkel (Maybe ()) -&gt; Sem effs (Maybe ())
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Getter) =&gt;
 Optic' k is TxSkel a -&gt; Sem effs a
 </span><a href="Cooked.Tweak.Query.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
-</span><a href="#local-6989586621679876213"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
+</span><a href="#local-6989586621679876334"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
 -&gt; Optic A_Lens NoIx (Set a) (Set a) (Maybe ()) (Maybe ())
 -&gt; Optic' A_Lens is TxSkel (Maybe ())
 forall (k :: OpticKind) (l :: OpticKind) (m :: OpticKind)
@@ -268,14 +268,14 @@ At m =&gt;
 Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">a
 Index (Set a)
-</span><a href="#local-6989586621679876214"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679876335"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-86"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens is TxSkel (Maybe ()) -&gt; Maybe () -&gt; Sem effs ()
 forall (effs :: EffectRow) (k :: OpticKind) (is :: IxList)
        (a :: OpticKind).
 (Member Tweak effs, Is k A_Setter) =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; Sem effs ()
 </span><a href="Cooked.Tweak.Update.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
-</span><a href="#local-6989586621679876213"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
+</span><a href="#local-6989586621679876334"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens is TxSkel TxSkel (Set a) (Set a)
 -&gt; Optic A_Lens NoIx (Set a) (Set a) (Maybe ()) (Maybe ())
 -&gt; Optic' A_Lens is TxSkel (Maybe ())
 forall (k :: OpticKind) (l :: OpticKind) (m :: OpticKind)
@@ -290,7 +290,7 @@ At m =&gt;
 Index m -&gt; Lens' m (Maybe (IxValue m))
 </span><span class="hs-identifier hs-var">at</span></span><span> </span><span class="annot"><span class="annottext">a
 Index (Set a)
-</span><a href="#local-6989586621679876214"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe ()
+</span><a href="#local-6989586621679876335"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe ()
 forall (a :: OpticKind). Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-87"></span><span>  </span><span class="annot"><span class="annottext">Maybe a -&gt; Sem effs (Maybe a)
@@ -301,12 +301,12 @@ a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe a -&gt; Sem effs (Maybe a)) -&gt; Maybe a -&gt; Sem effs (Maybe a)
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679876214"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe () -&gt; Maybe a
+</span><a href="#local-6989586621679876335"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe () -&gt; Maybe a
 forall (a :: OpticKind) (b :: OpticKind). a -&gt; Maybe b -&gt; Maybe a
 forall (f :: OpticKind -&gt; OpticKind) (a :: OpticKind)
        (b :: OpticKind).
 Functor f =&gt;
 a -&gt; f b -&gt; f a
 </span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">Maybe ()
-</span><a href="#local-6989586621679876215"><span class="hs-identifier hs-var">mb</span></a></span><span>
+</span><a href="#local-6989586621679876336"><span class="hs-identifier hs-var">mb</span></a></span><span>
 </span><span id="line-88"></span></pre></body></html>
