@@ -52,6 +52,7 @@ import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Misc
 import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.Effect.Read.Conf
+import Cooked.MockChain.Effect.Validation
 import Cooked.MockChain.Effect.Write
 import Cooked.MockChain.Run.Runnable
 import Cooked.MockChain.Run.Tweak
@@ -69,7 +70,8 @@ import Polysemy.Writer
 
 -- | The most direct stack of effects to run a mockchain
 type DirectEffs =
-  '[ MockChainWrite,
+  '[ MockChainValidate,
+     MockChainWrite,
      MockChainReadChain,
      MockChainMisc,
      Fail
@@ -92,14 +94,15 @@ instance RunnableMockChain DirectEffs where
       . runMockChainReadConfEmul
       . runMockChainReadChainEmul
       . runMockChainWrite
-      . insertAt @5
+      . runMockChainValidate
+      . insertAt @6
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
             State MockChainState,
             MockChainLog,
             Writer MockChainJournal
           ]
-      . insertAt @2
+      . insertAt @3
         @'[ MockChainReadConf
           ]
 
@@ -124,6 +127,7 @@ type FullTweak a = TypedTweak FullTweakEffs a
 -- addition of all the lower level effects required to interpret it.
 type FullEffs =
   '[ ModifyGlobally (UntypedTweak FullTweakEffs),
+     MockChainValidate,
      MockChainWrite,
      ModifyLocally (UntypedTweak FullTweakEffs),
      State [Ltl (UntypedTweak FullTweakEffs)],
@@ -158,7 +162,8 @@ instance RunnableMockChain FullEffs where
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . reinterpretMockChainWriteWithTweak @FullTweakEffs
+      . runMockChainValidate
+      . reinterpretMockChainValidateWithTweak @FullTweakEffs
       . runModifyGlobally
 
 -- | A stack of effects aimed at being used as modifications for a
@@ -178,6 +183,7 @@ type ExtendedStagedTweak extraEff a = TypedTweak (ExtendedStagedTweakEffs extraE
 -- `ExtendedStagedTweakEffs`
 type ExtendedStagedEffs extraEff =
   '[ ModifyGlobally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
+     MockChainValidate,
      MockChainWrite,
      extraEff,
      MockChainMisc,
@@ -212,19 +218,20 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . insertAt @8
+      . runMockChainValidate
+      . insertAt @9
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
             State MockChainState,
             MockChainLog,
             Writer MockChainJournal
           ]
-      . reinterpretMockChainWriteWithTweak @(ExtendedStagedTweakEffs extraEff)
-      . insertAt @6
+      . reinterpretMockChainValidateWithTweak @(ExtendedStagedTweakEffs extraEff)
+      . insertAt @7
         @'[ MockChainReadConf
           ]
       . runModifyGlobally
-      . insertAt @2
+      . insertAt @3
         @'[ ModifyLocally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
             State [Ltl (UntypedTweak (ExtendedStagedTweakEffs extraEff))]
           ]
