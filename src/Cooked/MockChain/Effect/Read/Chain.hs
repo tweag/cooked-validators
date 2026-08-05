@@ -324,7 +324,8 @@ runMockChainReadChainNode ::
          Error Cardano.PastHorizonException,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
-         Reader Cardano.LocalNodeConnectInfo
+         Reader Cardano.LocalNodeConnectInfo,
+         State ChainIndex
        ]
       effs
   ) =>
@@ -357,19 +358,30 @@ runMockChainReadChainNode = interpret $ \case
       -- This case is reduced to [] as there can never be more than one UTxO
       -- with a given 'Api.TxOutRef'.
       _ -> throw $ MCEUnknownOutRef oRef
-  -- The constitution query only exposes the guardrail script /hash/, never the
-  -- script bytes themselves. To recover the full script, we rely on the on-chain
-  -- convention (used on the public networks) that the guardrail script is posted
-  -- as a reference script at its own enterprise script address. We therefore
-  -- derive that address from the queried hash, list the UTxOs sitting there, and
-  -- return the reference script whose hash matches the constitution's. When no
-  -- such reference script is present (e.g. on a private network where nobody
-  -- posted it), we return 'Nothing'.
   GetConstitutionScript -> do
+    -- We retrieve the official optional script hash of the current constitution
     Cardano.Constitution _ mScriptHash <-
       queryAndHandleErrors $ Cardano.queryConstitution Cardano.ConwayEraOnwardsConway
+    -- We retrieve the optional constitution already stored in the chain index
+    mStoredConstitution <- gets chainIndexConstitution
+    -- We inspect the current option constitution script hash
     case mScriptHash of
-      SNothing -> return Nothing
+      -- There is no official constitution (should not happen). We just set our
+      -- own constitution to @Nothing@ accordingly.
+      SNothing -> do
+        modify' $ set chainIndexConstitutionL Nothing
+        return Nothing
+      -- There is an official constitution, and it matches the stored one, which
+      -- we directly return.
+      SJust (Cardano.ScriptHash -> scriptHash)
+        | Just storedConstitution <- mStoredConstitution,
+          Script.toScriptHash scriptHash == Script.toScriptHash storedConstitution ->
+            return $ Just storedConstitution
+      -- There is an official constitution, and it does not match the stored one
+      -- (it has changed, or it's the first time it's been queried). We fetch
+      -- the actual constitution from a reference script at its own address,
+      -- where it should live, according to a governance convention. We store
+      -- the script we find there after verifying its hash, and return it.
       SJust (Cardano.ScriptHash -> scriptHash) -> do
         networkId <- getNetworkId
         utxo <-
@@ -381,12 +393,14 @@ runMockChainReadChainNode = interpret $ \case
                     networkId
                     (Cardano.PaymentCredentialByScript scriptHash)
                     Cardano.NoStakeAddress
-        return $
-          listToMaybe $
-            [ script
-            | (_, preview txSkelOutReferenceScriptAT -> Just script) <- utxo,
-              Script.toScriptHash script == Script.toScriptHash scriptHash
-            ]
+        let newConstitution =
+              listToMaybe $
+                [ script
+                | (_, preview txSkelOutReferenceScriptAT -> Just script) <- utxo,
+                  Script.toScriptHash script == Script.toScriptHash scriptHash
+                ]
+        modify' $ set chainIndexConstitutionL newConstitution
+        return newConstitution
   GetCurrentReward (Script.toCredential -> cred) -> do
     networkId <- getNetworkId
     stakeCred <- toStakeCredential cred
