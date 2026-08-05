@@ -222,15 +222,15 @@ failsAtBalancing (MCEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool
 failsAtBalancing _ = testBool False
 
 failsWithTooLittleFee :: MockChainError -> Assertion
-failsWithTooLittleFee (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
+failsWithTooLittleFee (MCEValidationError P.Ledger.Phase1 [P.Ledger.CardanoLedgerValidationError text]) = testBool $ isInfixOf "FeeTooSmallUTxO" text
 failsWithTooLittleFee _ = testBool False
 
 failsWithValueNotConserved :: MockChainError -> Assertion
-failsWithValueNotConserved (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "ValueNotConserved" text
+failsWithValueNotConserved (MCEValidationError P.Ledger.Phase1 [P.Ledger.CardanoLedgerValidationError text]) = testBool $ isInfixOf "ValueNotConserved" text
 failsWithValueNotConserved _ = testBool False
 
 failsWithEmptyTxIns :: MockChainError -> Assertion
-failsWithEmptyTxIns (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "InputSetEmptyUTxO" text
+failsWithEmptyTxIns (MCEValidationError P.Ledger.Phase1 [P.Ledger.CardanoLedgerValidationError text]) = testBool $ isInfixOf "InputSetEmptyUTxO" text
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> MockChainError -> Assertion

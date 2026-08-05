@@ -30,7 +30,7 @@ runSlot =
     . runToCardanoErrorInMockChainError
     . runFailInMockChainError
     . evalState def
-    . runMockChainRead
+    . runMockChainReadEmul
 
 tests :: TestTree
 tests =
