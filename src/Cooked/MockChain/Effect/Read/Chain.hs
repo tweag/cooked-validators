@@ -252,11 +252,13 @@ getCurrentReward ::
   c ->
   Sem effs (Maybe Api.Lovelace)
 
--- | The interpretation for read-only effect with a stored 'MockChainState'
+-- | The interpretation for read-only effect with a stored 'EmulatorState' and
+-- 'ChainIndex'
 runMockChainReadChainEmul ::
   forall effs a.
   ( Members
-      '[ State MockChainState,
+      '[ State EmulatorState,
+         State ChainIndex,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          Fail
@@ -267,15 +269,15 @@ runMockChainReadChainEmul ::
   Sem effs a
 runMockChainReadChainEmul = interpret $ \case
   TxSkelOutByRef oRef -> do
-    res <- gets $ Map.lookup oRef . mcstOutputs
+    res <- gets $ Map.lookup oRef . chainIndexOutputs
     case res of
       Just (txSkelOut, True) -> return txSkelOut
       _ -> throw $ MCEUnknownOutRef oRef
   AllUtxos -> fetchUtxos $ const True
   UtxosAt (Script.toAddress -> addr) -> fetchUtxos $ (== addr) . Script.toAddress
-  CurrentSlot -> gets $ view $ mcstLedgerStateL % to Emulator.getSlot
+  CurrentSlot -> gets $ view $ emulatorStateLedgerStateL % to Emulator.getSlot
   SlotToMSRange slot -> do
-    slotConfig <- gets $ Emulator.pSlotConfig . mcstParams
+    slotConfig <- gets $ Emulator.pSlotConfig . emulatorStateParams
     case Emulator.slotToPOSIXTimeRange slotConfig slot of
       Api.Interval
         (Api.LowerBound (Api.Finite l) leftclosed)
@@ -285,13 +287,13 @@ runMockChainReadChainEmul = interpret $ \case
               if rightclosed then r else r - 1
             )
       _ -> fail "Unexpected unbounded slot: please report a bug at https://github.com/tweag/cooked-validators/issues"
-  GetEnclosingSlot t -> gets $ (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotConfig . mcstParams
-  GetConstitutionScript -> gets $ view mcstConstitutionL
+  GetEnclosingSlot t -> gets $ (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotConfig . emulatorStateParams
+  GetConstitutionScript -> gets $ view chainIndexConstitutionL
   GetCurrentReward (Script.toCredential -> cred) -> do
     stakeCredential <- toStakeCredential cred
     gets $
       preview $
-        mcstLedgerStateL
+        emulatorStateLedgerStateL
           % to (Emulator.getReward stakeCredential)
           % _Just
           % to coerce
@@ -299,7 +301,7 @@ runMockChainReadChainEmul = interpret $ \case
     fetchUtxos decide =
       gets $
         toListOf $
-          mcstOutputsL
+          chainIndexOutputsL
             % to Map.toList
             % traversed
             % filtered (snd . snd)

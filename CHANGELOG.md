@@ -20,6 +20,16 @@
 
 ### Changed
 
+- The former `MockChainState` has been split into two independent records, each
+  backed by its own state monad: `EmulatorState` (the emulator `Params` and
+  `EmulatedLedgerState`, only relevant when running against the emulated ledger)
+  and `ChainIndex` (the map of known outputs and the constitution script, which
+  is backend-agnostic and also meaningful for the node backend). Accordingly,
+  `mcstToUtxoState` is now `chainIndexToUtxoState`, the `mcst*L` optics are
+  replaced by `emulatorState*L`/`chainIndex*L`, `MockChainConf` now carries
+  `mccInitialEmulatorState` and `mccInitialChainIndex`, and
+  `RunnableMockChain.runMockChain` takes an `EmulatorState` and a `ChainIndex`.
+
 ### Removed
 
 ### Fixed

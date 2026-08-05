@@ -65,7 +65,8 @@ makeSem_ ''MockChainWrite
 runMockChainWrite ::
   forall effs a.
   ( Members
-      '[ State MockChainState,
+      '[ State EmulatorState,
+         State ChainIndex,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          MockChainLog,
@@ -78,21 +79,21 @@ runMockChainWrite ::
   Sem effs a
 runMockChainWrite = interpret $ \case
   SetParams params -> do
-    modify $ set mcstParamsL params
-    modify $ over mcstLedgerStateL $ Emulator.updateStateParams params
+    modify $ set emulatorStateParamsL params
+    modify $ over emulatorStateLedgerStateL $ Emulator.updateStateParams params
   WaitNSlots n -> do
-    cs <- gets (Emulator.getSlot . mcstLedgerState)
+    cs <- gets (Emulator.getSlot . emulatorStateLedgerState)
     if
       | n == 0 -> return cs
       | n > 0 -> do
           let newSlot = cs + fromIntegral n
-          modify' (over mcstLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot)
+          modify' (over emulatorStateLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot)
           return newSlot
       | otherwise -> throw $ MCEPastSlot cs (cs + fromIntegral n)
   SetConstitutionScript (toVScript -> cScript) -> do
-    modify' (mcstConstitutionL ?~ cScript)
+    modify' (chainIndexConstitutionL ?~ cScript)
     modify' $
-      over mcstLedgerStateL $
+      over emulatorStateLedgerStateL $
         Lens.set Emulator.elsConstitutionScriptL $
           (Cardano.SJust . Cardano.toShelleyScriptHash . Script.toCardanoScriptHash)
             cScript
@@ -134,7 +135,7 @@ runMockChainWrite = interpret $ \case
               outputsMinAda
     -- We update the index, which effectively receives the new utxos
     modify'
-      ( over mcstLedgerStateL $
+      ( over emulatorStateLedgerStateL $
           Lens.over
             Emulator.elsUtxoL
             ( P.Ledger.fromPlutusIndex
@@ -143,7 +144,7 @@ runMockChainWrite = interpret $ \case
             )
       )
     -- We update our internal map by adding the new outputs
-    modify' (over mcstOutputsL (<> outputsMap))
+    modify' (over chainIndexOutputsL (<> outputsMap))
     -- Finally, we return the created utxos
     return $ Map.toList (fst <$> outputsMap)
 

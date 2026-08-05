@@ -63,16 +63,16 @@ data MockChainReadConf :: Effect where
 makeSem_ ''MockChainReadConf
 
 -- | The interpretation for the configuration effect with a stored
--- 'MockChainState'
+-- 'EmulatorState'
 runMockChainReadConfEmul ::
-  (Member (State MockChainState) effs) =>
+  (Member (State EmulatorState) effs) =>
   Sem (MockChainReadConf : effs) a ->
   Sem effs a
 runMockChainReadConfEmul = interpret $ \case
-  GetParams -> gets $ Emulator.pEmulatorPParams . mcstParams
-  GetNetworkId -> gets $ Emulator.pNetworkId . mcstParams
-  GetEraHistory -> gets $ Emulator.emulatorEraHistory . mcstParams
-  GetSystemStart -> gets $ Shelley.systemStart . Emulator.emulatorGlobals . mcstParams
+  GetParams -> gets $ Emulator.pEmulatorPParams . emulatorStateParams
+  GetNetworkId -> gets $ Emulator.pNetworkId . emulatorStateParams
+  GetEraHistory -> gets $ Emulator.emulatorEraHistory . emulatorStateParams
+  GetSystemStart -> gets $ Shelley.systemStart . Emulator.emulatorGlobals . emulatorStateParams
 
 -- | Interpret the `MockChainReadConf` effect by talking to a deployed node
 -- through a `Cardano.LocalNodeConnectInfo` (socket path and network id) provided

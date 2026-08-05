@@ -81,12 +81,13 @@ type DirectEffs =
 type DirectMockChain a = Sem DirectEffs a
 
 instance RunnableMockChain DirectEffs where
-  runMockChain mcst =
+  runMockChain emInit ciInit =
     (: [])
       . run
       . runWriter
       . runMockChainLog fromLogEntry
-      . runState mcst
+      . runState ciInit
+      . runState emInit
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
@@ -98,7 +99,8 @@ instance RunnableMockChain DirectEffs where
       . insertAt @6
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
-            State MockChainState,
+            State EmulatorState,
+            State ChainIndex,
             MockChainLog,
             Writer MockChainJournal
           ]
@@ -115,7 +117,8 @@ type FullTweakEffs =
      Fail,
      Error P.Ledger.ToCardanoError,
      Error MockChainError,
-     State MockChainState,
+     State EmulatorState,
+     State ChainIndex,
      MockChainLog,
      Writer MockChainJournal
    ]
@@ -137,7 +140,8 @@ type FullEffs =
      Fail,
      Error P.Ledger.ToCardanoError,
      Error MockChainError,
-     State MockChainState,
+     State EmulatorState,
+     State ChainIndex,
      MockChainLog,
      Writer MockChainJournal,
      NonDet
@@ -147,12 +151,13 @@ type FullEffs =
 type FullMockChain a = Sem FullEffs a
 
 instance RunnableMockChain FullEffs where
-  runMockChain mcst =
+  runMockChain emInit ciInit =
     run
       . runNonDet
       . runWriter
       . runMockChainLog fromLogEntry
-      . runState mcst
+      . runState ciInit
+      . runState emInit
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
@@ -202,12 +207,13 @@ class InterpretAlone eff where
   runInterpretAlone :: Sem (eff : effs) a -> Sem effs a
 
 instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extraEff) where
-  runMockChain mcst =
+  runMockChain emInit ciInit =
     run
       . runNonDet
       . runWriter
       . runMockChainLog fromLogEntry
-      . runState mcst
+      . runState ciInit
+      . runState emInit
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
@@ -222,7 +228,8 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . insertAt @9
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
-            State MockChainState,
+            State EmulatorState,
+            State ChainIndex,
             MockChainLog,
             Writer MockChainJournal
           ]

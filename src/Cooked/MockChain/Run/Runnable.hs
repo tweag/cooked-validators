@@ -72,7 +72,7 @@ distributionFromList = foldl' (\x (user, values) -> x <> map (receives user . Va
 
 -- | Raw return type of running a mockchain
 type RawMockChainReturn a =
-  (MockChainJournal, (MockChainState, Either MockChainError a))
+  (MockChainJournal, (ChainIndex, (EmulatorState, Either MockChainError a)))
 
 -- | The returned type when running a mockchain. This is both a reorganizing and
 -- filtering of the natural returned type `RawMockChainReturn`.
@@ -96,14 +96,16 @@ type FunOnMockChainResult a b = RawMockChainReturn a -> b
 
 -- | Building a `MockChainReturn` from a `RawMockChainReturn`
 unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
-unRawMockChainReturn (journal, (st, val)) =
-  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal
+unRawMockChainReturn (journal, (chainIndex, (_emulatorState, val))) =
+  MockChainReturn val (chainIndexOutputs chainIndex) (chainIndexToUtxoState chainIndex) journal
 
 -- | Configuration from which to run a mockchain
 data MockChainConf a b where
   MockChainConf ::
-    { -- | The initial state from which to run the mockchain
-      mccInitialState :: MockChainState,
+    { -- | The initial emulator state from which to run the mockchain
+      mccInitialEmulatorState :: EmulatorState,
+      -- | The initial chain index from which to run the mockchain
+      mccInitialChainIndex :: ChainIndex,
       -- | The initial payments to issue in the run
       mccInitialDistribution :: InitialDistribution,
       -- | The function to apply on the results of the run
@@ -111,16 +113,16 @@ data MockChainConf a b where
     } ->
     MockChainConf a b
 
--- | The default `MockChainConf`, which uses the default initial state and
+-- | The default `MockChainConf`, which uses the default initial states and
 -- initial distribution, and returns a refined `MockChainReturn`
 mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
-mockChainConfTemplate = MockChainConf def def unRawMockChainReturn
+mockChainConfTemplate = MockChainConf def def def unRawMockChainReturn
 
 -- | The class of effects that represent a mockchain run
 class RunnableMockChain effs where
-  -- | Runs a computation from an initial `MockChainState`, while returning a
-  -- list of `RawMockChainReturn`
-  runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
+  -- | Runs a computation from an initial `EmulatorState` and `ChainIndex`,
+  -- while returning a list of `RawMockChainReturn`
+  runMockChain :: EmulatorState -> ChainIndex -> Sem effs a -> [RawMockChainReturn a]
 
 -- | Runs a `RunnableMockChain` from an initial `MockChainConf`
 runMockChainFromConf ::
@@ -130,9 +132,9 @@ runMockChainFromConf ::
   MockChainConf a b ->
   Sem effs a ->
   [b]
-runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
+runMockChainFromConf (MockChainConf emInitState ciInitState initDist funOnResult) currentRun =
   fmap funOnResult $
-    runMockChain initState $
+    runMockChain emInitState ciInitState $
       forceOutputs initDist >> currentRun
 
 -- | Runs a `RunnableMockChain` from an initial distribution

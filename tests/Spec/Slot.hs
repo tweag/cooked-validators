@@ -17,7 +17,8 @@ import Test.Tasty.QuickCheck
 runSlot ::
   Sem
     '[ MockChainReadChain,
-       State MockChainState,
+       State EmulatorState,
+       State ChainIndex,
        Fail,
        Error P.Ledger.ToCardanoError,
        Error MockChainError
@@ -29,6 +30,7 @@ runSlot =
     . runError
     . runToCardanoErrorInMockChainError
     . runFailInMockChainError
+    . evalState def
     . evalState def
     . runMockChainReadChainEmul
 

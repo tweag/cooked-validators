@@ -291,7 +291,7 @@ type LogProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
 type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
 
 -- | Type of trace runners
-type Runner effs a b = MockChainState -> InitialDistribution -> Sem effs a -> [MockChainReturn b]
+type Runner effs a b = EmulatorState -> ChainIndex -> InitialDistribution -> Sem effs a -> [MockChainReturn b]
 
 -- | Data structure to test a mockchain trace. @a@ is the return typed of the
 -- tested trace, @prop@ is the domain in which the properties live. This is not
@@ -301,8 +301,10 @@ data Test effs a b prop = Test
     testTrace :: Sem effs a,
     -- | The runner of the trace, possibly changing the return type
     testRunner :: Runner effs a b,
-    -- | The initial state from which the trace should be run
-    testInitState :: MockChainState,
+    -- | The initial emulator state from which the trace should be run
+    testInitEmulatorState :: EmulatorState,
+    -- | The initial chain index from which the trace should be run
+    testInitChainIndex :: ChainIndex,
     -- | The initial distribution from which the trace should be run
     testInitDist :: InitialDistribution,
     -- | The requirement on the number of results
@@ -330,7 +332,7 @@ testToProp ::
   Test effs a b prop ->
   prop
 testToProp Test {..} =
-  let results = testRunner testInitState testInitDist testTrace
+  let results = testRunner testInitEmulatorState testInitChainIndex testInitDist testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
           ( \ret@(MockChainReturn outcome _ state (MockChainJournal mcLog names _ assertions)) ->
@@ -405,7 +407,8 @@ mustSucceedTest' runner trace =
   Test
     { testTrace = trace,
       testRunner = runner,
-      testInitState = def,
+      testInitEmulatorState = def,
+      testInitChainIndex = def,
       testInitDist = def,
       testSizeProp = isAtLeastOfSize 1,
       testFailureProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected failure!",
@@ -421,8 +424,8 @@ mustSucceedTest ::
   ) =>
   Sem effs a ->
   Test effs a a prop
-mustSucceedTest = mustSucceedTest' $ \initState initDist ->
-  runMockChainFromConf $ MockChainConf initState initDist unRawMockChainReturn
+mustSucceedTest = mustSucceedTest' $ \emInitState ciInitState initDist ->
+  runMockChainFromConf $ MockChainConf emInitState ciInitState initDist unRawMockChainReturn
 
 -- | A test template which expects a failure from a trace. See
 -- `mustSucceedTest'` for more information on its intended usage.
@@ -435,7 +438,8 @@ mustFailTest' runner trace =
   Test
     { testTrace = trace,
       testRunner = runner,
-      testInitState = def,
+      testInitEmulatorState = def,
+      testInitChainIndex = def,
       testInitDist = def,
       testSizeProp = const testSuccess,
       testFailureProp = \_ _ _ _ -> testSuccess,
@@ -451,8 +455,8 @@ mustFailTest ::
   ) =>
   Sem effs a ->
   Test effs a a prop
-mustFailTest = mustFailTest' $ \initState initDist ->
-  runMockChainFromConf $ MockChainConf initState initDist unRawMockChainReturn
+mustFailTest = mustFailTest' $ \emInitState ciInitState initDist ->
+  runMockChainFromConf $ MockChainConf emInitState ciInitState initDist unRawMockChainReturn
 
 -- * Appending elements (in particular requirements) to existing tests
 

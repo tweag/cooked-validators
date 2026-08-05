@@ -64,7 +64,8 @@ validateTxSkel_ = void . validateTxSkel
 runMockChainValidateEmul ::
   forall effs a.
   ( Members
-      '[ State MockChainState,
+      '[ State EmulatorState,
+         State ChainIndex,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          MockChainLog,
@@ -80,9 +81,9 @@ runMockChainValidateEmul = interpret $ \case
   ValidateTxSkel skel -> do
     (finalTxSkel, (cardanoTx, mCollaterals, _fee)) <- runAutomationPipeline skel
     -- To run transaction validation we need a minimal ledger state
-    eLedgerState <- gets mcstLedgerState
+    eLedgerState <- gets emulatorStateLedgerState
     -- And the emulator params
-    params <- gets mcstParams
+    params <- gets emulatorStateParams
     -- We finally run the emulated validation. We update our internal state
     -- based on the validation result, and throw an error if this fails. If at
     -- some point we want to allows mockchain runs with validation errors, the
@@ -92,7 +93,7 @@ runMockChainValidateEmul = interpret $ \case
       (_, P.Ledger.FailPhase1 _ err) -> throw $ MCEValidationError P.Ledger.Phase1 [err]
       (newELedgerState, P.Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
         -- We update the emulated ledger state
-        modify' $ set mcstLedgerStateL newELedgerState
+        modify' $ set emulatorStateLedgerStateL newELedgerState
         -- We remove the collateral utxos from our own stored outputs
         forM_ colInputs $ modify' . removeOutput
         -- We add the returned collateral to our outputs when it exists
@@ -106,7 +107,7 @@ runMockChainValidateEmul = interpret $ \case
       -- contained in the transaction
       (newELedgerState, P.Ledger.Success {}) -> do
         -- We update the index with the utxos consumed and produced by the tx
-        modify' (set mcstLedgerStateL newELedgerState)
+        modify' (set emulatorStateLedgerStateL newELedgerState)
         -- We retrieve the utxos created by the transaction
         let utxos = P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx
         -- We combine them with their corresponding `TxSkelOut`
@@ -124,7 +125,7 @@ runMockChainValidateEmul = interpret $ \case
         | Nothing <- mCollaterals ->
             fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
     -- We increase the slot number
-    modify' $ over mcstLedgerStateL Emulator.nextSlot
+    modify' $ over emulatorStateLedgerStateL Emulator.nextSlot
     -- We log the validated transaction
     logEvent $
       MCLogNewTx
