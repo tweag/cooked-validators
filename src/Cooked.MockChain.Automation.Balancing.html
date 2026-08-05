@@ -1065,7 +1065,7 @@ forall a. Maybe a
 </span><a href="#local-6989586621679883653"><span class="hs-identifier hs-var">fee</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679883654"><span class="annot"><span class="annottext">Set TxOutRef
 </span><a href="#local-6989586621679883654"><span class="hs-identifier hs-var">collateralIns</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679883655"><span class="annot"><span class="annottext">User 'IsPubKey 'Allocation
 </span><a href="#local-6989586621679883655"><span class="hs-identifier hs-var">returnCollateralUser</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-235"></span><span>  </span><span class="hs-comment">-- We retrieve the protocal parameters</span><span>
+</span><span id="line-235"></span><span>  </span><span class="hs-comment">-- We retrieve the protocol parameters</span><span>
 </span><span id="line-236"></span><span>  </span><span id="local-6989586621679883656"><span class="annot"><span class="annottext">PParams
 </span><a href="#local-6989586621679883656"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Params -&gt; PParams
 </span><span class="hs-identifier hs-var">Emulator.pEmulatorPParams</span></span><span> </span><span class="annot"><span class="annottext">(Params -&gt; PParams) -&gt; Sem effs Params -&gt; Sem effs PParams
@@ -1555,7 +1555,7 @@ Optic' k is s a -&gt; s -&gt; a
 </span><a href="#local-6989586621679883842"><span class="hs-identifier hs-var">missingAdaValue</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-327"></span><span>          </span><span class="hs-comment">-- We need to run a new search with a target increased by the missing</span><span>
 </span><span id="line-328"></span><span>          </span><span class="hs-comment">-- amount of ADA. For that purpose, we also need to increase the</span><span>
-</span><span id="line-329"></span><span>          </span><span class="hs-comment">-- surplus payment with the same amout, to keep everything balanced.</span><span>
+</span><span id="line-329"></span><span>          </span><span class="hs-comment">-- surplus payment with the same amount, to keep everything balanced.</span><span>
 </span><span id="line-330"></span><span>          </span><span class="hs-comment">-- As a consequence, we also need to add bytes to the transaction.</span><span>
 </span><span id="line-331"></span><span>          </span><span class="hs-special">(</span><span id="local-6989586621679883843"><span class="annot"><span class="annottext">Fee
 </span><a href="#local-6989586621679883843"><span class="hs-identifier hs-var">sizeAdded</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679883844"><span class="annot"><span class="annottext">Either (TxSkelOut, Fee) (User 'IsPubKey 'Allocation)
@@ -1722,7 +1722,7 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe ([TxOutRef], Maybe TxSkelOut, Fee)
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-347"></span><span>    </span><span class="hs-comment">-- We have not reached a soultion, but no more UTxOs are available</span><span>
+</span><span id="line-347"></span><span>    </span><span class="hs-comment">-- We have not reached a solution, but no more UTxOs are available</span><span>
 </span><span id="line-348"></span><span>    </span><span class="annot"><a href="#local-6989586621679883816"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Version
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Value
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Fee

@@ -78,7 +78,7 @@ forall k v. k -&gt; v -&gt; Map k v
 </span><a href="#local-6989586621679868830"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
 </span><a href="#local-6989586621679868829"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-33"></span><span>        </span><span class="hs-comment">-- A previous cs and tk entry, which needs to be removed and the whole</span><span>
-</span><span id="line-34"></span><span>        </span><span class="hs-comment">-- cs entry as well because it only containes this tk.</span><span>
+</span><span id="line-34"></span><span>        </span><span class="hs-comment">-- cs entry as well because it only contains this tk.</span><span>
 </span><span id="line-35"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map TokenName Integer -&gt; [(TokenName, Integer)]
 forall k v. Map k v -&gt; [(k, v)]
 </span><span class="hs-identifier hs-var">PMap.toList</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679868835"><span class="annot"><span class="annottext">TokenName
@@ -125,7 +125,7 @@ forall k v. Eq k =&gt; k -&gt; Map k v -&gt; Map k v
 </span><a href="#local-6989586621679868824"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">Map TokenName Integer
 </span><a href="#local-6989586621679868837"><span class="hs-identifier hs-var">tokenMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer)
 </span><a href="#local-6989586621679868829"><span class="hs-identifier hs-var">val</span></a></span><span>
-</span><span id="line-39"></span><span>        </span><span class="hs-comment">-- A previous cs entry, in which we insert the new tk (regarless of</span><span>
+</span><span id="line-39"></span><span>        </span><span class="hs-comment">-- A previous cs entry, in which we insert the new tk (regardless of</span><span>
 </span><span id="line-40"></span><span>        </span><span class="hs-comment">-- whether the tk was already present).</span><span>
 </span><span id="line-41"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679868838"><span class="annot"><span class="annottext">Map TokenName Integer
 </span><a href="#local-6989586621679868838"><span class="hs-identifier hs-var">tokenMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value

@@ -462,7 +462,7 @@ forall a. ToPubKeyHash a =&gt; a -&gt; PubKeyHash
 </span><span id="line-207"></span><span>    </span><span class="hs-comment">-- a result, the balanced `Cooked.Skeleton.TxSkel` will never be computed</span><span>
 </span><span id="line-208"></span><span>    </span><span class="hs-comment">-- and thus will be absent from the log, which is the only downside.</span><span>
 </span><span id="line-209"></span><span>    </span><span class="hs-comment">--</span><span>
-</span><span id="line-210"></span><span>    </span><span class="hs-comment">-- When set to @True@: the phase 2 validation erros will be ignored during</span><span>
+</span><span id="line-210"></span><span>    </span><span class="hs-comment">-- When set to @True@: the phase 2 validation errors will be ignored during</span><span>
 </span><span id="line-211"></span><span>    </span><span class="hs-comment">-- the balancing process. This will result in a worst performance (40%), but</span><span>
 </span><span id="line-212"></span><span>    </span><span class="hs-comment">-- will allow the log to display a balanced version of the failing</span><span>
 </span><span id="line-213"></span><span>    </span><span class="hs-comment">-- `Cooked.Skeleton.TxSkel`, which might be useful. Only use this when</span><span>

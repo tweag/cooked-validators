@@ -3,7 +3,7 @@
    mockchain, without the ability to branch or modify runs. Use this only if
    you specifically want to disallow <code><a href="Cooked-Ltl.html#t:Ltl" title="Cooked.Ltl">Ltl</a></code> modifications.</li><li><code><a href="Cooked-MockChain-Run-Instances.html#t:StagedMockChain" title="Cooked.MockChain.Run.Instances">StagedMockChain</a></code> exposes all the primitives required to run a mockchain,
    with the addition of branching and <code><a href="Cooked-Ltl.html#t:Ltl" title="Cooked.Ltl">Ltl</a></code> modifications using tweaks. This
-   should be the environement to use in 99% of the cases.</li><li><code><a href="Cooked-MockChain-Run-Instances.html#t:ExtendedStagedMockChain" title="Cooked.MockChain.Run.Instances">ExtendedStagedMockChain</a></code> exposes the same primitives as <code><a href="Cooked-MockChain-Run-Instances.html#t:StagedMockChain" title="Cooked.MockChain.Run.Instances">StagedMockChain</a></code>,
+   should be the environment to use in 99% of the cases.</li><li><code><a href="Cooked-MockChain-Run-Instances.html#t:ExtendedStagedMockChain" title="Cooked.MockChain.Run.Instances">ExtendedStagedMockChain</a></code> exposes the same primitives as <code><a href="Cooked-MockChain-Run-Instances.html#t:StagedMockChain" title="Cooked.MockChain.Run.Instances">StagedMockChain</a></code>,
    with an additional custom effect that can both be used in the main thread
    and in the associated tweaks. This allows a mockchain run to depend on
    arbitrary additional effects (if multiple effects are needed, this single
