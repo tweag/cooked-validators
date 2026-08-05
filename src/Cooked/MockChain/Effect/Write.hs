@@ -109,15 +109,9 @@ runMockChainWrite = interpret $ \case
             cScript
   ForceOutputs outputs -> do
     -- We retrieve the protocol parameters
+    params <- getParams
+    -- We retrieve the network id
     networkId <- getNetworkId
-    -- The emulator takes for granted transactions with a single pseudo input,
-    -- which we build to force transaction validation
-    let input =
-          ( Cardano.genesisUTxOPseudoTxIn networkId $
-              Cardano.GenesisUTxOKeyHash $
-                Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
-            Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-          )
     -- We adjust the outputs for the minimal required ADA if needed
     outputsMinAda <- mapM toTxSkelOutWithMinAda outputs
     -- We transform these outputs to Cardano outputs
@@ -125,15 +119,21 @@ runMockChainWrite = interpret $ \case
     -- We create our transaction body, which only consists of the dummy input
     -- and the outputs to force, and make a transaction out of it.
     cardanoTx <-
-      P.Ledger.CardanoEmulatorEraTx . txSignatoriesAndBodyToCardanoTx []
-        <$> fromEither
-          ( Emulator.createTransactionBody params $
-              P.Ledger.CardanoBuildTx
-                ( P.Ledger.emptyTxBodyContent
-                    { Cardano.txOuts = outputs',
-                      Cardano.txIns = [input]
-                    }
-                )
+      P.Ledger.CardanoEmulatorEraTx . (`Cardano.Tx` [])
+        <$> txBodyContentToTxBody
+          ( P.Ledger.emptyTxBodyContent
+              { Cardano.txOuts = outputs',
+                -- The emulator takes for granted transactions with a single pseudo input,
+                -- which we build to force transaction validation
+                Cardano.txIns =
+                  [ ( Cardano.genesisUTxOPseudoTxIn networkId $
+                        Cardano.GenesisUTxOKeyHash $
+                          Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
+                      Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+                    )
+                  ],
+                Cardano.txProtocolParams = Cardano.BuildTxWith . Just . Cardano.LedgerProtocolParameters $ params
+              }
           )
     -- We need to adjust our internal state to account for the forced
     -- transaction. We begin by computing the new map of outputs.
@@ -158,17 +158,11 @@ runMockChainWrite = interpret $ \case
     -- Finally, we return the created utxos
     return $ Map.toList (fst <$> outputsMap)
   ValidateTxSkel skel -> fmap snd $ runTweak skel $ do
+    params <- gets mcstParams
     -- We retrieve the current skeleton options
     TxSkelOpts {..} <- viewTweak txSkelOptsL
     -- We log the submission of the new skeleton
     viewTweak simple >>= logEvent . MCLogSubmittedTxSkel
-    -- We retrieve the current parameters
-    oldParams <- getParams
-    -- We compute the optionally modified parameters
-    let newParams = txSkelOptModParams oldParams
-    -- We change the parameters for the duration of the validation process
-    modify $ set mcstParamsL newParams
-    modify $ over mcstLedgerStateL $ Emulator.updateStateParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
     autoFillMinAda
@@ -195,9 +189,9 @@ runMockChainWrite = interpret $ \case
     -- based on the validation result, and throw an error if this fails. If at
     -- some point we want to allows mockchain runs with validation errors, the
     -- caller will need to catch those errors and do something with them.
-    newOutputs <- case Emulator.validateCardanoTx newParams eLedgerState cardanoTx of
+    newOutputs <- case Emulator.validateCardanoTx params eLedgerState cardanoTx of
       -- In case of a phase 1 error, we give back the same index
-      (_, P.Ledger.FailPhase1 _ err) -> throw $ MCEValidationError P.Ledger.Phase1 err
+      (_, P.Ledger.FailPhase1 _ err) -> throw $ MCEValidationError P.Ledger.Phase1 [err]
       (newELedgerState, P.Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
         -- We update the emulated ledger state
         modify' (set mcstLedgerStateL newELedgerState)
@@ -209,7 +203,7 @@ runMockChainWrite = interpret $ \case
           (Just retColOutput, [(txIn, _)]) -> modify' $ addOutput (P.Ledger.fromCardanoTxIn txIn) retColOutput
           _ -> fail "Unreachable case when processing return collaterals, please report a bug at https://github.com/tweag/cooked-validators/issues"
         -- We throw a mockchain error
-        throw $ MCEValidationError P.Ledger.Phase2 err
+        throw $ MCEValidationError P.Ledger.Phase2 [err]
       -- In case of success, we update the index with all inputs and outputs
       -- contained in the transaction
       (newELedgerState, P.Ledger.Success {}) -> do
@@ -231,11 +225,6 @@ runMockChainWrite = interpret $ \case
       (_, P.Ledger.FailPhase2 {})
         | Nothing <- mCollaterals ->
             fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
-    -- We apply a change of slot when requested in the options
-    when txSkelOptAutoSlotIncrease $ modify' (over mcstLedgerStateL Emulator.nextSlot)
-    -- We return the parameters to their original state
-    modify $ set mcstParamsL oldParams
-    modify $ over mcstLedgerStateL $ Emulator.updateStateParams oldParams
     -- We log the validated transaction
     logEvent $ MCLogNewTx (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ P.Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction

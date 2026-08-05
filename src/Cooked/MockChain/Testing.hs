@@ -580,9 +580,8 @@ isPhase1FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) _
-  | s `isInfixOf` T.unpack text =
-      testSuccess
+isPhase1FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase1 l) _
+  | not $ null [text | P.Ledger.CardanoLedgerValidationError (T.unpack -> text) <- l, s `isInfixOf` text] = testSuccess
 isPhase1FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 1 evaluation failure with constrained messages, got: "
@@ -593,9 +592,8 @@ isPhase2FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase2 (P.Ledger.ScriptFailure (Api.EvaluationError texts _))) _
-  | any (isInfixOf s . T.unpack) texts =
-      testSuccess
+isPhase2FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase2 l) _
+  | not $ null [text | P.Ledger.ScriptFailure (Api.EvaluationError texts _) <- l, (T.unpack -> text) <- texts, s `isInfixOf` text] = testSuccess
 isPhase2FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 2 evaluation failure with constrained messages, got: "

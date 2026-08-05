@@ -86,8 +86,8 @@ instance PrettyCooked BalancingError where
       ]
 
 instance PrettyCooked MockChainError where
-  prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
-    PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
+  prettyCookedOpt opts (MCEValidationError plutusPhase plutusErrors) =
+    prettyItemize opts ("Validation errors (" <+> prettyCookedOpt opts plutusPhase <+> ")") "-" plutusErrors
   prettyCookedOpt opts (MCEBalancingError err) = prettyCookedOpt opts err
   prettyCookedOpt _ (MCEToCardanoError cardanoError) =
     "Transaction generation error:" <+> PP.pretty cardanoError

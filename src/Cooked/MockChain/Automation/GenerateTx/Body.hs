@@ -135,8 +135,7 @@ txSkelToTxBody txSkel fee mCollaterals = do
                 )
               Left err ->
                 ( success,
-                  ( P.Ledger.Phase2,
-                    case err of
+                  ( case err of
                       Alonzo.ValidationFailure _ (Api.CekError e) logs _ -> P.Ledger.ScriptFailure (Api.EvaluationError logs ("CekEvaluationFailure: " ++ show e))
                       e -> P.Ledger.CardanoLedgerValidationError $ Text.pack $ show e
                   )
@@ -156,7 +155,7 @@ txSkelToTxBody txSkel fee mCollaterals = do
       -- the final body from it
       Right txBodyContent -> txBodyContentToTxBody txBodyContent
     -- Some validation failures detected, and they should be handled
-    l | not $ txSkelOptDeferPhase2FailuresDuringBalancing $ txSkelOpts txSkel -> throw $ MCEValidationError l
+    l | not $ txSkelOptDeferPhase2FailuresDuringBalancing $ txSkelOpts txSkel -> throw $ MCEValidationError P.Ledger.Phase2 l
     -- Some validation failures detected, which should be deferred. We ignore
     -- them and return the current body without assigning execution units.
     _ -> return txBody'

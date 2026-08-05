@@ -287,19 +287,16 @@ instance PrettyCookedList TxSkelOpts where
   prettyCookedOptListMaybe
     opts
     ( TxSkelOpts
-        txSkelOptAutoSlotIncrease
         _
         txSkelOptBalancingPolicy
         txSkelOptFeePolicy
         txSkelOptBalanceOutputPolicy
         txSkelOptBalancingUtxos
-        _
         txSkelOptCollateralUtxos
         txSkelOptDeferFailures
         txSkelOptMaxNbOfBalancingUtxos
       ) =
-      [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
-        prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
+      [ prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
         prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
         prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
         prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
@@ -312,9 +309,6 @@ instance PrettyCookedList TxSkelOpts where
         prettyIfNot defaultValue f x
           | x == defaultValue && not (pcOptPrintDefaultTxSkelOpts opts) = Nothing
           | otherwise = Just $ f x
-        prettyAutoSlotIncrease :: Bool -> DocCooked
-        prettyAutoSlotIncrease True = "Automatic slot increase"
-        prettyAutoSlotIncrease False = "No automatic slot increase"
         prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
         prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
         prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"

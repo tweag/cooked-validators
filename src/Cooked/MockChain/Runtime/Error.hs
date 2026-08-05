@@ -41,7 +41,7 @@ data BalancingError
 -- | Errors that can be produced by the blockchain
 data MockChainError
   = -- | Validation errors, either in Phase 1 or Phase 2
-    MCEValidationError [(P.Ledger.ValidationPhase, P.Ledger.ValidationError)]
+    MCEValidationError P.Ledger.ValidationPhase [P.Ledger.ValidationError]
   | -- | Balancing errors
     MCEBalancingError BalancingError
   | -- | Translating a skeleton element to its Cardano counterpart failed
