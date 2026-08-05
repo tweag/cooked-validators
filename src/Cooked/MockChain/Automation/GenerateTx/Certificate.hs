@@ -7,7 +7,6 @@ import Cardano.Ledger.Conway.TxCert qualified as Conway
 import Cardano.Ledger.DRep qualified as C.Ledger
 import Cardano.Ledger.PoolParams qualified as C.Ledger
 import Cardano.Ledger.Shelley.TxCert qualified as Shelley
-import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.MockChain.Automation.GenerateTx.Credential
 import Cooked.MockChain.Automation.GenerateTx.Witness
 import Cooked.MockChain.Effect.Read
@@ -77,7 +76,7 @@ toCertificate txSkelCert =
             Shelley.RetirePool
             (toStakePoolKeyHash poolHash)
             ( do
-                eeh <- Emulator.emulatorEraHistory <$> getParams
+                eeh <- getEraHistory
                 case Cardano.slotToEpoch (fromIntegral slot) eeh of
                   -- TODO: we could have a dedicated error for this case if the
                   -- can occur at several places in the codebase

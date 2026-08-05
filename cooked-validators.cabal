@@ -127,6 +127,7 @@ library
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley

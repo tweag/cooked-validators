@@ -2,7 +2,6 @@
 module Cooked.MockChain.Automation.GenerateTx.Output (toCardanoTxOut) where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cooked.MockChain.Effect.Read
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Output
@@ -23,7 +22,7 @@ toCardanoTxOut output = do
       oValue = view txSkelOutValueL output
       oDatum = view txSkelOutDatumL output
       oRefScript = view txSkelOutMReferenceScriptL output
-  networkId <- Emulator.pNetworkId <$> getParams
+  networkId <- getNetworkId
   address <- fromEither $ P.Ledger.toCardanoAddressInEra networkId oAddress
   (P.Ledger.toCardanoTxOutValue -> value) <- fromEither $ P.Ledger.toCardanoValue oValue
   datum <- case oDatum of

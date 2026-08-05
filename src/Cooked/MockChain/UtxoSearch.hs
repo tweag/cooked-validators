@@ -115,7 +115,7 @@ getTxOutRefsAndOutputs = fmap (fmap (\(oRef, HCons output _) -> (oRef, output)))
 
 -- | Searches for utxos at a given address with a given filter
 utxosAtSearch ::
-  (Member MockChainRead effs, Script.ToCredential pkh) =>
+  (Member MockChainRead effs, Script.ToAddress pkh) =>
   pkh ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els

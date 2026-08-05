@@ -12,6 +12,7 @@ library:
     - bytestring
     - cardano-api
     - cardano-crypto
+    - cardano-ledger-alonzo
     - cardano-ledger-core
     - cardano-ledger-shelley
     - cardano-ledger-conway

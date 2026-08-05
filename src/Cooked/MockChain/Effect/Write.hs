@@ -109,11 +109,11 @@ runMockChainWrite = interpret $ \case
             cScript
   ForceOutputs outputs -> do
     -- We retrieve the protocol parameters
-    params <- getParams
+    networkId <- getNetworkId
     -- The emulator takes for granted transactions with a single pseudo input,
     -- which we build to force transaction validation
     let input =
-          ( Cardano.genesisUTxOPseudoTxIn (Emulator.pNetworkId params) $
+          ( Cardano.genesisUTxOPseudoTxIn networkId $
               Cardano.GenesisUTxOKeyHash $
                 Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
             Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending

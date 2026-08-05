@@ -223,8 +223,8 @@ makeLensesFor [("txSkelProposalAnchor", "txSkelProposalAnchorL")] ''TxSkelPropos
 simpleProposal :: (Script.ToCredential cred, Typeable kind) => cred -> GovernanceAction kind -> TxSkelProposal
 simpleProposal cred action = TxSkelProposal cred action Nothing Nothing
 
--- | Sets the constitution script with an empty redeemer when empty. This will
--- not tamper with an existing constitution script and redeemer.
+-- | Sets the constitution script with an empty redeemer. This will not tamper
+-- with an existing constitution script and redeemer.
 fillConstitution :: (ToVScript script, Typeable script) => script -> TxSkelProposal -> TxSkelProposal
 fillConstitution constitution =
   over

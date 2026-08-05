@@ -19,6 +19,7 @@ module Cooked.Skeleton.User
     -- * Optics
     userHashG,
     userCredentialG,
+    userCredentialI,
     userRedeemerAT,
     userVScriptAT,
     userScriptHashAF,
@@ -218,6 +219,16 @@ userEitherPubKeyP =
 -- | Retrieves the 'Api.Credential' of a 'User'
 userCredentialG :: Getter (User kind mode) Api.Credential
 userCredentialG = to Script.toCredential
+
+-- | An isomorphism between an 'Api.Credential' and an allocation user
+userCredentialI :: Iso' (User IsEither Allocation) Api.Credential
+userCredentialI =
+  iso
+    (view userCredentialG)
+    ( \case
+        Api.ScriptCredential sHash -> UserScriptHash sHash
+        Api.PubKeyCredential pkh -> UserPubKey pkh
+    )
 
 -- | Focuses on the optional 'TxSkelRedeemer' of a 'User'
 userRedeemerAT :: AffineTraversal' (User kind mode) TxSkelRedeemer

@@ -14,7 +14,6 @@ import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.Automation.AutoFilling.MinAda
 import Cooked.MockChain.Automation.GenerateTx.Body
@@ -233,7 +232,7 @@ collateralsFromFee ::
 collateralsFromFee _ Nothing = return Nothing
 collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- We retrieve the protocol parameters
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
   let nbMax = toInteger $ Microlens.view Conway.ppMaxCollateralInputsL params
@@ -276,7 +275,7 @@ reachValue ::
 reachValue utxos target fuel outputOrUser = do
   -- We retrieve the current protocol version, which is going to be used to
   -- compute the size of the inputs and outputs added by this function
-  Cardano.ProtVer majorVersion _ <- Microlens.view Conway.ppProtocolVersionL . Emulator.emulatorPParams <$> getParams
+  Cardano.ProtVer majorVersion _ <- Microlens.view Conway.ppProtocolVersionL <$> getParams
   -- We annotate @outputOrUser@ with the size of the existing output, if any
   outputOrUser' <- case outputOrUser of
     Left output -> Left . (output,) <$> outputSize majorVersion output
@@ -398,7 +397,7 @@ estimateTxSkelFee ::
   Sem effs (Fee, Body)
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   -- We build the index known to the skeleton
   index <- txSkelToIndex skel mCollaterals
   -- We build the transaction body
@@ -504,7 +503,7 @@ getMinAndMaxFee ::
 getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
   -- for a transaction. There are quite a few of them.
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   let maxTxSize = toInteger $ Microlens.view Conway.ppMaxTxSizeL params
       Cardano.Coin txFeePerByte = Microlens.view Conway.ppMinFeeAL params
       Cardano.Coin txFeeFixed = Microlens.view Conway.ppMinFeeBL params

@@ -18,6 +18,7 @@ module Cooked.Skeleton.Datum
     txSkelOutDatumDatumAF,
     txSkelOutDatumDatumHashAF,
     txSkelOutDatumOutputDatumG,
+    txSkelOutDatumOutputDatumI,
   )
 where
 
@@ -169,3 +170,17 @@ instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum (SomeTxSkelOutDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
   toOutputDatum (SomeTxSkelOutDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
   toOutputDatum (SomeTxSkelOutDatumHash hash) = Api.OutputDatumHash hash
+
+-- | An isomorphism betwean our 'TxSkelOutDatum' and Plutus
+-- 'Api.OutputDatum'. The existence of this function does not mean that both
+-- share the same expressiveness. In only means that there exists a sensible way
+-- to convert one into the other, and vice versa.
+txSkelOutDatumOutputDatumI :: Iso' TxSkelOutDatum Api.OutputDatum
+txSkelOutDatumOutputDatumI =
+  iso
+    Script.toOutputDatum
+    ( \case
+        Api.OutputDatum (Api.Datum bData) -> SomeTxSkelOutDatum bData Inline
+        Api.NoOutputDatum -> NoTxSkelOutDatum
+        Api.OutputDatumHash dHash -> SomeTxSkelOutDatumHash dHash
+    )

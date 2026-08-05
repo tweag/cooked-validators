@@ -10,7 +10,6 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Shelley.Core qualified as Shelley
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Output
 import Cooked.MockChain.Effect.Log
@@ -32,7 +31,7 @@ getTxSkelOutMinAda ::
   TxSkelOut ->
   Sem effs Integer
 getTxSkelOutMinAda txSkelOut = do
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   Cardano.unCoin
     . Shelley.getMinCoinTxOut params
     . Cardano.toShelleyTxOut Cardano.ShelleyBasedEraConway

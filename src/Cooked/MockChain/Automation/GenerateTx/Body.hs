@@ -11,7 +11,7 @@ module Cooked.MockChain.Automation.GenerateTx.Body
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Certificate
 import Cooked.MockChain.Automation.GenerateTx.Collateral
@@ -26,12 +26,16 @@ import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Read
 import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
+import Data.Bifunctor (first)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set qualified as Set
+import Data.Text qualified as Text
 import Ledger.Address qualified as P.Ledger
+import Ledger.Index qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Plutus.Script.Utils.Address qualified as Script
+import PlutusLedgerApi.V1 qualified as Api
 import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
@@ -57,7 +61,7 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
         Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway
           <$> fromEither
             (mapM (P.Ledger.toCardanoPaymentKeyHash . P.Ledger.PaymentPubKeyHash . Script.toPubKeyHash) txSkelSignatories)
-  txProtocolParams <- Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters <$> getParams
+  txProtocolParams <- Cardano.BuildTxWith . Just . Cardano.LedgerProtocolParameters <$> getParams
   txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> toProposalProcedures txSkelProposals
   txWithdrawals <- toWithdrawals txSkelWithdrawals
   txCertificates <- toCertificates txSkelCertificates
@@ -73,13 +77,13 @@ txSkelToTxBodyContent skel@TxSkel {..} fee mCollaterals = do
 
 -- | Generates a transaction body from a body content
 txBodyContentToTxBody ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Member (Error P.Ledger.ToCardanoError) effs) =>
   Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra ->
   Sem effs (Cardano.TxBody Cardano.ConwayEra)
-txBodyContentToTxBody txBodyContent = do
-  params <- getParams
-  -- We create the associated Shelley TxBody
-  fromEither $ Emulator.createTransactionBody params $ P.Ledger.CardanoBuildTx txBodyContent
+txBodyContentToTxBody =
+  fromEither
+    . first (P.Ledger.TxBodyError . Cardano.displayError)
+    . Cardano.createTransactionBody Cardano.shelleyBasedEra
 
 -- | Generates an index with utxos known to a 'TxSkel'
 txSkelToIndex ::
@@ -113,30 +117,49 @@ txSkelToTxBody txSkel fee mCollaterals = do
   txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
   txBody' <- txBodyContentToTxBody txBodyContent'
   -- We create a full transaction from the body
-  let tx' = txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel) txBody'
+  let (Cardano.ShelleyTx _ tx) = txSignatoriesAndBodyToCardanoTx (txSkelSignatories txSkel) txBody'
   -- We retrieve the index and parameters to feed to @getTxExUnitsWithLogs@
   index <- txSkelToIndex txSkel mCollaterals
   params <- getParams
-  -- We retrieve the execution units associated with the transaction
-  case Emulator.getTxExUnitsWithLogs params (P.Ledger.fromPlutusIndex index) tx' of
-    -- Computing the execution units can result in all kinds of phase 2
-    -- validation failures, except for the ones related to the execution units
-    -- themselves. Unless required in the options, we throw the validation
-    -- failure right away when applicable.
-    Left err | not $ txSkelOptDeferPhase2FailuresDuringBalancing $ txSkelOpts txSkel -> throw $ uncurry MCEValidationError err
-    -- The other option is to ignore those and return the unchanged body with
-    -- the existing execution units, postponing the handling of the failures.
-    Left _ -> return txBody'
-    -- When no error arises, we get an execution unit for each script usage. We
-    -- first have to transform this Ledger map to a cardano API map.
-    Right (Map.mapKeysMonotonic (Cardano.toScriptIndex Cardano.AlonzoEraOnwardsConway) . fmap (Cardano.fromAlonzoExUnits . snd) -> exUnits) ->
-      -- We can then assign the right execution units to the body content
-      case Cardano.substituteExecutionUnits exUnits txBodyContent' of
-        -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
-        Left err -> throw $ MCEFailure $ "Error while assigning execution units: " <> show err
-        -- We now have a body content with proper execution units and can create
-        -- the final body from it
-        Right txBodyContent -> txBodyContentToTxBody txBodyContent
+  epochInfo <- Cardano.unLedgerEpochInfo . Cardano.toLedgerEpochInfo <$> getEraHistory
+  systemStart <- getSystemStart
+  -- We compute the execution units associated with the transaction and process
+  -- the result by splitting successful cases from errors.
+  let exUnitsReport = Alonzo.evalTxExUnits params tx (P.Ledger.fromPlutusIndex index) epochInfo systemStart
+      (success, errors) =
+        foldl
+          ( \(sucs, errs) (purpose, report) -> case report of
+              Right exUnits ->
+                ( Map.insert (Cardano.toScriptIndex Cardano.AlonzoEraOnwardsConway purpose) (Cardano.fromAlonzoExUnits exUnits) sucs,
+                  errs
+                )
+              Left err ->
+                ( success,
+                  ( P.Ledger.Phase2,
+                    case err of
+                      Alonzo.ValidationFailure _ (Api.CekError e) logs _ -> P.Ledger.ScriptFailure (Api.EvaluationError logs ("CekEvaluationFailure: " ++ show e))
+                      e -> P.Ledger.CardanoLedgerValidationError $ Text.pack $ show e
+                  )
+                    : errs
+                )
+          )
+          (Map.empty, [])
+          (Map.toList exUnitsReport)
+  -- Computing the execution units can result in all phase 2 validation
+  -- failures, except for the ones related to the execution units themselves.
+  case errors of
+    -- No validation failures detected, we assigne the execution units.
+    [] -> case Cardano.substituteExecutionUnits success txBodyContent' of
+      -- This can only be a @TxBodyErrorScriptWitnessIndexMissingFromExecUnitsMap@
+      Left err -> throw $ MCEFailure $ "Error while assigning execution units: " <> show err
+      -- We now have a body content with proper execution units and can create
+      -- the final body from it
+      Right txBodyContent -> txBodyContentToTxBody txBodyContent
+    -- Some validation failures detected, and they should be handled
+    l | not $ txSkelOptDeferPhase2FailuresDuringBalancing $ txSkelOpts txSkel -> throw $ MCEValidationError l
+    -- Some validation failures detected, which should be deferred. We ignore
+    -- them and return the current body without assigning execution units.
+    _ -> return txBody'
 
 -- | Generates a Cardano transaction and signs it
 txSignatoriesAndBodyToCardanoTx ::
