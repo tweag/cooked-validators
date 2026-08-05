@@ -41,6 +41,7 @@ library
       Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
       Cooked.MockChain.Automation.GenerateTx.Withdrawals
       Cooked.MockChain.Automation.GenerateTx.Witness
+      Cooked.MockChain.Automation.Pipeline
       Cooked.MockChain.Common
       Cooked.MockChain.Effect.Log
       Cooked.MockChain.Effect.Misc

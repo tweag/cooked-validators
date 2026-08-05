@@ -3,6 +3,7 @@
 module Cooked.MockChain (module X) where
 
 import Cooked.MockChain.Automation.Balancing as X
+import Cooked.MockChain.Automation.Pipeline as X
 import Cooked.MockChain.Common as X
 import Cooked.MockChain.Effect.Misc as X
 import Cooked.MockChain.Effect.Read.Chain as X

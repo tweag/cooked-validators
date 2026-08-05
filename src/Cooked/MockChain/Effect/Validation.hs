@@ -19,12 +19,7 @@ where
 
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Automation.AutoFilling.Constitution
-import Cooked.MockChain.Automation.AutoFilling.MinAda
-import Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
-import Cooked.MockChain.Automation.AutoFilling.Withdrawals
-import Cooked.MockChain.Automation.Balancing
-import Cooked.MockChain.Automation.GenerateTx.Body
+import Cooked.MockChain.Automation.Pipeline
 import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Read.Chain
@@ -32,8 +27,6 @@ import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
-import Cooked.Tweak.Common
-import Cooked.Tweak.Query
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
@@ -69,34 +62,12 @@ runMockChainValidate ::
   Sem (MockChainValidate : effs) a ->
   Sem effs a
 runMockChainValidate = interpret $ \case
-  ValidateTxSkel skel -> fmap snd $ runTweak skel $ do
-    params <- gets mcstParams
-    -- We retrieve the current skeleton options
-    TxSkelOpts {..} <- viewTweak txSkelOptsL
-    -- We log the submission of the new skeleton
-    viewTweak simple >>= logEvent . MCLogSubmittedTxSkel
-    -- We ensure that the outputs have the required minimal amount of ada, when
-    -- requested in the skeleton options
-    autoFillMinAda
-    -- We retrieve the official constitution script and attach it to each
-    -- proposal that requires it, if it's not empty
-    autoFillConstitution
-    -- We add reference scripts in the various redeemers of the skeleton, when
-    -- they can be found in the index and are allowed to be auto filled
-    autoFillReferenceScripts
-    -- We attach the reward amount to withdrawals when applicable
-    autoFillWithdrawalAmounts
-    -- We balance the skeleton when requested in the skeleton option, and get
-    -- the associated fee, collateral inputs and return collateral user
-    ExtendedTxSkel finalTxSkel fee mCollaterals body <- viewTweak simple >>= balanceTxSkel
-    -- We log the adjusted skeleton
-    logEvent $ MCLogAdjustedTxSkel finalTxSkel fee mCollaterals
-    -- We generate the transaction asscoiated with the skeleton, and apply on it
-    -- the modifications from the skeleton options
-    signatories <- viewTweak txSkelSignatoriesL
-    let cardanoTx = P.Ledger.CardanoEmulatorEraTx $ txSkelOptModTx $ txSignatoriesAndBodyToCardanoTx signatories body
+  ValidateTxSkel skel -> do
+    (finalTxSkel, (cardanoTx, mCollaterals, _)) <- runAutomationPipeline skel
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
+    -- And the emulator params
+    params <- gets mcstParams
     -- We finally run the emulated validation. We update our internal state
     -- based on the validation result, and throw an error if this fails. If at
     -- some point we want to allows mockchain runs with validation errors, the
@@ -140,7 +111,10 @@ runMockChainValidate = interpret $ \case
     -- We increase the slot number
     modify' $ over mcstLedgerStateL Emulator.nextSlot
     -- We log the validated transaction
-    logEvent $ MCLogNewTx (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ P.Ledger.getCardanoTxOutRefs cardanoTx)
+    logEvent $
+      MCLogNewTx
+        (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx)
+        (fromIntegral $ length $ P.Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
     return (cardanoTx, newOutputs)
 

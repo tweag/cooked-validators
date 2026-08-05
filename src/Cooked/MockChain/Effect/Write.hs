@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
--- | This module exposes primitives to update the current state of the
--- blockchain, including by sending transactions for validation.
+-- | This module exposes primitives to manually (and artificially) update the
+-- current state of the blockchain.
 module Cooked.MockChain.Effect.Write
   ( -- * The `MockChainWrite` effect
     MockChainWrite (..),
