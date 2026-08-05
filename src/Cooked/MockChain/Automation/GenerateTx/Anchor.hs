@@ -13,7 +13,7 @@ import GHC.IO.Unsafe
 import Network.HTTP.Simple qualified as Network
 
 -- | This function transforms a 'TxSkelAnchor' into its Cardano counterpart. If
--- the provided anchor does not provde a resolved page, it will be unsafely
+-- the provided anchor does not provide a resolved page, it will be unsafely
 -- fetched online, so use at your own discretion.
 toCardanoAnchor :: TxSkelAnchor -> C.Ledger.Anchor
 toCardanoAnchor txSkelAnchor =

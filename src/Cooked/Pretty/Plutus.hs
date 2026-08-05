@@ -63,7 +63,7 @@ instance PrettyCooked Api.AssetClass where
 instance PrettyCooked Api.POSIXTime where
   prettyCookedOpt opts (Api.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
 
--- * Pretty instances for evalution error coming from plutus-ledger
+-- * Pretty instances for evaluation error coming from plutus-ledger
 
 instance PrettyCooked P.Ledger.ValidationPhase where
   prettyCookedOpt _ P.Ledger.Phase1 = "Phase 1"

@@ -132,7 +132,7 @@ hashNamesFromList = Map.fromList . map (first toHash)
 -- | Adds some additional names to these pretty cooked options. This has two
 -- practical use cases:
 --
--- * Users can use it in conjuction to 'hashNamesFromList' without having to
+-- * Users can use it in conjunction to 'hashNamesFromList' without having to
 -- remember to manually invoke 'defaultHashNames'
 --
 -- * We use it internally to account for names that have been registered during

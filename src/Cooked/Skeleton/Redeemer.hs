@@ -126,7 +126,7 @@ emptyTxSkelRedeemer :: TxSkelRedeemer
 emptyTxSkelRedeemer = someTxSkelRedeemer ()
 
 -- | Creates a 'TxSkelRedeemer' with no inner content and no reference input,
--- while dissallowing it to be automatically assinged
+-- while disallowing it to be automatically assigned
 emptyTxSkelRedeemerNoAutoFill :: TxSkelRedeemer
 emptyTxSkelRedeemerNoAutoFill = someTxSkelRedeemerNoAutoFill ()
 

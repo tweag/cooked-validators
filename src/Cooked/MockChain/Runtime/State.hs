@@ -5,7 +5,7 @@
 -- ledger state, which typically does not exist in Cardano. This is useful for
 -- two reasons:
 --
--- - For printing purposes, where it is much more convient to see the available
+-- - For printing purposes, where it is much more convenient to see the available
 --   assets as "who owns what" rather than as a set of mixed Utxos.
 --
 -- - For testings purposes, when querying the final state of a run is

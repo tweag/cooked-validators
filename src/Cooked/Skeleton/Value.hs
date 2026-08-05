@@ -31,12 +31,12 @@ valueAssetClassAmountL (Script.toCurrencySymbol -> cs) tk =
         -- No previous cs entry, and something to add.
         Nothing -> Api.Value $ PMap.insert cs (PMap.singleton tk i) val
         -- A previous cs and tk entry, which needs to be removed and the whole
-        -- cs entry as well because it only containes this tk.
+        -- cs entry as well because it only contains this tk.
         Just (PMap.toList -> [(tk', _)]) | i == 0, tk == tk' -> Api.Value $ PMap.delete cs val
         -- A previous cs and tk entry, which needs to be removed, but the whole
         -- cs entry has other tokens and thus is kept.
         Just tokenMap | i == 0 -> Api.Value $ PMap.insert cs (PMap.delete tk tokenMap) val
-        -- A previous cs entry, in which we insert the new tk (regarless of
+        -- A previous cs entry, in which we insert the new tk (regardless of
         -- whether the tk was already present).
         Just tokenMap -> Api.Value $ PMap.insert cs (PMap.insert tk i tokenMap) val
     )

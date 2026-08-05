@@ -232,7 +232,7 @@ collateralsFromFee ::
   Sem effs (Maybe Collaterals)
 collateralsFromFee _ Nothing = return Nothing
 collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
-  -- We retrieve the protocal parameters
+  -- We retrieve the protocol parameters
   params <- Emulator.pEmulatorPParams <$> getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
@@ -326,7 +326,7 @@ reachValue utxos target fuel outputOrUser = do
         (Script.toValue . (minAda -) . view valueLovelaceL -> missingAdaValue) -> do
           -- We need to run a new search with a target increased by the missing
           -- amount of ADA. For that purpose, we also need to increase the
-          -- surplus payment with the same amout, to keep everything balanced.
+          -- surplus payment with the same amount, to keep everything balanced.
           -- As a consequence, we also need to add bytes to the transaction.
           (sizeAdded, goOutputOrUser') <- case goOutputOrUser of
             -- If the surplus already exist, we add @missingAdaValue@ to it
@@ -344,7 +344,7 @@ reachValue utxos target fuel outputOrUser = do
             <$> go majorVersion goUtxos (goTarget <> missingAdaValue) goFuel goOutputOrUser' goAvailable
     -- We have not reached a solution, but we don't have fuel anymore
     go _ _ _ goFuel _ _ | goFuel <= 0 = return Nothing
-    -- We have not reached a soultion, but no more UTxOs are available
+    -- We have not reached a solution, but no more UTxOs are available
     go _ [] _ _ _ _ = return Nothing
     -- We have not reached a solution, but the total available value is
     -- insufficient to ever find one

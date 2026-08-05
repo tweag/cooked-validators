@@ -29,7 +29,7 @@ import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Polysemy.Error
 
--- | Transorms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change
+-- | Transforms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change
 -- over a Cardano parameter update
 toPParamsUpdate ::
   forall effs.

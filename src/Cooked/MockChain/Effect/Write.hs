@@ -72,7 +72,7 @@ data MockChainWrite :: Effect where
 
 makeSem_ ''MockChainWrite
 
--- | Interpretes the `MockChainWrite` effect
+-- | Interprets the `MockChainWrite` effect
 runMockChainWrite ::
   forall effs a.
   ( Members
@@ -136,7 +136,7 @@ runMockChainWrite = interpret $ \case
                 )
           )
     -- We need to adjust our internal state to account for the forced
-    -- transaction. We beging by computing the new map of outputs.
+    -- transaction. We begin by computing the new map of outputs.
     let outputsMap =
           Map.fromList $
             zipWith
@@ -286,7 +286,7 @@ setConstitutionScript :: (Member MockChainWrite effs, ToVScript s) => s -> Sem e
 
 -- | Forces the generation of utxos corresponding to certain
 -- `TxSkelOut`. Returns the created UTxOs, which might differ from the original
--- list if some min ADA adjustment occured.
+-- list if some min ADA adjustment occurred.
 forceOutputs :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs Utxos
 
 -- | Same as `forceOutputs`, but discards the returned outputs
