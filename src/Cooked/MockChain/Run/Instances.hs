@@ -9,7 +9,7 @@
 --
 -- - `StagedMockChain` exposes all the primitives required to run a mockchain,
 --   with the addition of branching and `Ltl` modifications using tweaks. This
---   should be the environement to use in 99% of the cases.
+--   should be the environment to use in 99% of the cases.
 --
 -- - `ExtendedStagedMockChain` exposes the same primitives as `StagedMockChain`,
 --   with an additional custom effect that can both be used in the main thread

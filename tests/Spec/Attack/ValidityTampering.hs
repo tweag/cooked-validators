@@ -40,7 +40,7 @@ tests =
     "Validity tampering"
     [ testGroup
         "Tampering with the lower bound"
-        [ testCase "Strict tampering of inifinite lower bound" $
+        [ testCase "Strict tampering of infinite lower bound" $
             []
               @=? runValidityTampering
                 lowerInfSlotRange
@@ -63,7 +63,7 @@ tests =
         ],
       testGroup
         "Tampering with the upper bound"
-        [ testCase "Strict tampering of inifinite upper bound" $
+        [ testCase "Strict tampering of infinite upper bound" $
             []
               @=? runValidityTampering
                 upperInfSlotRange

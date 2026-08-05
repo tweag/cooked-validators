@@ -207,7 +207,7 @@ data TxSkelOpts = TxSkelOpts
     -- a result, the balanced `Cooked.Skeleton.TxSkel` will never be computed
     -- and thus will be absent from the log, which is the only downside.
     --
-    -- When set to @True@: the phase 2 validation erros will be ignored during
+    -- When set to @True@: the phase 2 validation errors will be ignored during
     -- the balancing process. This will result in a worst performance (40%), but
     -- will allow the log to display a balanced version of the failing
     -- `Cooked.Skeleton.TxSkel`, which might be useful. Only use this when

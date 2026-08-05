@@ -60,7 +60,7 @@ testingBalancingTemplate ::
   Bool ->
   -- Option modifications
   (TxSkelOpts -> TxSkelOpts) ->
-  -- Wether to adjust the output with min ada
+  -- Whether to adjust the output with min ada
   Bool ->
   FullMockChain TestBalancingOutcome
 testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch collateralSearch consumeScriptUtxo optionsMod adjust = do

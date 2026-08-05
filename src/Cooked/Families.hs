@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | This module exposes some type families used to either directly constraint
--- values within our skeletons, or constrant inputs of smart constructors for
+-- values within our skeletons, or constraint inputs of smart constructors for
 -- components of these skeletons.
 module Cooked.Families
   ( -- * Type-level constraints

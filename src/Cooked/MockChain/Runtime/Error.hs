@@ -4,7 +4,7 @@ module Cooked.MockChain.Runtime.Error
     BalancingError (..),
     MockChainError (..),
 
-    -- * Interpretating effects into `Error MockChainError`
+    -- * Interpreting effects into `Error MockChainError`
     runToCardanoErrorInMockChainError,
     runFailInMockChainError,
   )
@@ -22,7 +22,7 @@ import Polysemy.Fail
 -- | Errors that can be produced during balancing
 data BalancingError
   = -- | The balancing user theoretically has enough funds to balancing the
-    -- trasaction, but this balancing results in a surplus payment which they
+    -- transaction, but this balancing results in a surplus payment which they
     -- cannot afford ADA-wise.
     NotEnoughFundForExtraMinAda Peer
   | -- | The balancing does not have enough funds to sustain the fee required to

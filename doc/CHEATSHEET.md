@@ -7,7 +7,7 @@ things, you will Learn how to:
 - write transactions
 - fetch information from the blockchain
 - submit these transactions for validation as part of a trace
-- run those traces in tests or in a `repl` environement!
+- run those traces in tests or in a `repl` environment!
 
 While this is not a complete tutorial, this document should be helpful to new
 users to get accustomed to `cooked-validators` as well as old users looking to
@@ -83,11 +83,11 @@ A `mockchain` is an abstraction of the Cardano blockchain. `cooked-validators`
 provides several monadic environments to instantiate this concept:
 - `DirectMockChain`: basic capabilities of the mockchain
 - `StagedMockChain`: basic capabilities of the mockchain, with the addition of
-  branching and temporal modifications. This is the go-to environement !
+  branching and temporal modifications. This is the go-to environment !
 - `FullMockChain`: all effects available, including low-level effects such as
   builtin-errors, to be used for maximum level of granularity
 - `ExtendedStagedMockChain eff`: same as `StagedMockChain` with additional
-  custom effects embedded in `eff`, to work in your own dedicated environement !
+  custom effects embedded in `eff`, to work in your own dedicated environment !
 
 ## Traces 
 
@@ -95,7 +95,7 @@ provides several monadic environments to instantiate this concept:
 
 A trace is a sequence of instructions in one of our `mockchain` instances:
 
-* In a fixed existing `mockchain` intance:
+* In a fixed existing `mockchain` instance:
 ```haskell
 myTrace :: [Direct|Staged|Full]MockChain ()
 myTrace = do
@@ -262,7 +262,7 @@ printing/debugging purposes at the end of a run.
 
 ### Aliases for static data
 
-Aliases for static data can be defined outside a mockchain run, in the pretty options direclty:
+Aliases for static data can be defined outside a mockchain run, in the pretty options directly:
 ```haskell
 walletNames :: [(Wallet, String)]
 walletNames = [(wallet 1, "Alice"), (wallet 2, "Bob"), (wallet 3, "Carie")]
@@ -438,7 +438,7 @@ Utxo searches are lists of UTxOs that can be manipulated conveniently.
     extract `b` when it exists, or remove the output when it does not.
   * several variants: `extractPure`, `extractAFold`, ...
   
-6. UTxO searches are made of the targetted outputs, alongside any piece of
+6. UTxO searches are made of the targeted outputs, alongside any piece of
    information that was extracted from them, in a type retaining way. Pieces of
    these searches can be retrieved, using `getOutputs`, `getExtracts`, ...
    

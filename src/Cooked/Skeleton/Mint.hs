@@ -102,7 +102,7 @@ newtype TxSkelMints = TxSkelMints
   deriving (Show, Eq)
 
 -- | Retrieves the inner map of a 'TxSkelMints'. This could be a lense but we
--- want to avoid unsafe assignement of this inner map, for which we keep
+-- want to avoid unsafe assignment of this inner map, for which we keep
 -- invariants so we have it as a getter instead.
 txSkelMintsMapG :: Getter TxSkelMints (Map Api.ScriptHash (User 'IsScript 'Redemption, Map Api.TokenName Integer))
 txSkelMintsMapG = to txSkelMintsMap
@@ -138,7 +138,7 @@ txSkelMintsAssetClassAmountL mp@(Script.toScriptHash . toVScript -> mph) tk =
         -- A previous mp and tk entry, which needs to be removed and the whole
         -- mp entry as well because it only contains this tk.
         Just (Map.delete tk . snd -> subMap) | subMap == mempty, i == 0 -> Map.delete mph mints
-        -- A prevous mp and tk entry, which either needs to be removed in case
+        -- A previous mp and tk entry, which either needs to be removed in case
         -- of i == 0, or updated otherwise.
         Just (prevUser, if i == 0 then Map.delete tk else Map.insert tk i -> subMap)
           | newUser <- maybe prevUser (flip (set userRedeemerL) prevUser) newRed -> Map.insert mph (newUser, subMap) mints

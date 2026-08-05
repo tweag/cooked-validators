@@ -14,7 +14,7 @@ modules and preferred import locations.
 
 ## Names of qualified modules related to Cardano
 
-Here is the correspondance between package and prefix for each of our main
+Here is the correspondence between package and prefix for each of our main
 dependencies:
 
 ### [`cardano-node-emulator`](https://github.com/IntersectMBO/cardano-node-emulator)
@@ -84,5 +84,5 @@ plutus-ledger) should. For instance, `Value` should always be coming from
 `Ledger` is a big module coming from `plutus-ledger` that re-exports many
 definitions. It re-exports too many definitions so that it hides where they
 really come from, but not enough so that importing `Ledger` alone sufficies in
-most projects. Thus, we avoid importing it altogher and instead rely on
+most projects. Thus, we avoid importing it altogether and instead rely on
 `PlutusLedgerApi.V3` and the sub-modules `Ledger.*` (aliased `P.Ledger`).

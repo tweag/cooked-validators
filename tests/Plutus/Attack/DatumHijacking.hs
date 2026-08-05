@@ -53,7 +53,7 @@ mockValidatorSpendingPurpose getOutputs _ (Just FirstLock) _ txi =
   case getOutputs txi of
     o : _ ->
       traceIfFalse "not in 'SecondLock'-state after re-locking" (outputDatum txi o == Just SecondLock)
-        && traceIfFalse "not re-locking the right amout" (Api.txOutValue o == lockValue)
+        && traceIfFalse "not re-locking the right amount" (Api.txOutValue o == lockValue)
     _ -> trace "there must be a output re-locked" False
 mockValidatorSpendingPurpose _ _ _ _ _ = False
 
