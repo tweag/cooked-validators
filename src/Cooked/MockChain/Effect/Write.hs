@@ -41,7 +41,8 @@ import Cooked.MockChain.Automation.GenerateTx.Body
 import Cooked.MockChain.Automation.GenerateTx.Output
 import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
@@ -80,7 +81,8 @@ runMockChainWrite ::
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          MockChainLog,
-         MockChainRead,
+         MockChainReadChain,
+         MockChainReadConf,
          Fail
        ]
       effs
@@ -225,6 +227,8 @@ runMockChainWrite = interpret $ \case
       (_, P.Ledger.FailPhase2 {})
         | Nothing <- mCollaterals ->
             fail "Unreachable case when processing validation result, please report a bug at https://github.com/tweag/cooked-validators/issues"
+    -- We increase the slot number
+    modify' $ over mcstLedgerStateL Emulator.nextSlot
     -- We log the validated transaction
     logEvent $ MCLogNewTx (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx) (fromIntegral $ length $ P.Ledger.getCardanoTxOutRefs cardanoTx)
     -- We return the validated transaction
@@ -234,7 +238,7 @@ runMockChainWrite = interpret $ \case
 waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs P.Ledger.Slot
 
 -- | Wait for a certain slot, or throws an error if the slot is already past
-awaitSlot :: (Members '[MockChainRead, MockChainWrite] effs) => P.Ledger.Slot -> Sem effs P.Ledger.Slot
+awaitSlot :: (Members '[MockChainReadChain, MockChainWrite] effs) => P.Ledger.Slot -> Sem effs P.Ledger.Slot
 awaitSlot (P.Ledger.Slot targetSlot) = do
   P.Ledger.Slot now <- currentSlot
   waitNSlots (targetSlot - now)
@@ -242,17 +246,17 @@ awaitSlot (P.Ledger.Slot targetSlot) = do
 -- | Waits until the current slot becomes greater or equal to the slot
 --  containing the given POSIX time.  Note that that it might not wait for
 --  anything if the current slot is large enough.
-awaitEnclosingSlot :: (Members '[MockChainRead, MockChainWrite] effs) => Api.POSIXTime -> Sem effs P.Ledger.Slot
+awaitEnclosingSlot :: (Members '[MockChainReadChain, MockChainWrite] effs) => Api.POSIXTime -> Sem effs P.Ledger.Slot
 awaitEnclosingSlot time = getEnclosingSlot time >>= awaitSlot
 
 -- | Wait a given number of ms from the lower bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotLowerBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
+waitNMSFromSlotLowerBound :: (Members '[MockChainReadChain, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
 waitNMSFromSlotLowerBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | Wait a given number of ms from the upper bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotUpperBound :: (Members '[MockChainRead, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
+waitNMSFromSlotUpperBound :: (Members '[MockChainReadChain, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
 waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | Generates, balances and validates a transaction from a skeleton, and
@@ -260,7 +264,7 @@ waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ 
 validateTxSkel :: (Member MockChainWrite effs) => TxSkel -> Sem effs (P.Ledger.CardanoTx, Utxos)
 
 -- | Same as `validateTxSkel`, but only returns the generated UTxOs
-validateTxSkel' :: (Members '[MockChainRead, MockChainWrite] effs) => TxSkel -> Sem effs Utxos
+validateTxSkel' :: (Members '[MockChainReadChain, MockChainWrite] effs) => TxSkel -> Sem effs Utxos
 validateTxSkel' = fmap snd . validateTxSkel
 
 -- | Same as `validateTxSkel`, but discards the returned transaction

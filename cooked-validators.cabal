@@ -44,7 +44,8 @@ library
       Cooked.MockChain.Common
       Cooked.MockChain.Effect.Log
       Cooked.MockChain.Effect.Misc
-      Cooked.MockChain.Effect.Read
+      Cooked.MockChain.Effect.Read.Chain
+      Cooked.MockChain.Effect.Read.Conf
       Cooked.MockChain.Effect.Write
       Cooked.MockChain.Run.Instances
       Cooked.MockChain.Run.Runnable

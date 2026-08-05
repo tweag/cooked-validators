@@ -20,7 +20,8 @@ import Cooked.MockChain.Automation.GenerateTx.Body
 import Cooked.MockChain.Automation.GenerateTx.Output
 import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
@@ -66,7 +67,7 @@ data ExtendedTxSkel = ExtendedTxSkel
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
 balanceTxSkel ::
-  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Sem effs ExtendedTxSkel
 balanceTxSkel skelUnbal@TxSkel {..} = do
@@ -163,7 +164,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
 computeFeeAndBalance ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   Peer ->
   Fee ->
   Fee ->
@@ -220,7 +221,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
 collateralsFromFee ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   -- | The fee from which these collaterals should be computed
   Fee ->
   -- | The optional candidate UTxOs to be used as collaterals, alongside the
@@ -256,7 +257,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
 
 reachValue ::
   forall effs.
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
   -- | The Utxos available to reach the value
   Utxos ->
   -- | The target value to reach
@@ -390,7 +391,7 @@ reachValue utxos target fuel outputOrUser = do
 -- | Estimates the required fee for a given skeleton with a given initial fee
 -- and collaterals
 estimateTxSkelFee ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
@@ -413,7 +414,7 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
 computeBalancedTxSkel ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   Peer ->
   Utxos ->
   TxSkel ->
@@ -497,7 +498,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
 -- See https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md
 -- for more information
 getMinAndMaxFee ::
-  (Members '[MockChainRead] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf] effs) =>
   Integer ->
   Sem effs (Fee, Fee)
 getMinAndMaxFee nbOfScripts = do

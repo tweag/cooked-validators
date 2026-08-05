@@ -23,7 +23,8 @@ import Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
 import Cooked.MockChain.Automation.GenerateTx.Withdrawals
 import Cooked.MockChain.Automation.GenerateTx.Witness
 import Cooked.MockChain.Common
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
 import Data.Bifunctor (first)
@@ -42,7 +43,7 @@ import Polysemy.Fail
 
 -- | Generates a body content from a skeleton
 txSkelToTxBodyContent ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
@@ -87,7 +88,7 @@ txBodyContentToTxBody =
 
 -- | Generates an index with utxos known to a 'TxSkel'
 txSkelToIndex ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
   TxSkel ->
   Maybe Collaterals ->
   Sem effs (Cardano.UTxO Cardano.ConwayEra)
@@ -107,7 +108,7 @@ txSkelToIndex txSkel mCollaterals = do
 -- collateral information. This transaction body accounts for the actual
 -- execution units of each of the scripts involved in the skeleton.
 txSkelToTxBody ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
@@ -169,7 +170,7 @@ txSignatoriesAndBodyToCardanoTx signatories txBody = Cardano.Tx txBody $ mapMayb
 
 -- | Generates a full Cardano transaction from a skeleton, fees and collaterals
 txSkelToCardanoTx ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Fee ->
   Maybe Collaterals ->

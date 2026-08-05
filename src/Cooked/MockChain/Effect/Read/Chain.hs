@@ -1,26 +1,18 @@
-{-# LANGUAGE TemplateHaskell #-}
+-- | This module exposes the user-facing primitives to query the current state
+-- of the blockchain, such as the available UTxOs, the current slot, and the
+-- current constitution or rewards. The lower-level configuration primitives
+-- (protocol parameters, network id, era history, system start) live in the
+-- internal 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect, which
+-- this effect relies on during its own interpretation.
+module Cooked.MockChain.Effect.Read.Chain
+  ( -- * The 'MockChainReadChain' effect
+    MockChainReadChain,
 
--- | This module exposes primitives to query the current state of the
--- blockchain.
-module Cooked.MockChain.Effect.Read
-  ( -- * The 'MockChainRead' effect
-    MockChainRead,
-
-    -- * 'MockChainRead' interpreters
-    runMockChainReadEmul,
-    runMockChainReadNode,
-
-    -- * Queries related to protocol parameters
-    getParams,
-    getNetworkId,
-    govActionDeposit,
-    dRepDeposit,
-    stakeAddressDeposit,
-    stakePoolDeposit,
+    -- * 'MockChainReadChain' interpreters
+    runMockChainReadChainEmul,
+    runMockChainReadChainNode,
 
     -- * Queries related to `Cooked.Skeleton.TxSkel`
-    txSkelDepositedValueInCertificates,
-    txSkelDepositedValueInProposals,
     txSkelAllScripts,
     txSkelInputScripts,
     txSkelInputValue,
@@ -28,8 +20,6 @@ module Cooked.MockChain.Effect.Read
     -- * Queries related to time
     currentSlot,
     currentMSRange,
-    getEraHistory,
-    getSystemStart,
     getEnclosingSlot,
     slotRangeBefore,
     slotRangeAfter,
@@ -54,16 +44,12 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano hiding (TxIn)
-import Cardano.Ledger.Conway qualified as Conway
-import Cardano.Ledger.Conway.Core qualified as Conway
-import Cardano.Ledger.Core qualified as C.Ledger
-import Cardano.Ledger.Shelley.API qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cardano.Slotting.Time qualified as Time
-import Control.Lens qualified as Lens
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Credential
 import Cooked.MockChain.Common
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
@@ -92,25 +78,182 @@ import Polysemy.State
 
 -- | An effect that offers primitives to query the current state of the
 -- mockchain. As its name suggests, this effect is read-only and does not alter
--- the state in any way.
-data MockChainRead :: Effect where
-  GetParams :: MockChainRead m (C.Ledger.PParams Conway.ConwayEra)
-  GetNetworkId :: MockChainRead m Cardano.NetworkId
-  TxSkelOutByRef :: Api.TxOutRef -> MockChainRead m TxSkelOut
-  CurrentSlot :: MockChainRead m P.Ledger.Slot
-  GetEraHistory :: MockChainRead m Cardano.EraHistory
-  GetSystemStart :: MockChainRead m Time.SystemStart
-  SlotToMSRange :: P.Ledger.Slot -> MockChainRead m (Api.POSIXTime, Api.POSIXTime)
-  GetEnclosingSlot :: Api.POSIXTime -> MockChainRead m P.Ledger.Slot
-  AllUtxos :: MockChainRead m Utxos
-  UtxosAt :: (Script.ToAddress a) => a -> MockChainRead m Utxos
-  GetConstitutionScript :: MockChainRead m (Maybe VScript)
-  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainRead m (Maybe Api.Lovelace)
+-- the state in any way. This is the user-facing read effect; its interpreters
+-- rely on the internal
+-- 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect to resolve the
+-- fixed chain configuration.
+data MockChainReadChain :: Effect where
+  TxSkelOutByRef :: Api.TxOutRef -> MockChainReadChain m TxSkelOut
+  CurrentSlot :: MockChainReadChain m P.Ledger.Slot
+  SlotToMSRange :: P.Ledger.Slot -> MockChainReadChain m (Api.POSIXTime, Api.POSIXTime)
+  GetEnclosingSlot :: Api.POSIXTime -> MockChainReadChain m P.Ledger.Slot
+  AllUtxos :: MockChainReadChain m Utxos
+  UtxosAt :: (Script.ToAddress a) => a -> MockChainReadChain m Utxos
+  GetConstitutionScript :: MockChainReadChain m (Maybe VScript)
+  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainReadChain m (Maybe Api.Lovelace)
 
-makeSem_ ''MockChainRead
+makeSem_ ''MockChainReadChain
+
+-- | Returns all scripts involved in this 'TxSkel'
+txSkelAllScripts ::
+  (Member MockChainReadChain effs) =>
+  TxSkel ->
+  Sem effs [VScript]
+txSkelAllScripts txSkel = do
+  txSkelSpendingScripts <- txSkelInputScripts txSkel
+  return $
+    toListOf (txSkelRedeemedScriptsT % userVScriptL) txSkel
+      <> txSkelSpendingScripts
+
+-- | Returns all scripts which guard transaction inputs
+txSkelInputScripts ::
+  (Member MockChainReadChain effs) =>
+  TxSkel ->
+  Sem effs [VScript]
+txSkelInputScripts =
+  fmap catMaybes
+    . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT))
+    . Map.keys
+    . txSkelInputs
+
+-- | look up the UTxOs the transaction consumes, and sum their values.
+txSkelInputValue ::
+  (Member MockChainReadChain effs) =>
+  TxSkel ->
+  Sem effs Api.Value
+txSkelInputValue =
+  fmap mconcat
+    . mapM (viewByRef txSkelOutValueL)
+    . Map.keys
+    . txSkelInputs
+
+-- | Returns the current slot
+currentSlot ::
+  (Member MockChainReadChain effs) =>
+  Sem effs P.Ledger.Slot
+
+-- | Returns the closed ms interval corresponding to the slot with the given
+-- number.
+slotToMSRange ::
+  (Members '[MockChainReadChain, Fail] effs) =>
+  P.Ledger.Slot ->
+  Sem effs (Api.POSIXTime, Api.POSIXTime)
+
+-- | Returns the closed ms interval corresponding to the current slot
+currentMSRange ::
+  (Members '[MockChainReadChain, Fail] effs) =>
+  Sem effs (Api.POSIXTime, Api.POSIXTime)
+currentMSRange = slotToMSRange =<< currentSlot
+
+-- | Return the slot that contains the given time. See 'slotToMSRange' for
+-- some satisfied equational properties.
+getEnclosingSlot ::
+  (Member MockChainReadChain effs) =>
+  Api.POSIXTime ->
+  Sem effs P.Ledger.Slot
+
+-- | The infinite range of slots ending before or at the given time
+slotRangeBefore ::
+  (Members '[MockChainReadChain, Fail] effs) =>
+  Api.POSIXTime ->
+  Sem effs P.Ledger.SlotRange
+slotRangeBefore t = do
+  n <- getEnclosingSlot t
+  (_, b) <- slotToMSRange n
+  -- If the given time @t@ happens to be the last ms of its slot, we can include
+  -- the whole slot. Otherwise, the only way to be sure that the returned slot
+  -- range contains no time after @t@ is to go to the preceding slot.
+  return $ Api.to $ if t == b then n else n - 1
+
+-- | The infinite range of slots starting after or at the given time
+slotRangeAfter ::
+  (Members '[MockChainReadChain, Fail] effs) =>
+  Api.POSIXTime ->
+  Sem effs P.Ledger.SlotRange
+slotRangeAfter t = do
+  n <- getEnclosingSlot t
+  (a, _) <- slotToMSRange n
+  return $ Api.from $ if t == a then n else n + 1
+
+-- | Returns a list of all currently known outputs
+allUtxos ::
+  (Member MockChainReadChain effs) =>
+  Sem effs Utxos
+
+-- | Returns a list of all UTxOs at a certain address.
+utxosAt ::
+  ( Member MockChainReadChain effs,
+    Script.ToAddress cred
+  ) =>
+  cred ->
+  Sem effs Utxos
+
+-- | Returns an output given a reference to it
+txSkelOutByRef ::
+  (Member MockChainReadChain effs) =>
+  Api.TxOutRef ->
+  Sem effs TxSkelOut
+
+-- | Retrieves the ordered list of outputs of the given "CardanoTx".
+--
+-- This is useful when writing endpoints and/or traces to fetch utxos of
+-- interest right from the start and avoid querying the chain for them
+-- afterwards using 'allUtxos' or similar functions.
+utxosFromCardanoTx ::
+  (Member MockChainReadChain effs) =>
+  P.Ledger.CardanoTx ->
+  Sem effs [(Api.TxOutRef, TxSkelOut)]
+utxosFromCardanoTx =
+  mapM (\txOutRef -> (txOutRef,) <$> txSkelOutByRef txOutRef)
+    . fmap (P.Ledger.fromCardanoTxIn . snd)
+    . P.Ledger.getCardanoTxOutRefs
+
+-- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
+-- state of the blockchain, throwing an error if one of them cannot be resolved.
+lookupUtxos ::
+  (Member MockChainReadChain effs) =>
+  [Api.TxOutRef] ->
+  Sem effs (Map Api.TxOutRef TxSkelOut)
+lookupUtxos =
+  foldM
+    (\m oRef -> flip (Map.insert oRef) m <$> txSkelOutByRef oRef)
+    Map.empty
+
+-- | Retrieves an output and views a specific element out of it
+viewByRef ::
+  ( Member MockChainReadChain effs,
+    Is g A_Getter
+  ) =>
+  Optic' g is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs c
+viewByRef optic = (view optic <$>) . txSkelOutByRef
+
+-- | Retrieves an output and previews a specific element out of it
+previewByRef ::
+  ( Member MockChainReadChain effs,
+    Is af An_AffineFold
+  ) =>
+  Optic' af is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs (Maybe c)
+previewByRef optic = (preview optic <$>) . txSkelOutByRef
+
+-- | Gets the current official constitution script
+getConstitutionScript ::
+  (Member MockChainReadChain effs) =>
+  Sem effs (Maybe VScript)
+
+-- | Gets the current reward associated with a credential
+getCurrentReward ::
+  ( Member MockChainReadChain effs,
+    Script.ToCredential c
+  ) =>
+  c ->
+  Sem effs (Maybe Api.Lovelace)
 
 -- | The interpretation for read-only effect with a stored 'MockChainState'
-runMockChainReadEmul ::
+runMockChainReadChainEmul ::
   forall effs a.
   ( Members
       '[ State MockChainState,
@@ -120,11 +263,9 @@ runMockChainReadEmul ::
        ]
       effs
   ) =>
-  Sem (MockChainRead : effs) a ->
+  Sem (MockChainReadChain : effs) a ->
   Sem effs a
-runMockChainReadEmul = interpret $ \case
-  GetParams -> gets $ Emulator.pEmulatorPParams . mcstParams
-  GetNetworkId -> gets $ Emulator.pNetworkId . mcstParams
+runMockChainReadChainEmul = interpret $ \case
   TxSkelOutByRef oRef -> do
     res <- gets $ Map.lookup oRef . mcstOutputs
     case res of
@@ -133,8 +274,6 @@ runMockChainReadEmul = interpret $ \case
   AllUtxos -> fetchUtxos $ const True
   UtxosAt (Script.toAddress -> addr) -> fetchUtxos $ (== addr) . Script.toAddress
   CurrentSlot -> gets $ view $ mcstLedgerStateL % to Emulator.getSlot
-  GetEraHistory -> gets $ Emulator.emulatorEraHistory . mcstParams
-  GetSystemStart -> gets $ Shelley.systemStart . Emulator.emulatorGlobals . mcstParams
   SlotToMSRange slot -> do
     slotConfig <- gets $ Emulator.pSlotConfig . mcstParams
     case Emulator.slotToPOSIXTimeRange slotConfig slot of
@@ -167,277 +306,16 @@ runMockChainReadEmul = interpret $ \case
             % filtered (decide . fst . snd)
             % to (fmap fst)
 
--- | Returns the emulator parameters, including protocol parameters
-getParams ::
-  (Member MockChainRead effs) =>
-  Sem effs (C.Ledger.PParams Conway.ConwayEra)
-
--- | Returns the network id of the current chain
-getNetworkId ::
-  (Member MockChainRead effs) =>
-  Sem effs Cardano.NetworkId
-
--- | Retrieves the required governance action deposit amount
-govActionDeposit ::
-  (Member MockChainRead effs) =>
-  Sem effs Api.Lovelace
-govActionDeposit =
-  getParams
-    <&> Api.Lovelace
-    . Cardano.unCoin
-    . Lens.view Conway.ppGovActionDepositL
-
--- | Retrieves the required drep deposit amount
-dRepDeposit ::
-  (Member MockChainRead effs) =>
-  Sem effs Api.Lovelace
-dRepDeposit =
-  getParams
-    <&> Api.Lovelace
-    . Cardano.unCoin
-    . Lens.view Conway.ppDRepDepositL
-
--- | Retrieves the required stake address deposit amount
-stakeAddressDeposit ::
-  (Member MockChainRead effs) =>
-  Sem effs Api.Lovelace
-stakeAddressDeposit =
-  getParams
-    <&> Api.Lovelace
-    . Cardano.unCoin
-    . Lens.view Conway.ppKeyDepositL
-
--- | Retrieves the required stake pool deposit amount
-stakePoolDeposit ::
-  (Member MockChainRead effs) =>
-  Sem effs Api.Lovelace
-stakePoolDeposit =
-  getParams
-    <&> Api.Lovelace
-    . Cardano.unCoin
-    . Lens.view Conway.ppPoolDepositL
-
--- | Retrieves the total amount of lovelace deposited in certificates in this
--- skeleton. Note that unregistering a staking address or a dRep lead to a
--- negative deposit (a withdrawal, in fact) which means this function can return
--- a negative amount of lovelace, which is intended. The deposited amounts are
--- dictated by the current protocol parameters, and computed as such.
-txSkelDepositedValueInCertificates ::
-  (Member MockChainRead effs) =>
-  TxSkel ->
-  Sem effs Api.Lovelace
-txSkelDepositedValueInCertificates txSkel = do
-  sDep <- stakeAddressDeposit
-  dDep <- dRepDeposit
-  pDep <- stakePoolDeposit
-  return $
-    foldOf
-      ( txSkelCertificatesL
-          % traversed
-          % to
-            ( \case
-                TxSkelCertificate _ StakingRegister {} -> sDep
-                TxSkelCertificate _ StakingRegisterDelegate {} -> sDep
-                TxSkelCertificate _ StakingUnRegister {} -> -sDep
-                TxSkelCertificate _ DRepRegister {} -> dDep
-                TxSkelCertificate _ DRepUnRegister {} -> -dDep
-                TxSkelCertificate _ PoolRegister {} -> pDep
-                -- There is no special case for 'PoolRetire' because the deposit
-                -- is given back to the reward account.
-                _ -> Api.Lovelace 0
-            )
-      )
-      txSkel
-
--- | Retrieves the total amount of lovelace deposited in proposals in this
--- skeleton (equal to `govActionDeposit` times the number of proposals)
-txSkelDepositedValueInProposals ::
-  (Member MockChainRead effs) =>
-  TxSkel ->
-  Sem effs Api.Lovelace
-txSkelDepositedValueInProposals TxSkel {txSkelProposals} =
-  govActionDeposit
-    <&> Api.Lovelace
-    . (toInteger (length txSkelProposals) *)
-    . Api.getLovelace
-
--- | Returns all scripts involved in this 'TxSkel'
-txSkelAllScripts ::
-  (Member MockChainRead effs) =>
-  TxSkel ->
-  Sem effs [VScript]
-txSkelAllScripts txSkel = do
-  txSkelSpendingScripts <- txSkelInputScripts txSkel
-  return $
-    toListOf (txSkelRedeemedScriptsT % userVScriptL) txSkel
-      <> txSkelSpendingScripts
-
--- | Returns all scripts which guard transaction inputs
-txSkelInputScripts ::
-  (Member MockChainRead effs) =>
-  TxSkel ->
-  Sem effs [VScript]
-txSkelInputScripts =
-  fmap catMaybes
-    . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT))
-    . Map.keys
-    . txSkelInputs
-
--- | look up the UTxOs the transaction consumes, and sum their values.
-txSkelInputValue ::
-  (Member MockChainRead effs) =>
-  TxSkel ->
-  Sem effs Api.Value
-txSkelInputValue =
-  fmap mconcat
-    . mapM (viewByRef txSkelOutValueL)
-    . Map.keys
-    . txSkelInputs
-
--- | Returns the current slot
-currentSlot ::
-  (Member MockChainRead effs) =>
-  Sem effs P.Ledger.Slot
-
--- | Returns the era history of the chain, which notably allows converting slots
--- into epochs (see 'Cardano.slotToEpoch').
-getEraHistory ::
-  (Member MockChainRead effs) =>
-  Sem effs Cardano.EraHistory
-
--- | Returns the system start time of the chain, that is the UTC time at which
--- the first slot begins.
-getSystemStart ::
-  (Member MockChainRead effs) =>
-  Sem effs Time.SystemStart
-
--- | Returns the closed ms interval corresponding to the slot with the given
--- number.
-slotToMSRange ::
-  (Members '[MockChainRead, Fail] effs) =>
-  P.Ledger.Slot ->
-  Sem effs (Api.POSIXTime, Api.POSIXTime)
-
--- | Returns the closed ms interval corresponding to the current slot
-currentMSRange ::
-  (Members '[MockChainRead, Fail] effs) =>
-  Sem effs (Api.POSIXTime, Api.POSIXTime)
-currentMSRange = slotToMSRange =<< currentSlot
-
--- | Return the slot that contains the given time. See 'slotToMSRange' for
--- some satisfied equational properties.
-getEnclosingSlot ::
-  (Member MockChainRead effs) =>
-  Api.POSIXTime ->
-  Sem effs P.Ledger.Slot
-
--- | The infinite range of slots ending before or at the given time
-slotRangeBefore ::
-  (Members '[MockChainRead, Fail] effs) =>
-  Api.POSIXTime ->
-  Sem effs P.Ledger.SlotRange
-slotRangeBefore t = do
-  n <- getEnclosingSlot t
-  (_, b) <- slotToMSRange n
-  -- If the given time @t@ happens to be the last ms of its slot, we can include
-  -- the whole slot. Otherwise, the only way to be sure that the returned slot
-  -- range contains no time after @t@ is to go to the preceding slot.
-  return $ Api.to $ if t == b then n else n - 1
-
--- | The infinite range of slots starting after or at the given time
-slotRangeAfter ::
-  (Members '[MockChainRead, Fail] effs) =>
-  Api.POSIXTime ->
-  Sem effs P.Ledger.SlotRange
-slotRangeAfter t = do
-  n <- getEnclosingSlot t
-  (a, _) <- slotToMSRange n
-  return $ Api.from $ if t == a then n else n + 1
-
--- | Returns a list of all currently known outputs
-allUtxos ::
-  (Member MockChainRead effs) =>
-  Sem effs Utxos
-
--- | Returns a list of all UTxOs at a certain address.
-utxosAt ::
-  ( Member MockChainRead effs,
-    Script.ToAddress cred
-  ) =>
-  cred ->
-  Sem effs Utxos
-
--- | Returns an output given a reference to it
-txSkelOutByRef ::
-  (Member MockChainRead effs) =>
-  Api.TxOutRef ->
-  Sem effs TxSkelOut
-
--- | Retrieves the ordered list of outputs of the given "CardanoTx".
---
--- This is useful when writing endpoints and/or traces to fetch utxos of
--- interest right from the start and avoid querying the chain for them
--- afterwards using 'allUtxos' or similar functions.
-utxosFromCardanoTx ::
-  (Member MockChainRead effs) =>
-  P.Ledger.CardanoTx ->
-  Sem effs [(Api.TxOutRef, TxSkelOut)]
-utxosFromCardanoTx =
-  mapM (\txOutRef -> (txOutRef,) <$> txSkelOutByRef txOutRef)
-    . fmap (P.Ledger.fromCardanoTxIn . snd)
-    . P.Ledger.getCardanoTxOutRefs
-
--- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
--- state of the blockchain, throwing an error if one of them cannot be resolved.
-lookupUtxos ::
-  (Member MockChainRead effs) =>
-  [Api.TxOutRef] ->
-  Sem effs (Map Api.TxOutRef TxSkelOut)
-lookupUtxos =
-  foldM
-    (\m oRef -> flip (Map.insert oRef) m <$> txSkelOutByRef oRef)
-    Map.empty
-
--- | Retrieves an output and views a specific element out of it
-viewByRef ::
-  ( Member MockChainRead effs,
-    Is g A_Getter
-  ) =>
-  Optic' g is TxSkelOut c ->
-  Api.TxOutRef ->
-  Sem effs c
-viewByRef optic = (view optic <$>) . txSkelOutByRef
-
--- | Retrieves an output and previews a specific element out of it
-previewByRef ::
-  ( Member MockChainRead effs,
-    Is af An_AffineFold
-  ) =>
-  Optic' af is TxSkelOut c ->
-  Api.TxOutRef ->
-  Sem effs (Maybe c)
-previewByRef optic = (preview optic <$>) . txSkelOutByRef
-
--- | Gets the current official constitution script
-getConstitutionScript ::
-  (Member MockChainRead effs) =>
-  Sem effs (Maybe VScript)
-
--- | Gets the current reward associated with a credential
-getCurrentReward ::
-  ( Member MockChainRead effs,
-    Script.ToCredential c
-  ) =>
-  c ->
-  Sem effs (Maybe Api.Lovelace)
-
--- | Interpret the `MockChainRead` effect by talking to a deployed node through
--- a `Cardano.LocalNodeConnectInfo` (socket path and network id) provided via a
--- `Reader`, running in a stack featuring @IO@ (via `Embed`).
-runMockChainReadNode ::
+-- | Interpret the `MockChainReadChain` effect by talking to a deployed node
+-- through a `Cardano.LocalNodeConnectInfo` (socket path and network id)
+-- provided via a `Reader`, running in a stack featuring @IO@ (via `Embed`). The
+-- fixed chain configuration is resolved through the internal
+-- 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect.
+runMockChainReadChainNode ::
   forall effs a.
   ( Members
       '[ Embed IO,
+         MockChainReadConf,
          Error Cardano.UnsupportedNtcVersionError,
          Error Cardano.EraMismatch,
          Error Cardano.AcquiringFailure,
@@ -448,29 +326,25 @@ runMockChainReadNode ::
        ]
       effs
   ) =>
-  Sem (MockChainRead : effs) a ->
+  Sem (MockChainReadChain : effs) a ->
   Sem effs a
-runMockChainReadNode = interpret $ \case
-  GetParams -> queryAndHandleErrors $ Cardano.queryProtocolParameters Cardano.ShelleyBasedEraConway
-  GetNetworkId -> asks Cardano.localNodeNetworkId
+runMockChainReadChainNode = interpret $ \case
   CurrentSlot -> ask >>= fmap chainTipSlot . embed . Cardano.getLocalChainTip
-  GetEraHistory -> queryAndHandleError Cardano.queryEraHistory
-  GetSystemStart -> queryAndHandleError Cardano.querySystemStart
   SlotToMSRange slot -> do
-    eraHistory <- queryAndHandleError Cardano.queryEraHistory
-    systemStart <- queryAndHandleError Cardano.querySystemStart
+    eraHistory <- getEraHistory
+    systemStart <- getSystemStart
     (relStart, slotLen) <- fromEither $ Cardano.getProgress (toSlotNo slot) eraHistory
     let startUTC = Time.fromRelativeTime systemStart relStart
         endUTC = Time.getSlotLength slotLen `addUTCTime` startUTC
     return (utcToPOSIXTime startUTC, utcToPOSIXTime endUTC - 1)
   GetEnclosingSlot t -> do
-    eraHistory <- queryAndHandleError Cardano.queryEraHistory
-    systemStart <- queryAndHandleError Cardano.querySystemStart
+    eraHistory <- getEraHistory
+    systemStart <- getSystemStart
     let relTime = Time.toRelativeTime systemStart $ posixTimeToUTC t
     fromSlotNo <$> fromEither (Cardano.getSlotForRelativeTime relTime eraHistory)
   AllUtxos -> queryUtxosAndHandleErrors Cardano.QueryUTxOWhole
   UtxosAt (Script.toAddress -> addr) -> do
-    networkId <- asks Cardano.localNodeNetworkId
+    networkId <- getNetworkId
     (Cardano.AddressInEra _ cAddr) <- fromEither $ P.Ledger.toCardanoAddressInEra networkId addr
     queryUtxosAndHandleErrors $ Cardano.QueryUTxOByAddress $ Set.singleton $ Cardano.toAddressAny cAddr
   TxSkelOutByRef oRef -> do
@@ -495,7 +369,7 @@ runMockChainReadNode = interpret $ \case
     case mScriptHash of
       SNothing -> return Nothing
       SJust (Cardano.ScriptHash -> scriptHash) -> do
-        networkId <- asks Cardano.localNodeNetworkId
+        networkId <- getNetworkId
         utxo <-
           queryUtxosAndHandleErrors $
             Cardano.QueryUTxOByAddress $
@@ -512,7 +386,7 @@ runMockChainReadNode = interpret $ \case
               Script.toScriptHash script == Script.toScriptHash scriptHash
             ]
   GetCurrentReward (Script.toCredential -> cred) -> do
-    networkId <- asks Cardano.localNodeNetworkId
+    networkId <- getNetworkId
     stakeCred <- toStakeCredential cred
     (rewards, _) <-
       queryAndHandleErrors $

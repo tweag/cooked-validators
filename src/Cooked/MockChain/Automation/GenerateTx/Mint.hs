@@ -4,7 +4,7 @@ module Cooked.MockChain.Automation.GenerateTx.Mint (toMintValue) where
 import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton.Mint
 import Cooked.Skeleton.User
@@ -21,7 +21,7 @@ import Polysemy.Error
 
 -- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'
 toMintValue ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelMints ->
   Sem effs (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue txSkelMints | txSkelMints == mempty = return Cardano.TxMintNone

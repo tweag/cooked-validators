@@ -5,7 +5,8 @@ module Cooked.MockChain (module X) where
 import Cooked.MockChain.Automation.Balancing as X
 import Cooked.MockChain.Common as X
 import Cooked.MockChain.Effect.Misc as X
-import Cooked.MockChain.Effect.Read as X
+import Cooked.MockChain.Effect.Read.Chain as X
+import Cooked.MockChain.Effect.Read.Conf as X
 import Cooked.MockChain.Effect.Write as X
 import Cooked.MockChain.Run.Instances as X
 import Cooked.MockChain.Run.Runnable as X

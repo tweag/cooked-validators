@@ -45,7 +45,7 @@ where
 import Control.Monad (filterM, forM)
 import Cooked.Families hiding (Member)
 import Cooked.MockChain.Common
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
@@ -115,7 +115,7 @@ getTxOutRefsAndOutputs = fmap (fmap (\(oRef, HCons output _) -> (oRef, output)))
 
 -- | Searches for utxos at a given address with a given filter
 utxosAtSearch ::
-  (Member MockChainRead effs, Script.ToAddress pkh) =>
+  (Member MockChainReadChain effs, Script.ToAddress pkh) =>
   pkh ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
@@ -123,14 +123,14 @@ utxosAtSearch pkh filters = filters $ beginSearch $ utxosAt pkh
 
 -- | Searches for all the known utxos with a given filter
 allUtxosSearch ::
-  (Member MockChainRead effs) =>
+  (Member MockChainReadChain effs) =>
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
 allUtxosSearch filters = filters $ beginSearch allUtxos
 
 -- | Searches for utxos belonging to a given list with a given filter
 txSkelOutByRefSearch ::
-  (Member MockChainRead effs) =>
+  (Member MockChainReadChain effs) =>
   [Api.TxOutRef] ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
@@ -139,7 +139,7 @@ txSkelOutByRefSearch utxos filters =
 
 -- | Searches for utxos belonging to a given list with no filter
 txSkelOutByRefSearch' ::
-  (Member MockChainRead effs) =>
+  (Member MockChainReadChain effs) =>
   [Api.TxOutRef] ->
   UtxoSearch effs '[]
 txSkelOutByRefSearch' = (`txSkelOutByRefSearch` id)

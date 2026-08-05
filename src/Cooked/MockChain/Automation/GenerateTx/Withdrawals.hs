@@ -4,7 +4,8 @@ module Cooked.MockChain.Automation.GenerateTx.Withdrawals (toWithdrawals) where
 import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton.User
 import Cooked.Skeleton.Withdrawal
@@ -19,7 +20,7 @@ import Polysemy.Error
 
 -- | Takes a 'TxSkelWithdrawals' and transforms it into a 'Cardano.TxWithdrawals'
 toWithdrawals ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelWithdrawals ->
   Sem effs (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals withdrawals | withdrawals == mempty = return Cardano.TxWithdrawalsNone

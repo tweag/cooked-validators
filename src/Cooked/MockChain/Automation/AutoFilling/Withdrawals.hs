@@ -6,7 +6,7 @@ module Cooked.MockChain.Automation.AutoFilling.Withdrawals
 where
 
 import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -21,7 +21,7 @@ import Polysemy
 -- tamper with an existing specified amount in such withdrawals. Logs an event
 -- when an amount has been successfully auto-filled.
 autoFillWithdrawalAmounts ::
-  (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
+  (Members '[MockChainReadChain, Tweak, MockChainLog] effs) =>
   Sem effs ()
 autoFillWithdrawalAmounts = do
   traverseTweak (txSkelWithdrawalsL % txSkelWithdrawalsListI % traversed) $ \withdrawal -> do

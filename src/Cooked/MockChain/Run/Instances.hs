@@ -50,7 +50,8 @@ where
 import Cooked.Ltl
 import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Misc
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Effect.Write
 import Cooked.MockChain.Run.Runnable
 import Cooked.MockChain.Run.Tweak
@@ -69,7 +70,7 @@ import Polysemy.Writer
 -- | The most direct stack of effects to run a mockchain
 type DirectEffs =
   '[ MockChainWrite,
-     MockChainRead,
+     MockChainReadChain,
      MockChainMisc,
      Fail
    ]
@@ -88,21 +89,26 @@ instance RunnableMockChain DirectEffs where
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainMisc fromAlias fromNote fromAssert
-      . runMockChainReadEmul
+      . runMockChainReadConfEmul
+      . runMockChainReadChainEmul
       . runMockChainWrite
-      . insertAt @4
-        @[ Error P.Ledger.ToCardanoError,
-           Error MockChainError,
-           State MockChainState,
-           MockChainLog,
-           Writer MockChainJournal
-         ]
+      . insertAt @5
+        @'[ Error P.Ledger.ToCardanoError,
+            Error MockChainError,
+            State MockChainState,
+            MockChainLog,
+            Writer MockChainJournal
+          ]
+      . insertAt @2
+        @'[ MockChainReadConf
+          ]
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `FullMockChain` computation
 type FullTweakEffs =
   '[ MockChainMisc,
-     MockChainRead,
+     MockChainReadChain,
+     MockChainReadConf,
      Fail,
      Error P.Ledger.ToCardanoError,
      Error MockChainError,
@@ -122,7 +128,8 @@ type FullEffs =
      ModifyLocally (UntypedTweak FullTweakEffs),
      State [Ltl (UntypedTweak FullTweakEffs)],
      MockChainMisc,
-     MockChainRead,
+     MockChainReadChain,
+     MockChainReadConf,
      Fail,
      Error P.Ledger.ToCardanoError,
      Error MockChainError,
@@ -145,7 +152,8 @@ instance RunnableMockChain FullEffs where
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
-      . runMockChainReadEmul
+      . runMockChainReadConfEmul
+      . runMockChainReadChainEmul
       . runMockChainMisc fromAlias fromNote fromAssert
       . evalState []
       . runModifyLocally
@@ -158,7 +166,7 @@ instance RunnableMockChain FullEffs where
 type ExtendedStagedTweakEffs extraEff =
   '[ extraEff,
      MockChainMisc,
-     MockChainRead,
+     MockChainReadChain,
      Fail
    ]
 
@@ -173,7 +181,7 @@ type ExtendedStagedEffs extraEff =
      MockChainWrite,
      extraEff,
      MockChainMisc,
-     MockChainRead,
+     MockChainReadChain,
      Fail,
      NonDet
    ]
@@ -197,25 +205,29 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runError
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
-      . runMockChainReadEmul
+      . runMockChainReadConfEmul
+      . runMockChainReadChainEmul
       . runMockChainMisc fromAlias fromNote fromAssert
       . runInterpretAlone
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . insertAt @7
-        @[ Error P.Ledger.ToCardanoError,
-           Error MockChainError,
-           State MockChainState,
-           MockChainLog,
-           Writer MockChainJournal
-         ]
+      . insertAt @8
+        @'[ Error P.Ledger.ToCardanoError,
+            Error MockChainError,
+            State MockChainState,
+            MockChainLog,
+            Writer MockChainJournal
+          ]
       . reinterpretMockChainWriteWithTweak @(ExtendedStagedTweakEffs extraEff)
+      . insertAt @6
+        @'[ MockChainReadConf
+          ]
       . runModifyGlobally
       . insertAt @2
-        @[ ModifyLocally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
-           State [Ltl (UntypedTweak (ExtendedStagedTweakEffs extraEff))]
-         ]
+        @'[ ModifyLocally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
+            State [Ltl (UntypedTweak (ExtendedStagedTweakEffs extraEff))]
+          ]
 
 -- | A stack of effects aimed at being used as modifications for a
 -- `StagedMockChain` computation

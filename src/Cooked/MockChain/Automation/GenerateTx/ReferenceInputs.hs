@@ -2,7 +2,7 @@
 module Cooked.MockChain.Automation.GenerateTx.ReferenceInputs (toInsReference) where
 
 import Cardano.Api qualified as Cardano
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.Skeleton
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -17,7 +17,7 @@ import Polysemy.Error
 -- redeemers of the transaction, which can be gathered with
 -- 'txSkelReferenceInputsInRedeemers'.
 toInsReference ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, Error P.Ledger.ToCardanoError] effs) =>
   TxSkel ->
   Sem effs (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
 toInsReference skel = do

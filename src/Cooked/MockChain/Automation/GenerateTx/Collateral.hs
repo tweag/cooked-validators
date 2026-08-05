@@ -8,7 +8,8 @@ where
 import Cardano.Api qualified as Cardano
 import Cooked.MockChain.Automation.GenerateTx.Output
 import Cooked.MockChain.Common
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Read.Conf
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
 import Data.Map qualified as Map
@@ -31,7 +32,7 @@ import Polysemy.Error
 -- These quantity should satisfy the equation (in terms of their values):
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
   Maybe Collaterals ->
   Sem
     effs

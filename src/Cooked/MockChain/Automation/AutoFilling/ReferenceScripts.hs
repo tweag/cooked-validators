@@ -9,7 +9,7 @@ where
 
 import Control.Monad
 import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Cooked.Tweak.Common
@@ -28,7 +28,7 @@ import Polysemy
 -- given script hash, and attaches it to a redeemer when it does not yet have a
 -- reference input and when it is allowed, in which case an event is logged.
 updateRedeemedScript ::
-  (Members '[MockChainLog, MockChainRead] effs) =>
+  (Members '[MockChainLog, MockChainReadChain] effs) =>
   [Api.TxOutRef] ->
   User IsScript Redemption ->
   Sem effs (User IsScript Redemption)
@@ -60,7 +60,7 @@ updateRedeemedScript _ rs = return rs
 -- allowed and one has not already been set. Logs an event whenever such an
 -- addition occurs.
 autoFillReferenceScripts ::
-  (Members '[Tweak, MockChainRead, MockChainLog] effs) =>
+  (Members '[Tweak, MockChainReadChain, MockChainLog] effs) =>
   Sem effs ()
 autoFillReferenceScripts = do
   inputsKeys <- viewTweak $ txSkelInputsL % to Map.keys

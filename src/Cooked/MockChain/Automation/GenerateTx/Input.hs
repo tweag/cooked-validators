@@ -3,7 +3,7 @@ module Cooked.MockChain.Automation.GenerateTx.Input (toTxInAndWitness) where
 
 import Cardano.Api qualified as Cardano
 import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
@@ -16,7 +16,7 @@ import Polysemy.Error
 -- | Converts a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
 -- 'TxSkelRedeemer', into a 'Cardano.TxIn', together with the appropriate witness.
 toTxInAndWitness ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[MockChainReadChain, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   (Api.TxOutRef, TxSkelRedeemer) ->
   Sem
     effs

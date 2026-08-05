@@ -8,7 +8,7 @@ where
 
 import Control.Monad
 import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Cooked.MockChain.Effect.Read.Chain
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -23,7 +23,7 @@ import Polysemy
 -- existing specified script in such proposals. Logs an event when the
 -- constitution script has been successfully auto-filled.
 autoFillConstitution ::
-  (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
+  (Members '[MockChainReadChain, Tweak, MockChainLog] effs) =>
   Sem effs ()
 autoFillConstitution = do
   currentConstitution <- getConstitutionScript
