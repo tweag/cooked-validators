@@ -8,7 +8,8 @@
 module Cooked.MockChain.Effect.Validation
   ( -- * The `MockChainValidate` effect
     MockChainValidate (..),
-    runMockChainValidate,
+    runMockChainValidateEmul,
+    runMockChainValidateNode,
 
     -- * Sending `Cooked.Skeleton.TxSkel`s for validation
     validateTxSkel,
@@ -17,6 +18,7 @@ module Cooked.MockChain.Effect.Validation
   )
 where
 
+import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Cooked.MockChain.Automation.Pipeline
@@ -36,6 +38,7 @@ import Optics.Core
 import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
+import Polysemy.Reader
 import Polysemy.State
 
 -- | An effect that offers the ability to send a `Cooked.Skeleton.TxSkel` for
@@ -45,8 +48,20 @@ data MockChainValidate :: Effect where
 
 makeSem_ ''MockChainValidate
 
--- | Interpretes the `MockChainValidate` effect
-runMockChainValidate ::
+-- | Generates, balances and validates a transaction from a skeleton, and
+-- returns the validated transaction, alongside the created UTxOs.
+validateTxSkel :: (Member MockChainValidate effs) => TxSkel -> Sem effs (P.Ledger.CardanoTx, Utxos)
+
+-- | Same as `validateTxSkel`, but only returns the generated UTxOs
+validateTxSkel' :: (Members '[MockChainReadChain, MockChainValidate] effs) => TxSkel -> Sem effs Utxos
+validateTxSkel' = fmap snd . validateTxSkel
+
+-- | Same as `validateTxSkel`, but discards the returned transaction
+validateTxSkel_ :: (Member MockChainValidate effs) => TxSkel -> Sem effs ()
+validateTxSkel_ = void . validateTxSkel
+
+-- | Interprets the `MockChainValidate` effect on an emulator
+runMockChainValidateEmul ::
   forall effs a.
   ( Members
       '[ State MockChainState,
@@ -61,9 +76,9 @@ runMockChainValidate ::
   ) =>
   Sem (MockChainValidate : effs) a ->
   Sem effs a
-runMockChainValidate = interpret $ \case
+runMockChainValidateEmul = interpret $ \case
   ValidateTxSkel skel -> do
-    (finalTxSkel, (cardanoTx, mCollaterals, _)) <- runAutomationPipeline skel
+    (finalTxSkel, (cardanoTx, mCollaterals, _fee)) <- runAutomationPipeline skel
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets mcstLedgerState
     -- And the emulator params
@@ -77,7 +92,7 @@ runMockChainValidate = interpret $ \case
       (_, P.Ledger.FailPhase1 _ err) -> throw $ MCEValidationError P.Ledger.Phase1 [err]
       (newELedgerState, P.Ledger.FailPhase2 _ err _) | Just (colInputs, mRetColOutput) <- mCollaterals -> do
         -- We update the emulated ledger state
-        modify' (set mcstLedgerStateL newELedgerState)
+        modify' $ set mcstLedgerStateL newELedgerState
         -- We remove the collateral utxos from our own stored outputs
         forM_ colInputs $ modify' . removeOutput
         -- We add the returned collateral to our outputs when it exists
@@ -118,14 +133,57 @@ runMockChainValidate = interpret $ \case
     -- We return the validated transaction
     return (cardanoTx, newOutputs)
 
--- | Generates, balances and validates a transaction from a skeleton, and
--- returns the validated transaction, alongside the created UTxOs.
-validateTxSkel :: (Member MockChainValidate effs) => TxSkel -> Sem effs (P.Ledger.CardanoTx, Utxos)
-
--- | Same as `validateTxSkel`, but only returns the generated UTxOs
-validateTxSkel' :: (Members '[MockChainReadChain, MockChainValidate] effs) => TxSkel -> Sem effs Utxos
-validateTxSkel' = fmap snd . validateTxSkel
-
--- | Same as `validateTxSkel`, but discards the returned transaction
-validateTxSkel_ :: (Member MockChainValidate effs) => TxSkel -> Sem effs ()
-validateTxSkel_ = void . validateTxSkel
+-- | Interprets the `MockChainValidate` effect by submitting the generated
+-- transaction to a deployed node through a `Cardano.LocalNodeConnectInfo`
+-- (socket path and network id) provided via a `Reader`, running in a stack
+-- featuring @IO@ (via `Embed`).
+--
+-- NOTE: this is a first sketch. It runs the same adjustment pipeline as the
+-- emulator interpreter to obtain a balanced Cardano transaction, then submits it
+-- to the node instead of validating it locally. Several aspects still need to be
+-- decided (see the open questions raised alongside this implementation).
+runMockChainValidateNode ::
+  forall effs a.
+  ( Members
+      '[ Embed IO,
+         Error P.Ledger.ToCardanoError,
+         Error MockChainError,
+         MockChainLog,
+         MockChainReadChain,
+         MockChainReadConf,
+         Reader Cardano.LocalNodeConnectInfo,
+         Fail
+       ]
+      effs
+  ) =>
+  Sem (MockChainValidate : effs) a ->
+  Sem effs a
+runMockChainValidateNode = interpret $ \case
+  ValidateTxSkel skel -> do
+    -- We run the whole adjustment pipeline to obtain a balanced Cardano
+    -- transaction, exactly like the emulator interpreter does.
+    (finalTxSkel, (cardanoTx, _mCollaterals, _fee)) <- runAutomationPipeline skel
+    -- We retrieve the local node connection info.
+    conn <- ask
+    -- We unwrap the underlying Cardano transaction to wrap it into a
+    -- 'Cardano.TxInMode' and submit it to the node.
+    let P.Ledger.CardanoEmulatorEraTx cTx = cardanoTx
+    result <-
+      embed $
+        Cardano.submitTxToNodeLocal conn $
+          Cardano.TxInMode Cardano.ShelleyBasedEraConway cTx
+    case result of
+      -- On success we mirror the emulator bookkeeping: we register the newly
+      -- created outputs and drop the consumed ones from our local state.
+      Cardano.SubmitSuccess -> do
+        let utxos = P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx
+            newOutputs = zip utxos (txSkelOutputs finalTxSkel)
+        logEvent $
+          MCLogNewTx
+            (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx)
+            (fromIntegral $ length $ P.Ledger.getCardanoTxOutRefs cardanoTx)
+        return (cardanoTx, newOutputs)
+      -- On rejection we currently surface the reason as a plain failure. This
+      -- should likely be turned into a dedicated 'MockChainError' constructor.
+      Cardano.SubmitFail reason ->
+        fail $ "Node rejected the transaction: " <> show reason

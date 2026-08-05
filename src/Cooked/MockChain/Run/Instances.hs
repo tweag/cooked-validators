@@ -94,7 +94,7 @@ instance RunnableMockChain DirectEffs where
       . runMockChainReadConfEmul
       . runMockChainReadChainEmul
       . runMockChainWrite
-      . runMockChainValidate
+      . runMockChainValidateEmul
       . insertAt @6
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
@@ -162,7 +162,7 @@ instance RunnableMockChain FullEffs where
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . runMockChainValidate
+      . runMockChainValidateEmul
       . reinterpretMockChainValidateWithTweak @FullTweakEffs
       . runModifyGlobally
 
@@ -218,7 +218,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . runMockChainValidate
+      . runMockChainValidateEmul
       . insertAt @9
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,

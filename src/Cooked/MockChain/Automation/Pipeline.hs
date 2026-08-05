@@ -14,7 +14,6 @@ import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Query
@@ -25,7 +24,6 @@ import Optics.Core
 import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
-import Polysemy.State
 
 -- | This runs the full automation pipeline, in that order:
 -- 1. autofill min ada on eligible outputs
@@ -37,8 +35,7 @@ import Polysemy.State
 -- It logs relevant events in the process, and returns the transaction.
 runAutomationPipeline ::
   ( Members
-      '[ State MockChainState,
-         Error P.Ledger.ToCardanoError,
+      '[ Error P.Ledger.ToCardanoError,
          Error MockChainError,
          MockChainLog,
          MockChainReadChain,
