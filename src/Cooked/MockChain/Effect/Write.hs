@@ -37,6 +37,7 @@ import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
+import Data.Map.Optics (toMapOf)
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
@@ -134,19 +135,16 @@ runMockChainWrite = interpret $ \case
               (P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx)
               outputsMinAda
     -- We update the index, which effectively receives the new utxos
-    modify'
-      ( over emulatorStateLedgerStateL $
-          Lens.over
-            Emulator.elsUtxoL
-            ( P.Ledger.fromPlutusIndex
-                . P.Ledger.insert cardanoTx
-                . P.Ledger.toPlutusIndex
-            )
-      )
+    modify' $
+      over emulatorStateLedgerStateL $
+        Lens.over Emulator.elsUtxoL $
+          P.Ledger.fromPlutusIndex
+            . P.Ledger.insert cardanoTx
+            . P.Ledger.toPlutusIndex
     -- We update our internal map by adding the new outputs
-    modify' (over chainIndexOutputsL (<> outputsMap))
+    modify' $ over chainIndexOutputsL (<> outputsMap)
     -- Finally, we return the created utxos
-    return $ Map.toList (fst <$> outputsMap)
+    return $ toMapOf (itraversed % to fst) outputsMap
 
 -- | Waits a certain number of slots and returns the new slot
 waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs P.Ledger.Slot

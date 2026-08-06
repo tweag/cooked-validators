@@ -23,6 +23,7 @@ module Cooked.Families
     HList (..),
     hHead,
     hTail,
+    hSingleton,
   )
 where
 
@@ -88,6 +89,10 @@ hHead (HCons a _) = a
 -- | Tail of an heterogeneous list
 hTail :: HList (a ': l) -> HList l
 hTail (HCons _ l) = l
+
+-- | A singleton wrapped in an 'HList'
+hSingleton :: a -> HList '[a]
+hSingleton = (`HCons` HEmpty)
 
 instance Eq (HList '[]) where
   _ == _ = True

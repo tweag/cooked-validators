@@ -26,7 +26,7 @@ import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.UtxoSearch
 import Cooked.Skeleton
 import Data.ByteString qualified as BS
-import Data.List (find, partition)
+import Data.List (find)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Ratio qualified as Rat
@@ -107,14 +107,13 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- Some scripts involved, and a specific collateral user provided.
       -- We fetch vanilla UTxOs from this user and return them.
       (False, CollateralUtxosFromUser (Script.toPubKeyHash -> cUser)) ->
-        Just . (,UserPubKey cUser) . Set.fromList
-          <$> getTxOutRefs (utxosAtSearch cUser ensureOnlyValueOutputs)
+        Just . (,UserPubKey cUser) <$> getTxOutRefs (utxosAtSearch cUser ensureOnlyValueOutputs)
       -- Some scripts involved, and no specific collateral options provided.
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
         -- If no balancing wallet exists, we throw an error
         Nothing -> throw $ MCEBalancingError MissingBalancingUser
         -- If a balancing wallet exists, we use it as collateral user
-        Just bUser -> Just . (,bUser) . Set.fromList <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
+        Just bUser -> Just . (,bUser) <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
 
   -- At this point, the presence (or absence) of balancing user dictates
   -- whether the transaction should be automatically balanced or not.
@@ -133,16 +132,16 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> getTxOutRefsAndOutputs $ utxosAtSearch bUser ensureOnlyValueOutputs
+          BalancingUtxosFromBalancingUser -> getUtxos $ utxosAtSearch bUser ensureOnlyValueOutputs
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            getTxOutRefsAndOutputs (txSkelOutByRefSearch' (Set.toList utxos))
+            getUtxos (txSkelOutByRefSearch' utxos)
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              >>= filterAndWarn (is (txSkelOutOwnerL % userPubKeyHashAT) . snd) "They belong to scripts."
+              >>= filterAndWarn (const $ is (txSkelOutOwnerL % userPubKeyHashAT)) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
-          >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
+          >>= filterAndWarn (flip $ const (`notElem` txSkelKnownTxOutRefs skelUnbal)) "They are already used in the skeleton."
 
       case txSkelOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
@@ -158,7 +157,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           return $ ExtendedTxSkel balancedSkel fee mCols cBody
   where
     filterAndWarn f s l
-      | (ok, toInteger . length -> koLength) <- partition f l =
+      | (ok, toInteger . length -> koLength) <- Map.partitionWithKey f l =
           unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
@@ -244,7 +243,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- getTxOutRefsAndOutputs $ txSkelOutByRefSearch' $ Set.toList collateralIns
+  collateralTxOuts <- getUtxos $ txSkelOutByRefSearch' collateralIns
   -- Candidate subsets of utxos to be used as collaterals
   reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
   -- A value might, or might not have been reached
@@ -273,7 +272,7 @@ reachValue ::
   -- the surplus output, which is either built from scratch or from the provided
   -- surplus output, if any.
   Sem effs (Maybe ([Api.TxOutRef], Maybe TxSkelOut))
-reachValue utxos target fuel outputOrUser = do
+reachValue (Map.toList -> utxos) target fuel outputOrUser = do
   -- We retrieve the current protocol version, which is going to be used to
   -- compute the size of the inputs and outputs added by this function
   Cardano.ProtVer majorVersion _ <- Microlens.view Conway.ppProtocolVersionL <$> getParams
@@ -468,7 +467,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   (additionalInsTxOutRefs, newTxSkelOuts) <- case solution of
     -- There is no solution with the provided parameters
     Nothing -> do
-      let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
+      let totalValue = foldOf (traversed % txSkelOutValueL) balancingUtxos
           difference = snd $ Api.split $ missingLeft <> PlutusTx.negate totalValue
       throw $
         MCEBalancingError $

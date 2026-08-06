@@ -29,9 +29,9 @@ getValueFromInitialDatum = do
 
 spendReferenceAlwaysTrueValidator :: DirectMockChain ()
 spendReferenceAlwaysTrueValidator = do
-  [(referenceScriptTxOutRef, _)] <- utxosAt alice
-  ((scriptTxOutRef, _) : _) <-
-    validateTxSkel' $
+  (fst . Map.elemAt 0 -> referenceScriptTxOutRef) <- utxosAt alice
+  (scriptTxOutRef : _) <-
+    validateTxSkelL $
       txSkelTemplate
         { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
           txSkelSignatories = txSkelSignatoriesFromList [bob]

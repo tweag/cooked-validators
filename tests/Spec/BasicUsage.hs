@@ -38,8 +38,8 @@ mintingQuickValue =
 
 payToAlwaysTrueValidator :: StagedMockChain Api.TxOutRef
 payToAlwaysTrueValidator =
-  fst . head
-    <$> ( validateTxSkel' $
+  head
+    <$> ( validateTxSkelL $
             txSkelTemplate
               { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
                 txSkelSignatories = txSkelSignatoriesFromList [alice]

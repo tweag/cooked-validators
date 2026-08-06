@@ -42,6 +42,7 @@ library:
     - tasty-quickcheck
     - text
     - time
+    - witherable
   ghc-options:
     -Wall
     -Wcompat

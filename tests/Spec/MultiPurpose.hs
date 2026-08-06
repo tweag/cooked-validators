@@ -25,8 +25,8 @@ bob = wallet 2
 runScript :: StagedMockChain ()
 runScript = do
   forceOutputs_ initialDistributionTemplate
-  [(oRef@(Api.TxOutRef txId _), _), (oRef', _), (oRef'', _)] <-
-    validateTxSkel' $
+  [oRef@(Api.TxOutRef txId _), oRef', oRef''] <-
+    validateTxSkelL $
       txSkelTemplate
         { txSkelOutputs =
             [ alice `receives` Value (Script.ada 3),
@@ -40,12 +40,12 @@ runScript = do
       (mintSkel2, mintValue2, tn2) = mkMintSkel alice oRef' script
       (mintSkel3, mintValue3, tn3) = mkMintSkel bob oRef'' script
 
-  ((oRefScript, _) : _) <- validateTxSkel' mintSkel1
-  ((oRefScript1, _) : _) <- validateTxSkel' mintSkel2
-  ((oRefScript2, _) : _) <- validateTxSkel' mintSkel3
+  (oRefScript : _) <- validateTxSkelL mintSkel1
+  (oRefScript1 : _) <- validateTxSkelL mintSkel2
+  (oRefScript2 : _) <- validateTxSkelL mintSkel3
 
-  ((oRefScript1', _) : (oRefScript2', _) : _) <-
-    validateTxSkel' $
+  (oRefScript1' : oRefScript2' : _) <-
+    validateTxSkelL $
       txSkelTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [alice],
           txSkelInputs =
@@ -61,8 +61,8 @@ runScript = do
           txSkelMints = review txSkelMintsListI [burn script BurnToken tn1 1]
         }
 
-  ((oRefScript2'', _) : _) <-
-    validateTxSkel' $
+  (oRefScript2'' : _) <-
+    validateTxSkelL $
       txSkelTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [bob],
           txSkelInputs =

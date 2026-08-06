@@ -14,6 +14,7 @@ module Cooked.MockChain.Effect.Validation
     -- * Sending `Cooked.Skeleton.TxSkel`s for validation
     validateTxSkel,
     validateTxSkel',
+    validateTxSkelL,
     validateTxSkel_,
   )
 where
@@ -30,11 +31,13 @@ import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
 import Data.Map.Strict qualified as Map
+import Data.Set qualified as Set
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
 import Ledger.Tx qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
+import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
@@ -53,8 +56,12 @@ makeSem_ ''MockChainValidate
 validateTxSkel :: (Member MockChainValidate effs) => TxSkel -> Sem effs (P.Ledger.CardanoTx, Utxos)
 
 -- | Same as `validateTxSkel`, but only returns the generated UTxOs
-validateTxSkel' :: (Members '[MockChainReadChain, MockChainValidate] effs) => TxSkel -> Sem effs Utxos
+validateTxSkel' :: (Member MockChainValidate effs) => TxSkel -> Sem effs Utxos
 validateTxSkel' = fmap snd . validateTxSkel
+
+-- | Same as `validateTxSkel`, but only returns the list of 'Api.TxOutRef'
+validateTxSkelL :: (Member MockChainValidate effs) => TxSkel -> Sem effs [Api.TxOutRef]
+validateTxSkelL = fmap (Set.toList . Map.keysSet . snd) . validateTxSkel
 
 -- | Same as `validateTxSkel`, but discards the returned transaction
 validateTxSkel_ :: (Member MockChainValidate effs) => TxSkel -> Sem effs ()
@@ -117,7 +124,7 @@ runMockChainValidateEmul = interpret $ \case
         -- And remove the old ones
         forM_ (Map.toList $ txSkelInputs finalTxSkel) $ modify' . removeOutput . fst
         -- We return the newly created outputs
-        return newOutputs
+        return $ Map.fromList newOutputs
       -- This is a theoretical unreachable case. Since we fail in Phase 2, it
       -- means the transaction involved script, and thus we must have generated
       -- collaterals.
@@ -178,7 +185,7 @@ runMockChainValidateNode = interpret $ \case
       -- created outputs and drop the consumed ones from our local state.
       Cardano.SubmitSuccess -> do
         let utxos = P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx
-            newOutputs = zip utxos (txSkelOutputs finalTxSkel)
+            newOutputs = Map.fromList $ zip utxos (txSkelOutputs finalTxSkel)
         logEvent $
           MCLogNewTx
             (P.Ledger.fromCardanoTxId $ P.Ledger.getCardanoTxId cardanoTx)

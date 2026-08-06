@@ -17,6 +17,7 @@ import Cooked.Tweak.Query
 import Cooked.Tweak.Update
 import Data.List (find)
 import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -48,11 +49,11 @@ updateRedeemedScript
           return $ over userRedeemerAT (fillReferenceInput oRef) rs
       )
       $ case oRefsInInputs of
-        [] -> Nothing
+        s | null s -> Nothing
         -- If possible, we use a reference input appearing in regular inputs
-        l | Just oRefM' <- find (`elem` inputs) l -> Just oRefM'
+        s | Just oRefM' <- find (`elem` inputs) s -> Just oRefM'
         -- If none exist, we use the first one we find elsewhere
-        (oRefM' : _) -> Just oRefM'
+        s -> Just $ Set.elemAt 0 s
 updateRedeemedScript _ rs = return rs
 
 -- | Goes through the various parts of the skeleton where a redeemer can appear,

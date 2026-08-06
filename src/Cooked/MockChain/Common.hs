@@ -10,6 +10,7 @@ module Cooked.MockChain.Common
 where
 
 import Cooked.Skeleton.Output
+import Data.Map (Map)
 import Data.Set (Set)
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -29,4 +30,4 @@ type Collaterals = (CollateralIns, Maybe TxSkelOut)
 type Utxo = (Api.TxOutRef, TxSkelOut)
 
 -- | An alias for lists of `Utxo`
-type Utxos = [Utxo]
+type Utxos = Map Api.TxOutRef TxSkelOut

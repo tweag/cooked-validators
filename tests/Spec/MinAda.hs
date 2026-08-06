@@ -1,6 +1,7 @@
 module Spec.MinAda where
 
 import Cooked
+import Data.Map qualified as Map
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
@@ -24,7 +25,7 @@ instance PrettyCooked HeavyDatum where
 paymentWithMinAda :: DirectMockChain Integer
 paymentWithMinAda = do
   forceOutputs_ initialDistributionTemplate
-  view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . (!! 0)
+  view (txSkelOutValueL % valueLovelaceL % lovelaceIntegerI) . snd . Map.elemAt 0
     <$> validateTxSkel'
       txSkelTemplate
         { txSkelOutputs = [wallet 2 `receives` VisibleHashedDatum heavyDatum],

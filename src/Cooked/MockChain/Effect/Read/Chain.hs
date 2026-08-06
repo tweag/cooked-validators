@@ -53,10 +53,10 @@ import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
-import Data.Bifunctor
 import Data.Coerce (coerce)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Map.Optics (toMapOf)
 import Data.Maybe
 import Data.Maybe.Strict
 import Data.Set qualified as Set
@@ -300,13 +300,12 @@ runMockChainReadChainEmul = interpret $ \case
   where
     fetchUtxos decide =
       gets $
-        toListOf $
+        toMapOf $
           chainIndexOutputsL
-            % to Map.toList
-            % traversed
-            % filtered (snd . snd)
-            % filtered (decide . fst . snd)
-            % to (fmap fst)
+            % itraversed
+            % filtered snd
+            % filtered (decide . fst)
+            % to fst
 
 -- | Interpret the `MockChainReadChain` effect by talking to a deployed node
 -- through a `Cardano.LocalNodeConnectInfo` (socket path and network id)
@@ -353,11 +352,7 @@ runMockChainReadChainNode = interpret $ \case
   TxSkelOutByRef oRef -> do
     txIn <- fromEither $ P.Ledger.toCardanoTxIn oRef
     utxo <- queryUtxosAndHandleErrors $ Cardano.QueryUTxOByTxIn $ Set.singleton txIn
-    case utxo of
-      [(_, txSkelOut)] -> return txSkelOut
-      -- This case is reduced to [] as there can never be more than one UTxO
-      -- with a given 'Api.TxOutRef'.
-      _ -> throw $ MCEUnknownOutRef oRef
+    maybe (throw $ MCEUnknownOutRef oRef) return $ Map.lookup oRef utxo
   GetConstitutionScript -> do
     -- We retrieve the official optional script hash of the current constitution
     Cardano.Constitution _ mScriptHash <-
@@ -396,7 +391,7 @@ runMockChainReadChainNode = interpret $ \case
         let newConstitution =
               listToMaybe $
                 [ script
-                | (_, preview txSkelOutReferenceScriptAT -> Just script) <- utxo,
+                | (_, preview txSkelOutReferenceScriptAT -> Just script) <- Map.toList utxo,
                   Script.toScriptHash script == Script.toScriptHash scriptHash
                 ]
         modify' $ set chainIndexConstitutionL newConstitution
@@ -422,10 +417,14 @@ runMockChainReadChainNode = interpret $ \case
     -- Handles a second layer of error from the response of a query
     queryAndHandleErrors q = queryAndHandleError q >>= fromEither
     -- Queries the Utxos present on-chain, handling the errors, and returns the
-    -- query result in terms of @Utxos@
+    -- query result in terms of @Utxos@, updated with the known chain index.
     queryUtxosAndHandleErrors utxoFilter = do
       utxo <- queryAndHandleErrors $ Cardano.queryUtxo Cardano.ShelleyBasedEraConway utxoFilter
-      return $ bimap P.Ledger.fromCardanoTxIn convertUtxo <$> Map.toList (Cardano.unUTxO utxo)
+      knownUtxos <- gets chainIndexOutputs
+      return $
+        Map.mapWithKey
+          (\oRef txSkelOut -> maybe txSkelOut fst $ Map.lookup oRef knownUtxos)
+          (Map.mapKeysMonotonic P.Ledger.fromCardanoTxIn $ convertUtxo <$> Cardano.unUTxO utxo)
     -- Retrieves the Plutus slot number from a chain tip
     chainTipSlot Cardano.ChainTipAtGenesis = P.Ledger.Slot 0
     chainTipSlot (Cardano.ChainTip slotNo _ _) = fromSlotNo slotNo

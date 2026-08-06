@@ -8,12 +8,13 @@ module Cooked.MockChain.UtxoSearch
     beginSearchPure,
 
     -- * Processing search result
+    RefinedOutputsList,
     UtxoSearchResult,
-    getOutputs,
+    utxosSearchResultUtxosI,
+    getUtxos,
     getOutputsAndExtracts,
     getExtracts,
     getTxOutRefs,
-    getTxOutRefsAndOutputs,
 
     -- * Basic UTxO searches
     utxosAtSearch,
@@ -42,26 +43,34 @@ module Cooked.MockChain.UtxoSearch
   )
 where
 
-import Control.Monad (filterM, forM)
+import Control.Monad (foldM)
 import Cooked.Families hiding (Member)
 import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Read.Chain
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
-import Data.Functor
-import Data.Maybe
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Set
 import Optics.Core
 import Optics.Core.Extras
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
+import Witherable
+
+type RefinedOutputsList elems = HList (TxSkelOut ': elems)
 
 -- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
 -- alongside an heterogeneous list starting with the output in question,
 -- followed by any element that was extracted during the search.
-type UtxoSearchResult elems = [(Api.TxOutRef, HList (TxSkelOut ': elems))]
+type UtxoSearchResult elems = Map Api.TxOutRef (RefinedOutputsList elems)
+
+-- | An isomorphisms between `Utxos` and search results with no extra element.
+utxosSearchResultUtxosI :: Iso' (UtxoSearchResult '[]) Utxos
+utxosSearchResultUtxosI = iso (fmap hHead) (fmap hSingleton)
 
 -- | A `UtxoSearch` is a computation that returns a list of UTxOs alongside
 -- their `TxSkelOut` counterpart and a list of other elements retrieved from the
@@ -73,7 +82,7 @@ type UtxoSearch effs elems = Sem effs (UtxoSearchResult elems)
 beginSearch ::
   Sem effs Utxos ->
   UtxoSearch effs '[]
-beginSearch = fmap (fmap (fmap (`HCons` HEmpty)))
+beginSearch = fmap $ review utxosSearchResultUtxosI
 
 -- | Same as `beginSearch` with a pure input
 beginSearchPure ::
@@ -82,36 +91,29 @@ beginSearchPure ::
 beginSearchPure = beginSearch . return
 
 -- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult`
-getOutputs ::
+getUtxos ::
   Sem effs (UtxoSearchResult elems) ->
-  Sem effs [TxSkelOut]
-getOutputs = fmap (fmap (hHead . snd))
+  Sem effs Utxos
+getUtxos = fmap (fmap hHead)
 
 -- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult` alongside the
 -- extracted elements
 getOutputsAndExtracts ::
   Sem effs (UtxoSearchResult elems) ->
-  Sem effs [(TxSkelOut, HList elems)]
-getOutputsAndExtracts =
-  fmap (fmap (\(_, HCons output l) -> (output, l)))
+  Sem effs [RefinedOutputsList elems]
+getOutputsAndExtracts = fmap Map.elems
 
 -- | Retrieves the extracted elements from a `UtxoSearchResult`
 getExtracts ::
   Sem effs (UtxoSearchResult elems) ->
   Sem effs [HList elems]
-getExtracts = fmap (fmap (hTail . snd))
+getExtracts = fmap (Map.elems . fmap hTail)
 
 -- | Retrieves the `Api.TxOutRef`s from a `UtxoSearchResult`
 getTxOutRefs ::
   Sem effs (UtxoSearchResult elems) ->
-  Sem effs [Api.TxOutRef]
-getTxOutRefs = fmap (fmap fst)
-
--- | Retrieves both the `Api.TxOutRef`s and `TxSkelOut`s from a `UtxoSearchResult`
-getTxOutRefsAndOutputs ::
-  Sem effs (UtxoSearchResult elems) ->
-  Sem effs Utxos
-getTxOutRefsAndOutputs = fmap (fmap (\(oRef, HCons output _) -> (oRef, output)))
+  Sem effs (Set Api.TxOutRef)
+getTxOutRefs = fmap Map.keysSet
 
 -- | Searches for utxos at a given address with a given filter
 utxosAtSearch ::
@@ -131,32 +133,31 @@ allUtxosSearch filters = filters $ beginSearch allUtxos
 -- | Searches for utxos belonging to a given list with a given filter
 txSkelOutByRefSearch ::
   (Member MockChainReadChain effs) =>
-  [Api.TxOutRef] ->
+  Set Api.TxOutRef ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
 txSkelOutByRefSearch utxos filters =
-  filters $ beginSearch (zip utxos <$> mapM txSkelOutByRef utxos)
+  filters $
+    foldM
+      (\acc oRef -> (\x -> Map.insert oRef (hSingleton x) acc) <$> txSkelOutByRef oRef)
+      Map.empty
+      utxos
 
 -- | Searches for utxos belonging to a given list with no filter
 txSkelOutByRefSearch' ::
   (Member MockChainReadChain effs) =>
-  [Api.TxOutRef] ->
+  Set Api.TxOutRef ->
   UtxoSearch effs '[]
 txSkelOutByRefSearch' = (`txSkelOutByRefSearch` id)
 
--- | Extracts a new element from the currently selected outputs, filtering in
--- the process out utxos for which this element is not available
+-- | Extracts a new element from the currently selected outputs, filtering out
+-- in the process utxos for which this element is not available
 extract ::
   (TxSkelOut -> Sem effs (Maybe b)) ->
   UtxoSearch effs els ->
   UtxoSearch effs (b ': els)
-extract extractFun comp = do
-  resl <- comp
-  resl' <- forM resl $
-    \(oRef, HCons txSkelOut other) -> do
-      res <- extractFun txSkelOut
-      return $ res <&> (\x -> (oRef, HCons txSkelOut (HCons x other)))
-  return $ catMaybes resl'
+extract extractFun =
+  (>>= witherM (\(HCons txSkelOut es) -> fmap (HCons txSkelOut . (`HCons` es)) <$> extractFun txSkelOut))
 
 -- | Same as `extract`, but with a pure extraction function
 extractPure ::
@@ -201,7 +202,7 @@ ensure ::
   UtxoSearch effs els ->
   UtxoSearch effs els
 ensure filterF comp =
-  comp >>= filterM (filterF . hHead . snd)
+  comp >>= filterA (filterF . hHead)
 
 -- | Same as `ensure`, but with a pure predicate
 ensurePure ::

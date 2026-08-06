@@ -4,6 +4,7 @@ module Spec.Attack.DatumHijacking (tests) where
 
 import Cooked
 import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Attack.DatumHijacking
 import Plutus.Script.Utils.V3 qualified as Script
@@ -30,8 +31,8 @@ lockTxSkel o v =
 
 txLock :: Script.MultiPurposeScript DHContract -> StagedMockChain Api.TxOutRef
 txLock v = do
-  oref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
-  fst . head <$> validateTxSkel' (lockTxSkel oref v)
+  oRefs <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
+  head <$> validateTxSkelL (lockTxSkel (Set.elemAt 0 oRefs) v)
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =

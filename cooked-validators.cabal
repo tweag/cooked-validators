@@ -160,6 +160,7 @@ library
     , tasty-quickcheck
     , text
     , time
+    , witherable
   default-language: Haskell2010
 
 test-suite spec

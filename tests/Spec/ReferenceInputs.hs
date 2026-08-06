@@ -15,8 +15,8 @@ instance PrettyCooked FooDatum where
 
 trace1 :: DirectMockChain ()
 trace1 = do
-  (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
-    validateTxSkel'
+  txOutRefFoo : txOutRefBar : _ <-
+    validateTxSkelL
       txSkelTemplate
         { txSkelOutputs =
             [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
@@ -34,8 +34,8 @@ trace1 = do
 
 trace2 :: DirectMockChain ()
 trace2 = do
-  (refORef, _) : (scriptORef, _) : _ <-
-    validateTxSkel'
+  refORef : scriptORef : _ <-
+    validateTxSkelL
       ( txSkelTemplate
           { txSkelOutputs =
               [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
