@@ -24,6 +24,7 @@ library
       Cooked.Families
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.Automation
       Cooked.MockChain.Automation.AutoFilling.Constitution
       Cooked.MockChain.Automation.AutoFilling.MinAda
       Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
@@ -41,7 +42,6 @@ library
       Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
       Cooked.MockChain.Automation.GenerateTx.Withdrawals
       Cooked.MockChain.Automation.GenerateTx.Witness
-      Cooked.MockChain.Automation.Pipeline
       Cooked.MockChain.Common
       Cooked.MockChain.Effect.Log
       Cooked.MockChain.Effect.Misc

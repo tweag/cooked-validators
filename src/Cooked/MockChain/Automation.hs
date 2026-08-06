@@ -1,14 +1,30 @@
-module Cooked.MockChain.Automation.Pipeline
+-- | This module runs the full automation pipeline that completes a
+-- `Cooked.Skeleton.TxSkel` into an actual transaction. It also serves as an
+-- umbrella re-exporting all the automation submodules (auto-filling, balancing
+-- and transaction generation).
+module Cooked.MockChain.Automation
   ( runAutomationPipeline,
+    module X,
   )
 where
 
-import Cooked.MockChain.Automation.AutoFilling.Constitution
-import Cooked.MockChain.Automation.AutoFilling.MinAda
-import Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
-import Cooked.MockChain.Automation.AutoFilling.Withdrawals
-import Cooked.MockChain.Automation.Balancing
-import Cooked.MockChain.Automation.GenerateTx.Body
+import Cooked.MockChain.Automation.AutoFilling.Constitution as X
+import Cooked.MockChain.Automation.AutoFilling.MinAda as X
+import Cooked.MockChain.Automation.AutoFilling.ReferenceScripts as X
+import Cooked.MockChain.Automation.AutoFilling.Withdrawals as X
+import Cooked.MockChain.Automation.Balancing as X
+import Cooked.MockChain.Automation.GenerateTx.Anchor as X
+import Cooked.MockChain.Automation.GenerateTx.Body as X
+import Cooked.MockChain.Automation.GenerateTx.Certificate as X
+import Cooked.MockChain.Automation.GenerateTx.Collateral as X
+import Cooked.MockChain.Automation.GenerateTx.Credential as X
+import Cooked.MockChain.Automation.GenerateTx.Input as X
+import Cooked.MockChain.Automation.GenerateTx.Mint as X
+import Cooked.MockChain.Automation.GenerateTx.Output as X
+import Cooked.MockChain.Automation.GenerateTx.Proposal as X
+import Cooked.MockChain.Automation.GenerateTx.ReferenceInputs as X
+import Cooked.MockChain.Automation.GenerateTx.Withdrawals as X
+import Cooked.MockChain.Automation.GenerateTx.Witness as X
 import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Read.Chain
@@ -71,7 +87,7 @@ runAutomationPipeline txSkel = runTweak txSkel $ do
   logEvent $ MCLogAdjustedTxSkel finalTxSkel fee mCollaterals
   -- We retrieve the extra signatories to add to the transaction
   signatories <- viewTweak txSkelSignatoriesL
-  -- We generate the transaction asscoiated with the skeleton, and apply on it
+  -- We generate the transaction associated with the skeleton, and apply on it
   -- the modifications from the skeleton options
   return
     ( P.Ledger.CardanoEmulatorEraTx $ txSkelOptModTx $ txSignatoriesAndBodyToCardanoTx signatories body,

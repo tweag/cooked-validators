@@ -22,7 +22,7 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Automation.Pipeline
+import Cooked.MockChain.Automation
 import Cooked.MockChain.Common
 import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Read.Chain
