@@ -37,7 +37,6 @@ import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Cooked.Skeleton
-import Data.Map.Optics (toMapOf)
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
@@ -83,57 +82,33 @@ runMockChainWrite = interpret $ \case
     modify $ set emulatorStateParamsL params
     modify $ over emulatorStateLedgerStateL $ Emulator.updateStateParams params
   WaitNSlots n -> do
-    cs <- gets (Emulator.getSlot . emulatorStateLedgerState)
+    cs <- gets $ Emulator.getSlot . emulatorStateLedgerState
     if
       | n == 0 -> return cs
       | n > 0 -> do
           let newSlot = cs + fromIntegral n
-          modify' (over emulatorStateLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot)
+          modify' $ over emulatorStateLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot
           return newSlot
-      | otherwise -> throw $ MCEPastSlot cs (cs + fromIntegral n)
+      | otherwise -> throw $ MCEPastSlot cs $ cs + fromIntegral n
   SetConstitutionScript (toVScript -> cScript) -> do
-    modify' (chainIndexConstitutionL ?~ cScript)
+    modify' $ chainIndexConstitutionL ?~ cScript
     modify' $
       over emulatorStateLedgerStateL $
-        Lens.set Emulator.elsConstitutionScriptL $
-          (Cardano.SJust . Cardano.toShelleyScriptHash . Script.toCardanoScriptHash)
-            cScript
+        Lens.set
+          Emulator.elsConstitutionScriptL
+          (Cardano.SJust $ Cardano.toShelleyScriptHash $ Script.toCardanoScriptHash cScript)
   ForceOutputs outputs -> do
-    -- We retrieve the protocol parameters
-    params <- getParams
-    -- We retrieve the network id
-    networkId <- getNetworkId
     -- We adjust the outputs for the minimal required ADA if needed
     outputsMinAda <- mapM toTxSkelOutWithMinAda outputs
     -- We transform these outputs to Cardano outputs
     outputs' <- mapM toCardanoTxOut outputsMinAda
-    -- We create our transaction body, which only consists of the dummy input
-    -- and the outputs to force, and make a transaction out of it.
+    -- We create our transaction body, composed of the forced outputs
     cardanoTx <-
       P.Ledger.CardanoEmulatorEraTx . (`Cardano.Tx` [])
-        <$> txBodyContentToTxBody
-          ( P.Ledger.emptyTxBodyContent
-              { Cardano.txOuts = outputs',
-                -- The emulator takes for granted transactions with a single pseudo input,
-                -- which we build to force transaction validation
-                Cardano.txIns =
-                  [ ( Cardano.genesisUTxOPseudoTxIn networkId $
-                        Cardano.GenesisUTxOKeyHash $
-                          Cardano.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194",
-                      Cardano.BuildTxWith $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-                    )
-                  ],
-                Cardano.txProtocolParams = Cardano.BuildTxWith . Just . Cardano.LedgerProtocolParameters $ params
-              }
-          )
+        <$> txBodyContentToTxBody (P.Ledger.emptyTxBodyContent {Cardano.txOuts = outputs'})
     -- We need to adjust our internal state to account for the forced
-    -- transaction. We begin by computing the new map of outputs.
-    let outputsMap =
-          Map.fromList $
-            zipWith
-              (\x y -> (x, (y, True)))
-              (P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx)
-              outputsMinAda
+    -- transaction. We begin by computing the new outputs.
+    let outputsList = zip (P.Ledger.fromCardanoTxIn . snd <$> P.Ledger.getCardanoTxOutRefs cardanoTx) outputsMinAda
     -- We update the index, which effectively receives the new utxos
     modify' $
       over emulatorStateLedgerStateL $
@@ -142,9 +117,9 @@ runMockChainWrite = interpret $ \case
             . P.Ledger.insert cardanoTx
             . P.Ledger.toPlutusIndex
     -- We update our internal map by adding the new outputs
-    modify' $ over chainIndexOutputsL (<> outputsMap)
+    modify' $ addOutputs outputsList
     -- Finally, we return the created utxos
-    return $ toMapOf (itraversed % to fst) outputsMap
+    return $ Map.fromList outputsList
 
 -- | Waits a certain number of slots and returns the new slot
 waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs P.Ledger.Slot

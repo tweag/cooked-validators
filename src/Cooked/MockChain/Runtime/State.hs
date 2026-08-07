@@ -34,6 +34,7 @@ module Cooked.MockChain.Runtime.State
 
     -- * Helpers to add or remove outputs from a `ChainIndex`
     addOutput,
+    addOutputs,
     removeOutput,
 
     -- * `UtxoState`: A simplified, address-focused view on a `ChainIndex`
@@ -128,6 +129,11 @@ chainIndexMOutputL oRef = chainIndexOutputsL % at oRef % iso (fmap fst) (fmap (,
 -- | Stores an output in a 'ChainIndex'
 addOutput :: Api.TxOutRef -> TxSkelOut -> ChainIndex -> ChainIndex
 addOutput oRef = set (chainIndexMOutputL oRef) . Just
+
+-- | Stores a list of outputs in a 'ChainIndex'
+addOutputs :: [(Api.TxOutRef, TxSkelOut)] -> ChainIndex -> ChainIndex
+addOutputs outputs chainIndex =
+  foldl (\index (oRef, output) -> addOutput oRef output index) chainIndex outputs
 
 -- | Removes an output from the 'ChainIndex'. This does not actually remove
 -- it from the map, but instead marks its availability to @False@
