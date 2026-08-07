@@ -61,6 +61,7 @@ import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Witherable
 
+-- | An heterogeneous list starting with a 'TxSkelOut'
 type RefinedOutputsList elems = HList (TxSkelOut ': elems)
 
 -- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
