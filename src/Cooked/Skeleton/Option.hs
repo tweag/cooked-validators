@@ -18,7 +18,7 @@ module Cooked.Skeleton.Option
     txSkelOptFeePolicyL,
     txSkelOptBalancingUtxosL,
     txSkelOptCollateralUtxosL,
-    txSkelOptDeferPhase2FailuresDuringBalancingL,
+    txSkelOptOptimizeFeeInCaseOfScriptFailuresL,
     txSkelOptMaxNbOfBalancingUtxosL,
 
     -- * Utilities
@@ -36,7 +36,12 @@ import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Set of constraints that need to be satisfied by users in options
-type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh, Typeable pkh)
+type UserConstraints pkh =
+  ( Script.ToPubKeyHash pkh,
+    Show pkh,
+    Eq pkh,
+    Typeable pkh
+  )
 
 -- | What fee policy to use in the transaction.
 data FeePolicy
@@ -130,20 +135,15 @@ instance Default CollateralUtxos where
 -- transaction.
 data TxSkelOpts = TxSkelOpts
   { -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted and balanced. The name of this option contains
-    -- /unsafe/ to draw attention to the fact that modifying a transaction at
-    -- that stage might make it invalid. Still, this offers a hook for being
-    -- able to alter a transaction in unforeseen ways. It is mostly used to test
-    -- contracts that have been written for custom PABs.
+    -- adjusted, balanced and generated. This offers a hook for being able to
+    -- alter a transaction in unforeseen ways.
     --
     -- One interesting use of this function is to observe a transaction just
     -- before it is being sent for validation, with
     --
-    -- > txSkelOptModTx = [RawModTx Debug.Trace.traceShowId]
+    -- > txSkelOptModTx = Debug.Trace.traceShowId
     --
-    -- The leftmost function in the list is applied first.
-    --
-    -- Default is @[]@.
+    -- Default is @id@.
     txSkelOptModTx :: Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra,
     -- | Whether to balance the transaction or not, and which user should
     -- provide/reclaim the missing and surplus value.
@@ -177,21 +177,19 @@ data TxSkelOpts = TxSkelOpts
     -- later submission of the transaction.
     --
     -- When set to @False@: the phase 2 validation failures will be caught as
-    -- early as possible, typically during balancing when the execution units
-    -- are computed. This will shortcut the whole balancing process which
-    -- iterates the body generation, and thus increase performances (by 40%). As
-    -- a result, the balanced `Cooked.Skeleton.TxSkel` will never be computed
-    -- and thus will be absent from the log, which is the only downside.
+    -- early as possible, typically during the first successful balancing
+    -- attempt when the execution units are computed. This will shortcut the
+    -- dychotomic search and return a balanced, non-optimized, skeleton, which
+    -- is not going to pass phase 2 validation (only relevant when
+    -- @txOptFeePolicy == AutoFeeComputation@).
     --
     -- When set to @True@: the phase 2 validation errors will be ignored during
     -- the balancing process. This will result in a worst performance (40%), but
-    -- will allow the log to display a balanced version of the failing
-    -- `Cooked.Skeleton.TxSkel`, which might be useful. Only use this when
-    -- debugging complicated phase 2 failures which require a precise view of
-    -- the balanced `Cooked.Skeleton.TxSkel` sent for validation.
+    -- will allow the log to display an optimial balanced version of the failing
+    -- `Cooked.Skeleton.TxSkel`, which would not be computed otherwise.
     --
     -- Default is `False`
-    txSkelOptDeferPhase2FailuresDuringBalancing :: Bool,
+    txSkelOptOptimizeFeeInCaseOfScriptFailures :: Bool,
     -- | The optional maximum number of Utxos that can be used during
     -- balancing. The algorithm which selects Utxos when permorming balancing is
     -- greedy. In the default use case where the are only a few wallets and
@@ -246,7 +244,7 @@ makeLensesFor [("txSkelOptBalancingUtxos", "txSkelOptBalancingUtxosL")] ''TxSkel
 makeLensesFor [("txSkelOptCollateralUtxos", "txSkelOptCollateralUtxosL")] ''TxSkelOpts
 
 -- | Focuses on the deferring of the failures option of a 'TxSkelOpts'
-makeLensesFor [("txSkelOptDeferPhase2FailuresDuringBalancing", "txSkelOptDeferPhase2FailuresDuringBalancingL")] ''TxSkelOpts
+makeLensesFor [("txSkelOptOptimizeFeeInCaseOfScriptFailures", "txSkelOptOptimizeFeeInCaseOfScriptFailuresL")] ''TxSkelOpts
 
 -- | Focuses on the max nb of balancing Utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptMaxNbOfBalancingUtxos", "txSkelOptMaxNbOfBalancingUtxosL")] ''TxSkelOpts
@@ -260,7 +258,7 @@ instance Default TxSkelOpts where
         txSkelOptFeePolicy = def,
         txSkelOptBalancingUtxos = def,
         txSkelOptCollateralUtxos = def,
-        txSkelOptDeferPhase2FailuresDuringBalancing = False,
+        txSkelOptOptimizeFeeInCaseOfScriptFailures = False,
         txSkelOptMaxNbOfBalancingUtxos = Nothing
       }
 

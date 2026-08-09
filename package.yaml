@@ -23,6 +23,7 @@ library:
     - data-default
     - either
     - exceptions
+    - extra
     - http-conduit
     - lens
     - microlens

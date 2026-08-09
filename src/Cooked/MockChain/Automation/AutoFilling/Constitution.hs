@@ -7,6 +7,7 @@ module Cooked.MockChain.Automation.AutoFilling.Constitution
 where
 
 import Control.Monad
+import Control.Monad.Extra
 import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Read.Chain
 import Cooked.Skeleton
@@ -23,16 +24,22 @@ import Polysemy
 -- existing specified script in such proposals. Logs an event when the
 -- constitution script has been successfully auto-filled.
 autoFillConstitution ::
-  (Members '[MockChainReadChain, Tweak, MockChainLog] effs) =>
+  ( Members
+      '[ MockChainReadChain,
+         Tweak,
+         MockChainLog
+       ]
+      effs
+  ) =>
   Sem effs ()
 autoFillConstitution = do
-  currentConstitution <- getConstitutionScript
-  case currentConstitution of
-    Nothing -> return ()
-    Just constitutionScript -> do
-      traverseTweak (txSkelProposalsL % traversed) $ \prop -> do
+  maybeM
+    (return ())
+    ( \constitutionScript -> traverseTweak (txSkelProposalsL % traversed) $ \prop -> do
         when (isn't txSkelProposalConstitutionAT prop) $
           logEvent $
             MCLogAutoFilledConstitution $
               Script.toScriptHash constitutionScript
-        return (fillConstitution constitutionScript prop)
+        return (fillConstitutionWhenEmpty constitutionScript prop)
+    )
+    getConstitutionScript
