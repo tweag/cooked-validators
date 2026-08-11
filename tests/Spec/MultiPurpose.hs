@@ -27,7 +27,7 @@ runScript = do
   forceOutputs_ initialDistributionTemplate
   [oRef@(Api.TxOutRef txId _), oRef', oRef''] <-
     validateTxSkelL $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs =
             [ alice `receives` Value (Script.ada 3),
               alice `receives` Value (Script.ada 5)
@@ -46,7 +46,7 @@ runScript = do
 
   (oRefScript1' : oRefScript2' : _) <-
     validateTxSkelL $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [alice],
           txSkelInputs =
             HMap.fromList
@@ -63,7 +63,7 @@ runScript = do
 
   (oRefScript2'' : _) <-
     validateTxSkelL $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [bob],
           txSkelInputs =
             HMap.fromList
@@ -77,7 +77,7 @@ runScript = do
         }
 
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelInputs = HMap.singleton oRefScript2'' (someTxSkelRedeemer Close),
         txSkelMints = review txSkelMintsListI [burn script BurnToken tn3 1]
@@ -88,7 +88,7 @@ runScript = do
       let tn = txOutRefToToken oRef
           mints = review txSkelMintsListI [mint script (MintToken oRef) tn 1]
           mintValue = Script.toValue mints
-       in ( txSkelTemplate
+       in ( txSkelEmulatorTemplate
               { txSkelInputs = HMap.singleton oRef emptyTxSkelRedeemer,
                 txSkelMints = mints,
                 txSkelOutputs = [script `receives` InlineDatum index <&&> Value mintValue],

@@ -31,7 +31,7 @@ runValidityTampering initialRange params =
   fmap (view txSkelValidityRangeL)
     . run
     . runNonDet
-    . execTweak (txSkelTemplate {txSkelValidityRange = initialRange})
+    . execTweak (txSkelEmulatorTemplate {txSkelValidityRange = initialRange})
     $ validityTamperingAttack params
 
 tests :: TestTree

@@ -146,7 +146,7 @@ handling fees or balancing.
 6. Submit the transaction:
    ``` haskell
      validateTxSkel_
-       txSkelTemplate
+       txSkelEmulatorTemplate
          { txSkelOuts = [bob `receives` Value (Script.ada 10)],
            txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
          }

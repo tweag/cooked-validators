@@ -17,7 +17,7 @@ alice = wallet 1
 datumTamperingAttackTest :: TestTree
 datumTamperingAttackTest =
   testCase "datumTamperingAttack" $
-    [ txSkelTemplate
+    [ txSkelEmulatorTemplate
         { txSkelLabels = Set.singleton $ TxSkelLabel $ DatumTamperingLabel [(52 :: Integer, 53 :: Integer)],
           txSkelOutputs =
             [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
@@ -28,7 +28,7 @@ datumTamperingAttackTest =
     ]
       @=? (run . runNonDet)
         ( execTweak
-            txSkelTemplate
+            txSkelEmulatorTemplate
               { txSkelOutputs =
                   [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
                     alice `receives` Value (Script.lovelace 234),
@@ -62,7 +62,7 @@ malformDatumAttackTest =
           ]
           ( (fmap allBuiltinData . run . runNonDet)
               ( execTweak
-                  ( txSkelTemplate
+                  ( txSkelEmulatorTemplate
                       { txSkelOutputs =
                           [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
                             alice `receives` Value (Script.lovelace 234),

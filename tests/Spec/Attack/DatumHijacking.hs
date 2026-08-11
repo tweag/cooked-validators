@@ -23,7 +23,7 @@ instance PrettyCooked LockDatum where
 
 lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelInputs = Map.singleton o emptyTxSkelRedeemer,
       txSkelOutputs = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -36,7 +36,7 @@ txLock v = do
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelInputs = Map.singleton o $ someTxSkelRedeemer (),
       txSkelOutputs = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -66,7 +66,7 @@ tests =
             value_10_000 = Script.lovelace 10000
             value_9_999 = Script.lovelace 9999
             inSkel =
-              txSkelTemplate
+              txSkelEmulatorTemplate
                 { txSkelOutputs =
                     [ carelessValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
                       carelessValidator `receives` InlineDatum SecondLock <&&> Value value_9_999,

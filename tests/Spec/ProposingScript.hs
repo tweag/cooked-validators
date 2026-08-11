@@ -24,17 +24,17 @@ testProposingScript autoRefScript autoConstitution constitution mScript govActio
   forceOutputs_ initialDistributionTemplate
   setConstitutionScript constitution
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelOutputs = [alice `receives` ReferenceScript constitution],
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelCertificates = [pubKeyCertificate alice $ StakingRegisterDelegate (Api.DelegVote Api.DRepAlwaysAbstain)]
       }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelProposals =
           [ TxSkelProposal

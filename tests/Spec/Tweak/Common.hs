@@ -13,7 +13,7 @@ alice :: Wallet
 alice = wallet 1
 
 mkSkel :: [Integer] -> TxSkel
-mkSkel l = set txSkelOutputsL (receives alice . Value . Script.lovelace <$> l) txSkelTemplate
+mkSkel l = set txSkelOutputsL (receives alice . Value . Script.lovelace <$> l) txSkelEmulatorTemplate
 
 tests :: TestTree
 tests =

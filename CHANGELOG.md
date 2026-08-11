@@ -4,6 +4,10 @@
 
 ### Added
 
+- New `txSkelOptProceedAfterValidationFailures` boolean option in `TxSkelOpts`
+  (with its `txSkelOptProceedAfterValidationFailuresL` optic). When set to
+  `True`, transaction validation failures no longer abort the mockchain run.
+  Default is `False`.
 - New `UserScriptHash` constructor for `User`, representing an allocation-mode
   script owner known only by its `Api.ScriptHash` (no script body). It can be
   used to pay to a bare script hash through `receives` (a new

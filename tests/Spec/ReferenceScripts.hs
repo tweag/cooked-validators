@@ -20,7 +20,7 @@ putRefScriptOnWalletOutput ::
 putRefScriptOnWalletOutput recipient referenceScript =
   head
     <$> validateTxSkelL
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [recipient `receives` ReferenceScript referenceScript],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
@@ -32,7 +32,7 @@ putRefScriptOnScriptOutput ::
 putRefScriptOnScriptOutput recipient referenceScript =
   head
     <$> validateTxSkelL
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [recipient `receives` ReferenceScript referenceScript],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
@@ -44,12 +44,12 @@ checkReferenceScriptOnOref ::
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkelL
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [requireRefScriptValidator expectedScriptHash `receives` Value (Script.ada 42)],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton oref emptyTxSkelRedeemer,
         txSkelReferenceInputs = Set.singleton refScriptOref,
         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -64,13 +64,13 @@ useReferenceScript spendingSubmitter consumeScriptOref theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
   oref : _ <-
     validateTxSkelL
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [theScript `receives` Value (Script.ada 42)],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
-  fst
+  (\(_, _, tx, _) -> P.Ledger.CardanoEmulatorEraTx tx)
     <$> validateTxSkel
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelInputs =
             Map.fromList $
               (oref, TxSkelRedeemer () (Just scriptOref) False)
@@ -83,12 +83,12 @@ useReferenceScriptInInputs spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
   oref : _ <-
     validateTxSkelL
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [theScript `receives` Value (Script.ada 42)],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.fromList [(oref, TxSkelRedeemer () (Just scriptOref) False), (scriptOref, emptyTxSkelRedeemer)],
         txSkelSignatories = txSkelSignatoriesFromList [spendingSubmitter]
       }
@@ -97,7 +97,7 @@ referenceMint :: Script.Versioned Script.MintingPolicy -> Script.Versioned Scrip
 referenceMint mp1 mp2 n autoRefScript = do
   (Map.elemAt n -> (mpOutRef, _)) <-
     validateTxSkel' $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs =
             [ wallet 1 `receives` Value (Script.ada 2) <&&> ReferenceScript mp1,
               wallet 1 `receives` Value (Script.ada 10)
@@ -105,7 +105,7 @@ referenceMint mp1 mp2 n autoRefScript = do
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelMints =
           review
             txSkelMintsListI
@@ -154,13 +154,13 @@ tests =
                         ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
                   oref : _ <-
                     validateTxSkelL
-                      txSkelTemplate
+                      txSkelEmulatorTemplate
                         { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                           txSkelInputs = Map.singleton consumedOref emptyTxSkelRedeemer,
                           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                         }
                   validateTxSkel_
-                    txSkelTemplate
+                    txSkelEmulatorTemplate
                       { txSkelInputs = Map.singleton oref (TxSkelRedeemer () (Just consumedOref) False),
                         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                       }
@@ -174,12 +174,12 @@ tests =
                   scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
                   oref : _ <-
                     validateTxSkelL
-                      txSkelTemplate
+                      txSkelEmulatorTemplate
                         { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                         }
                   validateTxSkel_
-                    txSkelTemplate
+                    txSkelEmulatorTemplate
                       { txSkelInputs = Map.singleton oref (TxSkelRedeemer () (Just scriptOref) False),
                         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                       }
@@ -192,12 +192,12 @@ tests =
               scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
               oref : _ <-
                 validateTxSkelL
-                  txSkelTemplate
+                  txSkelEmulatorTemplate
                     { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
                       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                     }
               validateTxSkel_
-                txSkelTemplate
+                txSkelEmulatorTemplate
                   { txSkelInputs = Map.singleton oref emptyTxSkelRedeemerNoAutoFill,
                     txSkelReferenceInputs = Set.singleton scriptOref,
                     txSkelSignatories = txSkelSignatoriesFromList [wallet 1]

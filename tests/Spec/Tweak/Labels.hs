@@ -17,7 +17,7 @@ carrie = wallet 3
 payTo :: Wallet -> Integer -> StagedMockChain ()
 payTo target amount = do
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelOutputs = [target `receives` Value (Script.ada amount)]
       }

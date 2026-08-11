@@ -5,11 +5,9 @@
 module Cooked.Pretty.Skeleton (Contextualized (..)) where
 
 import Cooked.Pretty.Class
-import Cooked.Pretty.Options
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
 import Cooked.Wallet (Wallet)
-import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
@@ -281,10 +279,10 @@ instance PrettyCookedMaybe TxSkelOutDatum where
   prettyCookedOptMaybe opts (SomeTxSkelOutDatumHash hash) =
     Just $ "Datum (hash only)" <+> "(" <> prettyHash opts hash <> ")"
 
--- | Pretty-print a list of transaction skeleton options, only printing an
--- option if its value is non-default.
+-- | Pretty-print a list of transaction skeleton options, printing every option
+-- (except the opaque transaction modification).
 instance PrettyCookedList TxSkelOpts where
-  prettyCookedOptListMaybe
+  prettyCookedOptList
     opts
     ( TxSkelOpts
         _
@@ -293,22 +291,26 @@ instance PrettyCookedList TxSkelOpts where
         txSkelOptBalanceOutputPolicy
         txSkelOptBalancingUtxos
         txSkelOptCollateralUtxos
-        txSkelOptDeferFailures
         txSkelOptMaxNbOfBalancingUtxos
+        txSkelOptHaltOnExUnitsFailures
+        txSkelOptHaltOnSubmissionFailures
       ) =
-      [ prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
-        prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
-        prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
-        prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
-        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
-        prettyIfNot False (const "Defer Phase 2 failures during balancing") txSkelOptDeferFailures,
-        ("Limit the number of balancing Utxos to " <>) . PP.pretty <$> txSkelOptMaxNbOfBalancingUtxos
+      [ prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
+        prettyBalanceFeePolicy txSkelOptFeePolicy,
+        prettyBalancingPolicy txSkelOptBalancingPolicy,
+        prettyBalancingUtxos txSkelOptBalancingUtxos,
+        prettyCollateralUtxos txSkelOptCollateralUtxos,
+        prettyMaxNbOfBalancingUtxos txSkelOptMaxNbOfBalancingUtxos,
+        prettyHaltOnFailures "computing execution units" txSkelOptHaltOnExUnitsFailures,
+        prettyHaltOnFailures "submission" txSkelOptHaltOnSubmissionFailures
       ]
       where
-        prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
-        prettyIfNot defaultValue f x
-          | x == defaultValue && not (pcOptPrintDefaultTxSkelOpts opts) = Nothing
-          | otherwise = Just $ f x
+        prettyMaxNbOfBalancingUtxos :: Maybe Integer -> DocCooked
+        prettyMaxNbOfBalancingUtxos Nothing = "No limit on the number of balancing Utxos"
+        prettyMaxNbOfBalancingUtxos (Just n) = "Limit the number of balancing Utxos to " <> PP.pretty n
+        prettyHaltOnFailures :: DocCooked -> Bool -> DocCooked
+        prettyHaltOnFailures step False = "Proceed after failures while" <+> step
+        prettyHaltOnFailures step True = "Halt after failures while" <+> step
         prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
         prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
         prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"

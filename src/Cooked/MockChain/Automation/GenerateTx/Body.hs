@@ -1,11 +1,7 @@
 -- | This modules exposes entry points to convert a 'TxSkel' into a fully
 -- fledged transaction body
 module Cooked.MockChain.Automation.GenerateTx.Body
-  ( BodyContent,
-    Body,
-    ScriptErrors,
-    Tx,
-    txSkelToTxBody,
+  ( txSkelToTxBody,
     txBodyContentToTxBody,
     txSkelToTxBodyContent,
     txSkelToIndex,
@@ -15,7 +11,6 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
-import Cardano.Ledger.Conway qualified as Conway
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Certificate
 import Cooked.MockChain.Automation.GenerateTx.Collateral
@@ -32,7 +27,6 @@ import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Runtime.Error
 import Cooked.Skeleton
 import Data.Bifunctor (first)
-import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Address qualified as P.Ledger
@@ -43,18 +37,6 @@ import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
 import Witherable
-
--- | A transaction body content
-type BodyContent = Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra
-
--- | A transaction body
-type Body = Cardano.TxBody Cardano.ConwayEra
-
--- | Script errors in a transaction body
-type ScriptErrors = Map Cardano.ScriptWitnessIndex (Alonzo.TransactionScriptFailure Conway.ConwayEra)
-
--- | A transaction
-type Tx = Cardano.Tx Cardano.ConwayEra
 
 -- | Generates a body content from a skeleton
 txSkelToTxBodyContent ::
@@ -154,7 +136,7 @@ txSkelToTxBody ::
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
-  Sem effs (Body, ScriptErrors)
+  Sem effs (Body, ExUnitsFailures)
 txSkelToTxBody txSkel fee mCollaterals = do
   -- We create a first body content and body, without execution units
   txBodyContent' <- txSkelToTxBodyContent txSkel fee mCollaterals
@@ -197,5 +179,5 @@ txSkelToTxBody txSkel fee mCollaterals = do
 txSignatoriesAndBodyToCardanoTx ::
   [TxSkelSignatory] ->
   Body ->
-  Tx
+  Transaction
 txSignatoriesAndBodyToCardanoTx signatories txBody = Cardano.Tx txBody $ mapMaybe (toKeyWitness txBody) signatories

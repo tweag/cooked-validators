@@ -61,7 +61,7 @@ condTweak optic = (guardTweak optic >>)
 -- >
 -- > someEndpoint = do
 -- >   ...
--- >   validateTxSkel' txSkelTemplate
+-- >   validateTxSkel' txSkelEmulatorTemplate
 -- >      { txSkelLabels =
 -- >         [ TxSkelLabel "InitialMinting"
 -- >         , TxSkelLabel "AuctionWorkflow"
@@ -84,7 +84,7 @@ labelled lbl = condTweak $ txSkelLabelsL % at (TxSkelLabel lbl) % _Just
 -- >
 -- > someEndpoint = do
 -- >   ...
--- >   validateTxSkel' txSkelTemplate
+-- >   validateTxSkel' txSkelEmulatorTemplate
 -- >      { txSkelLabels =
 -- >         [ TxSkelLabel "InitialMinting"
 -- >         , TxSkelLabel "AuctionWorkflow"

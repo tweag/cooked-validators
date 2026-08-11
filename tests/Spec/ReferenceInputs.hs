@@ -17,7 +17,7 @@ trace1 :: DirectMockChain ()
 trace1 = do
   txOutRefFoo : txOutRefBar : _ <-
     validateTxSkelL
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs =
             [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
               barTypedValidator `receives` Value (Script.ada 5)
@@ -25,7 +25,7 @@ trace1 = do
           txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
         }
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
         txSkelReferenceInputs = Set.singleton txOutRefFoo,
         txSkelOutputs = [wallet 4 `receives` Value (Script.ada 5)],
@@ -36,7 +36,7 @@ trace2 :: DirectMockChain ()
 trace2 = do
   refORef : scriptORef : _ <-
     validateTxSkelL
-      ( txSkelTemplate
+      ( txSkelEmulatorTemplate
           { txSkelOutputs =
               [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
                 bazTypedValidator `receives` Value (Script.ada 10)
@@ -45,7 +45,7 @@ trace2 = do
           }
       )
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
         txSkelInputs = Map.singleton scriptORef (someTxSkelRedeemer ()),
         txSkelReferenceInputs = Set.singleton refORef

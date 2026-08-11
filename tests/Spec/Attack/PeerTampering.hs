@@ -20,7 +20,7 @@ pkh = Script.toPubKeyHash . wallet
 -- exercises both branches of 'txSkelAllocatedPeersT'.
 baseSkel :: TxSkel
 baseSkel =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelOutputs = [wallet 1 `receives` Value (Script.lovelace 3_000)],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1, wallet 2]
     }

@@ -85,6 +85,7 @@ module Cooked.MockChain.Testing
   )
 where
 
+import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Exception qualified as E
 import Control.Monad
 import Cooked.MockChain.Effect.Log
@@ -96,11 +97,10 @@ import Cooked.MockChain.Runtime.State
 import Cooked.Pretty
 import Data.Default
 import Data.List (isInfixOf)
+import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as T
-import Ledger.Index qualified as P.Ledger
 import Plutus.Script.Utils.Address qualified as Script
-import PlutusLedgerApi.V1.Scripts qualified as Api
 import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Test.QuickCheck qualified as QC
@@ -559,11 +559,20 @@ withErrorProp test errorProp = withFailureProp test (\_ _ err _ -> errorProp err
 
 -- * Specific properties around failures
 
+-- | Whether a script failure is a genuine Plutus (phase 2) evaluation failure.
+-- Only the 'Alonzo.ValidationFailure' constructor is considered a phase 2
+-- failure; every other constructor is treated as a phase 1 failure.
+isValidationFailure :: Alonzo.TransactionScriptFailure era -> Bool
+isValidationFailure Alonzo.ValidationFailure {} = True
+isValidationFailure _ = False
+
 -- | A property to ensure a phase 1 failure
 isPhase1Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase1Failure _ _ (MCEValidationError P.Ledger.Phase1 _) _ = testSuccess
+isPhase1Failure _ _ (MCESubmissionFailures _) _ = testSuccess
+isPhase1Failure _ _ (MCEExUnitsFailures failures) _
+  | not (any isValidationFailure (Map.elems failures)) = testSuccess
 isPhase1Failure pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 1 evaluation failure, got: "
@@ -573,7 +582,8 @@ isPhase1Failure pcOpts _ e _ =
 isPhase2Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase2Failure _ _ (MCEValidationError P.Ledger.Phase2 _) _ = testSuccess
+isPhase2Failure _ _ (MCEExUnitsFailures failures) _
+  | any isValidationFailure (Map.elems failures) = testSuccess
 isPhase2Failure pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 2 evaluation failure, got: "
@@ -584,8 +594,10 @@ isPhase1FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase1 l) _
-  | not $ null [text | P.Ledger.CardanoLedgerValidationError (T.unpack -> text) <- l, s `isInfixOf` text] = testSuccess
+isPhase1FailureWithMsg s _ _ (MCESubmissionFailures failures) _
+  | any (isInfixOf s . show) failures = testSuccess
+isPhase1FailureWithMsg s _ _ (MCEExUnitsFailures failures) _
+  | any (\f -> not (isValidationFailure f) && s `isInfixOf` show f) (Map.elems failures) = testSuccess
 isPhase1FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 1 evaluation failure with constrained messages, got: "
@@ -596,8 +608,8 @@ isPhase2FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase2 l) _
-  | not $ null [text | P.Ledger.ScriptFailure (Api.EvaluationError texts _) <- l, (T.unpack -> text) <- texts, s `isInfixOf` text] = testSuccess
+isPhase2FailureWithMsg s _ _ (MCEExUnitsFailures failures) _
+  | not $ null [text | Alonzo.ValidationFailure _ _ logs _ <- Map.elems failures, (T.unpack -> text) <- logs, s `isInfixOf` text] = testSuccess
 isPhase2FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 2 evaluation failure with constrained messages, got: "

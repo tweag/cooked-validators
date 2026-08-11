@@ -32,12 +32,12 @@ spendReferenceAlwaysTrueValidator = do
   (fst . Map.elemAt 0 -> referenceScriptTxOutRef) <- utxosAt alice
   (scriptTxOutRef : _) <-
     validateTxSkelL $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
           txSkelSignatories = txSkelSignatoriesFromList [bob]
         }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelOutputs = [alice `receives` Value (Script.ada 2)],
         txSkelInputs = Map.singleton scriptTxOutRef $ TxSkelRedeemer () (Just referenceScriptTxOutRef) False,
         txSkelSignatories = txSkelSignatoriesFromList [bob]

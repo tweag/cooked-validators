@@ -25,7 +25,7 @@ listUtxosTestTrace ::
 listUtxosTestTrace useInlineDatum validator =
   Map.elemAt 0
     <$> validateTxSkel'
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs = [validator `receives` (if useInlineDatum then InlineDatum else VisibleHashedDatum) FirstPaymentDatum],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
@@ -44,7 +44,7 @@ spendOutputTestTrace ::
 spendOutputTestTrace useInlineDatum validator = do
   (theTxOutRef, _) <- listUtxosTestTrace useInlineDatum validator
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
       }
@@ -66,7 +66,7 @@ continuingOutputTestTrace ::
 continuingOutputTestTrace datumKindOnSecondPayment validator = do
   (theTxOutRef, theOutput) <- listUtxosTestTrace True validator
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton theTxOutRef $ someTxSkelRedeemer (),
         txSkelOutputs =
           [ validator

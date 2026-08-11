@@ -21,7 +21,7 @@ testWithdrawingScript userCertifying userRewarding mAmount = do
   forceOutputs_ [alice `receives` Value (Script.ada 100)]
   when (isJust userCertifying) $
     validateTxSkel_ $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [alice],
           txSkelCertificates =
             [ TxSkelCertificate (fromJust userCertifying) $
@@ -31,7 +31,7 @@ testWithdrawingScript userCertifying userRewarding mAmount = do
             ]
         }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelWithdrawals = txSkelWithdrawalsFromList [Withdrawal userRewarding (Api.Lovelace . (1_000_000 *) <$> mAmount)]
       }

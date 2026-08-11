@@ -43,6 +43,8 @@ module Cooked.Skeleton
 
     -- * Smart constructor
     txSkelTemplate,
+    txSkelEmulatorTemplate,
+    txSkelNodeTemplate,
 
     -- * Utilities
     txSkelKnownTxOutRefs,
@@ -66,7 +68,6 @@ import Cooked.Skeleton.User as X
 import Cooked.Skeleton.ValidityRange as X
 import Cooked.Skeleton.Value as X
 import Cooked.Skeleton.Withdrawal as X
-import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
@@ -241,12 +242,13 @@ txSkelRedeemersT =
   txSkelSpendingRedeemersT
     `adjoin` (txSkelRedeemedScriptsT % userRedeemerL)
 
--- | A convenience template of an empty transaction skeleton.
-txSkelTemplate :: TxSkel
-txSkelTemplate =
+-- | A convenience template of an empty transaction skeleton, parameterized by
+-- the transaction options to use.
+txSkelTemplate :: TxSkelOpts -> TxSkel
+txSkelTemplate opts =
   TxSkel
     { txSkelLabels = mempty,
-      txSkelOpts = def,
+      txSkelOpts = opts,
       txSkelMints = mempty,
       txSkelValidityRange = Api.always,
       txSkelSignatories = mempty,
@@ -257,6 +259,16 @@ txSkelTemplate =
       txSkelWithdrawals = mempty,
       txSkelCertificates = mempty
     }
+
+-- | A convenience template of an empty transaction skeleton, using options
+-- tailored for the emulator backend ('txSkelOptsEmulatorTemplate').
+txSkelEmulatorTemplate :: TxSkel
+txSkelEmulatorTemplate = txSkelTemplate txSkelOptsEmulatorTemplate
+
+-- | A convenience template of an empty transaction skeleton, using options
+-- tailored for a deployed node backend ('txSkelOptsNodeTemplate').
+txSkelNodeTemplate :: TxSkel
+txSkelNodeTemplate = txSkelTemplate txSkelOptsNodeTemplate
 
 -- | All 'Api.TxOutRef's in reference inputs from redeemers
 txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef

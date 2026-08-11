@@ -55,7 +55,7 @@ data ExtendedTxSkel = ExtendedTxSkel
     -- | The Cardano body generated from this skeleton
     eBody :: Body,
     -- | The script errors uncovered during body generation
-    eScriptErrors :: ScriptErrors
+    eExUnitsFailures :: ExUnitsFailures
   }
 
 -- | This is the main entry point of our balancing mechanism. This function
@@ -132,8 +132,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
             AutoFeeComputation -> maxFee
             ManualFee fee' -> fee'
       mCols <- collateralsFromFee fee mCollaterals
-      (cBody, cScriptErrors) <- txSkelToTxBody skelUnbal fee mCols
-      return $ ExtendedTxSkel skelUnbal fee mCols cBody cScriptErrors
+      (cBody, cExUnitsFailures) <- txSkelToTxBody skelUnbal fee mCols
+      return $ ExtendedTxSkel skelUnbal fee mCols cBody cExUnitsFailures
     Just bUser -> do
       -- The balancing should be performed. We collect the candidates balancing
       -- utxos based on the associated policy
@@ -160,8 +160,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
         ManualFee fee -> do
           mCols <- collateralsFromFee fee mCollaterals
           balancedSkel <- computeBalancedTxSkel bUser balancingUtxos skelUnbal fee
-          (cBody, cScriptErrors) <- txSkelToTxBody balancedSkel fee mCols
-          return $ ExtendedTxSkel balancedSkel fee mCols cBody cScriptErrors
+          (cBody, cExUnitsFailures) <- txSkelToTxBody balancedSkel fee mCols
+          return $ ExtendedTxSkel balancedSkel fee mCols cBody cExUnitsFailures
   where
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- Map.partitionWithKey f l =
@@ -199,10 +199,6 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
         mCols <- collateralsFromFee fee mCollaterals
         (newFee, body, sErrors) <- estimateTxSkelFee newSkel fee mCols
         if
-          -- The skeleton was balanceable. However, there were some phase 2
-          -- errors uncovered during body generation, and the skeleton options
-          -- require to stop balancing immediately in this case.
-          | notNull sErrors && not (view (txSkelOptsL % txSkelOptOptimizeFeeInCaseOfScriptFailuresL) skel) -> return $ ExtendedTxSkel newSkel newFee mCols body sErrors
           -- The skeleton was balanceable, we cannot try smaller fee, but
           -- the used fee is sufficient for the generated body
           | minFee == maxFee && newFee <= fee -> return $ ExtendedTxSkel newSkel newFee mCols body sErrors
@@ -434,20 +430,20 @@ estimateTxSkelFee ::
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
-  Sem effs (Fee, Body, ScriptErrors)
+  Sem effs (Fee, Body, ExUnitsFailures)
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
   params <- getParams
   -- We build the index known to the skeleton
   index <- txSkelToIndex skel mCollaterals
   -- We build the transaction body
-  (txBody, scriptErrors) <- txSkelToTxBody skel fee mCollaterals
+  (txBody, exUnitsFailures) <- txSkelToTxBody skel fee mCollaterals
   -- We retrieve the amount of signatories
   let nbOfSignatories = fromIntegral $ length $ txSkelSignatories skel
   -- We compute the estimated fee
   let Cardano.Coin newFee = Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway params index txBody nbOfSignatories
   -- We return both the new fee and generated body
-  return (newFee, txBody, scriptErrors)
+  return (newFee, txBody, exUnitsFailures)
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted

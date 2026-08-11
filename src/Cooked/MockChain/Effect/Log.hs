@@ -8,6 +8,7 @@
 -- user's perspective, use `Cooked.MockChain.Effect.Misc.note` instead.
 module Cooked.MockChain.Effect.Log
   ( -- * Logging events
+    TxValidity (..),
     MockChainLogEntry (..),
 
     -- * Logging effect
@@ -26,6 +27,17 @@ import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Writer
 
+-- | The validity of a transaction
+data TxValidity
+  = -- | The transaction is valid, we store the number of inputs and outputs
+    Valid Int Int
+  | -- | The transaction is invalid in phase 1 (no ledger change)
+    InvalidPhase1
+  | -- | The transaction is invalid in phase 2, we store the number of collateral
+    -- inputs and return collateral outputs
+    InvalidPhase2 Int Int
+  deriving (Show)
+
 -- | Events logged when processing transaction skeletons
 data MockChainLogEntry
   = -- | Logging a Skeleton as it is submitted by the user.
@@ -33,9 +45,9 @@ data MockChainLogEntry
   | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
     -- alongside fee, and possible collateral utxos and return collateral user.
     MCLogAdjustedTxSkel TxSkel Fee (Maybe Collaterals)
-  | -- | Logging the successful validation of a new transaction, with its id and
-    -- number of produced outputs.
-    MCLogNewTx Api.TxId Integer
+  | -- | Logging the production of a new transaction, with its ID as well as its
+    -- validity.
+    MCLogNewTx Api.TxId TxValidity
   | -- | Logging the fact that utxos provided by the user for balancing have to be
     -- discarded for a specific reason.
     MCLogDiscardedUtxos Integer String
@@ -52,6 +64,12 @@ data MockChainLogEntry
     MCLogAutoFilledConstitution Api.ScriptHash
   | -- | Logging the automatic adjustment of a min ada amount
     MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
+  | -- | Logging the existence of failures uncovered during the computation of
+    -- execution units, when they're not treated as fatal.
+    MCELogExUnitsFailures ExUnitsFailures
+  | -- | Logging the existence of failures uncovered during submission, when
+    -- they're not treated as fatal.
+    MCELogSubmissionFailures SubmissionFailures
   deriving (Show)
 
 -- | An effect to allow logging of mockchain events

@@ -10,7 +10,7 @@ import Test.Tasty.HUnit
 
 manyOutputsSkeleton :: TxSkel
 manyOutputsSkeleton =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelOutputs = (\n -> wallet n `receives` Value (Script.ada 10)) <$> [1 .. 5]
     }
 

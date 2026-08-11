@@ -1,14 +1,12 @@
 module Spec.Balancing where
 
 import Cooked
-import Data.Default
+import Data.List (isInfixOf)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.Text (isInfixOf)
-import Ledger.Index qualified as P.Ledger
 import Optics.Core
 import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
@@ -69,7 +67,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   additionalSpend <- spendsScriptUtxo consumeScriptUtxo
   let valueConstr = if adjust then Value else FixedValue
       skel =
-        txSkelTemplate
+        txSkelEmulatorTemplate
           { txSkelOutputs =
               List.filter
                 ((/= mempty) . (^. txSkelOutValueL))
@@ -79,7 +77,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
             txSkelInputs = additionalSpend <> Map.fromSet (const emptyTxSkelRedeemer) toSpendUtxos,
             txSkelOpts =
               optionsMod
-                def
+                txSkelOptsEmulatorTemplate
                   { txSkelOptBalancingUtxos =
                       if List.null toBalanceUtxos
                         then BalancingUtxosFromBalancingUser
@@ -91,8 +89,7 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
                   },
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
-  ExtendedTxSkel skel' fee mCols _ <- balanceTxSkel skel
-  validateTxSkel_ skel
+  (ExtendedTxSkel skel' fee mCols _ _, _, _, _) <- validateTxSkel skel
   nonOnlyValueUtxos <- aliceNonOnlyValueUtxos
   return (skel, skel', fee, mCols, nonOnlyValueUtxos)
 
@@ -142,11 +139,11 @@ noBalanceMaxFee = do
   maxFee <- snd <$> getMinAndMaxFee 0
   aliceORefs30Ada <- aliceNAdaUtxos 30
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelOutputs = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
         txSkelInputs = Map.fromSet (const emptyTxSkelRedeemer) aliceORefs30Ada,
         txSkelOpts =
-          def
+          txSkelOptsEmulatorTemplate
             { txSkelOptBalancingPolicy = DoNotBalance,
               txSkelOptFeePolicy = AutoFeeComputation
             },
@@ -156,32 +153,32 @@ noBalanceMaxFee = do
 balanceReduceFee :: FullMockChain (Integer, Integer, Integer, Integer)
 balanceReduceFee = do
   let skelAutoFee =
-        txSkelTemplate
+        txSkelEmulatorTemplate
           { txSkelOutputs = [bob `receives` Value (Script.ada 50)],
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
-  ExtendedTxSkel skelBalanced feeBalanced mCols _ <- balanceTxSkel skelAutoFee
-  (feeBalanced', _) <- estimateTxSkelFee skelBalanced feeBalanced mCols
+  ExtendedTxSkel skelBalanced feeBalanced mCols _ _ <- balanceTxSkel skelAutoFee
+  (feeBalanced', _, _) <- estimateTxSkelFee skelBalanced feeBalanced mCols
   let skelManualFee =
         skelAutoFee
           { txSkelOpts =
-              def
+              txSkelOptsEmulatorTemplate
                 { txSkelOptFeePolicy = ManualFee (feeBalanced - 1)
                 }
           }
-  ExtendedTxSkel skelBalancedManual feeBalancedManual mColsManual _ <- balanceTxSkel skelManualFee
-  (feeBalancedManual', _) <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
+  ExtendedTxSkel skelBalancedManual feeBalancedManual mColsManual _ _ <- balanceTxSkel skelManualFee
+  (feeBalancedManual', _, _) <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
   return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
 
 reachingMagic :: FullMockChain ()
 reachingMagic = do
   bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelOutputs = [bob `receives` Value (Script.ada 106 <> banana 12)],
         txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelOpts =
-          def
+          txSkelOptsEmulatorTemplate
             { txSkelOptBalancingUtxos = BalancingUtxosFromSet bananaOutRefs
             }
       }
@@ -221,15 +218,15 @@ failsAtBalancing (MCEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool
 failsAtBalancing _ = testBool False
 
 failsWithTooLittleFee :: MockChainError -> Assertion
-failsWithTooLittleFee (MCEValidationError P.Ledger.Phase1 [P.Ledger.CardanoLedgerValidationError text]) = testBool $ isInfixOf "FeeTooSmallUTxO" text
+failsWithTooLittleFee (MCESubmissionFailures failures) = testBool $ any (isInfixOf "FeeTooSmallUTxO" . show) failures
 failsWithTooLittleFee _ = testBool False
 
 failsWithValueNotConserved :: MockChainError -> Assertion
-failsWithValueNotConserved (MCEValidationError P.Ledger.Phase1 [P.Ledger.CardanoLedgerValidationError text]) = testBool $ isInfixOf "ValueNotConserved" text
+failsWithValueNotConserved (MCESubmissionFailures failures) = testBool $ any (isInfixOf "ValueNotConserved" . show) failures
 failsWithValueNotConserved _ = testBool False
 
 failsWithEmptyTxIns :: MockChainError -> Assertion
-failsWithEmptyTxIns (MCEValidationError P.Ledger.Phase1 [P.Ledger.CardanoLedgerValidationError text]) = testBool $ isInfixOf "InputSetEmptyUTxO" text
+failsWithEmptyTxIns (MCESubmissionFailures failures) = testBool $ any (isInfixOf "InputSetEmptyUTxO" . show) failures
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> MockChainError -> Assertion

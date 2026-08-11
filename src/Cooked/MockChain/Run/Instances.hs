@@ -52,6 +52,7 @@ import Cooked.MockChain.Effect.Log
 import Cooked.MockChain.Effect.Misc
 import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.Effect.Read.Conf
+import Cooked.MockChain.Effect.Submission
 import Cooked.MockChain.Effect.Validation
 import Cooked.MockChain.Effect.Write
 import Cooked.MockChain.Run.Runnable
@@ -95,7 +96,11 @@ instance RunnableMockChain DirectEffs where
       . runMockChainReadConfEmul
       . runMockChainReadChainEmul
       . runMockChainWrite
-      . runMockChainValidateEmul
+      . runMockChainSubmitEmul
+      . runMockChainValidate
+      . insertAt @1
+        @'[ MockChainSubmit
+          ]
       . insertAt @6
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
@@ -167,7 +172,11 @@ instance RunnableMockChain FullEffs where
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . runMockChainValidateEmul
+      . runMockChainSubmitEmul
+      . runMockChainValidate
+      . insertAt @1
+        @'[ MockChainSubmit
+          ]
       . reinterpretMockChainValidateWithTweak @FullTweakEffs
       . runModifyGlobally
 
@@ -224,7 +233,11 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . runMockChainValidateEmul
+      . runMockChainSubmitEmul
+      . runMockChainValidate
+      . insertAt @1
+        @'[ MockChainSubmit
+          ]
       . insertAt @9
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,

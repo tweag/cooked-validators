@@ -36,6 +36,7 @@ module Cooked.MockChain.Runtime.State
     addOutput,
     addOutputs,
     removeOutput,
+    removeOutputs,
 
     -- * `UtxoState`: A simplified, address-focused view on a `ChainIndex`
     UtxoPayloadDatum (..),
@@ -139,6 +140,10 @@ addOutputs outputs chainIndex =
 -- it from the map, but instead marks its availability to @False@
 removeOutput :: Api.TxOutRef -> ChainIndex -> ChainIndex
 removeOutput oRef = set (chainIndexOutputsL % at oRef % _Just % _2) False
+
+-- | Removes several outputs from a 'ChainIndex' using 'removeOutput' each time
+removeOutputs :: (Foldable t) => t Api.TxOutRef -> ChainIndex -> ChainIndex
+removeOutputs l index = foldl (flip removeOutput) index l
 
 -- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
 -- stores the actual datum and whether it is hashed (@True@) or inline

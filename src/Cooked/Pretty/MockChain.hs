@@ -86,8 +86,10 @@ instance PrettyCooked BalancingError where
       ]
 
 instance PrettyCooked MockChainError where
-  prettyCookedOpt opts (MCEValidationError plutusPhase plutusErrors) =
-    prettyItemize opts ("Validation errors (" <+> prettyCookedOpt opts plutusPhase <+> ")") "-" plutusErrors
+  prettyCookedOpt opts (MCEExUnitsFailures failures) =
+    prettyItemize opts "Execution units failures:" "-" (PP.viaShow <$> Map.elems failures :: [DocCooked])
+  prettyCookedOpt opts (MCESubmissionFailures failures) =
+    prettyItemize opts "Submission failures:" "-" (PP.viaShow <$> failures :: [DocCooked])
   prettyCookedOpt opts (MCEBalancingError err) = prettyCookedOpt opts err
   prettyCookedOpt _ (MCEToCardanoError cardanoError) =
     "Transaction generation error:" <+> PP.pretty cardanoError
@@ -156,14 +158,30 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
                    mCollaterals
              )
       )
-  prettyCookedOpt opts (Contextualized _ (MCLogNewTx txId nb)) =
+  prettyCookedOpt opts (Contextualized _ (MCLogNewTx txId validity)) =
     prettyItemize
       opts
-      "New transaction successfully validated:"
+      "New transaction produced:"
       "-"
-      [ "Transaction id:" <+> prettyHash opts txId,
-        "Number of new outputs:" <+> PP.pretty nb
-      ]
+      ( ("Transaction id:" <+> prettyHash opts txId)
+          : case validity of
+            Valid nbInputs nbOutputs ->
+              [ "Validity: valid",
+                "Number of consumed inputs:" <+> PP.pretty nbInputs,
+                "Number of new outputs:" <+> PP.pretty nbOutputs
+              ]
+            InvalidPhase1 ->
+              ["Validity: invalid in phase 1 (no ledger change)"]
+            InvalidPhase2 nbColInputs nbRetColOutputs ->
+              [ "Validity: invalid in phase 2",
+                "Number of consumed collateral inputs:" <+> PP.pretty nbColInputs,
+                "Number of return collateral outputs:" <+> PP.pretty nbRetColOutputs
+              ]
+      )
+  prettyCookedOpt opts (Contextualized _ (MCELogExUnitsFailures failures)) =
+    prettyItemize opts "Warning: execution units failures:" "-" (PP.viaShow <$> Map.elems failures :: [DocCooked])
+  prettyCookedOpt opts (Contextualized _ (MCELogSubmissionFailures failures)) =
+    prettyItemize opts "Warning: submission failures:" "-" (PP.viaShow <$> failures :: [DocCooked])
   prettyCookedOpt opts (Contextualized _ (MCLogDiscardedUtxos n s)) =
     prettyItemize @[DocCooked]
       opts

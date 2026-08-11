@@ -10,8 +10,8 @@ module Cooked.MockChain.Runtime.Error
   )
 where
 
+import Cooked.MockChain.Common
 import Cooked.Skeleton.User
-import Ledger.Index qualified as P.Ledger
 import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
@@ -40,8 +40,10 @@ data BalancingError
 
 -- | Errors that can be produced by the blockchain
 data MockChainError
-  = -- | Validation errors, either in Phase 1 or Phase 2
-    MCEValidationError P.Ledger.ValidationPhase [P.Ledger.ValidationError]
+  = -- | Failures occurring while computing execution units
+    MCEExUnitsFailures ExUnitsFailures
+  | -- | Failures occurring while submitting the transaction for validation
+    MCESubmissionFailures SubmissionFailures
   | -- | Balancing errors
     MCEBalancingError BalancingError
   | -- | Translating a skeleton element to its Cardano counterpart failed
