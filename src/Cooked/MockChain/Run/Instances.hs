@@ -53,6 +53,7 @@ import Cooked.MockChain.Effect.Misc
 import Cooked.MockChain.Effect.Read.Chain
 import Cooked.MockChain.Effect.Read.Conf
 import Cooked.MockChain.Effect.Submission
+import Cooked.MockChain.Effect.Time
 import Cooked.MockChain.Effect.Validation
 import Cooked.MockChain.Effect.Write
 import Cooked.MockChain.Run.Runnable
@@ -74,6 +75,7 @@ type DirectEffs =
   '[ MockChainValidate,
      MockChainWrite,
      MockChainReadChain,
+     MockChainTime,
      MockChainMisc,
      Fail
    ]
@@ -94,6 +96,7 @@ instance RunnableMockChain DirectEffs where
       . runFailInMockChainError
       . runMockChainMisc fromAlias fromNote fromAssert
       . runMockChainReadConfEmul
+      . runMockChainTimeEmul
       . runMockChainReadChainEmul
       . runMockChainWrite
       . runMockChainSubmitEmul
@@ -101,7 +104,7 @@ instance RunnableMockChain DirectEffs where
       . insertAt @1
         @'[ MockChainSubmit
           ]
-      . insertAt @6
+      . insertAt @7
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
             State EmulatorState,
@@ -109,7 +112,7 @@ instance RunnableMockChain DirectEffs where
             MockChainLog,
             Writer MockChainJournal
           ]
-      . insertAt @3
+      . insertAt @4
         @'[ MockChainReadConf
           ]
 
@@ -118,6 +121,7 @@ instance RunnableMockChain DirectEffs where
 type FullTweakEffs =
   '[ MockChainMisc,
      MockChainReadChain,
+     MockChainTime,
      MockChainReadConf,
      Fail,
      Error P.Ledger.ToCardanoError,
@@ -141,6 +145,7 @@ type FullEffs =
      State [Ltl (UntypedTweak FullTweakEffs)],
      MockChainMisc,
      MockChainReadChain,
+     MockChainTime,
      MockChainReadConf,
      Fail,
      Error P.Ledger.ToCardanoError,
@@ -167,6 +172,7 @@ instance RunnableMockChain FullEffs where
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainReadConfEmul
+      . runMockChainTimeEmul
       . runMockChainReadChainEmul
       . runMockChainMisc fromAlias fromNote fromAssert
       . evalState []
@@ -186,6 +192,7 @@ type ExtendedStagedTweakEffs extraEff =
   '[ extraEff,
      MockChainMisc,
      MockChainReadChain,
+     MockChainTime,
      Fail
    ]
 
@@ -202,6 +209,7 @@ type ExtendedStagedEffs extraEff =
      extraEff,
      MockChainMisc,
      MockChainReadChain,
+     MockChainTime,
      Fail,
      NonDet
    ]
@@ -227,6 +235,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runToCardanoErrorInMockChainError
       . runFailInMockChainError
       . runMockChainReadConfEmul
+      . runMockChainTimeEmul
       . runMockChainReadChainEmul
       . runMockChainMisc fromAlias fromNote fromAssert
       . runInterpretAlone
@@ -238,7 +247,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . insertAt @1
         @'[ MockChainSubmit
           ]
-      . insertAt @9
+      . insertAt @10
         @'[ Error P.Ledger.ToCardanoError,
             Error MockChainError,
             State EmulatorState,
@@ -247,7 +256,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
             Writer MockChainJournal
           ]
       . reinterpretMockChainValidateWithTweak @(ExtendedStagedTweakEffs extraEff)
-      . insertAt @7
+      . insertAt @8
         @'[ MockChainReadConf
           ]
       . runModifyGlobally

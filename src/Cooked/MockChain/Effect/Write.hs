@@ -7,13 +7,6 @@ module Cooked.MockChain.Effect.Write
     MockChainWrite (..),
     runMockChainWrite,
 
-    -- * Modifications of the current time
-    waitNSlots,
-    awaitSlot,
-    awaitEnclosingSlot,
-    waitNMSFromSlotLowerBound,
-    waitNMSFromSlotUpperBound,
-
     -- * Other operations
     setParams,
     setConstitutionScript,
@@ -40,21 +33,17 @@ import Cooked.Skeleton
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
-import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
-import Polysemy.Fail
 import Polysemy.State
 
 -- | An effect that offers all the primitives that are performing modifications
 -- on the blockchain state.
 data MockChainWrite :: Effect where
-  WaitNSlots :: Integer -> MockChainWrite m P.Ledger.Slot
   SetParams :: Emulator.Params -> MockChainWrite m ()
   SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
   ForceOutputs :: [TxSkelOut] -> MockChainWrite m Utxos
@@ -81,15 +70,6 @@ runMockChainWrite = interpret $ \case
   SetParams params -> do
     modify $ set emulatorStateParamsL params
     modify $ over emulatorStateLedgerStateL $ Emulator.updateStateParams params
-  WaitNSlots n -> do
-    cs <- gets $ Emulator.getSlot . emulatorStateLedgerState
-    if
-      | n == 0 -> return cs
-      | n > 0 -> do
-          let newSlot = cs + fromIntegral n
-          modify' $ over emulatorStateLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot
-          return newSlot
-      | otherwise -> throw $ MCEPastSlot cs $ cs + fromIntegral n
   SetConstitutionScript (toVScript -> cScript) -> do
     modify' $ chainIndexConstitutionL ?~ cScript
     modify' $
@@ -120,31 +100,6 @@ runMockChainWrite = interpret $ \case
     modify' $ addOutputs outputsList
     -- Finally, we return the created utxos
     return $ Map.fromList outputsList
-
--- | Waits a certain number of slots and returns the new slot
-waitNSlots :: (Member MockChainWrite effs) => Integer -> Sem effs P.Ledger.Slot
-
--- | Wait for a certain slot, or throws an error if the slot is already past
-awaitSlot :: (Members '[MockChainReadChain, MockChainWrite] effs) => P.Ledger.Slot -> Sem effs P.Ledger.Slot
-awaitSlot (P.Ledger.Slot targetSlot) = do
-  P.Ledger.Slot now <- currentSlot
-  waitNSlots (targetSlot - now)
-
--- | Waits until the current slot becomes greater or equal to the slot
---  containing the given POSIX time.  Note that that it might not wait for
---  anything if the current slot is large enough.
-awaitEnclosingSlot :: (Members '[MockChainReadChain, MockChainWrite] effs) => Api.POSIXTime -> Sem effs P.Ledger.Slot
-awaitEnclosingSlot time = getEnclosingSlot time >>= awaitSlot
-
--- | Wait a given number of ms from the lower bound of the current slot and
--- returns the current slot after waiting.
-waitNMSFromSlotLowerBound :: (Members '[MockChainReadChain, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
-waitNMSFromSlotLowerBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
-
--- | Wait a given number of ms from the upper bound of the current slot and
--- returns the current slot after waiting.
-waitNMSFromSlotUpperBound :: (Members '[MockChainReadChain, MockChainWrite, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
-waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | Updates the current parameters
 setParams :: (Member MockChainWrite effs) => Emulator.Params -> Sem effs ()

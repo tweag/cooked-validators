@@ -1,9 +1,11 @@
 -- | This module exposes the user-facing primitives to query the current state
--- of the blockchain, such as the available UTxOs, the current slot, and the
--- current constitution or rewards. The lower-level configuration primitives
--- (protocol parameters, network id, era history, system start) live in the
--- internal 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect, which
--- this effect relies on during its own interpretation.
+-- of the blockchain, such as the available UTxOs, and the current constitution
+-- or rewards. Time-related queries live in the separate
+-- 'Cooked.MockChain.Effect.Time.MockChainTime' effect. The lower-level
+-- configuration primitives (protocol parameters, network id, era history, system
+-- start) live in the internal
+-- 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect, which this
+-- effect relies on during its own interpretation.
 module Cooked.MockChain.Effect.Read.Chain
   ( -- * The 'MockChainReadChain' effect
     MockChainReadChain,
@@ -16,14 +18,6 @@ module Cooked.MockChain.Effect.Read.Chain
     txSkelAllScripts,
     txSkelInputScripts,
     txSkelInputValue,
-
-    -- * Queries related to time
-    currentSlot,
-    currentMSRange,
-    getEnclosingSlot,
-    slotRangeBefore,
-    slotRangeAfter,
-    slotToMSRange,
 
     -- * Queries related to fetching UTxOs
     allUtxos,
@@ -45,7 +39,6 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano hiding (TxIn)
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Cardano.Slotting.Time qualified as Time
 import Control.Monad
 import Cooked.MockChain.Automation.GenerateTx.Credential
 import Cooked.MockChain.Common
@@ -60,10 +53,7 @@ import Data.Map.Optics (toMapOf)
 import Data.Maybe
 import Data.Maybe.Strict
 import Data.Set qualified as Set
-import Data.Time.Clock
-import Data.Time.Clock.POSIX
 import Ledger.Address qualified as P.Ledger
-import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
@@ -72,7 +62,6 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
-import Polysemy.Fail
 import Polysemy.Reader
 import Polysemy.State
 
@@ -84,9 +73,6 @@ import Polysemy.State
 -- fixed chain configuration.
 data MockChainReadChain :: Effect where
   TxSkelOutByRef :: Api.TxOutRef -> MockChainReadChain m TxSkelOut
-  CurrentSlot :: MockChainReadChain m P.Ledger.Slot
-  SlotToMSRange :: P.Ledger.Slot -> MockChainReadChain m (Api.POSIXTime, Api.POSIXTime)
-  GetEnclosingSlot :: Api.POSIXTime -> MockChainReadChain m P.Ledger.Slot
   AllUtxos :: MockChainReadChain m Utxos
   UtxosAt :: (Script.ToAddress a) => a -> MockChainReadChain m Utxos
   GetConstitutionScript :: MockChainReadChain m (Maybe VScript)
@@ -126,54 +112,6 @@ txSkelInputValue =
     . mapM (viewByRef txSkelOutValueL)
     . Map.keys
     . txSkelInputs
-
--- | Returns the current slot
-currentSlot ::
-  (Member MockChainReadChain effs) =>
-  Sem effs P.Ledger.Slot
-
--- | Returns the closed ms interval corresponding to the slot with the given
--- number.
-slotToMSRange ::
-  (Members '[MockChainReadChain, Fail] effs) =>
-  P.Ledger.Slot ->
-  Sem effs (Api.POSIXTime, Api.POSIXTime)
-
--- | Returns the closed ms interval corresponding to the current slot
-currentMSRange ::
-  (Members '[MockChainReadChain, Fail] effs) =>
-  Sem effs (Api.POSIXTime, Api.POSIXTime)
-currentMSRange = slotToMSRange =<< currentSlot
-
--- | Return the slot that contains the given time. See 'slotToMSRange' for
--- some satisfied equational properties.
-getEnclosingSlot ::
-  (Member MockChainReadChain effs) =>
-  Api.POSIXTime ->
-  Sem effs P.Ledger.Slot
-
--- | The infinite range of slots ending before or at the given time
-slotRangeBefore ::
-  (Members '[MockChainReadChain, Fail] effs) =>
-  Api.POSIXTime ->
-  Sem effs P.Ledger.SlotRange
-slotRangeBefore t = do
-  n <- getEnclosingSlot t
-  (_, b) <- slotToMSRange n
-  -- If the given time @t@ happens to be the last ms of its slot, we can include
-  -- the whole slot. Otherwise, the only way to be sure that the returned slot
-  -- range contains no time after @t@ is to go to the preceding slot.
-  return $ Api.to $ if t == b then n else n - 1
-
--- | The infinite range of slots starting after or at the given time
-slotRangeAfter ::
-  (Members '[MockChainReadChain, Fail] effs) =>
-  Api.POSIXTime ->
-  Sem effs P.Ledger.SlotRange
-slotRangeAfter t = do
-  n <- getEnclosingSlot t
-  (a, _) <- slotToMSRange n
-  return $ Api.from $ if t == a then n else n + 1
 
 -- | Returns a list of all currently known outputs
 allUtxos ::
@@ -260,8 +198,7 @@ runMockChainReadChainEmul ::
       '[ State EmulatorState,
          State ChainIndex,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError,
-         Fail
+         Error MockChainError
        ]
       effs
   ) =>
@@ -275,19 +212,6 @@ runMockChainReadChainEmul = interpret $ \case
       _ -> throw $ MCEUnknownOutRef oRef
   AllUtxos -> fetchUtxos $ const True
   UtxosAt (Script.toAddress -> addr) -> fetchUtxos $ (== addr) . Script.toAddress
-  CurrentSlot -> gets $ view $ emulatorStateLedgerStateL % to Emulator.getSlot
-  SlotToMSRange slot -> do
-    slotConfig <- gets $ Emulator.pSlotConfig . emulatorStateParams
-    case Emulator.slotToPOSIXTimeRange slotConfig slot of
-      Api.Interval
-        (Api.LowerBound (Api.Finite l) leftclosed)
-        (Api.UpperBound (Api.Finite r) rightclosed) ->
-          return
-            ( if leftclosed then l else l + 1,
-              if rightclosed then r else r - 1
-            )
-      _ -> fail "Unexpected unbounded slot: please report a bug at https://github.com/tweag/cooked-validators/issues"
-  GetEnclosingSlot t -> gets $ (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotConfig . emulatorStateParams
   GetConstitutionScript -> gets $ view chainIndexConstitutionL
   GetCurrentReward (Script.toCredential -> cred) -> do
     stakeCredential <- toStakeCredential cred
@@ -320,7 +244,6 @@ runMockChainReadChainNode ::
          Error Cardano.UnsupportedNtcVersionError,
          Error Cardano.EraMismatch,
          Error Cardano.AcquiringFailure,
-         Error Cardano.PastHorizonException,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          Reader Cardano.LocalNodeConnectInfo,
@@ -331,19 +254,6 @@ runMockChainReadChainNode ::
   Sem (MockChainReadChain : effs) a ->
   Sem effs a
 runMockChainReadChainNode = interpret $ \case
-  CurrentSlot -> ask >>= fmap chainTipSlot . embed . Cardano.getLocalChainTip
-  SlotToMSRange slot -> do
-    eraHistory <- getEraHistory
-    systemStart <- getSystemStart
-    (relStart, slotLen) <- fromEither $ Cardano.getProgress (toSlotNo slot) eraHistory
-    let startUTC = Time.fromRelativeTime systemStart relStart
-        endUTC = Time.getSlotLength slotLen `addUTCTime` startUTC
-    return (utcToPOSIXTime startUTC, utcToPOSIXTime endUTC - 1)
-  GetEnclosingSlot t -> do
-    eraHistory <- getEraHistory
-    systemStart <- getSystemStart
-    let relTime = Time.toRelativeTime systemStart $ posixTimeToUTC t
-    fromSlotNo <$> fromEither (Cardano.getSlotForRelativeTime relTime eraHistory)
   AllUtxos -> queryUtxosAndHandleErrors Cardano.QueryUTxOWhole
   UtxosAt (Script.toAddress -> addr) -> do
     networkId <- getNetworkId
@@ -425,17 +335,6 @@ runMockChainReadChainNode = interpret $ \case
         Map.mapWithKey
           (\oRef txSkelOut -> maybe txSkelOut fst $ Map.lookup oRef knownUtxos)
           (Map.mapKeysMonotonic P.Ledger.fromCardanoTxIn $ convertUtxo <$> Cardano.unUTxO utxo)
-    -- Retrieves the Plutus slot number from a chain tip
-    chainTipSlot Cardano.ChainTipAtGenesis = P.Ledger.Slot 0
-    chainTipSlot (Cardano.ChainTip slotNo _ _) = fromSlotNo slotNo
-    -- Converts a Plutus slot to a Cardano slot
-    toSlotNo = Cardano.SlotNo . fromInteger . P.Ledger.getSlot
-    -- Converts a Cardano slot to a Plutus slot
-    fromSlotNo (Cardano.SlotNo w) = P.Ledger.Slot (toInteger w)
-    -- Converts a POSIX time to a UTC time
-    posixTimeToUTC = posixSecondsToUTCTime . fromRational . (/ 1000) . toRational . Api.getPOSIXTime
-    -- Converts a UTC time to a POSIX time
-    utcToPOSIXTime = Api.POSIXTime . round . (1000 *) . utcTimeToPOSIXSeconds
     convertUtxo :: Cardano.TxOut Cardano.CtxUTxO Cardano.ConwayEra -> TxSkelOut
     convertUtxo (Cardano.TxOut (P.Ledger.toPlutusAddress -> (Api.Address cred stCred)) val dat refScript) =
       TxSkelOut

@@ -12,7 +12,6 @@ where
 
 import Cooked.MockChain.Common
 import Cooked.Skeleton.User
-import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
@@ -52,8 +51,6 @@ data MockChainError
     MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
   | -- | A UTxO is missing from the mockchain state
     MCEUnknownOutRef Api.TxOutRef
-  | -- | A jump in time would result in a past slot
-    MCEPastSlot P.Ledger.Slot P.Ledger.Slot
   | -- | An attempt to invoke an unsupported feature has been made
     MCEUnsupportedFeature String
   | -- | An attempt to spend a script output whose datum is only known by its

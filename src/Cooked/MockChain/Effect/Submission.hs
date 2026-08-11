@@ -14,8 +14,6 @@ module Cooked.MockChain.Effect.Submission
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Ledger.Conway qualified as Conway
-import Cardano.Ledger.Conway.Rules qualified as Conway
 import Cardano.Ledger.Shelley.API.Mempool qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.MockChain.Common
@@ -30,6 +28,7 @@ import Polysemy.Fail
 import Polysemy.Reader
 import Polysemy.State
 
+-- | An effect allow to submit a transaction for validation
 data MockChainSubmit :: Effect where
   SubmitTransaction :: Transaction -> MockChainSubmit m SubmissionFailures
 
@@ -40,7 +39,7 @@ makeSem_ ''MockChainSubmit
 submitTransaction ::
   (Member MockChainSubmit effs) =>
   Transaction ->
-  Sem effs [Conway.ConwayLedgerPredFailure Conway.ConwayEra]
+  Sem effs SubmissionFailures
 
 -- | Interprets the `MockChainSubmit` effect on an emulator
 runMockChainSubmitEmul ::

@@ -113,11 +113,6 @@ instance PrettyCooked MockChainError where
       <+> "with script hash:"
       <+> prettyHash opts scriptHash
       <+> "; the full script must be provided through a matching reference input."
-  prettyCookedOpt _ (MCEPastSlot current target) =
-    "Unable to move back in time; current slot:"
-      <+> PP.viaShow current
-      <+> "; target slot:"
-      <+> PP.viaShow target
   prettyCookedOpt _ (MCEFailure msg) = "Failed with:" <+> PP.pretty msg
 
 instance PrettyCooked (Contextualized [MockChainLogEntry]) where

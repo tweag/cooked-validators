@@ -1,6 +1,6 @@
 module Spec.Slot (tests) where
 
-import Cooked.MockChain.Effect.Read.Chain
+import Cooked.MockChain.Effect.Time
 import Cooked.MockChain.Runtime.Error
 import Cooked.MockChain.Runtime.State
 import Data.Default
@@ -16,7 +16,7 @@ import Test.Tasty.QuickCheck
 
 runSlot ::
   Sem
-    '[ MockChainReadChain,
+    '[ MockChainTime,
        State EmulatorState,
        State ChainIndex,
        Fail,
@@ -32,7 +32,7 @@ runSlot =
     . runFailInMockChainError
     . evalState def
     . evalState def
-    . runMockChainReadChainEmul
+    . runMockChainTimeEmul
 
 tests :: TestTree
 tests =

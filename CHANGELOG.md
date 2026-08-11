@@ -24,6 +24,14 @@
 
 ### Changed
 
+- Time-related primitives have been regrouped into a new dedicated
+  `Cooked.MockChain.Effect.Time.MockChainTime` effect. The time queries
+  (`currentSlot`, `currentMSRange`, `getEnclosingSlot`, `slotToMSRange`,
+  `slotRangeBefore`, `slotRangeAfter`) that used to live in `MockChainReadChain`
+  and the waiting primitives (`waitNSlots`, `awaitSlot`, `awaitEnclosingSlot`,
+  `waitNMSFromSlotLowerBound`, `waitNMSFromSlotUpperBound`) that used to live in
+  `MockChainWrite` are now all provided by `MockChainTime`, with `waitNSlots` as
+  its sole state-modifying primitive.
 - The former `MockChainState` has been split into two independent records, each
   backed by its own state monad: `EmulatorState` (the emulator `Params` and
   `EmulatedLedgerState`, only relevant when running against the emulated ledger)
