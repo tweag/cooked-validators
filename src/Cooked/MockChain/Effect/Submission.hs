@@ -8,8 +8,8 @@ module Cooked.MockChain.Effect.Submission
     submitTransaction,
 
     -- * Interpretation functions
-    runMockChainSubmitEmul,
-    runMockChainSubmitNode,
+    runMockChainSubmit,
+    runBlockChainSubmit,
   )
 where
 
@@ -42,12 +42,12 @@ submitTransaction ::
   Sem effs SubmissionFailures
 
 -- | Interprets the `MockChainSubmit` effect on an emulator
-runMockChainSubmitEmul ::
+runMockChainSubmit ::
   forall effs a.
   (Member (State EmulatorState) effs) =>
   Sem (MockChainSubmit : effs) a ->
   Sem effs a
-runMockChainSubmitEmul = interpret $ \case
+runMockChainSubmit = interpret $ \case
   SubmitTransaction cardanoTx -> do
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets emulatorStateLedgerState
@@ -66,7 +66,7 @@ runMockChainSubmitEmul = interpret $ \case
 -- transaction to a deployed node through a `Cardano.LocalNodeConnectInfo`
 -- (socket path and network id) provided via a `Reader`, running in a stack
 -- featuring @IO@ (via `Embed`).
-runMockChainSubmitNode ::
+runBlockChainSubmit ::
   forall effs a.
   ( Members
       '[ Embed IO,
@@ -79,7 +79,7 @@ runMockChainSubmitNode ::
   ) =>
   Sem (MockChainSubmit : effs) a ->
   Sem effs a
-runMockChainSubmitNode = interpret $ \case
+runBlockChainSubmit = interpret $ \case
   SubmitTransaction cardanoTx -> do
     -- We retrieve the local node connection info.
     conn <- ask

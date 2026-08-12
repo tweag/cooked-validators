@@ -11,8 +11,8 @@ module Cooked.MockChain.Effect.Read.Chain
     MockChainReadChain,
 
     -- * 'MockChainReadChain' interpreters
-    runMockChainReadChainEmul,
-    runMockChainReadChainNode,
+    runMockChainReadChain,
+    runBlockChainReadChain,
 
     -- * Queries related to `Cooked.Skeleton.TxSkel`
     txSkelAllScripts,
@@ -192,7 +192,7 @@ getCurrentReward ::
 
 -- | The interpretation for read-only effect with a stored 'EmulatorState' and
 -- 'ChainIndex'
-runMockChainReadChainEmul ::
+runMockChainReadChain ::
   forall effs a.
   ( Members
       '[ State EmulatorState,
@@ -204,7 +204,7 @@ runMockChainReadChainEmul ::
   ) =>
   Sem (MockChainReadChain : effs) a ->
   Sem effs a
-runMockChainReadChainEmul = interpret $ \case
+runMockChainReadChain = interpret $ \case
   TxSkelOutByRef oRef -> do
     res <- gets $ Map.lookup oRef . chainIndexOutputs
     case res of
@@ -236,7 +236,7 @@ runMockChainReadChainEmul = interpret $ \case
 -- provided via a `Reader`, running in a stack featuring @IO@ (via `Embed`). The
 -- fixed chain configuration is resolved through the internal
 -- 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect.
-runMockChainReadChainNode ::
+runBlockChainReadChain ::
   forall effs a.
   ( Members
       '[ Embed IO,
@@ -253,7 +253,7 @@ runMockChainReadChainNode ::
   ) =>
   Sem (MockChainReadChain : effs) a ->
   Sem effs a
-runMockChainReadChainNode = interpret $ \case
+runBlockChainReadChain = interpret $ \case
   AllUtxos -> queryUtxosAndHandleErrors Cardano.QueryUTxOWhole
   UtxosAt (Script.toAddress -> addr) -> do
     networkId <- getNetworkId

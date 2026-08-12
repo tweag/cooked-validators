@@ -11,8 +11,8 @@ module Cooked.MockChain.Effect.Time
     MockChainTime,
 
     -- * 'MockChainTime' interpreters
-    runMockChainTimeEmul,
-    runMockChainTimeNode,
+    runMockChainTime,
+    runBlockChainTime,
 
     -- * Queries related to the current time
     currentSlot,
@@ -139,7 +139,7 @@ waitNMSFromSlotUpperBound :: (Members '[MockChainTime, Fail] effs) => Integer ->
 waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | The interpretation for the time effect with a stored 'EmulatorState'
-runMockChainTimeEmul ::
+runMockChainTime ::
   forall effs a.
   ( Members
       '[ State EmulatorState,
@@ -149,7 +149,7 @@ runMockChainTimeEmul ::
   ) =>
   Sem (MockChainTime : effs) a ->
   Sem effs a
-runMockChainTimeEmul = interpret $ \case
+runMockChainTime = interpret $ \case
   CurrentSlot -> gets $ view $ emulatorStateLedgerStateL % to Emulator.getSlot
   SlotToMSRange slot -> do
     slotConfig <- gets $ Emulator.pSlotConfig . emulatorStateParams
@@ -180,7 +180,7 @@ runMockChainTimeEmul = interpret $ \case
 -- performed by suspending the thread for the appropriate amount of time. The
 -- fixed chain configuration is resolved through the internal
 -- 'Cooked.MockChain.Effect.Read.Conf.MockChainReadConf' effect.
-runMockChainTimeNode ::
+runBlockChainTime ::
   forall effs a.
   ( Members
       '[ Embed IO,
@@ -192,7 +192,7 @@ runMockChainTimeNode ::
   ) =>
   Sem (MockChainTime : effs) a ->
   Sem effs a
-runMockChainTimeNode = interpret $ \case
+runBlockChainTime = interpret $ \case
   CurrentSlot -> getNodeSlot
   SlotToMSRange slot -> slotToMS slot
   GetEnclosingSlot t -> do

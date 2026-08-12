@@ -10,8 +10,8 @@ module Cooked.MockChain.Effect.Read.Conf
     MockChainReadConf,
 
     -- * 'MockChainReadConf' interpreters
-    runMockChainReadConfEmul,
-    runMockChainReadConfNode,
+    runMockChainReadConf,
+    runBlockChainReadConf,
 
     -- * Queries related to protocol parameters
     getParams,
@@ -64,11 +64,11 @@ makeSem_ ''MockChainReadConf
 
 -- | The interpretation for the configuration effect with a stored
 -- 'EmulatorState'
-runMockChainReadConfEmul ::
+runMockChainReadConf ::
   (Member (State EmulatorState) effs) =>
   Sem (MockChainReadConf : effs) a ->
   Sem effs a
-runMockChainReadConfEmul = interpret $ \case
+runMockChainReadConf = interpret $ \case
   GetParams -> gets $ Emulator.pEmulatorPParams . emulatorStateParams
   GetNetworkId -> gets $ Emulator.pNetworkId . emulatorStateParams
   GetEraHistory -> gets $ Emulator.emulatorEraHistory . emulatorStateParams
@@ -77,7 +77,7 @@ runMockChainReadConfEmul = interpret $ \case
 -- | Interpret the `MockChainReadConf` effect by talking to a deployed node
 -- through a `Cardano.LocalNodeConnectInfo` (socket path and network id) provided
 -- via a `Reader`, running in a stack featuring @IO@ (via `Embed`).
-runMockChainReadConfNode ::
+runBlockChainReadConf ::
   ( Members
       '[ Embed IO,
          Error Cardano.UnsupportedNtcVersionError,
@@ -89,7 +89,7 @@ runMockChainReadConfNode ::
   ) =>
   Sem (MockChainReadConf : effs) a ->
   Sem effs a
-runMockChainReadConfNode = interpret $ \case
+runBlockChainReadConf = interpret $ \case
   GetParams -> queryAndHandleErrors $ Cardano.queryProtocolParameters Cardano.ShelleyBasedEraConway
   GetNetworkId -> asks Cardano.localNodeNetworkId
   GetEraHistory -> queryAndHandleError Cardano.queryEraHistory

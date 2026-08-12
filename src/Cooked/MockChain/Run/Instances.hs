@@ -92,14 +92,14 @@ instance RunnableMockChain DirectEffs where
       . runState ciInit
       . runState emInit
       . runError
-      . runToCardanoErrorInMockChainError
+      . mapError MCEToCardanoError
       . runFailInMockChainError
       . runMockChainMisc fromAlias fromNote fromAssert
-      . runMockChainReadConfEmul
-      . runMockChainTimeEmul
-      . runMockChainReadChainEmul
+      . runMockChainReadConf
+      . runMockChainTime
+      . runMockChainReadChain
       . runMockChainWrite
-      . runMockChainSubmitEmul
+      . runMockChainSubmit
       . runMockChainValidate
       . insertAt @1
         @'[ MockChainSubmit
@@ -169,16 +169,16 @@ instance RunnableMockChain FullEffs where
       . runState ciInit
       . runState emInit
       . runError
-      . runToCardanoErrorInMockChainError
+      . mapError MCEToCardanoError
       . runFailInMockChainError
-      . runMockChainReadConfEmul
-      . runMockChainTimeEmul
-      . runMockChainReadChainEmul
+      . runMockChainReadConf
+      . runMockChainTime
+      . runMockChainReadChain
       . runMockChainMisc fromAlias fromNote fromAssert
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . runMockChainSubmitEmul
+      . runMockChainSubmit
       . runMockChainValidate
       . insertAt @1
         @'[ MockChainSubmit
@@ -232,17 +232,17 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runState ciInit
       . runState emInit
       . runError
-      . runToCardanoErrorInMockChainError
+      . mapError MCEToCardanoError
       . runFailInMockChainError
-      . runMockChainReadConfEmul
-      . runMockChainTimeEmul
-      . runMockChainReadChainEmul
+      . runMockChainReadConf
+      . runMockChainTime
+      . runMockChainReadChain
       . runMockChainMisc fromAlias fromNote fromAssert
       . runInterpretAlone
       . evalState []
       . runModifyLocally
       . runMockChainWrite
-      . runMockChainSubmitEmul
+      . runMockChainSubmit
       . runMockChainValidate
       . insertAt @1
         @'[ MockChainSubmit

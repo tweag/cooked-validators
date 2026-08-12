@@ -4,8 +4,7 @@ module Cooked.MockChain.Runtime.Error
     BalancingError (..),
     MockChainError (..),
 
-    -- * Interpreting effects into `Error MockChainError`
-    runToCardanoErrorInMockChainError,
+    -- * Interpreting Fail into @Error MockChainError@
     runFailInMockChainError,
   )
 where
@@ -62,14 +61,6 @@ data MockChainError
   | -- | Used to provide 'MonadFail' instances.
     MCEFailure String
   deriving (Show, Eq)
-
--- | Interpreting `P.Ledger.ToCardanoError` in terms of `MockChainError`
-runToCardanoErrorInMockChainError ::
-  forall effs a.
-  (Member (Error MockChainError) effs) =>
-  Sem (Error P.Ledger.ToCardanoError : effs) a ->
-  Sem effs a
-runToCardanoErrorInMockChainError = mapError MCEToCardanoError
 
 -- | Interpreting failures in terms of `MockChainError`
 runFailInMockChainError ::

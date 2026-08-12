@@ -28,11 +28,11 @@ runSlot ::
 runSlot =
   run
     . runError
-    . runToCardanoErrorInMockChainError
+    . mapError MCEToCardanoError
     . runFailInMockChainError
     . evalState def
     . evalState def
-    . runMockChainTimeEmul
+    . runMockChainTime
 
 tests :: TestTree
 tests =
