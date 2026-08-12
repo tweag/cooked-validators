@@ -1,0 +1,72 @@
+-- | This module exposes the errors that can be raised during a mockchain run
+module Cooked.Runtime.Error
+  ( -- * Mockchain errors
+    BalancingError (..),
+    MockChainError (..),
+
+    -- * Interpreting Fail into @Error MockChainError@
+    runFailInMockChainError,
+  )
+where
+
+import Cooked.Common
+import Cooked.Skeleton.User
+import Ledger.Tx qualified as P.Ledger
+import PlutusLedgerApi.V3 qualified as Api
+import Polysemy
+import Polysemy.Error
+import Polysemy.Fail
+
+-- | Errors that can be produced during balancing
+data BalancingError
+  = -- | The balancing user theoretically has enough funds to balancing the
+    -- transaction, but this balancing results in a surplus payment which they
+    -- cannot afford ADA-wise.
+    NotEnoughFundForExtraMinAda Peer
+  | -- | The balancing does not have enough funds to sustain the fee required to
+    -- balance the transaction.
+    NotEnoughFundForProperFee Peer
+  | -- | The balancing wallet does not have enough funds to balance the
+    -- transaction
+    NotEnoughFund Peer Api.Value
+  | -- | The provided of collateral UTxOs does not have enough funds to cover
+    -- the potential collateral cost
+    NoSuitableCollateral Integer Integer Api.Value
+  | -- | The balancing user has not be provided, but the balancing requires it
+    MissingBalancingUser
+  deriving (Show, Eq)
+
+-- | Errors that can be produced by the blockchain
+data MockChainError
+  = -- | Failures occurring while computing execution units
+    MCEExUnitsFailures ExUnitsFailures
+  | -- | Failures occurring while submitting the transaction for validation
+    MCESubmissionFailures SubmissionFailures
+  | -- | Balancing errors
+    MCEBalancingError BalancingError
+  | -- | Translating a skeleton element to its Cardano counterpart failed
+    MCEToCardanoError P.Ledger.ToCardanoError
+  | -- | The required reference script is missing from a witness utxo
+    MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
+  | -- | A UTxO is missing from the mockchain state
+    MCEUnknownOutRef Api.TxOutRef
+  | -- | An attempt to invoke an unsupported feature has been made
+    MCEUnsupportedFeature String
+  | -- | An attempt to spend a script output whose datum is only known by its
+    -- hash, which does not provide the datum content required by the witness
+    MCESpendingHashOnlyDatum Api.TxOutRef Api.DatumHash
+  | -- | An attempt to spend a script output whose script is only known by its
+    -- hash, without providing the full script through a matching reference input
+    MCESpendingHashOnlyScript Api.TxOutRef Api.ScriptHash
+  | -- | Used to provide 'MonadFail' instances.
+    MCEFailure String
+  deriving (Show, Eq)
+
+-- | Interpreting failures in terms of `MockChainError`
+runFailInMockChainError ::
+  forall effs a.
+  (Member (Error MockChainError) effs) =>
+  Sem (Fail : effs) a ->
+  Sem effs a
+runFailInMockChainError = interpret $
+  \(Fail s) -> throw $ MCEFailure s

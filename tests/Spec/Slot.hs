@@ -1,8 +1,8 @@
 module Spec.Slot (tests) where
 
-import Cooked.MockChain.Effect.Time
-import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.Runtime.State
+import Cooked.Effect.Time
+import Cooked.Runtime.Error
+import Cooked.Runtime.State
 import Data.Default
 import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger

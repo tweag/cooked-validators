@@ -4,14 +4,14 @@
 -- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
-import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Run.Runnable
-import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.Runtime.Journal
-import Cooked.MockChain.Runtime.State
+import Cooked.Effect.Log
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
+import Cooked.Run.Runnable
+import Cooked.Runtime.Error
+import Cooked.Runtime.Journal
+import Cooked.Runtime.State
 import Cooked.Skeleton.User
 import Cooked.Wallet (walletPKHashToId)
 import Data.Function (on)
