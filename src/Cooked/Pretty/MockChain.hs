@@ -13,7 +13,7 @@ import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State
 import Cooked.Skeleton.User
-import Cooked.Wallet (walletPKHashToId)
+import Cooked.Utilities.Wallet (walletPKHashToId)
 import Data.Function (on)
 import Data.List (intersperse)
 import Data.List qualified as List

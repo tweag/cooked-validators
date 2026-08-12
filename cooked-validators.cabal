@@ -13,7 +13,6 @@ build-type:     Simple
 library
   exposed-modules:
       Cooked
-      Cooked.Aliases
       Cooked.Attack
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DatumTampering
@@ -52,10 +51,9 @@ library
       Cooked.Effect.Time
       Cooked.Effect.Validation
       Cooked.Effect.Write
-      Cooked.Families
-      Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.Instances
+      Cooked.MockChain.Ltl
       Cooked.MockChain.Runnable
       Cooked.MockChain.Testing
       Cooked.MockChain.Tweak
@@ -70,7 +68,6 @@ library
       Cooked.Runtime.Error
       Cooked.Runtime.Journal
       Cooked.Runtime.State
-      Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Skeleton.Anchor
       Cooked.Skeleton.Certificate
@@ -94,7 +91,11 @@ library
       Cooked.Tweak.Query
       Cooked.Tweak.Remove
       Cooked.Tweak.Update
-      Cooked.Wallet
+      Cooked.Utilities
+      Cooked.Utilities.Aliases
+      Cooked.Utilities.Families
+      Cooked.Utilities.ShowBS
+      Cooked.Utilities.Wallet
   other-modules:
       Paths_cooked_validators
   autogen-modules:

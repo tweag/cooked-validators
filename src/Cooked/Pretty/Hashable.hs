@@ -6,7 +6,7 @@ module Cooked.Pretty.Hashable
   )
 where
 
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script

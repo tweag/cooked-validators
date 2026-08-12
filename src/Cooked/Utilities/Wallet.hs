@@ -3,7 +3,7 @@
 -- | This module defines convenient wrappers for mock chain wallets (around
 -- Plutus mock wallets) with an associate API to construct them, manipulate
 -- them, and fetch information (such as public/private and staking keys).
-module Cooked.Wallet
+module Cooked.Utilities.Wallet
   ( knownWallets,
     wallet,
     walletPKHashToId,

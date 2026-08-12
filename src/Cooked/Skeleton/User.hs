@@ -37,8 +37,8 @@ module Cooked.Skeleton.User
   )
 where
 
-import Cooked.Families
 import Cooked.Skeleton.Redeemer
+import Cooked.Utilities.Families
 import Data.Kind
 import Data.Typeable
 import Optics.Core

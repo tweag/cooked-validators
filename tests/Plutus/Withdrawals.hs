@@ -2,7 +2,7 @@
 
 module Plutus.Withdrawals where
 
-import Cooked.ShowBS
+import Cooked.Utilities.ShowBS
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx

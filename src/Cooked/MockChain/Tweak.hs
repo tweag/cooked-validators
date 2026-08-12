@@ -20,7 +20,7 @@ where
 
 import Control.Monad
 import Cooked.Effect.Validation
-import Cooked.Ltl
+import Cooked.MockChain.Ltl
 import Cooked.Tweak.Common
 import Polysemy
 import Polysemy.Internal

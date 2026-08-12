@@ -1,5 +1,5 @@
 -- | This module exposes some type aliases common to our library
-module Cooked.Aliases
+module Cooked.Utilities.Aliases
   ( -- * Type aliases
     Fee,
     CollateralIns,

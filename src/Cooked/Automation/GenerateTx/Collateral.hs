@@ -6,12 +6,12 @@ module Cooked.Automation.GenerateTx.Collateral
 where
 
 import Cardano.Api qualified as Cardano
-import Cooked.Aliases
 import Cooked.Automation.GenerateTx.Output
 import Cooked.Effect.Read.Chain
 import Cooked.Effect.Read.Conf
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
+import Cooked.Utilities.Aliases
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as P.Ledger

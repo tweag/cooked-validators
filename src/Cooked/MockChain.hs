@@ -4,6 +4,7 @@
 module Cooked.MockChain (module X) where
 
 import Cooked.MockChain.Instances as X
+import Cooked.MockChain.Ltl as X
 import Cooked.MockChain.Runnable as X
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.Tweak as X

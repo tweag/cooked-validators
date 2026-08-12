@@ -7,7 +7,7 @@ module Cooked.Pretty.Skeleton (Contextualized (..)) where
 import Cooked.Pretty.Class
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
-import Cooked.Wallet (Wallet)
+import Cooked.Utilities.Wallet (Wallet)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)

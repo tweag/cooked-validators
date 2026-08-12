@@ -12,7 +12,6 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Monad
-import Cooked.Aliases
 import Cooked.Automation.GenerateTx.Certificate
 import Cooked.Automation.GenerateTx.Collateral
 import Cooked.Automation.GenerateTx.Input
@@ -26,6 +25,7 @@ import Cooked.Effect.Read.Chain
 import Cooked.Effect.Read.Conf
 import Cooked.Runtime.Error
 import Cooked.Skeleton
+import Cooked.Utilities.Aliases
 import Data.Bifunctor (first)
 import Data.Map qualified as Map
 import Data.Set qualified as Set

@@ -20,7 +20,6 @@ where
 
 import Cardano.Api qualified as Cardano
 import Control.Monad
-import Cooked.Aliases
 import Cooked.Automation
 import Cooked.Effect.Log
 import Cooked.Effect.Read.Chain
@@ -29,6 +28,7 @@ import Cooked.Effect.Submission
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
+import Cooked.Utilities.Aliases
 import Data.Foldable.Extra
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set

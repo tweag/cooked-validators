@@ -14,7 +14,6 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Control.Monad
-import Cooked.Aliases
 import Cooked.Automation.AutoFilling.MinAda
 import Cooked.Automation.GenerateTx.Body
 import Cooked.Automation.GenerateTx.Output
@@ -23,6 +22,7 @@ import Cooked.Effect.Read.Chain
 import Cooked.Effect.Read.Conf
 import Cooked.Runtime.Error
 import Cooked.Skeleton
+import Cooked.Utilities.Aliases
 import Data.ByteString qualified as BS
 import Data.Foldable.Extra
 import Data.Map qualified as Map

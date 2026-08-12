@@ -3,7 +3,7 @@
 -- | This module exposes some type families used to either directly constraint
 -- values within our skeletons, or constraint inputs of smart constructors for
 -- components of these skeletons.
-module Cooked.Families
+module Cooked.Utilities.Families
   ( -- * Type-level constraints
     type (∈),
     type (∉),

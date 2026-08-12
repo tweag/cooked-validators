@@ -16,7 +16,7 @@ module Cooked.Skeleton.Signatory
 where
 
 import Cardano.Crypto.Wallet qualified as Crypto
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.V3 qualified as Script

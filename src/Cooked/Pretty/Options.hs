@@ -11,7 +11,7 @@ module Cooked.Pretty.Options
 where
 
 import Cooked.Pretty.Hashable
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)

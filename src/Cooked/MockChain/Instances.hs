@@ -55,7 +55,7 @@ import Cooked.Effect.Submission
 import Cooked.Effect.Time
 import Cooked.Effect.Validation
 import Cooked.Effect.Write
-import Cooked.Ltl
+import Cooked.MockChain.Ltl
 import Cooked.MockChain.Runnable
 import Cooked.MockChain.Tweak
 import Cooked.Runtime.Error

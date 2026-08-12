@@ -17,9 +17,9 @@ module Cooked.Skeleton.Certificate
   )
 where
 
-import Cooked.Families
 import Cooked.Skeleton.Redeemer
 import Cooked.Skeleton.User
+import Cooked.Utilities.Families
 import Data.Kind (Type)
 import Data.Typeable (Typeable, cast)
 import Ledger.Slot qualified as P.Ledger

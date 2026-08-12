@@ -30,11 +30,11 @@ module Cooked.Skeleton.Output
   )
 where
 
-import Cooked.Families
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.User
 import Cooked.Skeleton.Value ()
-import Cooked.Wallet
+import Cooked.Utilities.Families
+import Cooked.Utilities.Wallet
 import Data.Kind
 import Data.Typeable
 import Optics.Core

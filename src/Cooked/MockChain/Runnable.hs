@@ -30,7 +30,7 @@ import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State
 import Cooked.Skeleton.Output
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Data.Default
 import Data.List (foldl')
 import Data.Map (Map)

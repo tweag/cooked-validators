@@ -20,7 +20,6 @@ import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad
-import Cooked.Aliases
 import Cooked.Automation.AutoFilling.MinAda
 import Cooked.Automation.GenerateTx.Body
 import Cooked.Automation.GenerateTx.Output
@@ -30,6 +29,7 @@ import Cooked.Effect.Read.Conf
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
+import Cooked.Utilities.Aliases
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
