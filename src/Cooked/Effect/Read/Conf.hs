@@ -3,7 +3,7 @@
 -- id, era history and system start. These primitives are not meant to be used
 -- directly when writing traces: they are an implementation detail backing the
 -- user-facing 'Cooked.Effect.Read.Chain.MockChainReadChain' effect,
--- and they are deliberately not meant to be used directly through the 'Cooked'
+-- and they are deliberately not meant to be used directly through the "Cooked"
 -- umbrella module.
 module Cooked.Effect.Read.Conf
   ( -- * The 'MockChainReadConf' effect
