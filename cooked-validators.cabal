@@ -40,8 +40,9 @@ library
       Cooked.Automation.GenerateTx.Withdrawals
       Cooked.Automation.GenerateTx.Witness
       Cooked.BlockChain
+      Cooked.BlockChain.Config
       Cooked.BlockChain.Instances
-      Cooked.BlockChain.Runnable
+      Cooked.BlockChain.Run
       Cooked.Effect
       Cooked.Effect.Log
       Cooked.Effect.Misc
