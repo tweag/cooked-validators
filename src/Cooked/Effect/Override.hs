@@ -2,10 +2,10 @@
 
 -- | This module exposes primitives to manually (and artificially) update the
 -- current state of the blockchain.
-module Cooked.Effect.Write
-  ( -- * The `MockChainWrite` effect
-    MockChainWrite (..),
-    runMockChainWrite,
+module Cooked.Effect.Override
+  ( -- * The `Override` effect
+    Override (..),
+    runMockChainOverride,
 
     -- * Other operations
     setParams,
@@ -24,8 +24,8 @@ import Cooked.Automation.AutoFilling.MinAda
 import Cooked.Automation.GenerateTx.Body
 import Cooked.Automation.GenerateTx.Output
 import Cooked.Effect.Log
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
@@ -43,30 +43,30 @@ import Polysemy.State
 
 -- | An effect that offers all the primitives that are performing modifications
 -- on the blockchain state.
-data MockChainWrite :: Effect where
-  SetParams :: Emulator.Params -> MockChainWrite m ()
-  SetConstitutionScript :: (ToVScript s) => s -> MockChainWrite m ()
-  ForceOutputs :: [TxSkelOut] -> MockChainWrite m Utxos
+data Override :: Effect where
+  SetParams :: Emulator.Params -> Override m ()
+  SetConstitutionScript :: (ToVScript s) => s -> Override m ()
+  ForceOutputs :: [TxSkelOut] -> Override m Utxos
 
-makeSem_ ''MockChainWrite
+makeSem_ ''Override
 
--- | Interprets the `MockChainWrite` effect
-runMockChainWrite ::
+-- | Interprets the `Override` effect
+runMockChainOverride ::
   forall effs a.
   ( Members
       '[ State EmulatorState,
          State ChainIndex,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
-         MockChainLog,
-         MockChainReadChain,
-         MockChainReadConf
+         Log,
+         Query,
+         Params
        ]
       effs
   ) =>
-  Sem (MockChainWrite : effs) a ->
+  Sem (Override : effs) a ->
   Sem effs a
-runMockChainWrite = interpret $ \case
+runMockChainOverride = interpret $ \case
   SetParams params -> do
     modify $ set emulatorStateParamsL params
     modify $ over emulatorStateLedgerStateL $ Emulator.updateStateParams params
@@ -102,16 +102,16 @@ runMockChainWrite = interpret $ \case
     return $ Map.fromList outputsList
 
 -- | Updates the current parameters
-setParams :: (Member MockChainWrite effs) => Emulator.Params -> Sem effs ()
+setParams :: (Member Override effs) => Emulator.Params -> Sem effs ()
 
 -- | Sets the current script to act as the official constitution script
-setConstitutionScript :: (Member MockChainWrite effs, ToVScript s) => s -> Sem effs ()
+setConstitutionScript :: (Member Override effs, ToVScript s) => s -> Sem effs ()
 
 -- | Forces the generation of utxos corresponding to certain
 -- `TxSkelOut`. Returns the created UTxOs, which might differ from the original
 -- list if some min ADA adjustment occurred.
-forceOutputs :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs Utxos
+forceOutputs :: (Member Override effs) => [TxSkelOut] -> Sem effs Utxos
 
 -- | Same as `forceOutputs`, but discards the returned outputs
-forceOutputs_ :: (Member MockChainWrite effs) => [TxSkelOut] -> Sem effs ()
+forceOutputs_ :: (Member Override effs) => [TxSkelOut] -> Sem effs ()
 forceOutputs_ = void . forceOutputs

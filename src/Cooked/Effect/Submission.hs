@@ -1,10 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
--- | This module exposes the 'MockChainSubmit' effect, which is responsible for
+-- | This module exposes the 'Submit' effect, which is responsible for
 -- submitting a Cardano transaction for validation.
 module Cooked.Effect.Submission
-  ( -- * The 'MockChainSubmit' effect
-    MockChainSubmit (..),
+  ( -- * The 'Submit' effect
+    Submit (..),
     submitTransaction,
 
     -- * Interpretation functions
@@ -16,7 +16,7 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Shelley.API.Mempool qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
 import Cooked.Runtime.State
 import Cooked.Utilities.Aliases
 import Data.Foldable.Extra
@@ -29,23 +29,23 @@ import Polysemy.Reader
 import Polysemy.State
 
 -- | An effect allow to submit a transaction for validation
-data MockChainSubmit :: Effect where
-  SubmitTransaction :: Transaction -> MockChainSubmit m SubmissionFailures
+data Submit :: Effect where
+  SubmitTransaction :: Transaction -> Submit m SubmissionFailures
 
-makeSem_ ''MockChainSubmit
+makeSem_ ''Submit
 
 -- | Submits a transaction for validation, returning a (possibly empty) list of
 -- submission failures.
 submitTransaction ::
-  (Member MockChainSubmit effs) =>
+  (Member Submit effs) =>
   Transaction ->
   Sem effs SubmissionFailures
 
--- | Interprets the `MockChainSubmit` effect on an emulator
+-- | Interprets the `Submit` effect on an emulator
 runMockChainSubmit ::
   forall effs a.
   (Member (State EmulatorState) effs) =>
-  Sem (MockChainSubmit : effs) a ->
+  Sem (Submit : effs) a ->
   Sem effs a
 runMockChainSubmit = interpret $ \case
   SubmitTransaction cardanoTx -> do
@@ -62,7 +62,7 @@ runMockChainSubmit = interpret $ \case
     -- We return the validation result
     return submissionFailures
 
--- | Interprets the `MockChainSubmit` effect by submitting the generated
+-- | Interprets the `Submit` effect by submitting the generated
 -- transaction to a deployed node through a `Cardano.LocalNodeConnectInfo`
 -- (socket path and network id) provided via a `Reader`, running in a stack
 -- featuring @IO@ (via `Embed`).
@@ -71,13 +71,13 @@ runBlockChainSubmit ::
   ( Members
       '[ Embed IO,
          Error Cardano.EraMismatch,
-         MockChainReadConf,
+         Params,
          Reader Cardano.LocalNodeConnectInfo,
          Fail
        ]
       effs
   ) =>
-  Sem (MockChainSubmit : effs) a ->
+  Sem (Submit : effs) a ->
   Sem effs a
 runBlockChainSubmit = interpret $ \case
   SubmitTransaction cardanoTx -> do

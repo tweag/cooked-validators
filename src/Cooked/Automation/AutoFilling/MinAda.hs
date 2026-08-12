@@ -13,8 +13,8 @@ import Cardano.Ledger.Shelley.Core qualified as Shelley
 import Control.Monad
 import Cooked.Automation.GenerateTx.Output
 import Cooked.Effect.Log
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -28,7 +28,7 @@ import Polysemy.Error
 
 -- | Compute the required minimal ADA for a given output
 getTxSkelOutMinAda ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs Integer
 getTxSkelOutMinAda txSkelOut = do
@@ -45,7 +45,7 @@ getTxSkelOutMinAda txSkelOut = do
 -- will increase the size of the UTXO which in turn might need more ADA.
 toTxSkelOutWithMinAda ::
   forall effs.
-  (Members '[MockChainReadChain, MockChainReadConf, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Log, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
@@ -72,6 +72,6 @@ toTxSkelOutWithMinAda txSkelOut = do
 -- their ada value when requested by the user and required by the protocol
 -- parameters. Logs an event whenever such a change occurs.
 autoFillMinAda ::
-  (Members '[Tweak, MockChainReadChain, MockChainReadConf, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Tweak, Query, Params, Log, Error P.Ledger.ToCardanoError] effs) =>
   Sem effs ()
 autoFillMinAda = traverseTweak (txSkelOutputsL % traversed) toTxSkelOutWithMinAda

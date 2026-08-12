@@ -4,7 +4,7 @@
 -- operating a mockchain without interacting with the mockchain state itself.
 module Cooked.Effect.Misc
   ( -- * Misc effect
-    MockChainMisc (..),
+    Misc (..),
     runMockChainMisc,
     runBlockChainMisc,
 
@@ -43,80 +43,80 @@ import Prettyprinter qualified as PP
 import Prettyprinter.Render.Text qualified as PP
 
 -- | An effect that corresponds to extra QOL capabilities of the MockChain
-data MockChainMisc :: Effect where
-  Define :: (ToHash a) => String -> a -> MockChainMisc m a
-  Note :: (PrettyCookedOpts -> DocCooked) -> MockChainMisc m ()
-  Assert :: (PrettyCookedOpts -> DocCooked) -> Bool -> MockChainMisc m ()
+data Misc :: Effect where
+  Define :: (ToHash a) => String -> a -> Misc m a
+  Note :: (PrettyCookedOpts -> DocCooked) -> Misc m ()
+  Assert :: (PrettyCookedOpts -> DocCooked) -> Bool -> Misc m ()
 
-makeSem_ ''MockChainMisc
+makeSem_ ''Misc
 
 -- | Stores an alias matching a hashable data for pretty printing purpose
-define :: forall effs a. (Member MockChainMisc effs, ToHash a) => String -> a -> Sem effs a
+define :: forall effs a. (Member Misc effs, ToHash a) => String -> a -> Sem effs a
 
 -- | Like `define`, but binds the result of a monadic computation instead
-defineM :: (Member MockChainMisc effs, ToHash a) => String -> Sem effs a -> Sem effs a
+defineM :: (Member Misc effs, ToHash a) => String -> Sem effs a -> Sem effs a
 defineM name = (define name =<<)
 
 -- | Takes note of an element represented as its rendering function to trace at
 -- the end of the run
-note :: forall effs. (Member MockChainMisc effs) => (PrettyCookedOpts -> DocCooked) -> Sem effs ()
+note :: forall effs. (Member Misc effs) => (PrettyCookedOpts -> DocCooked) -> Sem effs ()
 
 -- | Takes note of a pretty-printable element to trace at the end of the run
-noteP :: forall effs s. (Member MockChainMisc effs, PrettyCooked s) => s -> Sem effs ()
+noteP :: forall effs s. (Member Misc effs, PrettyCooked s) => s -> Sem effs ()
 noteP doc = note (`prettyCookedOpt` doc)
 
 -- | Takes note of a pretty-printable element as list with a title, to trace at
 -- the end of the run
-noteL :: forall effs l. (Member MockChainMisc effs, PrettyCookedList l) => String -> l -> Sem effs ()
+noteL :: forall effs l. (Member Misc effs, PrettyCookedList l) => String -> l -> Sem effs ()
 noteL title docs = note $ \opts -> prettyItemize opts (prettyCooked title) "-" docs
 
 -- | Takes note of a showable element to trace at the end of the run
-noteW :: forall effs s. (Member MockChainMisc effs, Show s) => s -> Sem effs ()
+noteW :: forall effs s. (Member Misc effs, Show s) => s -> Sem effs ()
 noteW = note . const . PP.viaShow
 
 -- | Takes note of a String to trace at the end of the run
-noteS :: forall effs. (Member MockChainMisc effs) => String -> Sem effs ()
+noteS :: forall effs. (Member Misc effs) => String -> Sem effs ()
 noteS = noteP
 
 -- | Ensures a specific property holds, rendering the provided message with the
 -- ambient pretty-printing options otherwise
-assert :: forall effs. (Member MockChainMisc effs) => (PrettyCookedOpts -> DocCooked) -> Bool -> Sem effs ()
+assert :: forall effs. (Member Misc effs) => (PrettyCookedOpts -> DocCooked) -> Bool -> Sem effs ()
 
 -- | Like `assert`, but with a pretty-printable message
-assertP :: forall effs s. (Member MockChainMisc effs, PrettyCooked s) => s -> Bool -> Sem effs ()
+assertP :: forall effs s. (Member Misc effs, PrettyCooked s) => s -> Bool -> Sem effs ()
 assertP doc = assert (`prettyCookedOpt` doc)
 
 -- | Like `assert`, but with a pretty-printable message displayed as a list with
 -- a title
-assertL :: forall effs l. (Member MockChainMisc effs, PrettyCookedList l) => String -> l -> Bool -> Sem effs ()
+assertL :: forall effs l. (Member Misc effs, PrettyCookedList l) => String -> l -> Bool -> Sem effs ()
 assertL title docs = assert $ \opts -> prettyItemize opts (prettyCooked title) "-" docs
 
 -- | Like `assert`, but with a showable message
-assertW :: forall effs s. (Member MockChainMisc effs, Show s) => s -> Bool -> Sem effs ()
+assertW :: forall effs s. (Member Misc effs, Show s) => s -> Bool -> Sem effs ()
 assertW = assert . const . PP.viaShow
 
 -- | Like `assert`, but with a `String` message
-assertS :: forall effs. (Member MockChainMisc effs) => String -> Bool -> Sem effs ()
+assertS :: forall effs. (Member Misc effs) => String -> Bool -> Sem effs ()
 assertS = assertP
 
 -- | Like `assert`, but with a default error message
-assert' :: forall effs. (Member MockChainMisc effs) => Bool -> Sem effs ()
+assert' :: forall effs. (Member Misc effs) => Bool -> Sem effs ()
 assert' = assertS "Assertion"
 
--- | Interprets a `MockChainMisc` in terms of a writer in @j@ where @j@ can be
+-- | Interprets a `Misc` in terms of a writer in @j@ where @j@ can be
 -- built from either of the three possible parameters of the 3 misc actions. The
 -- 3 actions only update the state, which is only used at the end of the run.
 runMockChainMisc ::
   forall effs a.
   (Member (Writer MockChainJournal) effs) =>
-  Sem (MockChainMisc : effs) a ->
+  Sem (Misc : effs) a ->
   Sem effs a
 runMockChainMisc = interpret $ \case
   (Define name hashable) -> tell (fromAlias name $ toHash hashable) >> return hashable
   (Note s) -> tell $ fromNote s
   (Assert s b) -> tell $ fromAssert s b
 
--- | Interprets a `MockChainMisc` in the context of a deployed node, running in a
+-- | Interprets a `Misc` in the context of a deployed node, running in a
 -- stack featuring @IO@ (via `Embed`). Contrary to `runMockChainMisc`, which
 -- gathers everything in a journal to be inspected at the end of the run, this
 -- interpreter reacts immediately:
@@ -138,7 +138,7 @@ runBlockChainMisc ::
        ]
       effs
   ) =>
-  Sem (MockChainMisc : effs) a ->
+  Sem (Misc : effs) a ->
   Sem effs a
 runBlockChainMisc = interpret $ \case
   Define name hashable -> do

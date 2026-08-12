@@ -4,13 +4,13 @@
 -- conversions between slots and POSIX time ranges) as well as the primitives to
 -- wait for a given slot or time. The lower-level configuration primitives (era
 -- history and system start) live in the internal
--- 'Cooked.Effect.Read.Conf.MockChainReadConf' effect, which the node
+-- 'Cooked.Effect.Params.Params' effect, which the node
 -- interpreter of this effect relies on.
 module Cooked.Effect.Time
-  ( -- * The 'MockChainTime' effect
-    MockChainTime,
+  ( -- * The 'Time' effect
+    Time,
 
-    -- * 'MockChainTime' interpreters
+    -- * 'Time' interpreters
     runMockChainTime,
     runBlockChainTime,
 
@@ -37,7 +37,7 @@ import Cardano.Slotting.Time qualified as Time
 import Control.Concurrent (threadDelay)
 import Control.Lens qualified as Lens
 import Control.Monad
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
 import Cooked.Runtime.State
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
@@ -54,42 +54,42 @@ import Polysemy.State
 -- time of the mockchain. The read-only primitives ('currentSlot',
 -- 'slotToMSRange', 'getEnclosingSlot') do not alter the state, while the waiting
 -- primitive ('waitNSlots') advances the current slot.
-data MockChainTime :: Effect where
-  CurrentSlot :: MockChainTime m P.Ledger.Slot
-  SlotToMSRange :: P.Ledger.Slot -> MockChainTime m (Api.POSIXTime, Api.POSIXTime)
-  GetEnclosingSlot :: Api.POSIXTime -> MockChainTime m P.Ledger.Slot
-  WaitNSlots :: Integer -> MockChainTime m P.Ledger.Slot
+data Time :: Effect where
+  CurrentSlot :: Time m P.Ledger.Slot
+  SlotToMSRange :: P.Ledger.Slot -> Time m (Api.POSIXTime, Api.POSIXTime)
+  GetEnclosingSlot :: Api.POSIXTime -> Time m P.Ledger.Slot
+  WaitNSlots :: Integer -> Time m P.Ledger.Slot
 
-makeSem_ ''MockChainTime
+makeSem_ ''Time
 
 -- | Returns the current slot
 currentSlot ::
-  (Member MockChainTime effs) =>
+  (Member Time effs) =>
   Sem effs P.Ledger.Slot
 
 -- | Returns the closed ms interval corresponding to the slot with the given
 -- number.
 slotToMSRange ::
-  (Members '[MockChainTime, Fail] effs) =>
+  (Members '[Time, Fail] effs) =>
   P.Ledger.Slot ->
   Sem effs (Api.POSIXTime, Api.POSIXTime)
 
 -- | Returns the closed ms interval corresponding to the current slot
 currentMSRange ::
-  (Members '[MockChainTime, Fail] effs) =>
+  (Members '[Time, Fail] effs) =>
   Sem effs (Api.POSIXTime, Api.POSIXTime)
 currentMSRange = slotToMSRange =<< currentSlot
 
 -- | Return the slot that contains the given time. See 'slotToMSRange' for
 -- some satisfied equational properties.
 getEnclosingSlot ::
-  (Member MockChainTime effs) =>
+  (Member Time effs) =>
   Api.POSIXTime ->
   Sem effs P.Ledger.Slot
 
 -- | The infinite range of slots ending before or at the given time
 slotRangeBefore ::
-  (Members '[MockChainTime, Fail] effs) =>
+  (Members '[Time, Fail] effs) =>
   Api.POSIXTime ->
   Sem effs P.Ledger.SlotRange
 slotRangeBefore t = do
@@ -102,7 +102,7 @@ slotRangeBefore t = do
 
 -- | The infinite range of slots starting after or at the given time
 slotRangeAfter ::
-  (Members '[MockChainTime, Fail] effs) =>
+  (Members '[Time, Fail] effs) =>
   Api.POSIXTime ->
   Sem effs P.Ledger.SlotRange
 slotRangeAfter t = do
@@ -112,12 +112,12 @@ slotRangeAfter t = do
 
 -- | Waits a certain number of slots and returns the new slot
 waitNSlots ::
-  (Member MockChainTime effs) =>
+  (Member Time effs) =>
   Integer ->
   Sem effs P.Ledger.Slot
 
 -- | Wait for a certain slot, or throws an error if the slot is already past
-awaitSlot :: (Member MockChainTime effs) => P.Ledger.Slot -> Sem effs P.Ledger.Slot
+awaitSlot :: (Member Time effs) => P.Ledger.Slot -> Sem effs P.Ledger.Slot
 awaitSlot (P.Ledger.Slot targetSlot) = do
   P.Ledger.Slot now <- currentSlot
   waitNSlots (targetSlot - now)
@@ -125,17 +125,17 @@ awaitSlot (P.Ledger.Slot targetSlot) = do
 -- | Waits until the current slot becomes greater or equal to the slot
 --  containing the given POSIX time.  Note that that it might not wait for
 --  anything if the current slot is large enough.
-awaitEnclosingSlot :: (Member MockChainTime effs) => Api.POSIXTime -> Sem effs P.Ledger.Slot
+awaitEnclosingSlot :: (Member Time effs) => Api.POSIXTime -> Sem effs P.Ledger.Slot
 awaitEnclosingSlot time = getEnclosingSlot time >>= awaitSlot
 
 -- | Wait a given number of ms from the lower bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotLowerBound :: (Members '[MockChainTime, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
+waitNMSFromSlotLowerBound :: (Members '[Time, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
 waitNMSFromSlotLowerBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . fst
 
 -- | Wait a given number of ms from the upper bound of the current slot and
 -- returns the current slot after waiting.
-waitNMSFromSlotUpperBound :: (Members '[MockChainTime, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
+waitNMSFromSlotUpperBound :: (Members '[Time, Fail] effs) => Integer -> Sem effs P.Ledger.Slot
 waitNMSFromSlotUpperBound duration = currentMSRange >>= awaitEnclosingSlot . (+ fromIntegral duration) . snd
 
 -- | The interpretation for the time effect with a stored 'EmulatorState'
@@ -147,7 +147,7 @@ runMockChainTime ::
        ]
       effs
   ) =>
-  Sem (MockChainTime : effs) a ->
+  Sem (Time : effs) a ->
   Sem effs a
 runMockChainTime = interpret $ \case
   CurrentSlot -> gets $ view $ emulatorStateLedgerStateL % to Emulator.getSlot
@@ -174,23 +174,23 @@ runMockChainTime = interpret $ \case
         modify' $ over emulatorStateLedgerStateL $ Lens.set Emulator.elsSlotL $ fromIntegral newSlot
         return newSlot
 
--- | Interpret the `MockChainTime` effect by talking to a deployed node through a
+-- | Interpret the `Time` effect by talking to a deployed node through a
 -- `Cardano.LocalNodeConnectInfo` (socket path and network id) provided via a
 -- `Reader`, running in a stack featuring @IO@ (via `Embed`). Waiting is
 -- performed by suspending the thread for the appropriate amount of time. The
 -- fixed chain configuration is resolved through the internal
--- 'Cooked.Effect.Read.Conf.MockChainReadConf' effect.
+-- 'Cooked.Effect.Params.Params' effect.
 runBlockChainTime ::
   forall effs a.
   ( Members
       '[ Embed IO,
-         MockChainReadConf,
+         Params,
          Error Cardano.PastHorizonException,
          Reader Cardano.LocalNodeConnectInfo
        ]
       effs
   ) =>
-  Sem (MockChainTime : effs) a ->
+  Sem (Time : effs) a ->
   Sem effs a
 runBlockChainTime = interpret $ \case
   CurrentSlot -> getNodeSlot

@@ -12,7 +12,7 @@ module Cooked.Effect.Log
     MockChainLogEntry (..),
 
     -- * Logging effect
-    MockChainLog,
+    Log,
     runMockChainLog,
 
     -- * Logging primitive
@@ -73,19 +73,19 @@ data MockChainLogEntry
   deriving (Show)
 
 -- | An effect to allow logging of mockchain events
-data MockChainLog :: Effect where
-  LogEvent :: MockChainLogEntry -> MockChainLog m ()
+data Log :: Effect where
+  LogEvent :: MockChainLogEntry -> Log m ()
 
-makeSem_ ''MockChainLog
+makeSem_ ''Log
 
--- | Interpreting a `MockChainLog` in terms of a writer of
+-- | Interpreting a `Log` in terms of a writer of
 -- @[MockChainLogEntry]@
 runMockChainLog ::
   (Member (Writer j) effs) =>
   (MockChainLogEntry -> j) ->
-  Sem (MockChainLog : effs) a ->
+  Sem (Log : effs) a ->
   Sem effs a
 runMockChainLog inject = interpret $ \(LogEvent event) -> tell $ inject event
 
 -- | Logs an internal event occurring while processing a transaction skeleton
-logEvent :: (Member MockChainLog effs) => MockChainLogEntry -> Sem effs ()
+logEvent :: (Member Log effs) => MockChainLogEntry -> Sem effs ()

@@ -12,8 +12,8 @@ import Control.Monad
 import Cooked.Automation.GenerateTx.Anchor
 import Cooked.Automation.GenerateTx.Credential
 import Cooked.Automation.GenerateTx.Witness
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton.Proposal
 import Cooked.Skeleton.User
@@ -85,7 +85,7 @@ toPParamsUpdate pChange ppu =
 
 -- | Translates a given skeleton proposal into a governance action
 toGovAction ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   GovernanceAction a ->
   StrictMaybe Conway.ScriptHash ->
   Sem effs (Conway.GovAction Emulator.EmulatorEra)
@@ -101,7 +101,7 @@ toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   [TxSkelProposal] ->
   Sem effs (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone

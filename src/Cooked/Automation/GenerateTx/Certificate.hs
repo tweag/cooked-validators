@@ -9,8 +9,8 @@ import Cardano.Ledger.PoolParams qualified as C.Ledger
 import Cardano.Ledger.Shelley.TxCert qualified as Shelley
 import Cooked.Automation.GenerateTx.Credential
 import Cooked.Automation.GenerateTx.Witness
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton.Certificate
 import Cooked.Skeleton.User
@@ -25,7 +25,7 @@ import Polysemy.Error
 import Polysemy.Fail
 
 toDRep ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   Api.DRep ->
   Sem effs C.Ledger.DRep
 toDRep Api.DRepAlwaysAbstain = return C.Ledger.DRepAlwaysAbstain
@@ -33,7 +33,7 @@ toDRep Api.DRepAlwaysNoConfidence = return C.Ledger.DRepAlwaysNoConfidence
 toDRep (Api.DRep (Api.DRepCredential cred)) = C.Ledger.DRepCredential <$> toDRepCredential cred
 
 toDelegatee ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   Api.Delegatee ->
   Sem effs Conway.Delegatee
 toDelegatee (Api.DelegStake pkh) = Conway.DelegStake <$> toStakePoolKeyHash pkh
@@ -41,7 +41,7 @@ toDelegatee (Api.DelegVote dRep) = Conway.DelegVote <$> toDRep dRep
 toDelegatee (Api.DelegStakeVote pkh dRep) = liftA2 Conway.DelegStakeVote (toStakePoolKeyHash pkh) (toDRep dRep)
 
 toCertificate ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelCertificate ->
   Sem effs (Cardano.Certificate Cardano.ConwayEra)
 toCertificate txSkelCert =
@@ -90,7 +90,7 @@ toCertificate txSkelCert =
         Conway.ConwayTxCertGov . (`Conway.ConwayResignCommitteeColdKey` SNothing) <$> toColdCredential cred
 
 toCertificateWitness ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelCertificate ->
   Sem effs (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toCertificateWitness =
@@ -104,7 +104,7 @@ toCertificateWitness =
 
 -- | Builds a 'Cardano.TxCertificates' from a list of 'TxSkelCertificate'
 toCertificates ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   [TxSkelCertificate] ->
   Sem effs (Cardano.TxCertificates Cardano.BuildTx Cardano.ConwayEra)
 toCertificates =

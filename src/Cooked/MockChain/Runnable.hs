@@ -25,7 +25,7 @@ module Cooked.MockChain.Runnable
   )
 where
 
-import Cooked.Effect.Write
+import Cooked.Effect.Override
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State
@@ -124,7 +124,7 @@ class RunnableMockChain effs where
 -- | Runs a `RunnableMockChain` from an initial `MockChainConf`
 runMockChainFromConf ::
   ( RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   MockChainConf a b ->
   Sem effs a ->
@@ -137,7 +137,7 @@ runMockChainFromConf (MockChainConf emInitState ciInitState initDist funOnResult
 -- | Runs a `RunnableMockChain` from an initial distribution
 runMockChainFromInitDist ::
   ( RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   InitialDistribution ->
   Sem effs a ->
@@ -148,7 +148,7 @@ runMockChainFromInitDist initDist =
 -- | Same as `runMockChainFromInitDist` using the `initialDistributionTemplate`
 runMockChainFromInitDistTemplate ::
   ( RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   [MockChainReturn a]
@@ -157,7 +157,7 @@ runMockChainFromInitDistTemplate = runMockChainFromInitDist initialDistributionT
 -- | Runs a `RunnableMockChain` from a default configuration
 runMockChainDef ::
   ( RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   [MockChainReturn a]

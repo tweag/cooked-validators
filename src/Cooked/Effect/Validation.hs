@@ -1,13 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 
--- | This module exposes the `MockChainValidate` effect, which is responsible
+-- | This module exposes the `Validate` effect, which is responsible
 -- for turning a `Cooked.Skeleton.TxSkel` into an actual transaction and
 -- submitting it to the emulated ledger. This includes running the whole
 -- adjustment pipeline (auto-filling, balancing and transaction generation) and
 -- updating the mockchain state based on the validation outcome.
 module Cooked.Effect.Validation
-  ( -- * The `MockChainValidate` effect
-    MockChainValidate (..),
+  ( -- * The `Validate` effect
+    Validate (..),
     validateTxSkel,
     validateTxSkel',
     validateTxSkelL,
@@ -22,8 +22,8 @@ import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked.Automation
 import Cooked.Effect.Log
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Effect.Submission
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
@@ -45,23 +45,23 @@ import Polysemy.State
 -- | An effect that offers the ability to submit a 'TxSkel' throughout the
 -- modification and validation pipeline. Technically, this effect is not needed
 -- from a semantical perspective, as all of this could already be expressed in
--- 'MockChainSubmit', however, we want this effect to exist on its own to be
+-- 'Submit', however, we want this effect to exist on its own to be
 -- eligible to be modified by tweaks.
-data MockChainValidate :: Effect where
-  ValidateTxSkel :: TxSkel -> MockChainValidate m (ExtendedTxSkel, SubmissionFailures, Transaction, Utxos)
+data Validate :: Effect where
+  ValidateTxSkel :: TxSkel -> Validate m (ExtendedTxSkel, SubmissionFailures, Transaction, Utxos)
 
-makeSem_ ''MockChainValidate
+makeSem_ ''Validate
 
 -- | Generates, balances and validates a transaction from a skeleton. Returns
 -- the extended skeleton, generated transaction and the new produced outputs.
 validateTxSkel ::
-  (Member MockChainValidate effs) =>
+  (Member Validate effs) =>
   TxSkel ->
   Sem effs (ExtendedTxSkel, SubmissionFailures, Transaction, Utxos)
 
 -- | Same as `validateTxSkel`, but only returns the generated UTxOs
 validateTxSkel' ::
-  (Member MockChainValidate effs) =>
+  (Member Validate effs) =>
   TxSkel ->
   Sem effs Utxos
 validateTxSkel' = fmap (view _4) . validateTxSkel
@@ -69,26 +69,26 @@ validateTxSkel' = fmap (view _4) . validateTxSkel
 -- | Same as `validateTxSkel'`, but only returns the list of produced
 -- 'Api.TxOutRef'
 validateTxSkelL ::
-  (Member MockChainValidate effs) =>
+  (Member Validate effs) =>
   TxSkel ->
   Sem effs [Api.TxOutRef]
 validateTxSkelL = fmap (toList . Map.keysSet) . validateTxSkel'
 
 -- | Same as `validateTxSkel`, but discards the returned transaction
 validateTxSkel_ ::
-  (Member MockChainValidate effs) =>
+  (Member Validate effs) =>
   TxSkel ->
   Sem effs ()
 validateTxSkel_ = void . validateTxSkel
 
--- | Interpretes the 'MockChainValidate' effects in terms of other effects, in
--- particular 'MockChainSubmit'.
+-- | Interpretes the 'Validate' effects in terms of other effects, in
+-- particular 'Submit'.
 runMockChainValidate ::
   ( Members
-      '[ MockChainLog,
-         MockChainReadChain,
-         MockChainReadConf,
-         MockChainSubmit,
+      '[ Log,
+         Query,
+         Params,
+         Submit,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          State ChainIndex,
@@ -96,7 +96,7 @@ runMockChainValidate ::
        ]
       effs
   ) =>
-  Sem (MockChainValidate : effs) a ->
+  Sem (Validate : effs) a ->
   Sem effs a
 runMockChainValidate = interpret $ \case
   ValidateTxSkel txSkel -> do

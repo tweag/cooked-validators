@@ -18,8 +18,8 @@ import Cooked.Automation.AutoFilling.MinAda
 import Cooked.Automation.GenerateTx.Body
 import Cooked.Automation.GenerateTx.Output
 import Cooked.Effect.Log
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
@@ -65,9 +65,9 @@ data ExtendedTxSkel = ExtendedTxSkel
 -- associated elements.
 balanceTxSkel ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
-         MockChainLog,
+      '[ Query,
+         Params,
+         Log,
          Error MockChainError,
          Error P.Ledger.ToCardanoError,
          Fail
@@ -170,8 +170,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
 computeFeeAndBalance ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error MockChainError,
          Error P.Ledger.ToCardanoError,
          Fail
@@ -235,8 +235,8 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
 -- number of collateral inputs authorized by protocol parameters.
 collateralsFromFee ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error MockChainError,
          Error P.Ledger.ToCardanoError
        ]
@@ -278,8 +278,8 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
 reachValue ::
   forall effs.
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error P.Ledger.ToCardanoError
        ]
       effs
@@ -418,8 +418,8 @@ reachValue (Map.toList -> utxos) target fuel outputOrUser = do
 -- and collaterals
 estimateTxSkelFee ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error MockChainError,
          Error P.Ledger.ToCardanoError,
          Fail
@@ -449,8 +449,8 @@ estimateTxSkelFee skel fee mCollaterals = do
 -- value + withdrawn value = output value + burned value + fee + deposits
 computeBalancedTxSkel ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error MockChainError,
          Error P.Ledger.ToCardanoError
        ]
@@ -540,8 +540,8 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
 -- for more information
 getMinAndMaxFee ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf
+      '[ Query,
+         Params
        ]
       effs
   ) =>

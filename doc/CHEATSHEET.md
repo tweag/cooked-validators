@@ -124,7 +124,7 @@ myTrace = do
 
 * In a direct set of custom or builtin effects:
 ```haskell
-myTrace :: (Members '[MockChainLog, MockChainRead, MyFirstEff, ...] effs) => Sem effs ()
+myTrace :: (Members '[Log, Query, MyFirstEff, ...] effs) => Sem effs ()
 myTrace = do
   ...
 ```

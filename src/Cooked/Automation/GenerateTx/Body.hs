@@ -21,8 +21,8 @@ import Cooked.Automation.GenerateTx.Proposal
 import Cooked.Automation.GenerateTx.ReferenceInputs
 import Cooked.Automation.GenerateTx.Withdrawals
 import Cooked.Automation.GenerateTx.Witness
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
@@ -41,8 +41,8 @@ import Witherable
 -- | Generates a body content from a skeleton
 txSkelToTxBodyContent ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error MockChainError,
          Error P.Ledger.ToCardanoError,
          Fail
@@ -95,8 +95,8 @@ txBodyContentToTxBody =
 -- | Generates an index with utxos known to a 'TxSkel'
 txSkelToIndex ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error P.Ledger.ToCardanoError
        ]
       effs
@@ -125,8 +125,8 @@ txSkelToIndex txSkel mCollaterals = do
 -- returned.
 txSkelToTxBody ::
   ( Members
-      '[ MockChainReadChain,
-         MockChainReadConf,
+      '[ Query,
+         Params,
          Error P.Ledger.ToCardanoError,
          Error MockChainError,
          Fail

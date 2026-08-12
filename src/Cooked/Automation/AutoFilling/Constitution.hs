@@ -9,7 +9,7 @@ where
 import Control.Monad
 import Control.Monad.Extra
 import Cooked.Effect.Log
-import Cooked.Effect.Read.Chain
+import Cooked.Effect.Query
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -25,9 +25,9 @@ import Polysemy
 -- constitution script has been successfully auto-filled.
 autoFillConstitution ::
   ( Members
-      '[ MockChainReadChain,
+      '[ Query,
          Tweak,
-         MockChainLog
+         Log
        ]
       effs
   ) =>

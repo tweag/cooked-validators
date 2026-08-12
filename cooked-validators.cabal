@@ -45,12 +45,12 @@ library
       Cooked.Effect
       Cooked.Effect.Log
       Cooked.Effect.Misc
-      Cooked.Effect.Read.Chain
-      Cooked.Effect.Read.Conf
+      Cooked.Effect.Override
+      Cooked.Effect.Params
+      Cooked.Effect.Query
       Cooked.Effect.Submission
       Cooked.Effect.Time
       Cooked.Effect.Validation
-      Cooked.Effect.Write
       Cooked.MockChain
       Cooked.MockChain.Instances
       Cooked.MockChain.Ltl

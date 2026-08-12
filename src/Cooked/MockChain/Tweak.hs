@@ -99,7 +99,7 @@ withTweak ::
   Sem effs a
 withTweak = flip (there 0)
 
--- | Reinterpretes `MockChainValidate` in itself, when the `ModifyLocally`
+-- | Reinterpretes `Validate` in itself, when the `ModifyLocally`
 -- effect exists in the stack, applying the relevant modifications in the
 -- process.
 reinterpretMockChainValidateWithTweak ::
@@ -111,9 +111,9 @@ reinterpretMockChainValidateWithTweak ::
       effs,
     Subsume tweakEffs effs
   ) =>
-  Sem (MockChainValidate : effs) a ->
-  Sem (MockChainValidate : effs) a
-reinterpretMockChainValidateWithTweak = reinterpret @MockChainValidate $ \case
+  Sem (Validate : effs) a ->
+  Sem (Validate : effs) a
+reinterpretMockChainValidateWithTweak = reinterpret @Validate $ \case
   ValidateTxSkel skel -> do
     requirements <- getRequirements
     let sumTweak :: TypedTweak tweakEffs () =

@@ -2,8 +2,8 @@
 module Cooked.Automation.GenerateTx.Output (toCardanoTxOut) where
 
 import Cardano.Api qualified as Cardano
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Output
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
@@ -15,7 +15,7 @@ import Polysemy.Error
 
 -- | Converts a 'TxSkelOut' to the corresponding 'Cardano.TxOut'
 toCardanoTxOut ::
-  (Members '[MockChainReadChain, MockChainReadConf, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs (Cardano.TxOut Cardano.CtxTx Cardano.ConwayEra)
 toCardanoTxOut output = do

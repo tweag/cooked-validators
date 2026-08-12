@@ -89,7 +89,7 @@ import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Exception qualified as E
 import Control.Monad
 import Cooked.Effect.Log
-import Cooked.Effect.Write
+import Cooked.Effect.Override
 import Cooked.MockChain.Runnable
 import Cooked.Pretty
 import Cooked.Runtime.Error
@@ -420,7 +420,7 @@ mustSucceedTest' runner trace =
 mustSucceedTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
@@ -451,7 +451,7 @@ mustFailTest' runner trace =
 mustFailTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
@@ -760,7 +760,7 @@ mustFailInPhase2Test' runner trace =
 mustFailInPhase2Test ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
@@ -783,7 +783,7 @@ mustFailInPhase2WithMsgTest' msg runner trace =
 mustFailInPhase2WithMsgTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   String ->
   Sem effs a ->
@@ -804,7 +804,7 @@ mustFailInPhase1Test' runner trace =
 mustFailInPhase1Test ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
@@ -826,7 +826,7 @@ mustFailInPhase1WithMsgTest' msg runner trace =
 mustFailInPhase1WithMsgTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   String ->
   Sem effs a ->
@@ -850,7 +850,7 @@ mustSucceedWithSizeTest' size runner trace =
 mustSucceedWithSizeTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Integer ->
   Sem effs a ->
@@ -874,7 +874,7 @@ mustFailWithSizeTest' size runner trace =
 mustFailWithSizeTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Integer ->
   Sem effs a ->

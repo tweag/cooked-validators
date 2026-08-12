@@ -6,7 +6,7 @@ module Cooked.Automation.GenerateTx.Witness
 where
 
 import Cardano.Api qualified as Cardano
-import Cooked.Effect.Read.Chain
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Ledger.Address qualified as P.Ledger
@@ -20,7 +20,7 @@ import Polysemy.Error
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script
 toPlutusScriptOrReferenceInput ::
-  (Members '[MockChainReadChain, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
   VScript ->
   Maybe Api.TxOutRef ->
   Sem effs (Cardano.PlutusScriptOrReferenceInput lang)
@@ -41,7 +41,7 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
 -- script. They will be filled out later on once the full body has been
 -- generated. So, for now, we temporarily leave them to 0.
 toScriptWitness ::
-  ( Members '[MockChainReadChain, Error MockChainError, Error P.Ledger.ToCardanoError] effs,
+  ( Members '[Query, Error MockChainError, Error P.Ledger.ToCardanoError] effs,
     ToVScript a
   ) =>
   a ->

@@ -3,18 +3,18 @@
 -- or rewards. It also provides the 'UtxoSearch' framework, a convenient way to
 -- look through UTxOs, filter them, and extract pieces of information from them.
 -- Time-related queries live in the separate
--- 'Cooked.Effect.Time.MockChainTime' effect. The lower-level
+-- 'Cooked.Effect.Time.Time' effect. The lower-level
 -- configuration primitives (protocol parameters, network id, era history, system
 -- start) live in the internal
--- 'Cooked.Effect.Read.Conf.MockChainReadConf' effect, which this
+-- 'Cooked.Effect.Params.Params' effect, which this
 -- effect relies on during its own interpretation.
-module Cooked.Effect.Read.Chain
-  ( -- * The 'MockChainReadChain' effect
-    MockChainReadChain,
+module Cooked.Effect.Query
+  ( -- * The 'Query' effect
+    Query,
 
-    -- * 'MockChainReadChain' interpreters
-    runMockChainReadChain,
-    runBlockChainReadChain,
+    -- * 'Query' interpreters
+    runMockChainQuery,
+    runBlockChainQuery,
 
     -- * Queries related to `Cooked.Skeleton.TxSkel`
     txSkelAllScripts,
@@ -82,7 +82,7 @@ import Cardano.Api.Ledger qualified as Cardano hiding (TxIn)
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Cooked.Automation.GenerateTx.Credential
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
@@ -114,20 +114,20 @@ import Witherable (filterA, witherM)
 -- mockchain. As its name suggests, this effect is read-only and does not alter
 -- the state in any way. This is the user-facing read effect; its interpreters
 -- rely on the internal
--- 'Cooked.Effect.Read.Conf.MockChainReadConf' effect to resolve the
+-- 'Cooked.Effect.Params.Params' effect to resolve the
 -- fixed chain configuration.
-data MockChainReadChain :: Effect where
-  TxSkelOutByRef :: Api.TxOutRef -> MockChainReadChain m TxSkelOut
-  AllUtxos :: MockChainReadChain m Utxos
-  UtxosAt :: (Script.ToAddress a) => a -> MockChainReadChain m Utxos
-  GetConstitutionScript :: MockChainReadChain m (Maybe VScript)
-  GetCurrentReward :: (Script.ToCredential c) => c -> MockChainReadChain m (Maybe Api.Lovelace)
+data Query :: Effect where
+  TxSkelOutByRef :: Api.TxOutRef -> Query m TxSkelOut
+  AllUtxos :: Query m Utxos
+  UtxosAt :: (Script.ToAddress a) => a -> Query m Utxos
+  GetConstitutionScript :: Query m (Maybe VScript)
+  GetCurrentReward :: (Script.ToCredential c) => c -> Query m (Maybe Api.Lovelace)
 
-makeSem_ ''MockChainReadChain
+makeSem_ ''Query
 
 -- | Returns all scripts involved in this 'TxSkel'
 txSkelAllScripts ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   TxSkel ->
   Sem effs [VScript]
 txSkelAllScripts txSkel = do
@@ -138,7 +138,7 @@ txSkelAllScripts txSkel = do
 
 -- | Returns all scripts which guard transaction inputs
 txSkelInputScripts ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   TxSkel ->
   Sem effs [VScript]
 txSkelInputScripts =
@@ -149,7 +149,7 @@ txSkelInputScripts =
 
 -- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   TxSkel ->
   Sem effs Api.Value
 txSkelInputValue =
@@ -160,12 +160,12 @@ txSkelInputValue =
 
 -- | Returns a list of all currently known outputs
 allUtxos ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   Sem effs Utxos
 
 -- | Returns a list of all UTxOs at a certain address.
 utxosAt ::
-  ( Member MockChainReadChain effs,
+  ( Member Query effs,
     Script.ToAddress cred
   ) =>
   cred ->
@@ -173,7 +173,7 @@ utxosAt ::
 
 -- | Returns an output given a reference to it
 txSkelOutByRef ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   Api.TxOutRef ->
   Sem effs TxSkelOut
 
@@ -183,7 +183,7 @@ txSkelOutByRef ::
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   P.Ledger.CardanoTx ->
   Sem effs [(Api.TxOutRef, TxSkelOut)]
 utxosFromCardanoTx =
@@ -194,7 +194,7 @@ utxosFromCardanoTx =
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.
 lookupUtxos ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   [Api.TxOutRef] ->
   Sem effs (Map Api.TxOutRef TxSkelOut)
 lookupUtxos =
@@ -204,7 +204,7 @@ lookupUtxos =
 
 -- | Retrieves an output and views a specific element out of it
 viewByRef ::
-  ( Member MockChainReadChain effs,
+  ( Member Query effs,
     Is g A_Getter
   ) =>
   Optic' g is TxSkelOut c ->
@@ -214,7 +214,7 @@ viewByRef optic = (view optic <$>) . txSkelOutByRef
 
 -- | Retrieves an output and previews a specific element out of it
 previewByRef ::
-  ( Member MockChainReadChain effs,
+  ( Member Query effs,
     Is af An_AffineFold
   ) =>
   Optic' af is TxSkelOut c ->
@@ -224,12 +224,12 @@ previewByRef optic = (preview optic <$>) . txSkelOutByRef
 
 -- | Gets the current official constitution script
 getConstitutionScript ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   Sem effs (Maybe VScript)
 
 -- | Gets the current reward associated with a credential
 getCurrentReward ::
-  ( Member MockChainReadChain effs,
+  ( Member Query effs,
     Script.ToCredential c
   ) =>
   c ->
@@ -237,7 +237,7 @@ getCurrentReward ::
 
 -- | The interpretation for read-only effect with a stored 'EmulatorState' and
 -- 'ChainIndex'
-runMockChainReadChain ::
+runMockChainQuery ::
   forall effs a.
   ( Members
       '[ State EmulatorState,
@@ -247,9 +247,9 @@ runMockChainReadChain ::
        ]
       effs
   ) =>
-  Sem (MockChainReadChain : effs) a ->
+  Sem (Query : effs) a ->
   Sem effs a
-runMockChainReadChain = interpret $ \case
+runMockChainQuery = interpret $ \case
   TxSkelOutByRef oRef -> do
     res <- gets $ Map.lookup oRef . chainIndexOutputs
     case res of
@@ -276,16 +276,16 @@ runMockChainReadChain = interpret $ \case
             % filtered (decide . fst)
             % to fst
 
--- | Interpret the `MockChainReadChain` effect by talking to a deployed node
+-- | Interpret the `Query` effect by talking to a deployed node
 -- through a `Cardano.LocalNodeConnectInfo` (socket path and network id)
 -- provided via a `Reader`, running in a stack featuring @IO@ (via `Embed`). The
 -- fixed chain configuration is resolved through the internal
--- 'Cooked.Effect.Read.Conf.MockChainReadConf' effect.
-runBlockChainReadChain ::
+-- 'Cooked.Effect.Params.Params' effect.
+runBlockChainQuery ::
   forall effs a.
   ( Members
       '[ Embed IO,
-         MockChainReadConf,
+         Params,
          Error Cardano.UnsupportedNtcVersionError,
          Error Cardano.EraMismatch,
          Error Cardano.AcquiringFailure,
@@ -296,9 +296,9 @@ runBlockChainReadChain ::
        ]
       effs
   ) =>
-  Sem (MockChainReadChain : effs) a ->
+  Sem (Query : effs) a ->
   Sem effs a
-runBlockChainReadChain = interpret $ \case
+runBlockChainQuery = interpret $ \case
   AllUtxos -> queryUtxosAndHandleErrors Cardano.QueryUTxOWhole
   UtxosAt (Script.toAddress -> addr) -> do
     networkId <- getNetworkId
@@ -453,7 +453,7 @@ getTxOutRefs = fmap Map.keysSet
 
 -- | Searches for utxos at a given address with a given filter
 utxosAtSearch ::
-  (Member MockChainReadChain effs, Script.ToAddress pkh) =>
+  (Member Query effs, Script.ToAddress pkh) =>
   pkh ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
@@ -461,14 +461,14 @@ utxosAtSearch pkh filters = filters $ beginSearch $ utxosAt pkh
 
 -- | Searches for all the known utxos with a given filter
 allUtxosSearch ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
 allUtxosSearch filters = filters $ beginSearch allUtxos
 
 -- | Searches for utxos belonging to a given list with a given filter
 txSkelOutByRefSearch ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   Set Api.TxOutRef ->
   (UtxoSearch effs '[] -> UtxoSearch effs els) ->
   UtxoSearch effs els
@@ -481,7 +481,7 @@ txSkelOutByRefSearch utxos filters =
 
 -- | Searches for utxos belonging to a given list with no filter
 txSkelOutByRefSearch' ::
-  (Member MockChainReadChain effs) =>
+  (Member Query effs) =>
   Set Api.TxOutRef ->
   UtxoSearch effs '[]
 txSkelOutByRefSearch' = (`txSkelOutByRefSearch` id)

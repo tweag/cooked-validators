@@ -27,8 +27,8 @@ import Cooked.Automation.GenerateTx.ReferenceInputs as X
 import Cooked.Automation.GenerateTx.Withdrawals as X
 import Cooked.Automation.GenerateTx.Witness as X
 import Cooked.Effect.Log
-import Cooked.Effect.Read.Chain
-import Cooked.Effect.Read.Conf
+import Cooked.Effect.Params
+import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Cooked.Tweak.Common
@@ -51,9 +51,9 @@ runAutomationPipeline ::
   ( Members
       '[ Error P.Ledger.ToCardanoError,
          Error MockChainError,
-         MockChainLog,
-         MockChainReadChain,
-         MockChainReadConf,
+         Log,
+         Query,
+         Params,
          Fail
        ]
       effs

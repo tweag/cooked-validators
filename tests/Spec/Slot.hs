@@ -16,7 +16,7 @@ import Test.Tasty.QuickCheck
 
 runSlot ::
   Sem
-    '[ MockChainTime,
+    '[ Time,
        State EmulatorState,
        State ChainIndex,
        Fail,
