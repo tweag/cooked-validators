@@ -16,13 +16,13 @@ import Cooked.Ltl as X
 import Cooked.Pretty as X
 import Cooked.Run.Instances as X
 import Cooked.Run.Runnable as X
+import Cooked.Run.Testing as X
 import Cooked.Run.Tweak as X
 import Cooked.Runtime.Error as X
 import Cooked.Runtime.Journal as X
 import Cooked.Runtime.State as X
 import Cooked.ShowBS as X
 import Cooked.Skeleton as X
-import Cooked.Testing as X
 import Cooked.Tweak as X
 import Cooked.UtxoSearch as X
 import Cooked.Wallet as X

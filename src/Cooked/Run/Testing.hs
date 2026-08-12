@@ -2,7 +2,7 @@
 
 -- | This modules provides primitives to run tests over mockchain executions and
 -- to provide requirements on the the number and results of these runs.
-module Cooked.Testing
+module Cooked.Run.Testing
   ( -- * Common interface between HUnit and QuickCheck
     IsProp (..),
     testBool,
