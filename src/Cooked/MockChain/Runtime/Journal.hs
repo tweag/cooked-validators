@@ -28,7 +28,7 @@ data MockChainJournal where
       mcbNotes :: [PrettyCookedOpts -> DocCooked],
       -- | Assertions gathered during the run, alongside their associated error
       -- messages to display in case of failure
-      mcbAssertions :: [(String, Bool)]
+      mcbAssertions :: [(PrettyCookedOpts -> DocCooked, Bool)]
     } ->
     MockChainJournal
 
@@ -52,5 +52,5 @@ fromNote :: (PrettyCookedOpts -> DocCooked) -> MockChainJournal
 fromNote s = mempty {mcbNotes = [s]}
 
 -- | Build a `MockChainJournal` from a single assertion and error message
-fromAssert :: String -> Bool -> MockChainJournal
+fromAssert :: (PrettyCookedOpts -> DocCooked) -> Bool -> MockChainJournal
 fromAssert s p = mempty {mcbAssertions = [(s, p)]}

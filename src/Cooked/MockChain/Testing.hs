@@ -338,7 +338,7 @@ testToProp Test {..} =
           ( \ret@(MockChainReturn outcome _ state (MockChainJournal mcLog names _ assertions)) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testConjoin
-                    [ testConjoin $ uncurry testBoolMsg <$> assertions,
+                    [ testConjoin $ (\(msg, b) -> testBoolMsg (renderString id (msg pcOpts)) b) <$> assertions,
                       testCounterexample
                         (renderString (prettyCookedOpt pcOpts) ret)
                         $ case outcome of

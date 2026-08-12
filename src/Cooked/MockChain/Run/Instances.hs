@@ -94,7 +94,7 @@ instance RunnableMockChain DirectEffs where
       . runError
       . mapError MCEToCardanoError
       . runFailInMockChainError
-      . runMockChainMisc fromAlias fromNote fromAssert
+      . runMockChainMisc
       . runMockChainReadConf
       . runMockChainTime
       . runMockChainReadChain
@@ -174,7 +174,7 @@ instance RunnableMockChain FullEffs where
       . runMockChainReadConf
       . runMockChainTime
       . runMockChainReadChain
-      . runMockChainMisc fromAlias fromNote fromAssert
+      . runMockChainMisc
       . evalState []
       . runModifyLocally
       . runMockChainWrite
@@ -237,7 +237,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runMockChainReadConf
       . runMockChainTime
       . runMockChainReadChain
-      . runMockChainMisc fromAlias fromNote fromAssert
+      . runMockChainMisc
       . runInterpretAlone
       . evalState []
       . runModifyLocally

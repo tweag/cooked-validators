@@ -49,7 +49,7 @@ instance (Show a) => PrettyCooked (MockChainReturn a) where
            | pcOptPrintLog opts && not (null entries)
            ]
         <> [ prettyItemize opts (if all snd assertions then "✅ Assertions:" else "❌ Assertions:") "-" $
-               (\(s, b) -> (if b then "✔" else "✘") <+> prettyCookedOpt opts s) <$> assertions
+               (\(s, b) -> (if b then "✔" else "✘") <+> s opts) <$> assertions
            | pcOptPrintAssertions opts && not (null assertions)
            ]
         <> [ "🗑️" <+> prettyCookedOpt opts consumed
