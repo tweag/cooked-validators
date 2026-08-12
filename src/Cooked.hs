@@ -24,5 +24,4 @@ import Cooked.Runtime.State as X
 import Cooked.ShowBS as X
 import Cooked.Skeleton as X
 import Cooked.Tweak as X
-import Cooked.UtxoSearch as X
 import Cooked.Wallet as X

@@ -88,7 +88,6 @@ library
       Cooked.Tweak.Query
       Cooked.Tweak.Remove
       Cooked.Tweak.Update
-      Cooked.UtxoSearch
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators

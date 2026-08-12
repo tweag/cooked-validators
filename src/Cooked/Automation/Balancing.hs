@@ -23,7 +23,6 @@ import Cooked.Effect.Read.Chain
 import Cooked.Effect.Read.Conf
 import Cooked.Runtime.Error
 import Cooked.Skeleton
-import Cooked.UtxoSearch
 import Data.ByteString qualified as BS
 import Data.Foldable.Extra
 import Data.Map qualified as Map
