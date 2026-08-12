@@ -40,6 +40,8 @@ library
       Cooked.Automation.GenerateTx.ReferenceInputs
       Cooked.Automation.GenerateTx.Withdrawals
       Cooked.Automation.GenerateTx.Witness
+      Cooked.BlockChain.Instances
+      Cooked.BlockChain.Runnable
       Cooked.Effect.Log
       Cooked.Effect.Misc
       Cooked.Effect.Read.Chain
