@@ -26,6 +26,7 @@ import Cooked.Effect.Params
 import Cooked.Effect.Query
 import Cooked.Effect.Submission
 import Cooked.Runtime.Error
+import Cooked.Runtime.Journal
 import Cooked.Runtime.State
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
@@ -103,18 +104,18 @@ runMockChainValidate = interpret $ \case
     -- We fetch the skeleton options
     let TxSkelOpts {..} = txSkelOpts txSkel
     -- We log the submission of the new skeleton
-    logEvent $ MCLogSubmittedTxSkel txSkel
+    logEvent $ CLogSubmittedTxSkel txSkel
     -- We run the automation pipeline on the original skeleton
     eSkel@(ExtendedTxSkel finalTxSkel fee mCollaterals txBody exUnitsFailures) <- runAutomationPipeline txSkel
     -- We log the adjusted skeleton
-    logEvent $ MCLogAdjustedTxSkel finalTxSkel fee mCollaterals
+    logEvent $ CLogAdjustedTxSkel finalTxSkel fee mCollaterals
     -- We handle the execution units failures when applicable
     when (notNull exUnitsFailures) $
       if txSkelOptHaltOnExUnitsFailures
         -- If requested, we treat them as fatal, ending the run
-        then throw $ MCEExUnitsFailures exUnitsFailures
+        then throw $ CEExUnitsFailures exUnitsFailures
         -- Otherwise, we just log them
-        else logEvent $ MCELogExUnitsFailures exUnitsFailures
+        else logEvent $ CELogExUnitsFailures exUnitsFailures
     -- We build the Cardano transaction, and apply on it the modification in the
     -- skeleton option
     let cardanoTx = txSkelOptModTx $ txSignatoriesAndBodyToCardanoTx (view txSkelSignatoriesL finalTxSkel) txBody
@@ -128,9 +129,9 @@ runMockChainValidate = interpret $ \case
     when (notNull submissionFailures) $
       if txSkelOptHaltOnSubmissionFailures
         -- If requested, we treat them as fatal, ending the run
-        then throw $ MCESubmissionFailures submissionFailures
+        then throw $ CESubmissionFailures submissionFailures
         -- Otherwise, we just log them
-        else logEvent $ MCELogSubmissionFailures submissionFailures
+        else logEvent $ CELogSubmissionFailures submissionFailures
     -- We compute the set of consumed outputs and new outputs, based on the
     -- validity of the transaction, producing some validity logs in the process.
     (consumedInputs, newOutputs) <-
@@ -140,11 +141,11 @@ runMockChainValidate = interpret $ \case
         | null submissionFailures && null exUnitsFailures -> do
             let inputs = Map.keysSet $ txSkelInputs finalTxSkel
                 outputs = fromCardanoIndex (P.Ledger.getCardanoTxProducedOutputs pCardanoTx) $ txSkelOutputs finalTxSkel
-            logEvent $ MCLogNewTx txId $ Valid (length inputs) (Map.size outputs)
+            logEvent $ CLogNewTx txId $ Valid (length inputs) (Map.size outputs)
             return (inputs, outputs)
         -- the transaction fails in phase 1, the index remains unchanged.
         | notNull submissionFailures -> do
-            logEvent $ MCLogNewTx txId InvalidPhase1
+            logEvent $ CLogNewTx txId InvalidPhase1
             return (Set.empty, Map.empty)
         -- the transaction fails in phase 2, but no collaterals were
         -- provided. This is an unreachable case.
@@ -156,7 +157,7 @@ runMockChainValidate = interpret $ \case
         -- transaction.
         | Just (colIns, retCol) <- mCollaterals -> do
             let outputs = fromCardanoIndex (P.Ledger.getCardanoTxProducedReturnCollateral pCardanoTx) $ toList retCol
-            logEvent $ MCLogNewTx txId $ InvalidPhase2 (length colIns) (Map.size outputs)
+            logEvent $ CLogNewTx txId $ InvalidPhase2 (length colIns) (Map.size outputs)
             return (colIns, outputs)
     -- We update the index with the consumed and produced outputs
     modify' $ removeOutputs consumedInputs

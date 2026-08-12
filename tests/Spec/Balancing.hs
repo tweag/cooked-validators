@@ -209,36 +209,36 @@ testBalancingSucceedsWith msg props run =
       `withResultProp` \res -> testConjoin (($ res) <$> props)
 
 failsAtBalancingWith :: Api.Value -> Wallet -> ChainError -> Assertion
-failsAtBalancingWith val' wal' (MCEBalancingError (NotEnoughFund wal val)) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
+failsAtBalancingWith val' wal' (CEBalancingError (NotEnoughFund wal val)) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
 failsAtBalancingWith _ _ _ = testBool False
 
 failsAtBalancing :: ChainError -> Assertion
-failsAtBalancing (MCEBalancingError (NotEnoughFund {})) = testBool True
-failsAtBalancing (MCEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool True
+failsAtBalancing (CEBalancingError (NotEnoughFund {})) = testBool True
+failsAtBalancing (CEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool True
 failsAtBalancing _ = testBool False
 
 failsWithTooLittleFee :: ChainError -> Assertion
-failsWithTooLittleFee (MCESubmissionFailures failures) = testBool $ any (isInfixOf "FeeTooSmallUTxO" . show) failures
+failsWithTooLittleFee (CESubmissionFailures failures) = testBool $ any (isInfixOf "FeeTooSmallUTxO" . show) failures
 failsWithTooLittleFee _ = testBool False
 
 failsWithValueNotConserved :: ChainError -> Assertion
-failsWithValueNotConserved (MCESubmissionFailures failures) = testBool $ any (isInfixOf "ValueNotConserved" . show) failures
+failsWithValueNotConserved (CESubmissionFailures failures) = testBool $ any (isInfixOf "ValueNotConserved" . show) failures
 failsWithValueNotConserved _ = testBool False
 
 failsWithEmptyTxIns :: ChainError -> Assertion
-failsWithEmptyTxIns (MCESubmissionFailures failures) = testBool $ any (isInfixOf "InputSetEmptyUTxO" . show) failures
+failsWithEmptyTxIns (CESubmissionFailures failures) = testBool $ any (isInfixOf "InputSetEmptyUTxO" . show) failures
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: Integer -> ChainError -> Assertion
-failsAtCollateralsWith fee' (MCEBalancingError (NoSuitableCollateral fee percentage val)) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
+failsAtCollateralsWith fee' (CEBalancingError (NoSuitableCollateral fee percentage val)) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
 failsAtCollaterals :: ChainError -> Assertion
-failsAtCollaterals (MCEBalancingError (NoSuitableCollateral {})) = testBool True
+failsAtCollaterals (CEBalancingError (NoSuitableCollateral {})) = testBool True
 failsAtCollaterals _ = testBool False
 
 failsLackOfCollateralWallet :: ChainError -> Assertion
-failsLackOfCollateralWallet (MCEBalancingError MissingBalancingUser) = testBool True
+failsLackOfCollateralWallet (CEBalancingError MissingBalancingUser) = testBool True
 failsLackOfCollateralWallet _ = testBool False
 
 testBalancingFailsWith :: (Show a) => String -> (ChainError -> Assertion) -> FullMockChain a -> TestTree

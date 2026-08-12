@@ -29,7 +29,7 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
         NoTxSkelOutDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
         SomeTxSkelOutDatum _ Inline -> return Cardano.InlineScriptDatum
         SomeTxSkelOutDatum dat _ -> return $ Cardano.ScriptDatumForTxIn $ Just $ P.Ledger.toCardanoScriptData $ Api.toBuiltinData dat
-        SomeTxSkelOutDatumHash hash -> throw $ MCESpendingHashOnlyDatum txOutRef hash
+        SomeTxSkelOutDatumHash hash -> throw $ CESpendingHashOnlyDatum txOutRef hash
   witness <- case txSkelOutOwner of
     UserPubKey _ -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
     UserScript script -> do
@@ -46,5 +46,5 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
         Just vScript
           | Script.toScriptHash vScript == sHash ->
               Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> toScriptWitness vScript txSkelRedeemer scriptDatum
-        _ -> throw $ MCESpendingHashOnlyScript txOutRef sHash
+        _ -> throw $ CESpendingHashOnlyScript txOutRef sHash
   (,Cardano.BuildTxWith witness) <$> fromEither (P.Ledger.toCardanoTxIn txOutRef)

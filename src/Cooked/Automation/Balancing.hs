@@ -21,6 +21,7 @@ import Cooked.Effect.Log
 import Cooked.Effect.Params
 import Cooked.Effect.Query
 import Cooked.Runtime.Error
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
 import Data.ByteString qualified as BS
@@ -82,7 +83,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- with the @BalancingUtxosFromBalancingUser@ policy
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSignatory -> case txSkelSignatories of
-      [] -> throw $ MCEBalancingError MissingBalancingUser
+      [] -> throw $ CEBalancingError MissingBalancingUser
       bw : _ -> return $ Just $ UserPubKey bw
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
     DoNotBalance -> return Nothing
@@ -102,9 +103,9 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   mCollaterals <- do
     case (nbOfScripts == 0, txSkelOptCollateralUtxos txSkelOpts) of
       -- No script involved, but manual collateral UTxOs provided
-      (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
+      (True, CollateralUtxosFromSet utxos _) -> logEvent (CLogUnusedCollaterals $ Right utxos) >> return Nothing
       -- No script involved, but manual collateral user provided
-      (True, CollateralUtxosFromUser cUser) -> logEvent (MCLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
+      (True, CollateralUtxosFromUser cUser) -> logEvent (CLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
       -- No script involved, and no particular collateral option provided
       (True, CollateralUtxosFromBalancingUser) -> return Nothing
       -- Some scripts involved, and a specific set of UTxOs, alongside a
@@ -117,7 +118,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- Some scripts involved, and no specific collateral options provided.
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
         -- If no balancing wallet exists, we throw an error
-        Nothing -> throw $ MCEBalancingError MissingBalancingUser
+        Nothing -> throw $ CEBalancingError MissingBalancingUser
         -- If a balancing wallet exists, we use it as collateral user
         Just bUser -> Just . (,bUser) <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
 
@@ -164,7 +165,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   where
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- Map.partitionWithKey f l =
-          unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
+          unless (koLength == 0) (logEvent $ CLogDiscardedUtxos koLength s) >> return ok
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
@@ -203,7 +204,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
           | minFee == maxFee && newFee <= fee -> return $ ExtendedTxSkel newSkel newFee mCols body sErrors
           -- The skeleton was balanceable, we cannot try smaller fee, but
           -- the used fee is insufficient for the generated body
-          | minFee == maxFee -> throw $ MCEBalancingError $ NotEnoughFundForProperFee balancingUser
+          | minFee == maxFee -> throw $ CEBalancingError $ NotEnoughFundForProperFee balancingUser
           -- Current fee is insufficient, we look on the right (strictly)
           | newFee > fee -> computeFeeAndBalance balancingUser newFee maxFee balancingUtxos mCollaterals skel
           -- Current fee is sufficient, but the set of balancing utxos cannot
@@ -224,7 +225,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
       -- If it fails, and the remaining fee interval is not reduced to the
       -- current fee attempt, we can still hope for a solution by trying with
       -- smaller fee.
-      MCEBalancingError {} | fee > minFee -> computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
+      CEBalancingError {} | fee > minFee -> computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
       -- Otherwise, the whole balancing process fails and we spread the error:
       -- the skeleton was not balanceable.
       err -> throw err
@@ -271,7 +272,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   case reachedValue of
     -- If no value was reached, the input UTxOs are insufficient to provide
     -- the necessary collaterals, and thus an error is raised
-    Nothing -> throw $ MCEBalancingError $ NoSuitableCollateral fee percentage totalCollateral
+    Nothing -> throw $ CEBalancingError $ NoSuitableCollateral fee percentage totalCollateral
     -- If a value was reached, we return it alongside the return collaterals
     Just (oRefs, returnOutput) -> return $ Just (Set.fromList oRefs, returnOutput)
 
@@ -512,7 +513,7 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
       let totalValue = foldOf (traversed % txSkelOutValueL) balancingUtxos
           difference = snd $ Api.split $ missingLeft <> PlutusTx.negate totalValue
       throw $
-        MCEBalancingError $
+        CEBalancingError $
           if difference == mempty
             then NotEnoughFundForExtraMinAda balancingUser
             else NotEnoughFund balancingUser difference

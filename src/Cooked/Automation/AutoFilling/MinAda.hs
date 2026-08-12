@@ -15,6 +15,7 @@ import Cooked.Automation.GenerateTx.Output
 import Cooked.Effect.Log
 import Cooked.Effect.Params
 import Cooked.Effect.Query
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -55,7 +56,7 @@ toTxSkelOutWithMinAda txSkelOut = do
   txSkelOut' <- go txSkelOut
   let originalAda = view (txSkelOutValueL % valueLovelaceL) txSkelOut
       updatedAda = view (txSkelOutValueL % valueLovelaceL) txSkelOut'
-  when (originalAda /= updatedAda) $ logEvent $ MCLogAdjustedTxSkelOut txSkelOut updatedAda
+  when (originalAda /= updatedAda) $ logEvent $ CLogAdjustedTxSkelOut txSkelOut updatedAda
   return txSkelOut'
   where
     go :: TxSkelOut -> Sem effs TxSkelOut

@@ -254,7 +254,7 @@ runMockChainQuery = interpret $ \case
     res <- gets $ Map.lookup oRef . chainIndexOutputs
     case res of
       Just (txSkelOut, True) -> return txSkelOut
-      _ -> throw $ MCEUnknownOutRef oRef
+      _ -> throw $ CEUnknownOutRef oRef
   AllUtxos -> fetchUtxos $ const True
   UtxosAt (Script.toAddress -> addr) -> fetchUtxos $ (== addr) . Script.toAddress
   GetConstitutionScript -> gets $ view chainIndexConstitutionL
@@ -307,7 +307,7 @@ runBlockChainQuery = interpret $ \case
   TxSkelOutByRef oRef -> do
     txIn <- fromEither $ P.Ledger.toCardanoTxIn oRef
     utxo <- queryUtxosAndHandleErrors $ Cardano.QueryUTxOByTxIn $ Set.singleton txIn
-    maybe (throw $ MCEUnknownOutRef oRef) return $ Map.lookup oRef utxo
+    maybe (throw $ CEUnknownOutRef oRef) return $ Map.lookup oRef utxo
   GetConstitutionScript -> do
     -- We retrieve the official optional script hash of the current constitution
     Cardano.Constitution _ mScriptHash <-

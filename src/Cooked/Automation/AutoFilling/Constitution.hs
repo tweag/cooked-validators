@@ -10,6 +10,7 @@ import Control.Monad
 import Control.Monad.Extra
 import Cooked.Effect.Log
 import Cooked.Effect.Query
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -38,7 +39,7 @@ autoFillConstitution = do
     ( \constitutionScript -> traverseTweak (txSkelProposalsL % traversed) $ \prop -> do
         when (isn't txSkelProposalConstitutionAT prop) $
           logEvent $
-            MCLogAutoFilledConstitution $
+            CLogAutoFilledConstitution $
               Script.toScriptHash constitutionScript
         return (fillConstitutionWhenEmpty constitutionScript prop)
     )

@@ -50,6 +50,21 @@ data Override :: Effect where
 
 makeSem_ ''Override
 
+-- | Updates the current parameters
+setParams :: (Member Override effs) => Emulator.Params -> Sem effs ()
+
+-- | Sets the current script to act as the official constitution script
+setConstitutionScript :: (Member Override effs, ToVScript s) => s -> Sem effs ()
+
+-- | Forces the generation of utxos corresponding to certain
+-- `TxSkelOut`. Returns the created UTxOs, which might differ from the original
+-- list if some min ADA adjustment occurred.
+forceOutputs :: (Member Override effs) => [TxSkelOut] -> Sem effs Utxos
+
+-- | Same as `forceOutputs`, but discards the returned outputs
+forceOutputs_ :: (Member Override effs) => [TxSkelOut] -> Sem effs ()
+forceOutputs_ = void . forceOutputs
+
 -- | Interprets the `Override` effect
 runMockChainOverride ::
   forall effs a.
@@ -100,18 +115,3 @@ runMockChainOverride = interpret $ \case
     modify' $ addOutputs outputsList
     -- Finally, we return the created utxos
     return $ Map.fromList outputsList
-
--- | Updates the current parameters
-setParams :: (Member Override effs) => Emulator.Params -> Sem effs ()
-
--- | Sets the current script to act as the official constitution script
-setConstitutionScript :: (Member Override effs, ToVScript s) => s -> Sem effs ()
-
--- | Forces the generation of utxos corresponding to certain
--- `TxSkelOut`. Returns the created UTxOs, which might differ from the original
--- list if some min ADA adjustment occurred.
-forceOutputs :: (Member Override effs) => [TxSkelOut] -> Sem effs Utxos
-
--- | Same as `forceOutputs`, but discards the returned outputs
-forceOutputs_ :: (Member Override effs) => [TxSkelOut] -> Sem effs ()
-forceOutputs_ = void . forceOutputs

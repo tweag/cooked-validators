@@ -1,6 +1,7 @@
--- | This module exposes the infrastructure to execute mockchain and blockchain
--- runs, in particular initial configurations, results, and running functions.
-module Cooked.MockChain.Runnable
+-- | This module exposes the configuration elements required to execute a
+-- mockchain run. This includes the initial parameters (with an initial
+-- distribution of funds), and various ways of processing the results of a run.
+module Cooked.MockChain.Config
   ( -- * Initial distributions
     InitialDistribution,
     initialDistributionTemplate,
@@ -15,17 +16,9 @@ module Cooked.MockChain.Runnable
     MockChainReturn (..),
     FunOnMockChainResult,
     unRawMockChainReturn,
-
-    -- * Running mockchains
-    RunnableMockChain (..),
-    runMockChainFromConf,
-    runMockChainFromInitDist,
-    runMockChainFromInitDistTemplate,
-    runMockChainDef,
   )
 where
 
-import Cooked.Effect.Override
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State
@@ -36,7 +29,6 @@ import Data.List (foldl')
 import Data.Map (Map)
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-import Polysemy
 
 -- | Describes the initial distribution of UTxOs per user.
 --
@@ -114,51 +106,3 @@ data MockChainConf a b where
 -- initial distribution, and returns a refined `MockChainReturn`
 mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
 mockChainConfTemplate = MockChainConf def def def unRawMockChainReturn
-
--- | The class of effects that represent a mockchain run
-class RunnableMockChain effs where
-  -- | Runs a computation from an initial `EmulatorState` and `ChainIndex`,
-  -- while returning a list of `RawMockChainReturn`
-  runMockChain :: EmulatorState -> ChainIndex -> Sem effs a -> [RawMockChainReturn a]
-
--- | Runs a `RunnableMockChain` from an initial `MockChainConf`
-runMockChainFromConf ::
-  ( RunnableMockChain effs,
-    Member Override effs
-  ) =>
-  MockChainConf a b ->
-  Sem effs a ->
-  [b]
-runMockChainFromConf (MockChainConf emInitState ciInitState initDist funOnResult) currentRun =
-  fmap funOnResult $
-    runMockChain emInitState ciInitState $
-      forceOutputs initDist >> currentRun
-
--- | Runs a `RunnableMockChain` from an initial distribution
-runMockChainFromInitDist ::
-  ( RunnableMockChain effs,
-    Member Override effs
-  ) =>
-  InitialDistribution ->
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainFromInitDist initDist =
-  runMockChainFromConf $ mockChainConfTemplate {mccInitialDistribution = initDist}
-
--- | Same as `runMockChainFromInitDist` using the `initialDistributionTemplate`
-runMockChainFromInitDistTemplate ::
-  ( RunnableMockChain effs,
-    Member Override effs
-  ) =>
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainFromInitDistTemplate = runMockChainFromInitDist initialDistributionTemplate
-
--- | Runs a `RunnableMockChain` from a default configuration
-runMockChainDef ::
-  ( RunnableMockChain effs,
-    Member Override effs
-  ) =>
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainDef = runMockChainFromConf mockChainConfTemplate

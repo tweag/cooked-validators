@@ -4,8 +4,7 @@
 -- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
-import Cooked.Effect.Log
-import Cooked.MockChain.Runnable
+import Cooked.MockChain.Config
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
@@ -86,55 +85,55 @@ instance PrettyCooked BalancingError where
       ]
 
 instance PrettyCooked ChainError where
-  prettyCookedOpt opts (MCEExUnitsFailures failures) =
+  prettyCookedOpt opts (CEExUnitsFailures failures) =
     prettyItemize opts "Execution units failures:" "-" (PP.viaShow <$> Map.elems failures :: [DocCooked])
-  prettyCookedOpt opts (MCESubmissionFailures failures) =
+  prettyCookedOpt opts (CESubmissionFailures failures) =
     prettyItemize opts "Submission failures:" "-" (PP.viaShow <$> failures :: [DocCooked])
-  prettyCookedOpt opts (MCEBalancingError err) = prettyCookedOpt opts err
-  prettyCookedOpt _ (MCEToCardanoError cardanoError) =
+  prettyCookedOpt opts (CEBalancingError err) = prettyCookedOpt opts err
+  prettyCookedOpt _ (CEToCardanoError cardanoError) =
     "Transaction generation error:" <+> PP.pretty cardanoError
-  prettyCookedOpt opts (MCEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
-  prettyCookedOpt opts (MCEWrongReferenceScriptError oRef expected got) =
+  prettyCookedOpt opts (CEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
+  prettyCookedOpt opts (CEWrongReferenceScriptError oRef expected got) =
     "Unable to fetch the following reference script:"
       <+> prettyHash opts expected
       <+> "in the following UTxO:"
       <+> prettyCookedOpt opts oRef
       <+> "but instead got:"
       <+> (case got of Nothing -> "none"; Just sHash -> prettyHash opts sHash)
-  prettyCookedOpt _ (MCEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
-  prettyCookedOpt opts (MCESpendingHashOnlyDatum txOutRef datumHash) =
+  prettyCookedOpt _ (CEUnsupportedFeature feature) = "Unsupported feature:" <+> PP.pretty feature
+  prettyCookedOpt opts (CESpendingHashOnlyDatum txOutRef datumHash) =
     "Unable to spend the following output, whose datum is only known by its hash:"
       <+> prettyCookedOpt opts txOutRef
       <+> "with datum hash:"
       <+> prettyHash opts datumHash
-  prettyCookedOpt opts (MCESpendingHashOnlyScript txOutRef scriptHash) =
+  prettyCookedOpt opts (CESpendingHashOnlyScript txOutRef scriptHash) =
     "Unable to spend the following output, whose script is only known by its hash:"
       <+> prettyCookedOpt opts txOutRef
       <+> "with script hash:"
       <+> prettyHash opts scriptHash
       <+> "; the full script must be provided through a matching reference input."
-  prettyCookedOpt _ (MCEFailure msg) = "Failed with:" <+> PP.pretty msg
+  prettyCookedOpt _ (CEFailure msg) = "Failed with:" <+> PP.pretty msg
 
-instance PrettyCooked (Contextualized [MockChainLogEntry]) where
+instance PrettyCooked (Contextualized [ChainLogEntry]) where
   prettyCookedOpt opts (Contextualized outputs entries) =
     prettyItemize opts "📖 MockChain run log:" "⁍" (fmap (prettyCookedOpt opts . Contextualized outputs) entries)
 
--- | This prints a 'MockChainLogEntry'. In the log, we know a transaction has
--- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
-instance PrettyCooked (Contextualized MockChainLogEntry) where
-  prettyCookedOpt opts (Contextualized _ (MCLogAdjustedTxSkelOut skelOut newAda)) =
+-- | This prints a 'ChainLogEntry'. In the log, we know a transaction has
+-- been validated if the 'CLogSubmittedTxSkel' is followed by a 'CLogNewTx'.
+instance PrettyCooked (Contextualized ChainLogEntry) where
+  prettyCookedOpt opts (Contextualized _ (CLogAdjustedTxSkelOut skelOut newAda)) =
     prettyItemize
       opts
       ("New ADA adjustment of" <+> prettyCookedOpt opts (Script.toValue newAda) <+> "performed for output:")
       "-"
       skelOut
-  prettyCookedOpt opts (Contextualized outputs (MCLogSubmittedTxSkel skel)) =
+  prettyCookedOpt opts (Contextualized outputs (CLogSubmittedTxSkel skel)) =
     prettyItemize
       opts
       "New raw skeleton submitted to the adjustment pipeline:"
       "-"
       (Contextualized outputs skel)
-  prettyCookedOpt opts (Contextualized outputs (MCLogAdjustedTxSkel skel fee mCollaterals)) =
+  prettyCookedOpt opts (Contextualized outputs (CLogAdjustedTxSkel skel fee mCollaterals)) =
     prettyItemize
       opts
       "New adjusted skeleton submitted for validation:"
@@ -153,7 +152,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
                    mCollaterals
              )
       )
-  prettyCookedOpt opts (Contextualized _ (MCLogNewTx txId validity)) =
+  prettyCookedOpt opts (Contextualized _ (CLogNewTx txId validity)) =
     prettyItemize
       opts
       "New transaction produced:"
@@ -173,11 +172,11 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
                 "Number of return collateral outputs:" <+> PP.pretty nbRetColOutputs
               ]
       )
-  prettyCookedOpt opts (Contextualized _ (MCELogExUnitsFailures failures)) =
+  prettyCookedOpt opts (Contextualized _ (CELogExUnitsFailures failures)) =
     prettyItemize opts "Warning: execution units failures:" "-" (PP.viaShow <$> Map.elems failures :: [DocCooked])
-  prettyCookedOpt opts (Contextualized _ (MCELogSubmissionFailures failures)) =
+  prettyCookedOpt opts (Contextualized _ (CELogSubmissionFailures failures)) =
     prettyItemize opts "Warning: submission failures:" "-" (PP.viaShow <$> failures :: [DocCooked])
-  prettyCookedOpt opts (Contextualized _ (MCLogDiscardedUtxos n s)) =
+  prettyCookedOpt opts (Contextualized _ (CLogDiscardedUtxos n s)) =
     prettyItemize @[DocCooked]
       opts
       "Warning:"
@@ -185,7 +184,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
       [ PP.pretty n <+> "balancing UTxOs were discarded",
         PP.pretty s
       ]
-  prettyCookedOpt opts (Contextualized _ (MCLogUnusedCollaterals source)) =
+  prettyCookedOpt opts (Contextualized _ (CLogUnusedCollaterals source)) =
     prettyItemize
       opts
       "Warning"
@@ -194,7 +193,7 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
         "Source:" <+> either (prettyCookedOpt opts) (("Given set of size" <+>) . PP.pretty . length) source,
         "The transaction does not require any collateral"
       ]
-  prettyCookedOpt opts (Contextualized _ (MCLogAddedReferenceScript red oRef sHash)) =
+  prettyCookedOpt opts (Contextualized _ (CLogAddedReferenceScript red oRef sHash)) =
     prettyItemize
       opts
       "New automated attachment of a reference script:"
@@ -204,13 +203,13 @@ instance PrettyCooked (Contextualized MockChainLogEntry) where
         ]
           ++ prettyCookedOptList opts red
       )
-  prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledWithdrawalAmount cred amount)) =
+  prettyCookedOpt opts (Contextualized _ (CLogAutoFilledWithdrawalAmount cred amount)) =
     prettyItemize
       opts
       "New auto-filled withdrawal amount:"
       "-"
       [prettyCookedOpt opts cred, prettyCookedOpt opts (Script.toValue amount)]
-  prettyCookedOpt opts (Contextualized _ (MCLogAutoFilledConstitution constitution)) =
+  prettyCookedOpt opts (Contextualized _ (CLogAutoFilledConstitution constitution)) =
     "New auto-filled constitution:" <+> prettyHash opts constitution
 
 -- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown

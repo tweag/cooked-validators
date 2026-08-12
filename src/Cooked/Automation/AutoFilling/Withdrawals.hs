@@ -7,6 +7,7 @@ where
 
 import Cooked.Effect.Log
 import Cooked.Effect.Query
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -30,7 +31,7 @@ autoFillWithdrawalAmounts = do
       Just reward | isn't withdrawalAmountAT withdrawal -> do
         let newWithdrawal = fillAmount reward withdrawal
         logEvent $
-          MCLogAutoFilledWithdrawalAmount
+          CLogAutoFilledWithdrawalAmount
             (view (withdrawalUserL % to Script.toCredential) newWithdrawal)
             reward
         return newWithdrawal

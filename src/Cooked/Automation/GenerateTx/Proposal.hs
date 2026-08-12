@@ -62,7 +62,7 @@ toPParamsUpdate pChange ppu =
         TreasuryCut q -> setL Conway.ppuTauL $ toBR q
         MinPoolCost n -> setL Conway.ppuMinPoolCostL $ fromIntegral n
         CoinsPerUTxOByte n -> setL Conway.ppuCoinsPerUTxOByteL $ Conway.CoinPerByte $ fromIntegral n
-        CostModels _pv1 _pv2 _pv3 -> throw $ MCEUnsupportedFeature "CostModels"
+        CostModels _pv1 _pv2 _pv3 -> throw $ CEUnsupportedFeature "CostModels"
         Prices q r -> setL Conway.ppuPricesL $ Cardano.Prices (toBR q) (toBR r)
         MaxTxExUnits n m -> setL Conway.ppuMaxTxExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
         MaxBlockExUnits n m -> setL Conway.ppuMaxBlockExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
@@ -90,9 +90,9 @@ toGovAction ::
   StrictMaybe Conway.ScriptHash ->
   Sem effs (Conway.GovAction Emulator.EmulatorEra)
 toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
-toGovAction UpdateCommittee {} _ = throw $ MCEUnsupportedFeature "UpdateCommittee"
-toGovAction NewConstitution {} _ = throw $ MCEUnsupportedFeature "TxGovActionNewConstitution"
-toGovAction HardForkInitiation {} _ = throw $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
+toGovAction UpdateCommittee {} _ = throw $ CEUnsupportedFeature "UpdateCommittee"
+toGovAction NewConstitution {} _ = throw $ CEUnsupportedFeature "TxGovActionNewConstitution"
+toGovAction HardForkInitiation {} _ = throw $ CEUnsupportedFeature "TxGovActionHardForkInitiation"
 toGovAction (ParameterChange changes) sHash = do
   ppu <- foldM (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes
   return $ Conway.ParameterChange SNothing ppu sHash

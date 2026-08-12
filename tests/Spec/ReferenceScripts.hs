@@ -166,7 +166,7 @@ tests =
                       }
               )
               `withErrorProp` \case
-                MCEUnknownOutRef _ -> testSuccess
+                CEUnknownOutRef _ -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "fail from transaction generation for mismatching reference scripts" $
             mustFailTest
@@ -185,7 +185,7 @@ tests =
                       }
               )
               `withErrorProp` \case
-                MCEWrongReferenceScriptError {} -> testSuccess
+                CEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "phase 1 - fail if using a reference script with 'someRedeemer'" $
             mustFailInPhase1Test $ do
@@ -242,16 +242,16 @@ tests =
               referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False,
           testCookedFromInitDistTemplate "succeed if relying on automated finding of reference minting policy" $
             mustSucceedTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 True)
-              `withLogProp` happened "MCLogAddedReferenceScript",
+              `withLogProp` happened "CLogAddedReferenceScript",
           testCookedFromInitDistTemplate "fail if given the wrong reference minting policy" $
             mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
               `withErrorProp` \case
-                MCEWrongReferenceScriptError {} -> testSuccess
+                CEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "fail if referencing the wrong utxo" $
             mustFailTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 1 False)
               `withErrorProp` \case
-                MCEWrongReferenceScriptError {} -> testSuccess
+                CEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure
         ]
     ]

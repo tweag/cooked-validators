@@ -39,27 +39,27 @@ data BalancingError
 -- | Errors that can be produced by the blockchain
 data ChainError
   = -- | Failures occurring while computing execution units
-    MCEExUnitsFailures ExUnitsFailures
+    CEExUnitsFailures ExUnitsFailures
   | -- | Failures occurring while submitting the transaction for validation
-    MCESubmissionFailures SubmissionFailures
+    CESubmissionFailures SubmissionFailures
   | -- | Balancing errors
-    MCEBalancingError BalancingError
+    CEBalancingError BalancingError
   | -- | Translating a skeleton element to its Cardano counterpart failed
-    MCEToCardanoError P.Ledger.ToCardanoError
+    CEToCardanoError P.Ledger.ToCardanoError
   | -- | The required reference script is missing from a witness utxo
-    MCEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
+    CEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
   | -- | A UTxO is missing from the mockchain state
-    MCEUnknownOutRef Api.TxOutRef
+    CEUnknownOutRef Api.TxOutRef
   | -- | An attempt to invoke an unsupported feature has been made
-    MCEUnsupportedFeature String
+    CEUnsupportedFeature String
   | -- | An attempt to spend a script output whose datum is only known by its
     -- hash, which does not provide the datum content required by the witness
-    MCESpendingHashOnlyDatum Api.TxOutRef Api.DatumHash
+    CESpendingHashOnlyDatum Api.TxOutRef Api.DatumHash
   | -- | An attempt to spend a script output whose script is only known by its
     -- hash, without providing the full script through a matching reference input
-    MCESpendingHashOnlyScript Api.TxOutRef Api.ScriptHash
+    CESpendingHashOnlyScript Api.TxOutRef Api.ScriptHash
   | -- | Used to provide 'MonadFail' instances.
-    MCEFailure String
+    CEFailure String
   deriving (Show, Eq)
 
 -- | Interpreting failures in terms of `ChainError`
@@ -69,4 +69,4 @@ runFailInChainError ::
   Sem (Fail : effs) a ->
   Sem effs a
 runFailInChainError = interpret $
-  \(Fail s) -> throw $ MCEFailure s
+  \(Fail s) -> throw $ CEFailure s

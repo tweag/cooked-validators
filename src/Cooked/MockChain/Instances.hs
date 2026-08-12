@@ -56,7 +56,7 @@ import Cooked.Effect.Submission
 import Cooked.Effect.Time
 import Cooked.Effect.Validation
 import Cooked.MockChain.Ltl
-import Cooked.MockChain.Runnable
+import Cooked.MockChain.Run
 import Cooked.MockChain.Tweak
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
@@ -88,11 +88,11 @@ instance RunnableMockChain DirectEffs where
     (: [])
       . run
       . runWriter
-      . runMockChainLog fromLogEntry
+      . runMockChainLog
       . runState ciInit
       . runState emInit
       . runError
-      . mapError MCEToCardanoError
+      . mapError CEToCardanoError
       . runFailInChainError
       . runMockChainMisc
       . runMockChainParams
@@ -165,11 +165,11 @@ instance RunnableMockChain FullEffs where
     run
       . runNonDet
       . runWriter
-      . runMockChainLog fromLogEntry
+      . runMockChainLog
       . runState ciInit
       . runState emInit
       . runError
-      . mapError MCEToCardanoError
+      . mapError CEToCardanoError
       . runFailInChainError
       . runMockChainParams
       . runMockChainTime
@@ -228,11 +228,11 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
     run
       . runNonDet
       . runWriter
-      . runMockChainLog fromLogEntry
+      . runMockChainLog
       . runState ciInit
       . runState emInit
       . runError
-      . mapError MCEToCardanoError
+      . mapError CEToCardanoError
       . runFailInChainError
       . runMockChainParams
       . runMockChainTime

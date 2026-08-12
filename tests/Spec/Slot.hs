@@ -28,7 +28,7 @@ runSlot ::
 runSlot =
   run
     . runError
-    . mapError MCEToCardanoError
+    . mapError CEToCardanoError
     . runFailInChainError
     . evalState def
     . evalState def

@@ -33,7 +33,7 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
       | scriptHash == scriptHash' -> do
           s <- fromEither $ P.Ledger.toCardanoTxIn scriptOutRef
           return $ Cardano.PReferenceScript s
-    _ -> throw $ MCEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
+    _ -> throw $ CEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness. Note on the usage of 'P.Ledger.zeroExecutionUnits': at this stage of

@@ -10,6 +10,7 @@ where
 import Control.Monad
 import Cooked.Effect.Log
 import Cooked.Effect.Query
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Query
@@ -44,7 +45,7 @@ updateRedeemedScript
       (return rs)
       -- If a reference input is found, we assign it and log the event
       ( \oRef -> do
-          logEvent $ MCLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
+          logEvent $ CLogAddedReferenceScript txSkelRed oRef (Script.toScriptHash vScript)
           return $ over userRedeemerAT (fillReferenceInput oRef) rs
       )
       $ case oRefsInInputs of

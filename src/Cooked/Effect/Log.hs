@@ -7,85 +7,56 @@
 -- solely be used to track internal events. To trace additional elements from a
 -- user's perspective, use `Cooked.Effect.Misc.note` instead.
 module Cooked.Effect.Log
-  ( -- * Logging events
-    TxValidity (..),
-    MockChainLogEntry (..),
-
-    -- * Logging effect
+  ( -- * Logging effect
     Log,
     runMockChainLog,
+    runBlockChainLog,
 
     -- * Logging primitive
     logEvent,
   )
 where
 
-import Cooked.Skeleton
-import Cooked.Utilities.Aliases
-import Plutus.Script.Utils.Scripts qualified as Script
-import PlutusLedgerApi.V3 qualified as Api
+import Cooked.Pretty.Class
+import Cooked.Pretty.MockChain ()
+import Cooked.Pretty.Options
+import Cooked.Pretty.Skeleton
+import Cooked.Runtime.Journal
+import Cooked.Runtime.State
 import Polysemy
+import Polysemy.State
 import Polysemy.Writer
-
--- | The validity of a transaction
-data TxValidity
-  = -- | The transaction is valid, we store the number of inputs and outputs
-    Valid Int Int
-  | -- | The transaction is invalid in phase 1 (no ledger change)
-    InvalidPhase1
-  | -- | The transaction is invalid in phase 2, we store the number of collateral
-    -- inputs and return collateral outputs
-    InvalidPhase2 Int Int
-  deriving (Show)
-
--- | Events logged when processing transaction skeletons
-data MockChainLogEntry
-  = -- | Logging a Skeleton as it is submitted by the user.
-    MCLogSubmittedTxSkel TxSkel
-  | -- | Logging a Skeleton as it has been adjusted by the balancing mechanism,
-    -- alongside fee, and possible collateral utxos and return collateral user.
-    MCLogAdjustedTxSkel TxSkel Fee (Maybe Collaterals)
-  | -- | Logging the production of a new transaction, with its ID as well as its
-    -- validity.
-    MCLogNewTx Api.TxId TxValidity
-  | -- | Logging the fact that utxos provided by the user for balancing have to be
-    -- discarded for a specific reason.
-    MCLogDiscardedUtxos Integer String
-  | -- | Logging the fact that utxos provided as collaterals will not be used
-    -- because the transaction does not involve scripts. There are 2 cases,
-    -- depending on whether the user has provided an explicit user or a set of
-    -- utxos to be used as collaterals.
-    MCLogUnusedCollaterals (Either Peer CollateralIns)
-  | -- | Logging the automatic addition of a reference script
-    MCLogAddedReferenceScript TxSkelRedeemer Api.TxOutRef Script.ScriptHash
-  | -- | Logging the automatic addition of a withdrawal amount
-    MCLogAutoFilledWithdrawalAmount Api.Credential Api.Lovelace
-  | -- | Logging the automatic addition of the constitution script
-    MCLogAutoFilledConstitution Api.ScriptHash
-  | -- | Logging the automatic adjustment of a min ada amount
-    MCLogAdjustedTxSkelOut TxSkelOut Api.Lovelace
-  | -- | Logging the existence of failures uncovered during the computation of
-    -- execution units, when they're not treated as fatal.
-    MCELogExUnitsFailures ExUnitsFailures
-  | -- | Logging the existence of failures uncovered during submission, when
-    -- they're not treated as fatal.
-    MCELogSubmissionFailures SubmissionFailures
-  deriving (Show)
 
 -- | An effect to allow logging of mockchain events
 data Log :: Effect where
-  LogEvent :: MockChainLogEntry -> Log m ()
+  LogEvent :: ChainLogEntry -> Log m ()
 
 makeSem_ ''Log
+
+-- | Logs an internal event occurring while processing a transaction skeleton
+logEvent :: (Member Log effs) => ChainLogEntry -> Sem effs ()
 
 -- | Interpreting a `Log` in terms of a writer of
 -- @[MockChainLogEntry]@
 runMockChainLog ::
-  (Member (Writer j) effs) =>
-  (MockChainLogEntry -> j) ->
+  (Member (Writer ChainJournal) effs) =>
   Sem (Log : effs) a ->
   Sem effs a
-runMockChainLog inject = interpret $ \(LogEvent event) -> tell $ inject event
+runMockChainLog = interpret $ \(LogEvent event) -> tell $ fromLogEntry event
 
--- | Logs an internal event occurring while processing a transaction skeleton
-logEvent :: (Member Log effs) => MockChainLogEntry -> Sem effs ()
+-- | Interpreting a 'Log' by directly producing a trace on the standard output
+-- for each log entry.
+runBlockChainLog ::
+  ( Members
+      '[ (Embed IO),
+         State PrettyCookedOpts,
+         State ChainIndex
+       ]
+      effs
+  ) =>
+  Sem (Log : effs) a ->
+  Sem effs a
+runBlockChainLog = interpret $ \(LogEvent event) -> do
+  opts <- get
+  index <- gets chainIndexOutputs
+  embed $ printCookedOpt opts $ Contextualized index event

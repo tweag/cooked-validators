@@ -69,37 +69,37 @@ tests =
             mustFailTest
               (testProposingScript False False checkProposingScript (Just alwaysTrueProposingValidator) (ParameterChange [FeePerByte 100]))
               `withFailureProp` isPhase1FailureWithMsg "InvalidPolicyHash"
-              `withLogProp` didNotHappen "MCLogAutoFilledConstitution",
+              `withLogProp` didNotHappen "CLogAutoFilledConstitution",
           testCooked "Success when executing the right constitution script" $
             mustSucceedTest
               (testProposingScript False False alwaysTrueProposingValidator (Just alwaysTrueProposingValidator) (ParameterChange [FeePerByte 100]))
-              `withLogProp` didNotHappen "MCLogAutoFilledConstitution",
+              `withLogProp` didNotHappen "CLogAutoFilledConstitution",
           testCooked "Success when executing a more complex constitution script" $
             mustSucceedTest
               (testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 100]))
-              `withLogProp` didNotHappen "MCLogAutoFilledConstitution",
+              `withLogProp` didNotHappen "CLogAutoFilledConstitution",
           testCooked "Failure when executing a more complex constitution script with the wrong proposal" $
             mustFailInPhase2Test
               (testProposingScript False False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 50]))
-              `withLogProp` didNotHappen "MCLogAutoFilledConstitution",
+              `withLogProp` didNotHappen "CLogAutoFilledConstitution",
           testCooked "Success when executing a more complex constitution script as a reference script" $
             mustSucceedTest (testProposingScript True False checkProposingScript (Just checkProposingScript) (ParameterChange [FeePerByte 100]))
-              `withLogProp` happened "MCLogAddedReferenceScript"
-              `withLogProp` didNotHappen "MCLogAutoFilledConstitution"
+              `withLogProp` happened "CLogAddedReferenceScript"
+              `withLogProp` didNotHappen "CLogAutoFilledConstitution"
         ],
       testGroup
         "Automated constitution attachment"
         [ testCooked "Success when auto assigning the constitution script" $
             mustSucceedTest
               (testProposingScript False True checkProposingScript Nothing (ParameterChange [FeePerByte 100]))
-              `withLogProp` happened "MCLogAutoFilledConstitution",
+              `withLogProp` happened "CLogAutoFilledConstitution",
           testCooked "Success when auto assigning the constitution script and using it as a reference script" $
             mustSucceedTest (testProposingScript True True checkProposingScript Nothing (ParameterChange [FeePerByte 100]))
-              `withLogProp` happened "MCLogAddedReferenceScript"
-              `withLogProp` happened "MCLogAutoFilledConstitution",
+              `withLogProp` happened "CLogAddedReferenceScript"
+              `withLogProp` happened "CLogAutoFilledConstitution",
           testCooked "Success when auto assigning the constitution script while overriding an existing one" $
             mustSucceedTest
               (testProposingScript False True checkProposingScript (Just alwaysFalseProposingValidator) (ParameterChange [FeePerByte 100]))
-              `withLogProp` happened "MCLogAutoFilledConstitution"
+              `withLogProp` happened "CLogAutoFilledConstitution"
         ]
     ]

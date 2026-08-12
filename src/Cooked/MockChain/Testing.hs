@@ -88,9 +88,9 @@ where
 import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Exception qualified as E
 import Control.Monad
-import Cooked.Effect.Log
 import Cooked.Effect.Override
-import Cooked.MockChain.Runnable
+import Cooked.MockChain.Config
+import Cooked.MockChain.Run
 import Cooked.Pretty
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
@@ -274,10 +274,10 @@ assertSameSets l r =
 --}
 
 -- | Type of properties over failures
-type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> ChainError -> UtxoState -> prop
+type FailureProp prop = PrettyCookedOpts -> [ChainLogEntry] -> ChainError -> UtxoState -> prop
 
 -- | Type of properties over successes
-type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoState -> prop
+type SuccessProp a prop = PrettyCookedOpts -> [ChainLogEntry] -> a -> UtxoState -> prop
 
 -- | Type of properties over the number of run outcomes. This does not
 -- necessitate a 'PrettyCookedOpts' as parameter as an 'Integer' does not
@@ -285,7 +285,7 @@ type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoSt
 type SizeProp prop = Integer -> prop
 
 -- | Type of properties over the mockchain log
-type LogProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
+type LogProp prop = PrettyCookedOpts -> [ChainLogEntry] -> prop
 
 -- | Type of properties over the 'UtxoState'
 type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
@@ -570,8 +570,8 @@ isValidationFailure _ = False
 isPhase1Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase1Failure _ _ (MCESubmissionFailures _) _ = testSuccess
-isPhase1Failure _ _ (MCEExUnitsFailures failures) _
+isPhase1Failure _ _ (CESubmissionFailures _) _ = testSuccess
+isPhase1Failure _ _ (CEExUnitsFailures failures) _
   | not (any isValidationFailure (Map.elems failures)) = testSuccess
 isPhase1Failure pcOpts _ e _ =
   testFailureMsg $
@@ -582,7 +582,7 @@ isPhase1Failure pcOpts _ e _ =
 isPhase2Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase2Failure _ _ (MCEExUnitsFailures failures) _
+isPhase2Failure _ _ (CEExUnitsFailures failures) _
   | any isValidationFailure (Map.elems failures) = testSuccess
 isPhase2Failure pcOpts _ e _ =
   testFailureMsg $
@@ -594,9 +594,9 @@ isPhase1FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCESubmissionFailures failures) _
+isPhase1FailureWithMsg s _ _ (CESubmissionFailures failures) _
   | any (isInfixOf s . show) failures = testSuccess
-isPhase1FailureWithMsg s _ _ (MCEExUnitsFailures failures) _
+isPhase1FailureWithMsg s _ _ (CEExUnitsFailures failures) _
   | any (\f -> not (isValidationFailure f) && s `isInfixOf` show f) (Map.elems failures) = testSuccess
 isPhase1FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
@@ -608,7 +608,7 @@ isPhase2FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEExUnitsFailures failures) _
+isPhase2FailureWithMsg s _ _ (CEExUnitsFailures failures) _
   | not $ null [text | Alonzo.ValidationFailure _ _ logs _ <- Map.elems failures, (T.unpack -> text) <- logs, s `isInfixOf` text] = testSuccess
 isPhase2FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
