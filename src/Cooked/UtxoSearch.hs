@@ -44,7 +44,7 @@ module Cooked.UtxoSearch
 where
 
 import Control.Monad (foldM)
-import Cooked.Common
+import Cooked.Aliases
 import Cooked.Effect.Read.Chain
 import Cooked.Families hiding (Member)
 import Cooked.Skeleton.Datum

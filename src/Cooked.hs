@@ -2,9 +2,9 @@
 --  writing large test-suites.
 module Cooked (module X) where
 
+import Cooked.Aliases as X
 import Cooked.Attack as X
 import Cooked.Automation as X
-import Cooked.Common as X
 import Cooked.Effect.Misc as X
 import Cooked.Effect.Read.Chain as X
 import Cooked.Effect.Read.Conf as X

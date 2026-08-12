@@ -13,6 +13,7 @@ build-type:     Simple
 library
   exposed-modules:
       Cooked
+      Cooked.Aliases
       Cooked.Attack
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DatumTampering
@@ -39,7 +40,6 @@ library
       Cooked.Automation.GenerateTx.ReferenceInputs
       Cooked.Automation.GenerateTx.Withdrawals
       Cooked.Automation.GenerateTx.Witness
-      Cooked.Common
       Cooked.Effect.Log
       Cooked.Effect.Misc
       Cooked.Effect.Read.Chain

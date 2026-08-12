@@ -40,8 +40,8 @@ import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano hiding (TxIn)
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
+import Cooked.Aliases
 import Cooked.Automation.GenerateTx.Credential
-import Cooked.Common
 import Cooked.Effect.Read.Conf
 import Cooked.Runtime.Error
 import Cooked.Runtime.State

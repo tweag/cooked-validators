@@ -1,5 +1,5 @@
--- | This module exposes some type aliases common to our MockChain library
-module Cooked.Common
+-- | This module exposes some type aliases common to our library
+module Cooked.Aliases
   ( -- * Type aliases
     Fee,
     CollateralIns,

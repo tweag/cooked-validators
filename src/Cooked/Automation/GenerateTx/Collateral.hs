@@ -6,8 +6,8 @@ module Cooked.Automation.GenerateTx.Collateral
 where
 
 import Cardano.Api qualified as Cardano
+import Cooked.Aliases
 import Cooked.Automation.GenerateTx.Output
-import Cooked.Common
 import Cooked.Effect.Read.Chain
 import Cooked.Effect.Read.Conf
 import Cooked.Skeleton.Output

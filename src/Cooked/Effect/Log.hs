@@ -20,7 +20,7 @@ module Cooked.Effect.Log
   )
 where
 
-import Cooked.Common
+import Cooked.Aliases
 import Cooked.Skeleton
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api

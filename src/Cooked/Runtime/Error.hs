@@ -9,7 +9,7 @@ module Cooked.Runtime.Error
   )
 where
 
-import Cooked.Common
+import Cooked.Aliases
 import Cooked.Skeleton.User
 import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api

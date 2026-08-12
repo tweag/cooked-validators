@@ -12,6 +12,7 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Monad
+import Cooked.Aliases
 import Cooked.Automation.GenerateTx.Certificate
 import Cooked.Automation.GenerateTx.Collateral
 import Cooked.Automation.GenerateTx.Input
@@ -21,7 +22,6 @@ import Cooked.Automation.GenerateTx.Proposal
 import Cooked.Automation.GenerateTx.ReferenceInputs
 import Cooked.Automation.GenerateTx.Withdrawals
 import Cooked.Automation.GenerateTx.Witness
-import Cooked.Common
 import Cooked.Effect.Read.Chain
 import Cooked.Effect.Read.Conf
 import Cooked.Runtime.Error

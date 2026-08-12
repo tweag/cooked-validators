@@ -29,7 +29,7 @@ module Cooked.Skeleton.Option
   )
 where
 
-import Cooked.Common
+import Cooked.Aliases
 import Data.Default
 import Data.Set (Set)
 import Data.Typeable
