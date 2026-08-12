@@ -40,8 +40,10 @@ library
       Cooked.Automation.GenerateTx.ReferenceInputs
       Cooked.Automation.GenerateTx.Withdrawals
       Cooked.Automation.GenerateTx.Witness
+      Cooked.BlockChain
       Cooked.BlockChain.Instances
       Cooked.BlockChain.Runnable
+      Cooked.Effect
       Cooked.Effect.Log
       Cooked.Effect.Misc
       Cooked.Effect.Read.Chain
@@ -52,6 +54,7 @@ library
       Cooked.Effect.Write
       Cooked.Families
       Cooked.Ltl
+      Cooked.MockChain
       Cooked.MockChain.Instances
       Cooked.MockChain.Runnable
       Cooked.MockChain.Testing
@@ -63,6 +66,7 @@ library
       Cooked.Pretty.Options
       Cooked.Pretty.Plutus
       Cooked.Pretty.Skeleton
+      Cooked.Runtime
       Cooked.Runtime.Error
       Cooked.Runtime.Journal
       Cooked.Runtime.State
