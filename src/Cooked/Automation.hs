@@ -50,7 +50,7 @@ import Polysemy.Fail
 runAutomationPipeline ::
   ( Members
       '[ Error P.Ledger.ToCardanoError,
-         Error MockChainError,
+         Error ChainError,
          Log,
          Query,
          Params,

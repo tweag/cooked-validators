@@ -93,7 +93,7 @@ instance RunnableMockChain DirectEffs where
       . runState emInit
       . runError
       . mapError MCEToCardanoError
-      . runFailInMockChainError
+      . runFailInChainError
       . runMockChainMisc
       . runMockChainParams
       . runMockChainTime
@@ -106,11 +106,11 @@ instance RunnableMockChain DirectEffs where
           ]
       . insertAt @7
         @'[ Error P.Ledger.ToCardanoError,
-            Error MockChainError,
+            Error ChainError,
             State EmulatorState,
             State ChainIndex,
             Log,
-            Writer MockChainJournal
+            Writer ChainJournal
           ]
       . insertAt @4
         @'[ Params
@@ -125,11 +125,11 @@ type FullTweakEffs =
      Params,
      Fail,
      Error P.Ledger.ToCardanoError,
-     Error MockChainError,
+     Error ChainError,
      State EmulatorState,
      State ChainIndex,
      Log,
-     Writer MockChainJournal
+     Writer ChainJournal
    ]
 
 -- | A tweak computation based on the `FullTweakEffs` stack of effects
@@ -149,11 +149,11 @@ type FullEffs =
      Params,
      Fail,
      Error P.Ledger.ToCardanoError,
-     Error MockChainError,
+     Error ChainError,
      State EmulatorState,
      State ChainIndex,
      Log,
-     Writer MockChainJournal,
+     Writer ChainJournal,
      NonDet
    ]
 
@@ -170,7 +170,7 @@ instance RunnableMockChain FullEffs where
       . runState emInit
       . runError
       . mapError MCEToCardanoError
-      . runFailInMockChainError
+      . runFailInChainError
       . runMockChainParams
       . runMockChainTime
       . runMockChainQuery
@@ -233,7 +233,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runState emInit
       . runError
       . mapError MCEToCardanoError
-      . runFailInMockChainError
+      . runFailInChainError
       . runMockChainParams
       . runMockChainTime
       . runMockChainQuery
@@ -249,11 +249,11 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
           ]
       . insertAt @10
         @'[ Error P.Ledger.ToCardanoError,
-            Error MockChainError,
+            Error ChainError,
             State EmulatorState,
             State ChainIndex,
             Log,
-            Writer MockChainJournal
+            Writer ChainJournal
           ]
       . reinterpretMockChainValidateWithTweak @(ExtendedStagedTweakEffs extraEff)
       . insertAt @8

@@ -274,7 +274,7 @@ assertSameSets l r =
 --}
 
 -- | Type of properties over failures
-type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> MockChainError -> UtxoState -> prop
+type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> ChainError -> UtxoState -> prop
 
 -- | Type of properties over successes
 type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoState -> prop
@@ -335,7 +335,7 @@ testToProp Test {..} =
   let results = testRunner testInitEmulatorState testInitChainIndex testInitDist testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \ret@(MockChainReturn outcome _ state (MockChainJournal mcLog names _ assertions)) ->
+          ( \ret@(MockChainReturn outcome _ state (ChainJournal mcLog names _ assertions)) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testConjoin
                     [ testConjoin $ (\(msg, b) -> testBoolMsg (renderString id (msg pcOpts)) b) <$> assertions,
@@ -553,7 +553,7 @@ withFailureProp test failureProp =
 withErrorProp ::
   (IsProp prop) =>
   Test effs a b prop ->
-  (MockChainError -> prop) ->
+  (ChainError -> prop) ->
   Test effs a b prop
 withErrorProp test errorProp = withFailureProp test (\_ _ err _ -> errorProp err)
 

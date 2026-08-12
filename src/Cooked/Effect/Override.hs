@@ -57,7 +57,7 @@ runMockChainOverride ::
       '[ State EmulatorState,
          State ChainIndex,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError,
+         Error ChainError,
          Log,
          Query,
          Params

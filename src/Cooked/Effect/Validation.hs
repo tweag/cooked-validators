@@ -90,7 +90,7 @@ runMockChainValidate ::
          Params,
          Submit,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError,
+         Error ChainError,
          State ChainIndex,
          Fail
        ]

@@ -21,7 +21,7 @@ import Polysemy.Error
 
 -- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'
 toMintValue ::
-  (Members '[Query, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelMints ->
   Sem effs (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue txSkelMints | txSkelMints == mempty = return Cardano.TxMintNone

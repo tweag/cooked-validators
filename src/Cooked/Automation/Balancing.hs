@@ -68,7 +68,7 @@ balanceTxSkel ::
       '[ Query,
          Params,
          Log,
-         Error MockChainError,
+         Error ChainError,
          Error P.Ledger.ToCardanoError,
          Fail
        ]
@@ -172,7 +172,7 @@ computeFeeAndBalance ::
   ( Members
       '[ Query,
          Params,
-         Error MockChainError,
+         Error ChainError,
          Error P.Ledger.ToCardanoError,
          Fail
        ]
@@ -237,7 +237,7 @@ collateralsFromFee ::
   ( Members
       '[ Query,
          Params,
-         Error MockChainError,
+         Error ChainError,
          Error P.Ledger.ToCardanoError
        ]
       effs
@@ -420,7 +420,7 @@ estimateTxSkelFee ::
   ( Members
       '[ Query,
          Params,
-         Error MockChainError,
+         Error ChainError,
          Error P.Ledger.ToCardanoError,
          Fail
        ]
@@ -451,7 +451,7 @@ computeBalancedTxSkel ::
   ( Members
       '[ Query,
          Params,
-         Error MockChainError,
+         Error ChainError,
          Error P.Ledger.ToCardanoError
        ]
       effs

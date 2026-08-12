@@ -43,7 +43,7 @@ txSkelToTxBodyContent ::
   ( Members
       '[ Query,
          Params,
-         Error MockChainError,
+         Error ChainError,
          Error P.Ledger.ToCardanoError,
          Fail
        ]
@@ -128,7 +128,7 @@ txSkelToTxBody ::
       '[ Query,
          Params,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError,
+         Error ChainError,
          Fail
        ]
       effs

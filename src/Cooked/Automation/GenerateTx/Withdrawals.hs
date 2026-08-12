@@ -20,7 +20,7 @@ import Polysemy.Error
 
 -- | Takes a 'TxSkelWithdrawals' and transforms it into a 'Cardano.TxWithdrawals'
 toWithdrawals ::
-  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelWithdrawals ->
   Sem effs (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals withdrawals | withdrawals == mempty = return Cardano.TxWithdrawalsNone

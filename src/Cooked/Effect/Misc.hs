@@ -108,7 +108,7 @@ assert' = assertS "Assertion"
 -- 3 actions only update the state, which is only used at the end of the run.
 runMockChainMisc ::
   forall effs a.
-  (Member (Writer MockChainJournal) effs) =>
+  (Member (Writer ChainJournal) effs) =>
   Sem (Misc : effs) a ->
   Sem effs a
 runMockChainMisc = interpret $ \case

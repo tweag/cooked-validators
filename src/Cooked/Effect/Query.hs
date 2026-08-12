@@ -243,7 +243,7 @@ runMockChainQuery ::
       '[ State EmulatorState,
          State ChainIndex,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError
+         Error ChainError
        ]
       effs
   ) =>
@@ -290,7 +290,7 @@ runBlockChainQuery ::
          Error Cardano.EraMismatch,
          Error Cardano.AcquiringFailure,
          Error P.Ledger.ToCardanoError,
-         Error MockChainError,
+         Error ChainError,
          Reader Cardano.LocalNodeConnectInfo,
          State ChainIndex
        ]

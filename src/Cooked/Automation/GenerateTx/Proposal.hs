@@ -34,7 +34,7 @@ import Polysemy.Error
 -- over a Cardano parameter update
 toPParamsUpdate ::
   forall effs.
-  (Member (Error MockChainError) effs) =>
+  (Member (Error ChainError) effs) =>
   ParamChange ->
   Conway.PParamsUpdate Emulator.EmulatorEra ->
   Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
@@ -85,7 +85,7 @@ toPParamsUpdate pChange ppu =
 
 -- | Translates a given skeleton proposal into a governance action
 toGovAction ::
-  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   GovernanceAction a ->
   StrictMaybe Conway.ScriptHash ->
   Sem effs (Conway.GovAction Emulator.EmulatorEra)
@@ -101,7 +101,7 @@ toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::
-  (Members '[Query, Params, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   [TxSkelProposal] ->
   Sem effs (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone

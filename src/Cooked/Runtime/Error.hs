@@ -2,10 +2,10 @@
 module Cooked.Runtime.Error
   ( -- * Mockchain errors
     BalancingError (..),
-    MockChainError (..),
+    ChainError (..),
 
-    -- * Interpreting Fail into @Error MockChainError@
-    runFailInMockChainError,
+    -- * Interpreting Fail into @Error ChainError@
+    runFailInChainError,
   )
 where
 
@@ -37,7 +37,7 @@ data BalancingError
   deriving (Show, Eq)
 
 -- | Errors that can be produced by the blockchain
-data MockChainError
+data ChainError
   = -- | Failures occurring while computing execution units
     MCEExUnitsFailures ExUnitsFailures
   | -- | Failures occurring while submitting the transaction for validation
@@ -62,11 +62,11 @@ data MockChainError
     MCEFailure String
   deriving (Show, Eq)
 
--- | Interpreting failures in terms of `MockChainError`
-runFailInMockChainError ::
+-- | Interpreting failures in terms of `ChainError`
+runFailInChainError ::
   forall effs a.
-  (Member (Error MockChainError) effs) =>
+  (Member (Error ChainError) effs) =>
   Sem (Fail : effs) a ->
   Sem effs a
-runFailInMockChainError = interpret $
+runFailInChainError = interpret $
   \(Fail s) -> throw $ MCEFailure s

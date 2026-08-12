@@ -16,7 +16,7 @@ import Polysemy.Error
 -- | Converts a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
 -- 'TxSkelRedeemer', into a 'Cardano.TxIn', together with the appropriate witness.
 toTxInAndWitness ::
-  (Members '[Query, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   (Api.TxOutRef, TxSkelRedeemer) ->
   Sem
     effs

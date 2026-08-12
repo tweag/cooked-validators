@@ -69,20 +69,20 @@ distributionFromList = foldl' (\x (user, values) -> x <> map (receives user . Va
 
 -- | Raw return type of running a mockchain
 type RawMockChainReturn a =
-  (MockChainJournal, (ChainIndex, (EmulatorState, Either MockChainError a)))
+  (ChainJournal, (ChainIndex, (EmulatorState, Either ChainError a)))
 
 -- | The returned type when running a mockchain. This is both a reorganizing and
 -- filtering of the natural returned type `RawMockChainReturn`.
 data MockChainReturn a where
   MockChainReturn ::
     { -- | The value returned by the computation, or an error
-      mcrValue :: Either MockChainError a,
+      mcrValue :: Either ChainError a,
       -- | The outputs at the end of the run
       mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
       -- | The 'UtxoState' at the end of the run
       mcrUtxoState :: UtxoState,
       -- | The final journal emitted during the run
-      mcrJournal :: MockChainJournal
+      mcrJournal :: ChainJournal
     } ->
     MockChainReturn a
   deriving (Functor)

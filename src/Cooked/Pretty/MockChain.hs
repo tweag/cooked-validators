@@ -40,7 +40,7 @@ instance (Show a) => PrettyCooked [MockChainReturn a] where
           (PP.align . prettyCookedOpt opts <$> outcomes)
 
 instance (Show a) => PrettyCooked (MockChainReturn a) where
-  prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (MockChainJournal entries ((`addHashNames` opts') -> opts) noteBook assertions)) =
+  prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (ChainJournal entries ((`addHashNames` opts') -> opts) noteBook assertions)) =
     PP.vsep $
       [ prettyItemize opts "📔 Notes:" "-" $ ($ opts) <$> noteBook
       | pcOptPrintNotebook opts && not (null noteBook)
@@ -85,7 +85,7 @@ instance PrettyCooked BalancingError where
         "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
 
-instance PrettyCooked MockChainError where
+instance PrettyCooked ChainError where
   prettyCookedOpt opts (MCEExUnitsFailures failures) =
     prettyItemize opts "Execution units failures:" "-" (PP.viaShow <$> Map.elems failures :: [DocCooked])
   prettyCookedOpt opts (MCESubmissionFailures failures) =

@@ -21,15 +21,15 @@ runSlot ::
        State ChainIndex,
        Fail,
        Error P.Ledger.ToCardanoError,
-       Error MockChainError
+       Error ChainError
      ]
     a ->
-  Either MockChainError a
+  Either ChainError a
 runSlot =
   run
     . runError
     . mapError MCEToCardanoError
-    . runFailInMockChainError
+    . runFailInChainError
     . evalState def
     . evalState def
     . runMockChainTime
