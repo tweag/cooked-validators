@@ -21,7 +21,7 @@
 --   including intermediate hidden in the other instances. This should only be
 --   used when explicitly executing internal primitives of cooked, such as
 --   balancing, is required.
-module Cooked.Run.Instances
+module Cooked.MockChain.Instances
   ( -- * Direct, simple mockchain instance
     DirectEffs,
     DirectMockChain,
@@ -56,8 +56,8 @@ import Cooked.Effect.Time
 import Cooked.Effect.Validation
 import Cooked.Effect.Write
 import Cooked.Ltl
-import Cooked.Run.Runnable
-import Cooked.Run.Tweak
+import Cooked.MockChain.Runnable
+import Cooked.MockChain.Tweak
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State

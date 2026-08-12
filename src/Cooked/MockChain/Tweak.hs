@@ -1,6 +1,6 @@
 -- | This module applies the `Cooked.Tweak.Common.Tweak` effect for the purpose
 -- of modifying transaction skeleton before sending them for validation.
-module Cooked.Run.Tweak
+module Cooked.MockChain.Tweak
   ( -- * Modifying mockchain runs using tweaks
     reinterpretMockChainValidateWithTweak,
 

@@ -5,10 +5,10 @@
 module Cooked.Pretty.MockChain () where
 
 import Cooked.Effect.Log
+import Cooked.MockChain.Runnable
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Skeleton
-import Cooked.Run.Runnable
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State

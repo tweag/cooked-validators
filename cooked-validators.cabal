@@ -50,6 +50,10 @@ library
       Cooked.Effect.Write
       Cooked.Families
       Cooked.Ltl
+      Cooked.MockChain.Instances
+      Cooked.MockChain.Runnable
+      Cooked.MockChain.Testing
+      Cooked.MockChain.Tweak
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable
@@ -57,10 +61,6 @@ library
       Cooked.Pretty.Options
       Cooked.Pretty.Plutus
       Cooked.Pretty.Skeleton
-      Cooked.Run.Instances
-      Cooked.Run.Runnable
-      Cooked.Run.Testing
-      Cooked.Run.Tweak
       Cooked.Runtime.Error
       Cooked.Runtime.Journal
       Cooked.Runtime.State

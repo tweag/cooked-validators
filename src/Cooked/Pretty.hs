@@ -39,7 +39,7 @@
 --
 -- Pretty printing of transaction skeletons and UTxO states is done
 -- automatically by the end-user functions provided in
--- "Cooked.Run.Testing".
+-- "Cooked.MockChain.Testing".
 --
 -- To do it manually, use instances of 'PrettyCooked', 'PrettyCookedList' or
 -- 'PrettyCookedMaybe' defined in 'Cooked.Pretty.Skeleton' or

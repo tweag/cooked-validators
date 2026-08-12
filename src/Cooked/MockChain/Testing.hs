@@ -2,7 +2,7 @@
 
 -- | This modules provides primitives to run tests over mockchain executions and
 -- to provide requirements on the the number and results of these runs.
-module Cooked.Run.Testing
+module Cooked.MockChain.Testing
   ( -- * Common interface between HUnit and QuickCheck
     IsProp (..),
     testBool,
@@ -90,8 +90,8 @@ import Control.Exception qualified as E
 import Control.Monad
 import Cooked.Effect.Log
 import Cooked.Effect.Write
+import Cooked.MockChain.Runnable
 import Cooked.Pretty
-import Cooked.Run.Runnable
 import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Runtime.State

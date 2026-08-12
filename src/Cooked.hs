@@ -13,11 +13,11 @@ import Cooked.Effect.Validation as X
 import Cooked.Effect.Write as X
 import Cooked.Families as X
 import Cooked.Ltl as X
+import Cooked.MockChain.Instances as X
+import Cooked.MockChain.Runnable as X
+import Cooked.MockChain.Testing as X
+import Cooked.MockChain.Tweak as X
 import Cooked.Pretty as X
-import Cooked.Run.Instances as X
-import Cooked.Run.Runnable as X
-import Cooked.Run.Testing as X
-import Cooked.Run.Tweak as X
 import Cooked.Runtime.Error as X
 import Cooked.Runtime.Journal as X
 import Cooked.Runtime.State as X

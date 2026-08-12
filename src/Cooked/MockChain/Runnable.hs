@@ -1,6 +1,6 @@
 -- | This module exposes the infrastructure to execute mockchain and blockchain
 -- runs, in particular initial configurations, results, and running functions.
-module Cooked.Run.Runnable
+module Cooked.MockChain.Runnable
   ( -- * Initial distributions
     InitialDistribution,
     initialDistributionTemplate,
