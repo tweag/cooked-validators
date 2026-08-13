@@ -14,7 +14,7 @@ module Cooked.Effect.Validation
     validateTxSkel_,
 
     -- * Interpreting the effect
-    runMockChainValidate,
+    runChainValidate,
   )
 where
 
@@ -84,7 +84,7 @@ validateTxSkel_ = void . validateTxSkel
 
 -- | Interpretes the 'Validate' effects in terms of other effects, in
 -- particular 'Submit'.
-runMockChainValidate ::
+runChainValidate ::
   ( Members
       '[ Log,
          Query,
@@ -99,7 +99,7 @@ runMockChainValidate ::
   ) =>
   Sem (Validate : effs) a ->
   Sem effs a
-runMockChainValidate = interpret $ \case
+runChainValidate = interpret $ \case
   ValidateTxSkel txSkel -> do
     -- We fetch the skeleton options
     let TxSkelOpts {..} = txSkelOpts txSkel

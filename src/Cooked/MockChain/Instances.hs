@@ -23,7 +23,7 @@
 --   balancing, is required.
 module Cooked.MockChain.Instances
   ( -- * Direct, simple mockchain instance
-    DirectEffs,
+    DirectMockChainEffs,
     DirectMockChain,
 
     -- * Staged mockchain instance with all effects
@@ -71,7 +71,7 @@ import Polysemy.State
 import Polysemy.Writer
 
 -- | The most direct stack of effects to run a mockchain
-type DirectEffs =
+type DirectMockChainEffs =
   '[ Validate,
      Override,
      Query,
@@ -80,10 +80,11 @@ type DirectEffs =
      Fail
    ]
 
--- | A mockchain computation built on top of the `DirectEffs` stack of effects
-type DirectMockChain a = Sem DirectEffs a
+-- | A mockchain computation built on top of the `DirectMockChainEffs` stack of
+-- effects
+type DirectMockChain a = Sem DirectMockChainEffs a
 
-instance RunnableMockChain DirectEffs where
+instance RunnableMockChain DirectMockChainEffs where
   runMockChain emInit ciInit =
     (: [])
       . run
@@ -93,14 +94,14 @@ instance RunnableMockChain DirectEffs where
       . runState emInit
       . runError
       . mapError CEToCardanoError
-      . runFailInChainError
+      . failToError CEFailure
       . runMockChainMisc
       . runMockChainParams
       . runMockChainTime
       . runMockChainQuery
       . runMockChainOverride
       . runMockChainSubmit
-      . runMockChainValidate
+      . runChainValidate
       . insertAt @1
         @'[ Submit
           ]
@@ -170,7 +171,7 @@ instance RunnableMockChain FullEffs where
       . runState emInit
       . runError
       . mapError CEToCardanoError
-      . runFailInChainError
+      . failToError CEFailure
       . runMockChainParams
       . runMockChainTime
       . runMockChainQuery
@@ -179,7 +180,7 @@ instance RunnableMockChain FullEffs where
       . runModifyLocally
       . runMockChainOverride
       . runMockChainSubmit
-      . runMockChainValidate
+      . runChainValidate
       . insertAt @1
         @'[ Submit
           ]
@@ -199,8 +200,8 @@ type ExtendedStagedTweakEffs extraEff =
 -- | A tweak computation based on the `ExtendedStagedTweakEffs` stack of effects
 type ExtendedStagedTweak extraEff a = TypedTweak (ExtendedStagedTweakEffs extraEff) a
 
--- | A stack of effects which allows everything allowed by `DirectEffs` with the
--- addition of branching and `Ltl` modification with tweaks living in
+-- | A stack of effects which allows everything allowed by `DirectMockChainEffs`
+-- with the addition of branching and `Ltl` modification with tweaks living in
 -- `ExtendedStagedTweakEffs`
 type ExtendedStagedEffs extraEff =
   '[ ModifyGlobally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
@@ -233,7 +234,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runState emInit
       . runError
       . mapError CEToCardanoError
-      . runFailInChainError
+      . failToError CEFailure
       . runMockChainParams
       . runMockChainTime
       . runMockChainQuery
@@ -243,7 +244,7 @@ instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extr
       . runModifyLocally
       . runMockChainOverride
       . runMockChainSubmit
-      . runMockChainValidate
+      . runChainValidate
       . insertAt @1
         @'[ Submit
           ]
@@ -272,8 +273,8 @@ type StagedTweakEffs = ExtendedStagedTweakEffs (Bundle '[])
 -- | A tweak computation based on the `StagedTweakEffs` stack of effects
 type StagedTweak a = TypedTweak StagedTweakEffs a
 
--- | A stack of effects which allows everything allowed by `DirectEffs` with the
--- addition of branching and `Ltl` modification with tweaks living in
+-- | A stack of effects which allows everything allowed by `DirectMockChainEffs`
+-- with the addition of branching and `Ltl` modification with tweaks living in
 -- `StagedTweakEffs`
 type StagedEffs = ExtendedStagedEffs (Bundle '[])
 

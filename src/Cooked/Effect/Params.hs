@@ -62,49 +62,6 @@ data Params :: Effect where
 
 makeSem_ ''Params
 
--- | The interpretation for the configuration effect with a stored
--- 'EmulatorState'
-runMockChainParams ::
-  (Member (State EmulatorState) effs) =>
-  Sem (Params : effs) a ->
-  Sem effs a
-runMockChainParams = interpret $ \case
-  GetParams -> gets $ Emulator.pEmulatorPParams . emulatorStateParams
-  GetNetworkId -> gets $ Emulator.pNetworkId . emulatorStateParams
-  GetEraHistory -> gets $ Emulator.emulatorEraHistory . emulatorStateParams
-  GetSystemStart -> gets $ Shelley.systemStart . Emulator.emulatorGlobals . emulatorStateParams
-
--- | Interpret the `Params` effect by talking to a deployed node
--- through a `Cardano.LocalNodeConnectInfo` (socket path and network id) provided
--- via a `Reader`, running in a stack featuring @IO@ (via `Embed`).
-runBlockChainParams ::
-  ( Members
-      '[ Embed IO,
-         Error Cardano.UnsupportedNtcVersionError,
-         Error Cardano.EraMismatch,
-         Error Cardano.AcquiringFailure,
-         Reader Cardano.LocalNodeConnectInfo
-       ]
-      effs
-  ) =>
-  Sem (Params : effs) a ->
-  Sem effs a
-runBlockChainParams = interpret $ \case
-  GetParams -> queryAndHandleErrors $ Cardano.queryProtocolParameters Cardano.ShelleyBasedEraConway
-  GetNetworkId -> asks Cardano.localNodeNetworkId
-  GetEraHistory -> queryAndHandleError Cardano.queryEraHistory
-  GetSystemStart -> queryAndHandleError Cardano.querySystemStart
-  where
-    -- Fetches the local node info, embeds a query in IO and handles errors
-    query q = do
-      conn <- ask
-      response <- embed $ Cardano.executeLocalStateQueryExpr conn Cardano.VolatileTip q
-      fromEither response
-    -- Handles one more layer of errors from the response of a query
-    queryAndHandleError q = query q >>= fromEither
-    -- Handles a second layer of error from the response of a query
-    queryAndHandleErrors q = queryAndHandleError q >>= fromEither
-
 -- | Returns the emulator parameters, including protocol parameters
 getParams ::
   (Member Params effs) =>
@@ -210,3 +167,46 @@ txSkelDepositedValueInProposals TxSkel {txSkelProposals} =
     <&> Api.Lovelace
       . (toInteger (length txSkelProposals) *)
       . Api.getLovelace
+
+-- | The interpretation for the configuration effect with a stored
+-- 'EmulatorState'
+runMockChainParams ::
+  (Member (State EmulatorState) effs) =>
+  Sem (Params : effs) a ->
+  Sem effs a
+runMockChainParams = interpret $ \case
+  GetParams -> gets $ Emulator.pEmulatorPParams . emulatorStateParams
+  GetNetworkId -> gets $ Emulator.pNetworkId . emulatorStateParams
+  GetEraHistory -> gets $ Emulator.emulatorEraHistory . emulatorStateParams
+  GetSystemStart -> gets $ Shelley.systemStart . Emulator.emulatorGlobals . emulatorStateParams
+
+-- | Interpret the `Params` effect by talking to a deployed node
+-- through a `Cardano.LocalNodeConnectInfo` (socket path and network id) provided
+-- via a `Reader`, running in a stack featuring @IO@ (via `Embed`).
+runBlockChainParams ::
+  ( Members
+      '[ Embed IO,
+         Error Cardano.UnsupportedNtcVersionError,
+         Error Cardano.EraMismatch,
+         Error Cardano.AcquiringFailure,
+         Reader Cardano.LocalNodeConnectInfo
+       ]
+      effs
+  ) =>
+  Sem (Params : effs) a ->
+  Sem effs a
+runBlockChainParams = interpret $ \case
+  GetParams -> queryAndHandleErrors $ Cardano.queryProtocolParameters Cardano.ShelleyBasedEraConway
+  GetNetworkId -> asks Cardano.localNodeNetworkId
+  GetEraHistory -> queryAndHandleError Cardano.queryEraHistory
+  GetSystemStart -> queryAndHandleError Cardano.querySystemStart
+  where
+    -- Fetches the local node info, embeds a query in IO and handles errors
+    query q = do
+      conn <- ask
+      response <- embed $ Cardano.executeLocalStateQueryExpr conn Cardano.VolatileTip q
+      fromEither response
+    -- Handles one more layer of errors from the response of a query
+    queryAndHandleError q = query q >>= fromEither
+    -- Handles a second layer of error from the response of a query
+    queryAndHandleErrors q = queryAndHandleError q >>= fromEither

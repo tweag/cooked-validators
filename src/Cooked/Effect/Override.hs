@@ -113,5 +113,5 @@ runMockChainOverride = interpret $ \case
             . P.Ledger.toPlutusIndex
     -- We update our internal map by adding the new outputs
     modify' $ addOutputs outputsList
-    -- Finally, we return the created utxos
+    -- Embedly, we return the created utxos
     return $ Map.fromList outputsList

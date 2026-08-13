@@ -3,19 +3,14 @@ module Cooked.Runtime.Error
   ( -- * Mockchain errors
     BalancingError (..),
     ChainError (..),
-
-    -- * Interpreting Fail into @Error ChainError@
-    runFailInChainError,
   )
 where
 
+import Cardano.Api qualified as Cardano
 import Cooked.Skeleton.User
 import Cooked.Utilities.Aliases
 import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
-import Polysemy
-import Polysemy.Error
-import Polysemy.Fail
 
 -- | Errors that can be produced during balancing
 data BalancingError
@@ -58,15 +53,14 @@ data ChainError
   | -- | An attempt to spend a script output whose script is only known by its
     -- hash, without providing the full script through a matching reference input
     CESpendingHashOnlyScript Api.TxOutRef Api.ScriptHash
+  | -- | The node does not support a specific versioned query
+    CENodeToClientVersionError Cardano.UnsupportedNtcVersionError
+  | -- | A mismatch exist between a submitted transaction and the node
+    CEEraMismatch Cardano.EraMismatch
+  | -- | Failure to get a response from querying a node
+    CEAcquiringFailure Cardano.AcquiringFailure
+  | -- | Looking to far into the future, beyond uncertainty
+    CETooFarAway Cardano.PastHorizonException
   | -- | Used to provide 'MonadFail' instances.
     CEFailure String
-  deriving (Show, Eq)
-
--- | Interpreting failures in terms of `ChainError`
-runFailInChainError ::
-  forall effs a.
-  (Member (Error ChainError) effs) =>
-  Sem (Fail : effs) a ->
-  Sem effs a
-runFailInChainError = interpret $
-  \(Fail s) -> throw $ CEFailure s
+  deriving (Show)

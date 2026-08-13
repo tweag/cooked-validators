@@ -4,6 +4,7 @@
 -- 'PrettyCookedMaybe' instances for data types returned by a @MockChain@ run.
 module Cooked.Pretty.MockChain () where
 
+import Cardano.Api qualified as Cardano
 import Cooked.MockChain.Config
 import Cooked.Pretty.Class
 import Cooked.Pretty.Options
@@ -111,7 +112,15 @@ instance PrettyCooked ChainError where
       <+> prettyCookedOpt opts txOutRef
       <+> "with script hash:"
       <+> prettyHash opts scriptHash
-      <+> "; the full script must be provided through a matching reference input."
+      <+> "; the full script must be provided"
+  prettyCookedOpt _ (CENodeToClientVersionError (Cardano.UnsupportedNtcVersionError current allowed)) =
+    "Unsupported query version:" <+> PP.viaShow current <+> "; allowed:" <+> PP.viaShow allowed
+  prettyCookedOpt _ (CEEraMismatch (Cardano.EraMismatch ledgerEra txEra)) =
+    "Era mismatch. Expected:" <+> PP.viaShow ledgerEra <+> ", got:" <+> PP.viaShow txEra
+  prettyCookedOpt _ (CEAcquiringFailure err) =
+    "Acquiring failure:" <+> PP.viaShow err
+  prettyCookedOpt _ (CETooFarAway err) =
+    "Unforseeable future:" <+> PP.viaShow err
   prettyCookedOpt _ (CEFailure msg) = "Failed with:" <+> PP.pretty msg
 
 instance PrettyCooked (Contextualized [ChainLogEntry]) where

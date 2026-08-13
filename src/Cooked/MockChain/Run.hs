@@ -16,8 +16,7 @@ import Polysemy
 
 -- | The class of effects that represent a mockchain run
 class RunnableMockChain effs where
-  -- | Runs a computation from an initial `EmulatorState` and `ChainIndex`,
-  -- while returning a list of `RawMockChainReturn`
+  -- | Runs a mockchain computation
   runMockChain :: EmulatorState -> ChainIndex -> Sem effs a -> [RawMockChainReturn a]
 
 -- | Runs a `RunnableMockChain` from an initial `MockChainConf`

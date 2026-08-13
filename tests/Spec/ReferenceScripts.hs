@@ -145,7 +145,7 @@ tests =
         ],
       testGroup
         "using reference scripts"
-        [ testCookedFromInitDistTemplate @DirectEffs "fail from transaction generation for missing reference scripts" $
+        [ testCookedFromInitDistTemplate @DirectMockChainEffs "fail from transaction generation for missing reference scripts" $
             mustFailTest
               ( do
                   (Set.elemAt 0 -> consumedOref) <-

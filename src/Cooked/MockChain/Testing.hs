@@ -258,7 +258,7 @@ assertSameSets l r =
 -- * Data structure to test mockchain traces
 
 {--
-  Note on properties over the log (or list of 'MockChainLogEntry'): our
+  Note on properties over the log (or list of 'ChainLogEntry'): our
   'Test' structure does not directly embed a predicate over the log. Instead
   it is embedded in both the failure and success prediates. The reason is
   simple: the log is generated and accessible in both cases and thus it is
@@ -662,7 +662,7 @@ isAtMostOfSize n1 n2 =
 -- * Specific properties over the log
 
 -- | Ensures a certain event has been emitted. This uses the constructor's name
--- of the 'MockChainLogEntry' by relying on 'show' being lazy.
+-- of the 'ChainLogEntry' by relying on 'show' being lazy.
 happened ::
   (IsProp prop) =>
   String ->
@@ -680,7 +680,7 @@ happened eventName _ log
               <> ")"
 
 -- | Ensures a certain event has not been emitted. This uses the constructor's
--- name of the 'MockChainLogEntry' by relying on 'show' being lazy.
+-- name of the 'ChainLogEntry' by relying on 'show' being lazy.
 didNotHappen :: (IsProp prop) => String -> LogProp prop
 didNotHappen eventName _ log | not (eventName `Set.member` Set.fromList (head . words . show <$> log)) = testSuccess
 didNotHappen eventName _ _ =

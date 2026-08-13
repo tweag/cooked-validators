@@ -48,7 +48,7 @@ runMockChainLog = interpret $ \(LogEvent event) -> tell $ fromLogEntry event
 -- for each log entry.
 runBlockChainLog ::
   ( Members
-      '[ (Embed IO),
+      '[ Embed IO,
          State PrettyCookedOpts,
          State ChainIndex
        ]

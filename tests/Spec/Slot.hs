@@ -29,7 +29,7 @@ runSlot =
   run
     . runError
     . mapError CEToCardanoError
-    . runFailInChainError
+    . failToError CEFailure
     . evalState def
     . evalState def
     . runMockChainTime
