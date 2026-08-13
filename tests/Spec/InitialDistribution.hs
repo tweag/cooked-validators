@@ -24,8 +24,10 @@ initialDistributionWithReferenceScript =
     : replicate 2 (bob `receives` Value (Script.ada 100))
 
 getValueFromInitialDatum :: DirectMockChain [Integer]
-getValueFromInitialDatum = do
-  fmap hHead <$> getExtracts (utxosAtSearch alice (extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)))
+getValueFromInitialDatum =
+  utxosAt alice
+    >>= extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)
+    >>= retrieveExtractedHeads
 
 spendReferenceAlwaysTrueValidator :: DirectMockChain ()
 spendReferenceAlwaysTrueValidator = do

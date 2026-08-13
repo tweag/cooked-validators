@@ -95,23 +95,21 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
 
 aliceNonOnlyValueUtxos :: FullMockChain (Set Api.TxOutRef)
 aliceNonOnlyValueUtxos =
-  getTxOutRefs $
-    utxosAtSearch alice $
-      ensurePure $ \skel ->
-        is txSkelOutReferenceScriptAT skel
-          || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel
+  utxosAt alice
+    >>= ensurePure (\skel -> is txSkelOutReferenceScriptAT skel || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel)
+    >>= retrieveTxOutRefs
 
 aliceNAdaUtxos :: Integer -> FullMockChain (Set Api.TxOutRef)
 aliceNAdaUtxos n =
-  getTxOutRefs $
-    utxosAtSearch alice $
-      ensureAFoldIs (txSkelOutValueL % valueLovelaceL % filtered (== Api.Lovelace (n * 1_000_000)))
+  utxosAt alice
+    >>= ensureAFoldIs (txSkelOutValueL % valueLovelaceL % filtered (== Api.Lovelace (n * 1_000_000)))
+    >>= retrieveTxOutRefs
 
 aliceRefScriptUtxos :: FullMockChain (Set Api.TxOutRef)
 aliceRefScriptUtxos =
-  getTxOutRefs $
-    utxosAtSearch alice $
-      ensureAFoldIs txSkelOutReferenceScriptAT
+  utxosAt alice
+    >>= ensureAFoldIs txSkelOutReferenceScriptAT
+    >>= retrieveTxOutRefs
 
 emptySearch :: FullMockChain (Set Api.TxOutRef)
 emptySearch = return Set.empty
@@ -172,7 +170,10 @@ balanceReduceFee = do
 
 reachingMagic :: FullMockChain ()
 reachingMagic = do
-  bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
+  bananaOutRefs <-
+    utxosAt alice
+      >>= ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
+      >>= retrieveTxOutRefs
   validateTxSkel_ $
     txSkelEmulatorTemplate
       { txSkelOutputs = [bob `receives` Value (Script.ada 106 <> banana 12)],
@@ -649,7 +650,12 @@ tests =
                 ( testingBalancingTemplate
                     mempty
                     mempty
-                    (getTxOutRefs $ utxosAtSearch alice ensureOnlyValueOutputs)
+                    ( utxosAt alice
+                        >>= ensureAFoldIsn't txSkelOutReferenceScriptAT
+                        >>= ensureAFoldIsn't txSkelOutStakingCredentialAT
+                        >>= ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
+                        >>= retrieveTxOutRefs
+                    )
                     emptySearch
                     emptySearch
                     False

@@ -12,7 +12,6 @@ import Cooked.Effect.Query
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
 import Cooked.Utilities.Aliases
-import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
@@ -48,7 +47,11 @@ toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) 
       [] -> return Cardano.TxInsCollateralNone
       l -> fromEither $ Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM P.Ledger.toCardanoTxIn l
   -- We collect the amount of lovelace in the collateral inputs
-  Api.Lovelace collateralInsLovelace <- foldOf (folded % txSkelOutValueL % valueLovelaceL) . Map.elems <$> lookupUtxos collateralInsList
+  Api.Lovelace collateralInsLovelace <-
+    utxosFromRefs collateralInsList
+      >>= extractAFold (txSkelOutValueL % valueLovelaceL)
+      >>= retrieveExtractedHeads
+      >>= retrieve (foldOf folded)
   -- We collect the amount of lovelace in the return collateral output
   let Api.Lovelace returnCollateralLovelace = maybe 0 (view (txSkelOutValueL % valueLovelaceL)) mReturnCollateral
   -- The total collateral is the difference between the two

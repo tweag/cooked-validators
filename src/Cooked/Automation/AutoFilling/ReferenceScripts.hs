@@ -39,7 +39,10 @@ updateRedeemedScript
          (toVScript -> vScript)
          txSkelRed@(TxSkelRedeemer {txSkelRedeemerAutoFill = True})
        ) = do
-    oRefsInInputs <- getTxOutRefs $ allUtxosSearch $ ensureProperReferenceScript vScript
+    oRefsInInputs <-
+      allUtxos
+        >>= ensureAFoldIs (txSkelOutReferenceScriptHashAF % filtered (== Script.toScriptHash vScript))
+        >>= retrieveTxOutRefs
     maybe
       -- We leave the redeemer unchanged if no reference input was found
       (return rs)
