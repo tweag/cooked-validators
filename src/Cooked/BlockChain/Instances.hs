@@ -32,7 +32,8 @@ type DirectBlockChainEffs =
   '[ Validate,
      Query,
      Time,
-     Misc
+     Misc,
+     Fail
    ]
 
 -- | A blockchain computation built on top of the 'DirectBlockChainEffs' stack
@@ -60,6 +61,10 @@ instance RunnableBlockChain DirectBlockChainEffs where
       . runBlockChainQuery
       . runBlockChainSubmit
       . runChainValidate
+      . insertAt @17
+        @'[ Embed IO,
+            Final IO
+          ]
       . insertAt @7
         @'[ Reader Cardano.LocalNodeConnectInfo,
             Error Cardano.UnsupportedNtcVersionError,
@@ -69,10 +74,7 @@ instance RunnableBlockChain DirectBlockChainEffs where
             Error P.Ledger.ToCardanoError,
             Error ChainError,
             State ChainIndex,
-            State PrettyCookedOpts,
-            Fail,
-            Embed IO,
-            Final IO
+            State PrettyCookedOpts
           ]
       . insertAt @4
         @'[ Params,
