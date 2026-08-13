@@ -29,20 +29,20 @@ module Cooked.MockChain.Instances
     -- * Staged mockchain instance with all effects
     FullTweakEffs,
     FullTweak,
-    FullEffs,
+    FullMockChainEffs,
     FullMockChain,
 
     -- * Staged mockchain instance with minimal effects
     StagedTweakEffs,
     StagedTweak,
-    StagedEffs,
+    StagedMockChainEffs,
     StagedMockChain,
 
     -- * Staged mockchain instance with minimal effects and a custom effect
     InterpretAlone (..),
     ExtendedStagedTweakEffs,
     ExtendedStagedTweak,
-    ExtendedStagedEffs,
+    ExtendedStagedMockChainEffs,
     ExtendedStagedMockChain,
   )
 where
@@ -136,9 +136,9 @@ type FullTweakEffs =
 -- | A tweak computation based on the `FullTweakEffs` stack of effects
 type FullTweak a = TypedTweak FullTweakEffs a
 
--- | A stack of effects which allows everything allowed by `StagedEffs` with the
+-- | A stack of effects which allows everything allowed by `StagedMockChainEffs` with the
 -- addition of all the lower level effects required to interpret it.
-type FullEffs =
+type FullMockChainEffs =
   '[ ModifyGlobally (UntypedTweak FullTweakEffs),
      Validate,
      Override,
@@ -158,10 +158,10 @@ type FullEffs =
      NonDet
    ]
 
--- | A mockchain computation built on top of the `FullEffs` stack of effects
-type FullMockChain a = Sem FullEffs a
+-- | A mockchain computation built on top of the `FullMockChainEffs` stack of effects
+type FullMockChain a = Sem FullMockChainEffs a
 
-instance RunnableMockChain FullEffs where
+instance RunnableMockChain FullMockChainEffs where
   runMockChain emInit ciInit =
     run
       . runNonDet
@@ -203,7 +203,7 @@ type ExtendedStagedTweak extraEff a = TypedTweak (ExtendedStagedTweakEffs extraE
 -- | A stack of effects which allows everything allowed by `DirectMockChainEffs`
 -- with the addition of branching and `Ltl` modification with tweaks living in
 -- `ExtendedStagedTweakEffs`
-type ExtendedStagedEffs extraEff =
+type ExtendedStagedMockChainEffs extraEff =
   '[ ModifyGlobally (UntypedTweak (ExtendedStagedTweakEffs extraEff)),
      Validate,
      Override,
@@ -215,16 +215,16 @@ type ExtendedStagedEffs extraEff =
      NonDet
    ]
 
--- | A mockchain computation built on top of the `ExtendedStagedEffs` stack of
+-- | A mockchain computation built on top of the `ExtendedStagedMockChainEffs` stack of
 -- effects
-type ExtendedStagedMockChain extraEff a = Sem (ExtendedStagedEffs extraEff) a
+type ExtendedStagedMockChain extraEff a = Sem (ExtendedStagedMockChainEffs extraEff) a
 
 -- | The class of effects that can be interpreted on their own on top of an
 -- arbitrary stack of effects
 class InterpretAlone eff where
   runInterpretAlone :: Sem (eff : effs) a -> Sem effs a
 
-instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedEffs extraEff) where
+instance (InterpretAlone extraEff) => RunnableMockChain (ExtendedStagedMockChainEffs extraEff) where
   runMockChain emInit ciInit =
     run
       . runNonDet
@@ -276,10 +276,10 @@ type StagedTweak a = TypedTweak StagedTweakEffs a
 -- | A stack of effects which allows everything allowed by `DirectMockChainEffs`
 -- with the addition of branching and `Ltl` modification with tweaks living in
 -- `StagedTweakEffs`
-type StagedEffs = ExtendedStagedEffs (Bundle '[])
+type StagedMockChainEffs = ExtendedStagedMockChainEffs (Bundle '[])
 
--- | A mockchain computation built on top of the `StagedEffs` stack of effects
-type StagedMockChain a = Sem StagedEffs a
+-- | A mockchain computation built on top of the `StagedMockChainEffs` stack of effects
+type StagedMockChain a = Sem StagedMockChainEffs a
 
 instance InterpretAlone (Bundle '[]) where
   runInterpretAlone = runBundle
