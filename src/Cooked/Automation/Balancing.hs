@@ -114,13 +114,20 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- Some scripts involved, and a specific collateral user provided.
       -- We fetch vanilla UTxOs from this user and return them.
       (False, CollateralUtxosFromUser (Script.toPubKeyHash -> cUser)) ->
-        Just . (,UserPubKey cUser) <$> getTxOutRefs (utxosAtSearch cUser ensureOnlyValueOutputs)
+        utxosAt cUser
+          >>= ensureOnlyValueOutputs
+          >>= retrieveTxOutRefs
+          >>= retrieve (Just . (,UserPubKey cUser))
       -- Some scripts involved, and no specific collateral options provided.
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
         -- If no balancing wallet exists, we throw an error
         Nothing -> throw $ CEBalancingError MissingBalancingUser
         -- If a balancing wallet exists, we use it as collateral user
-        Just bUser -> Just . (,bUser) <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
+        Just bUser ->
+          utxosAt bUser
+            >>= ensureOnlyValueOutputs
+            >>= retrieveTxOutRefs
+            >>= retrieve (Just . (,bUser))
 
   -- At this point, the presence (or absence) of balancing user dictates
   -- whether the transaction should be automatically balanced or not.
@@ -139,10 +146,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> getUtxos $ utxosAtSearch bUser ensureOnlyValueOutputs
+          BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveUtxos
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            getUtxos (txSkelOutByRefSearch' utxos)
+            utxosFromRefs utxos
+              >>= retrieveUtxos
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
               >>= filterAndWarn (const $ is (txSkelOutOwnerL % userPubKeyHashAT)) "They belong to scripts."
@@ -166,6 +174,10 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     filterAndWarn f s l
       | (ok, toInteger . length -> koLength) <- Map.partitionWithKey f l =
           unless (koLength == 0) (logEvent $ CLogDiscardedUtxos koLength s) >> return ok
+    ensureOnlyValueOutputs =
+      ensureAFoldIsn't txSkelOutReferenceScriptAT
+        >=> ensureAFoldIsn't txSkelOutStakingCredentialAT
+        >=> ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
@@ -265,7 +277,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- getUtxos $ txSkelOutByRefSearch' collateralIns
+  collateralTxOuts <- utxosFromRefs collateralIns >>= retrieveUtxos
   -- Candidate subsets of utxos to be used as collaterals
   reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
   -- A value might, or might not have been reached

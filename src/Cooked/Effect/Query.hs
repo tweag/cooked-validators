@@ -9,52 +9,18 @@
 -- 'Cooked.Effect.Params.Params' effect, which this
 -- effect relies on during its own interpretation.
 module Cooked.Effect.Query
-  ( -- * The 'Query' effect
-    Query,
-
-    -- * 'Query' interpreters
-    runMockChainQuery,
-    runBlockChainQuery,
-
-    -- * Queries related to `Cooked.Skeleton.TxSkel`
-    txSkelAllScripts,
-    txSkelInputScripts,
-    txSkelInputValue,
-
-    -- * Queries related to fetching UTxOs
-    allUtxos,
-    utxosAt,
-    txSkelOutByRef,
-    utxosFromCardanoTx,
-    lookupUtxos,
-    previewByRef,
-    viewByRef,
-
-    -- * Query fetching the current reward amount
-    getCurrentReward,
-
-    -- * Query fetching the current full constitution script
-    getConstitutionScript,
-
-    -- * UTxO searches
-    UtxoSearch,
-    beginSearch,
-    beginSearchPure,
-
-    -- * Processing search result
+  ( -- * Utxo searches types
     RefinedOutputsList,
     UtxoSearchResult,
     utxosSearchResultUtxosI,
-    getUtxos,
-    getOutputsAndExtracts,
-    getExtracts,
-    getTxOutRefs,
 
-    -- * Basic UTxO searches
-    utxosAtSearch,
-    allUtxosSearch,
-    txSkelOutByRefSearch,
-    txSkelOutByRefSearch',
+    -- * Retrieving pieces of @UtxoSearchResult@
+    retrieve,
+    retrieveUtxos,
+    retrieveRefinedOutputs,
+    retrieveExtracts,
+    retrieveTxOutRefs,
+    retrieveExtractedHeads,
 
     -- * Extracting new information from UTxOs
     extract,
@@ -70,10 +36,30 @@ module Cooked.Effect.Query
     ensureAFoldIs,
     ensureAFoldIsn't,
 
-    -- * Cooked filters
-    ensureOnlyValueOutputs,
-    ensureVanillaOutputs,
-    ensureProperReferenceScript,
+    -- * The 'Query' effect and interpreters
+    Query,
+    runMockChainQuery,
+    runBlockChainQuery,
+
+    -- * Queries related to `Cooked.Skeleton.TxSkel`
+    txSkelAllScripts,
+    txSkelInputScripts,
+    txSkelInputValue,
+
+    -- * Queries related to fetching UTxOs
+    allUtxos,
+    utxosAt,
+    txSkelOutByRef,
+    utxosFromCardanoTx,
+    utxosFromRefs,
+    previewByRef,
+    viewByRef,
+
+    -- * Query fetching the current reward amount
+    getCurrentReward,
+
+    -- * Query fetching the current full constitution script
+    getConstitutionScript,
   )
 where
 
@@ -110,6 +96,144 @@ import Polysemy.Reader
 import Polysemy.State
 import Witherable (filterA, witherM)
 
+-- | An heterogeneous list starting with a 'TxSkelOut'
+type RefinedOutputsList els = HList (TxSkelOut ': els)
+
+-- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
+-- alongside an heterogeneous list starting with the output in question,
+-- followed by any element that was extracted during the search.
+type UtxoSearchResult els = Map Api.TxOutRef (RefinedOutputsList els)
+
+-- | An isomorphisms between `Utxos` and search results with no extra element.
+utxosSearchResultUtxosI :: Iso' (UtxoSearchResult '[]) Utxos
+utxosSearchResultUtxosI = iso (fmap hHead) (fmap hSingleton)
+
+-- | A `UtxoSearch` is a computation that returns a list of UTxOs alongside
+-- their `TxSkelOut` counterpart and a list of other elements retrieved from the
+-- output. The idea is to begin with a simple search and refine the search with
+-- filters while appending new elements to the list.
+type UtxoSearch effs els = Sem effs (UtxoSearchResult els)
+
+-- | Retrieves part of a 'UtxoSearchResult'. We define it on a more general
+-- type, to allow for extracting values from basically anything, thus avoiding
+-- annoying fmaps prepending sequences of utxo search operators bound with @>>=@
+retrieve ::
+  (els -> a) ->
+  (els -> Sem effs a)
+retrieve f = return . f
+
+-- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult`
+retrieveUtxos ::
+  UtxoSearchResult els ->
+  Sem effs Utxos
+retrieveUtxos = retrieve $ fmap hHead
+
+-- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult` alongside the
+-- extracted elements
+retrieveRefinedOutputs ::
+  UtxoSearchResult els ->
+  Sem effs [RefinedOutputsList els]
+retrieveRefinedOutputs = retrieve Map.elems
+
+-- | Retrieves the extracted elements from a `UtxoSearchResult`
+retrieveExtracts ::
+  UtxoSearchResult els ->
+  Sem effs [HList els]
+retrieveExtracts = retrieve $ Map.elems . fmap hTail
+
+-- | Retrieves the `Api.TxOutRef`s from a `UtxoSearchResult`
+retrieveTxOutRefs ::
+  UtxoSearchResult els ->
+  Sem effs (Set Api.TxOutRef)
+retrieveTxOutRefs = retrieve Map.keysSet
+
+-- | Retrieves the first extracted elements from a 'UtxoSearchResult'
+retrieveExtractedHeads ::
+  UtxoSearchResult (a ': els) ->
+  Sem effs [a]
+retrieveExtractedHeads = retrieve $ Map.elems . fmap (hHead . hTail)
+
+-- | Extracts a new element from the currently selected outputs, filtering out
+-- in the process utxos for which this element is not available
+extract ::
+  (TxSkelOut -> Sem effs (Maybe b)) ->
+  UtxoSearchResult els ->
+  UtxoSearch effs (b ': els)
+extract extractFun =
+  witherM
+    ( \(HCons txSkelOut es) ->
+        fmap (HCons txSkelOut . (`HCons` es)) <$> extractFun txSkelOut
+    )
+
+-- | Same as `extract`, but with a pure extraction function
+extractPure ::
+  (TxSkelOut -> Maybe b) ->
+  UtxoSearchResult els ->
+  UtxoSearch effs (b ': els)
+extractPure = extract . (return .)
+
+-- | Same as `extractPure`, using an affine fold to extract the element
+extractAFold ::
+  (Is k An_AffineFold) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearchResult els ->
+  UtxoSearch effs (b ': els)
+extractAFold = extractPure . preview
+
+-- | Same as `extract`, but with a total extraction function
+extractTotal ::
+  (TxSkelOut -> Sem effs b) ->
+  UtxoSearchResult els ->
+  UtxoSearch effs (b ': els)
+extractTotal = extract . (fmap Just .)
+
+-- | Same as `extract`, but with a pure and total extraction function
+extractPureTotal ::
+  (TxSkelOut -> b) ->
+  UtxoSearchResult els ->
+  UtxoSearch effs (b ': els)
+extractPureTotal = extractTotal . (return .)
+
+-- | Same as `extractPureTotal`, using a getter to extract the element
+extractGetter ::
+  (Is k A_Getter) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearchResult els ->
+  UtxoSearch effs (b ': els)
+extractGetter = extractPureTotal . view
+
+-- | Ensures the outputs resulting from the search satisfy the given predicate
+ensure ::
+  (TxSkelOut -> Sem effs Bool) ->
+  UtxoSearchResult els ->
+  UtxoSearch effs els
+ensure filterF = filterA (filterF . hHead)
+
+-- | Same as `ensure`, but with a pure predicate
+ensurePure ::
+  (TxSkelOut -> Bool) ->
+  UtxoSearchResult els ->
+  UtxoSearch effs els
+ensurePure = ensure . (return .)
+
+-- | Ensures the outputs resulting from the search contain the focus of the
+-- given affine fold
+ensureAFoldIs ::
+  (Is k An_AffineFold) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearchResult els ->
+  UtxoSearch effs els
+ensureAFoldIs = ensurePure . is
+
+-- | Ensures the outputs resulting from the search do not contain the focus of
+-- the given affine fold
+ensureAFoldIsn't ::
+  (Is k An_AffineFold) =>
+  Optic' k is TxSkelOut b ->
+  UtxoSearchResult els ->
+  UtxoSearch effs els
+ensureAFoldIsn't = ensurePure . isn't
+
 -- | An effect that offers primitives to query the current state of the
 -- mockchain. As its name suggests, this effect is read-only and does not alter
 -- the state in any way. This is the user-facing read effect; its interpreters
@@ -118,8 +242,8 @@ import Witherable (filterA, witherM)
 -- fixed chain configuration.
 data Query :: Effect where
   TxSkelOutByRef :: Api.TxOutRef -> Query m TxSkelOut
-  AllUtxos :: Query m Utxos
-  UtxosAt :: (Script.ToAddress a) => a -> Query m Utxos
+  AllUtxos :: Query m (UtxoSearchResult '[])
+  UtxosAt :: (Script.ToAddress a) => a -> Query m (UtxoSearchResult '[])
   GetConstitutionScript :: Query m (Maybe VScript)
   GetCurrentReward :: (Script.ToCredential c) => c -> Query m (Maybe Api.Lovelace)
 
@@ -161,7 +285,7 @@ txSkelInputValue =
 -- | Returns a list of all currently known outputs
 allUtxos ::
   (Member Query effs) =>
-  Sem effs Utxos
+  Sem effs (UtxoSearchResult '[])
 
 -- | Returns a list of all UTxOs at a certain address.
 utxosAt ::
@@ -169,7 +293,7 @@ utxosAt ::
     Script.ToAddress cred
   ) =>
   cred ->
-  Sem effs Utxos
+  Sem effs (UtxoSearchResult '[])
 
 -- | Returns an output given a reference to it
 txSkelOutByRef ::
@@ -185,21 +309,23 @@ txSkelOutByRef ::
 utxosFromCardanoTx ::
   (Member Query effs) =>
   P.Ledger.CardanoTx ->
-  Sem effs [(Api.TxOutRef, TxSkelOut)]
+  Sem effs (UtxoSearchResult '[])
 utxosFromCardanoTx =
-  mapM (\txOutRef -> (txOutRef,) <$> txSkelOutByRef txOutRef)
+  utxosFromRefs
     . fmap (P.Ledger.fromCardanoTxIn . snd)
     . P.Ledger.getCardanoTxOutRefs
 
 -- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
 -- state of the blockchain, throwing an error if one of them cannot be resolved.
-lookupUtxos ::
-  (Member Query effs) =>
-  [Api.TxOutRef] ->
-  Sem effs (Map Api.TxOutRef TxSkelOut)
-lookupUtxos =
+utxosFromRefs ::
+  ( Foldable f,
+    Member Query effs
+  ) =>
+  f Api.TxOutRef ->
+  Sem effs (UtxoSearchResult '[])
+utxosFromRefs =
   foldM
-    (\m oRef -> flip (Map.insert oRef) m <$> txSkelOutByRef oRef)
+    (\m oRef -> flip (Map.insert oRef) m . hSingleton <$> txSkelOutByRef oRef)
     Map.empty
 
 -- | Retrieves an output and views a specific element out of it
@@ -274,7 +400,7 @@ runMockChainQuery = interpret $ \case
             % itraversed
             % filtered snd
             % filtered (decide . fst)
-            % to fst
+            % to (hSingleton . fst)
 
 -- | Interpret the `Query` effect by talking to a deployed node
 -- through a `Cardano.LocalNodeConnectInfo` (socket path and network id)
@@ -307,7 +433,7 @@ runBlockChainQuery = interpret $ \case
   TxSkelOutByRef oRef -> do
     txIn <- fromEither $ P.Ledger.toCardanoTxIn oRef
     utxo <- queryUtxosAndHandleErrors $ Cardano.QueryUTxOByTxIn $ Set.singleton txIn
-    maybe (throw $ CEUnknownOutRef oRef) return $ Map.lookup oRef utxo
+    maybe (throw $ CEUnknownOutRef oRef) (return . hHead) $ Map.lookup oRef utxo
   GetConstitutionScript -> do
     -- We retrieve the official optional script hash of the current constitution
     Cardano.Constitution _ mScriptHash <-
@@ -346,7 +472,7 @@ runBlockChainQuery = interpret $ \case
         let newConstitution =
               listToMaybe $
                 [ script
-                | (_, preview txSkelOutReferenceScriptAT -> Just script) <- Map.toList utxo,
+                | (_, preview txSkelOutReferenceScriptAT . hHead -> Just script) <- Map.toList utxo,
                   Script.toScriptHash script == Script.toScriptHash scriptHash
                 ]
         modify' $ set chainIndexConstitutionL newConstitution
@@ -378,7 +504,7 @@ runBlockChainQuery = interpret $ \case
       knownUtxos <- gets chainIndexOutputs
       return $
         Map.mapWithKey
-          (\oRef txSkelOut -> maybe txSkelOut fst $ Map.lookup oRef knownUtxos)
+          (\oRef txSkelOut -> hSingleton $ maybe txSkelOut fst $ Map.lookup oRef knownUtxos)
           (Map.mapKeysMonotonic P.Ledger.fromCardanoTxIn $ convertUtxo <$> Cardano.unUTxO utxo)
     convertUtxo :: Cardano.TxOut Cardano.CtxUTxO Cardano.ConwayEra -> TxSkelOut
     convertUtxo (Cardano.TxOut (P.Ledger.toPlutusAddress -> (Api.Address cred stCred)) val dat refScript) =
@@ -395,201 +521,3 @@ runBlockChainQuery = interpret $ \case
         (P.Ledger.fromCardanoValue $ P.Ledger.fromCardanoTxOutValue val)
         False
         (P.Ledger.fromCardanoReferenceScript refScript)
-
--- | An heterogeneous list starting with a 'TxSkelOut'
-type RefinedOutputsList elems = HList (TxSkelOut ': elems)
-
--- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
--- alongside an heterogeneous list starting with the output in question,
--- followed by any element that was extracted during the search.
-type UtxoSearchResult elems = Map Api.TxOutRef (RefinedOutputsList elems)
-
--- | An isomorphisms between `Utxos` and search results with no extra element.
-utxosSearchResultUtxosI :: Iso' (UtxoSearchResult '[]) Utxos
-utxosSearchResultUtxosI = iso (fmap hHead) (fmap hSingleton)
-
--- | A `UtxoSearch` is a computation that returns a list of UTxOs alongside
--- their `TxSkelOut` counterpart and a list of other elements retrieved from the
--- output. The idea is to begin with a simple search and refine the search with
--- filters while appending new elements to the list.
-type UtxoSearch effs elems = Sem effs (UtxoSearchResult elems)
-
--- | Wraps up a computation returning a `Utxos` into a `UtxoSearch`
-beginSearch ::
-  Sem effs Utxos ->
-  UtxoSearch effs '[]
-beginSearch = fmap $ review utxosSearchResultUtxosI
-
--- | Same as `beginSearch` with a pure input
-beginSearchPure ::
-  Utxos ->
-  UtxoSearch effs '[]
-beginSearchPure = beginSearch . return
-
--- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult`
-getUtxos ::
-  Sem effs (UtxoSearchResult elems) ->
-  Sem effs Utxos
-getUtxos = fmap (fmap hHead)
-
--- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult` alongside the
--- extracted elements
-getOutputsAndExtracts ::
-  Sem effs (UtxoSearchResult elems) ->
-  Sem effs [RefinedOutputsList elems]
-getOutputsAndExtracts = fmap Map.elems
-
--- | Retrieves the extracted elements from a `UtxoSearchResult`
-getExtracts ::
-  Sem effs (UtxoSearchResult elems) ->
-  Sem effs [HList elems]
-getExtracts = fmap (Map.elems . fmap hTail)
-
--- | Retrieves the `Api.TxOutRef`s from a `UtxoSearchResult`
-getTxOutRefs ::
-  Sem effs (UtxoSearchResult elems) ->
-  Sem effs (Set Api.TxOutRef)
-getTxOutRefs = fmap Map.keysSet
-
--- | Searches for utxos at a given address with a given filter
-utxosAtSearch ::
-  (Member Query effs, Script.ToAddress pkh) =>
-  pkh ->
-  (UtxoSearch effs '[] -> UtxoSearch effs els) ->
-  UtxoSearch effs els
-utxosAtSearch pkh filters = filters $ beginSearch $ utxosAt pkh
-
--- | Searches for all the known utxos with a given filter
-allUtxosSearch ::
-  (Member Query effs) =>
-  (UtxoSearch effs '[] -> UtxoSearch effs els) ->
-  UtxoSearch effs els
-allUtxosSearch filters = filters $ beginSearch allUtxos
-
--- | Searches for utxos belonging to a given list with a given filter
-txSkelOutByRefSearch ::
-  (Member Query effs) =>
-  Set Api.TxOutRef ->
-  (UtxoSearch effs '[] -> UtxoSearch effs els) ->
-  UtxoSearch effs els
-txSkelOutByRefSearch utxos filters =
-  filters $
-    foldM
-      (\acc oRef -> (\x -> Map.insert oRef (hSingleton x) acc) <$> txSkelOutByRef oRef)
-      Map.empty
-      utxos
-
--- | Searches for utxos belonging to a given list with no filter
-txSkelOutByRefSearch' ::
-  (Member Query effs) =>
-  Set Api.TxOutRef ->
-  UtxoSearch effs '[]
-txSkelOutByRefSearch' = (`txSkelOutByRefSearch` id)
-
--- | Extracts a new element from the currently selected outputs, filtering out
--- in the process utxos for which this element is not available
-extract ::
-  (TxSkelOut -> Sem effs (Maybe b)) ->
-  UtxoSearch effs els ->
-  UtxoSearch effs (b ': els)
-extract extractFun =
-  (>>= witherM (\(HCons txSkelOut es) -> fmap (HCons txSkelOut . (`HCons` es)) <$> extractFun txSkelOut))
-
--- | Same as `extract`, but with a pure extraction function
-extractPure ::
-  (TxSkelOut -> Maybe b) ->
-  UtxoSearch effs els ->
-  UtxoSearch effs (b ': els)
-extractPure = extract . (return .)
-
--- | Same as `extractPure`, using an affine fold to extract the element
-extractAFold ::
-  (Is k An_AffineFold) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearch effs els ->
-  UtxoSearch effs (b ': els)
-extractAFold = extractPure . preview
-
--- | Same as `extract`, but with a total extraction function
-extractTotal ::
-  (TxSkelOut -> Sem effs b) ->
-  UtxoSearch effs els ->
-  UtxoSearch effs (b ': els)
-extractTotal = extract . (fmap Just .)
-
--- | Same as `extract`, but with a pure and total extraction function
-extractPureTotal ::
-  (TxSkelOut -> b) ->
-  UtxoSearch effs els ->
-  UtxoSearch effs (b ': els)
-extractPureTotal = extractTotal . (return .)
-
--- | Same as `extractPureTotal`, using a getter to extract the element
-extractGetter ::
-  (Is k A_Getter) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearch effs els ->
-  UtxoSearch effs (b ': els)
-extractGetter = extractPureTotal . view
-
--- | Ensures the outputs resulting from the search satisfy the given predicate
-ensure ::
-  (TxSkelOut -> Sem effs Bool) ->
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensure filterF comp =
-  comp >>= filterA (filterF . hHead)
-
--- | Same as `ensure`, but with a pure predicate
-ensurePure ::
-  (TxSkelOut -> Bool) ->
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensurePure = ensure . (return .)
-
--- | Ensures the outputs resulting from the search contain the focus of the
--- given affine fold
-ensureAFoldIs ::
-  (Is k An_AffineFold) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensureAFoldIs = ensurePure . is
-
--- | Ensures the outputs resulting from the search do not contain the focus of
--- the given affine fold
-ensureAFoldIsn't ::
-  (Is k An_AffineFold) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensureAFoldIsn't = ensurePure . isn't
-
--- | Ensures the outputs resulting from the search do not have a reference
--- script, nor a staking credential, nor a datum
-ensureOnlyValueOutputs ::
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensureOnlyValueOutputs =
-  ensureAFoldIsn't txSkelOutReferenceScriptAT
-    . ensureAFoldIsn't txSkelOutStakingCredentialAT
-    . ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
-
--- | Same as 'ensureOnlyValueOutputs', but also ensures the searched outputs do not
--- contain non-ADA assets.
-ensureVanillaOutputs ::
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensureVanillaOutputs =
-  ensureAFoldIs (txSkelOutValueL % valueLovelaceP)
-    . ensureOnlyValueOutputs
-
--- | Ensures the outputs resulting from the search have the given script as a
--- reference script
-ensureProperReferenceScript ::
-  (Script.ToScriptHash s) =>
-  s ->
-  UtxoSearch effs els ->
-  UtxoSearch effs els
-ensureProperReferenceScript (Script.toScriptHash -> sHash) =
-  ensureAFoldIs (txSkelOutReferenceScriptHashAF % filtered (== sHash))

@@ -148,10 +148,11 @@ tests =
         [ testCookedFromInitDistTemplate @DirectMockChainEffs "fail from transaction generation for missing reference scripts" $
             mustFailTest
               ( do
-                  (Set.elemAt 0 -> consumedOref) <-
-                    getTxOutRefs $
-                      utxosAtSearch (wallet 1) $
-                        ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
+                  consumedOref <-
+                    utxosAt (wallet 1)
+                      >>= ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
+                      >>= retrieveTxOutRefs
+                      >>= retrieve (Set.elemAt 0)
                   oref : _ <-
                     validateTxSkelL
                       txSkelEmulatorTemplate
