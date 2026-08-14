@@ -5,12 +5,28 @@
 module Cooked.TestNode (nodeRun, emulatorRun) where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Crypto.Wallet qualified as Crypto
 import Control.Monad
 import Cooked
+import Data.ByteString.Char8 qualified as BS8
 import Data.Map qualified as Map
 import Optics.Core
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
+
+faucetPKH :: Api.PubKeyHash
+faucetPKH = Api.PubKeyHash undefined
+
+faucetPrivKey :: Crypto.XPrv
+faucetPrivKey =
+  either error id $
+    Crypto.xprv $
+      BS8.pack $
+        BS8.readFile undefined -- "<128 bytes: 64-byte private key ++ 32-byte public key ++ 32-byte chain code>"
+
+faucetSignatory :: TxSkelSignatory
+faucetSignatory = TxSkelSignatory faucetPKH $ Just faucetPrivKey
 
 alice, bob, carrie, david :: Wallet
 alice = wallet 1
@@ -24,8 +40,7 @@ initDist = receives alice . Value . Script.ada <$> [30, 100, 40, 28]
 fromFaucetUtxo :: (Members DirectBlockChainEffs effs) => Sem effs ()
 fromFaucetUtxo = do
   faucetUtxo <-
-    allUtxos
-      >>= ensureAFoldIs (txSkelOutOwnerL % userPubKeyHashAT)
+    utxosAt faucetPKH
       >>= retrieve (fst . Map.elemAt 0)
   validateTxSkel_ $
     txSkelEmulatorTemplate
