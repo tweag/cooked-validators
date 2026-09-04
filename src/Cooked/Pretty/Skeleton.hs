@@ -5,6 +5,7 @@
 module Cooked.Pretty.Skeleton (Contextualized (..)) where
 
 import Cooked.Pretty.Class
+import Cooked.Pretty.Options
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
 import Cooked.Utilities.Wallet (Wallet)
@@ -49,9 +50,9 @@ instance PrettyCookedList (Contextualized TxSkel) where
           prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
           prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
           prettyItemizeNonEmpty opts "Withdrawals:" "-" $ view txSkelWithdrawalsListI withdrawals,
-          prettyItemizeNonEmpty opts "Certificates:" "-" certificates,
-          prettyItemizeNonEmpty opts "Options:" "-" txopts
+          prettyItemizeNonEmpty opts "Certificates:" "-" certificates
         ]
+          ++ [prettyItemizeNonEmpty opts "Options:" "-" txopts | pcOptPrintTxSkelOpts opts]
 
 instance PrettyCooked TxSkelCertificate where
   prettyCookedOpt opts (TxSkelCertificate owner action) =

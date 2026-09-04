@@ -26,6 +26,9 @@ import Cooked.Runtime.State
 import Polysemy
 import Polysemy.State
 import Polysemy.Writer
+import Prettyprinter ((<+>))
+import Prettyprinter qualified as PP
+import Prettyprinter.Render.Text qualified as PP
 
 -- | An effect to allow logging of mockchain events
 data Log :: Effect where
@@ -59,4 +62,4 @@ runBlockChainLog ::
 runBlockChainLog = interpret $ \(LogEvent event) -> do
   opts <- get
   index <- gets chainIndexOutputs
-  embed $ printCookedOpt opts $ Contextualized index event
+  embed $ PP.putDoc $ "⁍" <+> prettyCookedOpt opts (Contextualized index event) <> PP.line

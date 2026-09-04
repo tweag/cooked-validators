@@ -98,6 +98,7 @@ library
       Cooked.Utilities.Aliases
       Cooked.Utilities.Families
       Cooked.Utilities.ShowBS
+      Cooked.Utilities.UtxoSearch
       Cooked.Utilities.Wallet
   other-modules:
       Paths_cooked_validators

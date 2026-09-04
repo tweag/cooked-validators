@@ -24,6 +24,7 @@ import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
+import Cooked.Utilities.UtxoSearch
 import Data.ByteString qualified as BS
 import Data.Foldable.Extra
 import Data.Map qualified as Map

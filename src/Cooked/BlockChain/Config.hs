@@ -14,9 +14,11 @@ module Cooked.BlockChain.Config
 where
 
 import Cardano.Api qualified as Cardano
+import Control.Monad (when)
 import Cooked.Pretty
 import Cooked.Runtime
 import Data.Default
+import Data.Foldable.Extra (notNull)
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 import Prettyprinter.Render.Text qualified as PP
@@ -33,11 +35,16 @@ type FunOnBlockChainResult a b = RawBlockChainReturn a -> IO b
 -- IO the returned value and resulting blockchain state.
 displayBlockChainResult :: (Show a) => FunOnBlockChainResult a ()
 displayBlockChainResult (opts, (chainIndexToUtxoState -> UtxoState available consumed, res)) = do
-  PP.putDoc $ case res of
-    Left err -> "🔴 Error:" <+> prettyCookedOpt opts err
-    Right a -> "🟢 Success with returned value:" <+> PP.viaShow a
-  PP.putDoc $ "🗑️" <+> prettyCookedOpt opts consumed
-  PP.putDoc $ "💰" <+> prettyCookedOpt opts available
+  when (pcOptPrintReturnedValue opts) $
+    PP.putDoc $ case res of
+      Left err -> "🔴 Error:" <+> prettyCookedOpt opts err <> PP.line
+      Right a -> "🟢 Success with returned value:" <+> PP.viaShow a <> PP.line
+  when (pcOptPrintConsumedUTxOs opts && notNull consumed) $
+    PP.putDoc $
+      "🗑️" <+> prettyCookedOpt opts consumed <> PP.line
+  when (pcOptPrintRemainingUTxOs opts && notNull available) $
+    PP.putDoc $
+      "💰" <+> prettyCookedOpt opts available <> PP.line
 
 -- | Configuration from which to run a blockchain
 data BlockChainConf a b where

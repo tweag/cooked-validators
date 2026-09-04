@@ -26,6 +26,7 @@ import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
+import Cooked.Utilities.UtxoSearch
 import Data.Bifunctor (first)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
