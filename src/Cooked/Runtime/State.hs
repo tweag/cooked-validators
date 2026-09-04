@@ -37,6 +37,7 @@ module Cooked.Runtime.State
     addOutputs,
     removeOutput,
     removeOutputs,
+    extractOutputs,
 
     -- * `UtxoState`: A simplified, address-focused view on a `ChainIndex`
     UtxoPayloadDatum (..),
@@ -64,6 +65,7 @@ where
 
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.Skeleton
+import Cooked.Utilities.UtxoSearch
 import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
@@ -144,6 +146,18 @@ removeOutput oRef = set (chainIndexOutputsL % at oRef % _Just % _2) False
 -- | Removes several outputs from a 'ChainIndex' using 'removeOutput' each time
 removeOutputs :: (Foldable t) => t Api.TxOutRef -> ChainIndex -> ChainIndex
 removeOutputs l index = foldl (flip removeOutput) index l
+
+-- | Extracts the outputs from a 'ChainIndex' that match a given predicate in a
+-- 'UtxoSearchResult'
+extractOutputs ::
+  (Api.TxOutRef -> TxSkelOut -> Bool) ->
+  ChainIndex ->
+  UtxoSearchResult '[]
+extractOutputs p =
+  review utxosSearchResultUtxosI
+    . fmap fst
+    . Map.filterWithKey (\oRef (txSkelOut, exists) -> exists && p oRef txSkelOut)
+    . view chainIndexOutputsL
 
 -- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
 -- stores the actual datum and whether it is hashed (@True@) or inline

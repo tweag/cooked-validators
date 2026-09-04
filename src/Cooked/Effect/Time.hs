@@ -193,41 +193,33 @@ runBlockChainTime ::
   Sem (Time : effs) a ->
   Sem effs a
 runBlockChainTime = interpret $ \case
-  CurrentSlot -> getNodeSlot
-  SlotToMSRange slot -> slotToMS slot
-  GetEnclosingSlot t -> do
+  CurrentSlot -> getCurrentSlot
+  SlotToMSRange slot -> do
     eraHistory <- getEraHistory
     systemStart <- getSystemStart
-    let relTime = Time.toRelativeTime systemStart $ posixTimeToUTC t
-    fromSlotNo <$> fromEither (Cardano.getSlotForRelativeTime relTime eraHistory)
+    (relStart, slotLen) <- fromEither $ Cardano.getProgress (toSlotNo slot) eraHistory
+    let startUTC = Time.fromRelativeTime systemStart relStart
+        endUTC = Time.getSlotLength slotLen `addUTCTime` startUTC
+    return (utcToPOSIXTime startUTC, utcToPOSIXTime endUTC - 1)
+  GetEnclosingSlot ms -> msToSlot ms
   WaitNSlots n -> do
-    P.Ledger.Slot cs <- getNodeSlot
-    let target = P.Ledger.Slot $ cs + n
-    -- We compute the POSIX time at which the target slot begins and suspend the
-    -- thread until we reach it, if it lies in the future.
-    (Api.POSIXTime targetMS, _) <- slotToMS target
-    nowUTC <- embed getCurrentTime
-    let diff = diffUTCTime (posixTimeToUTC (Api.POSIXTime targetMS)) nowUTC
-    when (diff > 0) $ embed $ threadDelay $ round $ diff * 1000000
-    return $ P.Ledger.Slot $ max cs (cs + n)
+    when (n > 0) $ do
+      nowSlot <- getCurrentSlot
+      eraHistory <- getEraHistory
+      slotLength <- Time.slotLengthToMillisec . snd <$> fromEither (Cardano.getProgress (toSlotNo nowSlot) eraHistory)
+      embed $ threadDelay $ fromIntegral $ n * slotLength * 1000
+    getCurrentSlot
   where
-    -- Retrieves the current slot from the local node chain tip
-    getNodeSlot :: Sem effs P.Ledger.Slot
-    getNodeSlot = do
-      conn <- ask
-      chainTip <- embed $ Cardano.getLocalChainTip conn
-      return $ case chainTip of
-        Cardano.ChainTipAtGenesis -> P.Ledger.Slot 0
-        (Cardano.ChainTip slotNo _ _) -> fromSlotNo slotNo
-    -- Converts a slot into the closed POSIX ms interval it spans
-    slotToMS :: P.Ledger.Slot -> Sem effs (Api.POSIXTime, Api.POSIXTime)
-    slotToMS slot = do
+    -- Returns the current time according to the thread clock
+    getCurrentSlot :: Sem effs P.Ledger.Slot
+    getCurrentSlot = embed getCurrentTime >>= msToSlot . utcToPOSIXTime
+    -- Gives the slot in which a certain POSIX time belong
+    msToSlot :: Api.POSIXTime -> Sem effs P.Ledger.Slot
+    msToSlot t = do
       eraHistory <- getEraHistory
       systemStart <- getSystemStart
-      (relStart, slotLen) <- fromEither $ Cardano.getProgress (toSlotNo slot) eraHistory
-      let startUTC = Time.fromRelativeTime systemStart relStart
-          endUTC = Time.getSlotLength slotLen `addUTCTime` startUTC
-      return (utcToPOSIXTime startUTC, utcToPOSIXTime endUTC - 1)
+      let relTime = Time.toRelativeTime systemStart $ posixTimeToUTC t
+      fromSlotNo <$> fromEither (Cardano.getSlotForRelativeTime relTime eraHistory)
     -- Converts a Plutus slot to a Cardano slot
     toSlotNo = Cardano.SlotNo . fromInteger . P.Ledger.getSlot
     -- Converts a Cardano slot to a Plutus slot

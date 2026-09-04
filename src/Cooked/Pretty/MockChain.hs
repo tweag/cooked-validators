@@ -42,7 +42,7 @@ instance (Show a) => PrettyCooked [MockChainReturn a] where
 instance (Show a) => PrettyCooked (MockChainReturn a) where
   prettyCookedOpt opts' (MockChainReturn res outputs (UtxoState available consumed) (ChainJournal entries ((`addHashNames` opts') -> opts) noteBook assertions)) =
     PP.vsep $
-      [ prettyItemize opts "📔 Notes:" "-" $ ($ opts) <$> noteBook
+      [ prettyItemize opts "📔 Notes:" "⁕" $ ($ opts) <$> noteBook
       | pcOptPrintNotebook opts && not (null noteBook)
       ]
         <> [ prettyCookedOpt opts $ Contextualized outputs entries

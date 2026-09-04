@@ -10,7 +10,9 @@ module Cooked.Effect.Misc
 
     -- * Storing aliases for hashable elements
     define,
+    define_,
     defineM,
+    defineM_,
 
     -- * Taking notes in the notebook
     note,
@@ -29,6 +31,7 @@ module Cooked.Effect.Misc
   )
 where
 
+import Control.Monad (void)
 import Cooked.Pretty.Class
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
@@ -53,9 +56,17 @@ makeSem_ ''Misc
 -- | Stores an alias matching a hashable data for pretty printing purpose
 define :: forall effs a. (Member Misc effs, ToHash a) => String -> a -> Sem effs a
 
+-- | Like 'define', but discards the result
+define_ :: forall effs a. (Member Misc effs, ToHash a) => String -> a -> Sem effs ()
+define_ name = void . define name
+
 -- | Like `define`, but binds the result of a monadic computation instead
-defineM :: (Member Misc effs, ToHash a) => String -> Sem effs a -> Sem effs a
+defineM :: forall effs a. (Member Misc effs, ToHash a) => String -> Sem effs a -> Sem effs a
 defineM name = (define name =<<)
+
+-- | Like 'defineM', but discards the result
+defineM_ :: forall effs a. (Member Misc effs, ToHash a) => String -> Sem effs a -> Sem effs ()
+defineM_ name = void . defineM name
 
 -- | Takes note of an element represented as its rendering function to trace at
 -- the end of the run
@@ -144,9 +155,9 @@ runBlockChainMisc = interpret $ \case
   Define name hashable -> do
     modify $ addHashNames $ Map.singleton (toHash hashable) name
     return hashable
-  Note s -> gets s >>= embed . PP.putDoc . (<> PP.line)
+  Note s -> gets s >>= embed . PP.putDoc . (<> PP.line) . ("⁕" <+>)
   Assert s b -> do
     doc <- gets s
     if b
       then embed $ PP.putDoc $ "✔" <+> doc <> PP.line
-      else fail $ renderString id $ "✘" <+> doc
+      else fail $ renderString id $ "✘" <+> doc <> PP.line

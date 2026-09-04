@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 -- | This module exposes the user-facing primitives to query the current state
 -- of the blockchain, such as the available UTxOs, and the current constitution
 -- or rewards. It also provides the 'UtxoSearch' framework, a convenient way to
@@ -9,34 +11,7 @@
 -- 'Cooked.Effect.Params.Params' effect, which this
 -- effect relies on during its own interpretation.
 module Cooked.Effect.Query
-  ( -- * Utxo searches types
-    RefinedOutputsList,
-    UtxoSearchResult,
-    utxosSearchResultUtxosI,
-
-    -- * Retrieving pieces of @UtxoSearchResult@
-    retrieve,
-    retrieveUtxos,
-    retrieveRefinedOutputs,
-    retrieveExtracts,
-    retrieveTxOutRefs,
-    retrieveExtractedHeads,
-
-    -- * Extracting new information from UTxOs
-    extract,
-    extractPure,
-    extractAFold,
-    extractTotal,
-    extractPureTotal,
-    extractGetter,
-
-    -- * Filtering some UTxOs out
-    ensure,
-    ensurePure,
-    ensureAFoldIs,
-    ensureAFoldIsn't,
-
-    -- * The 'Query' effect and interpreters
+  ( -- * The 'Query' effect and interpreters
     Query,
     runMockChainQuery,
     runBlockChainQuery,
@@ -72,21 +47,17 @@ import Cooked.Effect.Params
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
-import Cooked.Utilities.Aliases
 import Cooked.Utilities.Families hiding (Member)
+import Cooked.Utilities.UtxoSearch
 import Data.Coerce (coerce)
-import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Map.Optics (toMapOf)
 import Data.Maybe
 import Data.Maybe.Strict
-import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Address qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
-import Optics.Core.Extras
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -94,145 +65,6 @@ import Polysemy
 import Polysemy.Error
 import Polysemy.Reader
 import Polysemy.State
-import Witherable (filterA, witherM)
-
--- | An heterogeneous list starting with a 'TxSkelOut'
-type RefinedOutputsList els = HList (TxSkelOut ': els)
-
--- | Raw result of a `UtxoSearch`. We store the `Api.TxOutRef` of the output,
--- alongside an heterogeneous list starting with the output in question,
--- followed by any element that was extracted during the search.
-type UtxoSearchResult els = Map Api.TxOutRef (RefinedOutputsList els)
-
--- | An isomorphisms between `Utxos` and search results with no extra element.
-utxosSearchResultUtxosI :: Iso' (UtxoSearchResult '[]) Utxos
-utxosSearchResultUtxosI = iso (fmap hHead) (fmap hSingleton)
-
--- | A `UtxoSearch` is a computation that returns a list of UTxOs alongside
--- their `TxSkelOut` counterpart and a list of other elements retrieved from the
--- output. The idea is to begin with a simple search and refine the search with
--- filters while appending new elements to the list.
-type UtxoSearch effs els = Sem effs (UtxoSearchResult els)
-
--- | Retrieves part of a 'UtxoSearchResult'. We define it on a more general
--- type, to allow for extracting values from basically anything, thus avoiding
--- annoying fmaps prepending sequences of utxo search operators bound with @>>=@
-retrieve ::
-  (els -> a) ->
-  (els -> Sem effs a)
-retrieve f = return . f
-
--- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult`
-retrieveUtxos ::
-  UtxoSearchResult els ->
-  Sem effs Utxos
-retrieveUtxos = retrieve $ fmap hHead
-
--- | Retrieves the `TxSkelOut`s from a `UtxoSearchResult` alongside the
--- extracted elements
-retrieveRefinedOutputs ::
-  UtxoSearchResult els ->
-  Sem effs [RefinedOutputsList els]
-retrieveRefinedOutputs = retrieve Map.elems
-
--- | Retrieves the extracted elements from a `UtxoSearchResult`
-retrieveExtracts ::
-  UtxoSearchResult els ->
-  Sem effs [HList els]
-retrieveExtracts = retrieve $ Map.elems . fmap hTail
-
--- | Retrieves the `Api.TxOutRef`s from a `UtxoSearchResult`
-retrieveTxOutRefs ::
-  UtxoSearchResult els ->
-  Sem effs (Set Api.TxOutRef)
-retrieveTxOutRefs = retrieve Map.keysSet
-
--- | Retrieves the first extracted elements from a 'UtxoSearchResult'
-retrieveExtractedHeads ::
-  UtxoSearchResult (a ': els) ->
-  Sem effs [a]
-retrieveExtractedHeads = retrieve $ Map.elems . fmap (hHead . hTail)
-
--- | Extracts a new element from the currently selected outputs, filtering out
--- in the process utxos for which this element is not available
-extract ::
-  (TxSkelOut -> Sem effs (Maybe b)) ->
-  UtxoSearchResult els ->
-  UtxoSearch effs (b ': els)
-extract extractFun =
-  witherM
-    ( \(HCons txSkelOut es) ->
-        fmap (HCons txSkelOut . (`HCons` es)) <$> extractFun txSkelOut
-    )
-
--- | Same as `extract`, but with a pure extraction function
-extractPure ::
-  (TxSkelOut -> Maybe b) ->
-  UtxoSearchResult els ->
-  UtxoSearch effs (b ': els)
-extractPure = extract . (return .)
-
--- | Same as `extractPure`, using an affine fold to extract the element
-extractAFold ::
-  (Is k An_AffineFold) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearchResult els ->
-  UtxoSearch effs (b ': els)
-extractAFold = extractPure . preview
-
--- | Same as `extract`, but with a total extraction function
-extractTotal ::
-  (TxSkelOut -> Sem effs b) ->
-  UtxoSearchResult els ->
-  UtxoSearch effs (b ': els)
-extractTotal = extract . (fmap Just .)
-
--- | Same as `extract`, but with a pure and total extraction function
-extractPureTotal ::
-  (TxSkelOut -> b) ->
-  UtxoSearchResult els ->
-  UtxoSearch effs (b ': els)
-extractPureTotal = extractTotal . (return .)
-
--- | Same as `extractPureTotal`, using a getter to extract the element
-extractGetter ::
-  (Is k A_Getter) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearchResult els ->
-  UtxoSearch effs (b ': els)
-extractGetter = extractPureTotal . view
-
--- | Ensures the outputs resulting from the search satisfy the given predicate
-ensure ::
-  (TxSkelOut -> Sem effs Bool) ->
-  UtxoSearchResult els ->
-  UtxoSearch effs els
-ensure filterF = filterA (filterF . hHead)
-
--- | Same as `ensure`, but with a pure predicate
-ensurePure ::
-  (TxSkelOut -> Bool) ->
-  UtxoSearchResult els ->
-  UtxoSearch effs els
-ensurePure = ensure . (return .)
-
--- | Ensures the outputs resulting from the search contain the focus of the
--- given affine fold
-ensureAFoldIs ::
-  (Is k An_AffineFold) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearchResult els ->
-  UtxoSearch effs els
-ensureAFoldIs = ensurePure . is
-
--- | Ensures the outputs resulting from the search do not contain the focus of
--- the given affine fold
-ensureAFoldIsn't ::
-  (Is k An_AffineFold) =>
-  Optic' k is TxSkelOut b ->
-  UtxoSearchResult els ->
-  UtxoSearch effs els
-ensureAFoldIsn't = ensurePure . isn't
 
 -- | An effect that offers primitives to query the current state of the
 -- mockchain. As its name suggests, this effect is read-only and does not alter
@@ -381,26 +213,12 @@ runMockChainQuery = interpret $ \case
     case res of
       Just (txSkelOut, True) -> return txSkelOut
       _ -> throw $ CEUnknownOutRef oRef
-  AllUtxos -> fetchUtxos $ const True
-  UtxosAt (Script.toAddress -> addr) -> fetchUtxos $ (== addr) . Script.toAddress
+  AllUtxos -> gets $ extractOutputs $ \_ _ -> True
+  UtxosAt (Script.toAddress -> addr) -> gets $ extractOutputs $ \_ -> (== addr) . Script.toAddress
   GetConstitutionScript -> gets $ view chainIndexConstitutionL
   GetCurrentReward (Script.toCredential -> cred) -> do
     stakeCredential <- toStakeCredential cred
-    gets $
-      preview $
-        emulatorStateLedgerStateL
-          % to (Emulator.getReward stakeCredential)
-          % _Just
-          % to coerce
-  where
-    fetchUtxos decide =
-      gets $
-        toMapOf $
-          chainIndexOutputsL
-            % itraversed
-            % filtered snd
-            % filtered (decide . fst)
-            % to (hSingleton . fst)
+    gets $ preview $ emulatorStateLedgerStateL % to (Emulator.getReward stakeCredential) % _Just % to coerce
 
 -- | Interpret the `Query` effect by talking to a deployed node
 -- through a `Cardano.LocalNodeConnectInfo` (socket path and network id)
@@ -498,14 +316,33 @@ runBlockChainQuery = interpret $ \case
     -- Handles a second layer of error from the response of a query
     queryAndHandleErrors q = queryAndHandleError q >>= fromEither
     -- Queries the Utxos present on-chain, handling the errors, and returns the
-    -- query result in terms of @Utxos@, updated with the known chain index.
+    -- query result in terms of @Utxos@, updated with the known chain index,
+    -- updating the chain index with the newly discovered UTxOs in the process.
     queryUtxosAndHandleErrors utxoFilter = do
+      -- we execute the query to the node, and handle the errors
       utxo <- queryAndHandleErrors $ Cardano.queryUtxo Cardano.ShelleyBasedEraConway utxoFilter
-      knownUtxos <- gets chainIndexOutputs
-      return $
-        Map.mapWithKey
-          (\oRef txSkelOut -> hSingleton $ maybe txSkelOut fst $ Map.lookup oRef knownUtxos)
-          (Map.mapKeysMonotonic P.Ledger.fromCardanoTxIn $ convertUtxo <$> Cardano.unUTxO utxo)
+      -- We convert the UTxOs to our own representation
+      let utxo' = Map.mapKeysMonotonic P.Ledger.fromCardanoTxIn $ convertUtxo <$> Cardano.unUTxO utxo
+      -- We execute the same query on our local chain index, to remove utxos
+      -- that do not exist anymore on-chain
+      knownUtxosFromQuery <- case utxoFilter of
+        Cardano.QueryUTxOWhole -> gets $ extractOutputs $ \_ _ -> True
+        Cardano.QueryUTxOByAddress addrs ->
+          let plutusAddrs = P.Ledger.fromCardanoAddressInEra . Cardano.anyAddressInShelleyBasedEra Cardano.ShelleyBasedEraConway <$> Set.toList addrs
+           in gets $ extractOutputs (const $ (`elem` plutusAddrs) . view txSkelOutAddressG)
+        Cardano.QueryUTxOByTxIn txIns ->
+          let plutusIns = P.Ledger.fromCardanoTxIn <$> Set.toList txIns
+           in gets $ extractOutputs $ \oRef _ -> oRef `elem` plutusIns
+      forM_ (Map.keysSet knownUtxosFromQuery) $ \oRef ->
+        -- If the utxo is not present in the query result, it means it has been
+        -- spent, and we remove it from the known utxos
+        unless (Map.member oRef utxo') $ modify' $ removeOutput oRef
+      -- We update the known UTxOs with the newly discovered ones,
+      -- leaving untouched the ones that were already known.
+      modify' $ over chainIndexOutputsL (`Map.union` ((,True) <$> utxo'))
+      -- we return the UTxOs, but we replace the outputs with the known ones, if they exist
+      return $ Map.mapWithKey (\oRef txSkelOut -> hSingleton $ maybe txSkelOut hHead $ Map.lookup oRef knownUtxosFromQuery) utxo'
+    -- Converts a Cardano TxOut to a TxSkelOut
     convertUtxo :: Cardano.TxOut Cardano.CtxUTxO Cardano.ConwayEra -> TxSkelOut
     convertUtxo (Cardano.TxOut (P.Ledger.toPlutusAddress -> (Api.Address cred stCred)) val dat refScript) =
       TxSkelOut

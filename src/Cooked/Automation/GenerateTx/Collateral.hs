@@ -12,6 +12,7 @@ import Cooked.Effect.Query
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
 import Cooked.Utilities.Aliases
+import Cooked.Utilities.UtxoSearch
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
