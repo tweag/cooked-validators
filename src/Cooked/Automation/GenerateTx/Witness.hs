@@ -9,7 +9,6 @@ import Cardano.Api qualified as Cardano
 import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
-import Ledger.Address qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -68,9 +67,4 @@ toKeyWitness ::
   TxSkelSignatory ->
   Maybe (Cardano.KeyWitness Cardano.ConwayEra)
 toKeyWitness txBody =
-  fmap
-    ( Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody
-        . P.Ledger.toWitness
-        . P.Ledger.PaymentPrivateKey
-    )
-    . preview txSkelSignatoryPrivateKeyAT
+  fmap (Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody) . preview txSkelSignatorySigningKeyAF
