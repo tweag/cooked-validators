@@ -2,6 +2,8 @@
 -- rename effect stacks to include MockChain
 -- signatory first input from pk ?
 
+-- Wait a certain number of Epochs
+
 module Cooked.TestNode
   ( exportSignatoryFiles,
     exportAlice,
@@ -17,13 +19,14 @@ module Cooked.TestNode
     runInIO,
     pays,
     nodeRun,
+    faucetSignatory,
+    fromFaucet,
   )
 where
 
-import Cardano.Api as Cardano
+import Cardano.Api
 import Cardano.Crypto.Wallet qualified as Crypto
 import Cooked hiding (Member)
-import Cooked.Utilities.UtxoSearch
 import Data.Map qualified as Map
 import Data.Text.IO qualified as T
 import Plutus.Script.Utils.Value qualified as Script
@@ -68,6 +71,9 @@ exportSignatoryFiles netId filePrefix xprv = do
 
       putStrLn $ "Successfully generated:\n  - " ++ skeyFile ++ "\n  - " ++ vkeyFile ++ "\n  - " ++ addrFile
 
+faucetSignatory :: IO TxSkelSignatory
+faucetSignatory = signatoryFromFile @GenesisUTxOKey "/home/monsieuro/tweag/cardano-peras/testnet/devnet-env/utxo-keys/utxo1/utxo.skey"
+
 exportAddressFile :: String -> Wallet -> IO ()
 exportAddressFile name =
   exportSignatoryFiles
@@ -85,12 +91,12 @@ exportBob = exportAddressFile "bob" bob
 -- Main
 --------------------------------------------------------------------------------
 
-nodeConfig :: Cardano.LocalNodeConnectInfo
+nodeConfig :: LocalNodeConnectInfo
 nodeConfig =
-  Cardano.LocalNodeConnectInfo
-    { Cardano.localConsensusModeParams = Cardano.CardanoModeParams (Cardano.EpochSlots 86_400),
-      Cardano.localNodeNetworkId = Cardano.Testnet (Cardano.NetworkMagic 42),
-      Cardano.localNodeSocketPath = Cardano.File "/home/monsieuro/tweag/cardano-peras/testnet/devnet-env/socket/node2/sock"
+  LocalNodeConnectInfo
+    { localConsensusModeParams = CardanoModeParams (EpochSlots 86_400),
+      localNodeNetworkId = Testnet (NetworkMagic 42),
+      localNodeSocketPath = File "/home/monsieuro/tweag/cardano-peras/testnet/devnet-env/socket/node2/sock"
     }
 
 defineAll :: (Member Misc effs) => Sem effs ()
@@ -119,6 +125,16 @@ fetchAll =
 runInIO :: (Show a) => DirectBlockChain a -> IO ()
 runInIO = runBlockChainFromConfTemplate nodeConfig
 
+fromFaucet :: Wallet -> Integer -> IO ()
+fromFaucet to ada = do
+  faucet <- faucetSignatory
+  runInIO $
+    validateTxSkel_ $
+      txSkelNodeTemplate
+        { txSkelSignatories = [faucet],
+          txSkelOutputs = [to `receives` Value (Script.ada ada)]
+        }
+
 pays :: Wallet -> Wallet -> Integer -> DirectBlockChain ()
 pays from to ada =
   validateTxSkel_ $
@@ -133,10 +149,10 @@ nodeRun = runInIO $ do
   noteS "Alice pays to Bob"
   pays alice bob 10
   noteS "Waiting 60 slots"
-  _ <- waitNSlots 60
+  _ <- waitNSlots 80
   fetchFrom bob "Bob's Utxos"
   noteS "Bob pays to David"
   pays bob david 5
   noteS "Waiting 60 slots"
-  _ <- waitNSlots 60
+  _ <- waitNSlots 80
   fetchFrom david "David's Utxos"
