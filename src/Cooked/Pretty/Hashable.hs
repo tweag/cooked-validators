@@ -65,3 +65,7 @@ instance ToHash Api.TxId where
 
 instance ToHash (Script.MultiPurposeScript a) where
   toHash = toHash . Script.toVersioned @Script.Script
+
+instance ToHash Api.Address where
+  toHash (Api.Address (Api.ScriptCredential sc) _) = toHash sc
+  toHash (Api.Address (Api.PubKeyCredential pkh) _) = toHash pkh
