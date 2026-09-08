@@ -16,7 +16,7 @@ pkToPk :: Wallet -> Wallet -> Integer -> StagedMockChain ()
 pkToPk sender recipient amount =
   validateTxSkel_ $
     txSkelEmulatorTemplate
-      { txSkelOutputs = [recipient `receives` Value (Script.ada amount)],
+      { txSkelOutputs = [recipient `receives` AdaValue amount],
         txSkelSignatories = txSkelSignatoriesFromList [sender]
       }
 
@@ -41,7 +41,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkelL $
             txSkelEmulatorTemplate
-              { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 10)],
+              { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` AdaValue 10],
                 txSkelSignatories = txSkelSignatoriesFromList [alice]
               }
         )
@@ -52,7 +52,7 @@ consumeAlwaysTrueValidator = do
   validateTxSkel_ $
     txSkelEmulatorTemplate
       { txSkelInputs = Map.fromList [(outref, someTxSkelRedeemer ())],
-        txSkelOutputs = [alice `receives` Value (Script.ada 10)],
+        txSkelOutputs = [alice `receives` AdaValue 10],
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 

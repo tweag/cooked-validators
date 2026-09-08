@@ -14,7 +14,7 @@ bob = wallet 1
 
 publishCertificate :: TxSkelCertificate -> DirectMockChain ()
 publishCertificate cert = do
-  forceOutputs_ [alice `receives` Value (Script.ada 100)]
+  forceOutputs_ [alice `receives` AdaValue 100]
   validateTxSkel_ $
     txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],

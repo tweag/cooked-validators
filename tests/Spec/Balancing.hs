@@ -25,12 +25,12 @@ banana = Script.multiPurposeScriptValue Script.trueMintingMPScript $ Api.TokenNa
 
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
-  [ Script.trueSpendingMPScript @() `receives` FixedValue (Script.ada 42) <&&> VisibleHashedDatum (),
+  [ Script.trueSpendingMPScript @() `receives` AdaValue 42 <&&> VisibleHashedDatum (),
     alice `receives` FixedValue (Script.ada 2 <> apple 3),
-    alice `receives` FixedValue (Script.ada 25),
+    alice `receives` AdaValue 25,
     alice `receives` FixedValue (Script.ada 40 <> orange 6),
-    alice `receives` FixedValue (Script.ada 8),
-    alice `receives` FixedValue (Script.ada 30),
+    alice `receives` AdaValue 8,
+    alice `receives` AdaValue 30,
     alice `receives` FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer),
     alice `receives` FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (Script.trueSpendingMPScript @()),
     alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
@@ -138,7 +138,7 @@ noBalanceMaxFee = do
   aliceORefs30Ada <- aliceNAdaUtxos 30
   validateTxSkel_ $
     txSkelEmulatorTemplate
-      { txSkelOutputs = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
+      { txSkelOutputs = [bob `receives` LovelaceValue (30_000_000 - maxFee)],
         txSkelInputs = Map.fromSet (const emptyTxSkelRedeemer) aliceORefs30Ada,
         txSkelOpts =
           txSkelOptsEmulatorTemplate
@@ -152,7 +152,7 @@ balanceReduceFee :: FullMockChain (Integer, Integer, Integer, Integer)
 balanceReduceFee = do
   let skelAutoFee =
         txSkelEmulatorTemplate
-          { txSkelOutputs = [bob `receives` Value (Script.ada 50)],
+          { txSkelOutputs = [bob `receives` AdaValue 50],
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
   ExtendedTxSkel skelBalanced feeBalanced mCols _ _ <- balanceTxSkel skelAutoFee

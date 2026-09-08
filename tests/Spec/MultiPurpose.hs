@@ -29,8 +29,8 @@ runScript = do
     validateTxSkelL $
       txSkelEmulatorTemplate
         { txSkelOutputs =
-            [ alice `receives` Value (Script.ada 3),
-              alice `receives` Value (Script.ada 5)
+            [ alice `receives` AdaValue 3,
+              alice `receives` AdaValue 5
             ],
           txSkelSignatories = txSkelSignatoriesFromList [bob]
         }

@@ -20,8 +20,8 @@ initialDistributionWithDatum =
 -- 2 UTxOs with 100 ADA
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
-    : replicate 2 (bob `receives` Value (Script.ada 100))
+  (alice `receives` AdaValue 2 <&&> ReferenceScript (Script.trueSpendingMPScript @()))
+    : replicate 2 (bob `receives` AdaValue 100)
 
 getValueFromInitialDatum :: DirectMockChain [Integer]
 getValueFromInitialDatum =
@@ -35,12 +35,12 @@ spendReferenceAlwaysTrueValidator = do
   (scriptTxOutRef : _) <-
     validateTxSkelL $
       txSkelEmulatorTemplate
-        { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
+        { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` AdaValue 2],
           txSkelSignatories = txSkelSignatoriesFromList [bob]
         }
   validateTxSkel_ $
     txSkelEmulatorTemplate
-      { txSkelOutputs = [alice `receives` Value (Script.ada 2)],
+      { txSkelOutputs = [alice `receives` AdaValue 2],
         txSkelInputs = Map.singleton scriptTxOutRef $ TxSkelRedeemer () (Just referenceScriptTxOutRef) False,
         txSkelSignatories = txSkelSignatoriesFromList [bob]
       }

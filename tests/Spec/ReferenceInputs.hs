@@ -19,8 +19,8 @@ trace1 = do
     validateTxSkelL
       txSkelEmulatorTemplate
         { txSkelOutputs =
-            [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
-              barTypedValidator `receives` Value (Script.ada 5)
+            [ fooTypedValidator `receives` AdaValue 4 <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
+              barTypedValidator `receives` AdaValue 5
             ],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
         }
@@ -28,7 +28,7 @@ trace1 = do
     txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
         txSkelReferenceInputs = Set.singleton txOutRefFoo,
-        txSkelOutputs = [wallet 4 `receives` Value (Script.ada 5)],
+        txSkelOutputs = [wallet 4 `receives` AdaValue 5],
         txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
       }
 
@@ -38,8 +38,8 @@ trace2 = do
     validateTxSkelL
       ( txSkelEmulatorTemplate
           { txSkelOutputs =
-              [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
-                bazTypedValidator `receives` Value (Script.ada 10)
+              [ wallet 1 `receives` AdaValue 2 <&&> VisibleHashedDatum (10 :: Integer),
+                bazTypedValidator `receives` AdaValue 10
               ],
             txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
           }

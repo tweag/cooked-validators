@@ -189,6 +189,10 @@ data Payable :: [PayableKind] -> Type where
   ReferenceScript :: (ToVScript s) => s -> Payable '[IsReferenceScript]
   -- | Values are payable and are subject to min ada adjustment
   Value :: (Script.ToValue a) => a -> Payable '[IsValue]
+  -- | Ada values are payable and not subject to min ada adjustment
+  AdaValue :: Integer -> Payable '[IsValue]
+  -- | Lovelace values are payable and are not subject to min ada adjustment
+  LovelaceValue :: Integer -> Payable '[IsValue]
   -- | Fixed Values are payable but are NOT subject to min ada adjustment
   FixedValue :: (Script.ToValue a) => a -> Payable '[IsValue]
   -- | Staking credentials are payable
@@ -224,6 +228,8 @@ receives (toPKHOrVScript -> owner) =
     go (HiddenHashedDatum dat) = set txSkelOutDatumL (SomeTxSkelOutDatum dat (Hashed NotResolved))
     go (FixedValue (Script.toValue -> v)) = set txSkelOutValueL v . set txSkelOutValueAutoAdjustL False
     go (Value (Script.toValue -> v)) = set txSkelOutValueL v . set txSkelOutValueAutoAdjustL True
+    go (AdaValue n) = set txSkelOutValueL (Script.ada n) . set txSkelOutValueAutoAdjustL False
+    go (LovelaceValue n) = set txSkelOutValueL (Script.lovelace n) . set txSkelOutValueAutoAdjustL False
     go (ReferenceScript (toVScript -> vScript)) = set txSkelOutMReferenceScriptL (Just vScript)
     go (StakingCredential (Script.toMaybeStakingCredential -> mStCred)) = set txSkelOutMStakingCredentialL mStCred
     go (PayableAnd p1 p2) = go p2 . go p1
