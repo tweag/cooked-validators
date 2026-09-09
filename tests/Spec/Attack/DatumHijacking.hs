@@ -33,7 +33,7 @@ txLock :: Script.MultiPurposeScript DHContract -> StagedMockChain Api.TxOutRef
 txLock v = do
   utxosAt (wallet 1)
     >>= ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
-    >>= retrieveTxOutRefs
+    >>= retrieveKeys
     >>= retrieve ((`lockTxSkel` v) . Set.elemAt 0)
     >>= validateTxSkelL
     >>= retrieve head

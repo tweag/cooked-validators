@@ -151,7 +151,7 @@ tests =
                   consumedOref <-
                     utxosAt (wallet 1)
                       >>= ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
-                      >>= retrieveTxOutRefs
+                      >>= retrieveKeys
                       >>= retrieve (Set.elemAt 0)
                   oref : _ <-
                     validateTxSkelL

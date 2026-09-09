@@ -65,7 +65,7 @@ where
 
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.Skeleton
-import Cooked.Utilities.UtxoSearch
+import Cooked.Utilities.TypedSearch
 import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
@@ -148,13 +148,13 @@ removeOutputs :: (Foldable t) => t Api.TxOutRef -> ChainIndex -> ChainIndex
 removeOutputs l index = foldl (flip removeOutput) index l
 
 -- | Extracts the outputs from a 'ChainIndex' that match a given predicate in a
--- 'UtxoSearchResult'
+-- 'SearchResult'
 extractOutputs ::
   (Api.TxOutRef -> TxSkelOut -> Bool) ->
   ChainIndex ->
-  UtxoSearchResult '[]
+  SearchResult Api.TxOutRef '[TxSkelOut]
 extractOutputs p =
-  review utxosSearchResultUtxosI
+  review searchResultMapI
     . fmap fst
     . Map.filterWithKey (\oRef (txSkelOut, exists) -> exists && p oRef txSkelOut)
     . view chainIndexOutputsL

@@ -17,7 +17,7 @@ where
 
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
-import Cooked.Utilities.Families
+import Cooked.Utilities.HList
 import Data.ByteString qualified as ByteString
 import Data.Default
 import Data.Map qualified as Map

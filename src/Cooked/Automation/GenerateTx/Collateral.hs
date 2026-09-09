@@ -12,7 +12,7 @@ import Cooked.Effect.Query
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
 import Cooked.Utilities.Aliases
-import Cooked.Utilities.UtxoSearch
+import Cooked.Utilities.TypedSearch
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
@@ -51,7 +51,7 @@ toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) 
   Api.Lovelace collateralInsLovelace <-
     utxosFromRefs collateralInsList
       >>= extractAFold (txSkelOutValueL % valueLovelaceL)
-      >>= retrieveExtractedHeads
+      >>= retrieveByTypeAsList
       >>= retrieve (foldOf folded)
   -- We collect the amount of lovelace in the return collateral output
   let Api.Lovelace returnCollateralLovelace = maybe 0 (view (txSkelOutValueL % valueLovelaceL)) mReturnCollateral

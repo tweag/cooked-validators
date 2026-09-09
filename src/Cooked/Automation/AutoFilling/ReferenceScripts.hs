@@ -15,7 +15,7 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Query
 import Cooked.Tweak.Update
-import Cooked.Utilities.UtxoSearch
+import Cooked.Utilities.TypedSearch
 import Data.List (find)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -42,8 +42,9 @@ updateRedeemedScript
        ) = do
     oRefsInInputs <-
       allUtxos
-        >>= ensureAFoldIs (txSkelOutReferenceScriptHashAF % filtered (== Script.toScriptHash vScript))
-        >>= retrieveTxOutRefs
+        >>= extractAFold txSkelOutReferenceScriptHashAF
+        >>= ensurePure (== Script.toScriptHash vScript)
+        >>= retrieveKeys
     maybe
       -- We leave the redeemer unchanged if no reference input was found
       (return rs)

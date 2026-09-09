@@ -24,7 +24,7 @@ import Cooked.Runtime.Error
 import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
-import Cooked.Utilities.UtxoSearch
+import Cooked.Utilities.TypedSearch
 import Data.ByteString qualified as BS
 import Data.Foldable.Extra
 import Data.Map qualified as Map
@@ -117,7 +117,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       (False, CollateralUtxosFromUser (Script.toPubKeyHash -> cUser)) ->
         utxosAt cUser
           >>= ensureOnlyValueOutputs
-          >>= retrieveTxOutRefs
+          >>= retrieveKeys
           >>= retrieve (Just . (,UserPubKey cUser))
       -- Some scripts involved, and no specific collateral options provided.
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
@@ -127,7 +127,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
         Just bUser ->
           utxosAt bUser
             >>= ensureOnlyValueOutputs
-            >>= retrieveTxOutRefs
+            >>= retrieveKeys
             >>= retrieve (Just . (,bUser))
 
   -- At this point, the presence (or absence) of balancing user dictates
@@ -147,11 +147,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveUtxos
+          BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveByTypeAsMap
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
             utxosFromRefs utxos
-              >>= retrieveUtxos
+              >>= retrieveByTypeAsMap
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
               >>= filterAndWarn (const $ is (txSkelOutOwnerL % userPubKeyHashAT)) "They belong to scripts."
@@ -278,7 +278,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- utxosFromRefs collateralIns >>= retrieveUtxos
+  collateralTxOuts <- utxosFromRefs collateralIns >>= retrieveByTypeAsMap
   -- Candidate subsets of utxos to be used as collaterals
   reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
   -- A value might, or might not have been reached

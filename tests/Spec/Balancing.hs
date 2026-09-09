@@ -97,19 +97,19 @@ aliceNonOnlyValueUtxos :: FullMockChain (Set Api.TxOutRef)
 aliceNonOnlyValueUtxos =
   utxosAt alice
     >>= ensurePure (\skel -> is txSkelOutReferenceScriptAT skel || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel)
-    >>= retrieveTxOutRefs
+    >>= retrieveKeys
 
 aliceNAdaUtxos :: Integer -> FullMockChain (Set Api.TxOutRef)
 aliceNAdaUtxos n =
   utxosAt alice
     >>= ensureAFoldIs (txSkelOutValueL % valueLovelaceL % filtered (== Api.Lovelace (n * 1_000_000)))
-    >>= retrieveTxOutRefs
+    >>= retrieveKeys
 
 aliceRefScriptUtxos :: FullMockChain (Set Api.TxOutRef)
 aliceRefScriptUtxos =
   utxosAt alice
     >>= ensureAFoldIs txSkelOutReferenceScriptAT
-    >>= retrieveTxOutRefs
+    >>= retrieveKeys
 
 emptySearch :: FullMockChain (Set Api.TxOutRef)
 emptySearch = return Set.empty
@@ -173,7 +173,7 @@ reachingMagic = do
   bananaOutRefs <-
     utxosAt alice
       >>= ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
-      >>= retrieveTxOutRefs
+      >>= retrieveKeys
   validateTxSkel_ $
     txSkelEmulatorTemplate
       { txSkelOutputs = [bob `receives` Value (Script.ada 106 <> banana 12)],
@@ -654,7 +654,7 @@ tests =
                         >>= ensureAFoldIsn't txSkelOutReferenceScriptAT
                         >>= ensureAFoldIsn't txSkelOutStakingCredentialAT
                         >>= ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
-                        >>= retrieveTxOutRefs
+                        >>= retrieveKeys
                     )
                     emptySearch
                     emptySearch

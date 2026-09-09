@@ -26,7 +26,7 @@ import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Cooked.Utilities.Aliases
-import Cooked.Utilities.UtxoSearch
+import Cooked.Utilities.TypedSearch
 import Data.Bifunctor (first)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
@@ -112,7 +112,7 @@ txSkelToIndex txSkel mCollaterals = do
   -- We retrieve all the outputs known to the skeleton
   (knownTxORefs, knownTxOuts) <-
     utxosFromRefs (txSkelKnownTxOutRefs txSkel <> collateralIns)
-      >>= retrieveUtxos
+      >>= retrieveByTypeAsMap
       >>= retrieve (unzip . Map.toList)
   -- We then compute their Cardano counterparts
   txOutL <- forM knownTxOuts toCardanoTxOut

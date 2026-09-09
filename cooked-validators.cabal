@@ -96,8 +96,9 @@ library
       Cooked.Utilities
       Cooked.Utilities.Aliases
       Cooked.Utilities.Families
+      Cooked.Utilities.HList
       Cooked.Utilities.ShowBS
-      Cooked.Utilities.UtxoSearch
+      Cooked.Utilities.TypedSearch
       Cooked.Utilities.Wallet
   other-modules:
       Paths_cooked_validators
@@ -147,6 +148,7 @@ library
     , cardano-node-emulator
     , cardano-slotting
     , cardano-strict-containers
+    , constraints
     , containers
     , data-default
     , either

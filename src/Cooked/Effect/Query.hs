@@ -2,14 +2,7 @@
 
 -- | This module exposes the user-facing primitives to query the current state
 -- of the blockchain, such as the available UTxOs, and the current constitution
--- or rewards. It also provides the 'UtxoSearch' framework, a convenient way to
--- look through UTxOs, filter them, and extract pieces of information from them.
--- Time-related queries live in the separate
--- 'Cooked.Effect.Time.Time' effect. The lower-level
--- configuration primitives (protocol parameters, network id, era history, system
--- start) live in the internal
--- 'Cooked.Effect.Params.Params' effect, which this
--- effect relies on during its own interpretation.
+-- or rewards.
 module Cooked.Effect.Query
   ( -- * The 'Query' effect and interpreters
     Query,
@@ -47,8 +40,8 @@ import Cooked.Effect.Params
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
-import Cooked.Utilities.Families hiding (Member)
-import Cooked.Utilities.UtxoSearch
+import Cooked.Utilities.HList
+import Cooked.Utilities.TypedSearch
 import Data.Coerce (coerce)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -74,8 +67,8 @@ import Polysemy.State
 -- fixed chain configuration.
 data Query :: Effect where
   TxSkelOutByRef :: Api.TxOutRef -> Query m TxSkelOut
-  AllUtxos :: Query m (UtxoSearchResult '[])
-  UtxosAt :: (Script.ToAddress a) => a -> Query m (UtxoSearchResult '[])
+  AllUtxos :: Query m (SearchResult Api.TxOutRef '[TxSkelOut])
+  UtxosAt :: (Script.ToAddress a) => a -> Query m (SearchResult Api.TxOutRef '[TxSkelOut])
   GetConstitutionScript :: Query m (Maybe VScript)
   GetCurrentReward :: (Script.ToCredential c) => c -> Query m (Maybe Api.Lovelace)
 
@@ -117,7 +110,7 @@ txSkelInputValue =
 -- | Returns a list of all currently known outputs
 allUtxos ::
   (Member Query effs) =>
-  Sem effs (UtxoSearchResult '[])
+  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
 
 -- | Returns a list of all UTxOs at a certain address.
 utxosAt ::
@@ -125,7 +118,7 @@ utxosAt ::
     Script.ToAddress cred
   ) =>
   cred ->
-  Sem effs (UtxoSearchResult '[])
+  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
 
 -- | Returns an output given a reference to it
 txSkelOutByRef ::
@@ -141,7 +134,7 @@ txSkelOutByRef ::
 utxosFromCardanoTx ::
   (Member Query effs) =>
   P.Ledger.CardanoTx ->
-  Sem effs (UtxoSearchResult '[])
+  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
 utxosFromCardanoTx =
   utxosFromRefs
     . fmap (P.Ledger.fromCardanoTxIn . snd)
@@ -154,7 +147,7 @@ utxosFromRefs ::
     Member Query effs
   ) =>
   f Api.TxOutRef ->
-  Sem effs (UtxoSearchResult '[])
+  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
 utxosFromRefs =
   foldM
     (\m oRef -> flip (Map.insert oRef) m . hSingleton <$> txSkelOutByRef oRef)

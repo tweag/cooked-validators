@@ -18,16 +18,10 @@ module Cooked.Utilities.Families
     type RevAux,
     type Member,
     type NonMember,
-
-    -- * Heterogeneous lists
-    HList (..),
-    hHead,
-    hTail,
-    hSingleton,
   )
 where
 
-import Data.Kind
+import Data.Constraint
 import GHC.TypeLits
 
 -- | Reverses a type level with an accumulator
@@ -76,32 +70,3 @@ type (∉) el els = NonMember el els '[]
 type family (⩀) (els :: [a]) (els' :: [a]) :: Constraint where
   '[] ⩀ _ = ()
   (x ': xs) ⩀ ys = (x ∉ ys, xs ⩀ ys)
-
--- | Heterogeneous lists
-data HList :: [Type] -> Type where
-  HEmpty :: HList '[]
-  HCons :: a -> HList l -> HList (a ': l)
-
--- | Head of an heterogeneous list
-hHead :: HList (a ': l) -> a
-hHead (HCons a _) = a
-
--- | Tail of an heterogeneous list
-hTail :: HList (a ': l) -> HList l
-hTail (HCons _ l) = l
-
--- | A singleton wrapped in an 'HList'
-hSingleton :: a -> HList '[a]
-hSingleton = (`HCons` HEmpty)
-
-instance Eq (HList '[]) where
-  _ == _ = True
-
-instance (Eq (HList l), Eq a) => Eq (HList (a ': l)) where
-  HCons h t == HCons h' t' = h == h' && t == t'
-
-instance Show (HList '[]) where
-  show _ = "[]"
-
-instance (Show (HList l), Show a) => Show (HList (a ': l)) where
-  show (HCons h t) = show h <> " : " <> show t

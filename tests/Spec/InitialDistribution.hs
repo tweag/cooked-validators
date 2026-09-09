@@ -27,7 +27,7 @@ getValueFromInitialDatum :: DirectMockChain [Integer]
 getValueFromInitialDatum =
   utxosAt alice
     >>= extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)
-    >>= retrieveExtractedHeads
+    >>= retrieveByTypeAsList
 
 spendReferenceAlwaysTrueValidator :: DirectMockChain ()
 spendReferenceAlwaysTrueValidator = do
