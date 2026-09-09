@@ -147,11 +147,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveByTypeAsMap
+          BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveByType
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
             utxosFromRefs utxos
-              >>= retrieveByTypeAsMap
+              >>= retrieveByType
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
               >>= filterAndWarn (const $ is (txSkelOutOwnerL % userPubKeyHashAT)) "They belong to scripts."
@@ -278,7 +278,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- utxosFromRefs collateralIns >>= retrieveByTypeAsMap
+  collateralTxOuts <- utxosFromRefs collateralIns >>= retrieveByType
   -- Candidate subsets of utxos to be used as collaterals
   reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
   -- A value might, or might not have been reached

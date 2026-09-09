@@ -6,6 +6,7 @@ module Cooked.Utilities.Aliases
     Collaterals,
     Utxo,
     Utxos,
+    UtxoSearchResult,
     BodyContent,
     Body,
     Transaction,
@@ -19,6 +20,7 @@ import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Cardano.Ledger.Conway qualified as Conway
 import Cardano.Ledger.Conway.Rules qualified as Conway
 import Cooked.Skeleton.Output
+import Cooked.Utilities.TypedSearch
 import Data.Map (Map)
 import Data.Set (Set)
 import PlutusLedgerApi.V3 qualified as Api
@@ -38,8 +40,12 @@ type Collaterals = (CollateralIns, Maybe TxSkelOut)
 -- | An alias for an output and its reference
 type Utxo = (Api.TxOutRef, TxSkelOut)
 
--- | An alias for lists of `Utxo`
+-- | An alias for Maps of 'TxSkelOut' with 'Api.TxOutRef' as keys
 type Utxos = Map Api.TxOutRef TxSkelOut
+
+-- | An alias for searches returning a 'TxSkelOut' within maps with
+-- 'Api.TxOutRef' as keys
+type UtxoSearchResult = SearchResult (Map Api.TxOutRef) '[TxSkelOut]
 
 -- | An alias for a transaction body content
 type BodyContent = Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra

@@ -65,7 +65,7 @@ where
 
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.Skeleton
-import Cooked.Utilities.TypedSearch
+import Cooked.Utilities
 import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
@@ -152,7 +152,7 @@ removeOutputs l index = foldl (flip removeOutput) index l
 extractOutputs ::
   (Api.TxOutRef -> TxSkelOut -> Bool) ->
   ChainIndex ->
-  SearchResult Api.TxOutRef '[TxSkelOut]
+  UtxoSearchResult
 extractOutputs p =
   review searchResultMapI
     . fmap fst

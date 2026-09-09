@@ -40,8 +40,8 @@ import Cooked.Effect.Params
 import Cooked.Runtime.Error
 import Cooked.Runtime.State
 import Cooked.Skeleton
+import Cooked.Utilities.Aliases
 import Cooked.Utilities.HList
-import Cooked.Utilities.TypedSearch
 import Data.Coerce (coerce)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -67,8 +67,8 @@ import Polysemy.State
 -- fixed chain configuration.
 data Query :: Effect where
   TxSkelOutByRef :: Api.TxOutRef -> Query m TxSkelOut
-  AllUtxos :: Query m (SearchResult Api.TxOutRef '[TxSkelOut])
-  UtxosAt :: (Script.ToAddress a) => a -> Query m (SearchResult Api.TxOutRef '[TxSkelOut])
+  AllUtxos :: Query m UtxoSearchResult
+  UtxosAt :: (Script.ToAddress a) => a -> Query m UtxoSearchResult
   GetConstitutionScript :: Query m (Maybe VScript)
   GetCurrentReward :: (Script.ToCredential c) => c -> Query m (Maybe Api.Lovelace)
 
@@ -110,7 +110,7 @@ txSkelInputValue =
 -- | Returns a list of all currently known outputs
 allUtxos ::
   (Member Query effs) =>
-  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
+  Sem effs UtxoSearchResult
 
 -- | Returns a list of all UTxOs at a certain address.
 utxosAt ::
@@ -118,7 +118,7 @@ utxosAt ::
     Script.ToAddress cred
   ) =>
   cred ->
-  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
+  Sem effs UtxoSearchResult
 
 -- | Returns an output given a reference to it
 txSkelOutByRef ::
@@ -134,7 +134,7 @@ txSkelOutByRef ::
 utxosFromCardanoTx ::
   (Member Query effs) =>
   P.Ledger.CardanoTx ->
-  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
+  Sem effs UtxoSearchResult
 utxosFromCardanoTx =
   utxosFromRefs
     . fmap (P.Ledger.fromCardanoTxIn . snd)
@@ -147,7 +147,7 @@ utxosFromRefs ::
     Member Query effs
   ) =>
   f Api.TxOutRef ->
-  Sem effs (SearchResult Api.TxOutRef '[TxSkelOut])
+  Sem effs UtxoSearchResult
 utxosFromRefs =
   foldM
     (\m oRef -> flip (Map.insert oRef) m . hSingleton <$> txSkelOutByRef oRef)
