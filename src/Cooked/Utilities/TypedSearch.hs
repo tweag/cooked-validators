@@ -12,8 +12,9 @@ module Cooked.Utilities.TypedSearch
     -- * Retrieving pieces of @SearchResult@
     retrieve,
     retrieveKeys,
-    retrieveValues,
+    retrieveAsList,
     retrieveByType,
+    retrieveByTypeAndFold,
     retrieveByTypeAsList,
 
     -- * Extracting new information from existing extracted elements
@@ -68,17 +69,17 @@ retrieveKeys ::
   m (Set key)
 retrieveKeys = retrieve Map.keysSet
 
--- | Retrieve the extracted elements from a 'SearchResult'.
-retrieveValues ::
+-- | Retrieve the lists of extracted elements from a 'SearchResult' as a list.
+retrieveAsList ::
   ( Applicative m,
     Foldable f
   ) =>
   SearchResult f els ->
   m [HList els]
-retrieveValues = retrieve toList
+retrieveAsList = retrieve toList
 
 -- | Retrieves the list of extracted elements of a given type from a
--- 'SearchResult', bound to their original keys.
+-- 'SearchResult', within their original container.
 retrieveByType ::
   ( FetchByType a els,
     Applicative m,
@@ -89,7 +90,7 @@ retrieveByType ::
 retrieveByType = retrieve $ fmap fetchByType
 
 -- | Retrieves the list of extracted elements of a given type from a
--- 'SearchResult', no longer bound to their original keys.
+-- 'SearchResult', as a list.
 retrieveByTypeAsList ::
   ( FetchByType a els,
     Applicative m,
@@ -99,6 +100,18 @@ retrieveByTypeAsList ::
   SearchResult f els ->
   m [a]
 retrieveByTypeAsList = fmap toList . retrieveByType
+
+-- | Retrieves the extracted elements of a given type, folding over them.
+retrieveByTypeAndFold ::
+  ( FetchByType a els,
+    Applicative m,
+    Functor f,
+    Foldable f,
+    Monoid a
+  ) =>
+  SearchResult f els ->
+  m a
+retrieveByTypeAndFold = fmap fold . retrieveByType
 
 -- | Extracts a new element from the currently selected outputs, filtering out
 -- in the process utxos for which this element is not available

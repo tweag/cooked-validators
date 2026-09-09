@@ -51,8 +51,7 @@ toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) 
   Api.Lovelace collateralInsLovelace <-
     utxosFromRefs collateralInsList
       >>= extractAFold (txSkelOutValueL % valueLovelaceL)
-      >>= retrieveByTypeAsList
-      >>= retrieve (foldOf folded)
+      >>= retrieveByTypeAndFold
   -- We collect the amount of lovelace in the return collateral output
   let Api.Lovelace returnCollateralLovelace = maybe 0 (view (txSkelOutValueL % valueLovelaceL)) mReturnCollateral
   -- The total collateral is the difference between the two
