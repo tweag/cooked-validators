@@ -40,6 +40,7 @@ import Data.Set (Set)
 import Optics.Core
 import Optics.Core.Extras
 import Witherable
+import Prelude hiding (filter)
 
 -- | A 'SearchResult' is a gathering of heterogeneous lists of extracted elements
 -- within a given structure. Typically, this structure will be a map from a
@@ -103,31 +104,31 @@ retrieveByTypeAsList = fmap toList . retrieveByType
 -- in the process utxos for which this element is not available
 extract ::
   ( FetchByType a els,
-    Monad m,
+    Applicative m,
     Witherable f
   ) =>
   (a -> m (Maybe b)) ->
   SearchResult f els ->
   m (SearchResult f (b ': els))
-extract extractFun = witherM $ \l -> fmap (`HCons` l) <$> extractFun (fetchByType l)
+extract extractFun = wither $ \l -> fmap (`HCons` l) <$> extractFun (fetchByType l)
 
 -- | Same as `extract`, but with a pure extraction function
 extractPure ::
   ( FetchByType a els,
-    Monad m,
-    Witherable f
+    Applicative m,
+    Filterable f
   ) =>
   (a -> Maybe b) ->
   SearchResult f els ->
   m (SearchResult f (b ': els))
-extractPure = extract . (return .)
+extractPure extractFun = pure . mapMaybe (\l -> (`HCons` l) <$> extractFun (fetchByType l))
 
 -- | Same as `extractPure`, using an affine fold to extract the element
 extractAFold ::
   ( FetchByType a els,
     Is k An_AffineFold,
-    Monad m,
-    Witherable f
+    Applicative m,
+    Filterable f
   ) =>
   Optic' k is a b ->
   SearchResult f els ->
@@ -137,7 +138,7 @@ extractAFold = extractPure . preview
 -- | Same as `extract`, but with a total extraction function
 extractTotal ::
   ( FetchByType a els,
-    Monad m,
+    Applicative m,
     Witherable f
   ) =>
   (a -> m b) ->
@@ -148,20 +149,20 @@ extractTotal = extract . (fmap Just .)
 -- | Same as `extract`, but with a pure and total extraction function
 extractPureTotal ::
   ( FetchByType a els,
-    Monad m,
-    Witherable f
+    Applicative m,
+    Functor f
   ) =>
   (a -> b) ->
   SearchResult f els ->
   m (SearchResult f (b ': els))
-extractPureTotal = extractTotal . (return .)
+extractPureTotal extractFun = pure . fmap (\l -> HCons (extractFun (fetchByType l)) l)
 
 -- | Same as `extractPureTotal`, using a getter to extract the element
 extractGetter ::
   ( FetchByType a els,
     Is k A_Getter,
-    Monad m,
-    Witherable f
+    Applicative m,
+    Functor f
   ) =>
   Optic' k is a b ->
   SearchResult f els ->
@@ -183,12 +184,12 @@ ensure p = filterA (p . fetchByType)
 ensurePure ::
   ( FetchByType a els,
     Applicative m,
-    Witherable f
+    Filterable f
   ) =>
   (a -> Bool) ->
   SearchResult f els ->
   m (SearchResult f els)
-ensurePure = ensure . (pure .)
+ensurePure filterFun = pure . filter (filterFun . fetchByType)
 
 -- | Ensures the outputs resulting from the search contain the focus of the
 -- given affine fold
@@ -196,7 +197,7 @@ ensureAFoldIs ::
   ( FetchByType a els,
     Is k An_AffineFold,
     Applicative m,
-    Witherable f
+    Filterable f
   ) =>
   Optic' k is a b ->
   SearchResult f els ->
@@ -209,7 +210,7 @@ ensureAFoldIsn't ::
   ( FetchByType a els,
     Is k An_AffineFold,
     Applicative m,
-    Witherable f
+    Filterable f
   ) =>
   Optic' k is a b ->
   SearchResult f els ->
