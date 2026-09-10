@@ -4,7 +4,6 @@ module Spec.Attack.DatumTampering where
 import Cooked
 import Data.Set qualified as Set
 import Optics.Core
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusTx qualified
 import Polysemy
 import Polysemy.NonDet
@@ -17,21 +16,21 @@ alice = wallet 1
 datumTamperingAttackTest :: TestTree
 datumTamperingAttackTest =
   testCase "datumTamperingAttack" $
-    [ txSkelTemplate
+    [ txSkelEmulatorTemplate
         { txSkelLabels = Set.singleton $ TxSkelLabel $ DatumTamperingLabel [(52 :: Integer, 53 :: Integer)],
           txSkelOutputs =
             [ alice `receives` VisibleHashedDatum (52 :: Integer, 54 :: Integer),
-              alice `receives` Value (Script.lovelace 234),
+              alice `receives` LovelaceValue 234,
               alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
             ]
         }
     ]
       @=? (run . runNonDet)
         ( execTweak
-            txSkelTemplate
+            txSkelEmulatorTemplate
               { txSkelOutputs =
                   [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
-                    alice `receives` Value (Script.lovelace 234),
+                    alice `receives` LovelaceValue 234,
                     alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer)
                   ]
               }
@@ -62,10 +61,10 @@ malformDatumAttackTest =
           ]
           ( (fmap allBuiltinData . run . runNonDet)
               ( execTweak
-                  ( txSkelTemplate
+                  ( txSkelEmulatorTemplate
                       { txSkelOutputs =
                           [ alice `receives` VisibleHashedDatum (52 :: Integer, 53 :: Integer),
-                            alice `receives` Value (Script.lovelace 234),
+                            alice `receives` LovelaceValue 234,
                             alice `receives` VisibleHashedDatum (76 :: Integer, 77 :: Integer),
                             alice `receives` VisibleHashedDatum (84 :: Integer, 85 :: Integer)
                           ]

@@ -11,7 +11,7 @@ module Cooked.Pretty.Options
 where
 
 import Cooked.Pretty.Hashable
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)
@@ -29,9 +29,8 @@ data PrettyCookedOpts = PrettyCookedOpts
     pcOptPrintTxHashes :: Bool,
     -- | Whether to print transaction outputs references. By default: hidden
     pcOptPrintTxOutRefs :: PCOptTxOutRefs,
-    -- | Whether to print tx options that have not been modified from their
-    -- default. By default: False
-    pcOptPrintDefaultTxSkelOpts :: Bool,
+    -- | Whether to print tx options
+    pcOptPrintTxSkelOpts :: Bool,
     -- | Whether to print big integers with numeric underscores. For example
     -- @53_000_000@ instead of @53000000@. By default: True
     pcOptNumericUnderscores :: Bool,
@@ -57,7 +56,7 @@ instance Default PrettyCookedOpts where
     PrettyCookedOpts
       { pcOptPrintTxHashes = False,
         pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
-        pcOptPrintDefaultTxSkelOpts = False,
+        pcOptPrintTxSkelOpts = False,
         pcOptNumericUnderscores = True,
         pcOptHashes = def,
         pcOptPrintLog = True,

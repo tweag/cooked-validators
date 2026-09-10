@@ -1,0 +1,123 @@
+-- | This module exposes the generation of proposal procedures
+module Cooked.Automation.GenerateTx.Proposal (toProposalProcedures) where
+
+import Cardano.Api qualified as Cardano
+import Cardano.Api.Ledger qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as C.Ledger
+import Cardano.Ledger.Conway.Core qualified as Conway
+import Cardano.Ledger.Conway.Governance qualified as Conway
+import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Control.Monad
+import Cooked.Automation.GenerateTx.Anchor
+import Cooked.Automation.GenerateTx.Credential
+import Cooked.Automation.GenerateTx.Witness
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
+import Cooked.Skeleton.Proposal
+import Cooked.Skeleton.User
+import Data.Coerce
+import Data.Map qualified as Map
+import Data.Map.Ordered.Strict qualified as OMap
+import Data.Maybe
+import Data.Maybe.Strict
+import Ledger.Tx.CardanoAPI qualified as P.Ledger
+import Lens.Micro qualified as Microlens
+import Plutus.Script.Utils.Address qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
+import Polysemy
+import Polysemy.Error
+
+-- | Transforms a `Cooked.Skeleton.Proposal.ParamChange` into an actual change
+-- over a Cardano parameter update
+toPParamsUpdate ::
+  forall effs.
+  (Member (Error ChainError) effs) =>
+  ParamChange ->
+  Conway.PParamsUpdate Emulator.EmulatorEra ->
+  Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
+toPParamsUpdate pChange ppu =
+  -- From rational to bounded rational
+  let toBR :: (C.Ledger.BoundedRational r) => Rational -> r
+      toBR = fromMaybe minBound . C.Ledger.boundRational
+      -- Helper to set one of the param update with a lens. The explicit
+      -- signature is needed so that it stays polymorphic in @a@ under
+      -- @MonoLocalBinds@ despite closing over @effs@ and @ppu@.
+      setL :: forall a. Microlens.ASetter' (Conway.PParamsUpdate Emulator.EmulatorEra) (StrictMaybe a) -> a -> Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
+      setL l v = return $ Microlens.set l (SJust v) ppu
+   in case pChange of
+        FeePerByte n -> setL Conway.ppuMinFeeAL $ fromIntegral n
+        FeeFixed n -> setL Conway.ppuMinFeeBL $ fromIntegral n
+        MaxBlockBodySize n -> setL Conway.ppuMaxBBSizeL $ fromIntegral n
+        MaxTxSize n -> setL Conway.ppuMaxTxSizeL $ fromIntegral n
+        MaxBlockHeaderSize n -> setL Conway.ppuMaxBHSizeL $ fromIntegral n
+        KeyDeposit n -> setL Conway.ppuKeyDepositL $ fromIntegral n
+        PoolDeposit n -> setL Conway.ppuPoolDepositL $ fromIntegral n
+        PoolRetirementMaxEpoch n -> setL Conway.ppuEMaxL $ C.Ledger.EpochInterval $ fromIntegral n
+        PoolNumber n -> setL Conway.ppuNOptL $ fromIntegral n
+        PoolInfluence q -> setL Conway.ppuA0L $ fromMaybe minBound $ C.Ledger.boundRational q
+        MonetaryExpansion q -> setL Conway.ppuRhoL $ fromMaybe minBound $ C.Ledger.boundRational q
+        TreasuryCut q -> setL Conway.ppuTauL $ toBR q
+        MinPoolCost n -> setL Conway.ppuMinPoolCostL $ fromIntegral n
+        CoinsPerUTxOByte n -> setL Conway.ppuCoinsPerUTxOByteL $ Conway.CoinPerByte $ fromIntegral n
+        CostModels _pv1 _pv2 _pv3 -> throw $ CEUnsupportedFeature "CostModels"
+        Prices q r -> setL Conway.ppuPricesL $ Cardano.Prices (toBR q) (toBR r)
+        MaxTxExUnits n m -> setL Conway.ppuMaxTxExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
+        MaxBlockExUnits n m -> setL Conway.ppuMaxBlockExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
+        MaxValSize n -> setL Conway.ppuMaxValSizeL $ fromIntegral n
+        CollateralPercentage n -> setL Conway.ppuCollateralPercentageL $ fromIntegral n
+        MaxCollateralInputs n -> setL Conway.ppuMaxCollateralInputsL $ fromIntegral n
+        PoolVotingThresholds a b c d e ->
+          setL Conway.ppuPoolVotingThresholdsL $
+            Conway.PoolVotingThresholds (toBR a) (toBR b) (toBR c) (toBR d) (toBR e)
+        DRepVotingThresholds a b c d e f g h i j ->
+          setL Conway.ppuDRepVotingThresholdsL $
+            Conway.DRepVotingThresholds (toBR a) (toBR b) (toBR c) (toBR d) (toBR e) (toBR f) (toBR g) (toBR h) (toBR i) (toBR j)
+        CommitteeMinSize n -> setL Conway.ppuCommitteeMinSizeL $ fromIntegral n
+        CommitteeMaxTermLength n -> setL Conway.ppuCommitteeMaxTermLengthL $ C.Ledger.EpochInterval $ fromIntegral n
+        GovActionLifetime n -> setL Conway.ppuGovActionLifetimeL $ C.Ledger.EpochInterval $ fromIntegral n
+        GovActionDeposit n -> setL Conway.ppuGovActionDepositL $ fromIntegral n
+        DRepRegistrationDeposit n -> setL Conway.ppuDRepDepositL $ fromIntegral n
+        DRepActivity n -> setL Conway.ppuDRepActivityL $ C.Ledger.EpochInterval $ fromIntegral n
+        MinFeeRefScriptCostPerByte q -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromMaybe minBound $ C.Ledger.boundRational q
+
+-- | Translates a given skeleton proposal into a governance action
+toGovAction ::
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
+  GovernanceAction a ->
+  StrictMaybe Conway.ScriptHash ->
+  Sem effs (Conway.GovAction Emulator.EmulatorEra)
+toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
+toGovAction UpdateCommittee {} _ = throw $ CEUnsupportedFeature "UpdateCommittee"
+toGovAction NewConstitution {} _ = throw $ CEUnsupportedFeature "TxGovActionNewConstitution"
+toGovAction HardForkInitiation {} _ = throw $ CEUnsupportedFeature "TxGovActionHardForkInitiation"
+toGovAction (ParameterChange changes) sHash = do
+  ppu <- foldM (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes
+  return $ Conway.ParameterChange SNothing ppu sHash
+toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
+  (`Conway.TreasuryWithdrawals` sHash) . Map.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Cardano.Coin lv) <$> toRewardAccount cred) withdrawals
+
+-- | Translates a list of skeleton proposals into a proposal procedures
+toProposalProcedures ::
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
+  [TxSkelProposal] ->
+  Sem effs (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
+toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone
+toProposalProcedures props =
+  Cardano.TxProposalProcedures . OMap.fromList
+    <$> forM
+      props
+      ( \(TxSkelProposal (Script.toCredential -> returnCredential) govAction mConstitution (toCardanoAnchor -> anchor)) -> do
+          proposalDeposit <- govActionDeposit
+          rewardAccount <- toRewardAccount returnCredential
+          (Cardano.BuildTxWith -> mConstitutionWitness, mConstitutionHash) <- case mConstitution of
+            Just (UserRedeemedScript (toVScript -> script) redeemer) -> do
+              scriptWitness <- toScriptWitness script redeemer Cardano.NoScriptDatumForStake
+              Cardano.ScriptHash scriptHash <- fromEither $ P.Ledger.toCardanoScriptHash $ Script.toScriptHash script
+              return (Just scriptWitness, SJust scriptHash)
+            _ -> return (Nothing, SNothing)
+          cardanoGovAction <- toGovAction govAction mConstitutionHash
+          return (Conway.ProposalProcedure (Cardano.Coin $ coerce proposalDeposit) rewardAccount cardanoGovAction anchor, mConstitutionWitness)
+      )

@@ -20,8 +20,8 @@ pkh = Script.toPubKeyHash . wallet
 -- exercises both branches of 'txSkelAllocatedPeersT'.
 baseSkel :: TxSkel
 baseSkel =
-  txSkelTemplate
-    { txSkelOutputs = [wallet 1 `receives` Value (Script.lovelace 3_000)],
+  txSkelEmulatorTemplate
+    { txSkelOutputs = [wallet 1 `receives` LovelaceValue 3_000],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1, wallet 2]
     }
 
@@ -66,7 +66,7 @@ replaceBranchingTest =
         [pkh 4, pkh 3, pkh 2],
         [pkh 4, pkh 4, pkh 2]
       ]
-      (fmap (\(_, peers, _) -> peers) $ runPeerTampering baseSkel (purePeerTamperingParams OneBranchForAllFoci [(pkh 1, [pkh 3, pkh 4])]))
+      ((\(_, peers, _) -> peers) <$> runPeerTampering baseSkel (purePeerTamperingParams OneBranchForAllFoci [(pkh 1, [pkh 3, pkh 4])]))
 
 -- | 'singlePeerTamperingParams' branches per focus, producing one transaction
 -- per occurrence of the replaced peer, each rewriting a single focus.
@@ -77,7 +77,7 @@ replacePerFocusTest =
       [ [pkh 3, pkh 1, pkh 2],
         [pkh 1, pkh 3, pkh 2]
       ]
-      (fmap (\(_, peers, _) -> peers) $ runPeerTampering baseSkel (singlePeerTamperingParams (wallet 1) (wallet 3)))
+      ((\(_, peers, _) -> peers) <$> runPeerTampering baseSkel (singlePeerTamperingParams (wallet 1) (wallet 3)))
 
 -- | The attack yields no transaction when the targeted peer is absent.
 replaceAbsentTest :: TestTree

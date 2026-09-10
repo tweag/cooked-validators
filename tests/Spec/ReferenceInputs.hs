@@ -15,37 +15,37 @@ instance PrettyCooked FooDatum where
 
 trace1 :: DirectMockChain ()
 trace1 = do
-  (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
-    validateTxSkel'
-      txSkelTemplate
+  txOutRefFoo : txOutRefBar : _ <-
+    validateTxSkelL
+      txSkelEmulatorTemplate
         { txSkelOutputs =
-            [ fooTypedValidator `receives` Value (Script.ada 4) <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
-              barTypedValidator `receives` Value (Script.ada 5)
+            [ fooTypedValidator `receives` AdaValue 4 <&&> InlineDatum (FooDatum $ Script.toPubKeyHash $ wallet 3),
+              barTypedValidator `receives` AdaValue 5
             ],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
         }
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton txOutRefBar $ someTxSkelRedeemer (),
         txSkelReferenceInputs = Set.singleton txOutRefFoo,
-        txSkelOutputs = [wallet 4 `receives` Value (Script.ada 5)],
+        txSkelOutputs = [wallet 4 `receives` AdaValue 5],
         txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
       }
 
 trace2 :: DirectMockChain ()
 trace2 = do
-  (refORef, _) : (scriptORef, _) : _ <-
-    validateTxSkel'
-      ( txSkelTemplate
+  refORef : scriptORef : _ <-
+    validateTxSkelL
+      ( txSkelEmulatorTemplate
           { txSkelOutputs =
-              [ wallet 1 `receives` Value (Script.ada 2) <&&> VisibleHashedDatum (10 :: Integer),
-                bazTypedValidator `receives` Value (Script.ada 10)
+              [ wallet 1 `receives` AdaValue 2 <&&> VisibleHashedDatum (10 :: Integer),
+                bazTypedValidator `receives` AdaValue 10
               ],
             txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
           }
       )
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [wallet 1],
         txSkelInputs = Map.singleton scriptORef (someTxSkelRedeemer ()),
         txSkelReferenceInputs = Set.singleton refORef

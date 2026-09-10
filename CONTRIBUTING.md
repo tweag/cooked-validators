@@ -164,6 +164,52 @@ When you are creating an enhancement request, follow these guidelines:
 
 - Document all your functions using [Haddock]'s syntax.
 
+### Module organization (umbrella modules)
+
+Cohesive-but-multi-concern parts of the library are split into focused,
+per-concern submodules that live in a directory, and re-exported from an
+_umbrella module_ bearing the name of that directory (e.g. `Cooked.Tweak`
+re-exports `Cooked.Tweak.Guard`, `Cooked.Tweak.Insert`, ...). Follow these
+conventions when adding or reorganizing modules:
+
+- **One umbrella per directory.** When a directory groups several submodules
+  that form a coherent sub-system, add an umbrella module of the same name that
+  re-exports them all, typically as:
+
+  ```haskell
+  -- | One-line description of the sub-system.
+  module Cooked.Foo (module X) where
+
+  import Cooked.Foo.Bar as X
+  import Cooked.Foo.Baz as X
+  ```
+
+- **Re-export instance-only submodules with `()`.** When a submodule only
+  provides instances (empty export list), import it in the umbrella as
+  `import Cooked.Foo.Bar ()` so its instances are brought in without polluting
+  the export list. If _all_ submodules are instance-only, the umbrella itself
+  has an empty export list (`module Cooked.Foo () where`).
+
+- **Umbrellas are aggregators first.** An umbrella may additionally host the
+  central type or entry point of its sub-system (as `Cooked.Skeleton` hosts
+  `TxSkel` and `Cooked.Automation` hosts `runAutomationPipeline`), but should
+  not accumulate unrelated logic. Everything else belongs in a submodule.
+
+- **Do not systematically nest umbrellas.** A sub-directory whose submodules are
+  a mere refinement of their parent sub-system may be flattened into the parent
+  umbrella rather than getting its own (e.g. `Cooked.Automation.GenerateTx.*`
+  and `Cooked.Effect.Read.*` are re-exported directly from `Cooked.Automation`
+  and `Cooked.Effect`). Add an intermediate umbrella only when the sub-directory
+  is itself an independently meaningful sub-system.
+
+- **Transverse utilities** (type aliases, wallets, low-level helpers) live under
+  `Cooked.Utilities.*` and are re-exported from `Cooked.Utilities`, keeping the
+  top level of `Cooked.*` for the functional pillars of the library.
+
+- The top-level `Cooked` module is the global umbrella: it re-exports the
+  per-directory umbrellas only, never individual submodules. Adding a new
+  sub-system therefore means adding a single import line there.
+
 ### Nix style guide
 
 - All Nix code is formatted with [nixfmt].

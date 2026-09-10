@@ -85,22 +85,22 @@ module Cooked.MockChain.Testing
   )
 where
 
+import Cardano.Ledger.Alonzo.Plutus.Evaluate qualified as Alonzo
 import Control.Exception qualified as E
 import Control.Monad
-import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Write
-import Cooked.MockChain.Run.Runnable
-import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.Runtime.Journal
-import Cooked.MockChain.Runtime.State
+import Cooked.Effect.Override
+import Cooked.MockChain.Config
+import Cooked.MockChain.Run
 import Cooked.Pretty
+import Cooked.Runtime.Error
+import Cooked.Runtime.Journal
+import Cooked.Runtime.State
 import Data.Default
 import Data.List (isInfixOf)
+import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as T
-import Ledger.Index qualified as P.Ledger
 import Plutus.Script.Utils.Address qualified as Script
-import PlutusLedgerApi.V1.Scripts qualified as Api
 import PlutusLedgerApi.V1.Value qualified as Api
 import Polysemy
 import Test.QuickCheck qualified as QC
@@ -258,7 +258,7 @@ assertSameSets l r =
 -- * Data structure to test mockchain traces
 
 {--
-  Note on properties over the log (or list of 'MockChainLogEntry'): our
+  Note on properties over the log (or list of 'ChainLogEntry'): our
   'Test' structure does not directly embed a predicate over the log. Instead
   it is embedded in both the failure and success prediates. The reason is
   simple: the log is generated and accessible in both cases and thus it is
@@ -274,10 +274,10 @@ assertSameSets l r =
 --}
 
 -- | Type of properties over failures
-type FailureProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> MockChainError -> UtxoState -> prop
+type FailureProp prop = PrettyCookedOpts -> [ChainLogEntry] -> ChainError -> UtxoState -> prop
 
 -- | Type of properties over successes
-type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoState -> prop
+type SuccessProp a prop = PrettyCookedOpts -> [ChainLogEntry] -> a -> UtxoState -> prop
 
 -- | Type of properties over the number of run outcomes. This does not
 -- necessitate a 'PrettyCookedOpts' as parameter as an 'Integer' does not
@@ -285,13 +285,13 @@ type SuccessProp a prop = PrettyCookedOpts -> [MockChainLogEntry] -> a -> UtxoSt
 type SizeProp prop = Integer -> prop
 
 -- | Type of properties over the mockchain log
-type LogProp prop = PrettyCookedOpts -> [MockChainLogEntry] -> prop
+type LogProp prop = PrettyCookedOpts -> [ChainLogEntry] -> prop
 
 -- | Type of properties over the 'UtxoState'
 type StateProp prop = PrettyCookedOpts -> UtxoState -> prop
 
 -- | Type of trace runners
-type Runner effs a b = MockChainState -> InitialDistribution -> Sem effs a -> [MockChainReturn b]
+type Runner effs a b = EmulatorState -> ChainIndex -> InitialDistribution -> Sem effs a -> [MockChainReturn b]
 
 -- | Data structure to test a mockchain trace. @a@ is the return typed of the
 -- tested trace, @prop@ is the domain in which the properties live. This is not
@@ -301,8 +301,10 @@ data Test effs a b prop = Test
     testTrace :: Sem effs a,
     -- | The runner of the trace, possibly changing the return type
     testRunner :: Runner effs a b,
-    -- | The initial state from which the trace should be run
-    testInitState :: MockChainState,
+    -- | The initial emulator state from which the trace should be run
+    testInitEmulatorState :: EmulatorState,
+    -- | The initial chain index from which the trace should be run
+    testInitChainIndex :: ChainIndex,
     -- | The initial distribution from which the trace should be run
     testInitDist :: InitialDistribution,
     -- | The requirement on the number of results
@@ -330,13 +332,13 @@ testToProp ::
   Test effs a b prop ->
   prop
 testToProp Test {..} =
-  let results = testRunner testInitState testInitDist testTrace
+  let results = testRunner testInitEmulatorState testInitChainIndex testInitDist testTrace
    in testSizeProp (toInteger (length results))
         .&&. testAll
-          ( \ret@(MockChainReturn outcome _ state (MockChainJournal mcLog names _ assertions)) ->
+          ( \ret@(MockChainReturn outcome _ state (ChainJournal mcLog names _ assertions)) ->
               let pcOpts = addHashNames names testPrettyOpts
                in testConjoin
-                    [ testConjoin $ uncurry testBoolMsg <$> assertions,
+                    [ testConjoin $ (\(msg, b) -> testBoolMsg (renderString id (msg pcOpts)) b) <$> assertions,
                       testCounterexample
                         (renderString (prettyCookedOpt pcOpts) ret)
                         $ case outcome of
@@ -394,7 +396,7 @@ testCookedQCFromInitDistTemplate name =
 -- | A test template which expects a success from a trace. This test template is
 -- built from a trace and a dedicated runner, to be used for runs that do not
 -- implement `RunnableMockChain`. One of the intended uses is for running
--- `Cooked.MockChain.Instance.StagedInjectMockChain` when the additional effect
+-- `Cooked.Instance.StagedInjectMockChain` when the additional effect
 -- results in a extended return value (such as a resulting state).
 mustSucceedTest' ::
   (IsProp prop) =>
@@ -405,7 +407,8 @@ mustSucceedTest' runner trace =
   Test
     { testTrace = trace,
       testRunner = runner,
-      testInitState = def,
+      testInitEmulatorState = def,
+      testInitChainIndex = def,
       testInitDist = def,
       testSizeProp = isAtLeastOfSize 1,
       testFailureProp = \_ _ _ _ -> testFailureMsg "💀 Unexpected failure!",
@@ -417,12 +420,12 @@ mustSucceedTest' runner trace =
 mustSucceedTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
-mustSucceedTest = mustSucceedTest' $ \initState initDist ->
-  runMockChainFromConf $ MockChainConf initState initDist unRawMockChainReturn
+mustSucceedTest = mustSucceedTest' $ \emInitState ciInitState initDist ->
+  runMockChainFromConf $ MockChainConf emInitState ciInitState initDist unRawMockChainReturn
 
 -- | A test template which expects a failure from a trace. See
 -- `mustSucceedTest'` for more information on its intended usage.
@@ -435,7 +438,8 @@ mustFailTest' runner trace =
   Test
     { testTrace = trace,
       testRunner = runner,
-      testInitState = def,
+      testInitEmulatorState = def,
+      testInitChainIndex = def,
       testInitDist = def,
       testSizeProp = const testSuccess,
       testFailureProp = \_ _ _ _ -> testSuccess,
@@ -447,12 +451,12 @@ mustFailTest' runner trace =
 mustFailTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
-mustFailTest = mustFailTest' $ \initState initDist ->
-  runMockChainFromConf $ MockChainConf initState initDist unRawMockChainReturn
+mustFailTest = mustFailTest' $ \emInitState ciInitState initDist ->
+  runMockChainFromConf $ MockChainConf emInitState ciInitState initDist unRawMockChainReturn
 
 -- * Appending elements (in particular requirements) to existing tests
 
@@ -549,17 +553,26 @@ withFailureProp test failureProp =
 withErrorProp ::
   (IsProp prop) =>
   Test effs a b prop ->
-  (MockChainError -> prop) ->
+  (ChainError -> prop) ->
   Test effs a b prop
 withErrorProp test errorProp = withFailureProp test (\_ _ err _ -> errorProp err)
 
 -- * Specific properties around failures
 
+-- | Whether a script failure is a genuine Plutus (phase 2) evaluation failure.
+-- Only the 'Alonzo.ValidationFailure' constructor is considered a phase 2
+-- failure; every other constructor is treated as a phase 1 failure.
+isValidationFailure :: Alonzo.TransactionScriptFailure era -> Bool
+isValidationFailure Alonzo.ValidationFailure {} = True
+isValidationFailure _ = False
+
 -- | A property to ensure a phase 1 failure
 isPhase1Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase1Failure _ _ (MCEValidationError P.Ledger.Phase1 _) _ = testSuccess
+isPhase1Failure _ _ (CESubmissionFailures _) _ = testSuccess
+isPhase1Failure _ _ (CEExUnitsFailures failures) _
+  | not (any isValidationFailure (Map.elems failures)) = testSuccess
 isPhase1Failure pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 1 evaluation failure, got: "
@@ -569,7 +582,8 @@ isPhase1Failure pcOpts _ e _ =
 isPhase2Failure ::
   (IsProp prop) =>
   FailureProp prop
-isPhase2Failure _ _ (MCEValidationError P.Ledger.Phase2 _) _ = testSuccess
+isPhase2Failure _ _ (CEExUnitsFailures failures) _
+  | any isValidationFailure (Map.elems failures) = testSuccess
 isPhase2Failure pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 2 evaluation failure, got: "
@@ -580,9 +594,10 @@ isPhase1FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase1FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) _
-  | s `isInfixOf` T.unpack text =
-      testSuccess
+isPhase1FailureWithMsg s _ _ (CESubmissionFailures failures) _
+  | any (isInfixOf s . show) failures = testSuccess
+isPhase1FailureWithMsg s _ _ (CEExUnitsFailures failures) _
+  | any (\f -> not (isValidationFailure f) && s `isInfixOf` show f) (Map.elems failures) = testSuccess
 isPhase1FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 1 evaluation failure with constrained messages, got: "
@@ -593,9 +608,8 @@ isPhase2FailureWithMsg ::
   (IsProp prop) =>
   String ->
   FailureProp prop
-isPhase2FailureWithMsg s _ _ (MCEValidationError P.Ledger.Phase2 (P.Ledger.ScriptFailure (Api.EvaluationError texts _))) _
-  | any (isInfixOf s . T.unpack) texts =
-      testSuccess
+isPhase2FailureWithMsg s _ _ (CEExUnitsFailures failures) _
+  | not $ null [text | Alonzo.ValidationFailure _ _ logs _ <- Map.elems failures, (T.unpack -> text) <- logs, s `isInfixOf` text] = testSuccess
 isPhase2FailureWithMsg _ pcOpts _ e _ =
   testFailureMsg $
     "Expected phase 2 evaluation failure with constrained messages, got: "
@@ -648,7 +662,7 @@ isAtMostOfSize n1 n2 =
 -- * Specific properties over the log
 
 -- | Ensures a certain event has been emitted. This uses the constructor's name
--- of the 'MockChainLogEntry' by relying on 'show' being lazy.
+-- of the 'ChainLogEntry' by relying on 'show' being lazy.
 happened ::
   (IsProp prop) =>
   String ->
@@ -666,7 +680,7 @@ happened eventName _ log
               <> ")"
 
 -- | Ensures a certain event has not been emitted. This uses the constructor's
--- name of the 'MockChainLogEntry' by relying on 'show' being lazy.
+-- name of the 'ChainLogEntry' by relying on 'show' being lazy.
 didNotHappen :: (IsProp prop) => String -> LogProp prop
 didNotHappen eventName _ log | not (eventName `Set.member` Set.fromList (head . words . show <$> log)) = testSuccess
 didNotHappen eventName _ _ =
@@ -746,7 +760,7 @@ mustFailInPhase2Test' runner trace =
 mustFailInPhase2Test ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
@@ -769,7 +783,7 @@ mustFailInPhase2WithMsgTest' msg runner trace =
 mustFailInPhase2WithMsgTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   String ->
   Sem effs a ->
@@ -790,7 +804,7 @@ mustFailInPhase1Test' runner trace =
 mustFailInPhase1Test ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Sem effs a ->
   Test effs a a prop
@@ -812,7 +826,7 @@ mustFailInPhase1WithMsgTest' msg runner trace =
 mustFailInPhase1WithMsgTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   String ->
   Sem effs a ->
@@ -836,7 +850,7 @@ mustSucceedWithSizeTest' size runner trace =
 mustSucceedWithSizeTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Integer ->
   Sem effs a ->
@@ -860,7 +874,7 @@ mustFailWithSizeTest' size runner trace =
 mustFailWithSizeTest ::
   ( IsProp prop,
     RunnableMockChain effs,
-    Member MockChainWrite effs
+    Member Override effs
   ) =>
   Integer ->
   Sem effs a ->

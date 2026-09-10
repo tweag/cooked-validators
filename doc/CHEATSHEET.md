@@ -124,7 +124,7 @@ myTrace = do
 
 * In a direct set of custom or builtin effects:
 ```haskell
-myTrace :: (Members '[MockChainLog, MockChainRead, MyFirstEff, ...] effs) => Sem effs ()
+myTrace :: (Members '[Log, Query, MyFirstEff, ...] effs) => Sem effs ()
 myTrace = do
   ...
 ```
@@ -466,7 +466,7 @@ options. It is built upon a transaction skeleton template. Each field can then
 be overridden.
 
 ```haskell
-myTxSkel = txSkelTemplate 
+myTxSkel = txSkelEmulatorTemplate 
   { txSkelInputs = ...,
 	txSkelOutputs = ...,
 	txSkelOpts = ...,
@@ -496,7 +496,7 @@ Transaction can be signed with one of more wallets. They will both be part of
 the required and actual signers of the transaction.
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
     ...
@@ -513,7 +513,7 @@ myUser1 myUser2 :: MyType
 myUser1 = ...
 myUser2 = ...
 
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
     ...
@@ -558,7 +558,7 @@ Payments can automatically be adjusted in terms of minimal ADA requirements:
 
 Payments are given in the transaction using the `txSkelOutputs` field:
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelOutputs = [party1 `receives` payment1, party2 `receives` payment2, ...]
     ...
@@ -590,7 +590,7 @@ myRedeemer =
 ## Inputs
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelInputs = Map.fromList 
 	  [ (txOutRef1, someTxSkelRedeemer red), 
@@ -610,7 +610,7 @@ txSkelTemplate
 * Burn a single kind of token for a given minting policy: `burn barPolicy myTxSkelRedeemer "barName" 6`
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelMints = txSkelMintsFromList
       [ Mint ...,
@@ -628,7 +628,7 @@ txSkelTemplate
 * Within redeemers manually ``withReferenceInput myTxSkelRedeemer myRefInput``
 * Additional reference inputs not bound to redeemers:
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelReferenceInputs = Set.fromList [txOutRef1, txOutRef2, ...]
     ...
@@ -642,7 +642,7 @@ also be provided manually.
 
 * From first signer (default):
 ```
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
      txSkelSignatories = [signatory1, signatory2],
     ...
@@ -651,7 +651,7 @@ txSkelTemplate
 
 * From another wallet:
 ```
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = [TxSkelSignatory user1 ... , TxSkelSignatory user2 ...],
 	txSkelOpts = def {txSkelOptCollateralUtxos = CollateralUtxosFromUser user2}
@@ -661,7 +661,7 @@ txSkelTemplate
 
 * From a direct UTxO list (make sure the owner of these utxo sign the transaction):
 ```
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
 	txSkelOpts = def {txSkelOptCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2]) user2}
     ...
@@ -695,7 +695,7 @@ do
 * Using the builtin constructor for proposals.
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelProposals =
       [ TxSkelProposal
@@ -721,7 +721,7 @@ txSkelTemplate
 * Using smart constructors and (optional) helpers.
 
 ```haskell 
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelProposals =
       [ simpleProposal
@@ -746,7 +746,7 @@ redeemer, logging an `MCLogAutoFilledConstitution` event.
 * Automatic withdrawal of the available rewards
 
 ```haskell 
-txSkelTemplate
+txSkelEmulatorTemplate
   { txSkelWithdrawals = txSkelWithdrawalsFromList 
       [ scriptWithdrawal myWithdrawingScript myTxSkelRedeemer,
 	    pubKeyWithdrawal myWithdrawingPubKey,
@@ -759,7 +759,7 @@ txSkelTemplate
 * Manual withdrawal of a certain amount (for testing purposes only)
 
 ```haskell 
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelWithdrawals = txSkelWithdrawalsFromList 
 	      [ Withdrawal (UserPubKey myWithdrawingPeer) (Just $ Api.Lovelace 2_000_000),
 		    ...
@@ -781,7 +781,7 @@ myCertificateAction2 = DRepUpdate ...
   corresponds to the kind of allowed user.
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { txSkelCertificates = 
       [ TxSkelCertificate myUser myCertificateAction,
 	    pubKeyCertificate myPubKey myCertificateAction1,
@@ -797,7 +797,7 @@ txSkelTemplate
 
 * First signatory (default):
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = [signatory1, signatory2]
     ...
@@ -806,7 +806,7 @@ txSkelTemplate
 
 * Another signatory:
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = [signatory1, signatory2],
     txSkelOpts = def {txSkelOptBalancingPolicy = BalanceWith (wallet 2)}
@@ -817,7 +817,7 @@ txSkelTemplate
 ### Do not automatically balance
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelOpts = def {txSkelOptBalancingPolicy = DoNotBalance}
     ...

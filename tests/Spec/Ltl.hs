@@ -3,7 +3,7 @@
 module Spec.Ltl where
 
 import Control.Monad (MonadPlus (..), guard, replicateM, void)
-import Cooked.Ltl
+import Cooked.MockChain.Ltl
 import Cooked.MockChain.Testing
 import Data.Maybe
 import Polysemy

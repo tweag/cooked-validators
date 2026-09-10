@@ -1,17 +1,11 @@
--- | This module centralizes everything related to our mockchain, while hiding
--- elements related to logs and inner state.
+-- | This module centralizes the emulated-chain (MockChain) running code. It is
+-- an umbrella re-exporting all the MockChain submodules (instances, running,
+-- tweaking and testing).
 module Cooked.MockChain (module X) where
 
-import Cooked.MockChain.Automation.Balancing as X
-import Cooked.MockChain.Common as X
-import Cooked.MockChain.Effect.Misc as X
-import Cooked.MockChain.Effect.Read as X
-import Cooked.MockChain.Effect.Write as X
-import Cooked.MockChain.Run.Instances as X
-import Cooked.MockChain.Run.Runnable as X
-import Cooked.MockChain.Run.Tweak as X
-import Cooked.MockChain.Runtime.Error as X
-import Cooked.MockChain.Runtime.Journal as X
-import Cooked.MockChain.Runtime.State as X
+import Cooked.MockChain.Config as X
+import Cooked.MockChain.Instances as X
+import Cooked.MockChain.Ltl as X
+import Cooked.MockChain.Run as X
 import Cooked.MockChain.Testing as X
-import Cooked.MockChain.UtxoSearch as X
+import Cooked.MockChain.Tweak as X

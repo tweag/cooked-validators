@@ -8,8 +8,7 @@ import Cooked.Pretty.Class
 import Cooked.Pretty.Options
 import Cooked.Pretty.Plutus ()
 import Cooked.Skeleton
-import Cooked.Wallet (Wallet)
-import Data.Default
+import Cooked.Utilities.Wallet (Wallet)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
@@ -26,8 +25,8 @@ instance PrettyCooked Wallet where
   prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
 
 instance PrettyCooked TxSkelSignatory where
-  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) Nothing) = prettyHash opts pkh <+> "(no private key attached)"
-  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) Just {}) = prettyHash opts pkh
+  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) NoTxSkelSignatoryWitness) = prettyHash opts pkh <+> "(no private key attached)"
+  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) _) = prettyHash opts pkh
 
 -- | Some elements of a skeleton can only be printed when they are associated
 -- with a context. This is typically the case for elements that need some
@@ -51,9 +50,9 @@ instance PrettyCookedList (Contextualized TxSkel) where
           prettyItemizeNonEmpty opts "Outputs:" "-" (prettyCookedOpt opts <$> outs),
           prettyItemizeNonEmpty opts "Proposals:" "-" (prettyItemizeNoTitle opts "-" <$> proposals),
           prettyItemizeNonEmpty opts "Withdrawals:" "-" $ view txSkelWithdrawalsListI withdrawals,
-          prettyItemizeNonEmpty opts "Certificates:" "-" certificates,
-          prettyItemizeNonEmpty opts "Options:" "-" txopts
+          prettyItemizeNonEmpty opts "Certificates:" "-" certificates
         ]
+          ++ [prettyItemizeNonEmpty opts "Options:" "-" txopts | pcOptPrintTxSkelOpts opts]
 
 instance PrettyCooked TxSkelCertificate where
   prettyCookedOpt opts (TxSkelCertificate owner action) =
@@ -66,6 +65,7 @@ instance PrettyCooked TxSkelCertificate where
 instance PrettyCookedList (User req mode) where
   prettyCookedOptListMaybe opt (UserPubKey (Script.toPubKeyHash -> pkh)) = [Just ("User" <+> prettyHash opt pkh)]
   prettyCookedOptListMaybe opt (UserScript (toVScript -> vScript)) = [Just ("Script" <+> prettyHash opt vScript)]
+  prettyCookedOptListMaybe opt (UserScriptHash sHash) = [Just ("Script" <+> prettyHash opt sHash)]
   prettyCookedOptListMaybe opt (UserRedeemedScript (toVScript -> script) red) =
     Just (prettyHash opt script) : prettyCookedOptListMaybe opt red
 
@@ -277,41 +277,41 @@ instance PrettyCookedMaybe TxSkelOutDatum where
         <> prettyHash opts (Api.toBuiltinData dat)
         <> "):"
         <+> PP.align (prettyCookedOpt opts dat)
+  prettyCookedOptMaybe opts (SomeTxSkelOutDatumHash hash) =
+    Just $ "Datum (hash only)" <+> "(" <> prettyHash opts hash <> ")"
 
--- | Pretty-print a list of transaction skeleton options, only printing an
--- option if its value is non-default.
+-- | Pretty-print a list of transaction skeleton options, printing every option
+-- (except the opaque transaction modification).
 instance PrettyCookedList TxSkelOpts where
-  prettyCookedOptListMaybe
+  prettyCookedOptList
     opts
     ( TxSkelOpts
-        txSkelOptAutoSlotIncrease
         _
         txSkelOptBalancingPolicy
         txSkelOptFeePolicy
         txSkelOptBalanceOutputPolicy
         txSkelOptBalancingUtxos
-        _
         txSkelOptCollateralUtxos
-        txSkelOptDeferFailures
         txSkelOptMaxNbOfBalancingUtxos
+        txSkelOptHaltOnExUnitsFailures
+        txSkelOptHaltOnSubmissionFailures
       ) =
-      [ prettyIfNot True prettyAutoSlotIncrease txSkelOptAutoSlotIncrease,
-        prettyIfNot def prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
-        prettyIfNot def prettyBalanceFeePolicy txSkelOptFeePolicy,
-        prettyIfNot def prettyBalancingPolicy txSkelOptBalancingPolicy,
-        prettyIfNot def prettyBalancingUtxos txSkelOptBalancingUtxos,
-        prettyIfNot def prettyCollateralUtxos txSkelOptCollateralUtxos,
-        prettyIfNot False (const "Defer Phase 2 failures during balancing") txSkelOptDeferFailures,
-        ("Limit the number of balancing Utxos to " <>) . PP.pretty <$> txSkelOptMaxNbOfBalancingUtxos
+      [ prettyBalanceOutputPolicy txSkelOptBalanceOutputPolicy,
+        prettyBalanceFeePolicy txSkelOptFeePolicy,
+        prettyBalancingPolicy txSkelOptBalancingPolicy,
+        prettyBalancingUtxos txSkelOptBalancingUtxos,
+        prettyCollateralUtxos txSkelOptCollateralUtxos,
+        prettyMaxNbOfBalancingUtxos txSkelOptMaxNbOfBalancingUtxos,
+        prettyHaltOnFailures "computing execution units" txSkelOptHaltOnExUnitsFailures,
+        prettyHaltOnFailures "submission" txSkelOptHaltOnSubmissionFailures
       ]
       where
-        prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
-        prettyIfNot defaultValue f x
-          | x == defaultValue && not (pcOptPrintDefaultTxSkelOpts opts) = Nothing
-          | otherwise = Just $ f x
-        prettyAutoSlotIncrease :: Bool -> DocCooked
-        prettyAutoSlotIncrease True = "Automatic slot increase"
-        prettyAutoSlotIncrease False = "No automatic slot increase"
+        prettyMaxNbOfBalancingUtxos :: Maybe Integer -> DocCooked
+        prettyMaxNbOfBalancingUtxos Nothing = "No limit on the number of balancing Utxos"
+        prettyMaxNbOfBalancingUtxos (Just n) = "Limit the number of balancing Utxos to " <> PP.pretty n
+        prettyHaltOnFailures :: DocCooked -> Bool -> DocCooked
+        prettyHaltOnFailures step False = "Proceed after failures while" <+> step
+        prettyHaltOnFailures step True = "Halt after failures while" <+> step
         prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
         prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
         prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"

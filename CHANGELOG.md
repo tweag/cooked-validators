@@ -4,7 +4,43 @@
 
 ### Added
 
+- New `txSkelOptProceedAfterValidationFailures` boolean option in `TxSkelOpts`
+  (with its `txSkelOptProceedAfterValidationFailuresL` optic). When set to
+  `True`, transaction validation failures no longer abort the mockchain run.
+  Default is `False`.
+- New `UserScriptHash` constructor for `User`, representing an allocation-mode
+  script owner known only by its `Api.ScriptHash` (no script body). It can be
+  used to pay to a bare script hash through `receives` (a new
+  `IsTxSkelOutAllowedOwner Api.ScriptHash` instance). Spending an output owned by
+  such a user requires providing the full script through a matching reference
+  input; otherwise a new `MCESpendingHashOnlyScript` error is raised. The
+  `userVScriptL` optic is now restricted to `User IsScript Redemption`, since an
+  allocation-mode script owner may no longer carry a script body.
+- New `SomeTxSkelOutDatumHash` constructor for `TxSkelOutDatum`, representing an
+  output datum known only by its hash (no datum content). It is mirrored by a
+  new `UtxoPayloadDatumHash` constructor in the resulting `UtxoState`, and a new
+  `MCESpendingHashOnlyDatum` error is raised when attempting to build the
+  spending witness of a script output whose datum is only a hash.
+
 ### Changed
+
+- Time-related primitives have been regrouped into a new dedicated
+  `Cooked.MockChain.Effect.Time.MockChainTime` effect. The time queries
+  (`currentSlot`, `currentMSRange`, `getEnclosingSlot`, `slotToMSRange`,
+  `slotRangeBefore`, `slotRangeAfter`) that used to live in `MockChainReadChain`
+  and the waiting primitives (`waitNSlots`, `awaitSlot`, `awaitEnclosingSlot`,
+  `waitNMSFromSlotLowerBound`, `waitNMSFromSlotUpperBound`) that used to live in
+  `MockChainWrite` are now all provided by `MockChainTime`, with `waitNSlots` as
+  its sole state-modifying primitive.
+- The former `MockChainState` has been split into two independent records, each
+  backed by its own state monad: `EmulatorState` (the emulator `Params` and
+  `EmulatedLedgerState`, only relevant when running against the emulated ledger)
+  and `ChainIndex` (the map of known outputs and the constitution script, which
+  is backend-agnostic and also meaningful for the node backend). Accordingly,
+  `mcstToUtxoState` is now `chainIndexToUtxoState`, the `mcst*L` optics are
+  replaced by `emulatorState*L`/`chainIndex*L`, `MockChainConf` now carries
+  `mccInitialEmulatorState` and `mccInitialChainIndex`, and
+  `RunnableMockChain.runMockChain` takes an `EmulatorState` and a `ChainIndex`.
 
 ### Removed
 

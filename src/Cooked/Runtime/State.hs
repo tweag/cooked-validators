@@ -1,0 +1,336 @@
+-- | This module exposes the two independent pieces of state in which our direct
+-- simulation is run:
+--
+-- - `EmulatorState`, which gathers the emulator-specific data (the emulator
+--   `Emulator.Params` and the `Emulator.EmulatedLedgerState`). This is only
+--   relevant when running against the emulated ledger.
+--
+-- - `ChainIndex`, which gathers the backend-agnostic data (the map of known
+--   outputs and the current constitution script). This piece of state is also
+--   meaningful for the node backend, which keeps its own local `ChainIndex`.
+--
+-- It also exposes a restricted and simplified view (`UtxoState`). The latter
+-- only consists of Utxos with a focus on who owns those Utxos. You can see this
+-- as having some sort of an "account" view of the ledger state, which typically
+-- does not exist in Cardano. This is useful for two reasons:
+--
+-- - For printing purposes, where it is much more convenient to see the available
+--   assets as "who owns what" rather than as a set of mixed Utxos.
+--
+-- - For testings purposes, when querying the final state of a run is
+--   needed. For instance, properties such as "does Alice indeed owns 3 XXX
+--   tokens at the end of this run?" become much easier to express.
+module Cooked.Runtime.State
+  ( -- * `EmulatorState` and associated optics
+    EmulatorState (..),
+    emulatorStateParamsL,
+    emulatorStateLedgerStateL,
+
+    -- * `ChainIndex` and associated optics
+    ChainIndex (..),
+    chainIndexOutputsL,
+    chainIndexConstitutionL,
+    chainIndexMOutputL,
+
+    -- * Helpers to add or remove outputs from a `ChainIndex`
+    addOutput,
+    addOutputs,
+    removeOutput,
+    removeOutputs,
+    extractOutputs,
+
+    -- * `UtxoState`: A simplified, address-focused view on a `ChainIndex`
+    UtxoPayloadDatum (..),
+    utxoPayloadDatumKindAT,
+    utxoPayloadDatumTypedAT,
+    UtxoPayload (..),
+    utxoPayloadTxOutRefL,
+    utxoPayloadValueL,
+    utxoPayloadDatumL,
+    utxoPayloadMReferenceScriptHashL,
+    utxoPayloadReferenceScriptHashAT,
+    UtxoPayloadSet (..),
+    utxoPayloadSetListI,
+    UtxoState (..),
+    availableUtxosL,
+    consumedUtxosL,
+
+    -- * Querying the assets owned by a given address
+    holdsInState,
+
+    -- * Transforming a `ChainIndex` into an `UtxoState`
+    chainIndexToUtxoState,
+  )
+where
+
+import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Cooked.Skeleton
+import Cooked.Utilities
+import Data.Default
+import Data.Function (on)
+import Data.List qualified as List
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Typeable
+import Ledger.Orphans ()
+import Optics.Core
+import Optics.TH
+import Plutus.Script.Utils.Address qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
+import PlutusLedgerApi.V3 qualified as Api
+
+-- | The emulator-specific state used to run the simulation in
+-- 'Cooked.Direct'. It only makes sense when running against the
+-- emulated ledger.
+data EmulatorState where
+  EmulatorState ::
+    { -- | The parameters of the emulated blockchain
+      emulatorStateParams :: Emulator.Params,
+      -- | The ledger state of the emulated blockchain
+      emulatorStateLedgerState :: Emulator.EmulatedLedgerState
+    } ->
+    EmulatorState
+  deriving (Show)
+
+-- | Focuses on the parameters of an 'EmulatorState'
+makeLensesFor [("emulatorStateParams", "emulatorStateParamsL")] ''EmulatorState
+
+-- | Focuses on the ledger state of an 'EmulatorState'
+makeLensesFor [("emulatorStateLedgerState", "emulatorStateLedgerStateL")] ''EmulatorState
+
+instance Default EmulatorState where
+  def = EmulatorState def (Emulator.initialState def)
+
+-- | The backend-agnostic state used to run the simulation. It gathers the map
+-- of known outputs and the current constitution script. It is also meaningful
+-- for the node backend, which keeps its own local 'ChainIndex'.
+data ChainIndex where
+  ChainIndex ::
+    { -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
+      -- alongside a boolean to state whether this UTxO is still present in the
+      -- index ('True') or has already been consumed ('False').
+      chainIndexOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+      -- | The constitution script to be used with proposals
+      chainIndexConstitution :: Maybe VScript
+    } ->
+    ChainIndex
+  deriving (Show)
+
+-- | Focuses on the outputs of a 'ChainIndex'
+makeLensesFor [("chainIndexOutputs", "chainIndexOutputsL")] ''ChainIndex
+
+-- | Focuses on the constitution script of a 'ChainIndex'
+makeLensesFor [("chainIndexConstitution", "chainIndexConstitutionL")] ''ChainIndex
+
+instance Default ChainIndex where
+  def = ChainIndex Map.empty Nothing
+
+-- | Accesses a given available Utxo from a `ChainIndex`
+chainIndexMOutputL :: Api.TxOutRef -> Lens' ChainIndex (Maybe TxSkelOut)
+chainIndexMOutputL oRef = chainIndexOutputsL % at oRef % iso (fmap fst) (fmap (,True))
+
+-- | Stores an output in a 'ChainIndex'
+addOutput :: Api.TxOutRef -> TxSkelOut -> ChainIndex -> ChainIndex
+addOutput oRef = set (chainIndexMOutputL oRef) . Just
+
+-- | Stores a list of outputs in a 'ChainIndex'
+addOutputs :: [(Api.TxOutRef, TxSkelOut)] -> ChainIndex -> ChainIndex
+addOutputs outputs chainIndex =
+  foldl (\index (oRef, output) -> addOutput oRef output index) chainIndex outputs
+
+-- | Removes an output from the 'ChainIndex'. This does not actually remove
+-- it from the map, but instead marks its availability to @False@
+removeOutput :: Api.TxOutRef -> ChainIndex -> ChainIndex
+removeOutput oRef = set (chainIndexOutputsL % at oRef % _Just % _2) False
+
+-- | Removes several outputs from a 'ChainIndex' using 'removeOutput' each time
+removeOutputs :: (Foldable t) => t Api.TxOutRef -> ChainIndex -> ChainIndex
+removeOutputs l index = foldl (flip removeOutput) index l
+
+-- | Extracts the outputs from a 'ChainIndex' that match a given predicate in a
+-- 'SearchResult'
+extractOutputs ::
+  (Api.TxOutRef -> TxSkelOut -> Bool) ->
+  ChainIndex ->
+  UtxoSearchResult
+extractOutputs p =
+  review searchResultMapI
+    . fmap fst
+    . Map.filterWithKey (\oRef (txSkelOut, exists) -> exists && p oRef txSkelOut)
+    . view chainIndexOutputsL
+
+-- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
+-- stores the actual datum and whether it is hashed (@True@) or inline
+-- (@False@). The only difference is that whether the datum was resolved in the
+-- transaction creating it on the ledger is absent, which makes sense after the
+-- fact.
+data UtxoPayloadDatum where
+  NoUtxoPayloadDatum :: UtxoPayloadDatum
+  SomeUtxoPayloadDatum :: (DatumConstrs dat) => dat -> Bool -> UtxoPayloadDatum
+  UtxoPayloadDatumHash :: Api.DatumHash -> UtxoPayloadDatum
+
+-- | Focuses on the optional hashed flag of a 'UtxoPayloadDatum'
+utxoPayloadDatumKindAT :: AffineTraversal' UtxoPayloadDatum Bool
+utxoPayloadDatumKindAT =
+  atraversal
+    ( \case
+        NoUtxoPayloadDatum -> Left NoUtxoPayloadDatum
+        SomeUtxoPayloadDatum _ b -> Right b
+        UtxoPayloadDatumHash _ -> Right True
+    )
+    ( flip
+        ( \kind -> \case
+            NoUtxoPayloadDatum -> NoUtxoPayloadDatum
+            SomeUtxoPayloadDatum content _ -> SomeUtxoPayloadDatum content kind
+            datum@(UtxoPayloadDatumHash _) -> datum
+        )
+    )
+
+-- | Extracts, or sets, the typed datum of a 'UtxoPayloadDatum' following the
+-- same rules as `txSkelOutDatumTypedAT`
+utxoPayloadDatumTypedAT :: (DatumConstrs a, DatumConstrs b) => AffineTraversal UtxoPayloadDatum UtxoPayloadDatum a b
+utxoPayloadDatumTypedAT =
+  atraversal
+    ( \case
+        (SomeUtxoPayloadDatum content _) | Just content' <- cast content -> Right content'
+        (SomeUtxoPayloadDatum content _) | Just content' <- Api.fromBuiltinData $ Api.toBuiltinData content -> Right content'
+        dc -> Left dc
+    )
+    ( flip
+        ( \content -> \case
+            NoUtxoPayloadDatum -> NoUtxoPayloadDatum
+            SomeUtxoPayloadDatum _ kind -> SomeUtxoPayloadDatum content kind
+            UtxoPayloadDatumHash _ -> SomeUtxoPayloadDatum content True
+        )
+    )
+
+deriving instance Show UtxoPayloadDatum
+
+instance Ord UtxoPayloadDatum where
+  compare NoUtxoPayloadDatum NoUtxoPayloadDatum = EQ
+  compare NoUtxoPayloadDatum _ = LT
+  compare _ NoUtxoPayloadDatum = GT
+  compare
+    (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat) b)
+    (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat') b') =
+      compare (dat, b) (dat', b')
+  compare SomeUtxoPayloadDatum {} _ = LT
+  compare _ SomeUtxoPayloadDatum {} = GT
+  compare (UtxoPayloadDatumHash hash) (UtxoPayloadDatumHash hash') = compare hash hash'
+
+instance Eq UtxoPayloadDatum where
+  dat == dat' = compare dat dat' == EQ
+
+-- | A convenient wrapping of the interesting information of a UTxO.
+data UtxoPayload where
+  UtxoPayload ::
+    { -- | The reference of this UTxO
+      utxoPayloadTxOutRef :: Api.TxOutRef,
+      -- | The value stored in this UTxO
+      utxoPayloadValue :: Api.Value,
+      -- | The optional datum stored in this UTxO
+      utxoPayloadDatum :: UtxoPayloadDatum,
+      -- | The hash of the optional reference script stored in this UTxO
+      utxoPayloadReferenceScriptHash :: Maybe Api.ScriptHash
+    } ->
+    UtxoPayload
+  deriving (Eq, Show)
+
+-- | Focuses on the UTxO reference of a 'UtxoPayload'
+makeLensesFor [("utxoPayloadTxOutRef", "utxoPayloadTxOutRefL")] ''UtxoPayload
+
+-- | Focuses on the value of a 'UtxoPayload'
+makeLensesFor [("utxoPayloadValue", "utxoPayloadValueL")] ''UtxoPayload
+
+-- | Focuses on the datum of a 'UtxoPayload'
+makeLensesFor [("utxoPayloadDatum", "utxoPayloadDatumL")] ''UtxoPayload
+
+-- | Focuses on the optional reference script hash of a 'UtxoPayload'
+makeLensesFor [("utxoPayloadReferenceScriptHash", "utxoPayloadMReferenceScriptHashL")] ''UtxoPayload
+
+-- | Focuses on the optional reference script hash of a 'UtxoPayload'
+utxoPayloadReferenceScriptHashAT :: AffineTraversal' UtxoPayload Api.ScriptHash
+utxoPayloadReferenceScriptHashAT = utxoPayloadMReferenceScriptHashL % _Just
+
+-- | Represents a /set/ of payloads.
+newtype UtxoPayloadSet = UtxoPayloadSet
+  { -- | List of UTxOs contained in this 'UtxoPayloadSet'
+    utxoPayloadSet :: [UtxoPayload]
+    -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
+    -- and because it is possible that we want to distinguish between utxo states
+    -- that have additional utxos, even if these could have been merged together.
+  }
+  deriving (Show)
+
+-- | An isomorphism between a 'UtxoPayloadSet' and a list of 'UtxoPayload'
+utxoPayloadSetListI :: Iso' UtxoPayloadSet [UtxoPayload]
+utxoPayloadSetListI = iso utxoPayloadSet UtxoPayloadSet
+
+instance Eq UtxoPayloadSet where
+  (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
+    where
+      k (UtxoPayload ref val dat rs) = (ref, Api.flattenValue val, dat, rs)
+      xs' = List.sortBy (compare `on` k) xs
+      ys' = List.sortBy (compare `on` k) ys
+
+instance Semigroup UtxoPayloadSet where
+  UtxoPayloadSet a <> UtxoPayloadSet b = UtxoPayloadSet $ a ++ b
+
+instance Monoid UtxoPayloadSet where
+  mempty = UtxoPayloadSet []
+
+-- | A description of who owns what in a blockchain. Owners are addresses and
+-- they each own a 'UtxoPayloadSet'.
+data UtxoState where
+  UtxoState ::
+    { -- | Utxos available to be consumed
+      availableUtxos :: Map Api.Address UtxoPayloadSet,
+      -- | Utxos already consumed
+      consumedUtxos :: Map Api.Address UtxoPayloadSet
+    } ->
+    UtxoState
+  deriving (Eq)
+
+-- | Focuses on the available UTxOs of a 'UtxoState'
+makeLensesFor [("availableUtxos", "availableUtxosL")] ''UtxoState
+
+-- | Focuses on the consumed UTxOs of a 'UtxoState'
+makeLensesFor [("consumedUtxos", "consumedUtxosL")] ''UtxoState
+
+instance Semigroup UtxoState where
+  (UtxoState a c) <> (UtxoState a' c') = UtxoState (Map.unionWith (<>) a a') (Map.unionWith (<>) c c')
+
+instance Monoid UtxoState where
+  mempty = UtxoState Map.empty Map.empty
+
+-- | Total value accessible to what's pointed by the address.
+holdsInState :: (Script.ToAddress a) => a -> UtxoState -> Api.Value
+holdsInState (Script.toAddress -> address) = maybe mempty utxoPayloadSetTotal . view (availableUtxosL % at address)
+
+-- | Computes the total value in a set
+utxoPayloadSetTotal :: UtxoPayloadSet -> Api.Value
+utxoPayloadSetTotal = foldOf (utxoPayloadSetListI % folded % utxoPayloadValueL)
+
+-- | Builds a 'UtxoState' from a 'ChainIndex'
+chainIndexToUtxoState :: ChainIndex -> UtxoState
+chainIndexToUtxoState =
+  List.foldl' extractPayload mempty . Map.toList . chainIndexOutputs
+  where
+    extractPayload :: UtxoState -> (Api.TxOutRef, (TxSkelOut, Bool)) -> UtxoState
+    extractPayload utxoState (txOutRef, (txSkelOut, bool)) =
+      let newAddress = view txSkelOutAddressG txSkelOut
+          newPayloadSet =
+            UtxoPayloadSet
+              [ UtxoPayload
+                  txOutRef
+                  (view txSkelOutValueL txSkelOut)
+                  ( case view txSkelOutDatumL txSkelOut of
+                      NoTxSkelOutDatum -> NoUtxoPayloadDatum
+                      SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)
+                      SomeTxSkelOutDatumHash hash -> UtxoPayloadDatumHash hash
+                  )
+                  (preview txSkelOutReferenceScriptHashAF txSkelOut)
+              ]
+       in if bool
+            then utxoState {availableUtxos = Map.insertWith (<>) newAddress newPayloadSet (availableUtxos utxoState)}
+            else utxoState {consumedUtxos = Map.insertWith (<>) newAddress newPayloadSet (consumedUtxos utxoState)}

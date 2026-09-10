@@ -5,7 +5,6 @@ import Cooked
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Optics.Core
-import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V1 qualified as Api
 import Test.Tasty
 
@@ -17,14 +16,14 @@ carrie = wallet 3
 payTo :: Wallet -> Integer -> StagedMockChain ()
 payTo target amount = do
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
-        txSkelOutputs = [target `receives` Value (Script.ada amount)]
+        txSkelOutputs = [target `receives` AdaValue amount]
       }
 
 payments :: StagedMockChain ()
 payments = do
-  forceOutputs_ [alice `receives` Value (Script.ada 100)]
+  forceOutputs_ [alice `receives` AdaValue 100]
   payTo alice 10
   payTo bob 5
   payTo bob 8

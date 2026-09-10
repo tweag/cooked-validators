@@ -6,7 +6,7 @@ module Cooked.Pretty.Hashable
   )
 where
 
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -65,3 +65,7 @@ instance ToHash Api.TxId where
 
 instance ToHash (Script.MultiPurposeScript a) where
   toHash = toHash . Script.toVersioned @Script.Script
+
+instance ToHash Api.Address where
+  toHash (Api.Address (Api.ScriptCredential sc) _) = toHash sc
+  toHash (Api.Address (Api.PubKeyCredential pkh) _) = toHash pkh
