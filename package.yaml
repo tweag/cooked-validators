@@ -19,7 +19,6 @@ library:
     - cardano-node-emulator
     - cardano-slotting
     - cardano-strict-containers
-    - constraints
     - containers
     - data-default
     - either

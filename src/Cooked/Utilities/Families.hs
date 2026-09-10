@@ -21,7 +21,7 @@ module Cooked.Utilities.Families
   )
 where
 
-import Data.Constraint
+import Data.Kind
 import GHC.TypeLits
 
 -- | Reverses a type level with an accumulator
