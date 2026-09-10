@@ -26,7 +26,7 @@ toPlutusScriptOrReferenceInput ::
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing =
   return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
-  (preview txSkelOutReferenceScriptHashAF -> mScriptHash) <- txSkelOutByRef scriptOutRef
+  (preview txSkelOutReferenceScriptHashAF -> mScriptHash) <- utxoByRefE scriptOutRef
   case mScriptHash of
     Just scriptHash'
       | scriptHash == scriptHash' -> do

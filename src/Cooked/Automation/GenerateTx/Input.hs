@@ -7,7 +7,6 @@ import Cooked.Effect.Query
 import Cooked.Runtime.Error
 import Cooked.Skeleton
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
-import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
@@ -24,7 +23,7 @@ toTxInAndWitness ::
       Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra)
     )
 toTxInAndWitness (txOutRef, txSkelRedeemer) = do
-  TxSkelOut {txSkelOutOwner, txSkelOutDatum} <- txSkelOutByRef txOutRef
+  TxSkelOut {txSkelOutOwner, txSkelOutDatum} <- utxoByRefE txOutRef
   let toScriptDatum = case txSkelOutDatum of
         NoTxSkelOutDatum -> return $ Cardano.ScriptDatumForTxIn Nothing
         SomeTxSkelOutDatum _ Inline -> return Cardano.InlineScriptDatum
@@ -41,7 +40,7 @@ toTxInAndWitness (txOutRef, txSkelRedeemer) = do
       -- from the reference script of the redeemer's reference input.
       mVScript <- case txSkelRedeemerReferenceInput txSkelRedeemer of
         Nothing -> return Nothing
-        Just refOutRef -> preview txSkelOutReferenceScriptAT <$> txSkelOutByRef refOutRef
+        Just refOutRef -> previewByRefE txSkelOutReferenceScriptAT refOutRef
       case mVScript of
         Just vScript
           | Script.toScriptHash vScript == sHash ->

@@ -4,30 +4,48 @@
 -- of the blockchain, such as the available UTxOs, and the current constitution
 -- or rewards.
 module Cooked.Effect.Query
-  ( -- * The 'Query' effect and interpreters
+  ( -- * The 'Query' effect
+
+    -- ** Query effect definition
     Query,
+
+    -- ** Query effect interpreters
     runMockChainQuery,
     runBlockChainQuery,
 
-    -- * Queries related to `Cooked.Skeleton.TxSkel`
-    txSkelAllScripts,
-    txSkelInputScripts,
-    txSkelInputValue,
+    -- * Queries fetching UTxOs
 
-    -- * Queries related to fetching UTxOs
-    allUtxos,
-    utxosAt,
-    txSkelOutByRef,
-    utxosFromCardanoTx,
-    utxosFromRefs,
-    previewByRef,
+    -- ** Fetching multiple UTxOs by their references
+    utxosByRef,
+    utxosByRefE,
+    utxosByRefF,
+
+    -- ** Fetching a single UTxO by its reference
+    utxoByRef,
+    utxoByRefE,
+    utxoByRefF,
+
+    -- ** Fetching a specific part of a UTxO by its reference
     viewByRef,
+    viewByRefE,
+    viewByRefF,
 
-    -- * Query fetching the current reward amount
-    getCurrentReward,
+    -- ** Fetching a specific optional part of a UTxO by its reference
+    previewByRef,
+    previewByRefE,
+    previewByRefF,
 
-    -- * Query fetching the current full constitution script
+    -- ** Fetching all UTxOs
+    allUtxos,
+
+    -- ** Fetching UTxOs at a given address
+    utxosAt,
+
+    -- * Query fetching the current constitution script
     getConstitutionScript,
+
+    -- * Query fetching the current reward amount of a given account
+    getCurrentReward,
   )
 where
 
@@ -43,6 +61,8 @@ import Cooked.Skeleton
 import Cooked.Utilities.Aliases
 import Cooked.Utilities.HList
 import Data.Coerce (coerce)
+import Data.Foldable
+import Data.Foldable.Extra
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Maybe.Strict
@@ -56,17 +76,17 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
+import Polysemy.Fail
 import Polysemy.Reader
 import Polysemy.State
 
 -- | An effect that offers primitives to query the current state of the
 -- mockchain. As its name suggests, this effect is read-only and does not alter
 -- the state in any way. This is the user-facing read effect; its interpreters
--- rely on the internal
--- 'Cooked.Effect.Params.Params' effect to resolve the
+-- rely on the internal 'Cooked.Effect.Params.Params' effect to resolve the
 -- fixed chain configuration.
 data Query :: Effect where
-  TxSkelOutByRef :: Api.TxOutRef -> Query m TxSkelOut
+  UtxosByRef :: (Foldable f) => f Api.TxOutRef -> Query m UtxoSearchResult
   AllUtxos :: Query m UtxoSearchResult
   UtxosAt :: (Script.ToAddress a) => a -> Query m UtxoSearchResult
   GetConstitutionScript :: Query m (Maybe VScript)
@@ -74,38 +94,136 @@ data Query :: Effect where
 
 makeSem_ ''Query
 
--- | Returns all scripts involved in this 'TxSkel'
-txSkelAllScripts ::
-  (Member Query effs) =>
-  TxSkel ->
-  Sem effs [VScript]
-txSkelAllScripts txSkel = do
-  txSkelSpendingScripts <- txSkelInputScripts txSkel
-  return $
-    toListOf (txSkelRedeemedScriptsT % userVScriptL) txSkel
-      <> txSkelSpendingScripts
+-- | Searches for outputs based on their references, disregarding references
+-- that are absent.
+utxosByRef ::
+  ( Foldable f,
+    Member Query effs
+  ) =>
+  f Api.TxOutRef ->
+  Sem effs UtxoSearchResult
 
--- | Returns all scripts which guard transaction inputs
-txSkelInputScripts ::
-  (Member Query effs) =>
-  TxSkel ->
-  Sem effs [VScript]
-txSkelInputScripts =
-  fmap catMaybes
-    . mapM (previewByRef (txSkelOutOwnerL % userVScriptAT))
-    . Map.keys
-    . txSkelInputs
+-- | Searches for outputs based on their references, throwing an error when some
+-- of them are absent. This is meant to be used internally, when @Error
+-- ChainError@ is available in the effect stack.
+utxosByRefE ::
+  ( Foldable f,
+    Members '[Query, Error ChainError] effs
+  ) =>
+  f Api.TxOutRef ->
+  Sem effs UtxoSearchResult
+utxosByRefE oRefs = do
+  utxos <- utxosByRef oRefs
+  let missingRefs = Set.fromList (toList oRefs) `Set.difference` Map.keysSet utxos
+  when (notNull missingRefs) $ throw $ CEUnknownOutRefs missingRefs
+  return utxos
 
--- | look up the UTxOs the transaction consumes, and sum their values.
-txSkelInputValue ::
-  (Member Query effs) =>
-  TxSkel ->
-  Sem effs Api.Value
-txSkelInputValue =
-  fmap mconcat
-    . mapM (viewByRef txSkelOutValueL)
-    . Map.keys
-    . txSkelInputs
+-- | Searches for outputs based on their references, failing when either of them
+-- is absent.
+utxosByRefF ::
+  ( Foldable f,
+    Members '[Query, Fail] effs
+  ) =>
+  f Api.TxOutRef ->
+  Sem effs UtxoSearchResult
+utxosByRefF oRefs = do
+  utxos <- utxosByRef oRefs
+  when (length utxos /= length oRefs) $ fail "Some of the requested UTxOs are missing"
+  return utxos
+
+-- | Returns an output given a reference to it, returning 'Nothing' when it does
+-- not exist.
+utxoByRef ::
+  (Members '[Query] effs) =>
+  Api.TxOutRef ->
+  Sem effs (Maybe TxSkelOut)
+utxoByRef oRef = fmap hHead . Map.lookup oRef <$> utxosByRef (Just oRef)
+
+-- | Returns an output given a reference to it, throwing an error when it does
+-- not exist. This is meant to be used internally, when @Error ChainError@ is
+-- available in the effect stack.
+utxoByRefE ::
+  (Members '[Query, Error ChainError] effs) =>
+  Api.TxOutRef ->
+  Sem effs TxSkelOut
+utxoByRefE oRef = hHead . snd . Map.elemAt 0 <$> utxosByRefE (Just oRef)
+
+-- | Returns an output given a reference to it, failing when it does not exist.
+utxoByRefF ::
+  (Members '[Query, Fail] effs) =>
+  Api.TxOutRef ->
+  Sem effs TxSkelOut
+utxoByRefF oRef = hHead . snd . Map.elemAt 0 <$> utxosByRefF (Just oRef)
+
+-- | Retrieves an output given a reference to it, and views a specific part of
+-- it, returning 'Nothing' when the output does not exist.
+viewByRef ::
+  ( Members '[Query] effs,
+    Is g A_Getter
+  ) =>
+  Optic' g is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs (Maybe c)
+viewByRef optic = (fmap (view optic) <$>) . utxoByRef
+
+-- | Retrieves an output given a reference to it, and views a specific part of
+-- it, throwing an error when the output does not exist. This is meant to be
+-- used internally, when @Error ChainError@ is available in the effect stack.
+viewByRefE ::
+  ( Members '[Query, Error ChainError] effs,
+    Is g A_Getter
+  ) =>
+  Optic' g is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs c
+viewByRefE optic = (view optic <$>) . utxoByRefE
+
+-- | Retrieves an output given a reference to it, and views a specific part of
+-- it, failing when the output does not exist.
+viewByRefF ::
+  ( Members '[Query, Fail] effs,
+    Is g A_Getter
+  ) =>
+  Optic' g is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs c
+viewByRefF optic = (view optic <$>) . utxoByRefF
+
+-- | Retrieves an output given a reference to it, and previews an optional part
+-- of it, returning 'Nothing' when either the output or the part does not exist.
+previewByRef ::
+  ( Member Query effs,
+    Is af An_AffineFold
+  ) =>
+  Optic' af is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs (Maybe c)
+previewByRef optic = ((>>= preview optic) <$>) . utxoByRef
+
+-- | Retrieves an output given a reference to it, and previews an optional part
+-- of it, throwing an error when the output does not exist. This is meant to be
+-- used internally, when @Error ChainError@ is available in the effect stack.
+previewByRefE ::
+  ( Member Query effs,
+    Is af An_AffineFold,
+    Members '[Error ChainError] effs
+  ) =>
+  Optic' af is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs (Maybe c)
+previewByRefE optic oRef = preview optic <$> utxoByRefE oRef
+
+-- | Retrieves an output given a reference to it, and previews an optional part
+-- of it, failing when the output does not exist.
+previewByRefF ::
+  ( Member Query effs,
+    Is af An_AffineFold,
+    Members '[Fail] effs
+  ) =>
+  Optic' af is TxSkelOut c ->
+  Api.TxOutRef ->
+  Sem effs (Maybe c)
+previewByRefF optic oRef = preview optic <$> utxoByRefF oRef
 
 -- | Returns a list of all currently known outputs
 allUtxos ::
@@ -119,59 +237,6 @@ utxosAt ::
   ) =>
   cred ->
   Sem effs UtxoSearchResult
-
--- | Returns an output given a reference to it
-txSkelOutByRef ::
-  (Member Query effs) =>
-  Api.TxOutRef ->
-  Sem effs TxSkelOut
-
--- | Retrieves the ordered list of outputs of the given "CardanoTx".
---
--- This is useful when writing endpoints and/or traces to fetch utxos of
--- interest right from the start and avoid querying the chain for them
--- afterwards using 'allUtxos' or similar functions.
-utxosFromCardanoTx ::
-  (Member Query effs) =>
-  P.Ledger.CardanoTx ->
-  Sem effs UtxoSearchResult
-utxosFromCardanoTx =
-  utxosFromRefs
-    . fmap (P.Ledger.fromCardanoTxIn . snd)
-    . P.Ledger.getCardanoTxOutRefs
-
--- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
--- state of the blockchain, throwing an error if one of them cannot be resolved.
-utxosFromRefs ::
-  ( Foldable f,
-    Member Query effs
-  ) =>
-  f Api.TxOutRef ->
-  Sem effs UtxoSearchResult
-utxosFromRefs =
-  foldM
-    (\m oRef -> flip (Map.insert oRef) m . hSingleton <$> txSkelOutByRef oRef)
-    Map.empty
-
--- | Retrieves an output and views a specific element out of it
-viewByRef ::
-  ( Member Query effs,
-    Is g A_Getter
-  ) =>
-  Optic' g is TxSkelOut c ->
-  Api.TxOutRef ->
-  Sem effs c
-viewByRef optic = (view optic <$>) . txSkelOutByRef
-
--- | Retrieves an output and previews a specific element out of it
-previewByRef ::
-  ( Member Query effs,
-    Is af An_AffineFold
-  ) =>
-  Optic' af is TxSkelOut c ->
-  Api.TxOutRef ->
-  Sem effs (Maybe c)
-previewByRef optic = (preview optic <$>) . txSkelOutByRef
 
 -- | Gets the current official constitution script
 getConstitutionScript ::
@@ -201,11 +266,7 @@ runMockChainQuery ::
   Sem (Query : effs) a ->
   Sem effs a
 runMockChainQuery = interpret $ \case
-  TxSkelOutByRef oRef -> do
-    res <- gets $ Map.lookup oRef . chainIndexOutputs
-    case res of
-      Just (txSkelOut, True) -> return txSkelOut
-      _ -> throw $ CEUnknownOutRef oRef
+  UtxosByRef oRefs -> gets $ extractOutputs $ \oRef _ -> oRef `elem` toList oRefs
   AllUtxos -> gets $ extractOutputs $ \_ _ -> True
   UtxosAt (Script.toAddress -> addr) -> gets $ extractOutputs $ \_ -> (== addr) . Script.toAddress
   GetConstitutionScript -> gets $ view chainIndexConstitutionL
@@ -241,10 +302,9 @@ runBlockChainQuery = interpret $ \case
     networkId <- getNetworkId
     (Cardano.AddressInEra _ cAddr) <- fromEither $ P.Ledger.toCardanoAddressInEra networkId addr
     queryUtxosAndHandleErrors $ Cardano.QueryUTxOByAddress $ Set.singleton $ Cardano.toAddressAny cAddr
-  TxSkelOutByRef oRef -> do
-    txIn <- fromEither $ P.Ledger.toCardanoTxIn oRef
-    utxo <- queryUtxosAndHandleErrors $ Cardano.QueryUTxOByTxIn $ Set.singleton txIn
-    maybe (throw $ CEUnknownOutRef oRef) (return . hHead) $ Map.lookup oRef utxo
+  UtxosByRef oRefs -> do
+    txIns <- forM (toList oRefs) (fromEither . P.Ledger.toCardanoTxIn)
+    queryUtxosAndHandleErrors $ Cardano.QueryUTxOByTxIn $ Set.fromList txIns
   GetConstitutionScript -> do
     -- We retrieve the official optional script hash of the current constitution
     Cardano.Constitution _ mScriptHash <-

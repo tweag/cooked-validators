@@ -167,7 +167,7 @@ tests =
                       }
               )
               `withErrorProp` \case
-                CEUnknownOutRef _ -> testSuccess
+                CEUnknownOutRefs _ -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "fail from transaction generation for mismatching reference scripts" $
             mustFailTest

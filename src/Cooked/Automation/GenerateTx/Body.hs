@@ -98,7 +98,8 @@ txSkelToIndex ::
   ( Members
       '[ Query,
          Params,
-         Error P.Ledger.ToCardanoError
+         Error P.Ledger.ToCardanoError,
+         Error ChainError
        ]
       effs
   ) =>
@@ -111,7 +112,7 @@ txSkelToIndex txSkel mCollaterals = do
   let collateralIns = maybe Set.empty fst mCollaterals
   -- We retrieve all the outputs known to the skeleton
   (knownTxORefs, knownTxOuts) <-
-    utxosFromRefs (txSkelKnownTxOutRefs txSkel <> collateralIns)
+    utxosByRefE (txSkelKnownTxOutRefs txSkel <> collateralIns)
       >>= retrieveByType
       >>= retrieve (unzip . Map.toList)
   -- We then compute their Cardano counterparts

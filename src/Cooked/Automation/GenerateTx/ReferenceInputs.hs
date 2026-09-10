@@ -3,7 +3,9 @@ module Cooked.Automation.GenerateTx.ReferenceInputs (toInsReference) where
 
 import Cardano.Api qualified as Cardano
 import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton
+import Cooked.Utilities.TypedSearch
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
@@ -17,7 +19,7 @@ import Polysemy.Error
 -- redeemers of the transaction, which can be gathered with
 -- 'txSkelReferenceInputsInRedeemers'.
 toInsReference ::
-  (Members '[Query, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error P.Ledger.ToCardanoError, Error ChainError] effs) =>
   TxSkel ->
   Sem effs (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
 toInsReference skel = do
@@ -31,9 +33,12 @@ toInsReference skel = do
     then return Cardano.TxInsReferenceNone
     else do
       cardanoRefInputs <- fromEither $ mapM P.Ledger.toCardanoTxIn refInputs
-      resolvedDatums <- mapM (viewByRef txSkelOutDatumL) refInputs
-      return $
-        Cardano.TxInsReference Cardano.BabbageEraOnwardsConway cardanoRefInputs $
-          Cardano.BuildTxWith $
-            Set.fromList
-              [P.Ledger.toCardanoScriptData $ Api.toBuiltinData dat | SomeTxSkelOutDatum dat (Hashed _) <- resolvedDatums]
+      datumsContent <-
+        utxosByRefE refInputs
+          >>= extractAFold txSkelOutDatumL -- we extract the datums
+          >>= ensureAFoldIs txSkelOutDatumResolvedAT -- we ensure these datums are not inline
+          >>= extractAFold (txSkelOutDatumTypedAT @Api.BuiltinData) -- we extract the builtin data from the resolved datums
+          >>= extractPureTotal P.Ledger.toCardanoScriptData
+          >>= retrieveByTypeAsList
+          >>= retrieve (Cardano.BuildTxWith . Set.fromList)
+      return $ Cardano.TxInsReference Cardano.BabbageEraOnwardsConway cardanoRefInputs datumsContent

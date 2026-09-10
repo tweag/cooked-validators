@@ -126,12 +126,12 @@ txSkelOutDatumKindAT =
 txSkelOutDatumResolvedAT :: AffineTraversal' TxSkelOutDatum DatumResolved
 txSkelOutDatumResolvedAT = txSkelOutDatumKindAT % datumKindResolvedP
 
--- | Focuses on the optional typed datum of a 'TxSkelOutDatum'. This is attempted
--- in two ways: first, we try to simply cast the content, and then, if it fails,
--- we serialise the content and then attempt to deserialise it to the right
--- type. This second case is specifically useful when the current content is an
--- 'Api.BuiltinData' itself directly, but it can also be used in the cornercase
--- when both types have compatible serialized representation.
+-- | Focuses on the optional typed datum of a 'TxSkelOutDatum'. This is
+-- attempted in two ways: first, we try to simply cast the content, and then, if
+-- it fails, we serialise the content and then attempt to deserialise it to the
+-- right type. This second case is specifically useful when the current content
+-- is an 'Api.BuiltinData' itself directly, but it can also be used in the
+-- corner case when both types have compatible serialized representation.
 txSkelOutDatumTypedAT :: (DatumConstrs a, DatumConstrs b) => AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
 txSkelOutDatumTypedAT =
   atraversal

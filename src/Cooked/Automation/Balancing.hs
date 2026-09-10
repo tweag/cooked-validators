@@ -92,7 +92,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the number of scripts involved in the transaction. This is used
   -- to compute the maximum possible fee, as each of those script with
   -- contribute, through its execution units, to the cost of the transaction.
-  nbOfScripts <- fromIntegral . length <$> txSkelAllScripts skelUnbal
+  nbOfScripts <-
+    utxosByRefF (txSkelInputsOutRefs skelUnbal)
+      >>= extractAFold (txSkelOutOwnerL % userVScriptAT)
+      >>= retrieveByTypeAsList
+      >>= retrieve (fromIntegral . length . (<> toListOf (txSkelRedeemedScriptsT % userVScriptL) skelUnbal))
 
   -- The protocol parameters indirectly dictate a minimal and maximal value for a
   -- single transaction fee, which we retrieve.
@@ -150,7 +154,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveByType
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            utxosFromRefs utxos
+            utxosByRefE utxos
               >>= retrieveByType
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
@@ -278,7 +282,7 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- utxosFromRefs collateralIns >>= retrieveByType
+  collateralTxOuts <- utxosByRefE collateralIns >>= retrieveByType
   -- Candidate subsets of utxos to be used as collaterals
   reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
   -- A value might, or might not have been reached
@@ -481,7 +485,10 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
       outValue = txSkelPaidValue txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
-  inValue <- txSkelInputValue txSkel
+  inValue <-
+    utxosByRefE (Map.keys txSkelInputs)
+      >>= extractAFold txSkelOutValueL
+      >>= retrieveByTypeAndFold
   certificatesDepositedValue <- Script.toValue <$> txSkelDepositedValueInCertificates txSkel
   proposalsDepositedValue <- Script.toValue <$> txSkelDepositedValueInProposals txSkel
   -- We compute the values missing in the left and right side of the equation

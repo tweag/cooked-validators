@@ -9,6 +9,7 @@ import Cardano.Api qualified as Cardano
 import Cooked.Automation.GenerateTx.Output
 import Cooked.Effect.Params
 import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
 import Cooked.Utilities.Aliases
@@ -32,7 +33,7 @@ import Polysemy.Error
 -- These quantity should satisfy the equation (in terms of their values):
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
-  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError, Error ChainError] effs) =>
   Maybe Collaterals ->
   Sem
     effs
@@ -49,7 +50,7 @@ toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) 
       l -> fromEither $ Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM P.Ledger.toCardanoTxIn l
   -- We collect the amount of lovelace in the collateral inputs
   Api.Lovelace collateralInsLovelace <-
-    utxosFromRefs collateralInsList
+    utxosByRefE collateralInsList
       >>= extractAFold (txSkelOutValueL % valueLovelaceL)
       >>= retrieveByTypeAndFold
   -- We collect the amount of lovelace in the return collateral output

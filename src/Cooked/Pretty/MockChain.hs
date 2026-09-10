@@ -93,7 +93,7 @@ instance PrettyCooked ChainError where
   prettyCookedOpt opts (CEBalancingError err) = prettyCookedOpt opts err
   prettyCookedOpt _ (CEToCardanoError cardanoError) =
     "Transaction generation error:" <+> PP.pretty cardanoError
-  prettyCookedOpt opts (CEUnknownOutRef txOutRef) = "Unknown transaction output ref:" <+> prettyCookedOpt opts txOutRef
+  prettyCookedOpt opts (CEUnknownOutRefs txOutRefs) = prettyItemize opts "Unknown TxOutRefs" "-" txOutRefs
   prettyCookedOpt opts (CEWrongReferenceScriptError oRef expected got) =
     "Unable to fetch the following reference script:"
       <+> prettyHash opts expected

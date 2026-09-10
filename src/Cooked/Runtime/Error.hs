@@ -9,6 +9,7 @@ where
 import Cardano.Api qualified as Cardano
 import Cooked.Skeleton.User
 import Cooked.Utilities.Aliases
+import Data.Set (Set)
 import Ledger.Tx qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -44,7 +45,7 @@ data ChainError
   | -- | The required reference script is missing from a witness utxo
     CEWrongReferenceScriptError Api.TxOutRef Api.ScriptHash (Maybe Api.ScriptHash)
   | -- | A UTxO is missing from the mockchain state
-    CEUnknownOutRef Api.TxOutRef
+    CEUnknownOutRefs (Set Api.TxOutRef)
   | -- | An attempt to invoke an unsupported feature has been made
     CEUnsupportedFeature String
   | -- | An attempt to spend a script output whose datum is only known by its

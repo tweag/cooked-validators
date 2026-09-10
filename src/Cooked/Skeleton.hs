@@ -47,6 +47,7 @@ module Cooked.Skeleton
     txSkelNodeTemplate,
 
     -- * Utilities
+    txSkelInputsOutRefs,
     txSkelKnownTxOutRefs,
     txSkelWithdrawnValue,
     txSkelPaidValue,
@@ -275,16 +276,20 @@ txSkelReferenceInputsInRedeemers :: TxSkel -> Set Api.TxOutRef
 txSkelReferenceInputsInRedeemers =
   Set.fromList . toListOf (txSkelRedeemersT % txSkelRedeemerReferenceInputAT)
 
+-- | All 'Api.TxOutRef's used as inputs of a given transaction skeleton.
+txSkelInputsOutRefs :: TxSkel -> Set Api.TxOutRef
+txSkelInputsOutRefs = Map.keysSet . view txSkelInputsL
+
 -- | All 'Api.TxOutRef's known by a given transaction skeleton. This includes
 -- 'Api.TxOutRef's used as inputs of the skeleton and 'Api.TxOutRef's used as reference
 -- inputs of the skeleton. This does not include additional possible
 -- 'Api.TxOutRef's used for balancing and additional 'Api.TxOutRef's used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> Set Api.TxOutRef
-txSkelKnownTxOutRefs skel@TxSkel {..} =
+txSkelKnownTxOutRefs skel =
   txSkelReferenceInputsInRedeemers skel
-    <> Map.keysSet txSkelInputs
-    <> txSkelReferenceInputs
+    <> txSkelInputsOutRefs skel
+    <> txSkelReferenceInputs skel
 
 -- | Returns the total value withdrawn in this 'TxSkel'
 txSkelWithdrawnValue :: TxSkel -> Api.Value
