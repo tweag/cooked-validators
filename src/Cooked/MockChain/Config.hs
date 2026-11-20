@@ -1,45 +1,34 @@
--- | This module exposes the infrastructure to execute mockchain runs. In
--- particular:
---
--- - The notion of initial distribution (a list of payments)
---
--- - The return types of the runs (raw and refined)
---
--- - The initial configuration with which to execute a run
---
--- - The notion of `RunnableMockChain` to actually execute computations
-module Cooked.MockChain.Run.Runnable
-  ( InitialDistribution,
+-- | This module exposes the configuration elements required to execute a
+-- mockchain run. This includes the initial parameters (with an initial
+-- distribution of funds), and various ways of processing the results of a run.
+module Cooked.MockChain.Config
+  ( -- * Initial distributions
+    InitialDistribution,
     initialDistributionTemplate,
     distributionFromList,
+
+    -- * Initial mockchain configurations
+    MockChainConf (..),
+    mockChainConfTemplate,
+
+    -- * Mockchain run return type
     RawMockChainReturn,
     MockChainReturn (..),
     FunOnMockChainResult,
     unRawMockChainReturn,
-    MockChainConf (..),
-    mockChainConfTemplate,
-    RunnableMockChain (..),
-    runMockChainFromConf,
-    runMockChainFromInitDist,
-    runMockChainFromInitDistTemplate,
-    runMockChainDef,
   )
 where
 
-import Cooked.MockChain.Effect.Write
-import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.Runtime.Journal
-import Cooked.MockChain.Runtime.State
+import Cooked.Runtime.Error
+import Cooked.Runtime.Journal
+import Cooked.Runtime.State
 import Cooked.Skeleton.Output
-import Cooked.Wallet
+import Cooked.Utilities.Wallet
 import Data.Default
 import Data.List (foldl')
 import Data.Map (Map)
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-import Polysemy
-
--- * Initial distribution of funds
 
 -- | Describes the initial distribution of UTxOs per user.
 --
@@ -72,20 +61,20 @@ distributionFromList = foldl' (\x (user, values) -> x <> map (receives user . Va
 
 -- | Raw return type of running a mockchain
 type RawMockChainReturn a =
-  (MockChainJournal, (MockChainState, Either MockChainError a))
+  (ChainJournal, (ChainIndex, (EmulatorState, Either ChainError a)))
 
 -- | The returned type when running a mockchain. This is both a reorganizing and
 -- filtering of the natural returned type `RawMockChainReturn`.
 data MockChainReturn a where
   MockChainReturn ::
     { -- | The value returned by the computation, or an error
-      mcrValue :: Either MockChainError a,
+      mcrValue :: Either ChainError a,
       -- | The outputs at the end of the run
       mcrOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
       -- | The 'UtxoState' at the end of the run
       mcrUtxoState :: UtxoState,
       -- | The final journal emitted during the run
-      mcrJournal :: MockChainJournal
+      mcrJournal :: ChainJournal
     } ->
     MockChainReturn a
   deriving (Functor)
@@ -96,14 +85,16 @@ type FunOnMockChainResult a b = RawMockChainReturn a -> b
 
 -- | Building a `MockChainReturn` from a `RawMockChainReturn`
 unRawMockChainReturn :: FunOnMockChainResult a (MockChainReturn a)
-unRawMockChainReturn (journal, (st, val)) =
-  MockChainReturn val (mcstOutputs st) (mcstToUtxoState st) journal
+unRawMockChainReturn (journal, (chainIndex, (_emulatorState, val))) =
+  MockChainReturn val (chainIndexOutputs chainIndex) (chainIndexToUtxoState chainIndex) journal
 
 -- | Configuration from which to run a mockchain
 data MockChainConf a b where
   MockChainConf ::
-    { -- | The initial state from which to run the mockchain
-      mccInitialState :: MockChainState,
+    { -- | The initial emulator state from which to run the mockchain
+      mccInitialEmulatorState :: EmulatorState,
+      -- | The initial chain index from which to run the mockchain
+      mccInitialChainIndex :: ChainIndex,
       -- | The initial payments to issue in the run
       mccInitialDistribution :: InitialDistribution,
       -- | The function to apply on the results of the run
@@ -111,55 +102,7 @@ data MockChainConf a b where
     } ->
     MockChainConf a b
 
--- | The default `MockChainConf`, which uses the default initial state and
+-- | The default `MockChainConf`, which uses the default initial states and
 -- initial distribution, and returns a refined `MockChainReturn`
 mockChainConfTemplate :: MockChainConf a (MockChainReturn a)
-mockChainConfTemplate = MockChainConf def def unRawMockChainReturn
-
--- | The class of effects that represent a mockchain run
-class RunnableMockChain effs where
-  -- | Runs a computation from an initial `MockChainState`, while returning a
-  -- list of `RawMockChainReturn`
-  runMockChain :: MockChainState -> Sem effs a -> [RawMockChainReturn a]
-
--- | Runs a `RunnableMockChain` from an initial `MockChainConf`
-runMockChainFromConf ::
-  ( RunnableMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  MockChainConf a b ->
-  Sem effs a ->
-  [b]
-runMockChainFromConf (MockChainConf initState initDist funOnResult) currentRun =
-  fmap funOnResult $
-    runMockChain initState $
-      forceOutputs initDist >> currentRun
-
--- | Runs a `RunnableMockChain` from an initial distribution
-runMockChainFromInitDist ::
-  ( RunnableMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  InitialDistribution ->
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainFromInitDist initDist =
-  runMockChainFromConf $ mockChainConfTemplate {mccInitialDistribution = initDist}
-
--- | Same as `runMockChainFromInitDist` using the `initialDistributionTemplate`
-runMockChainFromInitDistTemplate ::
-  ( RunnableMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainFromInitDistTemplate = runMockChainFromInitDist initialDistributionTemplate
-
--- | Runs a `RunnableMockChain` from a default configuration
-runMockChainDef ::
-  ( RunnableMockChain effs,
-    Member MockChainWrite effs
-  ) =>
-  Sem effs a ->
-  [MockChainReturn a]
-runMockChainDef = runMockChainFromConf mockChainConfTemplate
+mockChainConfTemplate = MockChainConf def def def unRawMockChainReturn

@@ -70,6 +70,8 @@
 - New `signatoryFromFile`, reading a signatory from a Cardano signing key
   file.
 - Signatories can be used as output owners.
+- New `ToHash Api.Address` instance.
+- Every skeleton option is printed when `pcOptPrintTxSkelOpts` is set.
 
 ### Changed
 
@@ -128,6 +130,25 @@
 - Signatories are compared by public key hash only.
 - `userVScriptL` and `userRedeemerL` are restricted to redeemed scripts.
 - `fillConstitution` is renamed `fillConstitutionWhenEmpty`.
+- `Cooked.MockChain.Run.Runnable` is split into `Cooked.MockChain.Config`
+  and `Cooked.MockChain.Run`; `Cooked.MockChain.Run.Instances` and
+  `Cooked.MockChain.Run.Tweak` became `Cooked.MockChain.Instances` and
+  `Cooked.MockChain.Tweak`.
+- `Cooked.Ltl` moved to `Cooked.MockChain.Ltl`.
+- Mockchain effect stacks are renamed `DirectMockChainEffs`,
+  `FullMockChainEffs`, `StagedMockChainEffs` and
+  `ExtendedStagedMockChainEffs`.
+- `runMockChain` takes an initial `EmulatorState` and `ChainIndex`, and
+  `MockChainConf` holds `mccInitialEmulatorState` and
+  `mccInitialChainIndex` instead of `mccInitialState`. Likewise, `Test`
+  holds `testInitEmulatorState` and `testInitChainIndex`.
+- `reinterpretMockChainWriteWithTweak` is renamed
+  `reinterpretMockChainValidateWithTweak`.
+- Phase 1 and phase 2 failure predicates (`isPhase1Failure`,
+  `isPhase2Failure`, ...) are based on `CESubmissionFailures` and
+  `CEExUnitsFailures`.
+- `pcOptPrintDefaultTxSkelOpts` is renamed `pcOptPrintTxSkelOpts`, and
+  skeleton options are hidden by default.
 
 ### Removed
 
