@@ -18,6 +18,7 @@ module Cooked.Skeleton.Datum
     txSkelOutDatumDatumAF,
     txSkelOutDatumDatumHashAF,
     txSkelOutDatumOutputDatumG,
+    txSkelOutDatumOutputDatumI,
   )
 where
 
@@ -75,16 +76,19 @@ datumKindResolvedP =
 -- | Datums to be placed in 'Cooked.Skeleton.TxSkel' outputs, which are either
 -- empty, or composed of a datum content and its placement
 data TxSkelOutDatum where
-  -- | use no datum
+  -- | Don't use any datum
   NoTxSkelOutDatum :: TxSkelOutDatum
-  -- | use some datum content and associated placement
+  -- | Use some datum content with a datum kind
   SomeTxSkelOutDatum :: (DatumConstrs dat) => dat -> DatumKind -> TxSkelOutDatum
+  -- | Use some datum hash only
+  SomeTxSkelOutDatumHash :: Api.DatumHash -> TxSkelOutDatum
 
 deriving instance Show TxSkelOutDatum
 
 instance Eq TxSkelOutDatum where
   NoTxSkelOutDatum == NoTxSkelOutDatum = True
   (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b) == (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') = (dat, b) == (dat', b')
+  (SomeTxSkelOutDatumHash hash) == (SomeTxSkelOutDatumHash hash') = hash == hash'
   _ == _ = False
 
 instance Ord TxSkelOutDatum where
@@ -95,6 +99,9 @@ instance Ord TxSkelOutDatum where
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat) b)
     (SomeTxSkelOutDatum (Api.toBuiltinData -> dat') b') =
       compare (dat, b) (dat', b')
+  compare SomeTxSkelOutDatum {} _ = LT
+  compare _ SomeTxSkelOutDatum {} = GT
+  compare (SomeTxSkelOutDatumHash hash) (SomeTxSkelOutDatumHash hash') = compare hash hash'
 
 -- * Optics working on 'TxSkelOutDatum'
 
@@ -105,11 +112,13 @@ txSkelOutDatumKindAT =
     ( \case
         NoTxSkelOutDatum -> Left NoTxSkelOutDatum
         SomeTxSkelOutDatum _ kind -> Right kind
+        SomeTxSkelOutDatumHash _ -> Right (Hashed NotResolved)
     )
     ( flip
         ( \kind -> \case
             NoTxSkelOutDatum -> NoTxSkelOutDatum
             SomeTxSkelOutDatum content _ -> SomeTxSkelOutDatum content kind
+            datum@(SomeTxSkelOutDatumHash _) -> datum
         )
     )
 
@@ -117,12 +126,12 @@ txSkelOutDatumKindAT =
 txSkelOutDatumResolvedAT :: AffineTraversal' TxSkelOutDatum DatumResolved
 txSkelOutDatumResolvedAT = txSkelOutDatumKindAT % datumKindResolvedP
 
--- | Focuses on the optional typed datum of a 'TxSkelOutDatum'. This is attempted
--- in two ways: first, we try to simply cast the content, and then, if it fails,
--- we serialise the content and then attempt to deserialise it to the right
--- type. This second case is specifically useful when the current content is an
--- 'Api.BuiltinData' itself directly, but it can also be used in the cornercase
--- when both types have compatible serialized representation.
+-- | Focuses on the optional typed datum of a 'TxSkelOutDatum'. This is
+-- attempted in two ways: first, we try to simply cast the content, and then, if
+-- it fails, we serialise the content and then attempt to deserialise it to the
+-- right type. This second case is specifically useful when the current content
+-- is an 'Api.BuiltinData' itself directly, but it can also be used in the
+-- corner case when both types have compatible serialized representation.
 txSkelOutDatumTypedAT :: (DatumConstrs a, DatumConstrs b) => AffineTraversal TxSkelOutDatum TxSkelOutDatum a b
 txSkelOutDatumTypedAT =
   atraversal
@@ -135,6 +144,7 @@ txSkelOutDatumTypedAT =
         ( \content -> \case
             NoTxSkelOutDatum -> NoTxSkelOutDatum
             SomeTxSkelOutDatum _ kind -> SomeTxSkelOutDatum content kind
+            SomeTxSkelOutDatumHash _ -> SomeTxSkelOutDatum content (Hashed NotResolved)
         )
     )
 
@@ -144,7 +154,12 @@ txSkelOutDatumDatumAF = txSkelOutDatumTypedAT % to Api.Datum
 
 -- | Retrieves the optional 'Api.DatumHash' of a 'TxSkelOutDatum'
 txSkelOutDatumDatumHashAF :: AffineFold TxSkelOutDatum Api.DatumHash
-txSkelOutDatumDatumHashAF = txSkelOutDatumDatumAF % to Script.datumHash
+txSkelOutDatumDatumHashAF =
+  afolding
+    ( \case
+        SomeTxSkelOutDatumHash hash -> Just hash
+        datum -> Script.datumHash <$> preview txSkelOutDatumDatumAF datum
+    )
 
 -- | Retrieves the 'Api.OutputDatum' of a 'TxSkelOutDatum'
 txSkelOutDatumOutputDatumG :: Getter TxSkelOutDatum Api.OutputDatum
@@ -154,3 +169,18 @@ instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum NoTxSkelOutDatum = Api.NoOutputDatum
   toOutputDatum (SomeTxSkelOutDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
   toOutputDatum (SomeTxSkelOutDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
+  toOutputDatum (SomeTxSkelOutDatumHash hash) = Api.OutputDatumHash hash
+
+-- | An isomorphism betwean our 'TxSkelOutDatum' and Plutus
+-- 'Api.OutputDatum'. The existence of this function does not mean that both
+-- share the same expressiveness. In only means that there exists a sensible way
+-- to convert one into the other, and vice versa.
+txSkelOutDatumOutputDatumI :: Iso' TxSkelOutDatum Api.OutputDatum
+txSkelOutDatumOutputDatumI =
+  iso
+    Script.toOutputDatum
+    ( \case
+        Api.OutputDatum (Api.Datum bData) -> SomeTxSkelOutDatum bData Inline
+        Api.NoOutputDatum -> NoTxSkelOutDatum
+        Api.OutputDatumHash dHash -> SomeTxSkelOutDatumHash dHash
+    )

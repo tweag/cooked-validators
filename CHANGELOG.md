@@ -54,6 +54,22 @@
 - New skeleton templates `txSkelEmulatorTemplate` and
   `txSkelNodeTemplate`.
 - New `txSkelInputsOutRefs`.
+- New `SomeTxSkelOutDatumHash` datum, for outputs whose datum is only
+  known by its hash, and `txSkelOutDatumOutputDatumI`. Spending such an
+  output fails with `CESpendingHashOnlyDatum`.
+- New `UserScriptHash` owner, for outputs whose script is only known by
+  its hash (with an `IsTxSkelOutAllowedOwner Api.ScriptHash` instance),
+  and `userCredentialI`. Spending such an output requires a reference
+  input holding the script, and fails with `CESpendingHashOnlyScript`
+  otherwise.
+- New `AdaValue` and `LovelaceValue` payables, which are not subject to
+  min-ada adjustment.
+- New `TxSkelSignatoryWitness` to attach any signing key to a signatory,
+  with `txSkelSignatoryWitnessSigningKeyAF` and
+  `txSkelSignatorySigningKeyAF`.
+- New `signatoryFromFile`, reading a signatory from a Cardano signing key
+  file.
+- Signatories can be used as output owners.
 
 ### Changed
 
@@ -106,6 +122,12 @@
   `txSkelEmulatorTemplate` for the previous behaviour.
 - `txSkelOptModTx` and `txSkelOptAddModTx` work on the `Transaction`
   alias.
+- The private key of a `TxSkelSignatory` is now a
+  `TxSkelSignatoryWitness` instead of a `Maybe XPrv`, focused by
+  `txSkelSignatoryPrivateKeyL`.
+- Signatories are compared by public key hash only.
+- `userVScriptL` and `userRedeemerL` are restricted to redeemed scripts.
+- `fillConstitution` is renamed `fillConstitutionWhenEmpty`.
 
 ### Removed
 
@@ -127,6 +149,7 @@
   `txSkelOptDeferPhase2FailuresDuringBalancing`, with their optics.
 - The `Default` instance of `TxSkelOpts`; use one of the templates
   instead.
+- `txSkelSignatoryMPrivateKeyL` and `txSkelSignatoryPrivateKeyAT`.
 
 ### Fixed
 
