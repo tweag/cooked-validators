@@ -72,6 +72,12 @@
 - Signatories can be used as output owners.
 - New `ToHash Api.Address` instance.
 - Every skeleton option is printed when `pcOptPrintTxSkelOpts` is set.
+- New `Cooked.BlockChain` umbrella module, providing a backend running
+  cooked computations against a Cardano node through a
+  `LocalNodeConnectInfo`: effect stacks `DirectBlockChainEffs` and
+  `FullBlockChainEffs`, class `RunnableBlockChain`, configuration
+  `BlockChainConf` with `blockChainConfTemplate`, and runners
+  `runBlockChainFromConf` and `runBlockChainFromConfTemplate`.
 
 ### Changed
 
@@ -149,6 +155,8 @@
   `CEExUnitsFailures`.
 - `pcOptPrintDefaultTxSkelOpts` is renamed `pcOptPrintTxSkelOpts`, and
   skeleton options are hidden by default.
+- `Cooked` now re-exports `Cooked.Automation`, `Cooked.BlockChain`,
+  `Cooked.Effect`, `Cooked.Runtime` and `Cooked.Utilities`.
 
 ### Removed
 
