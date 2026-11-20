@@ -15,9 +15,9 @@ module Cooked.Automation.GenerateTx.Credential
 where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Ledger.BaseTypes qualified as C.Ledger
 import Cardano.Ledger.Hashes qualified as C.Ledger
 import Cardano.Ledger.Shelley.API qualified as C.Ledger
+import Cooked.Effect.Params
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
@@ -25,12 +25,13 @@ import Polysemy.Error
 
 -- | Translates a given credential to a reward account.
 toRewardAccount ::
-  (Member (Error P.Ledger.ToCardanoError) effs) =>
+  (Member Params effs, Member (Error P.Ledger.ToCardanoError) effs) =>
   Api.Credential ->
   Sem effs C.Ledger.RewardAccount
-toRewardAccount =
-  (C.Ledger.RewardAccount C.Ledger.Testnet <$>)
-    . toCardanoCredential Cardano.AsStakeKey Cardano.unStakeKeyHash
+toRewardAccount credential = do
+  networkId <- getNetworkId
+  rewardCredential <- toCardanoCredential Cardano.AsStakeKey Cardano.unStakeKeyHash credential
+  return $ C.Ledger.RewardAccount (Cardano.toShelleyNetwork networkId) rewardCredential
 
 -- TODO: if this works, migrate to plutus-ledger
 

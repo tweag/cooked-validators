@@ -7,6 +7,7 @@ import Cooked.Utilities.Aliases as X
 import Cooked.Utilities.Codec as X
 import Cooked.Utilities.Families as X
 import Cooked.Utilities.HList as X
+import Cooked.Utilities.Pools as X
 import Cooked.Utilities.ShowBS as X
 import Cooked.Utilities.TypedSearch as X
 import Cooked.Utilities.Wallet as X

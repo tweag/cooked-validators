@@ -70,6 +70,7 @@ see how things have evolved and are currently done in `cooked-validators`!
     - [Attach a Proposal Procedure to a transaction](#attach-a-proposal-procedure-to-a-transaction)
   - [Withdrawals](#withdrawals)
   - [Certificates](#certificates)
+    - [Stake pools](#stake-pools)
   - [Balancing](#balancing)
     - [Pick which user provides UTxOs to balance a transaction](#pick-which-user-provides-utxos-to-balance-a-transaction)
     - [Do not automatically balance](#do-not-automatically-balance)
@@ -901,6 +902,10 @@ Notes:
 * The optional signing key of a signatory can be accessed with
   `txSkelSignatoryPrivateKeyL`, or `txSkelSignatoryPrivateKeyAT` to focus on
   the key itself, and its public key hash with `txSkelSignatoryPubKeyHashL`.
+* The cold key of a mock stake pool can sign pool certificates:
+  `signatoryPoolCold myPool` (see [Stake pools](#stake-pools)).
+* The witness of a signatory can be accessed with `txSkelSignatoryPrivateKeyL`
+  and its signing key, if any, with `txSkelSignatorySigningKeyAF`.
 
 ## Outputs
 
@@ -1185,11 +1190,18 @@ txSkelEmulatorTemplate
 
 ## Certificates
 
-* Build certificate actions
+* Build certificate actions:
+  * staking: `StakingRegister`, `StakingUnRegister`, `StakingDelegate
+    delegatee`, `StakingRegisterDelegate delegatee` (where `delegatee` is an
+    `Api.Delegatee`: `Api.DelegStake poolId`, `Api.DelegVote drep` or
+    `Api.DelegStakeVote poolId drep`)
+  * DReps: `DRepRegister`, `DRepUpdate`, `DRepUnRegister`
+  * pools (public keys only): `PoolRegister vrfHash`, `PoolRetire slot`
+  * committee: `CommitteeRegisterHot credential`, `CommitteeResign`
 
 ```haskell
-myCertificateAction = CommitteeResign
-myCertificateAction2 = DRepUpdate ...
+myCertificateAction1 = StakingRegister
+myCertificateAction2 = DRepUpdate
 ```
 
 * Add certificates to transactions. Make sure the kind of certificate
@@ -1197,14 +1209,52 @@ myCertificateAction2 = DRepUpdate ...
 
 ```haskell
 txSkelEmulatorTemplate
-  { txSkelCertificates = 
+  { txSkelCertificates =
       [ TxSkelCertificate myUser myCertificateAction,
-	    pubKeyCertificate myPubKey myCertificateAction1,
-		scriptCertificate myScript myRedeemer myCertificateAction2
-	  ],
-    ... 
+        pubKeyCertificate myPubKey myCertificateAction1,
+        scriptCertificate myScript myRedeemer myCertificateAction2
+      ],
+    ...
   }
 ```
+
+* Deposits required by registrations are automatically accounted for during
+  balancing.
+
+### Stake pools
+
+`Cooked.Utilities.Pools` provides deterministic mock stake pools (`Pool`), with
+their keys and identifiers:
+* get a pool from its number: `pool 3`, or the default ones: `knownPools`
+* identifiers as `Api.PubKeyHash`: `poolId`, `poolVRFHash`, and back with
+  `poolIdToNumber`, `poolIdToPool`
+* Bech32 identifier: `poolIdBech32`
+* keys: `poolColdPK`, `poolColdSK`, `poolVRFPK`, `poolVRFSK`, `poolKESPK`,
+  `poolKESSK`
+
+* Register a pool (signed by its cold key with `signatoryPoolCold`), then
+  delegate stake to it:
+
+```haskell
+registerAndDelegate :: DirectMockChain ()
+registerAndDelegate = do
+  let p = pool 1
+  validateTxSkel_ $
+    txSkelEmulatorTemplate
+      { txSkelSignatories = [signatoryWallet (wallet 1), signatoryPoolCold p],
+        txSkelCertificates = [pubKeyCertificate (poolId p) (PoolRegister $ poolVRFHash p)]
+      }
+  validateTxSkel_ $
+    txSkelEmulatorTemplate
+      { txSkelSignatories = [signatoryWallet (wallet 1)],
+        txSkelCertificates =
+          [ pubKeyCertificate (wallet 1) (StakingRegisterDelegate $ Api.DelegStake $ poolId p)
+          ]
+      }
+```
+
+* Retire a registered pool at the epoch containing a given slot:
+  `pubKeyCertificate (poolId p) (PoolRetire slot)`
 
 ## Balancing
 

@@ -7,6 +7,7 @@ import Spec.InlineDatums qualified as InlineDatums
 import Spec.Ltl qualified as Ltl
 import Spec.MinAda qualified as MinAda
 import Spec.MultiPurpose qualified as MultiPurpose
+import Spec.Pools qualified as Pools
 import Spec.ProposingScript qualified as ProposingScript
 import Spec.ReferenceInputs qualified as ReferenceInputs
 import Spec.ReferenceScripts qualified as ReferenceScripts
@@ -30,6 +31,7 @@ main =
         Ltl.tests,
         MinAda.tests,
         MultiPurpose.tests,
+        Pools.tests,
         ProposingScript.tests,
         ReferenceInputs.tests,
         ReferenceScripts.tests,

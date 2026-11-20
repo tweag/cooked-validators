@@ -6,8 +6,12 @@
 
 - New `Cooked.Utilities` umbrella module gathering generic helpers:
   `Cooked.Utilities.Aliases`, `Cooked.Utilities.Families`,
-  `Cooked.Utilities.HList`, `Cooked.Utilities.ShowBS`,
+  `Cooked.Utilities.HList`, `Cooked.Utilities.Pools`, `Cooked.Utilities.ShowBS`,
   `Cooked.Utilities.TypedSearch` and `Cooked.Utilities.Wallet`.
+- New `Cooked.Utilities.Pools` module for constructing and inspecting
+  deterministic mock stake pools.
+- New `signatoryPoolCold` helper to sign pool certificates with a mock pool's
+  cold key.
 - New type aliases `UtxoSearchResult`, `BodyContent`, `Body`, `Transaction`,
   `SubmissionFailures` and `ExUnitsFailures` in `Cooked.Utilities.Aliases`.
 - New `hSingleton` and `FetchByType` (type-directed lookup in an `HList`).
