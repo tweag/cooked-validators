@@ -19,6 +19,8 @@ instance PlutusTx.Eq HeavyDatum where
 heavyDatum :: HeavyDatum
 heavyDatum = HeavyDatum (take 100 [0 ..])
 
+instance HasTypeKey HeavyDatum
+
 instance PrettyCooked HeavyDatum where
   prettyCookedOpt opts (HeavyDatum ints) = prettyItemizeNoTitle opts "-" ints
 

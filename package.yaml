@@ -3,11 +3,15 @@ verbatim:
 
 name: cooked-validators
 version: 10.0.0
+
+extra-source-files:
+  - tests/golden/*.json
     
 library:
   source-dirs: src
   dependencies:
     - QuickCheck
+    - aeson
     - base >= 4.9 && < 5
     - bytestring
     - cardano-api
@@ -61,6 +65,7 @@ library:
     - ConstraintKinds
     - DataKinds
     - DeriveFunctor
+    - DeriveGeneric
     - DerivingStrategies
     - DerivingVia
     - FlexibleContexts
@@ -92,11 +97,13 @@ tests:
     source-dirs:
       - tests/
     dependencies:
+      - aeson
       - base >= 4.9 && < 5
       - cardano-api
       - containers
       - cooked-validators
       - data-default
+      - extra
       - optics-core
       - plutus-core
       - plutus-ledger

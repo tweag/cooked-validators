@@ -31,8 +31,12 @@ mintingQuickValue :: StagedMockChain ()
 mintingQuickValue =
   validateTxSkel_
     txSkelEmulatorTemplate
-      { txSkelMints = review txSkelMintsListI [mint (Script.trueMintingMPScript @()) () (Api.TokenName "banana") 10],
-        txSkelOutputs = [alice `receives` Value (Script.multiPurposeScriptValue (Script.trueMintingMPScript @()) (Api.TokenName "banana") 10)],
+      { txSkelMints = review txSkelMintsListI [mint Script.trueMintingMPScript () (Api.TokenName "banana") 10],
+        txSkelOutputs =
+          [ alice
+              `receives` Value
+                (review (valueAssetClassAmountP Script.trueMintingMPScript (Api.TokenName "banana")) 10)
+          ],
         txSkelSignatories = txSkelSignatoriesFromList [alice]
       }
 
@@ -41,7 +45,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkelL $
             txSkelEmulatorTemplate
-              { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` AdaValue 10],
+              { txSkelOutputs = [Script.trueSpendingMPScript `receives` AdaValue 10],
                 txSkelSignatories = txSkelSignatoriesFromList [alice]
               }
         )

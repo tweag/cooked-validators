@@ -33,10 +33,10 @@ import Cooked.Utilities.Aliases
 import Data.Map.Strict qualified as Map
 import Ledger.Index qualified as P.Ledger
 import Ledger.Orphans ()
+import Ledger.Scripts qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
-import Ledger.Tx.CardanoAPI qualified as P.Ledger
+import Ledger.Tx.CardanoAPI qualified as P.Ledger hiding (toCardanoScriptHash)
 import Optics.Core
-import Plutus.Script.Utils.Scripts qualified as Script
 import Polysemy
 import Polysemy.Error
 import Polysemy.State
@@ -44,14 +44,14 @@ import Polysemy.State
 -- | An effect that offers all the primitives that are performing modifications
 -- on the blockchain state.
 data Override :: Effect where
-  SetParams :: Emulator.Params -> Override m ()
+  SetParams :: Emulator.EmulatorParams -> Override m ()
   SetConstitutionScript :: (ToVScript s) => s -> Override m ()
   ForceOutputs :: [TxSkelOut] -> Override m Utxos
 
 makeSem_ ''Override
 
 -- | Updates the current parameters
-setParams :: (Member Override effs) => Emulator.Params -> Sem effs ()
+setParams :: (Member Override effs) => Emulator.EmulatorParams -> Sem effs ()
 
 -- | Sets the current script to act as the official constitution script
 setConstitutionScript :: (Member Override effs, ToVScript s) => s -> Sem effs ()
@@ -91,7 +91,7 @@ runMockChainOverride = interpret $ \case
       over emulatorStateLedgerStateL $
         Lens.set
           Emulator.elsConstitutionScriptL
-          (Cardano.SJust $ Cardano.toShelleyScriptHash $ Script.toCardanoScriptHash cScript)
+          (Cardano.SJust $ Cardano.toShelleyScriptHash $ P.Ledger.hashVersionedScript cScript)
   ForceOutputs outputs -> do
     -- We adjust the outputs for the minimal required ADA if needed
     outputsMinAda <- mapM toTxSkelOutWithMinAda outputs

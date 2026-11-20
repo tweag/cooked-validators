@@ -12,8 +12,12 @@ import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter qualified as PP
 import Test.Tasty
 
+instance HasTypeKey MintingRed
+
 instance PrettyCooked MintingRed where
   prettyCooked = PP.viaShow
+
+instance HasTypeKey SpendingRed
 
 instance PrettyCooked SpendingRed where
   prettyCooked = PP.viaShow
@@ -83,7 +87,7 @@ runScript = do
         txSkelMints = review txSkelMintsListI [burn script BurnToken tn3 1]
       }
   where
-    mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript MPTag -> (TxSkel, Api.Value, Api.TokenName)
+    mkMintSkel :: Wallet -> Api.TxOutRef -> Script.MultiPurposeScript -> (TxSkel, Api.Value, Api.TokenName)
     mkMintSkel signer oRef@(Api.TxOutRef _ index) script =
       let tn = txOutRefToToken oRef
           mints = review txSkelMintsListI [mint script (MintToken oRef) tn 1]
@@ -110,7 +114,7 @@ tests =
               somewhere (datumHijackingAttack $ scriptsDatumHijackingParams OneBranchPerFoci alice) runScript,
           testCooked "We cannot redirect any output to another script" $
             mustFailWithSizeTest 6 $
-              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams OneBranchPerFoci $ Script.trueSpendingMPScript @()) runScript
+              somewhere (datumHijackingAttack $ scriptsDatumHijackingParams OneBranchPerFoci Script.trueSpendingMPScript) runScript
         ],
       testGroup
         "The Minting purpose behaves properly"

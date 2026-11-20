@@ -55,15 +55,8 @@ encodeInteger x
   | x < 256 = consByteString x ""
   | otherwise = consByteString (x `modulo` 256) $ encodeInteger (x `quotient` 256)
 
-data MPTag
-
-instance Script.MultiPurposeScriptTypes MPTag where
-  type SpendingRedeemerType MPTag = SpendingRed
-  type SpendingDatumType MPTag = Integer
-  type MintingRedeemerType MPTag = MintingRed
-
 {-# INLINEABLE mpMintingPurpose #-}
-mpMintingPurpose :: Api.TxId -> Script.MintingPurposeType MPTag
+mpMintingPurpose :: Api.TxId -> Script.MintingPurposeType Api.CurrencySymbol MintingRed Api.TxInfo
 mpMintingPurpose txId cs@(Api.CurrencySymbol hash) (MintToken oRef@(Api.TxOutRef txId' ix)) (Api.TxInfo {..}) =
   let requiredMintedValue = Api.assetClassValue (Api.assetClass cs (txOutRefToToken oRef)) 1
    in Script.toValue txInfoMint
@@ -96,7 +89,7 @@ mpMintingPurpose _ cs@(Api.CurrencySymbol hash) BurnToken (Api.TxInfo {..}) =
     == negate (Script.toValue txInfoMint)
 
 {-# INLINEABLE mpSpendingPurpose #-}
-mpSpendingPurpose :: Script.SpendingPurposeType MPTag
+mpSpendingPurpose :: Script.SpendingPurposeType Api.TxOutRef Integer SpendingRed Api.TxInfo
 mpSpendingPurpose oRef (Just x) Close Api.TxInfo {..}
   | x == 0 =
       length
@@ -119,11 +112,12 @@ mpSpendingPurpose oRef (Just x) Step Api.TxInfo {..} =
     == 1
 mpSpendingPurpose _ _ _ _ = False
 
-mpScript :: Api.TxId -> Script.MultiPurposeScript MPTag
+mpScript :: Api.TxId -> Script.MultiPurposeScript
 mpScript txId = Script.MultiPurposeScript $ Script.toScript $ $$(PlutusTx.compile [||script||]) `PlutusTx.unsafeApplyCode` PlutusTx.liftCodeDef txId
   where
     script txId' =
       Script.mkMultiPurposeScript
         $ Script.falseTypedMultiPurposeScript
-        `Script.withSpendingPurpose` mpSpendingPurpose
-        `Script.withMintingPurpose` mpMintingPurpose txId'
+          { Script.spendingPurpose = Just mpSpendingPurpose,
+            Script.mintingPurpose = Just (mpMintingPurpose txId')
+          }

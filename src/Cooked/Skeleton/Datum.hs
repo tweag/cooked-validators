@@ -1,11 +1,13 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | This module exposes the datum constructs used in payments of a
 -- 'Cooked.Skeleton.TxSkel'. Smart constructors for datums can be found in the
 -- 'Cooked.Skeleton.Output.Payable' structure meant to build payments.
 module Cooked.Skeleton.Datum
-  ( -- * Type constraints
+  ( -- * Data types
     DatumConstrs,
-
-    -- * Data types
     DatumResolved (..),
     DatumKind (..),
     TxSkelOutDatum (..),
@@ -19,28 +21,34 @@ module Cooked.Skeleton.Datum
     txSkelOutDatumDatumHashAF,
     txSkelOutDatumOutputDatumG,
     txSkelOutDatumOutputDatumI,
+
+    -- * Datum serialization
+    DatumRegistry,
+    txSkelOutDatumToJSON,
+    txSkelOutDatumFromJSON,
   )
 where
 
+import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Pretty.Plutus ()
-import Data.Typeable (cast)
+import Cooked.Utilities.Codec
+import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
+import Data.Aeson.Types (Parser, Value)
+import Data.Map qualified as Map
+import Data.Typeable (Typeable, cast)
+import GHC.Generics (Generic)
+import Ledger.Data.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-import Type.Reflection
 
 -- * Type constraints on datums used in cooked-validators
 
 -- | Type constraints that must be satisfied by the datum content
-type DatumConstrs datum =
-  ( Show datum,
-    PrettyCooked datum,
-    Api.ToData datum,
-    Api.FromData datum,
-    Eq datum,
-    Typeable datum
-  )
+class (Show datum, PrettyCooked datum, Api.ToData datum, Api.FromData datum, Eq datum, Typeable datum, HasTypeKey datum) => DatumConstrs datum
+
+instance (Show datum, PrettyCooked datum, Api.ToData datum, Api.FromData datum, Eq datum, Typeable datum, HasTypeKey datum) => DatumConstrs datum
 
 -- * Datum kind within a transaction and output
 
@@ -50,7 +58,7 @@ data DatumResolved
     NotResolved
   | -- | Resolve the datum (present from 'Api.txInfoData')
     Resolved
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
 
 -- | Options on how to include the datum in the transaction
 data DatumKind
@@ -59,7 +67,7 @@ data DatumKind
   | -- | Only include the datum hash in the UTxO. Resolve, or do not resolve,
     -- the full datum in the transaction body.
     Hashed DatumResolved
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
 
 -- | Builds or retrieves the 'DatumResolved' of a 'DatumKind'
 datumKindResolvedP :: Prism' DatumKind DatumResolved
@@ -158,7 +166,7 @@ txSkelOutDatumDatumHashAF =
   afolding
     ( \case
         SomeTxSkelOutDatumHash hash -> Just hash
-        datum -> Script.datumHash <$> preview txSkelOutDatumDatumAF datum
+        datum -> P.Ledger.datumHash <$> preview txSkelOutDatumDatumAF datum
     )
 
 -- | Retrieves the 'Api.OutputDatum' of a 'TxSkelOutDatum'
@@ -168,7 +176,7 @@ txSkelOutDatumOutputDatumG = to Script.toOutputDatum
 instance Script.ToOutputDatum TxSkelOutDatum where
   toOutputDatum NoTxSkelOutDatum = Api.NoOutputDatum
   toOutputDatum (SomeTxSkelOutDatum datum Inline) = Api.OutputDatum $ Api.Datum $ Api.toBuiltinData datum
-  toOutputDatum (SomeTxSkelOutDatum datum _) = Api.OutputDatumHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum
+  toOutputDatum (SomeTxSkelOutDatum datum _) = Api.OutputDatumHash $ P.Ledger.datumHash $ Api.Datum $ Api.toBuiltinData datum
   toOutputDatum (SomeTxSkelOutDatumHash hash) = Api.OutputDatumHash hash
 
 -- | An isomorphism betwean our 'TxSkelOutDatum' and Plutus
@@ -184,3 +192,46 @@ txSkelOutDatumOutputDatumI =
         Api.NoOutputDatum -> NoTxSkelOutDatum
         Api.OutputDatumHash dHash -> SomeTxSkelOutDatumHash dHash
     )
+
+-- | Internal representation of a 'TxSkelOutDatum' that can be serialized to
+-- JSON which turns the existential type into a string representation of the
+-- type, and the datum content into a 'Api.BuiltinData'.
+data DatumSerialized where
+  NoDatumSerialized :: DatumSerialized
+  SomeDatumSerialized :: String -> Api.BuiltinData -> DatumKind -> DatumSerialized
+  SomeDatumHashSerialized :: Api.DatumHash -> DatumSerialized
+  deriving (Generic, ToJSON, FromJSON)
+
+-- | Transforms a 'TxSkelOutDatum' to the internal representation.
+serializeDatum :: TxSkelOutDatum -> DatumSerialized
+serializeDatum NoTxSkelOutDatum = NoDatumSerialized
+serializeDatum (SomeTxSkelOutDatum @datum content kind) =
+  SomeDatumSerialized (typeKey @datum) (Api.toBuiltinData content) kind
+serializeDatum (SomeTxSkelOutDatumHash hash) =
+  SomeDatumHashSerialized hash
+
+-- | A registry for datum types satisfying 'DatumConstrs'.
+type DatumRegistry = Registry DatumConstrs
+
+-- | Produces a 'TxSkelOutDatum' from the internal representation, using a
+-- 'DatumRegistry' to resolve the datum type.
+deserializeDatum :: DatumRegistry -> DatumSerialized -> Parser TxSkelOutDatum
+deserializeDatum _ NoDatumSerialized = return NoTxSkelOutDatum
+deserializeDatum registry (SomeDatumSerialized typeName bData kind) = do
+  Codec @datum <- case Map.lookup typeName registry of
+    Nothing -> fail $ "deserializeDatum: unknown datum type: " <> typeName
+    Just codec -> return codec
+  deserializedDatum <- case Api.fromBuiltinData @datum bData of
+    Nothing -> fail $ "deserializeDatum: failed to deserialize datum of type: " <> typeName
+    Just d -> return d
+  return $ SomeTxSkelOutDatum deserializedDatum kind
+deserializeDatum _ (SomeDatumHashSerialized hash) = return $ SomeTxSkelOutDatumHash hash
+
+-- | Serialize a 'TxSkelOutDatum' to JSON.
+txSkelOutDatumToJSON :: TxSkelOutDatum -> Value
+txSkelOutDatumToJSON = toJSON . serializeDatum
+
+-- | Deserialize a 'TxSkelOutDatum' from JSON, using a 'DatumRegistry' to
+-- resolve the datum type.
+txSkelOutDatumFromJSON :: DatumRegistry -> Value -> Parser TxSkelOutDatum
+txSkelOutDatumFromJSON registry = deserializeDatum registry <=< parseJSON

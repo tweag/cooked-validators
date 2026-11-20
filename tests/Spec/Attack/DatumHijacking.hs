@@ -16,12 +16,14 @@ import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
+instance HasTypeKey LockDatum
+
 instance PrettyCooked LockDatum where
   prettyCooked = viaShow
 
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
-lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
+lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript -> TxSkel
 lockTxSkel o v =
   txSkelEmulatorTemplate
     { txSkelInputs = Map.singleton o emptyTxSkelRedeemer,
@@ -29,7 +31,7 @@ lockTxSkel o v =
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
     }
 
-txLock :: Script.MultiPurposeScript DHContract -> StagedMockChain Api.TxOutRef
+txLock :: Script.MultiPurposeScript -> StagedMockChain Api.TxOutRef
 txLock v = do
   utxosAt (wallet 1)
     >>= ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
@@ -38,7 +40,7 @@ txLock v = do
     >>= validateTxSkelL
     >>= retrieve head
 
-relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
+relockTxSkel :: Script.MultiPurposeScript -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelEmulatorTemplate
     { txSkelInputs = Map.singleton o $ someTxSkelRedeemer (),
@@ -47,19 +49,19 @@ relockTxSkel v o =
     }
 
 txRelock ::
-  Script.MultiPurposeScript DHContract ->
+  Script.MultiPurposeScript ->
   Api.TxOutRef ->
   StagedMockChain ()
 txRelock v oref = validateTxSkel_ $ relockTxSkel v oref
 
-datumHijackingTrace :: Script.MultiPurposeScript DHContract -> StagedMockChain ()
+datumHijackingTrace :: Script.MultiPurposeScript -> StagedMockChain ()
 datumHijackingTrace v = do
   txLock v >>= txRelock v
 
 -- * TestTree for the datum hijacking attack
 
-thief :: Script.MultiPurposeScript DHContract
-thief = Script.trueSpendingMPScript @DHContract
+thief :: Script.MultiPurposeScript
+thief = Script.trueSpendingMPScript
 
 tests :: TestTree
 tests =

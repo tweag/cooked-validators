@@ -19,20 +19,20 @@ alice, bob :: Wallet
 (alice, bob) = (wallet 1, wallet 2)
 
 apple, orange, banana :: Integer -> Api.Value
-apple = Script.multiPurposeScriptValue Script.trueMintingMPScript $ Api.TokenName "apple"
-orange = Script.multiPurposeScriptValue Script.trueMintingMPScript $ Api.TokenName "orange"
-banana = Script.multiPurposeScriptValue Script.trueMintingMPScript $ Api.TokenName "banana"
+apple = review (valueAssetClassAmountP Script.trueMintingMPScript (Api.TokenName "apple"))
+orange = review (valueAssetClassAmountP Script.trueMintingMPScript (Api.TokenName "orange"))
+banana = review (valueAssetClassAmountP Script.trueMintingMPScript (Api.TokenName "banana"))
 
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
-  [ Script.trueSpendingMPScript @() `receives` AdaValue 42 <&&> VisibleHashedDatum (),
+  [ Script.trueSpendingMPScript `receives` AdaValue 42 <&&> VisibleHashedDatum (),
     alice `receives` FixedValue (Script.ada 2 <> apple 3),
     alice `receives` AdaValue 25,
     alice `receives` FixedValue (Script.ada 40 <> orange 6),
     alice `receives` AdaValue 8,
     alice `receives` AdaValue 30,
     alice `receives` FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer),
-    alice `receives` FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (Script.trueSpendingMPScript @()),
+    alice `receives` FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript Script.trueSpendingMPScript,
     alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
   ]
 
@@ -40,7 +40,7 @@ type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Maybe Collaterals, Set Api.TxO
 
 spendsScriptUtxo :: Bool -> FullMockChain (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
-spendsScriptUtxo True = fmap (const emptyTxSkelRedeemerNoAutoFill) <$> utxosAt (Script.trueSpendingMPScript @())
+spendsScriptUtxo True = fmap (const emptyTxSkelRedeemerNoAutoFill) <$> utxosAt Script.trueSpendingMPScript
 
 testingBalancingTemplate ::
   -- Value to pay to bob

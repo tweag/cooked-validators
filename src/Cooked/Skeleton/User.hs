@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | This module exposes the notion of user used everywhere in our
 -- 'Cooked.Skeleton.TxSkel'. A user can either be a script or a pubkey, and
 -- might be used in a redemption or an allocation setting. All of this is
@@ -34,13 +36,26 @@ module Cooked.Skeleton.User
     userTypedScriptAT,
     userTypedPubKeyAT,
     userScriptRedeemerI,
+
+    -- * Serialization
+    PubKeyConstrs,
+    PubKeyRegistry,
+    ScriptConstrs,
+    ScriptRegistry,
+    userToJSON,
+    userFromJSON,
   )
 where
 
 import Cooked.Skeleton.Redeemer
+import Cooked.Utilities.Codec
 import Cooked.Utilities.Families
+import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON), Value (..), object, withObject, (.:), (.=))
+import Data.Aeson.Types (Parser)
 import Data.Kind
-import Data.Typeable
+import Data.Map qualified as Map
+import Data.String (fromString)
+import Data.Typeable (Typeable, eqT, type (:~:) (Refl))
 import Optics.Core
 import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -80,10 +95,10 @@ data UserKind = IsScript | IsPubKey | IsEither | IsNone
 data User :: UserKind -> UserMode -> Type where
   -- | A pubkey user. This can be used whenever a pubkey is needed, and for
   -- either of the possible modes.
-  UserPubKey :: forall pkh kind mode. (kind ∈ '[IsPubKey, IsEither], Script.ToPubKeyHash pkh, Typeable pkh) => pkh -> User kind mode
+  UserPubKey :: forall pkh kind mode. (kind ∈ '[IsPubKey, IsEither], Script.ToPubKeyHash pkh, Typeable pkh, HasTypeKey pkh, ToJSON pkh, FromJSON pkh) => pkh -> User kind mode
   -- | A script user. This can be used whenever a script is needed, but only for
   -- the allocation mode.
-  UserScript :: forall script kind. (kind ∈ '[IsScript, IsEither], ToVScript script, Typeable script) => script -> User kind Allocation
+  UserScript :: forall script kind. (kind ∈ '[IsScript, IsEither], ToVScript script, Typeable script, HasTypeKey script, ToJSON script, FromJSON script) => script -> User kind Allocation
   -- | A script user known only by its hash. This can be used whenever a script
   -- is needed for the allocation mode but the full script is not available.
   -- Spending an output owned by such a user requires providing the full script
@@ -166,7 +181,10 @@ userTypedAF =
     )
 
 -- | Focuses on the optional typed script of a 'User'
-userTypedScriptAT :: forall userScript mode. (ToVScript userScript, Typeable userScript) => AffineTraversal' (User IsScript mode) userScript
+userTypedScriptAT ::
+  forall userScript mode.
+  (ScriptConstrs userScript) =>
+  AffineTraversal' (User IsScript mode) userScript
 userTypedScriptAT =
   atraversal
     ( \user -> case user of
@@ -181,7 +199,10 @@ userTypedScriptAT =
     )
 
 -- | Focuses on the optional typed pubkey of a 'User'
-userTypedPubKeyAT :: forall userPK mode. (Script.ToPubKeyHash userPK, Typeable userPK) => AffineTraversal' (User IsPubKey mode) userPK
+userTypedPubKeyAT ::
+  forall userPK mode.
+  (PubKeyConstrs userPK) =>
+  AffineTraversal' (User IsPubKey mode) userPK
 userTypedPubKeyAT =
   atraversal
     ( \user -> case user of
@@ -314,3 +335,68 @@ userRedeemerL = userScriptRedeemerI % _2
 -- | Focuses on the 'VScript' of a redeemed script
 userVScriptL :: Lens' (User IsScript Redemption) VScript
 userVScriptL = userScriptRedeemerI % _1
+
+-- | The constraints required on pubkeys to be registered in a
+-- 'PubKeyRegistry'.
+class (ToJSON t, FromJSON t, Script.ToPubKeyHash t, Typeable t, HasTypeKey t) => PubKeyConstrs t
+
+instance (ToJSON t, FromJSON t, Script.ToPubKeyHash t, Typeable t, HasTypeKey t) => PubKeyConstrs t
+
+-- | The constraints required on scripts to be registered in a
+-- 'ScriptRegistry'.
+class (ToJSON t, FromJSON t, ToVScript t, Typeable t, HasTypeKey t) => ScriptConstrs t
+
+instance (ToJSON t, FromJSON t, ToVScript t, Typeable t, HasTypeKey t) => ScriptConstrs t
+
+-- | A registry of pubkey codecs satisfying 'PubKeyConstrs'.
+type PubKeyRegistry = Registry PubKeyConstrs
+
+-- | A registry of script codecs satisfying 'ScriptConstrs'.
+type ScriptRegistry = Registry ScriptConstrs
+
+-- | Serializes a 'User IsEither Allocation' to JSON.
+userToJSON :: User IsEither Allocation -> Value
+userToJSON (UserPubKey @t pkh) =
+  object
+    [ "type" .= String "pubkey",
+      "typeName" .= String (fromString $ typeKey @t),
+      "value" .= toJSON pkh
+    ]
+userToJSON (UserScript @t script) =
+  object
+    [ "type" .= String "script",
+      "typeName" .= String (fromString $ typeKey @t),
+      "value" .= toJSON script
+    ]
+userToJSON (UserScriptHash sHash) =
+  object
+    [ "type" .= String "scriptHash",
+      "value" .= toJSON sHash
+    ]
+
+-- | Deserializes a 'User IsEither Allocation' from JSON, using the provided
+-- type registries for pubkeys and scripts.
+userFromJSON :: PubKeyRegistry -> ScriptRegistry -> Value -> Parser (User IsEither Allocation)
+userFromJSON pkRegistry scriptRegistry = withObject "User" $ \obj -> do
+  userType <- obj .: "type"
+  case userType of
+    String "pubkey" -> do
+      typeName <- obj .: "typeName"
+      pkhValue <- obj .: "value"
+      Codec @t <- case Map.lookup typeName pkRegistry of
+        Nothing -> fail $ "userFromJSON: unknown pubkey type: " <> typeName
+        Just codec -> return codec
+      pkh <- parseJSON @t pkhValue
+      return $ UserPubKey pkh
+    String "script" -> do
+      typeName <- obj .: "typeName"
+      scriptValue <- obj .: "value"
+      Codec @t <- case Map.lookup typeName scriptRegistry of
+        Nothing -> fail $ "userFromJSON: unknown script type: " <> typeName
+        Just codec -> return codec
+      script <- parseJSON @t scriptValue
+      return $ UserScript script
+    String "scriptHash" -> do
+      sHash <- obj .: "value"
+      return $ UserScriptHash sHash
+    _ -> fail $ "userFromJSON: unknown user type: " <> show userType

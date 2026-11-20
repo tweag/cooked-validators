@@ -10,7 +10,7 @@ import PlutusTx
 import PlutusTx.Prelude
 
 {-# INLINEABLE carefulPolicyMintingPurpose #-}
-carefulPolicyMintingPurpose :: Api.TokenName -> Integer -> Script.MintingPurposeType ()
+carefulPolicyMintingPurpose :: Api.TokenName -> Integer -> Script.MintingPurposeType Api.CurrencySymbol BuiltinData Api.TxInfo
 carefulPolicyMintingPurpose tn n cs _ (Api.TxInfo {txInfoMint}) =
   case Api.flattenValue (Script.toValue txInfoMint) of
     [(cs', tn', n')] -> cs' == cs && tn' == tn && n' == n
@@ -22,12 +22,13 @@ carefulPolicyCompiled = $$(compile [||script||])
     script tn n =
       Script.mkMultiPurposeScript
         $ Script.falseTypedMultiPurposeScript
-        `Script.withMintingPurpose` carefulPolicyMintingPurpose tn n
+          { Script.mintingPurpose = Just $ carefulPolicyMintingPurpose tn n
+          }
 
 carefulPolicy :: Api.TokenName -> Integer -> Script.Versioned Script.MintingPolicy
 carefulPolicy tName allowedAmount =
   Script.toVersioned
-    $ Script.MultiPurposeScript @()
+    $ Script.MultiPurposeScript
     $ Script.toScript
     $ carefulPolicyCompiled
     `unsafeApplyCode` liftCode plcVersion110 tName

@@ -4,6 +4,7 @@ module Spec.InlineDatums where
 
 import Cooked hiding (Inline)
 import Data.Map qualified as Map
+import Ledger.Data.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.InlineDatums
 import Plutus.Script.Utils.V3 qualified as Script
@@ -11,6 +12,8 @@ import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
+
+instance HasTypeKey SimpleContractDatum
 
 instance PrettyCooked SimpleContractDatum where
   prettyCooked = viaShow
@@ -87,8 +90,8 @@ tests =
     "Inline datums vs. datum hashes"
     [ testCase "the first and second datums have different hashes" $
         assertBool "... they do not" $
-          (Script.datumHash . Api.Datum . Api.toBuiltinData $ FirstPaymentDatum)
-            /= (Script.datumHash . Api.Datum . Api.toBuiltinData $ SecondPaymentDatum),
+          (P.Ledger.datumHash . Api.Datum . Api.toBuiltinData $ FirstPaymentDatum)
+            /= (P.Ledger.datumHash . Api.Datum . Api.toBuiltinData $ SecondPaymentDatum),
       testGroup
         "from the MockChain's point of view on Transaction outputs (allUtxos)"
         -- The validator used in these test cases does not actually matter, we

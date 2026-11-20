@@ -24,7 +24,6 @@ import Data.Kind (Type)
 import Data.Typeable (Typeable, cast)
 import Ledger.Slot qualified as P.Ledger
 import Optics.Core
-import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | The depiction of the possible actions in a certificate. Each actions
@@ -79,7 +78,11 @@ txSkelCertificateActionAT =
     (\cert@(TxSkelCertificate @user' owner _) -> maybe cert (TxSkelCertificate owner) . cast @_ @(CertificateAction user'))
 
 -- | Smart constructor for a pubkey certificate
-pubKeyCertificate :: (Script.ToPubKeyHash pkh, Typeable pkh, Typeable a, a ∈ '[IsPubKey, IsEither]) => pkh -> CertificateAction a -> TxSkelCertificate
+pubKeyCertificate ::
+  (PubKeyConstrs pkh, Typeable a, a ∈ '[IsPubKey, IsEither]) =>
+  pkh ->
+  CertificateAction a ->
+  TxSkelCertificate
 pubKeyCertificate pkh = TxSkelCertificate (UserPubKey pkh)
 
 -- | Smart constructor for a script certificate

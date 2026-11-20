@@ -245,6 +245,13 @@ handling fees or balancing.
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
 
+- The [CODECS](doc/CODECS.md) file explains how to register custom datum,
+  pubkey and script types so that chain indexes containing them can be
+  persisted and loaded back.
+
+- The [TWEAKS](doc/TWEAKS.md) file describes the conventions our tweaks (the
+  building blocks of the attack DSL) follow, regarding naming and branching
+  behavior.
 
 ## Blog posts
 

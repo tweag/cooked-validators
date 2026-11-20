@@ -7,8 +7,8 @@ module Cooked.Pretty.Hashable
 where
 
 import Cooked.Utilities.Wallet
+import Ledger.Data.CardanoAPI qualified as P.Ledger
 import Plutus.Script.Utils.Address qualified as Script
-import Plutus.Script.Utils.Data qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.V1.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed qualified as Script
@@ -55,15 +55,15 @@ instance ToHash Api.DatumHash where
   toHash (Api.DatumHash hash) = hash
 
 instance ToHash Api.Datum where
-  toHash = toHash . Script.datumHash
+  toHash = toHash . P.Ledger.datumHash
 
 instance ToHash Api.BuiltinData where
-  toHash = toHash . Script.dataHash
+  toHash = toHash . P.Ledger.dataHash
 
 instance ToHash Api.TxId where
   toHash = Api.getTxId
 
-instance ToHash (Script.MultiPurposeScript a) where
+instance ToHash Script.MultiPurposeScript where
   toHash = toHash . Script.toVersioned @Script.Script
 
 instance ToHash Api.Address where

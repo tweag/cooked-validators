@@ -30,10 +30,10 @@ withdraw user =
       }
 
 trueScriptUser :: User IsEither Redemption
-trueScriptUser = UserRedeemedScript (toVScript $ Script.trueMPScript @()) emptyTxSkelRedeemer
+trueScriptUser = UserRedeemedScript Script.trueMPScript emptyTxSkelRedeemer
 
 falseScriptUser :: User IsEither Redemption
-falseScriptUser = UserRedeemedScript (toVScript $ Script.falseMPScript @()) emptyTxSkelRedeemer
+falseScriptUser = UserRedeemedScript Script.falseMPScript emptyTxSkelRedeemer
 
 aliceUser :: User IsEither Redemption
 aliceUser = UserPubKey $ Script.toPubKeyHash alice
@@ -56,7 +56,7 @@ tests =
               publishCertificate $
                 TxSkelCertificate trueScriptUser StakingRegister,
           testCooked "Failure when registering the false script" $
-            mustFailInPhase2WithMsgTest "Unsupported purpose: Certifying" $
+            mustFailInPhase2WithMsgTest "Script used with an unsupported purpose." $
               publishCertificate $
                 TxSkelCertificate falseScriptUser StakingRegister,
           testCooked "Failure when withdrawing directly after registering" $
@@ -102,7 +102,7 @@ tests =
               publishCertificate $
                 TxSkelCertificate trueScriptUser DRepRegister,
           testCooked "... but the script might fail at registration" $
-            mustFailInPhase2WithMsgTest "Unsupported purpose: Certifying" $
+            mustFailInPhase2WithMsgTest "Script used with an unsupported purpose." $
               publishCertificate $
                 TxSkelCertificate falseScriptUser DRepRegister
         ],

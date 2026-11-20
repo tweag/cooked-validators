@@ -64,9 +64,6 @@
   otherwise.
 - New `AdaValue` and `LovelaceValue` payables, which are not subject to
   min-ada adjustment.
-- New `TxSkelSignatoryWitness` to attach any signing key to a signatory,
-  with `txSkelSignatoryWitnessSigningKeyAF` and
-  `txSkelSignatorySigningKeyAF`.
 - New `signatoryFromFile`, reading a signatory from a Cardano signing key
   file.
 - Signatories can be used as output owners.
@@ -76,9 +73,35 @@
   cooked computations against a Cardano node through a
   `LocalNodeConnectInfo`: effect stacks `DirectBlockChainEffs` and
   `FullBlockChainEffs`, class `RunnableBlockChain`, configuration
-  `BlockChainConf` with `blockChainConfTemplate`, and runners
+  `BlockChainConf` with `blockChainConfDefaultTemplate`, and runners
   `runBlockChainFromConf` and `runBlockChainFromConfTemplate`.
 - New `CONTRIBUTING.md` guide.
+- New `Cooked.Utilities.Codec` module to register types for
+  deserialization: `HasTypeKey` (type keys, which default to fully qualified
+  type names through an empty or derived instance, and can be given
+  explicitly), `Codec`, `Registry`, `registerType` and `mkRegistry`. See
+  `doc/CODECS.md`.
+- New `Cooked.Runtime.Registries` module: `Registries` gathers datum,
+  pubkey and script registries (`emptyRegistries`, `defaultRegistries`,
+  `datumRegistryL`, `pubKeyRegistryL`, `scriptRegistryL`,
+  `extendDatumRegistry`, `extendPubKeyRegistry`, `extendScriptRegistry`),
+  with `Semigroup` and `Monoid` instances.
+- JSON serialization of outputs: `txSkelOutToJSON` and
+  `txSkelOutFromJSON`, `userToJSON` and `userFromJSON`,
+  `txSkelOutDatumToJSON` and `txSkelOutDatumFromJSON`, along with
+  `DatumRegistry`, `PubKeyRegistry`, `ScriptRegistry`, `PubKeyConstrs` and
+  `ScriptConstrs`.
+- Persistence of the `ChainIndex`: `chainIndexToJSON`,
+  `chainIndexFromJSON`, `loadChainIndex` and `saveChainIndex` (which keeps
+  a `.bak` copy of the previous file). `ChainIndex` now has an `Eq`
+  instance. Private keys of wallets and signatories owning outputs are
+  currently stored in plain text, until proper wallet support is provided.
+- Blockchain runs can load their initial chain index from a file
+  (`ChainIndexSource`, `chainIndexFromSource`, `bccChainIndexSource`) and
+  store the final one (`bccChainIndexTarget`), with the templates
+  `blockChainConfWithGivenRegistryTemplate`,
+  `blockChainConfWithExtraRegistryTemplate` and
+  `blockChainConfWithDefaultRegistriesTemplate`.
 
 ### Changed
 
@@ -132,8 +155,12 @@
 - `txSkelOptModTx` and `txSkelOptAddModTx` work on the `Transaction`
   alias.
 - The private key of a `TxSkelSignatory` is now a
-  `TxSkelSignatoryWitness` instead of a `Maybe XPrv`, focused by
-  `txSkelSignatoryPrivateKeyL`.
+  `Maybe ShelleyWitnessSigningKey` instead of a `Maybe XPrv`, so that any
+  signing key can be used. `txSkelSignatoryMPrivateKeyL` is renamed
+  `txSkelSignatoryPrivateKeyL`, and `txSkelSignatoryPrivateKeyAT` now
+  focuses on a `ShelleyWitnessSigningKey`.
+- The public key hash of a `TxSkelSignatory` is now a plain
+  `Api.PubKeyHash`, and signatories can be serialized to JSON.
 - Signatories are compared by public key hash only.
 - `userVScriptL` and `userRedeemerL` are restricted to redeemed scripts.
 - `fillConstitution` is renamed `fillConstitutionWhenEmpty`.
@@ -158,6 +185,13 @@
   skeleton options are hidden by default.
 - `Cooked` now re-exports `Cooked.Automation`, `Cooked.BlockChain`,
   `Cooked.Effect`, `Cooked.Runtime` and `Cooked.Utilities`.
+- `DatumConstrs` is now a class and requires `HasTypeKey`. Pubkeys and
+  scripts used in `UserPubKey` and `UserScript` additionally require
+  `HasTypeKey`, `ToJSON` and `FromJSON`.
+- Upgraded `cardano-node-emulator` to a pinned git revision:
+  `setParams` and `EmulatorState` use `EmulatorParams`, and
+  `MultiPurposeScript` is no longer parameterized by a type.
+- `DeriveGeneric` is now a default extension.
 
 ### Removed
 
@@ -179,7 +213,7 @@
   `txSkelOptDeferPhase2FailuresDuringBalancing`, with their optics.
 - The `Default` instance of `TxSkelOpts`; use one of the templates
   instead.
-- `txSkelSignatoryMPrivateKeyL` and `txSkelSignatoryPrivateKeyAT`.
+- The orphan `Eq Wallet` instance.
 
 ### Fixed
 

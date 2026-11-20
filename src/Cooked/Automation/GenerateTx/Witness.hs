@@ -67,4 +67,4 @@ toKeyWitness ::
   TxSkelSignatory ->
   Maybe (Cardano.KeyWitness Cardano.ConwayEra)
 toKeyWitness txBody =
-  fmap (Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody) . preview txSkelSignatorySigningKeyAF
+  fmap (Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody) . preview txSkelSignatoryPrivateKeyAT
