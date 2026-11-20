@@ -30,6 +30,18 @@
   `ChainIndex`.
 - New `UtxoPayloadDatumHash` constructor for outputs whose datum is only
   known by its hash.
+- New `Cooked.Effect` umbrella module with fine-grained effects, each with
+  `runMockChain*` and, when meaningful, `runBlockChain*` interpreters:
+  `Query`, `Params`, `Time`, `Submit`, `Validate`, `Override`, `Misc` and
+  `Log`.
+- New UTxO queries `utxosByRef`, `utxoByRef`, `viewByRef` and
+  `previewByRef`, each with an `E` variant (throwing a `ChainError`) and
+  an `F` variant (failing in `Fail`).
+- New `getNetworkId`, `getEraHistory` and `getSystemStart` queries.
+- New `submitTransaction` primitive (`Submit` effect) and `runChainValidate`
+  interpreter shared by both backends.
+- New `validateTxSkelL`, returning the references of the created outputs.
+- New `define_`, `defineM_`, `assertP`, `assertL`, `assertW` and `assertS`.
 
 ### Changed
 
@@ -54,6 +66,23 @@
   constructors prefixed with `CLog` instead of `MCLog`.
 - Assertions in the journal are now stored as pretty-printable documents
   instead of `String`s.
+- `MockChainRead` is split into `Query`, `Params` and `Time`;
+  `MockChainWrite` is split into `Validate`, `Override` and `Time`;
+  `MockChainMisc` and `MockChainLog` became `Misc` and `Log`.
+- `getParams` now returns the ledger `PParams` instead of emulator
+  `Params`.
+- `utxosAt` now looks for outputs by address instead of by credential.
+- `allUtxos` and `utxosAt` return a `UtxoSearchResult`.
+- `validateTxSkel` now returns the adjusted skeleton, the submission
+  failures, the generated transaction and the created `Utxos`;
+  `validateTxSkel'` returns the created `Utxos`.
+- `assert` now takes a rendering function instead of a `String`; use
+  `assertS` for the previous behaviour.
+- `setParams`, `setConstitutionScript` and `forceOutputs` live in the
+  mockchain-only `Override` effect; `forceOutputs` no longer relies on a
+  dummy genesis input.
+- Validating a skeleton no longer automatically increases the current
+  slot.
 
 ### Removed
 
@@ -66,6 +95,9 @@
 - `MCEValidationError`, replaced by `CEExUnitsFailures` (script
   evaluation) and `CESubmissionFailures` (ledger rejection).
 - `MCEPastSlot`.
+- `txSkelAllScripts`, `txSkelInputScripts`, `txSkelInputValue`,
+  `txSkelOutByRef`, `utxosFromCardanoTx` and `lookupUtxos`.
+- `runToCardanoErrorInMockChainError` and `runFailInMockChainError`.
 
 ### Fixed
 
