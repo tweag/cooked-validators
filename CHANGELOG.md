@@ -4,9 +4,37 @@
 
 ### Added
 
+- New `Cooked.Utilities` umbrella module gathering generic helpers:
+  `Cooked.Utilities.Aliases`, `Cooked.Utilities.Families`,
+  `Cooked.Utilities.HList`, `Cooked.Utilities.ShowBS`,
+  `Cooked.Utilities.TypedSearch` and `Cooked.Utilities.Wallet`.
+- New type aliases `UtxoSearchResult`, `BodyContent`, `Body`, `Transaction`,
+  `SubmissionFailures` and `ExUnitsFailures` in `Cooked.Utilities.Aliases`.
+- New `hSingleton` and `FetchByType` (type-directed lookup in an `HList`).
+- New `Cooked.Utilities.TypedSearch` module: a `SearchResult f els` is a
+  container of `HList`s built with `searchResultMapI`, refined with
+  `extract*` and `ensure*`, and consumed with `retrieve`, `retrieveKeys`,
+  `retrieveAsList`, `retrieveByType`, `retrieveByTypeAndFold` and
+  `retrieveByTypeAsList`.
+
 ### Changed
 
+- `Cooked.Families`, `Cooked.ShowBS` and `Cooked.Wallet` moved to
+  `Cooked.Utilities.Families`, `Cooked.Utilities.ShowBS` and
+  `Cooked.Utilities.Wallet`; `Cooked.MockChain.Common` became
+  `Cooked.Utilities.Aliases`.
+- `HList`, `hHead` and `hTail` moved from `Cooked.Families` to
+  `Cooked.Utilities.HList`.
+- `Utxos` is now a `Map Api.TxOutRef TxSkelOut` instead of a list.
+
 ### Removed
+
+- `Cooked.MockChain.UtxoSearch` (`UtxoSearch`, `beginSearch`,
+  `beginSearchPure`, `getOutputs`, `getTxOutRefs`, `utxosAtSearch`,
+  `allUtxosSearch`, `txSkelOutByRefSearch`, `ensureOnlyValueOutputs`,
+  `ensureVanillaOutputs`, `ensureProperReferenceScript`, ...). Searches are
+  now expressed with `Cooked.Utilities.TypedSearch` on top of the `Query`
+  effect.
 
 ### Fixed
 

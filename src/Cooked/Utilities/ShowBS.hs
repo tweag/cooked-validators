@@ -10,7 +10,7 @@
 -- module, consider using
 -- 'Cooked.Skeleton.Option.txOptEmulatorParamsModification' to temporarily
 -- loosen the limits (at the cost of breaking compatibility with mainnet)
-module Cooked.ShowBS (ShowBS (..)) where
+module Cooked.Utilities.ShowBS (ShowBS (..)) where
 
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.AssocMap qualified as Map
