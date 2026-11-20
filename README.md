@@ -249,10 +249,6 @@ handling fees or balancing.
   pubkey and script types so that chain indexes containing them can be
   persisted and loaded back.
 
-- The [TWEAKS](doc/TWEAKS.md) file describes the conventions our tweaks (the
-  building blocks of the attack DSL) follow, regarding naming and branching
-  behavior.
-
 ## Blog posts
 
 Several blog posts have been written about `cooked-validators`. As the library

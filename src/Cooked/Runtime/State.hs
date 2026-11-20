@@ -2,7 +2,7 @@
 -- simulation is run:
 --
 -- - `EmulatorState`, which gathers the emulator-specific data (the emulator
---   `Emulator.Params` and the `Emulator.EmulatedLedgerState`). This is only
+--   `Emulator.EmulatorParams` and the `Emulator.EmulatedLedgerState`). This is only
 --   relevant when running against the emulated ledger.
 --
 -- - `ChainIndex`, which gathers the backend-agnostic data (the map of known
