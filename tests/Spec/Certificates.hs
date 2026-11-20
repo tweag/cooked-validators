@@ -14,9 +14,9 @@ bob = wallet 1
 
 publishCertificate :: TxSkelCertificate -> DirectMockChain ()
 publishCertificate cert = do
-  forceOutputs_ [alice `receives` Value (Script.ada 100)]
+  forceOutputs_ [alice `receives` AdaValue 100]
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelCertificates = [cert]
       }
@@ -24,7 +24,7 @@ publishCertificate cert = do
 withdraw :: User IsEither Redemption -> DirectMockChain ()
 withdraw user =
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelWithdrawals = review txSkelWithdrawalsListI [Withdrawal user Nothing]
       }

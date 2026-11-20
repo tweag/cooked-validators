@@ -2,7 +2,6 @@ module Spec.Attack.OutputsReordering where
 
 import Cooked
 import Optics.Core
-import Plutus.Script.Utils.Value qualified as Script
 import Polysemy
 import Polysemy.NonDet
 import Test.Tasty
@@ -10,8 +9,8 @@ import Test.Tasty.HUnit
 
 manyOutputsSkeleton :: TxSkel
 manyOutputsSkeleton =
-  txSkelTemplate
-    { txSkelOutputs = (\n -> wallet n `receives` Value (Script.ada 10)) <$> [1 .. 5]
+  txSkelEmulatorTemplate
+    { txSkelOutputs = (\n -> wallet n `receives` AdaValue 10) <$> [1 .. 5]
     }
 
 runOutputsReordering :: OutputsReorderingParams -> [[Int]]

@@ -20,25 +20,27 @@ initialDistributionWithDatum =
 -- 2 UTxOs with 100 ADA
 initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
-  (alice `receives` Value (Script.ada 2) <&&> ReferenceScript (Script.trueSpendingMPScript @()))
-    : replicate 2 (bob `receives` Value (Script.ada 100))
+  (alice `receives` AdaValue 2 <&&> ReferenceScript (Script.trueSpendingMPScript @()))
+    : replicate 2 (bob `receives` AdaValue 100)
 
 getValueFromInitialDatum :: DirectMockChain [Integer]
-getValueFromInitialDatum = do
-  fmap hHead <$> getExtracts (utxosAtSearch alice (extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)))
+getValueFromInitialDatum =
+  utxosAt alice
+    >>= extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)
+    >>= retrieveByTypeAsList
 
 spendReferenceAlwaysTrueValidator :: DirectMockChain ()
 spendReferenceAlwaysTrueValidator = do
-  [(referenceScriptTxOutRef, _)] <- utxosAt alice
-  ((scriptTxOutRef, _) : _) <-
-    validateTxSkel' $
-      txSkelTemplate
-        { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` Value (Script.ada 2)],
+  (fst . Map.elemAt 0 -> referenceScriptTxOutRef) <- utxosAt alice
+  (scriptTxOutRef : _) <-
+    validateTxSkelL $
+      txSkelEmulatorTemplate
+        { txSkelOutputs = [Script.trueSpendingMPScript @() `receives` AdaValue 2],
           txSkelSignatories = txSkelSignatoriesFromList [bob]
         }
   validateTxSkel_ $
-    txSkelTemplate
-      { txSkelOutputs = [alice `receives` Value (Script.ada 2)],
+    txSkelEmulatorTemplate
+      { txSkelOutputs = [alice `receives` AdaValue 2],
         txSkelInputs = Map.singleton scriptTxOutRef $ TxSkelRedeemer () (Just referenceScriptTxOutRef) False,
         txSkelSignatories = txSkelSignatoriesFromList [bob]
       }

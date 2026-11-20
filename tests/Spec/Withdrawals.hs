@@ -4,7 +4,6 @@ import Control.Monad
 import Cooked
 import Data.Maybe
 import Optics.Core.Extras
-import Plutus.Script.Utils.Value qualified as Script
 import Plutus.Withdrawals
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -18,10 +17,10 @@ testWithdrawingScript ::
   Maybe Integer ->
   StagedMockChain ()
 testWithdrawingScript userCertifying userRewarding mAmount = do
-  forceOutputs_ [alice `receives` Value (Script.ada 100)]
+  forceOutputs_ [alice `receives` AdaValue 100]
   when (isJust userCertifying) $
     validateTxSkel_ $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelSignatories = txSkelSignatoriesFromList [alice],
           txSkelCertificates =
             [ TxSkelCertificate (fromJust userCertifying) $
@@ -31,7 +30,7 @@ testWithdrawingScript userCertifying userRewarding mAmount = do
             ]
         }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelWithdrawals = txSkelWithdrawalsFromList [Withdrawal userRewarding (Api.Lovelace . (1_000_000 *) <$> mAmount)]
       }
@@ -64,7 +63,7 @@ tests =
               (scriptUserWithdrawing 0)
               Nothing
           )
-          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` happened "CLogAutoFilledWithdrawalAmount",
       testCooked ".. but the script's logic might say No" $
         mustFailTest
           ( testWithdrawingScript
@@ -73,7 +72,7 @@ tests =
               Nothing
           )
           `withFailureProp` isPhase2FailureWithMsg "Wrong quantity: 0 instead of 2000000"
-          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` happened "CLogAutoFilledWithdrawalAmount",
       testCooked "We cannot withdraw more than our rewards (0)" $
         mustFailTest
           ( testWithdrawingScript
@@ -82,7 +81,7 @@ tests =
               (Just 2)
           )
           `withFailureProp` isPhase1FailureWithMsg "WithdrawalsNotInRewardsCERTS"
-          `withLogProp` didNotHappen "MCLogAutoFilledWithdrawalAmount",
+          `withLogProp` didNotHappen "CLogAutoFilledWithdrawalAmount",
       testCooked "A peer can also make a withdrawal" $
         mustSucceedTest
           ( testWithdrawingScript
@@ -90,5 +89,5 @@ tests =
               aliceUser
               Nothing
           )
-          `withLogProp` happened "MCLogAutoFilledWithdrawalAmount"
+          `withLogProp` happened "CLogAutoFilledWithdrawalAmount"
     ]

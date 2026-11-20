@@ -78,6 +78,7 @@
   `FullBlockChainEffs`, class `RunnableBlockChain`, configuration
   `BlockChainConf` with `blockChainConfTemplate`, and runners
   `runBlockChainFromConf` and `runBlockChainFromConfTemplate`.
+- New `CONTRIBUTING.md` guide.
 
 ### Changed
 

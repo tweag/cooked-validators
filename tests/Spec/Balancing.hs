@@ -1,13 +1,12 @@
 module Spec.Balancing where
 
 import Cooked
-import Data.Default
+import Data.List (isInfixOf)
 import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Set (Set)
 import Data.Set qualified as Set
-import Data.Text (isInfixOf)
-import Ledger.Index qualified as P.Ledger
 import Optics.Core
 import Optics.Core.Extras
 import Plutus.Script.Utils.V3 qualified as Script
@@ -26,24 +25,22 @@ banana = Script.multiPurposeScriptValue Script.trueMintingMPScript $ Api.TokenNa
 
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
-  [ Script.trueSpendingMPScript @() `receives` FixedValue (Script.ada 42) <&&> VisibleHashedDatum (),
+  [ Script.trueSpendingMPScript @() `receives` AdaValue 42 <&&> VisibleHashedDatum (),
     alice `receives` FixedValue (Script.ada 2 <> apple 3),
-    alice `receives` FixedValue (Script.ada 25),
+    alice `receives` AdaValue 25,
     alice `receives` FixedValue (Script.ada 40 <> orange 6),
-    alice `receives` FixedValue (Script.ada 8),
-    alice `receives` FixedValue (Script.ada 30),
+    alice `receives` AdaValue 8,
+    alice `receives` AdaValue 30,
     alice `receives` FixedValue (Script.lovelace 1280229 <> banana 3) <&&> VisibleHashedDatum (10 :: Integer),
     alice `receives` FixedValue (Script.ada 1 <> banana 7) <&&> ReferenceScript (Script.trueSpendingMPScript @()),
     alice `receives` FixedValue (Script.ada 105 <> banana 2) <&&> VisibleHashedDatum ()
   ]
 
-type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Maybe Collaterals, [Api.TxOutRef])
+type TestBalancingOutcome = (TxSkel, TxSkel, Fee, Maybe Collaterals, Set Api.TxOutRef)
 
 spendsScriptUtxo :: Bool -> FullMockChain (Map Api.TxOutRef TxSkelRedeemer)
 spendsScriptUtxo False = return Map.empty
-spendsScriptUtxo True = do
-  (scriptOutRef, _) : _ <- utxosAt $ Script.trueSpendingMPScript @()
-  return $ Map.singleton scriptOutRef emptyTxSkelRedeemerNoAutoFill
+spendsScriptUtxo True = fmap (const emptyTxSkelRedeemerNoAutoFill) <$> utxosAt (Script.trueSpendingMPScript @())
 
 testingBalancingTemplate ::
   -- Value to pay to bob
@@ -51,11 +48,11 @@ testingBalancingTemplate ::
   -- Value to pay back to alice
   Api.Value ->
   -- utxos to be spent
-  FullMockChain [Api.TxOutRef] ->
+  FullMockChain (Set Api.TxOutRef) ->
   -- utxos to be used for balancing
-  FullMockChain [Api.TxOutRef] ->
+  FullMockChain (Set Api.TxOutRef) ->
   -- utxos to be used for collaterals
-  FullMockChain [Api.TxOutRef] ->
+  FullMockChain (Set Api.TxOutRef) ->
   -- Whether to consum the script utxo
   Bool ->
   -- Option modifications
@@ -70,55 +67,52 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
   additionalSpend <- spendsScriptUtxo consumeScriptUtxo
   let valueConstr = if adjust then Value else FixedValue
       skel =
-        txSkelTemplate
+        txSkelEmulatorTemplate
           { txSkelOutputs =
               List.filter
                 ((/= mempty) . (^. txSkelOutValueL))
                 [ bob `receives` valueConstr toBobValue,
                   alice `receives` valueConstr toAliceValue
                 ],
-            txSkelInputs = additionalSpend <> Map.fromList ((,emptyTxSkelRedeemer) <$> toSpendUtxos),
+            txSkelInputs = additionalSpend <> Map.fromSet (const emptyTxSkelRedeemer) toSpendUtxos,
             txSkelOpts =
               optionsMod
-                def
+                txSkelOptsEmulatorTemplate
                   { txSkelOptBalancingUtxos =
                       if List.null toBalanceUtxos
                         then BalancingUtxosFromBalancingUser
-                        else BalancingUtxosFromSet $ Set.fromList toBalanceUtxos,
+                        else BalancingUtxosFromSet toBalanceUtxos,
                     txSkelOptCollateralUtxos =
                       if List.null toCollateralUtxos
                         then CollateralUtxosFromBalancingUser
-                        else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
+                        else CollateralUtxosFromSet toCollateralUtxos alice
                   },
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
-  ExtendedTxSkel skel' fee mCols _ <- balanceTxSkel skel
-  validateTxSkel_ skel
+  (ExtendedTxSkel skel' fee mCols _ _, _, _, _) <- validateTxSkel skel
   nonOnlyValueUtxos <- aliceNonOnlyValueUtxos
   return (skel, skel', fee, mCols, nonOnlyValueUtxos)
 
-aliceNonOnlyValueUtxos :: FullMockChain [Api.TxOutRef]
+aliceNonOnlyValueUtxos :: FullMockChain (Set Api.TxOutRef)
 aliceNonOnlyValueUtxos =
-  getTxOutRefs $
-    utxosAtSearch alice $
-      ensurePure $ \skel ->
-        is txSkelOutReferenceScriptAT skel
-          || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel
+  utxosAt alice
+    >>= ensurePure (\skel -> is txSkelOutReferenceScriptAT skel || is (txSkelOutDatumL % txSkelOutDatumKindAT) skel)
+    >>= retrieveKeys
 
-aliceNAdaUtxos :: Integer -> FullMockChain [Api.TxOutRef]
+aliceNAdaUtxos :: Integer -> FullMockChain (Set Api.TxOutRef)
 aliceNAdaUtxos n =
-  getTxOutRefs $
-    utxosAtSearch alice $
-      ensureAFoldIs (txSkelOutValueL % valueLovelaceL % filtered (== Api.Lovelace (n * 1_000_000)))
+  utxosAt alice
+    >>= ensureAFoldIs (txSkelOutValueL % valueLovelaceL % filtered (== Api.Lovelace (n * 1_000_000)))
+    >>= retrieveKeys
 
-aliceRefScriptUtxos :: FullMockChain [Api.TxOutRef]
+aliceRefScriptUtxos :: FullMockChain (Set Api.TxOutRef)
 aliceRefScriptUtxos =
-  getTxOutRefs $
-    utxosAtSearch alice $
-      ensureAFoldIs txSkelOutReferenceScriptAT
+  utxosAt alice
+    >>= ensureAFoldIs txSkelOutReferenceScriptAT
+    >>= retrieveKeys
 
-emptySearch :: FullMockChain [Api.TxOutRef]
-emptySearch = return []
+emptySearch :: FullMockChain (Set Api.TxOutRef)
+emptySearch = return Set.empty
 
 simplePaymentToBob :: Integer -> Integer -> Integer -> Integer -> Bool -> (TxSkelOpts -> TxSkelOpts) -> Bool -> FullMockChain TestBalancingOutcome
 simplePaymentToBob lv apples oranges bananas =
@@ -141,13 +135,13 @@ bothPaymentsToBobAndAlice val =
 noBalanceMaxFee :: FullMockChain ()
 noBalanceMaxFee = do
   maxFee <- snd <$> getMinAndMaxFee 0
-  (txOutRef : _) <- aliceNAdaUtxos 30
+  aliceORefs30Ada <- aliceNAdaUtxos 30
   validateTxSkel_ $
-    txSkelTemplate
-      { txSkelOutputs = [bob `receives` Value (Script.lovelace (30_000_000 - maxFee))],
-        txSkelInputs = Map.singleton txOutRef emptyTxSkelRedeemer,
+    txSkelEmulatorTemplate
+      { txSkelOutputs = [bob `receives` LovelaceValue (30_000_000 - maxFee)],
+        txSkelInputs = Map.fromSet (const emptyTxSkelRedeemer) aliceORefs30Ada,
         txSkelOpts =
-          def
+          txSkelOptsEmulatorTemplate
             { txSkelOptBalancingPolicy = DoNotBalance,
               txSkelOptFeePolicy = AutoFeeComputation
             },
@@ -157,33 +151,36 @@ noBalanceMaxFee = do
 balanceReduceFee :: FullMockChain (Integer, Integer, Integer, Integer)
 balanceReduceFee = do
   let skelAutoFee =
-        txSkelTemplate
-          { txSkelOutputs = [bob `receives` Value (Script.ada 50)],
+        txSkelEmulatorTemplate
+          { txSkelOutputs = [bob `receives` AdaValue 50],
             txSkelSignatories = txSkelSignatoriesFromList [alice]
           }
-  ExtendedTxSkel skelBalanced feeBalanced mCols _ <- balanceTxSkel skelAutoFee
-  (feeBalanced', _) <- estimateTxSkelFee skelBalanced feeBalanced mCols
+  ExtendedTxSkel skelBalanced feeBalanced mCols _ _ <- balanceTxSkel skelAutoFee
+  (feeBalanced', _, _) <- estimateTxSkelFee skelBalanced feeBalanced mCols
   let skelManualFee =
         skelAutoFee
           { txSkelOpts =
-              def
+              txSkelOptsEmulatorTemplate
                 { txSkelOptFeePolicy = ManualFee (feeBalanced - 1)
                 }
           }
-  ExtendedTxSkel skelBalancedManual feeBalancedManual mColsManual _ <- balanceTxSkel skelManualFee
-  (feeBalancedManual', _) <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
+  ExtendedTxSkel skelBalancedManual feeBalancedManual mColsManual _ _ <- balanceTxSkel skelManualFee
+  (feeBalancedManual', _, _) <- estimateTxSkelFee skelBalancedManual feeBalancedManual mColsManual
   return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
 
 reachingMagic :: FullMockChain ()
 reachingMagic = do
-  bananaOutRefs <- getTxOutRefs $ utxosAtSearch alice $ ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
+  bananaOutRefs <-
+    utxosAt alice
+      >>= ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`))
+      >>= retrieveKeys
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelOutputs = [bob `receives` Value (Script.ada 106 <> banana 12)],
         txSkelSignatories = txSkelSignatoriesFromList [alice],
         txSkelOpts =
-          def
-            { txSkelOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
+          txSkelOptsEmulatorTemplate
+            { txSkelOptBalancingUtxos = BalancingUtxosFromSet bananaOutRefs
             }
       }
 
@@ -212,40 +209,40 @@ testBalancingSucceedsWith msg props run =
       `withInitDist` initialDistributionBalancing
       `withResultProp` \res -> testConjoin (($ res) <$> props)
 
-failsAtBalancingWith :: Api.Value -> Wallet -> MockChainError -> Assertion
-failsAtBalancingWith val' wal' (MCEBalancingError (NotEnoughFund wal val)) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
+failsAtBalancingWith :: Api.Value -> Wallet -> ChainError -> Assertion
+failsAtBalancingWith val' wal' (CEBalancingError (NotEnoughFund wal val)) = testBool $ val' == val && Script.toPubKeyHash wal' == Script.toPubKeyHash wal
 failsAtBalancingWith _ _ _ = testBool False
 
-failsAtBalancing :: MockChainError -> Assertion
-failsAtBalancing (MCEBalancingError (NotEnoughFund {})) = testBool True
-failsAtBalancing (MCEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool True
+failsAtBalancing :: ChainError -> Assertion
+failsAtBalancing (CEBalancingError (NotEnoughFund {})) = testBool True
+failsAtBalancing (CEBalancingError (NotEnoughFundForExtraMinAda {})) = testBool True
 failsAtBalancing _ = testBool False
 
-failsWithTooLittleFee :: MockChainError -> Assertion
-failsWithTooLittleFee (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
+failsWithTooLittleFee :: ChainError -> Assertion
+failsWithTooLittleFee (CESubmissionFailures failures) = testBool $ any (isInfixOf "FeeTooSmallUTxO" . show) failures
 failsWithTooLittleFee _ = testBool False
 
-failsWithValueNotConserved :: MockChainError -> Assertion
-failsWithValueNotConserved (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "ValueNotConserved" text
+failsWithValueNotConserved :: ChainError -> Assertion
+failsWithValueNotConserved (CESubmissionFailures failures) = testBool $ any (isInfixOf "ValueNotConserved" . show) failures
 failsWithValueNotConserved _ = testBool False
 
-failsWithEmptyTxIns :: MockChainError -> Assertion
-failsWithEmptyTxIns (MCEValidationError P.Ledger.Phase1 (P.Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "InputSetEmptyUTxO" text
+failsWithEmptyTxIns :: ChainError -> Assertion
+failsWithEmptyTxIns (CESubmissionFailures failures) = testBool $ any (isInfixOf "InputSetEmptyUTxO" . show) failures
 failsWithEmptyTxIns _ = testBool False
 
-failsAtCollateralsWith :: Integer -> MockChainError -> Assertion
-failsAtCollateralsWith fee' (MCEBalancingError (NoSuitableCollateral fee percentage val)) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
+failsAtCollateralsWith :: Integer -> ChainError -> Assertion
+failsAtCollateralsWith fee' (CEBalancingError (NoSuitableCollateral fee percentage val)) = testBool $ fee == fee' && val == Script.lovelace (1 + (fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
-failsAtCollaterals :: MockChainError -> Assertion
-failsAtCollaterals (MCEBalancingError (NoSuitableCollateral {})) = testBool True
+failsAtCollaterals :: ChainError -> Assertion
+failsAtCollaterals (CEBalancingError (NoSuitableCollateral {})) = testBool True
 failsAtCollaterals _ = testBool False
 
-failsLackOfCollateralWallet :: MockChainError -> Assertion
-failsLackOfCollateralWallet (MCEBalancingError MissingBalancingUser) = testBool True
+failsLackOfCollateralWallet :: ChainError -> Assertion
+failsLackOfCollateralWallet (CEBalancingError MissingBalancingUser) = testBool True
 failsLackOfCollateralWallet _ = testBool False
 
-testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> FullMockChain a -> TestTree
+testBalancingFailsWith :: (Show a) => String -> (ChainError -> Assertion) -> FullMockChain a -> TestTree
 testBalancingFailsWith msg p smc =
   testCooked msg $
     mustFailTest smc
@@ -457,7 +454,7 @@ tests =
                   ( testingBalancingTemplate
                       (Script.ada 142)
                       mempty
-                      ((fst <$>) <$> utxosAt alice)
+                      (Map.keysSet <$> utxosAt alice)
                       emptySearch
                       (aliceNAdaUtxos 1)
                       True
@@ -641,7 +638,7 @@ tests =
                     (apple 2 <> orange 5 <> banana 4)
                     mempty
                     emptySearch
-                    ((fst <$>) <$> utxosAt alice)
+                    (Map.keysSet <$> utxosAt alice)
                     emptySearch
                     False
                     (setFixedFee 1_000_000)
@@ -653,7 +650,12 @@ tests =
                 ( testingBalancingTemplate
                     mempty
                     mempty
-                    (getTxOutRefs $ utxosAtSearch alice ensureOnlyValueOutputs)
+                    ( utxosAt alice
+                        >>= ensureAFoldIsn't txSkelOutReferenceScriptAT
+                        >>= ensureAFoldIsn't txSkelOutStakingCredentialAT
+                        >>= ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
+                        >>= retrieveKeys
+                    )
                     emptySearch
                     emptySearch
                     False

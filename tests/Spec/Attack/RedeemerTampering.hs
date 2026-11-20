@@ -23,7 +23,7 @@ oref = Api.TxOutRef (Api.TxId "")
 -- must leave untouched.
 baseSkel :: TxSkel
 baseSkel =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelInputs =
         Map.fromList
           [ (oref 0, someTxSkelRedeemer (10 :: Integer)),
@@ -41,7 +41,7 @@ integerRedeemers = toListOf (txSkelSpendingRedeemersT % txSkelRedeemerTypedAT)
 -- to make their redeemers invisible to the redeemer traversals.
 certificateSkel :: TxSkelRedeemer -> TxSkel
 certificateSkel red =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelCertificates =
         [TxSkelCertificate (UserRedeemedScript (toVScript $ Script.trueMPScript @()) red) StakingRegister]
     }

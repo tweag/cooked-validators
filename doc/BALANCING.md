@@ -43,14 +43,14 @@ Our balancing function is signed as follows:
 
 ``` haskell
 balanceTxSkel ::
-  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[Query, Log, Error ChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Sem effs ExtendedTxSkel
 ```
 
 The library is built on [Polysemy] effects rather than a concrete monad, so the
 balancing capabilities are expressed as the effect constraints
-`Members '[MockChainRead, MockChainLog, Error MockChainError, Error
+`Members '[Query, Log, Error ChainError, Error
 P.Ledger.ToCardanoError, Fail] effs` and the result lives in `Sem effs`.
 
 This function takes a skeleton and returns an `ExtendedTxSkel`, a record bundling
@@ -379,7 +379,7 @@ signature:
 
 ``` haskell
 reachValue ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error P.Ledger.ToCardanoError] effs) =>
   Utxos ->                -- candidate utxos, type Utxos = [(Api.TxOutRef, TxSkelOut)]
   Api.Value ->            -- the target value to reach
   Integer ->             -- the maximum number of utxos allowed in a subset
@@ -476,7 +476,7 @@ within this interval. The function that performs this computation is
 
 ``` haskell
 computeFeeAndBalance ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[Query, Error ChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   Peer ->                          -- the balancing user
   Fee ->                           -- lower bound of the search interval
   Fee ->                           -- upper bound of the search interval

@@ -19,7 +19,7 @@ dupTokenTrace pol tName amount recipient = do
     skel =
       let mints = review txSkelMintsListI [mint pol () tName amount]
           mintedValue = Script.toValue mints
-       in txSkelTemplate
+       in txSkelEmulatorTemplate
             { txSkelMints = mints,
               txSkelOutputs = [recipient `receives` Value mintedValue],
               txSkelSignatories = txSkelSignatoriesFromList [wallet 3]
@@ -38,7 +38,7 @@ tests =
             ac1 = Api.assetClass (Script.toCurrencySymbol pol1) tName1
             ac2 = Api.assetClass (Script.toCurrencySymbol pol2) tName2
             skelIn =
-              txSkelTemplate
+              txSkelEmulatorTemplate
                 { txSkelMints =
                     review
                       txSkelMintsListI
@@ -59,7 +59,7 @@ tests =
                       [ (Script.toCurrencySymbol pol1, tName1, v1 - 5),
                         (Script.toCurrencySymbol pol2, tName2, v2 - 7)
                       ]
-               in [ ( txSkelTemplate
+               in [ ( txSkelEmulatorTemplate
                         { txSkelLabels = Set.singleton $ TxSkelLabel $ TokenDuplicationLabel increment,
                           txSkelMints =
                             review
@@ -103,13 +103,13 @@ tests =
             ac1 = Api.assetClass (Script.toCurrencySymbol pol) tName1
             ac2 = Api.assetClass (Script.toCurrencySymbol Script.trueMintingMPScript) (Api.TokenName "preExistingToken")
             skelIn =
-              txSkelTemplate
+              txSkelEmulatorTemplate
                 { txSkelMints = review txSkelMintsListI [mint pol () tName1 1],
                   txSkelOutputs = [wallet 1 `receives` Value (Api.assetClassValue ac1 1 <> Api.assetClassValue ac2 2)],
                   txSkelSignatories = txSkelSignatoriesFromList [wallet 2]
                 }
             skelExpected =
-              [ ( txSkelTemplate
+              [ ( txSkelEmulatorTemplate
                     { txSkelLabels = Set.singleton $ TxSkelLabel $ TokenDuplicationLabel $ review (valueAssetClassAmountP pol tName1) 1,
                       txSkelMints = review txSkelMintsListI [mint pol () tName1 2],
                       txSkelOutputs =
