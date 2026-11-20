@@ -24,7 +24,7 @@ import Control.Monad
 import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak
-import Ledger.Slot qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import Polysemy
 import Polysemy.NonDet
@@ -33,7 +33,7 @@ import Prettyprinter qualified as PP
 -- | A label added to a 'TxSkel' on which a tweak tampering the validity
 -- interval has been applied. The label contains the interval as it was before
 -- being tampered with.
-newtype ValidityTamperingLabel = ValidityTamperingLabel Ledger.SlotRange
+newtype ValidityTamperingLabel = ValidityTamperingLabel P.Ledger.SlotRange
   deriving (Show, Eq)
 
 instance Ord ValidityTamperingLabel where
@@ -50,7 +50,7 @@ instance PrettyCooked ValidityTamperingLabel where
 data ValidityTamperingParams b f k is
   = ValidityTamperingParams
   { -- | What part of the validity range to modify
-    vtpOptic :: Optic' k is Ledger.SlotRange b,
+    vtpOptic :: Optic' k is P.Ledger.SlotRange b,
     -- | How to modify the targeted part
     vtpChange :: b -> f b
   }
@@ -58,55 +58,55 @@ data ValidityTamperingParams b f k is
 -- | Modifies the extended (possibly infinite) lower bound of the validity
 -- interval with a given tampering function.
 lowerExtendedValidityTamperingParams ::
-  (Maybe Ledger.Slot -> f (Maybe Ledger.Slot)) ->
-  ValidityTamperingParams (Maybe Ledger.Slot) f A_Lens NoIx
+  (Maybe P.Ledger.Slot -> f (Maybe P.Ledger.Slot)) ->
+  ValidityTamperingParams (Maybe P.Ledger.Slot) f A_Lens NoIx
 lowerExtendedValidityTamperingParams =
   ValidityTamperingParams $ at Lower
 
 -- | Modifies the strict lower bound of the validity interval with a given
 -- tampering function, failing if it is infinite.
 lowerStrictValidityTamperingParams ::
-  (Ledger.Slot -> f Ledger.Slot) ->
-  ValidityTamperingParams Ledger.Slot f An_AffineTraversal NoIx
+  (P.Ledger.Slot -> f P.Ledger.Slot) ->
+  ValidityTamperingParams P.Ledger.Slot f An_AffineTraversal NoIx
 lowerStrictValidityTamperingParams =
   ValidityTamperingParams $ ix Lower
 
 -- | Modifies the extended (possibly infinite) upper bound of the validity
 -- interval with a given tampering function.
 upperExtendedValidityTamperingParams ::
-  (Maybe Ledger.Slot -> f (Maybe Ledger.Slot)) ->
-  ValidityTamperingParams (Maybe Ledger.Slot) f A_Lens NoIx
+  (Maybe P.Ledger.Slot -> f (Maybe P.Ledger.Slot)) ->
+  ValidityTamperingParams (Maybe P.Ledger.Slot) f A_Lens NoIx
 upperExtendedValidityTamperingParams =
   ValidityTamperingParams $ at Upper
 
 -- | Modifies the strict upper bound of the validity interval with a given
 -- tampering function, failing if it is infinite.
 upperStrictValidityTamperingParams ::
-  (Ledger.Slot -> f Ledger.Slot) ->
-  ValidityTamperingParams Ledger.Slot f An_AffineTraversal NoIx
+  (P.Ledger.Slot -> f P.Ledger.Slot) ->
+  ValidityTamperingParams P.Ledger.Slot f An_AffineTraversal NoIx
 upperStrictValidityTamperingParams =
   ValidityTamperingParams $ ix Upper
 
 -- | Modifies both the extended (possibly infinite) lower and upper bounds of
 -- the validity interval with a given tampering function.
 bothExtendedValidityTamperingParams ::
-  (Maybe Ledger.Slot -> f (Maybe Ledger.Slot)) ->
-  ValidityTamperingParams (Maybe Ledger.Slot) f A_Traversal NoIx
+  (Maybe P.Ledger.Slot -> f (Maybe P.Ledger.Slot)) ->
+  ValidityTamperingParams (Maybe P.Ledger.Slot) f A_Traversal NoIx
 bothExtendedValidityTamperingParams =
   ValidityTamperingParams $ at Lower `adjoin` at Upper
 
 -- | Modifies both the strict lower and upper bounds of the validity interval
 -- with a given tampering function, failing if both are infinite.
 bothStrictValidityTamperingParams ::
-  (Ledger.Slot -> f Ledger.Slot) ->
-  ValidityTamperingParams Ledger.Slot f A_Traversal NoIx
+  (P.Ledger.Slot -> f P.Ledger.Slot) ->
+  ValidityTamperingParams P.Ledger.Slot f A_Traversal NoIx
 bothStrictValidityTamperingParams =
   ValidityTamperingParams $ ix Lower `adjoin` ix Upper
 
 -- | Modifies the full validity interval directly
 intervalValidityTamperingParams ::
-  (Ledger.SlotRange -> f Ledger.SlotRange) ->
-  ValidityTamperingParams Ledger.SlotRange f An_Iso NoIx
+  (P.Ledger.SlotRange -> f P.Ledger.SlotRange) ->
+  ValidityTamperingParams P.Ledger.SlotRange f An_Iso NoIx
 intervalValidityTamperingParams =
   ValidityTamperingParams simple
 
@@ -120,7 +120,7 @@ validityTamperingAttack ::
     Alternative f
   ) =>
   ValidityTamperingParams a f k is ->
-  Sem effs Ledger.SlotRange
+  Sem effs P.Ledger.SlotRange
 validityTamperingAttack ValidityTamperingParams {..} = do
   currentValidityRange <- viewTweak txSkelValidityRangeL
   void $

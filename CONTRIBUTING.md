@@ -31,7 +31,7 @@ provides everything one needs to contribute:
   for development, including [Haskell Language Server], [Ormolu], etc.
 
 Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC
-9.6.5 and Cabal.
+9.6.7 and Cabal.
 
 ### Running tests
 
@@ -198,9 +198,9 @@ conventions when adding or reorganizing modules:
 - **Do not systematically nest umbrellas.** A sub-directory whose submodules are
   a mere refinement of their parent sub-system may be flattened into the parent
   umbrella rather than getting its own (e.g. `Cooked.Automation.GenerateTx.*`
-  and `Cooked.Effect.Read.*` are re-exported directly from `Cooked.Automation`
-  and `Cooked.Effect`). Add an intermediate umbrella only when the sub-directory
-  is itself an independently meaningful sub-system.
+  and `Cooked.Automation.AutoFilling.*` are re-exported directly from
+  `Cooked.Automation`). Add an intermediate umbrella only when the
+  sub-directory is itself an independently meaningful sub-system.
 
 - **Transverse utilities** (type aliases, wallets, low-level helpers) live under
   `Cooked.Utilities.*` and are re-exported from `Cooked.Utilities`, keeping the

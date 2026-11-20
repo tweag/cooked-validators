@@ -1,6 +1,6 @@
 -- | This module centralizes the node-backend (BlockChain) running code. It is
--- an umbrella re-exporting all the BlockChain submodules, which only provide
--- instances.
+-- an umbrella re-exporting all the BlockChain submodules (instances, running
+-- and configuration).
 module Cooked.BlockChain (module X) where
 
 import Cooked.BlockChain.Config as X

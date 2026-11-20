@@ -36,7 +36,8 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
 	* automatically adds script witnesses, including from reference inputs.
 - Construct sequences of transactions in a clear, implementation-independent
   abstraction of the blockchain.
-- Run transaction sequences in an emulated blockchain.
+- Run transaction sequences in an emulated blockchain, or against a real
+  Cardano node.
 - Define modifications aware of the current blockchain state (tweaks), and apply
   them to transactions just before submission.
 - Compose and deploy tweaks on sequences of transactions using idioms inspired
@@ -56,7 +57,7 @@ to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc), such as
 There are two ways for this integration:
 
 1. `cooked-validators`, and all its dependencies, are available on
-   [cardano-haskel-packages
+   [cardano-haskell-packages
    (CHaP)](https://github.com/IntersectMBO/cardano-haskell-packages). To rely
    on a release available there, add the following stanza to your
    `cabal.project`:
@@ -117,7 +118,6 @@ handling fees or balancing.
 2. Import your required dependencies
    ``` haskell
    import Cooked
-   import Plutus.Script.Utils.Value qualified as Script
    ```
 
 3. Start the definition of a `MockChain` run:
@@ -134,93 +134,96 @@ handling fees or balancing.
    
 5. Give some initial funds to Alice:
    ``` haskell
-     forceOutputs_ $ replicate 3 $ alice `receives` Value (Script.ada 10)
+     forceOutputs_ $ replicate 3 $ alice `receives` AdaValue 10
    ```
    
-5. Take some notes:
+6. Take some notes:
    ``` haskell
      noteS "Alice is sending 10 ADA to Bob"
      noteS "I let cooked-validators do the heavy lifting for me"
    ```
 
-6. Submit the transaction:
+7. Submit the transaction:
    ``` haskell
      validateTxSkel_
        txSkelEmulatorTemplate
-         { txSkelOuts = [bob `receives` Value (Script.ada 10)],
-           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
+         { txSkelOutputs = [bob `receives` AdaValue 10],
+           txSkelSignatories = txSkelSignatoriesFromList [alice]
          }
    ```
 
-7. Lookup for the UTxOs now owned by Bob, and assert that he indeed possesses 1:
+8. Lookup for the UTxOs now owned by Bob, and assert that he indeed possesses 1:
    ``` haskell 
-      bobUtxos <- utxosAt bob
-      assert "Bob now has 1 utxo" $ length bobUtxos == 1
+     bobUtxos <- utxosAt bob
+     assertS "Bob now has 1 utxo" $ length bobUtxos == 1
    ```
 
-8. Enter a `cabal repl`, run and print the trace:
+9. Enter a `cabal repl`, run and print the trace:
    ``` haskell
    > printCooked $ runMockChainDef myDemoRun
    ```
 
-5. Observe the output of printing the run, including:
-   - The notes you've taken:
-	 ```
-	 📔 Notes:
-	   - Alice is going to send 10 ADA to Bob
-	   - I let cooked-validators do the heavy lifting for me
-     ```
-   - The execution log, including: the original submitted skeleton, 
-	 the adjusted skeleton, and the computed fee and collaterals:	 
-	 ```
-	 📖 MockChain run log:
-	   ⁍ New raw skeleton submitted to the adjustment pipeline:
-		 - Validity interval: (-∞ , +∞)
-		 - Signatories:
-		   - Alice [balancing]
-		 - Outputs:
-		   - Pays to pubkey Bob
-			 - Lovelace: 10_000_000
-	   ⁍ New adjusted skeleton submitted for validation:
-		 - Validity interval: (-∞ , +∞)
-		 - Signatories:
-		   - Alice [balancing]
-		 - Inputs:
-		   - Spends #d769532!1 from pubkey Alice
-			 - Redeemer ()
-			 - Lovelace: 10_000_000
-		   - Spends #d769532!2 from pubkey Alice
-			 - Redeemer ()
-			 - Lovelace: 10_000_000
-		 - Outputs:
-		   - Pays to pubkey Bob
-			 - Lovelace: 10_000_000
-		   - Pays to pubkey Alice
-			 - Lovelace: 9_826_799
-		 - Fee: Lovelace: 173_201
-		 - No collateral required
-	   ⁍ New transaction successfully validated:
-		 - Transaction id: #bff7a56
-		 - Number of new outputs: 2
-	 ```
-   - The evaluation of the assertions:
-	 ```
-	 ✅ Assertions:
-	   - ✔ Bob now has 1 utxo
-     ```
-   - The final mockchain state:
-	 ```
-	 💰 UTxO state:
-	   • pubkey Alice
-		 - Lovelace: 9_826_799
-		 - Lovelace: 10_000_000
-	   • pubkey Bob
-		 - Lovelace: 10_000_000
-	 ```
-   - The outcome and return value of the run:
-	 ```
-	 🟢 Success with returned value: ()
-	 ```
+10. Observe the output of printing the run, including:
+    - The notes you've taken:
+      ```
+      📔 Notes:
+        ⁕ Alice is sending 10 ADA to Bob
+        ⁕ I let cooked-validators do the heavy lifting for me
+      ```
+    - The execution log, including: the original submitted skeleton, the
+      adjusted skeleton, the computed fee and collaterals, and the produced
+      transaction:
+      ```
+      📖 MockChain run log:
+        ⁍ New raw skeleton submitted to the adjustment pipeline:
+          - Validity interval: (-∞ , +∞)
+          - Signatories:
+            - Alice [balancing]
+          - Outputs:
+            - Pays to pubkey Bob
+              - Lovelace: 10_000_000
+        ⁍ New adjusted skeleton submitted for validation:
+          - Validity interval: (-∞ , +∞)
+          - Signatories:
+            - Alice [balancing]
+          - Inputs:
+            - Spends #98af551!1 from pubkey Alice
+              - Redeemer ()
+              - Lovelace: 10_000_000
+            - Spends #98af551!2 from pubkey Alice
+              - Redeemer ()
+              - Lovelace: 10_000_000
+          - Outputs:
+            - Pays to pubkey Bob
+              - Lovelace: 10_000_000
+            - Pays to pubkey Alice
+              - Lovelace: 9_826_799
+          - Fee: Lovelace: 173_201
+          - No collateral required
+        ⁍ New transaction produced:
+          - Transaction id: #7a23a88
+          - Validity: valid
+          - Number of consumed inputs: 2
+          - Number of new outputs: 2
+      ```
+    - The evaluation of the assertions:
+      ```
+      ✅ Assertions:
+        - ✔ Bob now has 1 utxo
+      ```
+    - The final mockchain state:
+      ```
+      💰 UTxO state:
+        • pubkey Alice
+          - Lovelace: 9_826_799
+          - Lovelace: 10_000_000
+        • pubkey Bob
+          - Lovelace: 10_000_000
+      ```
+    - The outcome and return value of the run:
+      ```
+      🟢 Success with returned value: ()
+      ```
 
 ## Documentation
 
@@ -235,16 +238,13 @@ handling fees or balancing.
 - The [IMPORTS](doc/IMPORTS.md) file describes and helps to understand our
   dependencies and naming conventions for imports.
 
-- The [BALANCING](doc/BALANCING.md) file thorougly describes cooked-validator's
+- The [BALANCING](doc/BALANCING.md) file thoroughly describes cooked-validators'
   automated balancing mechanism and associated options (including options
   revolving around fees and collaterals).
 
 - The [OPTICS](doc/OPTICS.md) file describes our usage of optics to navigate our
   data structures.
 
-- The [TWEAKS](doc/TWEAKS.md) file describes the conventions our tweaks (the
-  building blocks of the attack DSL) follow, regarding naming and branching
-  behavior.
 
 ## Blog posts
 
@@ -284,7 +284,7 @@ insight into how to use the library.
   known problems, or report new issues!
 
 - `cooked-validators` is regularly used to audit Cardano smart contracts. You
-  can see some of the products with have audited on [this
+  can see some of the products we have audited on [this
   page](https://www.tweag.io/audits/) and can get access to a sample of our
   audit reports on [this
   repository](https://github.com/tweag/tweag-audit-reports).

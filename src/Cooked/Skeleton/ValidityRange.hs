@@ -7,11 +7,11 @@ module Cooked.Skeleton.ValidityRange
   )
 where
 
-import Ledger.Slot qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import PlutusLedgerApi.V1.Interval qualified as Api
 
--- | A type used to index optics within a 'Ledger.SlotRange'. This allows the
+-- | A type used to index optics within a 'P.Ledger.SlotRange'. This allows the
 -- usage of the following optics: @at Lower@, @at Upper@, @ix Lower@ and @ix
 -- Upper@ to modify parts of a slot range. When set to @Nothing@, the associated
 -- bound of the interval is considered infinite, and otherwise it is considered
@@ -20,13 +20,13 @@ data ValidityBound
   = Lower
   | Upper
 
-type instance Index Ledger.SlotRange = ValidityBound
+type instance Index P.Ledger.SlotRange = ValidityBound
 
-type instance IxValue Ledger.SlotRange = Ledger.Slot
+type instance IxValue P.Ledger.SlotRange = P.Ledger.Slot
 
-instance Ixed Ledger.SlotRange
+instance Ixed P.Ledger.SlotRange
 
-instance At Ledger.SlotRange where
+instance At P.Ledger.SlotRange where
   at Lower =
     lens
       ( \case
