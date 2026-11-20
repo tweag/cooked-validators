@@ -18,9 +18,9 @@ putRefScriptOnWalletOutput ::
   Script.Versioned Script.Validator ->
   DirectMockChain V3.TxOutRef
 putRefScriptOnWalletOutput recipient referenceScript =
-  fst . head
-    <$> validateTxSkel'
-      txSkelTemplate
+  head
+    <$> validateTxSkelL
+      txSkelEmulatorTemplate
         { txSkelOutputs = [recipient `receives` ReferenceScript referenceScript],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
@@ -30,9 +30,9 @@ putRefScriptOnScriptOutput ::
   Script.Versioned Script.Validator ->
   DirectMockChain V3.TxOutRef
 putRefScriptOnScriptOutput recipient referenceScript =
-  fst . head
-    <$> validateTxSkel'
-      txSkelTemplate
+  head
+    <$> validateTxSkelL
+      txSkelEmulatorTemplate
         { txSkelOutputs = [recipient `receives` ReferenceScript referenceScript],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
@@ -42,14 +42,14 @@ checkReferenceScriptOnOref ::
   V3.TxOutRef ->
   DirectMockChain ()
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
-  (oref, _) : _ <-
-    validateTxSkel'
-      txSkelTemplate
-        { txSkelOutputs = [requireRefScriptValidator expectedScriptHash `receives` Value (Script.ada 42)],
+  oref : _ <-
+    validateTxSkelL
+      txSkelEmulatorTemplate
+        { txSkelOutputs = [requireRefScriptValidator expectedScriptHash `receives` AdaValue 42],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.singleton oref emptyTxSkelRedeemer,
         txSkelReferenceInputs = Set.singleton refScriptOref,
         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -62,15 +62,15 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
 useReferenceScript :: Wallet -> Bool -> Script.Versioned Script.Validator -> DirectMockChain P.Ledger.CardanoTx
 useReferenceScript spendingSubmitter consumeScriptOref theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
-  (oref, _) : _ <-
-    validateTxSkel'
-      txSkelTemplate
-        { txSkelOutputs = [theScript `receives` Value (Script.ada 42)],
+  oref : _ <-
+    validateTxSkelL
+      txSkelEmulatorTemplate
+        { txSkelOutputs = [theScript `receives` AdaValue 42],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
-  fst
+  (\(_, _, tx, _) -> P.Ledger.CardanoEmulatorEraTx tx)
     <$> validateTxSkel
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelInputs =
             Map.fromList $
               (oref, TxSkelRedeemer () (Just scriptOref) False)
@@ -81,31 +81,31 @@ useReferenceScript spendingSubmitter consumeScriptOref theScript = do
 useReferenceScriptInInputs :: Wallet -> Script.Versioned Script.Validator -> DirectMockChain ()
 useReferenceScriptInInputs spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 1) theScript
-  (oref, _) : _ <-
-    validateTxSkel'
-      txSkelTemplate
-        { txSkelOutputs = [theScript `receives` Value (Script.ada 42)],
+  oref : _ <-
+    validateTxSkelL
+      txSkelEmulatorTemplate
+        { txSkelOutputs = [theScript `receives` AdaValue 42],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelInputs = Map.fromList [(oref, TxSkelRedeemer () (Just scriptOref) False), (scriptOref, emptyTxSkelRedeemer)],
         txSkelSignatories = txSkelSignatoriesFromList [spendingSubmitter]
       }
 
 referenceMint :: Script.Versioned Script.MintingPolicy -> Script.Versioned Script.MintingPolicy -> Int -> Bool -> DirectMockChain ()
 referenceMint mp1 mp2 n autoRefScript = do
-  ((!! n) -> (mpOutRef, _)) <-
+  (Map.elemAt n -> (mpOutRef, _)) <-
     validateTxSkel' $
-      txSkelTemplate
+      txSkelEmulatorTemplate
         { txSkelOutputs =
-            [ wallet 1 `receives` Value (Script.ada 2) <&&> ReferenceScript mp1,
-              wallet 1 `receives` Value (Script.ada 10)
+            [ wallet 1 `receives` AdaValue 2 <&&> ReferenceScript mp1,
+              wallet 1 `receives` AdaValue 10
             ],
           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
         }
   validateTxSkel_ $
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelMints =
           review
             txSkelMintsListI
@@ -145,56 +145,60 @@ tests =
         ],
       testGroup
         "using reference scripts"
-        [ testCookedFromInitDistTemplate @DirectEffs "fail from transaction generation for missing reference scripts" $
+        [ testCookedFromInitDistTemplate @DirectMockChainEffs "fail from transaction generation for missing reference scripts" $
             mustFailTest
               ( do
-                  consumedOref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
-                  (oref, _) : _ <-
-                    validateTxSkel'
-                      txSkelTemplate
-                        { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
+                  consumedOref <-
+                    utxosAt (wallet 1)
+                      >>= ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` Script.lovelace 42_000_000))
+                      >>= retrieveKeys
+                      >>= retrieve (Set.elemAt 0)
+                  oref : _ <-
+                    validateTxSkelL
+                      txSkelEmulatorTemplate
+                        { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` AdaValue 42],
                           txSkelInputs = Map.singleton consumedOref emptyTxSkelRedeemer,
                           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                         }
                   validateTxSkel_
-                    txSkelTemplate
+                    txSkelEmulatorTemplate
                       { txSkelInputs = Map.singleton oref (TxSkelRedeemer () (Just consumedOref) False),
                         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                       }
               )
               `withErrorProp` \case
-                MCEUnknownOutRef _ -> testSuccess
+                CEUnknownOutRefs _ -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "fail from transaction generation for mismatching reference scripts" $
             mustFailTest
               ( do
                   scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysFailValidatorVersioned
-                  (oref, _) : _ <-
-                    validateTxSkel'
-                      txSkelTemplate
-                        { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
+                  oref : _ <-
+                    validateTxSkelL
+                      txSkelEmulatorTemplate
+                        { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` AdaValue 42],
                           txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                         }
                   validateTxSkel_
-                    txSkelTemplate
+                    txSkelEmulatorTemplate
                       { txSkelInputs = Map.singleton oref (TxSkelRedeemer () (Just scriptOref) False),
                         txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                       }
               )
               `withErrorProp` \case
-                MCEWrongReferenceScriptError {} -> testSuccess
+                CEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "phase 1 - fail if using a reference script with 'someRedeemer'" $
             mustFailInPhase1Test $ do
               scriptOref <- putRefScriptOnWalletOutput (wallet 3) Script.alwaysSucceedValidatorVersioned
-              (oref, _) : _ <-
-                validateTxSkel'
-                  txSkelTemplate
-                    { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` Value (Script.ada 42)],
+              oref : _ <-
+                validateTxSkelL
+                  txSkelEmulatorTemplate
+                    { txSkelOutputs = [Script.alwaysSucceedValidatorVersioned `receives` AdaValue 42],
                       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
                     }
               validateTxSkel_
-                txSkelTemplate
+                txSkelEmulatorTemplate
                   { txSkelInputs = Map.singleton oref emptyTxSkelRedeemerNoAutoFill,
                     txSkelReferenceInputs = Set.singleton scriptOref,
                     txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -239,16 +243,16 @@ tests =
               referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False,
           testCookedFromInitDistTemplate "succeed if relying on automated finding of reference minting policy" $
             mustSucceedTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 True)
-              `withLogProp` happened "MCLogAddedReferenceScript",
+              `withLogProp` happened "CLogAddedReferenceScript",
           testCookedFromInitDistTemplate "fail if given the wrong reference minting policy" $
             mustFailTest (referenceMint Script.alwaysFailPolicyVersioned Script.alwaysSucceedPolicyVersioned 0 False)
               `withErrorProp` \case
-                MCEWrongReferenceScriptError {} -> testSuccess
+                CEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure,
           testCookedFromInitDistTemplate "fail if referencing the wrong utxo" $
             mustFailTest (referenceMint Script.alwaysSucceedPolicyVersioned Script.alwaysSucceedPolicyVersioned 1 False)
               `withErrorProp` \case
-                MCEWrongReferenceScriptError {} -> testSuccess
+                CEWrongReferenceScriptError {} -> testSuccess
                 _ -> testFailure
         ]
     ]

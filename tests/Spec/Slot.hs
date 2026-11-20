@@ -1,8 +1,8 @@
 module Spec.Slot (tests) where
 
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.Runtime.State
+import Cooked.Effect.Time
+import Cooked.Runtime.Error
+import Cooked.Runtime.State
 import Data.Default
 import Ledger.Slot qualified as P.Ledger
 import Ledger.Tx qualified as P.Ledger
@@ -16,21 +16,23 @@ import Test.Tasty.QuickCheck
 
 runSlot ::
   Sem
-    '[ MockChainRead,
-       State MockChainState,
+    '[ Time,
+       State EmulatorState,
+       State ChainIndex,
        Fail,
        Error P.Ledger.ToCardanoError,
-       Error MockChainError
+       Error ChainError
      ]
     a ->
-  Either MockChainError a
+  Either ChainError a
 runSlot =
   run
     . runError
-    . runToCardanoErrorInMockChainError
-    . runFailInMockChainError
+    . mapError CEToCardanoError
+    . failToError CEFailure
     . evalState def
-    . runMockChainRead
+    . evalState def
+    . runMockChainTime
 
 tests :: TestTree
 tests =

@@ -15,6 +15,7 @@ see how things have evolved and are currently done in `cooked-validators`!
 
 - [CHEATSHEET](#cheatsheet)
 - [Mockchain runs](#mockchain-runs)
+  - [Effects](#effects)
   - [Mockchains](#mockchains)
   - [Traces](#traces)
     - [Define a trace](#define-a-trace)
@@ -23,6 +24,10 @@ see how things have evolved and are currently done in `cooked-validators`!
   - [Initial distributions of UTxOs](#initial-distributions-of-utxos)
     - [Creation](#creation)
     - [Usage](#usage)
+- [Running against a Cardano node](#running-against-a-cardano-node)
+  - [Blockchains](#blockchains)
+  - [Running a trace on a node](#running-a-trace-on-a-node)
+  - [Writing node-friendly traces](#writing-node-friendly-traces)
 - [Miscellaneous mockchain capabilities](#miscellaneous-mockchain-capabilities)
   - [Wallets](#wallets)
   - [Aliases](#aliases)
@@ -30,21 +35,29 @@ see how things have evolved and are currently done in `cooked-validators`!
     - [Aliases for dynamic data](#aliases-for-dynamic-data)
   - [Notes](#notes)
   - [Assertions](#assertions)
+  - [Pretty printing](#pretty-printing)
 - [Basic mockchain capabilities](#basic-mockchain-capabilities)
   - [Time handling](#time-handling)
     - [Querying time](#querying-time)
     - [Jumping in time](#jumping-in-time)
+  - [Protocol parameters](#protocol-parameters)
   - [Utxos queries](#utxos-queries)
     - [Direct queries](#direct-queries)
     - [Searches](#searches)
+  - [Overriding the mockchain state](#overriding-the-mockchain-state)
 - [Transactions](#transactions)
   - [Transaction skeletons](#transaction-skeletons)
     - [Defining a transaction skeleton](#defining-a-transaction-skeleton)
     - [Submitting transaction skeletons for validation](#submitting-transaction-skeletons-for-validation)
+  - [Transaction options](#transaction-options)
+    - [Option templates](#option-templates)
+    - [Handling failures](#handling-failures)
+    - [Other options](#other-options)
   - [Signatories](#signatories)
   - [Outputs](#outputs)
     - [Building payments:](#building-payments)
     - [Adjusting payments:](#adjusting-payments)
+    - [Owners known only by their hash](#owners-known-only-by-their-hash)
     - [Attaching payments to transactions](#attaching-payments-to-transactions)
   - [Redeemers](#redeemers)
   - [Inputs](#inputs)
@@ -77,17 +90,46 @@ see how things have evolved and are currently done in `cooked-validators`!
 
 # Mockchain runs
 
+## Effects
+
+The capabilities of a chain are expressed as [Polysemy] effects, all
+re-exported from `Cooked.Effect`. Each of them comes with a `runMockChain*`
+interpreter (emulated chain) and, when meaningful, a `runBlockChain*`
+interpreter (real Cardano node):
+- `Query`: fetching UTxOs (`allUtxos`, `utxosAt`, `utxoByRef`, ...), the
+  constitution script and the current rewards
+- `Params`: protocol parameters, network id, era history, system start and
+  deposits
+- `Time`: querying and waiting for slots
+- `Validate`: submitting skeletons for validation (`validateTxSkel`, ...)
+- `Override`: modifying the chain state directly (`forceOutputs`, `setParams`,
+  `setConstitutionScript`). Only available on the mockchain.
+- `Misc`: aliases, notes and assertions
+- `Log`: internal log of events (`ChainLogEntry`)
+- `Submit`: low-level submission of a Cardano `Transaction`
+
+Traces can be written against any set of these effects:
+```haskell
+myTrace :: (Members '[Validate, Query, Time, Fail] effs) => Sem effs ()
+```
+
 ## Mockchains
 
 A `mockchain` is an abstraction of the Cardano blockchain. `cooked-validators`
 provides several monadic environments to instantiate this concept:
-- `DirectMockChain`: basic capabilities of the mockchain
+- `DirectMockChain`: basic capabilities of the mockchain (`Validate`,
+  `Override`, `Query`, `Time`, `Misc` and `Fail`)
 - `StagedMockChain`: basic capabilities of the mockchain, with the addition of
   branching and temporal modifications. This is the go-to environment !
 - `FullMockChain`: all effects available, including low-level effects such as
-  builtin-errors, to be used for maximum level of granularity
+  builtin-errors, `Params` or `Log`, to be used for maximum level of
+  granularity
 - `ExtendedStagedMockChain eff`: same as `StagedMockChain` with additional
   custom effects embedded in `eff`, to work in your own dedicated environment !
+
+Their respective stacks of effects are `DirectMockChainEffs`,
+`StagedMockChainEffs`, `FullMockChainEffs` and `ExtendedStagedMockChainEffs
+eff`.
 
 ## Traces 
 
@@ -124,28 +166,36 @@ myTrace = do
 
 * In a direct set of custom or builtin effects:
 ```haskell
-myTrace :: (Members '[MockChainLog, MockChainRead, MyFirstEff, ...] effs) => Sem effs ()
+myTrace :: (Members '[Log, Query, MyFirstEff, ...] effs) => Sem effs ()
 myTrace = do
   ...
 ```
 
 ### Execute the trace in a `cabal repl`
 
-* With a default mockchain state: 
+* With a default mockchain state and no initial payments: 
 ```haskell
 printCooked $ runMockChainDef myTrace
 ```
-* With a custom mockchain state: 
+* With the default initial distribution (4 UTxOs of 100 Ada for wallets 1 to 4):
 ```haskell
-printCooked $ runMockChain myState myTrace
+printCooked $ runMockChainFromInitDistTemplate myTrace
+```
+* With a custom initial emulator state and chain index (no initial
+  distribution, raw result):
+```haskell
+runMockChain (def :: EmulatorState) (def :: ChainIndex) myTrace
 ```
 * With a custom initial list of payments (or `InitialDistribution`):
 ```haskell
 printCooked $ runMockChainFromInitDist myPaymentsList myTrace
 ```
-* With a default configuration (initial state, initial list of payments, and custom function on returned value): 
+* With a custom configuration (initial emulator state, initial chain index,
+  initial list of payments, and custom function on returned value):
 ```haskell
 printCooked $ runMockChainFromConf myConf myTrace
+-- or by tweaking the default configuration
+printCooked $ runMockChainFromConf (mockChainConfTemplate {mccInitialDistribution = myDist}) myTrace
 ```
 
 ### Use the trace as part of a test
@@ -158,6 +208,8 @@ printCooked $ runMockChainFromConf myConf myTrace
   `mustFailInPhase1Test myTrace` or `mustFailInPhase2Test myTrace`
 * Expect a failure within a specific validation phase with a specific error message:
   `mustFailInPhase1WithMsgTest expectedMessage myTrace` or `mustFailInPhase2WithMsgTest expectedMessage myTrace`
+* Expect a given number of outcomes:
+  `mustSucceedWithSizeTest 3 myTrace` or `mustFailWithSizeTest 3 myTrace`
 * Manually customize the:
   * initial distribution: `withInitDist myPaymentsList`
   * pretty printing options: `withPrettyOpts myOptions`
@@ -167,19 +219,38 @@ printCooked $ runMockChainFromConf myConf myTrace
   * expectations on the returned value: `withResultProp myResultProp`
   * expectations on the number of results: `withSizeProp mySizeProp`
   * expectations on the failure output: `withFailureProp myFailureProp`
-  * expectations on the possible error: `withErrorProp myError prop`
+  * expectations on the possible error: `withErrorProp (\(err :: ChainError) -> ...)`
+* Builtin properties:
+  * on failures: `isPhase1Failure`, `isPhase2Failure`,
+    `isPhase1FailureWithMsg`, `isPhase2FailureWithMsg` (phase 2 failures are
+    script evaluation failures reported in `CEExUnitsFailures`, phase 1
+    failures are ledger rejections reported in `CESubmissionFailures` and
+    other non-script errors reported in `CEExUnitsFailures`)
+  * on the number of outcomes: `isOfSize`, `isAtLeastOfSize`, `isAtMostOfSize`
+  * on the log: `happened "CLogEntryName"`, `didNotHappen "CLogEntryName"`
+  * on the final state: `possesses`, `isAtAddress`
 * Wrap the test in a quickcheck/tasty test case:
   * `testCooked "myTastyTest" $ myTastyTest`
   * `testCookedQC "myQuickCheckTest" $ myQuickCheckTest`
+  * with the default initial distribution: `testCookedFromInitDistTemplate`
+    and `testCookedQCFromInitDistTemplate`
 * Example:
 ```haskell
-testCooked $ 
+testCooked "myTest" $ 
   mustSucceedTest myTrace 
     `withInitDist` myListOfPayments -- giving a custom initial distribution
     `withSizeProp` isOfSize 3 -- expecting 3 outputs
     `withResultProp` (== 42) -- each returned value should be 42
-    `withLogProp` happened "MCLogAddedReferenceScript" -- a reference script was automatically added
-    `withStateProp` possesses alice myAssetClass 10 -- alice possesses 10 custom tokens in the resulting state
+    `withLogProp` happened "CLogAddedReferenceScript" -- a reference script was automatically added
+    `withSuccessProp` possesses alice myAssetClass 10 -- alice possesses 10 custom tokens in the resulting state
+```
+* Example with an expected error:
+```haskell
+testCooked "myFailingTest" $
+  mustFailTest myTrace
+    `withErrorProp` \case
+      CEUnknownOutRefs _ -> testSuccess
+      _ -> testFailure
 ```
 
 ## Initial distributions of UTxOs
@@ -202,12 +273,15 @@ initDist = distributionFromList $
 ```haskell
 initDist :: InitialDistribution
 initDist = 
-  [ wallet 3 `receives` Value (ada 6)
+  [ wallet 3 `receives` AdaValue 6 -- exactly 6 Ada, not subject to min-Ada adjustment
   , fooTypedValidator `receives` Value (myToken 6) <&&> InlineDatum fooTypedDatum
-  , wallet 2 `receives` Value (ada 2) <&&> VisibleHashedDatum fooDatum
-  , wallet 1 `receives` Value (ada 10) <&&> ReferenceScript fooValidator <&&> StakingCredential cred
+  , wallet 2 `receives` Value (ada 2) <&&> VisibleHashedDatum fooDatum -- Ada amount adjusted to min-Ada if needed
+  , wallet 1 `receives` AdaValue 10 <&&> ReferenceScript fooValidator <&&> StakingCredential cred
   ]
 ```
+* The default initial distribution, `initialDistributionTemplate`, gives 4
+  UTxOs of 100 Ada to each of the first 4 wallets.
+
 ### Usage
 
 * In a test:
@@ -218,12 +292,94 @@ testCooked "foo" $ mustSucceedTest foo `withInitDist` myInitiDist
 ```haskell
 printCooked $ runMockChainFromInitDist myInitDist foo
 ```
-* Within a trace:
+* Within a trace (only on the mockchain, through the `Override` effect):
 ```haskell
 myTrace = do
-  forceOutputs myInitDist
+  createdUtxos <- forceOutputs myInitDist -- createdUtxos :: Utxos
+  forceOutputs_ myOtherInitDist -- ignoring the created UTxOs
   ...
 ```
+
+# Running against a Cardano node
+
+Besides the emulated mockchain, `cooked-validators` can run traces against a
+real Cardano node (for instance a local testnet), using the `Cooked.BlockChain`
+backend. The same traces can then be used for testing on the emulator and for
+deploying on a real network, as long as they do not use mockchain-only effects
+such as `Override`.
+
+## Blockchains
+
+Two environments are provided:
+- `DirectBlockChain`: the go-to environment, with effects `Validate`, `Query`,
+  `Time`, `Misc` and `Fail`
+- `FullBlockChain`: all effects available, including low-level ones (`Submit`,
+  `Params`, `Log`, errors, `IO`, ...)
+
+Their respective stacks of effects are `DirectBlockChainEffs` and
+`FullBlockChainEffs`.
+
+## Running a trace on a node
+
+The connection to the node is described by a `Cardano.LocalNodeConnectInfo`:
+```haskell
+import Cardano.Api qualified as Cardano
+
+connectInfo :: Cardano.LocalNodeConnectInfo
+connectInfo =
+  Cardano.LocalNodeConnectInfo
+    { Cardano.localConsensusModeParams = Cardano.CardanoModeParams (Cardano.EpochSlots 21600),
+      Cardano.localNodeNetworkId = Cardano.Testnet (Cardano.NetworkMagic 42),
+      Cardano.localNodeSocketPath = Cardano.File "/path/to/node.socket"
+    }
+```
+
+* Run a trace and display its result and the resulting UTxOs:
+```haskell
+main :: IO ()
+main = runBlockChainFromConfTemplate connectInfo (myTrace :: DirectBlockChain ())
+```
+
+* Run a trace with a custom configuration:
+```haskell
+main :: IO ()
+main =
+  runBlockChainFromConf
+    BlockChainConf
+      { bccConnectInfo = connectInfo,
+        bccInitialChainIndex = def, -- the outputs known before the run
+        bccPrettyOpts = myPrettyOpts,
+        bccFunOnResult = displayBlockChainResult -- or any 'RawBlockChainReturn a -> IO b'
+      }
+    myTrace
+```
+
+## Writing node-friendly traces
+
+* Build skeletons from `txSkelNodeTemplate`, whose options do not halt on
+  failures and limit the number of balancing UTxOs (see [Transaction
+  options](#transaction-options)).
+* Sign with actual keys, for instance read from a Cardano signing key file
+  (see [Signatories](#signatories)):
+```haskell
+main = do
+  alice <- signatoryFromFile @Cardano.GenesisUTxOKey "utxo1.skey"
+  runBlockChainFromConfTemplate connectInfo $
+    validateTxSkel_ $
+      txSkelNodeTemplate
+        { txSkelOutputs = [bob `receives` AdaValue 10],
+          txSkelSignatories = [alice]
+        }
+```
+* UTxO queries are sent to the node, and completed with the content stored in
+  the chain index (outputs created during the run, or given in
+  `bccInitialChainIndex`). Outputs only discovered on the node may have their
+  datum or owning script known only by their hash, in which case spending them
+  requires additional care (see [Owners known only by their
+  hash](#owners-known-only-by-their-hash)).
+* On a node, time flows on its own and `waitNSlots` and the like actually
+  suspend the thread, while on the mockchain time only changes when explicitly
+  requested.
 
 # Miscellaneous mockchain capabilities
 
@@ -267,11 +423,11 @@ Aliases for static data can be defined outside a mockchain run, in the pretty op
 walletNames :: [(Wallet, String)]
 walletNames = [(wallet 1, "Alice"), (wallet 2, "Bob"), (wallet 3, "Carie")]
 
-mintingPolicyNames :: [(Wallet, MintingPolicy)]
+mintingPolicyNames :: [(Api.CurrencySymbol, String)]
 mintingPolicyNames = [(nftCurrencySymbol, "NFT"), (customCoinsCurrencySymbol, "Custom Coins")]
 
-validatorNames :: [(Wallet, Validator)]
-validatorNames = [(fooValidator, "Foo") ]
+validatorNames :: [(VScript, String)]
+validatorNames = [(toVScript fooValidator, "Foo") ]
 
 pcOpts :: C.PrettyCookedOpts
 pcOpts =
@@ -306,6 +462,8 @@ myTrace = do
   ...
 ```
 
+* Without using the result: `define_` and `defineM_`
+
 ## Notes 
 
 Notes correspond to user logs during a mockchain run. We can take note of...
@@ -321,10 +479,28 @@ Notes correspond to user logs during a mockchain run. We can take note of...
 
 Assertions can be made anywhere in a mockchain run. Assertions will be evaluated
 during the run, used for testing purposes, and displayed in the final printing
-of the mockchain run.
+of the mockchain run. Their name follows the same conventions as notes:
 
-* Named assertions: `assert`
-* Assertions with default name "Assertion": `assert'`
+* Named by a rendering function: `assert (\opts -> prettyCookedOpt opts myThing) (x == y)`
+* Named by anything that can be pretty printed: `assertP myThing (x == y)`
+* Named by a title and a list of pretty printable elements: `assertL "Title" myList (x == y)`
+* Named by anything that can be shown: `assertW myThing (x == y)`
+* Named by a string: `assertS "x equals y" (x == y)`
+* With default name "Assertion": `assert' (x == y)`
+
+## Pretty printing
+
+* Print the result of a run with default options: `printCooked`
+* Print the result of a run with custom options: `printCookedOpt myOptions`
+* Some useful `PrettyCookedOpts` fields:
+  * `pcOptPrintTxSkelOpts`: print the options of each skeleton (hidden by default)
+  * `pcOptPrintLog`, `pcOptPrintNotebook`, `pcOptPrintAssertions`: print the
+    log, the notes and the assertions
+  * `pcOptPrintRemainingUTxOs`, `pcOptPrintConsumedUTxOs`: print the final UTxOs
+  * `pcOptHashes`: hash printing options, including aliases (see above)
+```haskell
+printCookedOpt def {pcOptPrintTxSkelOpts = True} $ runMockChainDef myTrace
+```
 
 # Basic mockchain capabilities
 
@@ -355,7 +531,15 @@ myTrace = do
 
 * The slot containing a given ms point can be queried: `getEnclosingSlot`
 
+* The ms range of a given slot can be queried: `slotToMSRange`
+
+* Slot ranges before or after a given ms point can be computed, for validity
+  ranges: `slotRangeBefore`, `slotRangeAfter`
+
 ### Jumping in time
+
+Validating a transaction does not make time progress on the mockchain. Time has
+to be explicitly moved forward:
 
 * Waiting a certain amount of slots
 ```haskell
@@ -370,27 +554,52 @@ myTrace = do
   * wait a certain amount of ms from the first ms of the current slot: `waitNMSFromSlotLowerBound`
   * wait a certain amount of ms from the last ms of the current slot: `waitNMSFromSlotUpperBound`
 
+## Protocol parameters
+
+The `Params` effect (available in `FullMockChain` and `FullBlockChain`) gives
+access to:
+* the ledger protocol parameters: `getParams`
+* the network id: `getNetworkId`
+* the era history and system start: `getEraHistory`, `getSystemStart`
+* the various deposits: `govActionDeposit`, `dRepDeposit`,
+  `stakeAddressDeposit`, `stakePoolDeposit`
+
 ## Utxos queries 
 
-The mockchain state contains, among other elements, the unspent outputs, which
+The chain index contains, among other elements, the unspent outputs, which
 can be queried/searched for. They are associated with the payments that created
 them, in the form of a `TxSkelOut`.
 
 ### Direct queries
 
+Most queries come in three flavours:
+* a base version, returning `Maybe` (or ignoring missing outputs)
+* an `F` variant, failing (in `Fail`) when outputs are missing
+* an `E` variant, throwing a `ChainError` (`CEUnknownOutRefs`) when outputs are
+  missing, meant for internal use when `Error ChainError` is available
+
 * Retrieve all UTxOs available in the mockchain state:
 ```haskell
 myTrace = do
   ...
-  knownUtxos <- allUtxos -- knownUtxos :: [(TxOutRef, TxSkelOut)]
+  knownUtxos <- allUtxos -- knownUtxos :: UtxoSearchResult, a Map TxOutRef (HList '[TxSkelOut])
   ...
 ```
 
-* Retrieve all UTxOs at a given address:
+* Retrieve all UTxOs at a given address (or anything convertible to an address):
 ```haskell
 myTrace = do
   ...
-  aliceUtxos <- utxosAt alice -- aliceUtxos :: [(TxOutRef, TxSkelOut)]
+  aliceUtxos <- utxosAt alice -- aliceUtxos :: UtxoSearchResult
+  ...
+```
+
+* Retrieve the UTxOs associated with some `TxOutRef`s:
+```haskell
+myTrace = do
+  ...
+  someUtxos <- utxosByRef [txOutRef1, txOutRef2] -- ignores missing references
+  someUtxos' <- utxosByRefF [txOutRef1, txOutRef2] -- fails on missing references
   ...
 ```
 
@@ -398,7 +607,8 @@ myTrace = do
 ```haskell
 myTrace = do
   ...
-  txSkelOut <- txSkelOutByRef myTxOutRef
+  mTxSkelOut <- utxoByRef myTxOutRef -- mTxSkelOut :: Maybe TxSkelOut
+  txSkelOut <- utxoByRefF myTxOutRef -- txSkelOut :: TxSkelOut
   ...
 ```
 
@@ -406,51 +616,79 @@ myTrace = do
 ```haskell
 myTrace = do
   ...
-  -- A value is always present, use 'viewByRef'
-  value <- viewByRef txSkelOutValueL myTxOutRef
-  -- A datum of a given type might not be present, use 'previewByRef'
-  Just typedDatum <- previewByRef (txSkelOutDatumL % txSkelOutDatumTypedAT @MyDatumType) myTxOutRef
+  -- A value is always present, use 'viewByRef[F]'
+  value <- viewByRefF txSkelOutValueL myTxOutRef
+  -- A datum of a given type might not be present, use 'previewByRef[F]'
+  Just typedDatum <- previewByRefF (txSkelOutDatumL % txSkelOutDatumTypedAT @MyDatumType) myTxOutRef
   ...
 ```
+
+* Other queries:
+  * the current official constitution script: `getConstitutionScript`
+  * the current reward of a staking credential: `getCurrentReward`
 
 ### Searches
 
-Utxo searches are lists of UTxOs that can be manipulated conveniently. 
+`allUtxos`, `utxosAt` and `utxosByRef` return a `UtxoSearchResult`, which is a
+`Map TxOutRef (HList '[TxSkelOut])`. Such search results (from
+`Cooked.Utilities.TypedSearch`) can be refined in a pipeline, extracting new
+pieces of information from the outputs and filtering them along the way, while
+retaining in the type the list of extracted elements.
 
-1. Utxo searches are created using:
-  * `beginSearch` from a monadic call returning a list of UTxOs such as `allUtxos`
-  * `beginSearchPure` from a pure call returning a list of UTxOs
-
-2. Some existing UTxO searches are provided builtin such as `utxosAtSearch`,
-   `allUtxosSearch` or `txSkelOutByRefSearch`.
-
-3. UTxO searches can be filtered using...
-  * a monadic predicate over a `TxSkelOut` using `ensure`
-  * a pure predicate over a `TxSkelOut` using `ensurePure`
+1. UTxO searches can be filtered using...
+  * a monadic predicate using `ensure`
+  * a pure predicate using `ensurePure`
   * the presence, or absence of the target of an affine fold using either
     `ensureAFoldIs` or `ensureAFoldIsn't` respectively.
 
-4. Some builtin filters are provided, such as `ensureVanillaOutputs` or
-   `ensureProperReferenceScript`.
-   
-5. UTxO searches can be refined by extracting sub-elements from the `TxSkelOut`s using...
+2. UTxO searches can be refined by extracting new elements from previously
+   extracted ones (initially the `TxSkelOut`s), using...
   * a monadic function which might fail (returning `Maybe b`), which will
-    extract `b` when it exists, or remove the output when it does not.
-  * several variants: `extractPure`, `extractAFold`, ...
-  
-6. UTxO searches are made of the targeted outputs, alongside any piece of
-   information that was extracted from them, in a type retaining way. Pieces of
-   these searches can be retrieved, using `getOutputs`, `getExtracts`, ...
+    extract `b` when it exists, or remove the output when it does not: `extract`
+  * several variants: `extractPure`, `extractAFold`, `extractTotal`,
+    `extractPureTotal`, `extractGetter`
+
+3. Filters and extractions find the element they work on by its type (using
+   `FetchByType`), so the type of the extracted elements should be unambiguous.
+
+4. Pieces of the search results can be retrieved using...
+  * `retrieveKeys`: the set of `TxOutRef`s
+  * `retrieveAsList`: the list of `HList`s of extracted elements
+  * `retrieveByType`, `retrieveByTypeAsList`: the extracted elements of a given
+    type, in a map or in a list
+  * `retrieveByTypeAndFold`: the fold of extracted elements of a given monoidal type
+  * `retrieve`: an arbitrary function on the search result
+  * `searchResultMapI`: an iso between a search with a single extracted element
+    and a plain map, such as `Utxos`
+
+5. Search results are maps, so usual `Map` functions can be used on them as well.
    
-7. Example:
+6. Examples:
 ```haskell
 myTrace = do
   ...
-  oRefs <- getTxOutRefs $ -- only retrieve the TxOutRef
-    utxosAtSearch alice $ -- use UTxOs at alice's address only
-	  ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`)) -- only take UTxOs containing at least a banana
+  oRefs <- -- only retrieve the TxOutRefs
+    utxosAt alice -- use UTxOs at alice's address only
+      >>= ensureAFoldIs (txSkelOutValueL % filtered (banana 1 `Api.leq`)) -- only take UTxOs containing at least a banana
+      >>= retrieveKeys
+  datums <- -- retrieve all the integer datums at alice's address
+    utxosAt alice
+      >>= extractAFold (txSkelOutDatumL % txSkelOutDatumTypedAT @Integer)
+      >>= retrieveByTypeAsList @Integer
+  totalValue <- -- the sum of values at alice's address
+    utxosAt alice
+      >>= extractGetter txSkelOutValueL
+      >>= retrieveByTypeAndFold @Api.Value
   ...
 ```
+
+## Overriding the mockchain state
+
+The `Override` effect is only available on the mockchain, and allows to modify
+its state without submitting transactions:
+* create outputs out of thin air: `forceOutputs`, `forceOutputs_`
+* change the emulator parameters: `setParams`
+* change the official constitution script: `setConstitutionScript`
 
 # Transactions
 
@@ -466,7 +704,7 @@ options. It is built upon a transaction skeleton template. Each field can then
 be overridden.
 
 ```haskell
-myTxSkel = txSkelTemplate 
+myTxSkel = txSkelEmulatorTemplate 
   { txSkelInputs = ...,
 	txSkelOutputs = ...,
 	txSkelOpts = ...,
@@ -474,21 +712,84 @@ myTxSkel = txSkelTemplate
   }
 ```
 
+Three templates are available:
+* `txSkelEmulatorTemplate`: an empty skeleton with options tailored for the
+  emulator (`txSkelOptsEmulatorTemplate`)
+* `txSkelNodeTemplate`: an empty skeleton with options tailored for a real node
+  (`txSkelOptsNodeTemplate`)
+* `txSkelTemplate myOptions`: an empty skeleton with custom options
+
 ### Submitting transaction skeletons for validation
 
 Transaction skeletons can be submitted for validation and...
 
-* ... get the validated Cardano transaction
+* ... get the adjusted skeleton, the submission failures (when not halting),
+  the generated Cardano transaction and the created UTxOs
 ```haskell
 myTrace = do
   ...
-  cardanoTx <- validateTxSkel myTxSkel
+  (extendedTxSkel, submissionFailures, cardanoTx, createdUtxos) <- validateTxSkel myTxSkel
   ...
 ```
 
-* ... get the generated `TxOutRef`s: `validateTxSkel'`
+* ... get the created UTxOs (as `Utxos`, a `Map TxOutRef TxSkelOut`): `validateTxSkel'`
+
+* ... get the created `TxOutRef`s, in order: `validateTxSkelL`
+```haskell
+myTrace = do
+  ...
+  (oRef1 : oRef2 : _) <- validateTxSkelL myTxSkel
+  ...
+```
 
 * ... ignore any returned value: `validateTxSkel_`
+
+## Transaction options
+
+Options are stored in the `txSkelOpts` field of the skeleton, of type
+`TxSkelOpts`, and accessible through optics (`txSkelOptsL % txSkelOpt...L`).
+
+### Option templates
+
+There is no default set of options. Instead, two templates are provided:
+* `txSkelOptsEmulatorTemplate`: halts on every failure (execution units and
+  submission), which is what we usually want when testing
+* `txSkelOptsNodeTemplate`: does not halt on failures (they are only logged),
+  and uses at most 10 UTxOs for balancing
+
+```haskell
+txSkelEmulatorTemplate
+  { ...
+    txSkelOpts = txSkelOptsEmulatorTemplate {txSkelOptBalancingPolicy = DoNotBalance}
+    ...
+  }
+```
+
+### Handling failures
+
+* Halt (or not) when script evaluation fails while computing execution units:
+  `txSkelOptHaltOnExUnitsFailures`. When not halting, the failures are logged
+  (`CELogExUnitsFailures`) and the transaction is generated with an invalid
+  script validity flag, and thus submitted as a phase 2 failure.
+* Halt (or not) when the transaction is rejected upon submission:
+  `txSkelOptHaltOnSubmissionFailures`. When not halting, the failures are
+  logged (`CELogSubmissionFailures`) and returned by `validateTxSkel`.
+
+### Other options
+
+* Balancing (see [Balancing](#balancing)): `txSkelOptBalancingPolicy`,
+  `txSkelOptFeePolicy` (`AutoFeeComputation` or `ManualFee fee`),
+  `txSkelOptBalanceOutputPolicy` (`AdjustExistingOutput` or
+  `DontAdjustExistingOutput`), `txSkelOptBalancingUtxos`
+  (`BalancingUtxosFromBalancingUser` or `BalancingUtxosFromSet utxos`) and
+  `txSkelOptMaxNbOfBalancingUtxos`
+* Collaterals (see [Collaterals](#collaterals)): `txSkelOptCollateralUtxos`
+* Arbitrary modification of the generated transaction, applied right before
+  submission: `txSkelOptModTx`, or `txSkelOptAddModTx` to compose with existing
+  modifications
+```haskell
+myTxSkel {txSkelOpts = txSkelOptAddModTx Debug.Trace.traceShowId (txSkelOpts myTxSkel)}
+```
 
 ## Signatories
 
@@ -496,14 +797,15 @@ Transaction can be signed with one of more wallets. They will both be part of
 the required and actual signers of the transaction.
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
-    txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...]
+    txSkelSignatories = txSkelSignatoriesFromList [wallet 1, ...] -- or: signatoryWallet <$> [wallet 1, ...]
     ...
   }
 ```
 
-Transactions can also be signed by anything that has a pubkey. They will only be part of the required signatories, and a private key will be required later on.
+Transactions can also be signed by anything that has a pubkey. They will only be
+part of the required signatories, and a private key will be required later on.
   
 ```haskell
 instance Script.ToPubKeyHash MyType where
@@ -513,12 +815,34 @@ myUser1 myUser2 :: MyType
 myUser1 = ...
 myUser2 = ...
 
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = signatoryPubKey <$> [myUser1, myUser2, ...]
     ...
   }
 ```
+
+More generally, a signatory is a public key hash paired with a
+`TxSkelSignatoryWitness`, which is either `NoTxSkelSignatoryWitness` or
+`SomeTxSkelSignatoryWitness key` for any `key` with a `ToWitness` instance:
+
+```haskell
+mySignatory = TxSkelSignatory myPubKeyHash (SomeTxSkelSignatoryWitness mySigningKey)
+```
+
+Signatories can be read from a Cardano signing key file (in `IO`):
+
+```haskell
+main = do
+  signatory <- signatoryFromFile @Cardano.GenesisUTxOKey "path/to/key.skey"
+  ...
+```
+
+Notes:
+* Signatories are compared by public key hash only.
+* Signatories can be used as owners of outputs: ``mySignatory `receives` AdaValue 10``.
+* The witness of a signatory can be accessed with `txSkelSignatoryPrivateKeyL`
+  and its signing key, if any, with `txSkelSignatorySigningKeyAF`.
 
 ## Outputs
 
@@ -527,7 +851,7 @@ txSkelTemplate
 There are several payable elements, attached to a recipient to create a payment:
 * A simple value to a wallet: 
 ```haskell
-wallet 3 `receives` Value (ada 3)
+wallet 3 `receives` AdaValue 3
 ```
 * A value and an inline datum to a script:
 ```haskell
@@ -547,18 +871,42 @@ fooScript `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelac
 ... <&&> (StakingCredential dat)`
 ```
 
+Owners can be wallets, public key hashes, signatories, scripts (typed
+validators, versioned validators, multi-purpose scripts...), script hashes or
+users (`UserPubKey`, `UserScript`, `UserScriptHash`).
+
 ### Adjusting payments:
 
 Payments can automatically be adjusted in terms of minimal ADA requirements:
 * allow min ADA adjustment, by providing a value: ```party `receives` (Value (myToken 5))```
-* allow min ADA adjustment, by providing no value: ```party `receives` (Datum myDatum)```
+* allow min ADA adjustment, by providing no value: ```party `receives` (InlineDatum myDatum)```
 * forbid min ADA adjustment: ```party `receives` (FixedValue $ ada 10) ```
+* forbid min ADA adjustment, with an amount of ADA: ```party `receives` AdaValue 10```
+* forbid min ADA adjustment, with an amount of lovelace: ```party `receives` LovelaceValue 2_000_000```
+
+### Owners known only by their hash
+
+Outputs can exist on-chain whose datum or owning script is only known by its
+hash. This typically happens with outputs discovered on a real node.
+* Pay to a script only known by its hash:
+```haskell
+(myScriptHash :: Api.ScriptHash) `receives` AdaValue 10
+```
+* Spending such an output requires its redeemer to point to a reference input
+  holding the actual script, otherwise the run fails with
+  `CESpendingHashOnlyScript`:
+```haskell
+txSkelInputs = Map.singleton oRef (withReferenceInput myRedeemer oRefWithRefScript)
+```
+* An output can also hold a datum only known by its hash
+  (`SomeTxSkelOutDatumHash datumHash`, set through `txSkelOutDatumL`).
+  Spending such an output fails with `CESpendingHashOnlyDatum`.
 
 ### Attaching payments to transactions
 
 Payments are given in the transaction using the `txSkelOutputs` field:
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelOutputs = [party1 `receives` payment1, party2 `receives` payment2, ...]
     ...
@@ -590,7 +938,7 @@ myRedeemer =
 ## Inputs
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelInputs = Map.fromList 
 	  [ (txOutRef1, someTxSkelRedeemer red), 
@@ -610,7 +958,7 @@ txSkelTemplate
 * Burn a single kind of token for a given minting policy: `burn barPolicy myTxSkelRedeemer "barName" 6`
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelMints = txSkelMintsFromList
       [ Mint ...,
@@ -628,7 +976,7 @@ txSkelTemplate
 * Within redeemers manually ``withReferenceInput myTxSkelRedeemer myRefInput``
 * Additional reference inputs not bound to redeemers:
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelReferenceInputs = Set.fromList [txOutRef1, txOutRef2, ...]
     ...
@@ -640,9 +988,9 @@ txSkelTemplate
 Collaterals are usually selected by `cooked-validators` automatically, but can
 also be provided manually.
 
-* From first signer (default):
-```
-txSkelTemplate
+* From the balancing user, by default the first signatory (default):
+```haskell
+txSkelEmulatorTemplate
   { ...
      txSkelSignatories = [signatory1, signatory2],
     ...
@@ -650,20 +998,20 @@ txSkelTemplate
 ```
 
 * From another wallet:
-```
-txSkelTemplate
+```haskell
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = [TxSkelSignatory user1 ... , TxSkelSignatory user2 ...],
-	txSkelOpts = def {txSkelOptCollateralUtxos = CollateralUtxosFromUser user2}
+	txSkelOpts = txSkelOptsEmulatorTemplate {txSkelOptCollateralUtxos = CollateralUtxosFromUser user2}
     ...
   }
 ```
 
 * From a direct UTxO list (make sure the owner of these utxo sign the transaction):
-```
-txSkelTemplate
+```haskell
+txSkelEmulatorTemplate
   { ...
-	txSkelOpts = def {txSkelOptCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2]) user2}
+	txSkelOpts = txSkelOptsEmulatorTemplate {txSkelOptCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2]) user2}
     ...
   }
 ```
@@ -672,7 +1020,7 @@ txSkelTemplate
 
 ### Tamper with the official constitution script
 
-* Set the official constitution scripts
+* Set the official constitution scripts (mockchain only)
 
 ```haskell
 do
@@ -686,7 +1034,7 @@ do
 ```haskell
 do
   ...
-  currentConstitution <- getConstitutionScript
+  mCurrentConstitution <- getConstitutionScript -- mCurrentConstitution :: Maybe VScript
   ...
 ```
 
@@ -695,7 +1043,7 @@ do
 * Using the builtin constructor for proposals.
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelProposals =
       [ TxSkelProposal
@@ -721,13 +1069,13 @@ txSkelTemplate
 * Using smart constructors and (optional) helpers.
 
 ```haskell 
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelProposals =
       [ simpleProposal
           (wallet 1)
           (ParameterChange [FeePerByte 100, FeeFixed 1_000])
-          & fillConstitution myConstitutionScript
+          & fillConstitutionWhenEmpty myConstitutionScript
           & set txSkelProposalAnchorL (simpleURLAnchor "https://www.tweag.io/")
       ]
     ...
@@ -739,14 +1087,14 @@ txSkelTemplate
 Leave a witnessed proposal's constitution unset (i.e. `Nothing`). During
 transaction generation the current official constitution script (the one set
 with `setConstitutionScript`) is automatically filled in with an empty
-redeemer, logging an `MCLogAutoFilledConstitution` event.
+redeemer, logging a `CLogAutoFilledConstitution` event.
 
 ## Withdrawals
 
 * Automatic withdrawal of the available rewards
 
 ```haskell 
-txSkelTemplate
+txSkelEmulatorTemplate
   { txSkelWithdrawals = txSkelWithdrawalsFromList 
       [ scriptWithdrawal myWithdrawingScript myTxSkelRedeemer,
 	    pubKeyWithdrawal myWithdrawingPubKey,
@@ -759,7 +1107,7 @@ txSkelTemplate
 * Manual withdrawal of a certain amount (for testing purposes only)
 
 ```haskell 
-    txSkelTemplate
+    txSkelEmulatorTemplate
       { txSkelWithdrawals = txSkelWithdrawalsFromList 
 	      [ Withdrawal (UserPubKey myWithdrawingPeer) (Just $ Api.Lovelace 2_000_000),
 		    ...
@@ -773,7 +1121,7 @@ txSkelTemplate
 * Build certificate actions
 
 ```haskell
-myCertificateAction = CommitteResign ...
+myCertificateAction = CommitteeResign
 myCertificateAction2 = DRepUpdate ...
 ```
 
@@ -781,7 +1129,7 @@ myCertificateAction2 = DRepUpdate ...
   corresponds to the kind of allowed user.
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { txSkelCertificates = 
       [ TxSkelCertificate myUser myCertificateAction,
 	    pubKeyCertificate myPubKey myCertificateAction1,
@@ -797,7 +1145,7 @@ txSkelTemplate
 
 * First signatory (default):
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = [signatory1, signatory2]
     ...
@@ -806,10 +1154,10 @@ txSkelTemplate
 
 * Another signatory:
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
     txSkelSignatories = [signatory1, signatory2],
-    txSkelOpts = def {txSkelOptBalancingPolicy = BalanceWith (wallet 2)}
+    txSkelOpts = txSkelOptsEmulatorTemplate {txSkelOptBalancingPolicy = BalanceWith (wallet 2)}
     ...
   }
 ```
@@ -817,9 +1165,9 @@ txSkelTemplate
 ### Do not automatically balance
 
 ```haskell
-txSkelTemplate
+txSkelEmulatorTemplate
   { ...
-    txSkelOpts = def {txSkelOptBalancingPolicy = DoNotBalance}
+    txSkelOpts = txSkelOptsEmulatorTemplate {txSkelOptBalancingPolicy = DoNotBalance}
     ...
   }
 ```
@@ -830,13 +1178,17 @@ txSkelTemplate
 
 Tweaks are state-aware modifications applied to transactions, which can fail. In
 a tweak, one can:
-* issue any action available in the encompassing mockchain environment
+* issue any action available in the tweak's stack of effects (for
+  `StagedMockChain`, those are `Misc`, `Query`, `Time` and `Fail`)
 * modify a `TxSkel` through dedicated primitives
 Tweaks cannot be used in `DirectMockChain`.
 
+Each mockchain environment has an associated tweak type: `StagedTweak`,
+`FullTweak` and `ExtendedStagedTweak eff`.
+
 Example:
 ```haskell
-myTweak :: TypedTweak effs ()
+myTweak :: StagedTweak ()
 myTweak = do
   myActionInEffs
   ...
@@ -875,7 +1227,7 @@ myTrace = do
 ```haskell
 myTrace = do
   ...
-  there 3 myTrace myTweak
+  there 3 myTweak myTrace
   ...
 ```
 
@@ -948,13 +1300,13 @@ myTrace = do
 ```haskell
 myTrace = do
   ...
-  never myTweak myTrace
+  nowhere myTweak myTrace
   ...
 ```
 
 ### Custom formulas
 
-Custom LTL formulas can be used for more advanced use case. 
+Custom LTL formulas (from `Cooked.MockChain.Ltl`) can be used for more advanced use case. 
 
 * Wrap a tweak into an atomic LTL formula:
 ```haskell

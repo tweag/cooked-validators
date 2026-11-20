@@ -2,7 +2,7 @@ module Spec.Attack.ValidityTampering where
 
 import Control.Applicative
 import Cooked
-import Ledger.Slot qualified as Ledger
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import PlutusLedgerApi.V1.Interval qualified as Api
 import Polysemy
@@ -10,13 +10,13 @@ import Polysemy.NonDet
 import Test.Tasty
 import Test.Tasty.HUnit
 
-upperInfSlotRange :: Ledger.SlotRange
+upperInfSlotRange :: P.Ledger.SlotRange
 upperInfSlotRange = Api.from 10
 
-lowerInfSlotRange :: Ledger.SlotRange
+lowerInfSlotRange :: P.Ledger.SlotRange
 lowerInfSlotRange = Api.to 10
 
-finiteSlotRange :: Ledger.SlotRange
+finiteSlotRange :: P.Ledger.SlotRange
 finiteSlotRange = Api.interval 10 10
 
 runValidityTampering ::
@@ -24,14 +24,14 @@ runValidityTampering ::
     Alternative f,
     Is k A_Traversal
   ) =>
-  Ledger.SlotRange ->
+  P.Ledger.SlotRange ->
   ValidityTamperingParams a f k is ->
-  [Ledger.SlotRange]
+  [P.Ledger.SlotRange]
 runValidityTampering initialRange params =
   fmap (view txSkelValidityRangeL)
     . run
     . runNonDet
-    . execTweak (txSkelTemplate {txSkelValidityRange = initialRange})
+    . execTweak (txSkelEmulatorTemplate {txSkelValidityRange = initialRange})
     $ validityTamperingAttack params
 
 tests :: TestTree

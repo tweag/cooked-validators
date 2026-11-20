@@ -4,6 +4,7 @@ module Spec.Attack.DatumHijacking (tests) where
 
 import Cooked
 import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Optics.Core
 import Plutus.Attack.DatumHijacking
 import Plutus.Script.Utils.V3 qualified as Script
@@ -22,7 +23,7 @@ instance PrettyCooked LockDatum where
 
 lockTxSkel :: Api.TxOutRef -> Script.MultiPurposeScript DHContract -> TxSkel
 lockTxSkel o v =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelInputs = Map.singleton o emptyTxSkelRedeemer,
       txSkelOutputs = [v `receives` InlineDatum FirstLock <&&> Value lockValue],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -30,12 +31,16 @@ lockTxSkel o v =
 
 txLock :: Script.MultiPurposeScript DHContract -> StagedMockChain Api.TxOutRef
 txLock v = do
-  oref : _ <- getTxOutRefs $ utxosAtSearch (wallet 1) $ ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
-  fst . head <$> validateTxSkel' (lockTxSkel oref v)
+  utxosAt (wallet 1)
+    >>= ensureAFoldIs (txSkelOutValueL % filtered (`Api.geq` lockValue))
+    >>= retrieveKeys
+    >>= retrieve ((`lockTxSkel` v) . Set.elemAt 0)
+    >>= validateTxSkelL
+    >>= retrieve head
 
 relockTxSkel :: Script.MultiPurposeScript DHContract -> Api.TxOutRef -> TxSkel
 relockTxSkel v o =
-  txSkelTemplate
+  txSkelEmulatorTemplate
     { txSkelInputs = Map.singleton o $ someTxSkelRedeemer (),
       txSkelOutputs = [v `receives` InlineDatum SecondLock <&&> Value lockValue],
       txSkelSignatories = txSkelSignatoriesFromList [wallet 1]
@@ -65,7 +70,7 @@ tests =
             value_10_000 = Script.lovelace 10000
             value_9_999 = Script.lovelace 9999
             inSkel =
-              txSkelTemplate
+              txSkelEmulatorTemplate
                 { txSkelOutputs =
                     [ carelessValidator `receives` InlineDatum SecondLock <&&> Value value_10_001,
                       carelessValidator `receives` InlineDatum SecondLock <&&> Value value_9_999,

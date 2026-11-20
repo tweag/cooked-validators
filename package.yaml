@@ -12,15 +12,18 @@ library:
     - bytestring
     - cardano-api
     - cardano-crypto
+    - cardano-ledger-alonzo
     - cardano-ledger-core
     - cardano-ledger-shelley
     - cardano-ledger-conway
     - cardano-node-emulator
+    - cardano-slotting
     - cardano-strict-containers
     - containers
     - data-default
     - either
     - exceptions
+    - extra
     - http-conduit
     - lens
     - microlens
@@ -39,6 +42,8 @@ library:
     - tasty-hunit
     - tasty-quickcheck
     - text
+    - time
+    - witherable
   ghc-options:
     -Wall
     -Wcompat

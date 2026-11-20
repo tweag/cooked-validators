@@ -9,3 +9,4 @@ dist-newstyle
 *.swp
 docs/
 .pre-commit-config.yaml
+.github/copilot-instructions.md

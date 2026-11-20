@@ -39,15 +39,20 @@ optics kind.
   retrieves the amount of a certain asset class in a given value. These optics
   can be used with `view`, `over`, and `set`.
 - Affine folds are used to retrieve an optional value from a structure, and end
-  with `AF`. An example of an affine fold is `txSkelOutValidatorHashAF`, which
-  retrieves a possible validator hash owning an output. This might not exist as
-  outputs can be owned by public keys as well, which is handled by
-  `txSkelOutPKHashAF`. These optics can be used with `preview`.
+  with `AF`. An example of an affine fold is `userScriptHashAF`, which
+  retrieves a possible script hash from a user (for instance the owner of an
+  output, via `txSkelOutOwnerL % userScriptHashAF`). This might not exist as
+  users can be public keys as well, which is handled by the affine traversal
+  `userPubKeyHashAT`. These optics can be used with `preview`.
 - Affine traversals are used to retrieve or set an optional value from a
   structure, and end with `AT`. An example of an affine traversal is
   `txSkelRedeemerTypedAT`, which attempts to retrieve a certain typed redeemer
   from a redeemer, and can also set this field, in a type-changing way. These
   optics can be used with `preview`, `over`, `set`, and `matching`.
+- Traversals are used to retrieve or set any number of values from a structure,
+  and end with `T`. An example of a traversal is `txSkelRedeemersT`, which
+  focuses on all the redeemers of a skeleton. These optics can be used with
+  `toListOf`, `over`, and `set`.
 - Prisms are used to build from or retrieve a certain value from a structure,
   and end with `P`. An example of a prism is `valueLovelaceP`, which either
   retrieves the amount of lovelace from a value or builds a value from this
@@ -83,10 +88,11 @@ Optics can be combined arbitrarily, as long as the parts they focus
 match. Combining optics is done using the `%` operator, which gives a resulting
 optics with the most capabilities possible. For instance, combining a lens with
 a getter will result in a getter, while combining an affine traversal with an
-iso will give an affine traversal. In `cooked-validators`, we only provide
+iso will give an affine traversal. In `cooked-validators`, we mostly provide
 first-order optics, that is, optics working on direct components of the data
 type at hand, and leave it to the users to combine them as they please. Examples
 of optics combination, including the use of more advanced features such as
-traversals and folds, can be found in the module `Cooked.Skeleton` in functions
-`txSkelWithdrawnValue`, `txSkelWithdrawingScripts`, `txSkelProposingScripts` and
-`txSkelMintingScripts`.
+traversals and folds, can be found in the module `Cooked.Skeleton` in
+traversals such as `txSkelMintingRedeemedScriptsT`,
+`txSkelProposingRedeemedScriptsT`, `txSkelWithdrawingRedeemedUsersT` and
+`txSkelRedeemersT`.

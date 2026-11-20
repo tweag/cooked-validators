@@ -43,15 +43,17 @@ Our balancing function is signed as follows:
 
 ``` haskell
 balanceTxSkel ::
-  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[Query, Params, Log, Error ChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   TxSkel ->
   Sem effs ExtendedTxSkel
 ```
 
 The library is built on [Polysemy] effects rather than a concrete monad, so the
 balancing capabilities are expressed as the effect constraints
-`Members '[MockChainRead, MockChainLog, Error MockChainError, Error
-P.Ledger.ToCardanoError, Fail] effs` and the result lives in `Sem effs`.
+`Members '[Query, Params, Log, Error ChainError, Error
+P.Ledger.ToCardanoError, Fail] effs` and the result lives in `Sem effs`. Since
+it only relies on these effects, balancing works identically against the
+emulator and against a real Cardano node.
 
 This function takes a skeleton and returns an `ExtendedTxSkel`, a record bundling
 the balanced skeleton with the extra pieces of information produced during
@@ -62,7 +64,8 @@ data ExtendedTxSkel = ExtendedTxSkel
   { eSkel :: TxSkel,                  -- the (possibly) balanced skeleton
     eFee :: Fee,                      -- the fee accounted for by the skeleton
     eMCollaterals :: Maybe Collaterals, -- the collateral inputs and return collateral output
-    eBody :: Body                     -- the generated Cardano transaction body
+    eBody :: Body,                    -- the generated Cardano transaction body
+    eExUnitsFailures :: ExUnitsFailures -- the script failures uncovered while computing execution units
   }
 ```
 
@@ -73,6 +76,7 @@ type Fee = Integer
 type CollateralIns = Set Api.TxOutRef
 type Collaterals = (CollateralIns, Maybe TxSkelOut)
 type Body = Cardano.TxBody Cardano.ConwayEra
+type ExUnitsFailures = Map Cardano.ScriptWitnessIndex (Alonzo.TransactionScriptFailure Conway.ConwayEra)
 ```
 
 A few things to note:
@@ -83,12 +87,19 @@ A few things to note:
   component).
 - The generated Cardano transaction body `eBody` is returned as well, since it is
   produced as a by-product of fee estimation during balancing.
+- Script failures (typically phase 2 failures) uncovered while computing the
+  execution units do not interrupt balancing: they are collected in
+  `eExUnitsFailures` and handled afterwards depending on
+  [`txSkelOptHaltOnExUnitsFailures`](#halting-on-failures).
 
 ## Balancing options
 
 Various options control transaction generation, many of them related to
 balancing. Here's an overview of these options along with the semantics of their
-constructors and default values.
+constructors and default values. Note that `TxSkelOpts` has no `Default`
+instance: the default values mentioned below are those of both
+`txSkelOptsEmulatorTemplate` and `txSkelOptsNodeTemplate`, unless stated
+otherwise.
 
 ### Balancing policy
 
@@ -119,7 +130,7 @@ Here are the options available:
   an error is thrown:
   
   ``` haskell
-  MCEBalancingError MissingBalancingUser
+  CEBalancingError MissingBalancingUser
   ```
   
   which is rendered as `Missing balancing user`. Note that an empty list of
@@ -295,12 +306,11 @@ If auto-balancing is disabled, the collateral calculation will still be based on
 the fee determined by the [`FeePolicy`](#fee-policy). Currently, users cannot
 specify the exact amount of collateral to be used in a transaction, unlike
 fees. This limitation is intentional to minimize user interaction with the
-collateral mechanism, which is rarely needed. Additionally, `cooked-validators`
-does not support issuing new transactions after a validation failure, making the
-collateral mechanism irrelevant outside of transaction validation requirements.
-However, future enhancements should allow validation failures to be treated as
-acceptable, thereby increasing the usefulness of the collateral mechanism and
-potentially introducing new skeleton options related to it.
+collateral mechanism, which is rarely needed. Collaterals are actually consumed
+when a transaction fails in phase 2 and the run is not halted (see
+[Halting on failures](#halting-on-failures)): in this case, the collateral
+inputs are removed from the ledger and the return collateral output, if any, is
+added to it.
 
 ### Maximum number of balancing utxos
 
@@ -308,7 +318,7 @@ How many candidate utxos the balancing algorithm is allowed to add to the inputs
 of the transaction.
 
 ``` haskell
-txSkelOptMaxNbOfBalancingUtxos :: Maybe Integer -- default: Nothing
+txSkelOptMaxNbOfBalancingUtxos :: Maybe Integer -- default: Nothing (emulator), Just 10 (node)
 ```
 
 The utxo selection performed during balancing is greedy and runs in exponential
@@ -324,27 +334,30 @@ utxos that may be added during balancing:
   pilot balancing — for instance, `Just 1` forces a single additional input to
   be added, if such a utxo exists.
 
-### Deferring phase 2 failures during balancing
+### Halting on failures
 
-Whether to defer phase 2 validation failures occurring during balancing to the
-later submission of the transaction.
+Whether to halt the run when the transaction is found to be invalid.
 
 ``` haskell
-txSkelOptDeferPhase2FailuresDuringBalancing :: Bool -- default: False
+txSkelOptHaltOnExUnitsFailures :: Bool    -- default: True (emulator), False (node)
+txSkelOptHaltOnSubmissionFailures :: Bool -- default: True (emulator), False (node)
 ```
 
 Balancing iterates the generation of the transaction body, which includes
-computing script execution units and can therefore surface phase 2 validation
-failures.
+computing script execution units and can therefore surface script (phase 2)
+failures. Such failures never interrupt balancing: they are collected and the
+balanced skeleton is always produced, and thus displayed in the log. Once the
+skeleton has been balanced and submitted:
 
-* `False`: such failures are caught as early as possible, typically during
-  balancing when the execution units are computed. This shortcuts the balancing
-  loop and is significantly faster (around 40%). The downside is that the
-  balanced `TxSkel` is never produced and thus does not appear in the log.
-* `True`: phase 2 failures are ignored during balancing and deferred to actual
-  submission. This is slower (around 40%) but allows the log to display a
-  balanced version of the failing `TxSkel`, which is useful when debugging
-  complex phase 2 failures.
+* `txSkelOptHaltOnExUnitsFailures` determines whether failures uncovered while
+  computing execution units end the run with a `CEExUnitsFailures` error, or are
+  only logged (`CELogExUnitsFailures`).
+* `txSkelOptHaltOnSubmissionFailures` determines whether failures returned upon
+  submission (typically phase 1 failures) end the run with a
+  `CESubmissionFailures` error, or are only logged (`CELogSubmissionFailures`).
+
+When the run is not halted, the transaction is still recorded: a phase 1 failure
+leaves the ledger unchanged, while a phase 2 failure consumes the collaterals.
 
 ## Balancing algorithm
 
@@ -379,15 +392,15 @@ signature:
 
 ``` haskell
 reachValue ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
-  Utxos ->                -- candidate utxos, type Utxos = [(Api.TxOutRef, TxSkelOut)]
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
+  Utxos ->                -- candidate utxos, type Utxos = Map Api.TxOutRef TxSkelOut
   Api.Value ->            -- the target value to reach
   Integer ->             -- the maximum number of utxos allowed in a subset
   Either TxSkelOut Peer ->  -- where to attach the surplus
   Sem effs (Maybe ([Api.TxOutRef], Maybe TxSkelOut))
 ```
 
-This function takes a list of utxos coupled with their associated outputs (the
+This function takes a map of utxos to their associated outputs (the
 `Utxos` alias, where each output is a `TxSkelOut`, not a raw `Api.TxOut`), a
 target value to be reached, an integer representing the maximum number of
 elements candidate subsets should contain, and a description of where the surplus
@@ -476,7 +489,7 @@ within this interval. The function that performs this computation is
 
 ``` haskell
 computeFeeAndBalance ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   Peer ->                          -- the balancing user
   Fee ->                           -- lower bound of the search interval
   Fee ->                           -- upper bound of the search interval
@@ -558,7 +571,7 @@ A few more behaviours are worth being aware of:
 - **Candidate filtering.** Before balancing, candidate utxos already known to the
   skeleton (its inputs and reference inputs) are filtered out, and — for a
   user-supplied set — utxos belonging to scripts are filtered out as well. In
-  both cases, a warning is logged (`MCLogDiscardedUtxos`) reporting how many
+  both cases, a warning is logged (`CLogDiscardedUtxos`) reporting how many
   utxos were discarded and why.
 - **Empty-inputs corner case.** The ledger forbids transactions with no inputs.
   When a skeleton would balance with no inputs at all (no inputs and nothing

@@ -4,9 +4,182 @@
 
 ### Added
 
+- New `Cooked.Utilities` umbrella module gathering generic helpers:
+  `Cooked.Utilities.Aliases`, `Cooked.Utilities.Families`,
+  `Cooked.Utilities.HList`, `Cooked.Utilities.ShowBS`,
+  `Cooked.Utilities.TypedSearch` and `Cooked.Utilities.Wallet`.
+- New type aliases `UtxoSearchResult`, `BodyContent`, `Body`, `Transaction`,
+  `SubmissionFailures` and `ExUnitsFailures` in `Cooked.Utilities.Aliases`.
+- New `hSingleton` and `FetchByType` (type-directed lookup in an `HList`).
+- New `Cooked.Utilities.TypedSearch` module: a `SearchResult f els` is a
+  container of `HList`s built with `searchResultMapI`, refined with
+  `extract*` and `ensure*`, and consumed with `retrieve`, `retrieveKeys`,
+  `retrieveAsList`, `retrieveByType`, `retrieveByTypeAndFold` and
+  `retrieveByTypeAsList`.
+- New `Cooked.Runtime` umbrella module (`Cooked.Runtime.State`,
+  `Cooked.Runtime.Error`, `Cooked.Runtime.Journal`).
+- New `TxValidity` (`Valid`, `InvalidPhase1`, `InvalidPhase2`) recorded in
+  `CLogNewTx` log entries.
+- New log entries `CELogExUnitsFailures` and `CELogSubmissionFailures`,
+  emitted when failures are not halting.
+- New errors `CEExUnitsFailures`, `CESubmissionFailures`,
+  `CESpendingHashOnlyDatum`, `CESpendingHashOnlyScript`,
+  `CENodeToClientVersionError`, `CEEraMismatch`, `CEAcquiringFailure` and
+  `CETooFarAway`.
+- New `addOutputs`, `removeOutputs` and `extractOutputs` helpers on
+  `ChainIndex`.
+- New `UtxoPayloadDatumHash` constructor for outputs whose datum is only
+  known by its hash.
+- New `Cooked.Effect` umbrella module with fine-grained effects, each with
+  `runMockChain*` and, when meaningful, `runBlockChain*` interpreters:
+  `Query`, `Params`, `Time`, `Submit`, `Validate`, `Override`, `Misc` and
+  `Log`.
+- New UTxO queries `utxosByRef`, `utxoByRef`, `viewByRef` and
+  `previewByRef`, each with an `E` variant (throwing a `ChainError`) and
+  an `F` variant (failing in `Fail`).
+- New `getNetworkId`, `getEraHistory` and `getSystemStart` queries.
+- New `submitTransaction` primitive (`Submit` effect) and `runChainValidate`
+  interpreter shared by both backends.
+- New `validateTxSkelL`, returning the references of the created outputs.
+- New `define_`, `defineM_`, `assertP`, `assertL`, `assertW` and `assertS`.
+- New `Cooked.Automation` umbrella module exposing
+  `runAutomationPipeline`.
+- New `eExUnitsFailures` field in `ExtendedTxSkel`, recording the script
+  evaluation failures encountered while computing execution units.
+- New options `txSkelOptHaltOnExUnitsFailures` and
+  `txSkelOptHaltOnSubmissionFailures`, with their optics.
+- New option templates `txSkelOptsEmulatorTemplate` (halts on every
+  failure) and `txSkelOptsNodeTemplate` (does not halt, and uses at most
+  10 balancing UTxOs).
+- New skeleton templates `txSkelEmulatorTemplate` and
+  `txSkelNodeTemplate`.
+- New `txSkelInputsOutRefs`.
+- New `SomeTxSkelOutDatumHash` datum, for outputs whose datum is only
+  known by its hash, and `txSkelOutDatumOutputDatumI`. Spending such an
+  output fails with `CESpendingHashOnlyDatum`.
+- New `UserScriptHash` owner, for outputs whose script is only known by
+  its hash (with an `IsTxSkelOutAllowedOwner Api.ScriptHash` instance),
+  and `userCredentialI`. Spending such an output requires a reference
+  input holding the script, and fails with `CESpendingHashOnlyScript`
+  otherwise.
+- New `AdaValue` and `LovelaceValue` payables, which are not subject to
+  min-ada adjustment.
+- New `TxSkelSignatoryWitness` to attach any signing key to a signatory,
+  with `txSkelSignatoryWitnessSigningKeyAF` and
+  `txSkelSignatorySigningKeyAF`.
+- New `signatoryFromFile`, reading a signatory from a Cardano signing key
+  file.
+- Signatories can be used as output owners.
+- New `ToHash Api.Address` instance.
+- Every skeleton option is printed when `pcOptPrintTxSkelOpts` is set.
+- New `Cooked.BlockChain` umbrella module, providing a backend running
+  cooked computations against a Cardano node through a
+  `LocalNodeConnectInfo`: effect stacks `DirectBlockChainEffs` and
+  `FullBlockChainEffs`, class `RunnableBlockChain`, configuration
+  `BlockChainConf` with `blockChainConfTemplate`, and runners
+  `runBlockChainFromConf` and `runBlockChainFromConfTemplate`.
+- New `CONTRIBUTING.md` guide.
+
 ### Changed
 
+- `Cooked.Families`, `Cooked.ShowBS` and `Cooked.Wallet` moved to
+  `Cooked.Utilities.Families`, `Cooked.Utilities.ShowBS` and
+  `Cooked.Utilities.Wallet`; `Cooked.MockChain.Common` became
+  `Cooked.Utilities.Aliases`.
+- `HList`, `hHead` and `hTail` moved from `Cooked.Families` to
+  `Cooked.Utilities.HList`.
+- `Utxos` is now a `Map Api.TxOutRef TxSkelOut` instead of a list.
+- `Cooked.MockChain.Runtime.*` moved to `Cooked.Runtime.*`.
+- `MockChainState` is split into `EmulatorState` (protocol parameters and
+  ledger state, optics `emulatorState*L`) and `ChainIndex` (known outputs
+  and constitution, optics `chainIndex*L`); `mcstToUtxoState` is renamed
+  `chainIndexToUtxoState`.
+- `MockChainError` is renamed `ChainError` and its constructors are
+  prefixed with `CE` instead of `MCE`. `MCEUnknownOutRef` became
+  `CEUnknownOutRefs` and holds a set of references. `ChainError` no
+  longer has an `Eq` instance.
+- `MockChainJournal` is renamed `ChainJournal` and `MockChainLogEntry` is
+  renamed `ChainLogEntry` (now in `Cooked.Runtime.Journal`), with
+  constructors prefixed with `CLog` instead of `MCLog`.
+- Assertions in the journal are now stored as pretty-printable documents
+  instead of `String`s.
+- `MockChainRead` is split into `Query`, `Params` and `Time`;
+  `MockChainWrite` is split into `Validate`, `Override` and `Time`;
+  `MockChainMisc` and `MockChainLog` became `Misc` and `Log`.
+- `getParams` now returns the ledger `PParams` instead of emulator
+  `Params`.
+- `utxosAt` now looks for outputs by address instead of by credential.
+- `allUtxos` and `utxosAt` return a `UtxoSearchResult`.
+- `validateTxSkel` now returns the adjusted skeleton, the submission
+  failures, the generated transaction and the created `Utxos`;
+  `validateTxSkel'` returns the created `Utxos`.
+- `assert` now takes a rendering function instead of a `String`; use
+  `assertS` for the previous behaviour.
+- `setParams`, `setConstitutionScript` and `forceOutputs` live in the
+  mockchain-only `Override` effect; `forceOutputs` no longer relies on a
+  dummy genesis input.
+- Validating a skeleton no longer automatically increases the current
+  slot.
+- `Cooked.MockChain.Automation.*` moved to `Cooked.Automation.*`.
+- Execution units are computed with the ledger evaluator; when a script
+  fails, the transaction is generated with an invalid script validity
+  flag (phase-2 failure) instead of aborting.
+- `txSkelToTxBody` returns the generated `Body` along with the
+  `ExUnitsFailures`, and `txBodyContentToTxBody` no longer requires
+  protocol parameters.
+- `txSkelTemplate` now takes the `TxSkelOpts` to use. Use
+  `txSkelEmulatorTemplate` for the previous behaviour.
+- `txSkelOptModTx` and `txSkelOptAddModTx` work on the `Transaction`
+  alias.
+- The private key of a `TxSkelSignatory` is now a
+  `TxSkelSignatoryWitness` instead of a `Maybe XPrv`, focused by
+  `txSkelSignatoryPrivateKeyL`.
+- Signatories are compared by public key hash only.
+- `userVScriptL` and `userRedeemerL` are restricted to redeemed scripts.
+- `fillConstitution` is renamed `fillConstitutionWhenEmpty`.
+- `Cooked.MockChain.Run.Runnable` is split into `Cooked.MockChain.Config`
+  and `Cooked.MockChain.Run`; `Cooked.MockChain.Run.Instances` and
+  `Cooked.MockChain.Run.Tweak` became `Cooked.MockChain.Instances` and
+  `Cooked.MockChain.Tweak`.
+- `Cooked.Ltl` moved to `Cooked.MockChain.Ltl`.
+- Mockchain effect stacks are renamed `DirectMockChainEffs`,
+  `FullMockChainEffs`, `StagedMockChainEffs` and
+  `ExtendedStagedMockChainEffs`.
+- `runMockChain` takes an initial `EmulatorState` and `ChainIndex`, and
+  `MockChainConf` holds `mccInitialEmulatorState` and
+  `mccInitialChainIndex` instead of `mccInitialState`. Likewise, `Test`
+  holds `testInitEmulatorState` and `testInitChainIndex`.
+- `reinterpretMockChainWriteWithTweak` is renamed
+  `reinterpretMockChainValidateWithTweak`.
+- Phase 1 and phase 2 failure predicates (`isPhase1Failure`,
+  `isPhase2Failure`, ...) are based on `CESubmissionFailures` and
+  `CEExUnitsFailures`.
+- `pcOptPrintDefaultTxSkelOpts` is renamed `pcOptPrintTxSkelOpts`, and
+  skeleton options are hidden by default.
+- `Cooked` now re-exports `Cooked.Automation`, `Cooked.BlockChain`,
+  `Cooked.Effect`, `Cooked.Runtime` and `Cooked.Utilities`.
+
 ### Removed
+
+- `Cooked.MockChain.UtxoSearch` (`UtxoSearch`, `beginSearch`,
+  `beginSearchPure`, `getOutputs`, `getTxOutRefs`, `utxosAtSearch`,
+  `allUtxosSearch`, `txSkelOutByRefSearch`, `ensureOnlyValueOutputs`,
+  `ensureVanillaOutputs`, `ensureProperReferenceScript`, ...). Searches are
+  now expressed with `Cooked.Utilities.TypedSearch` on top of the `Query`
+  effect.
+- `MCEValidationError`, replaced by `CEExUnitsFailures` (script
+  evaluation) and `CESubmissionFailures` (ledger rejection).
+- `MCEPastSlot`.
+- `txSkelAllScripts`, `txSkelInputScripts`, `txSkelInputValue`,
+  `txSkelOutByRef`, `utxosFromCardanoTx` and `lookupUtxos`.
+- `runToCardanoErrorInMockChainError` and `runFailInMockChainError`.
+- `txSkelToCardanoTx`.
+- `txSkelOptAutoSlotIncrease`, `txSkelOptModParams`,
+  `txSkelOptAddModParams` and
+  `txSkelOptDeferPhase2FailuresDuringBalancing`, with their optics.
+- The `Default` instance of `TxSkelOpts`; use one of the templates
+  instead.
+- `txSkelSignatoryMPrivateKeyL` and `txSkelSignatoryPrivateKeyAT`.
 
 ### Fixed
 

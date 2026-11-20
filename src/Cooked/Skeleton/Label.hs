@@ -28,7 +28,7 @@ type LabelConstrs x = (PrettyCooked x, Show x, Typeable x, Eq x, Ord x)
 -- skeletons that have been modified by tweaks and automated attacks.
 --
 -- The 'IsString' instance will add a 'Data.Text.Text' label, which can
--- be used with 'Cooked.MockChain.Staged.labelled' to apply tweaks
+-- be used with 'Cooked.Staged.labelled' to apply tweaks
 -- to arbitrary transactions annotated with a label.
 data TxSkelLabel where
   TxSkelLabel :: (LabelConstrs x) => x -> TxSkelLabel
@@ -60,6 +60,6 @@ txSkelLabelTypedP =
     TxSkelLabel
     (\txSkelLabel@(TxSkelLabel lbl) -> maybe (Left txSkelLabel) Right (cast lbl))
 
--- | Turn a literal string into a 'Data.Text.Text' label, to be used with 'Cooked.MockChain.Staged.labelled'.
+-- | Turn a literal string into a 'Data.Text.Text' label, to be used with 'Cooked.Staged.labelled'.
 instance IsString TxSkelLabel where
   fromString = TxSkelLabel . pack

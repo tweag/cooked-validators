@@ -21,39 +21,44 @@ library
       Cooked.Attack.RedeemerTampering
       Cooked.Attack.TokenDuplication
       Cooked.Attack.ValidityTampering
-      Cooked.Families
-      Cooked.Ltl
+      Cooked.Automation
+      Cooked.Automation.AutoFilling.Constitution
+      Cooked.Automation.AutoFilling.MinAda
+      Cooked.Automation.AutoFilling.ReferenceScripts
+      Cooked.Automation.AutoFilling.Withdrawals
+      Cooked.Automation.Balancing
+      Cooked.Automation.GenerateTx.Anchor
+      Cooked.Automation.GenerateTx.Body
+      Cooked.Automation.GenerateTx.Certificate
+      Cooked.Automation.GenerateTx.Collateral
+      Cooked.Automation.GenerateTx.Credential
+      Cooked.Automation.GenerateTx.Input
+      Cooked.Automation.GenerateTx.Mint
+      Cooked.Automation.GenerateTx.Output
+      Cooked.Automation.GenerateTx.Proposal
+      Cooked.Automation.GenerateTx.ReferenceInputs
+      Cooked.Automation.GenerateTx.Withdrawals
+      Cooked.Automation.GenerateTx.Witness
+      Cooked.BlockChain
+      Cooked.BlockChain.Config
+      Cooked.BlockChain.Instances
+      Cooked.BlockChain.Run
+      Cooked.Effect
+      Cooked.Effect.Log
+      Cooked.Effect.Misc
+      Cooked.Effect.Override
+      Cooked.Effect.Params
+      Cooked.Effect.Query
+      Cooked.Effect.Submission
+      Cooked.Effect.Time
+      Cooked.Effect.Validation
       Cooked.MockChain
-      Cooked.MockChain.Automation.AutoFilling.Constitution
-      Cooked.MockChain.Automation.AutoFilling.MinAda
-      Cooked.MockChain.Automation.AutoFilling.ReferenceScripts
-      Cooked.MockChain.Automation.AutoFilling.Withdrawals
-      Cooked.MockChain.Automation.Balancing
-      Cooked.MockChain.Automation.GenerateTx.Anchor
-      Cooked.MockChain.Automation.GenerateTx.Body
-      Cooked.MockChain.Automation.GenerateTx.Certificate
-      Cooked.MockChain.Automation.GenerateTx.Collateral
-      Cooked.MockChain.Automation.GenerateTx.Credential
-      Cooked.MockChain.Automation.GenerateTx.Input
-      Cooked.MockChain.Automation.GenerateTx.Mint
-      Cooked.MockChain.Automation.GenerateTx.Output
-      Cooked.MockChain.Automation.GenerateTx.Proposal
-      Cooked.MockChain.Automation.GenerateTx.ReferenceInputs
-      Cooked.MockChain.Automation.GenerateTx.Withdrawals
-      Cooked.MockChain.Automation.GenerateTx.Witness
-      Cooked.MockChain.Common
-      Cooked.MockChain.Effect.Log
-      Cooked.MockChain.Effect.Misc
-      Cooked.MockChain.Effect.Read
-      Cooked.MockChain.Effect.Write
-      Cooked.MockChain.Run.Instances
-      Cooked.MockChain.Run.Runnable
-      Cooked.MockChain.Run.Tweak
-      Cooked.MockChain.Runtime.Error
-      Cooked.MockChain.Runtime.Journal
-      Cooked.MockChain.Runtime.State
+      Cooked.MockChain.Config
+      Cooked.MockChain.Instances
+      Cooked.MockChain.Ltl
+      Cooked.MockChain.Run
       Cooked.MockChain.Testing
-      Cooked.MockChain.UtxoSearch
+      Cooked.MockChain.Tweak
       Cooked.Pretty
       Cooked.Pretty.Class
       Cooked.Pretty.Hashable
@@ -61,7 +66,10 @@ library
       Cooked.Pretty.Options
       Cooked.Pretty.Plutus
       Cooked.Pretty.Skeleton
-      Cooked.ShowBS
+      Cooked.Runtime
+      Cooked.Runtime.Error
+      Cooked.Runtime.Journal
+      Cooked.Runtime.State
       Cooked.Skeleton
       Cooked.Skeleton.Anchor
       Cooked.Skeleton.Certificate
@@ -85,7 +93,13 @@ library
       Cooked.Tweak.Query
       Cooked.Tweak.Remove
       Cooked.Tweak.Update
-      Cooked.Wallet
+      Cooked.Utilities
+      Cooked.Utilities.Aliases
+      Cooked.Utilities.Families
+      Cooked.Utilities.HList
+      Cooked.Utilities.ShowBS
+      Cooked.Utilities.TypedSearch
+      Cooked.Utilities.Wallet
   other-modules:
       Paths_cooked_validators
   autogen-modules:
@@ -127,15 +141,18 @@ library
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-ledger-alonzo
     , cardano-ledger-conway
     , cardano-ledger-core
     , cardano-ledger-shelley
     , cardano-node-emulator
+    , cardano-slotting
     , cardano-strict-containers
     , containers
     , data-default
     , either
     , exceptions
+    , extra
     , http-conduit
     , lens
     , microlens
@@ -154,6 +171,8 @@ library
     , tasty-hunit
     , tasty-quickcheck
     , text
+    , time
+    , witherable
   default-language: Haskell2010
 
 test-suite spec

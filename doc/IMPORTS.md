@@ -39,6 +39,7 @@ dependencies:
 ### [`cardano-ledger`](https://github.com/IntersectMBO/cardano-ledger)
 
 - package `cardano-ledger-shelley`, prefix `Shelley`
+- package `cardano-ledger-alonzo`, prefix `Alonzo`
 - package `cardano-ledger-conway`, prefix `Conway`
 - the core packages (`cardano-ledger-core` and similar), whose modules live
   directly under `Cardano.Ledger.*` (e.g. `Cardano.Ledger.BaseTypes`,
@@ -57,10 +58,10 @@ When using `PlutusTx.Prelude` (from `plutus-tx`) in conjunction with the
 functions coming from the usual prelude should be prefixed `Haskell` in those
 modules instead.
 
-## Names of qualifed modules unrelated to Cardano
+## Names of qualified modules unrelated to Cardano
 
 `cooked-validators` uses optics in various places of the codebase. These optics
-come from the module `Optics.Core` of the `optics` package and are used
+come from the module `Optics.Core` of the `optics-core` package and are used
 unqualified in the code. Some of our dependencies however use optics coming from
 the `lens` or `microlens` packages. When using those, we should make very clear
 that they do not come from our default optics library, and thus prefix them with
@@ -76,13 +77,13 @@ unique location.
 When importing definitions that could be found in various modules from the list
 above, we always stick to the more close-to-actual-definition module. In
 particular, everything that can be imported from `PlutusLedgerApi.V3` (from
-plutus-ledger) should. For instance, `Value` should always be coming from
+`plutus-ledger-api`) should. For instance, `Value` should always be coming from
 `Api.Value` instead of `Script.Value`.
 
 ### Avoid directly importing `Ledger`
 
 `Ledger` is a big module coming from `plutus-ledger` that re-exports many
 definitions. It re-exports too many definitions so that it hides where they
-really come from, but not enough so that importing `Ledger` alone sufficies in
+really come from, but not enough so that importing `Ledger` alone suffices in
 most projects. Thus, we avoid importing it altogether and instead rely on
 `PlutusLedgerApi.V3` and the sub-modules `Ledger.*` (aliased `P.Ledger`).
