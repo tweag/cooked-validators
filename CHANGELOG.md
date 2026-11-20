@@ -46,6 +46,14 @@
   `runAutomationPipeline`.
 - New `eExUnitsFailures` field in `ExtendedTxSkel`, recording the script
   evaluation failures encountered while computing execution units.
+- New options `txSkelOptHaltOnExUnitsFailures` and
+  `txSkelOptHaltOnSubmissionFailures`, with their optics.
+- New option templates `txSkelOptsEmulatorTemplate` (halts on every
+  failure) and `txSkelOptsNodeTemplate` (does not halt, and uses at most
+  10 balancing UTxOs).
+- New skeleton templates `txSkelEmulatorTemplate` and
+  `txSkelNodeTemplate`.
+- New `txSkelInputsOutRefs`.
 
 ### Changed
 
@@ -94,6 +102,10 @@
 - `txSkelToTxBody` returns the generated `Body` along with the
   `ExUnitsFailures`, and `txBodyContentToTxBody` no longer requires
   protocol parameters.
+- `txSkelTemplate` now takes the `TxSkelOpts` to use. Use
+  `txSkelEmulatorTemplate` for the previous behaviour.
+- `txSkelOptModTx` and `txSkelOptAddModTx` work on the `Transaction`
+  alias.
 
 ### Removed
 
@@ -110,6 +122,11 @@
   `txSkelOutByRef`, `utxosFromCardanoTx` and `lookupUtxos`.
 - `runToCardanoErrorInMockChainError` and `runFailInMockChainError`.
 - `txSkelToCardanoTx`.
+- `txSkelOptAutoSlotIncrease`, `txSkelOptModParams`,
+  `txSkelOptAddModParams` and
+  `txSkelOptDeferPhase2FailuresDuringBalancing`, with their optics.
+- The `Default` instance of `TxSkelOpts`; use one of the templates
+  instead.
 
 ### Fixed
 

@@ -13,24 +13,23 @@ module Cooked.Skeleton.Option
 
     -- * Optics
     txSkelOptModTxL,
-    txSkelOptAutoSlotIncreaseL,
     txSkelOptBalancingPolicyL,
     txSkelOptBalanceOutputPolicyL,
     txSkelOptFeePolicyL,
     txSkelOptBalancingUtxosL,
-    txSkelOptModParamsL,
     txSkelOptCollateralUtxosL,
-    txSkelOptDeferPhase2FailuresDuringBalancingL,
     txSkelOptMaxNbOfBalancingUtxosL,
+    txSkelOptHaltOnExUnitsFailuresL,
+    txSkelOptHaltOnSubmissionFailuresL,
 
     -- * Utilities
     txSkelOptAddModTx,
-    txSkelOptAddModParams,
+    txSkelOptsEmulatorTemplate,
+    txSkelOptsNodeTemplate,
   )
 where
 
-import Cardano.Api qualified as Cardano
-import Cardano.Node.Emulator qualified as Emulator
+import Cooked.Utilities.Aliases
 import Data.Default
 import Data.Set (Set)
 import Data.Typeable
@@ -40,7 +39,12 @@ import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Set of constraints that need to be satisfied by users in options
-type UserConstraints pkh = (Script.ToPubKeyHash pkh, Show pkh, Eq pkh, Typeable pkh)
+type UserConstraints pkh =
+  ( Script.ToPubKeyHash pkh,
+    Show pkh,
+    Eq pkh,
+    Typeable pkh
+  )
 
 -- | What fee policy to use in the transaction.
 data FeePolicy
@@ -133,29 +137,17 @@ instance Default CollateralUtxos where
 -- | Set of options to modify the behavior of generating and validating some
 -- transaction.
 data TxSkelOpts = TxSkelOpts
-  { -- | Whether to increase the slot counter automatically on transaction
-    -- submission.  This is useful for modelling transactions that could be
-    -- submitted in parallel in reality, so there should be no explicit ordering
-    -- of what comes first.
-    --
-    -- Default is @True@.
-    txSkelOptAutoSlotIncrease :: Bool,
-    -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted and balanced. The name of this option contains
-    -- /unsafe/ to draw attention to the fact that modifying a transaction at
-    -- that stage might make it invalid. Still, this offers a hook for being
-    -- able to alter a transaction in unforeseen ways. It is mostly used to test
-    -- contracts that have been written for custom PABs.
+  { -- | Applies an arbitrary modification to a transaction after it has been
+    -- adjusted, balanced and generated. This offers a hook for being able to
+    -- alter a transaction in unforeseen ways.
     --
     -- One interesting use of this function is to observe a transaction just
     -- before it is being sent for validation, with
     --
-    -- > txSkelOptModTx = [RawModTx Debug.Trace.traceShowId]
+    -- > txSkelOptModTx = Debug.Trace.traceShowId
     --
-    -- The leftmost function in the list is applied first.
-    --
-    -- Default is @[]@.
-    txSkelOptModTx :: Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra,
+    -- Default is @id@.
+    txSkelOptModTx :: Transaction -> Transaction,
     -- | Whether to balance the transaction or not, and which user should
     -- provide/reclaim the missing and surplus value.
     --
@@ -178,44 +170,11 @@ data TxSkelOpts = TxSkelOpts
     --
     -- Default is 'BalancingUtxosFromBalancingUser'.
     txSkelOptBalancingUtxos :: BalancingUtxos,
-    -- | Apply an arbitrary modification to the protocol parameters that are
-    -- used to balance and submit the transaction. This is obviously a very
-    -- unsafe thing to do if you want to preserve compatibility with the actual
-    -- chain. It is useful mainly for testing purposes, when you might want to
-    -- use extremely big transactions or transactions that exhaust the maximum
-    -- execution budget. Such a thing could be accomplished with
-    --
-    -- > txSkelOptModParams = Just $ ModParams increaseTransactionLimits
-    --
-    -- for example.
-    --
-    -- Default is 'Nothing'.
-    txSkelOptModParams :: Emulator.Params -> Emulator.Params,
     -- | Which utxos to use as collaterals. They can be given manually, or
     -- computed automatically from a given, or the balancing, user.
     --
     -- Default is 'CollateralUtxosFromBalancingUser'
     txSkelOptCollateralUtxos :: CollateralUtxos,
-    -- | Whether to defer validation failures occurring during balancing
-    -- (specifically during the computation of execution units) to the actual
-    -- later submission of the transaction.
-    --
-    -- When set to @False@: the phase 2 validation failures will be caught as
-    -- early as possible, typically during balancing when the execution units
-    -- are computed. This will shortcut the whole balancing process which
-    -- iterates the body generation, and thus increase performances (by 40%). As
-    -- a result, the balanced `Cooked.Skeleton.TxSkel` will never be computed
-    -- and thus will be absent from the log, which is the only downside.
-    --
-    -- When set to @True@: the phase 2 validation errors will be ignored during
-    -- the balancing process. This will result in a worst performance (40%), but
-    -- will allow the log to display a balanced version of the failing
-    -- `Cooked.Skeleton.TxSkel`, which might be useful. Only use this when
-    -- debugging complicated phase 2 failures which require a precise view of
-    -- the balanced `Cooked.Skeleton.TxSkel` sent for validation.
-    --
-    -- Default is `False`
-    txSkelOptDeferPhase2FailuresDuringBalancing :: Bool,
     -- | The optional maximum number of Utxos that can be used during
     -- balancing. The algorithm which selects Utxos when permorming balancing is
     -- greedy. In the default use case where the are only a few wallets and
@@ -229,31 +188,40 @@ data TxSkelOpts = TxSkelOpts
     -- added in the inputs of the transaction, if such a Utxo exist.
     --
     -- Default is @Nothing@
-    txSkelOptMaxNbOfBalancingUtxos :: Maybe Integer
+    txSkelOptMaxNbOfBalancingUtxos :: Maybe Integer,
+    -- | Whether to halt the mockchain run when a failure occurs while computing
+    -- execution units during balancing (typically a phase 2 script failure
+    -- uncovered early). When 'False', such failures are only logged.
+    --
+    -- Default is 'True'
+    txSkelOptHaltOnExUnitsFailures :: Bool,
+    -- | Whether to halt the mockchain run when a failure occurs while submitting
+    -- the transaction for validation. When 'False', such failures are only
+    -- logged.
+    --
+    -- Default is 'True'
+    txSkelOptHaltOnSubmissionFailures :: Bool
   }
 
 -- | Comparing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Eq TxSkelOpts where
-  (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures maxNbBalUtxos)
-    == (TxSkelOpts slotIncrease' _ balancingPol' feePol' balOutputPol' balUtxos' _ colUtxos' deferFailures' maxNbBalUtxos') =
-      slotIncrease == slotIncrease'
-        && balancingPol == balancingPol'
+  (TxSkelOpts _ balancingPol feePol balOutputPol balUtxos colUtxos maxNbBalUtxos exUnitsPol subPol)
+    == (TxSkelOpts _ balancingPol' feePol' balOutputPol' balUtxos' colUtxos' maxNbBalUtxos' exUnitsPol' subPol') =
+      balancingPol == balancingPol'
         && feePol == feePol'
         && balOutputPol == balOutputPol'
         && balUtxos == balUtxos'
         && colUtxos == colUtxos'
-        && deferFailures == deferFailures'
         && maxNbBalUtxos == maxNbBalUtxos'
+        && exUnitsPol == exUnitsPol'
+        && subPol == subPol'
 
 -- | Showing 'TxSkelOpts' is possible as long as we ignore modifications to the
 -- generated transaction and the parameters.
 instance Show TxSkelOpts where
-  show (TxSkelOpts slotIncrease _ balancingPol feePol balOutputPol balUtxos _ colUtxos deferFailures maxNbBalUtxos) =
-    show [show slotIncrease, show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show deferFailures, show maxNbBalUtxos]
-
--- | Focuses on the automatic slot increase option of a 'TxSkelOpts'
-makeLensesFor [("txSkelOptAutoSlotIncrease", "txSkelOptAutoSlotIncreaseL")] ''TxSkelOpts
+  show (TxSkelOpts _ balancingPol feePol balOutputPol balUtxos colUtxos maxNbBalUtxos exUnitsPol subPol) =
+    show [show balancingPol, show feePol, show balOutputPol, show balUtxos, show colUtxos, show maxNbBalUtxos, show exUnitsPol, show subPol]
 
 -- | Focuses on the Cardano transaction modifications option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptModTx", "txSkelOptModTxL")] ''TxSkelOpts
@@ -270,37 +238,57 @@ makeLensesFor [("txSkelOptBalanceOutputPolicy", "txSkelOptBalanceOutputPolicyL")
 -- | Focuses on the balancing utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptBalancingUtxos", "txSkelOptBalancingUtxosL")] ''TxSkelOpts
 
--- | Focuses on the changes to protocol parameters option of a 'TxSkelOpts'
-makeLensesFor [("txSkelOptModParams", "txSkelOptModParamsL")] ''TxSkelOpts
-
 -- | Focuses on the collateral utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptCollateralUtxos", "txSkelOptCollateralUtxosL")] ''TxSkelOpts
-
--- | Focuses on the deferring of the failures option of a 'TxSkelOpts'
-makeLensesFor [("txSkelOptDeferPhase2FailuresDuringBalancing", "txSkelOptDeferPhase2FailuresDuringBalancingL")] ''TxSkelOpts
 
 -- | Focuses on the max nb of balancing Utxos option of a 'TxSkelOpts'
 makeLensesFor [("txSkelOptMaxNbOfBalancingUtxos", "txSkelOptMaxNbOfBalancingUtxosL")] ''TxSkelOpts
 
-instance Default TxSkelOpts where
-  def =
-    TxSkelOpts
-      { txSkelOptAutoSlotIncrease = True,
-        txSkelOptModTx = id,
-        txSkelOptBalancingPolicy = def,
-        txSkelOptBalanceOutputPolicy = def,
-        txSkelOptFeePolicy = def,
-        txSkelOptBalancingUtxos = def,
-        txSkelOptModParams = id,
-        txSkelOptCollateralUtxos = def,
-        txSkelOptDeferPhase2FailuresDuringBalancing = False,
-        txSkelOptMaxNbOfBalancingUtxos = Nothing
-      }
+-- | Focuses on the halt-on-execution-units-failures option of a 'TxSkelOpts'
+makeLensesFor [("txSkelOptHaltOnExUnitsFailures", "txSkelOptHaltOnExUnitsFailuresL")] ''TxSkelOpts
+
+-- | Focuses on the halt-on-submission-failures option of a 'TxSkelOpts'
+makeLensesFor [("txSkelOptHaltOnSubmissionFailures", "txSkelOptHaltOnSubmissionFailuresL")] ''TxSkelOpts
 
 -- | Appends a transaction modification to the given 'TxSkelOpts'
-txSkelOptAddModTx :: (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra) -> TxSkelOpts -> TxSkelOpts
+txSkelOptAddModTx :: (Transaction -> Transaction) -> TxSkelOpts -> TxSkelOpts
 txSkelOptAddModTx modTx = over txSkelOptModTxL (modTx .)
 
--- | Appends a parameters modification to the given 'TxSkelOpts'
-txSkelOptAddModParams :: (Emulator.Params -> Emulator.Params) -> TxSkelOpts -> TxSkelOpts
-txSkelOptAddModParams modParams = over txSkelOptModParamsL (modParams .)
+-- | A sensible set of options when running against the emulator backend. The
+-- emulator is local and deterministic and reports complete failures, so we opt
+-- to halt on both execution-units and submission failures to surface problems
+-- as early and as loudly as possible. Balancing is kept unbounded since the
+-- emulator typically deals with only a handful of Utxos.
+txSkelOptsEmulatorTemplate :: TxSkelOpts
+txSkelOptsEmulatorTemplate =
+  TxSkelOpts
+    { txSkelOptModTx = id,
+      txSkelOptBalancingPolicy = def,
+      txSkelOptBalanceOutputPolicy = def,
+      txSkelOptFeePolicy = def,
+      txSkelOptBalancingUtxos = def,
+      txSkelOptCollateralUtxos = def,
+      txSkelOptMaxNbOfBalancingUtxos = Nothing,
+      txSkelOptHaltOnExUnitsFailures = True,
+      txSkelOptHaltOnSubmissionFailures = True
+    }
+
+-- | A sensible set of options when running against a deployed node backend. A
+-- real node may reject transactions for reasons outside of the caller's
+-- control, so we do not halt after execution-units and submission failures,
+-- letting the mockchain run continue and surface issues through the log rather
+-- than aborting. Balancing is capped to keep Utxo selection tractable when the
+-- node exposes many candidate Utxos.
+txSkelOptsNodeTemplate :: TxSkelOpts
+txSkelOptsNodeTemplate =
+  TxSkelOpts
+    { txSkelOptModTx = id,
+      txSkelOptBalancingPolicy = def,
+      txSkelOptBalanceOutputPolicy = def,
+      txSkelOptFeePolicy = def,
+      txSkelOptBalancingUtxos = def,
+      txSkelOptCollateralUtxos = def,
+      txSkelOptMaxNbOfBalancingUtxos = Just 10,
+      txSkelOptHaltOnExUnitsFailures = False,
+      txSkelOptHaltOnSubmissionFailures = False
+    }
