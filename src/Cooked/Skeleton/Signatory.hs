@@ -15,6 +15,7 @@ module Cooked.Skeleton.Signatory
     -- * Smart constructors
     signatoryPubKey,
     signatoryWallet,
+    signatoryPoolCold,
     txSkelSignatoriesFromList,
     signatoryFromFile,
   )
@@ -25,6 +26,7 @@ import Control.Monad.Extra (eitherM)
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.User
 import Cooked.Utilities.Codec
+import Cooked.Utilities.Pools
 import Cooked.Utilities.Wallet
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
@@ -85,6 +87,11 @@ signatoryWallet w =
   TxSkelSignatory
     (Script.toPubKeyHash w)
     (Just $ P.Ledger.toWitness $ P.Ledger.PaymentPrivateKey $ walletSK w)
+
+-- | Builds a signatory from a pool's cold key, which can sign pool certificates.
+signatoryPoolCold :: Pool -> TxSkelSignatory
+signatoryPoolCold p =
+  TxSkelSignatory (poolId p) (Just $ Cardano.WitnessStakePoolKey $ poolColdSK p)
 
 instance P.Ledger.ToWitness (Cardano.SigningKey Cardano.GenesisUTxOKey) where
   toWitness = Cardano.WitnessGenesisUTxOKey

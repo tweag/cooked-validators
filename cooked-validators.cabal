@@ -101,6 +101,7 @@ library
       Cooked.Utilities.Codec
       Cooked.Utilities.Families
       Cooked.Utilities.HList
+      Cooked.Utilities.Pools
       Cooked.Utilities.ShowBS
       Cooked.Utilities.TypedSearch
       Cooked.Utilities.Wallet
@@ -209,6 +210,7 @@ test-suite spec
       Spec.Ltl
       Spec.MinAda
       Spec.MultiPurpose
+      Spec.Pools
       Spec.ProposingScript
       Spec.ReferenceInputs
       Spec.ReferenceScripts

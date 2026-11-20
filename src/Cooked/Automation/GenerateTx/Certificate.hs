@@ -3,6 +3,7 @@
 module Cooked.Automation.GenerateTx.Certificate (toCertificates) where
 
 import Cardano.Api qualified as Cardano
+import Cardano.Ledger.Address qualified as C.Ledger
 import Cardano.Ledger.Conway.TxCert qualified as Conway
 import Cardano.Ledger.DRep qualified as C.Ledger
 import Cardano.Ledger.PoolParams qualified as C.Ledger
@@ -66,11 +67,20 @@ toCertificate txSkelCert =
       -- TODO: For now, when registering a new pool we use the default parameters
       -- excepct for the pool id and pool vrf. We could change it later on.
       TxSkelCertificate (UserPubKey (Script.toPubKeyHash -> poolHash)) (PoolRegister poolVrf) ->
-        Conway.ConwayTxCertPool . Shelley.RegPool
-          <$> liftA2
-            (\pId pVrf -> def {C.Ledger.ppId = pId, C.Ledger.ppVrf = pVrf})
-            (toStakePoolKeyHash poolHash)
-            (toVRFVerKeyHash poolVrf)
+        do
+          networkId <- getNetworkId
+          let mkPoolParams pId pVrf =
+                def
+                  { C.Ledger.ppId = pId,
+                    C.Ledger.ppVrf = pVrf,
+                    C.Ledger.ppRewardAccount =
+                      (C.Ledger.ppRewardAccount def) {C.Ledger.raNetwork = Cardano.toShelleyNetwork networkId}
+                  }
+          Conway.ConwayTxCertPool . Shelley.RegPool
+            <$> liftA2
+              mkPoolParams
+              (toStakePoolKeyHash poolHash)
+              (toVRFVerKeyHash poolVrf)
       TxSkelCertificate (UserPubKey (Script.toPubKeyHash -> poolHash)) (PoolRetire slot) ->
         Conway.ConwayTxCertPool
           <$> liftA2

@@ -1,6 +1,7 @@
 module Spec.Certificates where
 
 import Cooked
+import Ledger.Slot qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -10,16 +11,38 @@ alice :: Wallet
 alice = wallet 1
 
 bob :: Wallet
-bob = wallet 1
+bob = wallet 2
 
-publishCertificate :: TxSkelCertificate -> DirectMockChain ()
-publishCertificate cert = do
+publishCertificateWithSignatories :: [TxSkelSignatory] -> TxSkelCertificate -> DirectMockChain ()
+publishCertificateWithSignatories signatories cert = do
   forceOutputs_ [alice `receives` AdaValue 100]
   validateTxSkel_ $
     txSkelEmulatorTemplate
-      { txSkelSignatories = txSkelSignatoriesFromList [alice],
+      { txSkelSignatories = signatories,
         txSkelCertificates = [cert]
       }
+
+publishCertificate :: TxSkelCertificate -> DirectMockChain ()
+publishCertificate =
+  publishCertificateWithSignatories [signatoryWallet alice]
+
+publishPoolCertificate :: Pool -> TxSkelCertificate -> DirectMockChain ()
+publishPoolCertificate p =
+  publishCertificateWithSignatories [signatoryWallet alice, signatoryPoolCold p]
+
+registerPool :: Pool -> DirectMockChain ()
+registerPool p =
+  publishPoolCertificate p $
+    TxSkelCertificate
+      (UserPubKey $ poolId p)
+      (PoolRegister $ poolVRFHash p)
+
+retirePool :: Pool -> P.Ledger.Slot -> DirectMockChain ()
+retirePool p slot =
+  publishPoolCertificate p $
+    TxSkelCertificate
+      (UserPubKey $ poolId p)
+      (PoolRetire slot)
 
 withdraw :: User IsEither Redemption -> DirectMockChain ()
 withdraw user =
@@ -37,9 +60,6 @@ falseScriptUser = UserRedeemedScript Script.falseMPScript emptyTxSkelRedeemer
 
 aliceUser :: User IsEither Redemption
 aliceUser = UserPubKey $ Script.toPubKeyHash alice
-
-bobUser :: User IsEither Redemption
-bobUser = UserPubKey $ Script.toPubKeyHash bob
 
 tests :: TestTree
 tests =
@@ -104,17 +124,95 @@ tests =
           testCooked "... but the script might fail at registration" $
             mustFailInPhase2WithMsgTest "Script used with an unsupported purpose." $
               publishCertificate $
-                TxSkelCertificate falseScriptUser DRepRegister
+                TxSkelCertificate falseScriptUser DRepRegister,
+          testCooked "We can update and unregister a script DRep" $
+            mustSucceedTest $ do
+              publishCertificate $ TxSkelCertificate trueScriptUser DRepRegister
+              publishCertificate $ TxSkelCertificate trueScriptUser DRepUpdate
+              publishCertificate $ TxSkelCertificate trueScriptUser DRepUnRegister
         ],
       testGroup
         "Staking delegation certificates"
-        [ testCooked "Failure when delegating vote for a non registered credential" $
-            mustFailInPhase1Test $
+        [ testCooked "Failure when delegating stake to an unregistered pool" $
+            mustFailInPhase1Test $ do
+              publishCertificate $ TxSkelCertificate aliceUser StakingRegister
               publishCertificate $
-                TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegStake $ Script.toPubKeyHash bob),
-          testCooked "Success when delegating vote for a registered credential" $
+                TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegStake $ poolId $ pool 1),
+          testCooked "Success when delegating stake to a registered pool" $
+            mustSucceedTest $ do
+              let p = pool 1
+              registerPool p
+              publishCertificate $ TxSkelCertificate aliceUser StakingRegister
+              publishCertificate $ TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegStake $ poolId p),
+          testCooked "Success when registering and delegating stake to a pool" $
+            mustSucceedTest $ do
+              let p = pool 1
+              registerPool p
+              publishCertificate $
+                TxSkelCertificate aliceUser (StakingRegisterDelegate $ Api.DelegStake $ poolId p),
+          testCooked "Success when delegating stake and vote together" $
+            mustSucceedTest $ do
+              let p = pool 1
+              registerPool p
+              publishCertificate $ TxSkelCertificate aliceUser StakingRegister
+              publishCertificate $
+                TxSkelCertificate
+                  aliceUser
+                  (StakingDelegate $ Api.DelegStakeVote (poolId p) Api.DRepAlwaysAbstain),
+          testCooked "Success when registering and delegating stake and vote together" $
+            mustSucceedTest $ do
+              let p = pool 1
+              registerPool p
+              publishCertificate $
+                TxSkelCertificate
+                  aliceUser
+                  (StakingRegisterDelegate $ Api.DelegStakeVote (poolId p) Api.DRepAlwaysAbstain),
+          testCooked "Success when delegating vote to always abstain" $
             mustSucceedTest $ do
               publishCertificate $ TxSkelCertificate aliceUser StakingRegister
-              publishCertificate $ TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegVote Api.DRepAlwaysAbstain)
+              publishCertificate $ TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegVote Api.DRepAlwaysAbstain),
+          testCooked "Success when delegating vote to always no confidence" $
+            mustSucceedTest $ do
+              publishCertificate $ TxSkelCertificate aliceUser StakingRegister
+              publishCertificate $ TxSkelCertificate aliceUser (StakingDelegate $ Api.DelegVote Api.DRepAlwaysNoConfidence),
+          testCooked "Success when delegating vote to a registered DRep credential" $
+            mustSucceedTest $ do
+              publishCertificate $ TxSkelCertificate aliceUser DRepRegister
+              publishCertificate $ TxSkelCertificate aliceUser StakingRegister
+              publishCertificate $
+                TxSkelCertificate
+                  aliceUser
+                  (StakingDelegate $ Api.DelegVote $ Api.DRep $ Api.DRepCredential $ Script.toCredential alice)
+        ],
+      testGroup
+        "Pool certificates"
+        [ testCooked "Success when registering a pool with its cold key and VRF hash" $
+            mustSucceedTest $
+              registerPool (pool 1),
+          testCooked "Success when retiring a registered pool" $
+            mustSucceedTest $ do
+              let p = pool 1
+              registerPool p
+              retirePool p (P.Ledger.Slot 1_000_000),
+          testCooked "Failure when retiring an unregistered pool" $
+            mustFailInPhase1Test $
+              retirePool (pool 1) (P.Ledger.Slot 1_000_000)
+        ],
+      testGroup
+        "Committee certificates"
+        [ testCooked "Failure when registering a hot key for a non-member" $
+            mustFailInPhase1Test $
+              publishCertificate $
+                TxSkelCertificate aliceUser (CommitteeRegisterHot $ Script.toCredential bob),
+          testCooked "Failure when registering a script hot credential for a non-member" $
+            mustFailInPhase1Test $
+              publishCertificate $
+                TxSkelCertificate
+                  aliceUser
+                  (CommitteeRegisterHot $ Api.ScriptCredential $ Script.toScriptHash Script.trueMPScript),
+          testCooked "Failure when resigning from the committee as a non-member" $
+            mustFailInPhase1Test $
+              publishCertificate $
+                TxSkelCertificate aliceUser CommitteeResign
         ]
     ]
