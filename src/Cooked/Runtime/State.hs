@@ -1,9 +1,18 @@
--- | This module exposes the internal state in which our direct simulation is
--- run (`MockChainState`), as well as a restricted and simplified version
--- (`UtxoState`). The latter only consists of Utxos with a focus on who owns
--- those Utxos. You can see this as having some sort of an "account" view of the
--- ledger state, which typically does not exist in Cardano. This is useful for
--- two reasons:
+-- | This module exposes the two independent pieces of state in which our direct
+-- simulation is run:
+--
+-- - `EmulatorState`, which gathers the emulator-specific data (the emulator
+--   `Emulator.Params` and the `Emulator.EmulatedLedgerState`). This is only
+--   relevant when running against the emulated ledger.
+--
+-- - `ChainIndex`, which gathers the backend-agnostic data (the map of known
+--   outputs and the current constitution script). This piece of state is also
+--   meaningful for the node backend, which keeps its own local `ChainIndex`.
+--
+-- It also exposes a restricted and simplified view (`UtxoState`). The latter
+-- only consists of Utxos with a focus on who owns those Utxos. You can see this
+-- as having some sort of an "account" view of the ledger state, which typically
+-- does not exist in Cardano. This is useful for two reasons:
 --
 -- - For printing purposes, where it is much more convenient to see the available
 --   assets as "who owns what" rather than as a set of mixed Utxos.
@@ -11,20 +20,26 @@
 -- - For testings purposes, when querying the final state of a run is
 --   needed. For instance, properties such as "does Alice indeed owns 3 XXX
 --   tokens at the end of this run?" become much easier to express.
-module Cooked.MockChain.Runtime.State
-  ( -- * `MockChainState` and associated optics
-    MockChainState (..),
-    mcstParamsL,
-    mcstLedgerStateL,
-    mcstOutputsL,
-    mcstConstitutionL,
-    mcstMOutputL,
+module Cooked.Runtime.State
+  ( -- * `EmulatorState` and associated optics
+    EmulatorState (..),
+    emulatorStateParamsL,
+    emulatorStateLedgerStateL,
 
-    -- * Helpers to add or remove outputs from a `MockChainState`
+    -- * `ChainIndex` and associated optics
+    ChainIndex (..),
+    chainIndexOutputsL,
+    chainIndexConstitutionL,
+    chainIndexMOutputL,
+
+    -- * Helpers to add or remove outputs from a `ChainIndex`
     addOutput,
+    addOutputs,
     removeOutput,
+    removeOutputs,
+    extractOutputs,
 
-    -- * `UtxoState`: A simplified, address-focused view on a `MockChainState`
+    -- * `UtxoState`: A simplified, address-focused view on a `ChainIndex`
     UtxoPayloadDatum (..),
     utxoPayloadDatumKindAT,
     utxoPayloadDatumTypedAT,
@@ -43,13 +58,14 @@ module Cooked.MockChain.Runtime.State
     -- * Querying the assets owned by a given address
     holdsInState,
 
-    -- * Transforming a `MockChainState` into an `UtxoState`
-    mcstToUtxoState,
+    -- * Transforming a `ChainIndex` into an `UtxoState`
+    chainIndexToUtxoState,
   )
 where
 
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Cooked.Skeleton
+import Cooked.Utilities
 import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
@@ -63,50 +79,85 @@ import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
--- | The state used to run the simulation in 'Cooked.MockChain.Direct'
-data MockChainState where
-  MockChainState ::
+-- | The emulator-specific state used to run the simulation in
+-- 'Cooked.Direct'. It only makes sense when running against the
+-- emulated ledger.
+data EmulatorState where
+  EmulatorState ::
     { -- | The parameters of the emulated blockchain
-      mcstParams :: Emulator.Params,
+      emulatorStateParams :: Emulator.Params,
       -- | The ledger state of the emulated blockchain
-      mcstLedgerState :: Emulator.EmulatedLedgerState,
-      -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
-      -- alongside a boolean to state whether this UTxO is still present in the
-      -- index ('True') or has already been consumed ('False').
-      mcstOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
-      -- | The constitution script to be used with proposals
-      mcstConstitution :: Maybe VScript
+      emulatorStateLedgerState :: Emulator.EmulatedLedgerState
     } ->
-    MockChainState
+    EmulatorState
   deriving (Show)
 
--- | Focuses on the parameters of a 'MockChainState'
-makeLensesFor [("mcstParams", "mcstParamsL")] ''MockChainState
+-- | Focuses on the parameters of an 'EmulatorState'
+makeLensesFor [("emulatorStateParams", "emulatorStateParamsL")] ''EmulatorState
 
--- | Focuses on the ledger state of a 'MockChainState'
-makeLensesFor [("mcstLedgerState", "mcstLedgerStateL")] ''MockChainState
+-- | Focuses on the ledger state of an 'EmulatorState'
+makeLensesFor [("emulatorStateLedgerState", "emulatorStateLedgerStateL")] ''EmulatorState
 
--- | Focuses on the outputs of a 'MockChainState'
-makeLensesFor [("mcstOutputs", "mcstOutputsL")] ''MockChainState
+instance Default EmulatorState where
+  def = EmulatorState def (Emulator.initialState def)
 
--- | Focuses on the constitution script of a 'MockChainState'
-makeLensesFor [("mcstConstitution", "mcstConstitutionL")] ''MockChainState
+-- | The backend-agnostic state used to run the simulation. It gathers the map
+-- of known outputs and the current constitution script. It is also meaningful
+-- for the node backend, which keeps its own local 'ChainIndex'.
+data ChainIndex where
+  ChainIndex ::
+    { -- | Associates to each 'Api.TxOutRef' the 'TxSkelOut' that produced it,
+      -- alongside a boolean to state whether this UTxO is still present in the
+      -- index ('True') or has already been consumed ('False').
+      chainIndexOutputs :: Map Api.TxOutRef (TxSkelOut, Bool),
+      -- | The constitution script to be used with proposals
+      chainIndexConstitution :: Maybe VScript
+    } ->
+    ChainIndex
+  deriving (Show)
 
-instance Default MockChainState where
-  def = MockChainState def (Emulator.initialState def) Map.empty Nothing
+-- | Focuses on the outputs of a 'ChainIndex'
+makeLensesFor [("chainIndexOutputs", "chainIndexOutputsL")] ''ChainIndex
 
--- | Accesses a given available Utxo from a `MockChainState`
-mcstMOutputL :: Api.TxOutRef -> Lens' MockChainState (Maybe TxSkelOut)
-mcstMOutputL oRef = mcstOutputsL % at oRef % iso (fmap fst) (fmap (,True))
+-- | Focuses on the constitution script of a 'ChainIndex'
+makeLensesFor [("chainIndexConstitution", "chainIndexConstitutionL")] ''ChainIndex
 
--- | Stores an output in a 'MockChainState'
-addOutput :: Api.TxOutRef -> TxSkelOut -> MockChainState -> MockChainState
-addOutput oRef = set (mcstMOutputL oRef) . Just
+instance Default ChainIndex where
+  def = ChainIndex Map.empty Nothing
 
--- | Removes an output from the 'MockChainState'. This does not actually remove
+-- | Accesses a given available Utxo from a `ChainIndex`
+chainIndexMOutputL :: Api.TxOutRef -> Lens' ChainIndex (Maybe TxSkelOut)
+chainIndexMOutputL oRef = chainIndexOutputsL % at oRef % iso (fmap fst) (fmap (,True))
+
+-- | Stores an output in a 'ChainIndex'
+addOutput :: Api.TxOutRef -> TxSkelOut -> ChainIndex -> ChainIndex
+addOutput oRef = set (chainIndexMOutputL oRef) . Just
+
+-- | Stores a list of outputs in a 'ChainIndex'
+addOutputs :: [(Api.TxOutRef, TxSkelOut)] -> ChainIndex -> ChainIndex
+addOutputs outputs chainIndex =
+  foldl (\index (oRef, output) -> addOutput oRef output index) chainIndex outputs
+
+-- | Removes an output from the 'ChainIndex'. This does not actually remove
 -- it from the map, but instead marks its availability to @False@
-removeOutput :: Api.TxOutRef -> MockChainState -> MockChainState
-removeOutput oRef = set (mcstOutputsL % at oRef % _Just % _2) False
+removeOutput :: Api.TxOutRef -> ChainIndex -> ChainIndex
+removeOutput oRef = set (chainIndexOutputsL % at oRef % _Just % _2) False
+
+-- | Removes several outputs from a 'ChainIndex' using 'removeOutput' each time
+removeOutputs :: (Foldable t) => t Api.TxOutRef -> ChainIndex -> ChainIndex
+removeOutputs l index = foldl (flip removeOutput) index l
+
+-- | Extracts the outputs from a 'ChainIndex' that match a given predicate in a
+-- 'SearchResult'
+extractOutputs ::
+  (Api.TxOutRef -> TxSkelOut -> Bool) ->
+  ChainIndex ->
+  UtxoSearchResult
+extractOutputs p =
+  review searchResultMapI
+    . fmap fst
+    . Map.filterWithKey (\oRef (txSkelOut, exists) -> exists && p oRef txSkelOut)
+    . view chainIndexOutputsL
 
 -- | A simplified version of a 'Cooked.Skeleton.Datum.TxSkelOutDatum' which only
 -- stores the actual datum and whether it is hashed (@True@) or inline
@@ -116,6 +167,7 @@ removeOutput oRef = set (mcstOutputsL % at oRef % _Just % _2) False
 data UtxoPayloadDatum where
   NoUtxoPayloadDatum :: UtxoPayloadDatum
   SomeUtxoPayloadDatum :: (DatumConstrs dat) => dat -> Bool -> UtxoPayloadDatum
+  UtxoPayloadDatumHash :: Api.DatumHash -> UtxoPayloadDatum
 
 -- | Focuses on the optional hashed flag of a 'UtxoPayloadDatum'
 utxoPayloadDatumKindAT :: AffineTraversal' UtxoPayloadDatum Bool
@@ -124,11 +176,13 @@ utxoPayloadDatumKindAT =
     ( \case
         NoUtxoPayloadDatum -> Left NoUtxoPayloadDatum
         SomeUtxoPayloadDatum _ b -> Right b
+        UtxoPayloadDatumHash _ -> Right True
     )
     ( flip
         ( \kind -> \case
             NoUtxoPayloadDatum -> NoUtxoPayloadDatum
             SomeUtxoPayloadDatum content _ -> SomeUtxoPayloadDatum content kind
+            datum@(UtxoPayloadDatumHash _) -> datum
         )
     )
 
@@ -146,6 +200,7 @@ utxoPayloadDatumTypedAT =
         ( \content -> \case
             NoUtxoPayloadDatum -> NoUtxoPayloadDatum
             SomeUtxoPayloadDatum _ kind -> SomeUtxoPayloadDatum content kind
+            UtxoPayloadDatumHash _ -> SomeUtxoPayloadDatum content True
         )
     )
 
@@ -159,6 +214,9 @@ instance Ord UtxoPayloadDatum where
     (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat) b)
     (SomeUtxoPayloadDatum (Api.toBuiltinData -> dat') b') =
       compare (dat, b) (dat', b')
+  compare SomeUtxoPayloadDatum {} _ = LT
+  compare _ SomeUtxoPayloadDatum {} = GT
+  compare (UtxoPayloadDatumHash hash) (UtxoPayloadDatumHash hash') = compare hash hash'
 
 instance Eq UtxoPayloadDatum where
   dat == dat' = compare dat dat' == EQ
@@ -253,10 +311,10 @@ holdsInState (Script.toAddress -> address) = maybe mempty utxoPayloadSetTotal . 
 utxoPayloadSetTotal :: UtxoPayloadSet -> Api.Value
 utxoPayloadSetTotal = foldOf (utxoPayloadSetListI % folded % utxoPayloadValueL)
 
--- | Builds a 'UtxoState' from a 'MockChainState'
-mcstToUtxoState :: MockChainState -> UtxoState
-mcstToUtxoState =
-  List.foldl' extractPayload mempty . Map.toList . mcstOutputs
+-- | Builds a 'UtxoState' from a 'ChainIndex'
+chainIndexToUtxoState :: ChainIndex -> UtxoState
+chainIndexToUtxoState =
+  List.foldl' extractPayload mempty . Map.toList . chainIndexOutputs
   where
     extractPayload :: UtxoState -> (Api.TxOutRef, (TxSkelOut, Bool)) -> UtxoState
     extractPayload utxoState (txOutRef, (txSkelOut, bool)) =
@@ -269,6 +327,7 @@ mcstToUtxoState =
                   ( case view txSkelOutDatumL txSkelOut of
                       NoTxSkelOutDatum -> NoUtxoPayloadDatum
                       SomeTxSkelOutDatum content kind -> SomeUtxoPayloadDatum content (kind /= Inline)
+                      SomeTxSkelOutDatumHash hash -> UtxoPayloadDatumHash hash
                   )
                   (preview txSkelOutReferenceScriptHashAF txSkelOut)
               ]

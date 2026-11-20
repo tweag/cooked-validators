@@ -16,6 +16,20 @@
   `extract*` and `ensure*`, and consumed with `retrieve`, `retrieveKeys`,
   `retrieveAsList`, `retrieveByType`, `retrieveByTypeAndFold` and
   `retrieveByTypeAsList`.
+- New `Cooked.Runtime` umbrella module (`Cooked.Runtime.State`,
+  `Cooked.Runtime.Error`, `Cooked.Runtime.Journal`).
+- New `TxValidity` (`Valid`, `InvalidPhase1`, `InvalidPhase2`) recorded in
+  `CLogNewTx` log entries.
+- New log entries `CELogExUnitsFailures` and `CELogSubmissionFailures`,
+  emitted when failures are not halting.
+- New errors `CEExUnitsFailures`, `CESubmissionFailures`,
+  `CESpendingHashOnlyDatum`, `CESpendingHashOnlyScript`,
+  `CENodeToClientVersionError`, `CEEraMismatch`, `CEAcquiringFailure` and
+  `CETooFarAway`.
+- New `addOutputs`, `removeOutputs` and `extractOutputs` helpers on
+  `ChainIndex`.
+- New `UtxoPayloadDatumHash` constructor for outputs whose datum is only
+  known by its hash.
 
 ### Changed
 
@@ -26,6 +40,20 @@
 - `HList`, `hHead` and `hTail` moved from `Cooked.Families` to
   `Cooked.Utilities.HList`.
 - `Utxos` is now a `Map Api.TxOutRef TxSkelOut` instead of a list.
+- `Cooked.MockChain.Runtime.*` moved to `Cooked.Runtime.*`.
+- `MockChainState` is split into `EmulatorState` (protocol parameters and
+  ledger state, optics `emulatorState*L`) and `ChainIndex` (known outputs
+  and constitution, optics `chainIndex*L`); `mcstToUtxoState` is renamed
+  `chainIndexToUtxoState`.
+- `MockChainError` is renamed `ChainError` and its constructors are
+  prefixed with `CE` instead of `MCE`. `MCEUnknownOutRef` became
+  `CEUnknownOutRefs` and holds a set of references. `ChainError` no
+  longer has an `Eq` instance.
+- `MockChainJournal` is renamed `ChainJournal` and `MockChainLogEntry` is
+  renamed `ChainLogEntry` (now in `Cooked.Runtime.Journal`), with
+  constructors prefixed with `CLog` instead of `MCLog`.
+- Assertions in the journal are now stored as pretty-printable documents
+  instead of `String`s.
 
 ### Removed
 
@@ -35,6 +63,9 @@
   `ensureVanillaOutputs`, `ensureProperReferenceScript`, ...). Searches are
   now expressed with `Cooked.Utilities.TypedSearch` on top of the `Query`
   effect.
+- `MCEValidationError`, replaced by `CEExUnitsFailures` (script
+  evaluation) and `CESubmissionFailures` (ledger rejection).
+- `MCEPastSlot`.
 
 ### Fixed
 
