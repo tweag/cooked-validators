@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | This module exposes the outputs constructs used in a
 -- 'Cooked.Skeleton.TxSkel' and their associated utilities. To build payments in
 -- a skeleton, the usual way is to invoke @txSkelOutputs = [pk `receives` Value v,
@@ -27,6 +29,10 @@ module Cooked.Skeleton.Output
     -- * Smart constructors
     (<&&>),
     receives,
+
+    -- * Output serialization
+    txSkelOutToJSON,
+    txSkelOutFromJSON,
   )
 where
 
@@ -35,6 +41,8 @@ import Cooked.Skeleton.User
 import Cooked.Skeleton.Value ()
 import Cooked.Utilities.Families
 import Cooked.Utilities.Wallet
+import Data.Aeson (object, withObject, (.:), (.=))
+import Data.Aeson.Types (Parser, Value)
 import Data.Kind
 import Data.Typeable
 import Optics.Core
@@ -158,7 +166,7 @@ instance (Typeable a) => IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
 instance IsTxSkelOutAllowedOwner (Script.Versioned Script.Validator) where
   toPKHOrVScript = UserScript
 
-instance (Typeable a) => IsTxSkelOutAllowedOwner (Script.MultiPurposeScript a) where
+instance IsTxSkelOutAllowedOwner Script.MultiPurposeScript where
   toPKHOrVScript = UserScript
 
 instance IsTxSkelOutAllowedOwner (User IsEither Allocation) where
@@ -239,3 +247,33 @@ receives (toPKHOrVScript -> owner) =
       UserScript (toVScript -> Script.Versioned _ v) | v <= Script.PlutusV2 -> SomeTxSkelOutDatum () (Hashed NotResolved)
       -- V3 script and PKH do not necessarily need a datum
       _ -> NoTxSkelOutDatum
+
+-- | Serializes a 'TxSkelOut' to JSON.
+txSkelOutToJSON :: TxSkelOut -> Value
+txSkelOutToJSON TxSkelOut {..} =
+  object
+    [ "owner" .= userToJSON txSkelOutOwner,
+      "stakingCredential" .= txSkelOutStakingCredential,
+      "datum" .= txSkelOutDatumToJSON txSkelOutDatum,
+      "value" .= txSkelOutValue,
+      "valueAutoAdjust" .= txSkelOutValueAutoAdjust,
+      "referenceScript" .= txSkelOutReferenceScript
+    ]
+
+-- | Deserializes a 'TxSkelOut' from JSON, using the provided user and datum
+-- registries.
+txSkelOutFromJSON ::
+  PubKeyRegistry ->
+  ScriptRegistry ->
+  DatumRegistry ->
+  Value ->
+  Parser TxSkelOut
+txSkelOutFromJSON pkRegistry scriptRegistry datumRegistry =
+  withObject "TxSkelOut" $ \obj -> do
+    txSkelOutOwner <- obj .: "owner" >>= userFromJSON pkRegistry scriptRegistry
+    txSkelOutStakingCredential <- obj .: "stakingCredential"
+    txSkelOutDatum <- obj .: "datum" >>= txSkelOutDatumFromJSON datumRegistry
+    txSkelOutValue <- obj .: "value"
+    txSkelOutValueAutoAdjust <- obj .: "valueAutoAdjust"
+    txSkelOutReferenceScript <- obj .: "referenceScript"
+    pure TxSkelOut {..}

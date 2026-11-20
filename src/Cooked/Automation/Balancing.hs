@@ -85,7 +85,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSignatory -> case txSkelSignatories of
       [] -> throw $ CEBalancingError MissingBalancingUser
-      bw : _ -> return $ Just $ UserPubKey bw
+      signatory : _ -> return $ Just $ UserPubKey signatory
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
     DoNotBalance -> return Nothing
 

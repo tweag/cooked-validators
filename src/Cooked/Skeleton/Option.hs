@@ -30,6 +30,8 @@ module Cooked.Skeleton.Option
 where
 
 import Cooked.Utilities.Aliases
+import Cooked.Utilities.Codec (HasTypeKey)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Default
 import Data.Set (Set)
 import Data.Typeable
@@ -41,9 +43,12 @@ import PlutusLedgerApi.V3 qualified as Api
 -- | Set of constraints that need to be satisfied by users in options
 type UserConstraints pkh =
   ( Script.ToPubKeyHash pkh,
+    ToJSON pkh,
+    FromJSON pkh,
     Show pkh,
     Eq pkh,
-    Typeable pkh
+    Typeable pkh,
+    HasTypeKey pkh
   )
 
 -- | What fee policy to use in the transaction.

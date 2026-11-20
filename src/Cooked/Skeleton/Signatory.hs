@@ -1,17 +1,16 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module exposes the notion of signatory for out 'Cooked.Skeleton.TxSkel'
 module Cooked.Skeleton.Signatory
   ( -- * Data types
-    TxSkelSignatoryWitness (..),
     TxSkelSignatory (..),
 
     -- * Optics
     txSkelSignatoryPubKeyHashL,
-    txSkelSignatoryWitnessSigningKeyAF,
+    txSkelSignatoryPrivateKeyAT,
     txSkelSignatoryPrivateKeyL,
-    txSkelSignatorySigningKeyAF,
 
     -- * Smart constructors
     signatoryPubKey,
@@ -25,7 +24,10 @@ import Cardano.Api qualified as Cardano
 import Control.Monad.Extra (eitherM)
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.User
+import Cooked.Utilities.Codec
 import Cooked.Utilities.Wallet
+import Data.Aeson (FromJSON, ToJSON)
+import GHC.Generics (Generic)
 import Ledger.Address qualified as P.Ledger
 import Optics.Core
 import Optics.TH
@@ -33,47 +35,35 @@ import Plutus.Script.Utils.V3 qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Builtins qualified as PlutusTx
 
--- | A possible witness for a signatory in a skeleton.
-data TxSkelSignatoryWitness where
-  NoTxSkelSignatoryWitness :: TxSkelSignatoryWitness
-  SomeTxSkelSignatoryWitness :: (P.Ledger.ToWitness sKey) => sKey -> TxSkelSignatoryWitness
-
--- | Focuses on the optional signing key of a 'TxSkelSignatoryWitness'
-txSkelSignatoryWitnessSigningKeyAF :: AffineFold TxSkelSignatoryWitness Cardano.ShelleyWitnessSigningKey
-txSkelSignatoryWitnessSigningKeyAF =
-  afolding $ \case
-    NoTxSkelSignatoryWitness -> Nothing
-    (SomeTxSkelSignatoryWitness skey) -> Just $ P.Ledger.toWitness skey
-
--- | Signatories in skeletons
+-- | Signatories in skeletons. Their JSON serialization currently includes
+-- their private key in plain text, if any.
 data TxSkelSignatory where
   TxSkelSignatory ::
-    (Script.ToPubKeyHash pkh, Show pkh) =>
     { -- | Identifying the signatory with their pubkey hash
-      txSkelSignatoryPubKeyHash :: pkh,
+      txSkelSignatoryPubKeyHash :: Api.PubKeyHash,
       -- | The private key with which this signatory should sign. If set to
       -- @Nothing@ the signature won't be added (but will be needed later on).
-      txSkelSignatoryPrivateKey :: TxSkelSignatoryWitness
+      txSkelSignatoryPrivateKey :: Maybe Cardano.ShelleyWitnessSigningKey
     } ->
     TxSkelSignatory
+  deriving (Generic, FromJSON, ToJSON)
+
+instance HasTypeKey TxSkelSignatory where
+  typeKey = "TxSkelSignatory"
 
 -- | Focuses on the private key of a 'TxSkelSignatory'
 makeLensesFor [("txSkelSignatoryPrivateKey", "txSkelSignatoryPrivateKeyL")] ''TxSkelSignatory
 
 -- | Focuses on the public key hash of a 'TxSkelSignatory'
-txSkelSignatoryPubKeyHashL :: Lens' TxSkelSignatory Api.PubKeyHash
-txSkelSignatoryPubKeyHashL =
-  lens
-    (\(TxSkelSignatory pkh _) -> Script.toPubKeyHash pkh)
-    (\sig pkh -> sig {txSkelSignatoryPubKeyHash = pkh})
+makeLensesFor [("txSkelSignatoryPubKeyHash", "txSkelSignatoryPubKeyHashL")] ''TxSkelSignatory
 
 -- | Focuses on the optional signing key of a 'TxSkelSignatory'
-txSkelSignatorySigningKeyAF :: AffineFold TxSkelSignatory Cardano.ShelleyWitnessSigningKey
-txSkelSignatorySigningKeyAF = txSkelSignatoryPrivateKeyL % txSkelSignatoryWitnessSigningKeyAF
+txSkelSignatoryPrivateKeyAT :: AffineTraversal' TxSkelSignatory Cardano.ShelleyWitnessSigningKey
+txSkelSignatoryPrivateKeyAT = txSkelSignatoryPrivateKeyL % _Just
 
 instance Show TxSkelSignatory where
-  show (TxSkelSignatory pkh NoTxSkelSignatoryWitness) = "Only pubkey hash: " <> show pkh
-  show (TxSkelSignatory pkh (SomeTxSkelSignatoryWitness _)) = "Pubkey hash: " <> show pkh <> " accompanied by a private key."
+  show (TxSkelSignatory pkh Nothing) = "Only pubkey hash: " <> show pkh
+  show (TxSkelSignatory pkh _) = "Pubkey hash: " <> show pkh <> " accompanied by a private key."
 
 -- There is no Eq instance for the private key, so we only compare the pubkey
 -- hashes and the length of the private keys (if they are present). This should
@@ -94,7 +84,7 @@ signatoryWallet :: Wallet -> TxSkelSignatory
 signatoryWallet w =
   TxSkelSignatory
     (Script.toPubKeyHash w)
-    (SomeTxSkelSignatoryWitness $ P.Ledger.PaymentPrivateKey $ walletSK w)
+    (Just $ P.Ledger.toWitness $ P.Ledger.PaymentPrivateKey $ walletSK w)
 
 instance P.Ledger.ToWitness (Cardano.SigningKey Cardano.GenesisUTxOKey) where
   toWitness = Cardano.WitnessGenesisUTxOKey
@@ -120,14 +110,14 @@ signatoryFromFile file =
                     Cardano.verificationKeyHash $
                       Cardano.getVerificationKey skey
             )
-            (SomeTxSkelSignatoryWitness skey)
+            (Just $ P.Ledger.toWitness skey)
     )
     (Cardano.readFileTextEnvelope @(Cardano.SigningKey keyRole) (Cardano.File file))
 
 -- | Builds a signatory from a pubkey, which will no be able to actually sign
 -- the transaction, but will act as a requirement.
-signatoryPubKey :: (Script.ToPubKeyHash pkh, Show pkh) => pkh -> TxSkelSignatory
-signatoryPubKey = (`TxSkelSignatory` NoTxSkelSignatoryWitness)
+signatoryPubKey :: (Script.ToPubKeyHash pkh) => pkh -> TxSkelSignatory
+signatoryPubKey = (`TxSkelSignatory` Nothing) . Script.toPubKeyHash
 
 -- | Builds a list of signatories from a list of wallets
 txSkelSignatoriesFromList :: [Wallet] -> [TxSkelSignatory]

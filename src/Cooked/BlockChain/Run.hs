@@ -10,6 +10,7 @@ module Cooked.BlockChain.Run
 where
 
 import Cardano.Api qualified as Cardano
+import Control.Monad (forM_)
 import Cooked.BlockChain.Config
 import Cooked.Pretty.Options
 import Cooked.Runtime.State
@@ -26,8 +27,15 @@ runBlockChainFromConf ::
   BlockChainConf a b ->
   Sem effs a ->
   IO b
-runBlockChainFromConf (BlockChainConf connectInfo chainIndex prettyOpts fun) comp =
-  runBlockChain prettyOpts chainIndex connectInfo comp >>= fun
+runBlockChainFromConf BlockChainConf {..} comp = do
+  -- we fetch the initial chain index.
+  chainIndex <- chainIndexFromSource bccChainIndexSource
+  -- we run the actual computation, retrieving the new chain index.
+  result@(_, (newChainIndex, _)) <- runBlockChain bccPrettyOpts chainIndex bccConnectInfo comp
+  -- we persist the new chain index when a target file is specified.
+  forM_ bccChainIndexTarget (`saveChainIndex` newChainIndex)
+  -- we call the result handler function.
+  bccFunOnResult result
 
 -- | Runs a 'RunnableBlockChain' from an initial default 'BlockChainConf'
 runBlockChainFromConfTemplate ::
@@ -37,5 +45,5 @@ runBlockChainFromConfTemplate ::
   Cardano.LocalNodeConnectInfo ->
   Sem effs a ->
   IO ()
-runBlockChainFromConfTemplate nodeInfo =
-  runBlockChainFromConf (blockChainConfTemplate nodeInfo)
+runBlockChainFromConfTemplate =
+  runBlockChainFromConf . blockChainConfDefaultTemplate

@@ -3,6 +3,7 @@
 
 module Plutus.ReferenceInputs where
 
+import Ledger.Typed.Scripts.V2 qualified as P.Ledger
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx
@@ -49,7 +50,7 @@ fooValidator (FooDatum pkh) _ (Api.ScriptContext txInfo _) =
 fooTypedValidator :: Script.TypedValidator Foo
 fooTypedValidator =
   let wrap = Script.mkUntypedValidator
-   in Script.mkTypedValidator @Foo
+   in P.Ledger.mkTypedValidator @Foo
         $$(compile [||fooValidator||])
         $$(compile [||wrap||])
 
@@ -70,7 +71,7 @@ barValidator _ _ (Api.ScriptContext txInfo _) =
 barTypedValidator :: Script.TypedValidator ()
 barTypedValidator =
   let wrap = Script.mkUntypedValidator
-   in Script.mkTypedValidator
+   in P.Ledger.mkTypedValidator
         $$(compile [||barValidator||])
         $$(compile [||wrap||])
 
@@ -93,6 +94,6 @@ bazValidator _ _ context =
 bazTypedValidator :: Script.TypedValidator ()
 bazTypedValidator =
   let wrap = Script.mkUntypedValidator
-   in Script.mkTypedValidator
+   in P.Ledger.mkTypedValidator
         $$(compile [||bazValidator||])
         $$(compile [||wrap||])

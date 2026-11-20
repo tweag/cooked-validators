@@ -35,7 +35,6 @@ import Data.Maybe
 import Data.Typeable (Typeable)
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Address qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -87,7 +86,7 @@ txSkelWithdrawalsListI =
     )
 
 -- | Creates a 'Withdrawal' from a private key hash
-pubKeyWithdrawal :: (Script.ToPubKeyHash pkh, Typeable pkh) => pkh -> Withdrawal
+pubKeyWithdrawal :: (PubKeyConstrs pkh) => pkh -> Withdrawal
 pubKeyWithdrawal = (`Withdrawal` Nothing) . UserPubKey
 
 -- | Creates a 'Withdrawal' from a redeemed script and lovelace amount

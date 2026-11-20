@@ -18,6 +18,7 @@ module Cooked.Utilities.Wallet
 where
 
 import Cardano.Crypto.Wallet qualified as Crypto
+import Cooked.Utilities.Codec
 import Data.Function (on)
 import Data.List (elemIndex)
 import Ledger.Address qualified as P.Ledger
@@ -35,9 +36,6 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- | A 'Wallet' is a 'P.Ledger.MockWallet' from plutus-ledger
 type Wallet = P.Ledger.MockWallet
-
-instance Eq Wallet where
-  (==) = (==) `on` P.Ledger.mwWalletId
 
 instance Ord Wallet where
   compare = compare `on` P.Ledger.mwWalletId
@@ -96,6 +94,9 @@ instance Script.ToAddress Wallet where
     Api.Address
       (Script.toCredential w)
       (Script.toMaybeStakingCredential w)
+
+instance HasTypeKey Wallet where
+  typeKey = "Wallet"
 
 -- | Retrieves a wallet private key (secret key SK)
 walletSK :: Wallet -> Crypto.XPrv

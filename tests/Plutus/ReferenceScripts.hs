@@ -3,6 +3,7 @@
 
 module Plutus.ReferenceScripts where
 
+import Ledger.Typed.Scripts.V2 qualified as P.Ledger
 import Plutus.Script.Utils.V2 qualified as Script
 import PlutusLedgerApi.V2 qualified as Api
 import PlutusTx
@@ -13,7 +14,7 @@ import PlutusTx.Prelude
 -- transaction.
 requireSignerValidator :: Api.PubKeyHash -> Script.TypedValidator ()
 requireSignerValidator =
-  Script.mkTypedValidatorParam
+  P.Ledger.mkTypedValidatorParam
     $$(compile [||val||])
     $$(compile [||wrap||])
   where
@@ -28,7 +29,7 @@ requireSignerValidator =
 -- a reference script with the given hash.
 requireRefScriptValidator :: Api.ScriptHash -> Script.TypedValidator ()
 requireRefScriptValidator =
-  Script.mkTypedValidatorParam
+  P.Ledger.mkTypedValidatorParam
     $$(compile [||val||])
     $$(compile [||wrap||])
   where

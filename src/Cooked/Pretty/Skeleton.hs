@@ -25,8 +25,9 @@ instance PrettyCooked Wallet where
   prettyCookedOpt opts = prettyHash opts . Script.toPubKeyHash
 
 instance PrettyCooked TxSkelSignatory where
-  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) NoTxSkelSignatoryWitness) = prettyHash opts pkh <+> "(no private key attached)"
-  prettyCookedOpt opts (TxSkelSignatory (Script.toPubKeyHash -> pkh) _) = prettyHash opts pkh
+  prettyCookedOpt opts (TxSkelSignatory pkh mSKey) =
+    prettyHash opts pkh
+      <+> maybe "(without private key)" (const "(with private key)") mSKey
 
 -- | Some elements of a skeleton can only be printed when they are associated
 -- with a context. This is typically the case for elements that need some

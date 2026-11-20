@@ -113,11 +113,11 @@ defaultHashNames :: Map Api.BuiltinByteString String
 defaultHashNames =
   hashNamesFromList
     [ (Api.CurrencySymbol "", "Lovelace"),
-      (ScriptV1.alwaysSucceedCurrencySymbol, "QuickV1"),
-      (ScriptV2.alwaysSucceedCurrencySymbol, "QuickV2"),
+      (Script.toCurrencySymbol ScriptV1.alwaysSucceedPolicyVersioned, "QuickV1"),
+      (Script.toCurrencySymbol ScriptV2.alwaysSucceedPolicyVersioned, "QuickV2"),
       (Script.toCurrencySymbol ScriptV3.trueMintingMPScript, "QuickV3"),
-      (ScriptV1.alwaysFailCurrencySymbol, "PermanentV1"),
-      (ScriptV2.alwaysFailCurrencySymbol, "PermanentV2"),
+      (Script.toCurrencySymbol ScriptV1.alwaysFailPolicyVersioned, "PermanentV1"),
+      (Script.toCurrencySymbol ScriptV2.alwaysFailPolicyVersioned, "PermanentV2"),
       (Script.toCurrencySymbol ScriptV3.falseMPScript, "PermanentV3")
     ]
     <> hashNamesFromList

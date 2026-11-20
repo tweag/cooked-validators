@@ -29,11 +29,6 @@ instance Eq LockDatum where
 makeLift ''LockDatum
 unstableMakeIsData ''LockDatum
 
-data DHContract
-
-instance Script.MultiPurposeScriptTypes DHContract where
-  type SpendingDatumType DHContract = LockDatum
-
 lockValue :: Api.Value
 lockValue = Script.lovelace 12345678
 
@@ -48,7 +43,7 @@ outputDatum txi o = case Api.txOutDatum o of
   Api.OutputDatum (Api.Datum d) -> Api.fromBuiltinData d
 
 {-# INLINEABLE mockValidatorSpendingPurpose #-}
-mockValidatorSpendingPurpose :: (Api.TxInfo -> [Api.TxOut]) -> Script.SpendingPurposeType DHContract
+mockValidatorSpendingPurpose :: (Api.TxInfo -> [Api.TxOut]) -> Script.SpendingPurposeType Api.TxOutRef LockDatum BuiltinData Api.TxInfo
 mockValidatorSpendingPurpose getOutputs _ (Just FirstLock) _ txi =
   case getOutputs txi of
     o : _ ->
@@ -57,7 +52,7 @@ mockValidatorSpendingPurpose getOutputs _ (Just FirstLock) _ txi =
     _ -> trace "there must be a output re-locked" False
 mockValidatorSpendingPurpose _ _ _ _ _ = False
 
-carefulValidator :: Script.MultiPurposeScript DHContract
+carefulValidator :: Script.MultiPurposeScript
 carefulValidator =
   Script.MultiPurposeScript
     $ Script.toScript $$(compile [||script||])
@@ -65,9 +60,13 @@ carefulValidator =
     script =
       Script.mkMultiPurposeScript
         $ Script.falseTypedMultiPurposeScript
-        `Script.withSpendingPurpose` mockValidatorSpendingPurpose (\txi -> Api.getContinuingOutputs $ Api.ScriptContext txi (error ()) (error ()))
+          { Script.spendingPurpose =
+              Just
+                $ mockValidatorSpendingPurpose
+                  (\txi -> Api.getContinuingOutputs $ Api.ScriptContext txi (error ()) (error ()))
+          }
 
-carelessValidator :: Script.MultiPurposeScript DHContract
+carelessValidator :: Script.MultiPurposeScript
 carelessValidator =
   Script.MultiPurposeScript
     $ Script.toScript $$(compile [||script||])
@@ -75,4 +74,5 @@ carelessValidator =
     script =
       Script.mkMultiPurposeScript
         $ Script.falseTypedMultiPurposeScript
-        `Script.withSpendingPurpose` mockValidatorSpendingPurpose Api.txInfoOutputs
+          { Script.spendingPurpose = Just $ mockValidatorSpendingPurpose Api.txInfoOutputs
+          }

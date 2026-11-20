@@ -9,6 +9,8 @@ version:        10.0.0
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
+extra-source-files:
+    tests/golden/chain-index.json
 
 library
   exposed-modules:
@@ -69,6 +71,7 @@ library
       Cooked.Runtime
       Cooked.Runtime.Error
       Cooked.Runtime.Journal
+      Cooked.Runtime.Registries
       Cooked.Runtime.State
       Cooked.Skeleton
       Cooked.Skeleton.Anchor
@@ -95,6 +98,7 @@ library
       Cooked.Tweak.Update
       Cooked.Utilities
       Cooked.Utilities.Aliases
+      Cooked.Utilities.Codec
       Cooked.Utilities.Families
       Cooked.Utilities.HList
       Cooked.Utilities.ShowBS
@@ -110,6 +114,7 @@ library
       ConstraintKinds
       DataKinds
       DeriveFunctor
+      DeriveGeneric
       DerivingStrategies
       DerivingVia
       FlexibleContexts
@@ -137,6 +142,7 @@ library
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin=Polysemy.Plugin -Wmissing-export-lists
   build-depends:
       QuickCheck
+    , aeson
     , base >=4.9 && <5
     , bytestring
     , cardano-api
@@ -206,6 +212,9 @@ test-suite spec
       Spec.ProposingScript
       Spec.ReferenceInputs
       Spec.ReferenceScripts
+      Spec.Serialization
+      Spec.Serialization.DatumA
+      Spec.Serialization.DatumB
       Spec.Slot
       Spec.Tweak
       Spec.Tweak.Common
@@ -220,6 +229,7 @@ test-suite spec
       ConstraintKinds
       DataKinds
       DeriveFunctor
+      DeriveGeneric
       DerivingStrategies
       DerivingVia
       FlexibleContexts
@@ -246,11 +256,13 @@ test-suite spec
       ViewPatterns
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation -fplugin=Polysemy.Plugin
   build-depends:
-      base >=4.9 && <5
+      aeson
+    , base >=4.9 && <5
     , cardano-api
     , containers
     , cooked-validators
     , data-default
+    , extra
     , optics-core
     , plutus-core
     , plutus-ledger

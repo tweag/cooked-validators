@@ -3,8 +3,13 @@
 -- of a run.
 module Cooked.BlockChain.Config
   ( -- * Initial blockchain configuration
+    ChainIndexSource (..),
     BlockChainConf (..),
-    blockChainConfTemplate,
+    blockChainConfDefaultTemplate,
+    blockChainConfWithGivenRegistryTemplate,
+    blockChainConfWithExtraRegistryTemplate,
+    blockChainConfWithDefaultRegistriesTemplate,
+    chainIndexFromSource,
 
     -- * Blockchain return type
     RawBlockChainReturn,
@@ -46,17 +51,97 @@ displayBlockChainResult (opts, (chainIndexToUtxoState -> UtxoState available con
     PP.putDoc $
       "💰" <+> prettyCookedOpt opts available <> PP.line
 
+-- | The source of the initial chain index for a blockchain run.
+data ChainIndexSource where
+  -- | The initial chain index is provided directly from a previous run
+  DirectChainIndex :: ChainIndex -> ChainIndexSource
+  -- | The initial chain index is loaded from a file
+  ChainIndexFromFile ::
+    -- | File path to load the initial chain index from
+    FilePath ->
+    -- | Type registries to support deserialization of custom types hidden
+    -- within the outputs of the chain index.
+    Registries ->
+    -- | Whether to continue if the file is missing
+    Bool ->
+    -- | Whether to continue if the file is malformed
+    Bool ->
+    ChainIndexSource
+
+instance Default ChainIndexSource where
+  def = DirectChainIndex def
+
+-- | Loads the initial chain index from a file, or returns the one provided directly.
+chainIndexFromSource :: ChainIndexSource -> IO ChainIndex
+chainIndexFromSource (DirectChainIndex ci) = return ci
+chainIndexFromSource (ChainIndexFromFile filePath registries allowMissing allowMalformed) =
+  loadChainIndex filePath registries allowMissing allowMalformed
+
 -- | Configuration from which to run a blockchain
 data BlockChainConf a b where
   BlockChainConf ::
-    { bccConnectInfo :: Cardano.LocalNodeConnectInfo,
-      bccInitialChainIndex :: ChainIndex,
+    { -- | Connection info to the node
+      bccConnectInfo :: Cardano.LocalNodeConnectInfo,
+      -- | Initial chain index to use for the run
+      bccChainIndexSource :: ChainIndexSource,
+      -- | Optional file path to store the final chain index after the run.
+      -- This file may contain private keys in plain text (see
+      -- 'Cooked.Runtime.State.saveChainIndex').
+      bccChainIndexTarget :: Maybe FilePath,
+      -- | Pretty options to use during and after the run
       bccPrettyOpts :: PrettyCookedOpts,
+      -- | Function to handle the result of the run
       bccFunOnResult :: RawBlockChainReturn a -> IO b
     } ->
     BlockChainConf a b
 
 -- | A basic template for a 'BlockChainConf'. It takes a connection info as a
--- parameter, and displays the result of the run directly in IO.
-blockChainConfTemplate :: (Show a) => Cardano.LocalNodeConnectInfo -> BlockChainConf a ()
-blockChainConfTemplate connectInfo = BlockChainConf connectInfo def def displayBlockChainResult
+-- parameter, and displays the result of the run directly in IO. The pretty
+-- options are set to their default values. The chain index is initialized to an
+-- empty state, and is not persisted to a file after the run.
+blockChainConfDefaultTemplate ::
+  (Show a) =>
+  Cardano.LocalNodeConnectInfo ->
+  BlockChainConf a ()
+blockChainConfDefaultTemplate connectInfo =
+  BlockChainConf connectInfo def Nothing def displayBlockChainResult
+
+-- | A template for a 'BlockChainConf' that loads the initial chain index from a
+-- file and stores it back to the same file after the run. It takes the type
+-- registries as a parameter to support deserialization of custom types hidden
+-- within the outputs of the chain index. Otherwise, this configuration template
+-- behaves like 'blockChainConfDefaultTemplate'. Beware that the file may contain
+-- private keys in plain text (see 'Cooked.Runtime.State.saveChainIndex').
+blockChainConfWithGivenRegistryTemplate ::
+  (Show a) =>
+  Cardano.LocalNodeConnectInfo ->
+  FilePath ->
+  Registries ->
+  BlockChainConf a ()
+blockChainConfWithGivenRegistryTemplate connectInfo filePath registries =
+  (blockChainConfDefaultTemplate connectInfo)
+    { bccChainIndexSource = ChainIndexFromFile filePath registries True False,
+      bccChainIndexTarget = Just filePath
+    }
+
+-- | Same as 'blockChainConfWithGivenRegistryTemplate', but the type registries
+-- in parameters are merged with the default registries, so that the default
+-- types are still supported.
+blockChainConfWithExtraRegistryTemplate ::
+  (Show a) =>
+  Cardano.LocalNodeConnectInfo ->
+  FilePath ->
+  Registries ->
+  BlockChainConf a ()
+blockChainConfWithExtraRegistryTemplate connectInfo filePath registries =
+  blockChainConfWithGivenRegistryTemplate connectInfo filePath (defaultRegistries <> registries)
+
+-- | Same as 'blockChainConfWithGivenRegistryTemplate', but uses the default
+-- registries.
+blockChainConfWithDefaultRegistriesTemplate ::
+  (Show a) =>
+  Cardano.LocalNodeConnectInfo ->
+  FilePath ->
+  BlockChainConf a ()
+blockChainConfWithDefaultRegistriesTemplate connectInfo filePath =
+  blockChainConfWithExtraRegistryTemplate connectInfo filePath emptyRegistries

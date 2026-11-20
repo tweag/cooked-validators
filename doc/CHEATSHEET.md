@@ -27,6 +27,7 @@ see how things have evolved and are currently done in `cooked-validators`!
 - [Running against a Cardano node](#running-against-a-cardano-node)
   - [Blockchains](#blockchains)
   - [Running a trace on a node](#running-a-trace-on-a-node)
+  - [Persisting the chain index](#persisting-the-chain-index)
   - [Writing node-friendly traces](#writing-node-friendly-traces)
 - [Miscellaneous mockchain capabilities](#miscellaneous-mockchain-capabilities)
   - [Wallets](#wallets)
@@ -347,12 +348,68 @@ main =
   runBlockChainFromConf
     BlockChainConf
       { bccConnectInfo = connectInfo,
-        bccInitialChainIndex = def, -- the outputs known before the run
+        bccChainIndexSource = def, -- the outputs known before the run (here none)
+        bccChainIndexTarget = Nothing, -- where to save the final chain index, if anywhere
         bccPrettyOpts = myPrettyOpts,
         bccFunOnResult = displayBlockChainResult -- or any 'RawBlockChainReturn a -> IO b'
       }
     myTrace
 ```
+
+* Start from the default configuration: `blockChainConfDefaultTemplate
+  connectInfo`, which is what `runBlockChainFromConfTemplate` uses.
+
+## Persisting the chain index
+
+The chain index (the outputs known to cooked, with their typed datums and
+owners) can be loaded from and saved to a JSON file, so that successive runs
+against a node build upon each other. See [CODECS](CODECS.md) for details.
+
+* Load the chain index from a file before the run, and save it back after:
+```haskell
+main :: IO ()
+main =
+  runBlockChainFromConf
+    (blockChainConfWithDefaultRegistriesTemplate connectInfo "chain-index.json")
+    myTrace
+```
+
+* Custom types appearing in outputs (datums, owners) must have a `HasTypeKey`
+  instance and be registered to be loaded back:
+```haskell
+instance HasTypeKey MyDatum -- or with an explicit key: typeKey = "my-datum"
+
+main :: IO ()
+main =
+  runBlockChainFromConf
+    ( blockChainConfWithExtraRegistryTemplate
+        connectInfo
+        "chain-index.json"
+        (extendDatumRegistry (mkRegistry [Codec @MyDatum]) emptyRegistries)
+    )
+    myTrace
+```
+
+* Use exactly the given registries, without the default ones:
+  `blockChainConfWithGivenRegistryTemplate connectInfo path registries`
+
+* Choose the source of the initial chain index manually:
+```haskell
+myConf =
+  (blockChainConfDefaultTemplate connectInfo)
+    { -- path, registries, accept a missing file, accept a malformed file
+      bccChainIndexSource = ChainIndexFromFile "in.json" defaultRegistries True False,
+      -- or directly: bccChainIndexSource = DirectChainIndex myChainIndex
+      bccChainIndexTarget = Just "out.json"
+    }
+```
+
+* Directly in `IO`: `loadChainIndex path registries allowMissing
+  allowMalformed`, and `saveChainIndex path chainIndex`, which keeps a backup of
+  the previous file in `path.bak`.
+
+* Beware: private keys of wallets and signatories owning outputs are stored in
+  plain text in these files.
 
 ## Writing node-friendly traces
 
@@ -372,8 +429,8 @@ main = do
         }
 ```
 * UTxO queries are sent to the node, and completed with the content stored in
-  the chain index (outputs created during the run, or given in
-  `bccInitialChainIndex`). Outputs only discovered on the node may have their
+  the chain index (outputs created during the run, or provided through
+  `bccChainIndexSource`). Outputs only discovered on the node may have their
   datum or owning script known only by their hash, in which case spending them
   requires additional care (see [Owners known only by their
   hash](#owners-known-only-by-their-hash)).
@@ -687,7 +744,7 @@ myTrace = do
 The `Override` effect is only available on the mockchain, and allows to modify
 its state without submitting transactions:
 * create outputs out of thin air: `forceOutputs`, `forceOutputs_`
-* change the emulator parameters: `setParams`
+* change the emulator parameters: `setParams` (takes an `Emulator.EmulatorParams`)
 * change the official constitution script: `setConstitutionScript`
 
 # Transactions
@@ -822,12 +879,12 @@ txSkelEmulatorTemplate
   }
 ```
 
-More generally, a signatory is a public key hash paired with a
-`TxSkelSignatoryWitness`, which is either `NoTxSkelSignatoryWitness` or
-`SomeTxSkelSignatoryWitness key` for any `key` with a `ToWitness` instance:
+More generally, a signatory is a public key hash paired with an optional
+Cardano signing key (`Maybe Cardano.ShelleyWitnessSigningKey`), which can be
+built from any key with a `ToWitness` instance:
 
 ```haskell
-mySignatory = TxSkelSignatory myPubKeyHash (SomeTxSkelSignatoryWitness mySigningKey)
+mySignatory = TxSkelSignatory myPubKeyHash (Just $ P.Ledger.toWitness mySigningKey)
 ```
 
 Signatories can be read from a Cardano signing key file (in `IO`):
@@ -841,8 +898,9 @@ main = do
 Notes:
 * Signatories are compared by public key hash only.
 * Signatories can be used as owners of outputs: ``mySignatory `receives` AdaValue 10``.
-* The witness of a signatory can be accessed with `txSkelSignatoryPrivateKeyL`
-  and its signing key, if any, with `txSkelSignatorySigningKeyAF`.
+* The optional signing key of a signatory can be accessed with
+  `txSkelSignatoryPrivateKeyL`, or `txSkelSignatoryPrivateKeyAT` to focus on
+  the key itself, and its public key hash with `txSkelSignatoryPubKeyHashL`.
 
 ## Outputs
 
@@ -874,6 +932,15 @@ fooScript `receives` (InlineDatum FooTypedDatum <&&> Value (myToken 4 <> lovelac
 Owners can be wallets, public key hashes, signatories, scripts (typed
 validators, versioned validators, multi-purpose scripts...), script hashes or
 users (`UserPubKey`, `UserScript`, `UserScriptHash`).
+
+Typed datums must satisfy `DatumConstrs`: `Show`, `PrettyCooked`, `ToData`,
+`FromData`, `Eq`, `Typeable` and `HasTypeKey`. Typed owners additionally need
+`ToJSON`, `FromJSON` and `HasTypeKey` (constraints `PubKeyConstrs` and
+`ScriptConstrs`). `HasTypeKey` has a default implementation (the fully
+qualified type name), so an empty instance is usually enough:
+```haskell
+instance HasTypeKey MyDatum
+```
 
 ### Adjusting payments:
 

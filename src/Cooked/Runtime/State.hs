@@ -2,7 +2,7 @@
 -- simulation is run:
 --
 -- - `EmulatorState`, which gathers the emulator-specific data (the emulator
---   `Emulator.Params` and the `Emulator.EmulatedLedgerState`). This is only
+--   `Emulator.EmulatorParams` and the `Emulator.EmulatedLedgerState`). This is only
 --   relevant when running against the emulated ledger.
 --
 -- - `ChainIndex`, which gathers the backend-agnostic data (the map of known
@@ -60,12 +60,24 @@ module Cooked.Runtime.State
 
     -- * Transforming a `ChainIndex` into an `UtxoState`
     chainIndexToUtxoState,
+
+    -- * Serializing and deserializing a `ChainIndex`
+    chainIndexToJSON,
+    chainIndexFromJSON,
+
+    -- * Loading and saving a `ChainIndex` from and to a file
+    loadChainIndex,
+    saveChainIndex,
   )
 where
 
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Control.Monad.Extra (whenM)
+import Cooked.Runtime.Registries
 import Cooked.Skeleton
 import Cooked.Utilities
+import Data.Aeson (eitherDecodeFileStrict, encodeFile, object, withObject, (.:), (.=))
+import Data.Aeson.Types (Parser, Value, parseEither)
 import Data.Default
 import Data.Function (on)
 import Data.List qualified as List
@@ -73,11 +85,13 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Typeable
 import Ledger.Orphans ()
+import Ledger.Tx.Orphans.V3 ()
 import Optics.Core
 import Optics.TH
 import Plutus.Script.Utils.Address qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
+import System.Directory.Extra (copyFile, doesFileExist, renameFile)
 
 -- | The emulator-specific state used to run the simulation in
 -- 'Cooked.Direct'. It only makes sense when running against the
@@ -85,7 +99,7 @@ import PlutusLedgerApi.V3 qualified as Api
 data EmulatorState where
   EmulatorState ::
     { -- | The parameters of the emulated blockchain
-      emulatorStateParams :: Emulator.Params,
+      emulatorStateParams :: Emulator.EmulatorParams,
       -- | The ledger state of the emulated blockchain
       emulatorStateLedgerState :: Emulator.EmulatedLedgerState
     } ->
@@ -114,7 +128,7 @@ data ChainIndex where
       chainIndexConstitution :: Maybe VScript
     } ->
     ChainIndex
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Focuses on the outputs of a 'ChainIndex'
 makeLensesFor [("chainIndexOutputs", "chainIndexOutputsL")] ''ChainIndex
@@ -334,3 +348,81 @@ chainIndexToUtxoState =
        in if bool
             then utxoState {availableUtxos = Map.insertWith (<>) newAddress newPayloadSet (availableUtxos utxoState)}
             else utxoState {consumedUtxos = Map.insertWith (<>) newAddress newPayloadSet (consumedUtxos utxoState)}
+
+-- | Serializes a 'ChainIndex' to JSON.
+--
+-- __Warning:__ the private keys of the 'Wallet's and 'TxSkelSignatory's owning
+-- outputs are currently serialized in plain text. This is a known limitation,
+-- which will remain until proper wallet support is provided.
+chainIndexToJSON :: ChainIndex -> Value
+chainIndexToJSON ChainIndex {..} =
+  object
+    [ "outputs"
+        .= [ object
+               [ "reference" .= oRef,
+                 "output" .= txSkelOutToJSON output,
+                 "available" .= available
+               ]
+           | (oRef, (output, available)) <- Map.toList chainIndexOutputs
+           ],
+      "constitution" .= chainIndexConstitution
+    ]
+
+-- | Deserializes a 'ChainIndex' from JSON, using the provided registries. This
+-- deserialization technically overrides duplicated outputs, but this should
+-- never happen in practice, as the 'Api.TxOutRef's are unique.
+chainIndexFromJSON :: Registries -> Value -> Parser ChainIndex
+chainIndexFromJSON Registries {..} =
+  withObject "ChainIndex" $ \obj -> do
+    outputs <- obj .: "outputs" >>= mapM parseOutput
+    constitution <- obj .: "constitution"
+    pure $ ChainIndex (Map.fromList outputs) constitution
+  where
+    parseOutput = withObject "ChainIndex output" $ \obj -> do
+      oRef <- obj .: "reference"
+      outputJson <- obj .: "output"
+      output <- txSkelOutFromJSON pubKeyRegistry scriptRegistry datumRegistry outputJson
+      available <- obj .: "available"
+      pure (oRef, (output, available))
+
+-- | Loads a 'ChainIndex' from a file, using the provided registries to
+-- deserialize the custom types hidden within its outputs.
+loadChainIndex ::
+  -- | File path to load the chain index from
+  FilePath ->
+  -- | Type registries to support deserialization of custom types hidden
+  -- within the outputs of the chain index.
+  Registries ->
+  -- | Whether to return an empty chain index if the file is missing
+  Bool ->
+  -- | Whether to return an empty chain index if the file is malformed
+  Bool ->
+  IO ChainIndex
+loadChainIndex filePath registries allowMissing allowMalformed = do
+  res <- doesFileExist filePath
+  if
+    | not res && allowMissing -> do
+        putStrLn $ "Chain index file " <> filePath <> " does not exist or is a directory."
+        putStrLn "Using default empty chain index"
+        return def
+    | not res -> fail $ "Chain index file " <> filePath <> " does not exist or is a directory."
+    | otherwise -> do
+        valueContent <- eitherDecodeFileStrict @Value filePath
+        case valueContent >>= parseEither (chainIndexFromJSON registries) of
+          Right ci -> return ci
+          Left err | allowMalformed -> do
+            putStrLn $ "Chain index file " <> filePath <> " is malformed: " <> err
+            putStrLn "Using default empty chain index"
+            return def
+          Left err -> fail $ "Chain index file " <> filePath <> " is malformed: " <> err
+
+-- | Stores a 'ChainIndex' to a file, after creating a backup (with a @.bak@
+-- extension) of the previous content of this file, if any.
+--
+-- __Warning:__ both files may contain private keys in plain text (see
+-- 'chainIndexToJSON'), and should thus be handled with care.
+saveChainIndex :: FilePath -> ChainIndex -> IO ()
+saveChainIndex path chainIndex = do
+  whenM (doesFileExist path) $ copyFile path $ path <> ".bak"
+  encodeFile (path <> ".tmp") $ chainIndexToJSON chainIndex
+  renameFile (path <> ".tmp") path

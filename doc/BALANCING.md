@@ -115,7 +115,8 @@ data BalancingPolicy where
 
 The user supplied to `BalanceWith` is not restricted to a concrete `Wallet`: any
 type satisfying `UserConstraints pkh` (i.e. that can be turned into a public key
-hash) is accepted.
+hash, and serialized to JSON with a `HasTypeKey` instance, see
+[CODECS](CODECS.md)) is accepted.
 
 The balancing wallet is a critical component needed during the balancing
 process. Its address serves multiple purposes: it is utilized when surplus value

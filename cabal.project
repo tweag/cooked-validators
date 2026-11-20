@@ -1,6 +1,15 @@
 packages:
   .
 
+source-repository-package
+  type: git
+  location: https://github.com/IntersectMBO/cardano-node-emulator
+  tag: 74e3930aeeb24fcc90f5d4910d07c6c8f65ed844
+  subdir:
+    cardano-node-emulator
+    plutus-ledger
+    plutus-script-utils
+
 -- Custom repository for cardano haskell packages
 -- See https://github.com/IntersectMBO/cardano-haskell-packages
 -- on how to use CHaP in a Haskell project.
@@ -39,6 +48,3 @@ package cardano-api
   
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
-  
-constraints:
-  , cardano-node-emulator == 1.4.1.0  

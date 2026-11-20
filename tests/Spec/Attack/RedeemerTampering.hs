@@ -43,7 +43,7 @@ certificateSkel :: TxSkelRedeemer -> TxSkel
 certificateSkel red =
   txSkelEmulatorTemplate
     { txSkelCertificates =
-        [TxSkelCertificate (UserRedeemedScript (toVScript $ Script.trueMPScript @()) red) StakingRegister]
+        [TxSkelCertificate (UserRedeemedScript Script.trueMPScript red) StakingRegister]
     }
 
 -- | The list of 'Integer'-typed certifying redeemers of a skeleton.

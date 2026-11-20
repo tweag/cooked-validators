@@ -10,6 +10,7 @@ import Spec.MultiPurpose qualified as MultiPurpose
 import Spec.ProposingScript qualified as ProposingScript
 import Spec.ReferenceInputs qualified as ReferenceInputs
 import Spec.ReferenceScripts qualified as ReferenceScripts
+import Spec.Serialization qualified as Serialization
 import Spec.Slot qualified as Slot
 import Spec.Tweak qualified as Tweak
 import Spec.Withdrawals qualified as Withdrawals
@@ -32,6 +33,7 @@ main =
         ProposingScript.tests,
         ReferenceInputs.tests,
         ReferenceScripts.tests,
+        Serialization.tests,
         Slot.tests,
         Tweak.tests,
         Withdrawals.tests

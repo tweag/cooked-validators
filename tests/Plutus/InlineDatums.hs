@@ -20,13 +20,8 @@ instance Eq SimpleContractDatum where
 
 unstableMakeIsData ''SimpleContractDatum
 
-data SimpleContract
-
-instance Script.MultiPurposeScriptTypes SimpleContract where
-  type SpendingDatumType SimpleContract = SimpleContractDatum
-
 {-# INLINEABLE inputDatumSpendingPurpose #-}
-inputDatumSpendingPurpose :: Bool -> Script.SpendingPurposeType SimpleContract
+inputDatumSpendingPurpose :: Bool -> Script.SpendingPurposeType Api.TxOutRef SimpleContractDatum BuiltinData Api.TxInfo
 inputDatumSpendingPurpose requireInlineDatum oRef _ _ Api.TxInfo {txInfoInputs} =
   case find ((oRef ==) . Api.txInInfoOutRef) txInfoInputs of
     Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) | requireInlineDatum -> case inDatum of
@@ -42,12 +37,16 @@ inputDatumSpendingPurpose requireInlineDatum oRef _ _ Api.TxInfo {txInfoInputs} 
 compiledInputDatumSpendingPurpose :: CompiledCode (Bool -> BuiltinData -> BuiltinUnit)
 compiledInputDatumSpendingPurpose = $$(compile [||script||])
   where
-    script b = Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` inputDatumSpendingPurpose b
+    script b =
+      Script.mkMultiPurposeScript
+        $ Script.falseTypedMultiPurposeScript
+          { Script.spendingPurpose = Just $ inputDatumSpendingPurpose b
+          }
 
 requireInlineDatumInInputValidator :: Script.Versioned Script.Validator
 requireInlineDatumInInputValidator =
   Script.toVersioned
-    $ Script.MultiPurposeScript @SimpleContract
+    $ Script.MultiPurposeScript
     $ Script.toScript
     $ compiledInputDatumSpendingPurpose
     `unsafeApplyCode` liftCode plcVersion110 True
@@ -55,7 +54,7 @@ requireInlineDatumInInputValidator =
 requireHashedDatumInInputValidator :: Script.Versioned Script.Validator
 requireHashedDatumInInputValidator =
   Script.toVersioned
-    $ Script.MultiPurposeScript @SimpleContract
+    $ Script.MultiPurposeScript
     $ Script.toScript
     $ compiledInputDatumSpendingPurpose
     `unsafeApplyCode` liftCode plcVersion110 False
@@ -71,7 +70,7 @@ makeLift ''OutputDatumKind
 -- the 'txInfoData', and @outputDatumSpendingPurpose Inline@ only returns true if the
 -- output has an inline datum.
 {-# INLINEABLE outputDatumSpendingPurpose #-}
-outputDatumSpendingPurpose :: OutputDatumKind -> Script.SpendingPurposeType SimpleContract
+outputDatumSpendingPurpose :: OutputDatumKind -> Script.SpendingPurposeType Api.TxOutRef BuiltinData BuiltinData Api.TxInfo
 outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOutputs, txInfoData} =
   case find ((oRef ==) . Api.txInInfoOutRef) txInfoInputs of
     Just (Api.TxInInfo _ Api.TxOut {txOutAddress})
@@ -86,12 +85,16 @@ outputDatumSpendingPurpose datumKind oRef _ _ Api.TxInfo {txInfoInputs, txInfoOu
 compiledOutputDatumSpendingPurpose :: CompiledCode (OutputDatumKind -> BuiltinData -> BuiltinUnit)
 compiledOutputDatumSpendingPurpose = $$(compile [||script||])
   where
-    script b = Script.mkMultiPurposeScript $ Script.falseTypedMultiPurposeScript `Script.withSpendingPurpose` outputDatumSpendingPurpose b
+    script b =
+      Script.mkMultiPurposeScript
+        $ Script.falseTypedMultiPurposeScript
+          { Script.spendingPurpose = Just $ outputDatumSpendingPurpose b
+          }
 
 requireInlineDatumInOutputValidator :: Script.Versioned Script.Validator
 requireInlineDatumInOutputValidator =
   Script.toVersioned
-    $ Script.MultiPurposeScript @()
+    $ Script.MultiPurposeScript
     $ Script.toScript
     $ compiledOutputDatumSpendingPurpose
     `unsafeApplyCode` liftCode plcVersion110 Inline
@@ -99,7 +102,7 @@ requireInlineDatumInOutputValidator =
 requireHashedDatumInOutputValidator :: Script.Versioned Script.Validator
 requireHashedDatumInOutputValidator =
   Script.toVersioned
-    $ Script.MultiPurposeScript @()
+    $ Script.MultiPurposeScript
     $ Script.toScript
     $ compiledOutputDatumSpendingPurpose
     `unsafeApplyCode` liftCode plcVersion110 Datum
@@ -107,7 +110,7 @@ requireHashedDatumInOutputValidator =
 requireOnlyHashedDatumInOutputValidator :: Script.Versioned Script.Validator
 requireOnlyHashedDatumInOutputValidator =
   Script.toVersioned
-    $ Script.MultiPurposeScript @()
+    $ Script.MultiPurposeScript
     $ Script.toScript
     $ compiledOutputDatumSpendingPurpose
     `unsafeApplyCode` liftCode plcVersion110 OnlyHash

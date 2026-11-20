@@ -6,9 +6,9 @@ import Cooked.Effect.Params
 import Cooked.Effect.Query
 import Cooked.Skeleton.Datum
 import Cooked.Skeleton.Output
+import Ledger.Data.CardanoAPI qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
-import Plutus.Script.Utils.Data qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Polysemy
 import Polysemy.Error
@@ -30,7 +30,7 @@ toCardanoTxOut output = do
     NoTxSkelOutDatum -> return Cardano.TxOutDatumNone
     SomeTxSkelOutDatum datum (Hashed NotResolved) ->
       Cardano.TxOutDatumHash Cardano.AlonzoEraOnwardsConway
-        <$> fromEither (P.Ledger.toCardanoScriptDataHash $ Script.datumHash $ Api.Datum $ Api.toBuiltinData datum)
+        <$> fromEither (P.Ledger.toCardanoScriptDataHash $ P.Ledger.datumHash $ Api.Datum $ Api.toBuiltinData datum)
     SomeTxSkelOutDatum datum (Hashed Resolved) ->
       return $
         Cardano.TxOutSupplementalDatum Cardano.AlonzoEraOnwardsConway $

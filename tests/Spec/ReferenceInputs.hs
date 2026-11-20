@@ -10,6 +10,8 @@ import Plutus.Script.Utils.V2 qualified as Script
 import Prettyprinter qualified as PP
 import Test.Tasty qualified as Tasty
 
+instance HasTypeKey FooDatum
+
 instance PrettyCooked FooDatum where
   prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyHash opts pkh
 
