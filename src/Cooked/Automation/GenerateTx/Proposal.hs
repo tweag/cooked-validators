@@ -1,5 +1,5 @@
 -- | This module exposes the generation of proposal procedures
-module Cooked.MockChain.Automation.GenerateTx.Proposal (toProposalProcedures) where
+module Cooked.Automation.GenerateTx.Proposal (toProposalProcedures) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
@@ -9,11 +9,12 @@ import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Automation.GenerateTx.Anchor
-import Cooked.MockChain.Automation.GenerateTx.Credential
-import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
+import Cooked.Automation.GenerateTx.Anchor
+import Cooked.Automation.GenerateTx.Credential
+import Cooked.Automation.GenerateTx.Witness
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton.Proposal
 import Cooked.Skeleton.User
 import Data.Coerce
@@ -33,7 +34,7 @@ import Polysemy.Error
 -- over a Cardano parameter update
 toPParamsUpdate ::
   forall effs.
-  (Member (Error MockChainError) effs) =>
+  (Member (Error ChainError) effs) =>
   ParamChange ->
   Conway.PParamsUpdate Emulator.EmulatorEra ->
   Sem effs (Conway.PParamsUpdate Emulator.EmulatorEra)
@@ -61,7 +62,7 @@ toPParamsUpdate pChange ppu =
         TreasuryCut q -> setL Conway.ppuTauL $ toBR q
         MinPoolCost n -> setL Conway.ppuMinPoolCostL $ fromIntegral n
         CoinsPerUTxOByte n -> setL Conway.ppuCoinsPerUTxOByteL $ Conway.CoinPerByte $ fromIntegral n
-        CostModels _pv1 _pv2 _pv3 -> throw $ MCEUnsupportedFeature "CostModels"
+        CostModels _pv1 _pv2 _pv3 -> throw $ CEUnsupportedFeature "CostModels"
         Prices q r -> setL Conway.ppuPricesL $ Cardano.Prices (toBR q) (toBR r)
         MaxTxExUnits n m -> setL Conway.ppuMaxTxExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
         MaxBlockExUnits n m -> setL Conway.ppuMaxBlockExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
@@ -84,14 +85,14 @@ toPParamsUpdate pChange ppu =
 
 -- | Translates a given skeleton proposal into a governance action
 toGovAction ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   GovernanceAction a ->
   StrictMaybe Conway.ScriptHash ->
   Sem effs (Conway.GovAction Emulator.EmulatorEra)
 toGovAction NoConfidence _ = return $ Conway.NoConfidence SNothing
-toGovAction UpdateCommittee {} _ = throw $ MCEUnsupportedFeature "UpdateCommittee"
-toGovAction NewConstitution {} _ = throw $ MCEUnsupportedFeature "TxGovActionNewConstitution"
-toGovAction HardForkInitiation {} _ = throw $ MCEUnsupportedFeature "TxGovActionHardForkInitiation"
+toGovAction UpdateCommittee {} _ = throw $ CEUnsupportedFeature "UpdateCommittee"
+toGovAction NewConstitution {} _ = throw $ CEUnsupportedFeature "TxGovActionNewConstitution"
+toGovAction HardForkInitiation {} _ = throw $ CEUnsupportedFeature "TxGovActionHardForkInitiation"
 toGovAction (ParameterChange changes) sHash = do
   ppu <- foldM (flip toPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes
   return $ Conway.ParameterChange SNothing ppu sHash
@@ -100,7 +101,7 @@ toGovAction (TreasuryWithdrawals (Map.toList -> withdrawals)) sHash =
 
 -- | Translates a list of skeleton proposals into a proposal procedures
 toProposalProcedures ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   [TxSkelProposal] ->
   Sem effs (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
 toProposalProcedures props | null props = return Cardano.TxProposalProceduresNone

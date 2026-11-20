@@ -1,11 +1,11 @@
 -- | This module exposes the generation of a transaction minted value
-module Cooked.MockChain.Automation.GenerateTx.Mint (toMintValue) where
+module Cooked.Automation.GenerateTx.Mint (toMintValue) where
 
 import Cardano.Api qualified as Cardano
 import Control.Monad
-import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
+import Cooked.Automation.GenerateTx.Witness
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton.Mint
 import Cooked.Skeleton.User
 import Data.Map qualified as Map
@@ -21,7 +21,7 @@ import Polysemy.Error
 
 -- | Converts a 'TxSkelMints' into a 'Cardano.TxMintValue'
 toMintValue ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelMints ->
   Sem effs (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)
 toMintValue txSkelMints | txSkelMints == mempty = return Cardano.TxMintNone

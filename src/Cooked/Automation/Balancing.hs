@@ -1,9 +1,8 @@
 -- | This module handles auto-balancing of transaction skeleton. This includes
 -- computation of fees and collaterals because their computation cannot be
 -- separated from the balancing.
-module Cooked.MockChain.Automation.Balancing
-  ( Body,
-    ExtendedTxSkel (..),
+module Cooked.Automation.Balancing
+  ( ExtendedTxSkel (..),
     balanceTxSkel,
     getMinAndMaxFee,
     estimateTxSkelFee,
@@ -14,19 +13,20 @@ import Cardano.Api qualified as Cardano
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Automation.AutoFilling.MinAda
-import Cooked.MockChain.Automation.GenerateTx.Body
-import Cooked.MockChain.Automation.GenerateTx.Output
-import Cooked.MockChain.Common
-import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
-import Cooked.MockChain.UtxoSearch
+import Cooked.Automation.AutoFilling.MinAda
+import Cooked.Automation.GenerateTx.Body
+import Cooked.Automation.GenerateTx.Output
+import Cooked.Effect.Log
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
+import Cooked.Utilities.Aliases
+import Cooked.Utilities.TypedSearch
 import Data.ByteString qualified as BS
-import Data.List (find, partition)
+import Data.Foldable.Extra
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Ratio qualified as Rat
@@ -45,10 +45,7 @@ import Polysemy
 import Polysemy.Error
 import Polysemy.Fail
 
--- | A transaction body
-type Body = Cardano.TxBody Cardano.ConwayEra
-
--- | A `TxSkel` with extra pieces of information produced during balancing
+-- | A 'TxSkel' with extra pieces of information produced during balancing
 data ExtendedTxSkel = ExtendedTxSkel
   { -- | The skeleton itself
     eSkel :: TxSkel,
@@ -57,7 +54,9 @@ data ExtendedTxSkel = ExtendedTxSkel
     -- | The optional collaterals associated with this skeleton
     eMCollaterals :: Maybe Collaterals,
     -- | The Cardano body generated from this skeleton
-    eBody :: Body
+    eBody :: Body,
+    -- | The script errors uncovered during body generation
+    eExUnitsFailures :: ExUnitsFailures
   }
 
 -- | This is the main entry point of our balancing mechanism. This function
@@ -67,7 +66,16 @@ data ExtendedTxSkel = ExtendedTxSkel
 -- skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
 balanceTxSkel ::
-  (Members '[MockChainRead, MockChainLog, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  ( Members
+      '[ Query,
+         Params,
+         Log,
+         Error ChainError,
+         Error P.Ledger.ToCardanoError,
+         Fail
+       ]
+      effs
+  ) =>
   TxSkel ->
   Sem effs ExtendedTxSkel
 balanceTxSkel skelUnbal@TxSkel {..} = do
@@ -76,7 +84,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- with the @BalancingUtxosFromBalancingUser@ policy
   balancingUser <- case txSkelOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSignatory -> case txSkelSignatories of
-      [] -> throw $ MCEBalancingError MissingBalancingUser
+      [] -> throw $ CEBalancingError MissingBalancingUser
       bw : _ -> return $ Just $ UserPubKey bw
     BalanceWith bUser -> return $ Just $ UserPubKey bUser
     DoNotBalance -> return Nothing
@@ -84,7 +92,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the number of scripts involved in the transaction. This is used
   -- to compute the maximum possible fee, as each of those script with
   -- contribute, through its execution units, to the cost of the transaction.
-  nbOfScripts <- fromIntegral . length <$> txSkelAllScripts skelUnbal
+  nbOfScripts <-
+    utxosByRefF (txSkelInputsOutRefs skelUnbal)
+      >>= extractAFold (txSkelOutOwnerL % userVScriptAT)
+      >>= retrieveByTypeAsList
+      >>= retrieve (fromIntegral . length . (<> toListOf (txSkelRedeemedScriptsT % userVScriptL) skelUnbal))
 
   -- The protocol parameters indirectly dictate a minimal and maximal value for a
   -- single transaction fee, which we retrieve.
@@ -96,9 +108,9 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   mCollaterals <- do
     case (nbOfScripts == 0, txSkelOptCollateralUtxos txSkelOpts) of
       -- No script involved, but manual collateral UTxOs provided
-      (True, CollateralUtxosFromSet utxos _) -> logEvent (MCLogUnusedCollaterals $ Right utxos) >> return Nothing
+      (True, CollateralUtxosFromSet utxos _) -> logEvent (CLogUnusedCollaterals $ Right utxos) >> return Nothing
       -- No script involved, but manual collateral user provided
-      (True, CollateralUtxosFromUser cUser) -> logEvent (MCLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
+      (True, CollateralUtxosFromUser cUser) -> logEvent (CLogUnusedCollaterals $ Left $ UserPubKey cUser) >> return Nothing
       -- No script involved, and no particular collateral option provided
       (True, CollateralUtxosFromBalancingUser) -> return Nothing
       -- Some scripts involved, and a specific set of UTxOs, alongside a
@@ -107,14 +119,20 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- Some scripts involved, and a specific collateral user provided.
       -- We fetch vanilla UTxOs from this user and return them.
       (False, CollateralUtxosFromUser (Script.toPubKeyHash -> cUser)) ->
-        Just . (,UserPubKey cUser) . Set.fromList
-          <$> getTxOutRefs (utxosAtSearch cUser ensureOnlyValueOutputs)
+        utxosAt cUser
+          >>= ensureOnlyValueOutputs
+          >>= retrieveKeys
+          >>= retrieve (Just . (,UserPubKey cUser))
       -- Some scripts involved, and no specific collateral options provided.
       (False, CollateralUtxosFromBalancingUser) -> case balancingUser of
         -- If no balancing wallet exists, we throw an error
-        Nothing -> throw $ MCEBalancingError MissingBalancingUser
+        Nothing -> throw $ CEBalancingError MissingBalancingUser
         -- If a balancing wallet exists, we use it as collateral user
-        Just bUser -> Just . (,bUser) . Set.fromList <$> getTxOutRefs (utxosAtSearch bUser ensureOnlyValueOutputs)
+        Just bUser ->
+          utxosAt bUser
+            >>= ensureOnlyValueOutputs
+            >>= retrieveKeys
+            >>= retrieve (Just . (,bUser))
 
   -- At this point, the presence (or absence) of balancing user dictates
   -- whether the transaction should be automatically balanced or not.
@@ -126,23 +144,24 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
             AutoFeeComputation -> maxFee
             ManualFee fee' -> fee'
       mCols <- collateralsFromFee fee mCollaterals
-      cBody <- txSkelToTxBody skelUnbal fee mCols
-      return $ ExtendedTxSkel skelUnbal fee mCols cBody
+      (cBody, cExUnitsFailures) <- txSkelToTxBody skelUnbal fee mCols
+      return $ ExtendedTxSkel skelUnbal fee mCols cBody cExUnitsFailures
     Just bUser -> do
       -- The balancing should be performed. We collect the candidates balancing
       -- utxos based on the associated policy
       balancingUtxos <-
         case txSkelOptBalancingUtxos txSkelOpts of
-          BalancingUtxosFromBalancingUser -> getTxOutRefsAndOutputs $ utxosAtSearch bUser ensureOnlyValueOutputs
+          BalancingUtxosFromBalancingUser -> utxosAt bUser >>= ensureOnlyValueOutputs >>= retrieveByType
           BalancingUtxosFromSet utxos ->
             -- We resolve the given set of utxos
-            getTxOutRefsAndOutputs (txSkelOutByRefSearch' (Set.toList utxos))
+            utxosByRefE utxos
+              >>= retrieveByType
               -- We filter out those belonging to scripts, while throwing a
               -- warning if any was actually discarded.
-              >>= filterAndWarn (is (txSkelOutOwnerL % userPubKeyHashAT) . snd) "They belong to scripts."
+              >>= filterAndWarn (const $ is (txSkelOutOwnerL % userPubKeyHashAT)) "They belong to scripts."
           -- We filter the candidate utxos by removing those already present in the
           -- skeleton, throwing a warning if any was actually discarded
-          >>= filterAndWarn ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) "They are already used in the skeleton."
+          >>= filterAndWarn (flip $ const (`notElem` txSkelKnownTxOutRefs skelUnbal)) "They are already used in the skeleton."
 
       case txSkelOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
@@ -154,17 +173,29 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
         ManualFee fee -> do
           mCols <- collateralsFromFee fee mCollaterals
           balancedSkel <- computeBalancedTxSkel bUser balancingUtxos skelUnbal fee
-          cBody <- txSkelToTxBody balancedSkel fee mCols
-          return $ ExtendedTxSkel balancedSkel fee mCols cBody
+          (cBody, cExUnitsFailures) <- txSkelToTxBody balancedSkel fee mCols
+          return $ ExtendedTxSkel balancedSkel fee mCols cBody cExUnitsFailures
   where
     filterAndWarn f s l
-      | (ok, toInteger . length -> koLength) <- partition f l =
-          unless (koLength == 0) (logEvent $ MCLogDiscardedUtxos koLength s) >> return ok
+      | (ok, toInteger . length -> koLength) <- Map.partitionWithKey f l =
+          unless (koLength == 0) (logEvent $ CLogDiscardedUtxos koLength s) >> return ok
+    ensureOnlyValueOutputs =
+      ensureAFoldIsn't txSkelOutReferenceScriptAT
+        >=> ensureAFoldIsn't txSkelOutStakingCredentialAT
+        >=> ensureAFoldIsn't (txSkelOutDatumL % txSkelOutDatumKindAT)
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dichotomic search for an optimal "balanceable around" fee.
 computeFeeAndBalance ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  ( Members
+      '[ Query,
+         Params,
+         Error ChainError,
+         Error P.Ledger.ToCardanoError,
+         Fail
+       ]
+      effs
+  ) =>
   Peer ->
   Fee ->
   Fee ->
@@ -183,14 +214,14 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
     ( do
         newSkel <- computeBalancedTxSkel balancingUser balancingUtxos skel fee
         mCols <- collateralsFromFee fee mCollaterals
-        (newFee, body) <- estimateTxSkelFee newSkel fee mCols
+        (newFee, body, sErrors) <- estimateTxSkelFee newSkel fee mCols
         if
           -- The skeleton was balanceable, we cannot try smaller fee, but
           -- the used fee is sufficient for the generated body
-          | minFee == maxFee && newFee <= fee -> return $ ExtendedTxSkel newSkel newFee mCols body
+          | minFee == maxFee && newFee <= fee -> return $ ExtendedTxSkel newSkel newFee mCols body sErrors
           -- The skeleton was balanceable, we cannot try smaller fee, but
           -- the used fee is insufficient for the generated body
-          | minFee == maxFee -> throw $ MCEBalancingError $ NotEnoughFundForProperFee balancingUser
+          | minFee == maxFee -> throw $ CEBalancingError $ NotEnoughFundForProperFee balancingUser
           -- Current fee is insufficient, we look on the right (strictly)
           | newFee > fee -> computeFeeAndBalance balancingUser newFee maxFee balancingUtxos mCollaterals skel
           -- Current fee is sufficient, but the set of balancing utxos cannot
@@ -211,7 +242,7 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
       -- If it fails, and the remaining fee interval is not reduced to the
       -- current fee attempt, we can still hope for a solution by trying with
       -- smaller fee.
-      MCEBalancingError {} | fee > minFee -> computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
+      CEBalancingError {} | fee > minFee -> computeFeeAndBalance balancingUser minFee (fee - 1) balancingUtxos mCollaterals skel
       -- Otherwise, the whole balancing process fails and we spread the error:
       -- the skeleton was not balanceable.
       err -> throw err
@@ -221,7 +252,14 @@ computeFeeAndBalance balancingUser minFee maxFee balancingUtxos mCollaterals ske
 -- min ada requirements in the associated return collateral and the maximum
 -- number of collateral inputs authorized by protocol parameters.
 collateralsFromFee ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  ( Members
+      '[ Query,
+         Params,
+         Error ChainError,
+         Error P.Ledger.ToCardanoError
+       ]
+      effs
+  ) =>
   -- | The fee from which these collaterals should be computed
   Fee ->
   -- | The optional candidate UTxOs to be used as collaterals, alongside the
@@ -233,7 +271,7 @@ collateralsFromFee ::
 collateralsFromFee _ Nothing = return Nothing
 collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- We retrieve the protocol parameters
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
   let nbMax = toInteger $ Microlens.view Conway.ppMaxCollateralInputsL params
@@ -244,20 +282,26 @@ collateralsFromFee fee (Just (collateralIns, returnCollateralUser)) = do
   -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = Script.lovelace . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
-  collateralTxOuts <- getTxOutRefsAndOutputs $ txSkelOutByRefSearch' $ Set.toList collateralIns
+  collateralTxOuts <- utxosByRefE collateralIns >>= retrieveByType
   -- Candidate subsets of utxos to be used as collaterals
   reachedValue <- reachValue collateralTxOuts totalCollateral nbMax $ Right returnCollateralUser
   -- A value might, or might not have been reached
   case reachedValue of
     -- If no value was reached, the input UTxOs are insufficient to provide
     -- the necessary collaterals, and thus an error is raised
-    Nothing -> throw $ MCEBalancingError $ NoSuitableCollateral fee percentage totalCollateral
+    Nothing -> throw $ CEBalancingError $ NoSuitableCollateral fee percentage totalCollateral
     -- If a value was reached, we return it alongside the return collaterals
     Just (oRefs, returnOutput) -> return $ Just (Set.fromList oRefs, returnOutput)
 
 reachValue ::
   forall effs.
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  ( Members
+      '[ Query,
+         Params,
+         Error P.Ledger.ToCardanoError
+       ]
+      effs
+  ) =>
   -- | The Utxos available to reach the value
   Utxos ->
   -- | The target value to reach
@@ -273,10 +317,10 @@ reachValue ::
   -- the surplus output, which is either built from scratch or from the provided
   -- surplus output, if any.
   Sem effs (Maybe ([Api.TxOutRef], Maybe TxSkelOut))
-reachValue utxos target fuel outputOrUser = do
+reachValue (Map.toList -> utxos) target fuel outputOrUser = do
   -- We retrieve the current protocol version, which is going to be used to
   -- compute the size of the inputs and outputs added by this function
-  Cardano.ProtVer majorVersion _ <- Microlens.view Conway.ppProtocolVersionL . Emulator.emulatorPParams <$> getParams
+  Cardano.ProtVer majorVersion _ <- Microlens.view Conway.ppProtocolVersionL <$> getParams
   -- We annotate @outputOrUser@ with the size of the existing output, if any
   outputOrUser' <- case outputOrUser of
     Left output -> Left . (output,) <$> outputSize majorVersion output
@@ -391,30 +435,45 @@ reachValue utxos target fuel outputOrUser = do
 -- | Estimates the required fee for a given skeleton with a given initial fee
 -- and collaterals
 estimateTxSkelFee ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  ( Members
+      '[ Query,
+         Params,
+         Error ChainError,
+         Error P.Ledger.ToCardanoError,
+         Fail
+       ]
+      effs
+  ) =>
   TxSkel ->
   Fee ->
   Maybe Collaterals ->
-  Sem effs (Fee, Body)
+  Sem effs (Fee, Body, ExUnitsFailures)
 estimateTxSkelFee skel fee mCollaterals = do
   -- We retrieve the necessary data to generate the transaction body
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   -- We build the index known to the skeleton
   index <- txSkelToIndex skel mCollaterals
   -- We build the transaction body
-  txBody <- txSkelToTxBody skel fee mCollaterals
+  (txBody, exUnitsFailures) <- txSkelToTxBody skel fee mCollaterals
   -- We retrieve the amount of signatories
   let nbOfSignatories = fromIntegral $ length $ txSkelSignatories skel
   -- We compute the estimated fee
   let Cardano.Coin newFee = Cardano.calculateMinTxFee Cardano.ShelleyBasedEraConway params index txBody nbOfSignatories
   -- We return both the new fee and generated body
-  return (newFee, txBody)
+  return (newFee, txBody, exUnitsFailures)
 
 -- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
 -- value + withdrawn value = output value + burned value + fee + deposits
 computeBalancedTxSkel ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  ( Members
+      '[ Query,
+         Params,
+         Error ChainError,
+         Error P.Ledger.ToCardanoError
+       ]
+      effs
+  ) =>
   Peer ->
   Utxos ->
   TxSkel ->
@@ -426,7 +485,10 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   let (burnedValue, mintedValue) = Api.split $ Script.toValue txSkelMints
       outValue = txSkelPaidValue txSkel
       withdrawnValue = txSkelWithdrawnValue txSkel
-  inValue <- txSkelInputValue txSkel
+  inValue <-
+    utxosByRefE (Map.keys txSkelInputs)
+      >>= extractAFold txSkelOutValueL
+      >>= retrieveByTypeAndFold
   certificatesDepositedValue <- Script.toValue <$> txSkelDepositedValueInCertificates txSkel
   proposalsDepositedValue <- Script.toValue <$> txSkelDepositedValueInProposals txSkel
   -- We compute the values missing in the left and right side of the equation
@@ -468,10 +530,10 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
   (additionalInsTxOutRefs, newTxSkelOuts) <- case solution of
     -- There is no solution with the provided parameters
     Nothing -> do
-      let totalValue = mconcat $ view txSkelOutValueL . snd <$> balancingUtxos
+      let totalValue = foldOf (traversed % txSkelOutValueL) balancingUtxos
           difference = snd $ Api.split $ missingLeft <> PlutusTx.negate totalValue
       throw $
-        MCEBalancingError $
+        CEBalancingError $
           if difference == mempty
             then NotEnoughFundForExtraMinAda balancingUser
             else NotEnoughFund balancingUser difference
@@ -498,13 +560,18 @@ computeBalancedTxSkel balancingUser balancingUtxos txSkel@TxSkel {..} (Script.lo
 -- See https://github.com/IntersectMBO/cardano-ledger/blob/master/docs/adr/2024-08-14_009-refscripts-fee-change.md
 -- for more information
 getMinAndMaxFee ::
-  (Members '[MockChainRead] effs) =>
+  ( Members
+      '[ Query,
+         Params
+       ]
+      effs
+  ) =>
   Integer ->
   Sem effs (Fee, Fee)
 getMinAndMaxFee nbOfScripts = do
   -- We retrieve the necessary parameters to compute the maximum possible fee
   -- for a transaction. There are quite a few of them.
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   let maxTxSize = toInteger $ Microlens.view Conway.ppMaxTxSizeL params
       Cardano.Coin txFeePerByte = Microlens.view Conway.ppMinFeeAL params
       Cardano.Coin txFeeFixed = Microlens.view Conway.ppMinFeeBL params

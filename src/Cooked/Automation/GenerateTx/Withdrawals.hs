@@ -1,12 +1,12 @@
 -- | This modules exposes the generation of withdrawals
-module Cooked.MockChain.Automation.GenerateTx.Withdrawals (toWithdrawals) where
+module Cooked.Automation.GenerateTx.Withdrawals (toWithdrawals) where
 
 import Cardano.Api qualified as Cardano
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
+import Cooked.Automation.GenerateTx.Witness
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton.User
 import Cooked.Skeleton.Withdrawal
 import Data.Coerce
@@ -20,12 +20,12 @@ import Polysemy.Error
 
 -- | Takes a 'TxSkelWithdrawals' and transforms it into a 'Cardano.TxWithdrawals'
 toWithdrawals ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelWithdrawals ->
   Sem effs (Cardano.TxWithdrawals Cardano.BuildTx Cardano.ConwayEra)
 toWithdrawals withdrawals | withdrawals == mempty = return Cardano.TxWithdrawalsNone
 toWithdrawals (view txSkelWithdrawalsListI -> withdrawals) = do
-  networkId <- Emulator.pNetworkId <$> getParams
+  networkId <- getNetworkId
   cardanoWithdrawals <- forM withdrawals $ \(Withdrawal user amount) -> do
     let coinAmount = maybe (Cardano.Coin 0) coerce amount
     (sCred, witness) <- case user of

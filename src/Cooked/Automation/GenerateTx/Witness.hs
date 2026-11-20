@@ -1,15 +1,14 @@
 -- | This module exposes the generation of key and script witnesses
-module Cooked.MockChain.Automation.GenerateTx.Witness
+module Cooked.Automation.GenerateTx.Witness
   ( toScriptWitness,
     toKeyWitness,
   )
 where
 
 import Cardano.Api qualified as Cardano
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton
-import Ledger.Address qualified as P.Ledger
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -20,20 +19,20 @@ import Polysemy.Error
 -- | Translates a script and a reference script utxo into either a plutus script
 -- or a reference input containing the right script
 toPlutusScriptOrReferenceInput ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   VScript ->
   Maybe Api.TxOutRef ->
   Sem effs (Cardano.PlutusScriptOrReferenceInput lang)
 toPlutusScriptOrReferenceInput (Script.Versioned (Script.Script script) _) Nothing =
   return $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
 toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptOutRef) = do
-  (preview txSkelOutReferenceScriptHashAF -> mScriptHash) <- txSkelOutByRef scriptOutRef
+  (preview txSkelOutReferenceScriptHashAF -> mScriptHash) <- utxoByRefE scriptOutRef
   case mScriptHash of
     Just scriptHash'
       | scriptHash == scriptHash' -> do
           s <- fromEither $ P.Ledger.toCardanoTxIn scriptOutRef
           return $ Cardano.PReferenceScript s
-    _ -> throw $ MCEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
+    _ -> throw $ CEWrongReferenceScriptError scriptOutRef scriptHash mScriptHash
 
 -- | Translates a script with its associated redeemer and datum to a script
 -- witness. Note on the usage of 'P.Ledger.zeroExecutionUnits': at this stage of
@@ -41,7 +40,7 @@ toPlutusScriptOrReferenceInput (Script.toScriptHash -> scriptHash) (Just scriptO
 -- script. They will be filled out later on once the full body has been
 -- generated. So, for now, we temporarily leave them to 0.
 toScriptWitness ::
-  ( Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs,
+  ( Members '[Query, Error ChainError, Error P.Ledger.ToCardanoError] effs,
     ToVScript a
   ) =>
   a ->
@@ -68,9 +67,4 @@ toKeyWitness ::
   TxSkelSignatory ->
   Maybe (Cardano.KeyWitness Cardano.ConwayEra)
 toKeyWitness txBody =
-  fmap
-    ( Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody
-        . P.Ledger.toWitness
-        . P.Ledger.PaymentPrivateKey
-    )
-    . preview txSkelSignatoryPrivateKeyAT
+  fmap (Cardano.makeShelleyKeyWitness Cardano.ShelleyBasedEraConway txBody) . preview txSkelSignatorySigningKeyAF

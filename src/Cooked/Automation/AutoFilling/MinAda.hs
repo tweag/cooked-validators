@@ -1,7 +1,7 @@
 -- | This module exposes functions to automatically adjust the ADA contained in
 -- the outputs of a 'Cooked.Skeleton.TxSkel' to satisfy the minimal amount
 -- required by the protocol parameters.
-module Cooked.MockChain.Automation.AutoFilling.MinAda
+module Cooked.Automation.AutoFilling.MinAda
   ( getTxSkelOutMinAda,
     toTxSkelOutWithMinAda,
     autoFillMinAda,
@@ -10,11 +10,12 @@ where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Shelley.Core qualified as Shelley
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
-import Cooked.MockChain.Automation.GenerateTx.Output
-import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Cooked.Automation.GenerateTx.Output
+import Cooked.Effect.Log
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -28,11 +29,11 @@ import Polysemy.Error
 
 -- | Compute the required minimal ADA for a given output
 getTxSkelOutMinAda ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs Integer
 getTxSkelOutMinAda txSkelOut = do
-  params <- Emulator.pEmulatorPParams <$> getParams
+  params <- getParams
   Cardano.unCoin
     . Shelley.getMinCoinTxOut params
     . Cardano.toShelleyTxOut Cardano.ShelleyBasedEraConway
@@ -45,7 +46,7 @@ getTxSkelOutMinAda txSkelOut = do
 -- will increase the size of the UTXO which in turn might need more ADA.
 toTxSkelOutWithMinAda ::
   forall effs.
-  (Members '[MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Log, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelOut ->
   Sem effs TxSkelOut
 -- The auto adjustment is disabled so nothing is done here
@@ -55,7 +56,7 @@ toTxSkelOutWithMinAda txSkelOut = do
   txSkelOut' <- go txSkelOut
   let originalAda = view (txSkelOutValueL % valueLovelaceL) txSkelOut
       updatedAda = view (txSkelOutValueL % valueLovelaceL) txSkelOut'
-  when (originalAda /= updatedAda) $ logEvent $ MCLogAdjustedTxSkelOut txSkelOut updatedAda
+  when (originalAda /= updatedAda) $ logEvent $ CLogAdjustedTxSkelOut txSkelOut updatedAda
   return txSkelOut'
   where
     go :: TxSkelOut -> Sem effs TxSkelOut
@@ -72,6 +73,6 @@ toTxSkelOutWithMinAda txSkelOut = do
 -- their ada value when requested by the user and required by the protocol
 -- parameters. Logs an event whenever such a change occurs.
 autoFillMinAda ::
-  (Members '[Tweak, MockChainRead, MockChainLog, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Tweak, Query, Params, Log, Error P.Ledger.ToCardanoError] effs) =>
   Sem effs ()
 autoFillMinAda = traverseTweak (txSkelOutputsL % traversed) toTxSkelOutWithMinAda

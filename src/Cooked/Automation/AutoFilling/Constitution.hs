@@ -1,14 +1,16 @@
 -- | This module exposes a function to automatically fill the constitution
 -- scripts of the proposals in a 'Cooked.Skeleton.TxSkel' based on the current
 -- state of the blockchain.
-module Cooked.MockChain.Automation.AutoFilling.Constitution
+module Cooked.Automation.AutoFilling.Constitution
   ( autoFillConstitution,
   )
 where
 
 import Control.Monad
-import Cooked.MockChain.Effect.Log
-import Cooked.MockChain.Effect.Read
+import Control.Monad.Extra
+import Cooked.Effect.Log
+import Cooked.Effect.Query
+import Cooked.Runtime.Journal
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Update
@@ -23,16 +25,22 @@ import Polysemy
 -- existing specified script in such proposals. Logs an event when the
 -- constitution script has been successfully auto-filled.
 autoFillConstitution ::
-  (Members '[MockChainRead, Tweak, MockChainLog] effs) =>
+  ( Members
+      '[ Query,
+         Tweak,
+         Log
+       ]
+      effs
+  ) =>
   Sem effs ()
 autoFillConstitution = do
-  currentConstitution <- getConstitutionScript
-  case currentConstitution of
-    Nothing -> return ()
-    Just constitutionScript -> do
-      traverseTweak (txSkelProposalsL % traversed) $ \prop -> do
+  maybeM
+    (return ())
+    ( \constitutionScript -> traverseTweak (txSkelProposalsL % traversed) $ \prop -> do
         when (isn't txSkelProposalConstitutionAT prop) $
           logEvent $
-            MCLogAutoFilledConstitution $
+            CLogAutoFilledConstitution $
               Script.toScriptHash constitutionScript
-        return (fillConstitution constitutionScript prop)
+        return (fillConstitutionWhenEmpty constitutionScript prop)
+    )
+    getConstitutionScript

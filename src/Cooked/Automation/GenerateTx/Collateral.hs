@@ -1,17 +1,19 @@
 -- | This module exposes the generation of transaction collaterals, which
 -- consist of a collateral amount, collateral inputs and return collateral
-module Cooked.MockChain.Automation.GenerateTx.Collateral
+module Cooked.Automation.GenerateTx.Collateral
   ( toCollateralTriplet,
   )
 where
 
 import Cardano.Api qualified as Cardano
-import Cooked.MockChain.Automation.GenerateTx.Output
-import Cooked.MockChain.Common
-import Cooked.MockChain.Effect.Read
+import Cooked.Automation.GenerateTx.Output
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton.Output
 import Cooked.Skeleton.Value
-import Data.Map qualified as Map
+import Cooked.Utilities.Aliases
+import Cooked.Utilities.TypedSearch
 import Data.Set qualified as Set
 import Ledger.Tx.CardanoAPI qualified as P.Ledger
 import Optics.Core
@@ -31,7 +33,7 @@ import Polysemy.Error
 -- These quantity should satisfy the equation (in terms of their values):
 -- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError, Error ChainError] effs) =>
   Maybe Collaterals ->
   Sem
     effs
@@ -47,7 +49,10 @@ toCollateralTriplet (Just (Set.toList -> collateralInsList, mReturnCollateral)) 
       [] -> return Cardano.TxInsCollateralNone
       l -> fromEither $ Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM P.Ledger.toCardanoTxIn l
   -- We collect the amount of lovelace in the collateral inputs
-  Api.Lovelace collateralInsLovelace <- foldOf (folded % txSkelOutValueL % valueLovelaceL) . Map.elems <$> lookupUtxos collateralInsList
+  Api.Lovelace collateralInsLovelace <-
+    utxosByRefE collateralInsList
+      >>= extractAFold (txSkelOutValueL % valueLovelaceL)
+      >>= retrieveByTypeAndFold
   -- We collect the amount of lovelace in the return collateral output
   let Api.Lovelace returnCollateralLovelace = maybe 0 (view (txSkelOutValueL % valueLovelaceL)) mReturnCollateral
   -- The total collateral is the difference between the two

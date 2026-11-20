@@ -1,5 +1,5 @@
 -- | Transforming 'TxSkelAnchor' into its Cardano counterpart
-module Cooked.MockChain.Automation.GenerateTx.Anchor (toCardanoAnchor) where
+module Cooked.Automation.GenerateTx.Anchor (toCardanoAnchor) where
 
 import Cardano.Ledger.BaseTypes qualified as C.Ledger
 import Cardano.Ledger.Conway.Core qualified as Conway

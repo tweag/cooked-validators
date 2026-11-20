@@ -1,17 +1,17 @@
 -- | This module provide primitives to transform certificates from our skeleton
 -- to certificate in Cardano transaction bodies.
-module Cooked.MockChain.Automation.GenerateTx.Certificate (toCertificates) where
+module Cooked.Automation.GenerateTx.Certificate (toCertificates) where
 
 import Cardano.Api qualified as Cardano
 import Cardano.Ledger.Conway.TxCert qualified as Conway
 import Cardano.Ledger.DRep qualified as C.Ledger
 import Cardano.Ledger.PoolParams qualified as C.Ledger
 import Cardano.Ledger.Shelley.TxCert qualified as Shelley
-import Cardano.Node.Emulator.Internal.Node qualified as Emulator
-import Cooked.MockChain.Automation.GenerateTx.Credential
-import Cooked.MockChain.Automation.GenerateTx.Witness
-import Cooked.MockChain.Effect.Read
-import Cooked.MockChain.Runtime.Error
+import Cooked.Automation.GenerateTx.Credential
+import Cooked.Automation.GenerateTx.Witness
+import Cooked.Effect.Params
+import Cooked.Effect.Query
+import Cooked.Runtime.Error
 import Cooked.Skeleton.Certificate
 import Cooked.Skeleton.User
 import Data.Default
@@ -25,7 +25,7 @@ import Polysemy.Error
 import Polysemy.Fail
 
 toDRep ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   Api.DRep ->
   Sem effs C.Ledger.DRep
 toDRep Api.DRepAlwaysAbstain = return C.Ledger.DRepAlwaysAbstain
@@ -33,7 +33,7 @@ toDRep Api.DRepAlwaysNoConfidence = return C.Ledger.DRepAlwaysNoConfidence
 toDRep (Api.DRep (Api.DRepCredential cred)) = C.Ledger.DRepCredential <$> toDRepCredential cred
 
 toDelegatee ::
-  (Members '[MockChainRead, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error P.Ledger.ToCardanoError] effs) =>
   Api.Delegatee ->
   Sem effs Conway.Delegatee
 toDelegatee (Api.DelegStake pkh) = Conway.DelegStake <$> toStakePoolKeyHash pkh
@@ -41,7 +41,7 @@ toDelegatee (Api.DelegVote dRep) = Conway.DelegVote <$> toDRep dRep
 toDelegatee (Api.DelegStakeVote pkh dRep) = liftA2 Conway.DelegStakeVote (toStakePoolKeyHash pkh) (toDRep dRep)
 
 toCertificate ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelCertificate ->
   Sem effs (Cardano.Certificate Cardano.ConwayEra)
 toCertificate txSkelCert =
@@ -77,11 +77,11 @@ toCertificate txSkelCert =
             Shelley.RetirePool
             (toStakePoolKeyHash poolHash)
             ( do
-                eeh <- Emulator.emulatorEraHistory <$> getParams
+                eeh <- getEraHistory
                 case Cardano.slotToEpoch (fromIntegral slot) eeh of
                   -- TODO: we could have a dedicated error for this case if the
                   -- can occur at several places in the codebase
-                  Left err -> throw $ MCEFailure $ "Too far away in the future: " <> show err
+                  Left err -> throw $ CEFailure $ "Too far away in the future: " <> show err
                   Right (epoch, _, _) -> return epoch
             )
       TxSkelCertificate (Script.toCredential -> coldCred) (CommitteeRegisterHot hotCred) ->
@@ -90,7 +90,7 @@ toCertificate txSkelCert =
         Conway.ConwayTxCertGov . (`Conway.ConwayResignCommitteeColdKey` SNothing) <$> toColdCredential cred
 
 toCertificateWitness ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError] effs) =>
   TxSkelCertificate ->
   Sem effs (Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toCertificateWitness =
@@ -104,7 +104,7 @@ toCertificateWitness =
 
 -- | Builds a 'Cardano.TxCertificates' from a list of 'TxSkelCertificate'
 toCertificates ::
-  (Members '[MockChainRead, Error MockChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
+  (Members '[Query, Params, Error ChainError, Error P.Ledger.ToCardanoError, Fail] effs) =>
   [TxSkelCertificate] ->
   Sem effs (Cardano.TxCertificates Cardano.BuildTx Cardano.ConwayEra)
 toCertificates =

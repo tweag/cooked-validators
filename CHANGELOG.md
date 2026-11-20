@@ -42,6 +42,10 @@
   interpreter shared by both backends.
 - New `validateTxSkelL`, returning the references of the created outputs.
 - New `define_`, `defineM_`, `assertP`, `assertL`, `assertW` and `assertS`.
+- New `Cooked.Automation` umbrella module exposing
+  `runAutomationPipeline`.
+- New `eExUnitsFailures` field in `ExtendedTxSkel`, recording the script
+  evaluation failures encountered while computing execution units.
 
 ### Changed
 
@@ -83,6 +87,13 @@
   dummy genesis input.
 - Validating a skeleton no longer automatically increases the current
   slot.
+- `Cooked.MockChain.Automation.*` moved to `Cooked.Automation.*`.
+- Execution units are computed with the ledger evaluator; when a script
+  fails, the transaction is generated with an invalid script validity
+  flag (phase-2 failure) instead of aborting.
+- `txSkelToTxBody` returns the generated `Body` along with the
+  `ExUnitsFailures`, and `txBodyContentToTxBody` no longer requires
+  protocol parameters.
 
 ### Removed
 
@@ -98,6 +109,7 @@
 - `txSkelAllScripts`, `txSkelInputScripts`, `txSkelInputValue`,
   `txSkelOutByRef`, `utxosFromCardanoTx` and `lookupUtxos`.
 - `runToCardanoErrorInMockChainError` and `runFailInMockChainError`.
+- `txSkelToCardanoTx`.
 
 ### Fixed
 
